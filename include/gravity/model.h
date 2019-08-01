@@ -878,9 +878,9 @@ namespace gravity {
                         auto prod_b1 = o1.get_lb(key1)*o1.get_lb(key1);
                         auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
                         auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
-
-                        lb.set_val(i, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
-                        ub.set_val(i, std::max(std::max(prod_b1,prod_b2),prod_b3));
+                        
+                        lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
+                        ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
                     }
                 }
                 else //if variables are different, need to check all four combinations
@@ -905,14 +905,14 @@ namespace gravity {
                         auto prod_b3 = o1.get_ub(key1)*o2.get_lb(key2);
                         auto prod_b4 = o1.get_ub(key1)*o2.get_ub(key2);
                         
-                        lb.set_val(i, std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)));
-                        ub.set_val(i, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
+                        lb.set_val(key1+","+key2, std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)));
+                        ub.set_val(key1+","+key2, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
                     }
                 }
                 
-//                auto prod = o1*o2;
-//                lb.set_val(prod._range->first);
-//                ub.set_val(prod._range->second);
+                //                auto prod = o1*o2;
+                //                lb.set_val(prod._range->first);
+                //                ub.set_val(prod._range->second);
                 auto it = _vars_name.find(name);
                 
                 auto name1 = o1.get_name(true,true);
@@ -1141,7 +1141,7 @@ namespace gravity {
                                 
                                 if(name1 == name2){
                                     //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
-
+                                    
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
                                     {
@@ -1187,354 +1187,16 @@ namespace gravity {
                                         auto inst_partition = indices(unique_ids,partns);
                                         add(on.in(inst_partition));
                                         
-                                    Constraint<> onLink1(pair.first+"_binaryLink1");
-                                    onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
-                                    add(onLink1.in(inst_partition) >= 0);
-                                    
-                                    Constraint<> onLink2(pair.first+"_binaryLink2");
-                                    onLink2 = binvar1->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
-                                    add(onLink2.in(inst_partition) >= 0);
-                                    
-                                    Constraint<> onLink3(pair.first+"_binaryLink3");
-                                    onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar1->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
-                                    add(onLink3.in(inst_partition) <= 0);
-                                    
-                                    Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum(on.in_matrix(nb_entries));
-                                    add(onSumComb.in(unique_ids) == 1);
-                                    
-                                    add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
-                                    }
-                                    
-                                    else{ //means it is one of the lambda formulations
-                                        
-                                        //difference is this has one more partition index
-                                        indices partns1_lambda("partns1_lambda");
-                                        for (int i = 0; i < num_partns1+1; ++i)
-                                        {
-                                            partns1_lambda.add(name1+ "{" +to_string(i+1) + "}");
-                                        }
-                                        
-                                        indices partns2_lambda("partns2_lambda");
-                                        for (int i = 0; i < num_partns2+1; ++i)
-                                        {
-                                            partns2_lambda.add(name2+ "{" +to_string(i+1) + "}");
-                                        }
-                                        
-                                        indices partns_lambda("partns_lambda");
-                                        partns_lambda = indices(partns1_lambda,partns2_lambda);
-                                        auto inst_partition_lambda = indices(unique_ids,partns_lambda);
-                                        auto inst_partition_bounds1 = indices(unique_ids,partns1_lambda);
-                                        auto inst_partition_bounds2 = indices(unique_ids,partns2_lambda);
-                                        
-                                        // Convex combination variables
-                                        var<> lambda(name1+name2+"_lambda",pos_);
-                                        add(lambda.in(inst_partition_lambda));
-                                        
-                                        /** Parameters */
-                                        // Bounds on variable v1 & v2
-                                        param<> bounds1(name1+"_bounds1");
-                                        bounds1.in(inst_partition_bounds1);
-                                        
-                                        param<> bounds2(name2+"_bounds2");
-                                        bounds2.in(inst_partition_bounds2);
-                                        
-                                        // Function values on the extreme points
-                                        param<> EP(name1+name2+"_grid_values");
-                                        EP.in(inst_partition_lambda);
-                                        
-                                        size_t nb_ins = vlift.in(unique_ids).get_nb_inst();
-                                        auto o1_global_lb = o1.get_lb();
-                                        auto increment1 = (o1.get_ub() - o1_global_lb)/num_partns1;
-                                        
-                                        auto o2_global_lb = o2.get_lb();
-                                        auto increment2 = (o2.get_ub() - o2_global_lb)/num_partns2;
-                                        
-                                        // fill bounds and function values
-                                        for (int i=0 ; i<num_partns1+1; ++i) {
-                                            auto bound_partn1 = o1_global_lb + increment1*i;
-                                            bound_partn1.eval_all();
-                                            auto bound_partn2 = o2_global_lb + increment2*i;
-                                            bound_partn2.eval_all();
-                                            for (size_t inst = 0; inst< nb_ins; inst++){
-                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
-                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
-                                                bounds1.set_val(cur_idx,bound_partn1.eval(inst));
-                                                bounds2.set_val(cur_idx,bound_partn2.eval(inst));
-                                                for(int j=0; j<num_partns2+1; ++j){
-                                                    bound_partn2 = o2_global_lb + increment2*j;
-                                                    bound_partn2.eval_all();
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"}";
-                                                    EP.set_val(cur_idx,(bound_partn1.eval(inst)*bound_partn2.eval(inst)));
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Lambda coefficient matrix when linking with partition variables
-                                        param<> lambda_coef1(name1+"_lambda_linking_coefficients1");
-                                        param<> lambda_coef2(name2+"_lambda_linking_coefficients2");
-                                        
-                                        // Partition coefficient matrix when linking with lambda variables
-                                        param<> on_coef1(name1+"_partition_linking_coefficients1");
-                                        param<> on_coef2(name2+"_partition_linking_coefficients2");
-                                        
-                                        if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
-                                            
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
-                                            
-                                            // fill lambda_coef1 and lambda_coef2
-                                            for (size_t inst = 0; inst< nb_ins; inst++){
-                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
-                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                for (int i=0 ; i<num_partns1+1; ++i) {
-                                                    for (int j=0 ; j<num_partns2+1; ++j) {
-                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        lambda_coef1.set_val(cur_idx,1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(j+1);
-                                                        lambda_coef2.set_val(cur_idx,1);
-                                                    }
-                                                }
-                                            }
-                                            
-                                            // fill on_coef1 and on_coef2
-                                            for (size_t inst = 0; inst< nb_ins; inst++){
-                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
-                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1 ; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
-                                                }
-                                                for (int i=1 ; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
-                                                }
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
-                                                on_coef1.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(num_partns2)+"},"+to_string(num_partns2+1);
-                                                on_coef2.set_val(cur_idx,1);
-                                            }
-                                        }
-  
-                                        
-                                        else /*means model_type == "lambda_III" */{
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
-
-                                            // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
-                                            
-                                            // fill lambda_coef1 and lambda_coef2
-                                            for (size_t inst = 0; inst< nb_ins; inst++){
-                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
-                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                for (int j=0; j<num_partns2+1; ++j) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
-                                                        for(int k=0; k<num_partns2+1; ++k){
-                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
-                                                        lambda_coef1.set_val(cur_idx,1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
-                                                        lambda_coef1.set_val(cur_idx,-1);
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                for (int i=0; i<num_partns1+1; ++i) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
-                                                        for(int k=0; k<num_partns1+1; ++k){
-                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                            lambda_coef2.set_val(cur_idx,1);
-                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                            lambda_coef2.set_val(cur_idx,-1);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            
-                                           
-                                            
-                                            // fill on_coef1 and on_coef2
-                                            for (size_t inst = 0; inst< nb_ins; inst++){
-                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
-                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
-
-                                                for (int i=1; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef1.set_val(cur_idx, 1);
-                                                }
-
-                                                for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns1; ++j) {
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef1.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef1.set_val(cur_idx,1);
-                                                    }
-                                                }
-                                                
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef2.set_val(cur_idx, 1);
-                                                }
-                                                
-                                                for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns2; ++j) {
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef2.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef2.set_val(cur_idx,1);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        
-                                        /** Constraints */
-                                        // Representation of the bilinear term with convex combination
-                                        Constraint<> bln_rep(pair.first+"_bln_rep");
-                                        /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - vlift.in(unique_ids);
-                                        add(bln_rep.in(unique_ids) == 0);
-
-                                        // Representation of o1 with convex combination
-                                        Constraint<> o1_rep(pair.first+"_o1_rep");
-                                        /************** this might not be working **************/
-                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
-                                        add(o1_rep.in(unique_ids) == 0);
-                                        
-                                        // Representation of o2 with convex combination
-                                        Constraint<> o2_rep(pair.first+"_o2_rep");
-                                        /************** this might not be working **************/
-                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
-                                        add(o2_rep.in(unique_ids) == 0);
-
-                                        // Linking partition variables1 with lambda
-                                        if(model_type == "lambda_II"){
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
-                                        }
-                                        else{
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
-                                        }
-                                        // sum over lambda
-                                        Constraint<> lambdaSum(pair.first+"_lambdaSum");
-                                        lambdaSum = sum(lambda.in_matrix(nb_entries));
-                                        add(lambdaSum.in(unique_ids) == 1);
-                                    }
-                                }
-                                
-                                else{
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
-                                    
-                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
-                                    indices partns1("partns1");
-                                    for (int i = 0; i < num_partns1 ; ++i)
-                                    {
-                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
-                                    }
-                                    
-                                    param<int> lb1("lb1"), ub1("ub1");
-                                    lb1.in(o1_ids_uq,partns1);
-                                    ub1.in(o1_ids_uq,partns1);
-                                    lb1.set_val(0), ub1.set_val(1);
-                                    auto added1 = binvar1->add_bounds(lb1,ub1);
-                                    reindex_vars();
-                                    
-                                    var<int> on2(name2+"_binary",0,1);
-                                    indices partns2("partns2");
-                                    for (int i = 0; i < num_partns2 ; ++i)
-                                    {
-                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
-                                    }
-                                    
-                                   
-                                    //                                    add(on2.in(o2_ids,range(1,num_partns2)));
-                                    add(on2.in(o2_ids_uq,partns2));
-
-                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
-                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
-                                    auto nb_entries = unique_ids.get_nb_entries();
-                                    
-                                    if(!added1.empty()){
-                                        Constraint<> onSum1(o1._name+"_binarySum");
-                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
-                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
-                                        vset1.filter_refs(vset1.get_unique_refs());
-                                        add(onSum1.in(vset1) == 1);
-                                    }
-                                    
-                                    Constraint<> onSum2(o2._name+"_binarySum");
-                                    onSum2 = sum(on2.in_matrix(nb_entries_v2));
-                                    add(onSum2.in(o2_ids_uq) == 1);
-                                    
-                                    if(model_type == "on/off"){ //if on/off is chosen
-                                        
-                                        var<int> on(name1+name2+"_binary",0,1);
-
-                                        indices partns("partns");
-                                        //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
-                                        partns = indices(partns1,partns2);
-                                        auto inst_partition = indices(unique_ids,partns);
-                                        add(on.in(inst_partition));
-                                        
                                         Constraint<> onLink1(pair.first+"_binaryLink1");
                                         onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
                                         add(onLink1.in(inst_partition) >= 0);
                                         
                                         Constraint<> onLink2(pair.first+"_binaryLink2");
-                                        onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                        onLink2 = binvar1->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
                                         add(onLink2.in(inst_partition) >= 0);
                                         
                                         Constraint<> onLink3(pair.first+"_binaryLink3");
-                                        onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                        onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + binvar1->in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
                                         add(onLink3.in(inst_partition) <= 0);
                                         
                                         Constraint<> onSumComb(pair.first+"_binarySum");
@@ -1788,7 +1450,7 @@ namespace gravity {
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
@@ -1799,8 +1461,365 @@ namespace gravity {
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                        }
+                                        // sum over lambda
+                                        Constraint<> lambdaSum(pair.first+"_lambdaSum");
+                                        lambdaSum = sum(lambda.in_matrix(nb_entries));
+                                        add(lambdaSum.in(unique_ids) == 1);
+                                    }
+                                }
+                                
+                                else{
+                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    
+                                    auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
+                                    indices partns1("partns1");
+                                    for (int i = 0; i < num_partns1 ; ++i)
+                                    {
+                                        partns1.add(name1+ "{" +to_string(i+1) + "}");
+                                    }
+                                    
+                                    param<int> lb1("lb1"), ub1("ub1");
+                                    lb1.in(o1_ids_uq,partns1);
+                                    ub1.in(o1_ids_uq,partns1);
+                                    lb1.set_val(0), ub1.set_val(1);
+                                    auto added1 = binvar1->add_bounds(lb1,ub1);
+                                    reindex_vars();
+                                    
+                                    var<int> on2(name2+"_binary",0,1);
+                                    indices partns2("partns2");
+                                    for (int i = 0; i < num_partns2 ; ++i)
+                                    {
+                                        partns2.add(name2+ "{" + to_string(i+1) + "}");
+                                    }
+                                    
+                                    
+                                    //                                    add(on2.in(o2_ids,range(1,num_partns2)));
+                                    add(on2.in(o2_ids_uq,partns2));
+                                    
+                                    auto nb_entries_v1 = o1_ids.get_nb_entries();
+                                    auto nb_entries_v2 = o2_ids.get_nb_entries();
+                                    auto nb_entries = unique_ids.get_nb_entries();
+                                    
+                                    if(!added1.empty()){
+                                        Constraint<> onSum1(o1._name+"_binarySum");
+                                        onSum1 = sum(binvar1->in(added1).in_matrix(nb_entries_v1));
+                                        auto vset1 = added1.from_ith(0,nb_entries_v1);
+                                        vset1.filter_refs(vset1.get_unique_refs());
+                                        add(onSum1.in(vset1) == 1);
+                                    }
+                                    
+                                    Constraint<> onSum2(o2._name+"_binarySum");
+                                    onSum2 = sum(on2.in_matrix(nb_entries_v2));
+                                    add(onSum2.in(o2_ids_uq) == 1);
+                                    
+                                    if(model_type == "on/off"){ //if on/off is chosen
+                                        
+                                        var<int> on(name1+name2+"_binary",0,1);
+                                        
+                                        indices partns("partns");
+                                        //                                    partns = indices(range(1,num_partns1),range(1,num_partns2));
+                                        partns = indices(partns1,partns2);
+                                        auto inst_partition = indices(unique_ids,partns);
+                                        add(on.in(inst_partition));
+                                        
+                                        Constraint<> onLink1(pair.first+"_binaryLink1");
+                                        onLink1 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) - on;
+                                        add(onLink1.in(inst_partition) >= 0);
+                                        
+                                        Constraint<> onLink2(pair.first+"_binaryLink2");
+                                        onLink2 = on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - on;
+                                        add(onLink2.in(inst_partition) >= 0);
+                                        
+                                        Constraint<> onLink3(pair.first+"_binaryLink3");
+                                        onLink3 = binvar1->from_ith(0,inst_partition.ignore_ith(nb_entries_v1, nb_entries_v2)) + on2.in_ignore_ith(nb_entries_v2,1,inst_partition.ignore_ith(0,nb_entries_v1)) - 1 - on;
+                                        add(onLink3.in(inst_partition) <= 0);
+                                        
+                                        Constraint<> onSumComb(pair.first+"_binarySum");
+                                        onSumComb = sum(on.in_matrix(nb_entries));
+                                        add(onSumComb.in(unique_ids) == 1);
+                                        
+                                        add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
+                                    }
+                                    
+                                    else{ //means it is one of the lambda formulations
+                                        
+                                        //difference is this has one more partition index
+                                        indices partns1_lambda("partns1_lambda");
+                                        for (int i = 0; i < num_partns1+1; ++i)
+                                        {
+                                            partns1_lambda.add(name1+ "{" +to_string(i+1) + "}");
+                                        }
+                                        
+                                        indices partns2_lambda("partns2_lambda");
+                                        for (int i = 0; i < num_partns2+1; ++i)
+                                        {
+                                            partns2_lambda.add(name2+ "{" +to_string(i+1) + "}");
+                                        }
+                                        
+                                        indices partns_lambda("partns_lambda");
+                                        partns_lambda = indices(partns1_lambda,partns2_lambda);
+                                        auto inst_partition_lambda = indices(unique_ids,partns_lambda);
+                                        auto inst_partition_bounds1 = indices(unique_ids,partns1_lambda);
+                                        auto inst_partition_bounds2 = indices(unique_ids,partns2_lambda);
+                                        
+                                        // Convex combination variables
+                                        var<> lambda(name1+name2+"_lambda",pos_);
+                                        add(lambda.in(inst_partition_lambda));
+                                        
+                                        /** Parameters */
+                                        // Bounds on variable v1 & v2
+                                        param<> bounds1(name1+"_bounds1");
+                                        bounds1.in(inst_partition_bounds1);
+                                        
+                                        param<> bounds2(name2+"_bounds2");
+                                        bounds2.in(inst_partition_bounds2);
+                                        
+                                        // Function values on the extreme points
+                                        param<> EP(name1+name2+"_grid_values");
+                                        EP.in(inst_partition_lambda);
+                                        
+                                        size_t nb_ins = vlift.in(unique_ids).get_nb_inst();
+                                        auto o1_global_lb = o1.get_lb();
+                                        auto increment1 = (o1.get_ub() - o1_global_lb)/num_partns1;
+                                        
+                                        auto o2_global_lb = o2.get_lb();
+                                        auto increment2 = (o2.get_ub() - o2_global_lb)/num_partns2;
+                                        
+                                        // fill bounds and function values
+                                        for (int i=0 ; i<num_partns1+1; ++i) {
+                                            auto bound_partn1 = o1_global_lb + increment1*i;
+                                            bound_partn1.eval_all();
+                                            auto bound_partn2 = o2_global_lb + increment2*i;
+                                            bound_partn2.eval_all();
+                                            for (size_t inst = 0; inst< nb_ins; inst++){
+                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
+                                                bounds1.set_val(cur_idx,bound_partn1.eval(inst));
+                                                bounds2.set_val(cur_idx,bound_partn2.eval(inst));
+                                                for(int j=0; j<num_partns2+1; ++j){
+                                                    bound_partn2 = o2_global_lb + increment2*j;
+                                                    bound_partn2.eval_all();
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"}";
+                                                    EP.set_val(cur_idx,(bound_partn1.eval(inst)*bound_partn2.eval(inst)));
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Lambda coefficient matrix when linking with partition variables
+                                        param<> lambda_coef1(name1+"_lambda_linking_coefficients1");
+                                        param<> lambda_coef2(name2+"_lambda_linking_coefficients2");
+                                        
+                                        // Partition coefficient matrix when linking with lambda variables
+                                        param<> on_coef1(name1+"_partition_linking_coefficients1");
+                                        param<> on_coef2(name2+"_partition_linking_coefficients2");
+                                        
+                                        if(model_type == "lambda_II"){
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            
+                                            // fill lambda_coef1 and lambda_coef2
+                                            for (size_t inst = 0; inst< nb_ins; inst++){
+                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                                for (int i=0 ; i<num_partns1+1; ++i) {
+                                                    for (int j=0 ; j<num_partns2+1; ++j) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                        if(num_partns1 > 1) lambda_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(j+1);
+                                                        if(num_partns2 > 1) lambda_coef2.set_val(cur_idx,1);
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // fill on_coef1 and on_coef2
+                                            for (size_t inst = 0; inst< nb_ins; inst++){
+                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
+                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
+                                                if(num_partns1 > 1){
+                                                    for (int i=1 ; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                    }
+                                                }
+                                                if(num_partns2 > 1){
+                                                    for (int i=1 ; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                    }
+                                                }
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
+                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(num_partns2)+"},"+to_string(num_partns2+1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
+                                            }
+                                        }
+                                        
+                                        
+                                        else /*means model_type == "lambda_III" */{
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            
+                                            // Partition coefficient matrix when linking with lambda variables
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            
+                                            // fill lambda_coef1 and lambda_coef2
+                                            for (size_t inst = 0; inst< nb_ins; inst++){
+                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                                if(num_partns1 > 1) {
+                                                    for (int j=0; j<num_partns2+1; ++j) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                    }
+                                                    
+                                                    for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
+                                                            for(int k=0; k<num_partns2+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
+                                                                lambda_coef1.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
+                                                                lambda_coef1.set_val(cur_idx,-1);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                if(num_partns2 > 1){
+                                                    for (int i=0; i<num_partns1+1; ++i) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                    }
+                                                    
+                                                    for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
+                                                            for(int k=0; k<num_partns1+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                                lambda_coef2.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                                lambda_coef2.set_val(cur_idx,-1);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            
+                                            
+                                            // fill on_coef1 and on_coef2
+                                            for (size_t inst = 0; inst< nb_ins; inst++){
+                                                auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
+                                                auto cur_var_idx = unique_ids._keys->at(cur_var_id);
+                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
+                                                if(num_partns1 > 1) {
+                                                    on_coef1.set_val(cur_idx,1);
+                                                    
+                                                    
+                                                    for (int i=1; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef1.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns1; ++j) {
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef1.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef1.set_val(cur_idx,1);
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                if(num_partns2 > 1) {
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                    on_coef2.set_val(cur_idx,1);
+                                                    for (int i=1; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef2.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns2; ++j) {
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef2.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef2.set_val(cur_idx,1);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        
+                                        /** Constraints */
+                                        // Representation of the bilinear term with convex combination
+                                        Constraint<> bln_rep(pair.first+"_bln_rep");
+                                        /************** this might not be working **************/
+                                        bln_rep = sum(EP.in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - vlift.in(unique_ids);
+                                        add(bln_rep.in(unique_ids) == 0);
+                                        
+                                        // Representation of o1 with convex combination
+                                        Constraint<> o1_rep(pair.first+"_o1_rep");
+                                        /************** this might not be working **************/
+                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        add(o1_rep.in(unique_ids) == 0);
+                                        
+                                        // Representation of o2 with convex combination
+                                        Constraint<> o2_rep(pair.first+"_o2_rep");
+                                        /************** this might not be working **************/
+                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        add(o2_rep.in(unique_ids) == 0);
+                                        
+                                        // Linking partition variables1 with lambda
+                                        if(model_type == "lambda_II"){
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            }
+                                        }
+                                        else{
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            }
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -1812,7 +1831,7 @@ namespace gravity {
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
                                 //                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
-                               
+                                
                                 var<int> on1(name1+"_binary",0,1);
                                 indices partns1("partns1");
                                 for (int i = 0; i < num_partns1 ; ++i)
@@ -1880,8 +1899,8 @@ namespace gravity {
                                     add(onSumComb.in(unique_ids) == 1);
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
-                                    }
-
+                                }
+                                
                                 
                                 else{ //means it is one of the lambda formulations
                                     
@@ -1958,12 +1977,12 @@ namespace gravity {
                                     
                                     if(model_type == "lambda_II"){
                                         // Lambda coefficient matrix when linking with partition variables
-                                        lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                        lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                        if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                        if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
                                         
                                         // Lambda coefficient matrix when linking with partition variables
-                                        on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                        on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
+                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
                                         
                                         // fill lambda_coef1 and lambda_coef2
                                         for (size_t inst = 0; inst< nb_ins; inst++){
@@ -1972,9 +1991,9 @@ namespace gravity {
                                             for (int i=0 ; i<num_partns1+1; ++i) {
                                                 for (int j=0 ; j<num_partns2+1; ++j) {
                                                     string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                    lambda_coef1.set_val(cur_idx,1);
+                                                    if(num_partns1 > 1)  lambda_coef1.set_val(cur_idx,1);
                                                     cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(j+1);
-                                                    lambda_coef2.set_val(cur_idx,1);
+                                                    if(num_partns2 > 1)  lambda_coef2.set_val(cur_idx,1);
                                                 }
                                             }
                                         }
@@ -1984,74 +2003,82 @@ namespace gravity {
                                             auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                             auto cur_var_idx = unique_ids._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                            on_coef1.set_val(cur_idx,1);
+                                            if(num_partns1 > 1)  on_coef1.set_val(cur_idx,1);
                                             cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                            on_coef2.set_val(cur_idx,1);
-                                            for (int i=1 ; i<num_partns1; ++i) {
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
-                                                on_coef1.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                on_coef1.set_val(cur_idx,1);
+                                            if(num_partns2 > 1)  on_coef2.set_val(cur_idx,1);
+                                            
+                                            if(num_partns1 > 1) {
+                                                for (int i=1 ; i<num_partns1; ++i) {
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
+                                                    on_coef1.set_val(cur_idx,1);
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                    on_coef1.set_val(cur_idx,1);
+                                                }
                                             }
-                                            for (int i=1 ; i<num_partns2; ++i) {
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                on_coef2.set_val(cur_idx,1);
+                                            if(num_partns2 > 1) {
+                                                for (int i=1 ; i<num_partns2; ++i) {
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
+                                                    on_coef2.set_val(cur_idx,1);
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                    on_coef2.set_val(cur_idx,1);
+                                                }
                                             }
                                             cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
-                                            on_coef1.set_val(cur_idx,1);
+                                            if(num_partns1 > 1)  on_coef1.set_val(cur_idx,1);
                                             cur_idx = cur_var_idx+","+name2+"{"+to_string(num_partns2)+"},"+to_string(num_partns2+1);
-                                            on_coef2.set_val(cur_idx,1);
+                                            if(num_partns1 > 2)  on_coef2.set_val(cur_idx,1);
                                         }
                                     }
                                     
                                     
                                     else /*means model_type == "lambda_III" */{
                                         // Lambda coefficient matrix when linking with partition variables
-                                        lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                        lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                        if(num_partns1 > 1)  lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                        if(num_partns2 > 1)  lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
                                         
                                         // Partition coefficient matrix when linking with lambda variables
-                                        on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                        on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
+                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
                                         
                                         // fill lambda_coef1 and lambda_coef2
                                         for (size_t inst = 0; inst< nb_ins; inst++){
                                             auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                             auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                            for (int j=0; j<num_partns2+1; ++j) {
-                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
-                                                lambda_coef1.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
-                                                lambda_coef1.set_val(cur_idx,1);
-                                            }
-                                            
-                                            for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
-                                                for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
-                                                    for(int k=0; k<num_partns2+1; ++k){
-                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
-                                                        lambda_coef1.set_val(cur_idx,1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
-                                                        lambda_coef1.set_val(cur_idx,-1);
+                                            if(num_partns1 > 1){
+                                                for (int j=0; j<num_partns2+1; ++j) {
+                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
+                                                    lambda_coef1.set_val(cur_idx,1);
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
+                                                    lambda_coef1.set_val(cur_idx,1);
+                                                }
+                                                
+                                                for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
+                                                    for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
+                                                        for(int k=0; k<num_partns2+1; ++k){
+                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
+                                                            lambda_coef1.set_val(cur_idx,1);
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
+                                                            lambda_coef1.set_val(cur_idx,-1);
+                                                        }
                                                     }
                                                 }
                                             }
-                                            
-                                            for (int i=0; i<num_partns1+1; ++i) {
-                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                lambda_coef2.set_val(cur_idx,1);
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
-                                                lambda_coef2.set_val(cur_idx,1);
-                                            }
-                                            
-                                            for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
-                                                for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
-                                                    for(int k=0; k<num_partns1+1; ++k){
-                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        lambda_coef2.set_val(cur_idx,1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        lambda_coef2.set_val(cur_idx,-1);
+                                            if(num_partns2 > 1) {
+                                                for (int i=0; i<num_partns1+1; ++i) {
+                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                    lambda_coef2.set_val(cur_idx,1);
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
+                                                    lambda_coef2.set_val(cur_idx,1);
+                                                }
+                                                
+                                                for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
+                                                    for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
+                                                        for(int k=0; k<num_partns1+1; ++k){
+                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            lambda_coef2.set_val(cur_idx,1);
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            lambda_coef2.set_val(cur_idx,-1);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2064,35 +2091,39 @@ namespace gravity {
                                             auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                             auto cur_var_idx = unique_ids._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                            on_coef1.set_val(cur_idx,1);
-                                            
-                                            for (int i=1; i<num_partns1; ++i) {
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
-                                                on_coef1.set_val(cur_idx, 1);
-                                            }
-                                            
-                                            for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
-                                                for (int j=i/2+1; j<num_partns1; ++j) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,-1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                    on_coef1.set_val(cur_idx,1);
+                                            if(num_partns1 > 1) {
+                                                on_coef1.set_val(cur_idx,1);
+                                                
+                                                for (int i=1; i<num_partns1; ++i) {
+                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
+                                                    on_coef1.set_val(cur_idx, 1);
+                                                }
+                                                
+                                                for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
+                                                    for (int j=i/2+1; j<num_partns1; ++j) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,-1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                    }
                                                 }
                                             }
                                             
-                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                            on_coef2.set_val(cur_idx,1);
-                                            for (int i=1; i<num_partns2; ++i) {
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
-                                                on_coef2.set_val(cur_idx, 1);
-                                            }
-                                            
-                                            for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
-                                                for (int j=i/2+1; j<num_partns2; ++j) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,-1);
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                    on_coef2.set_val(cur_idx,1);
+                                            if(num_partns2 > 1) {
+                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                on_coef2.set_val(cur_idx,1);
+                                                for (int i=1; i<num_partns2; ++i) {
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
+                                                    on_coef2.set_val(cur_idx, 1);
+                                                }
+                                                
+                                                for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
+                                                    for (int j=i/2+1; j<num_partns2; ++j) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,-1);
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                    }
                                                 }
                                             }
                                         }
@@ -2120,26 +2151,32 @@ namespace gravity {
                                     
                                     // Linking partition variables1 with lambda
                                     if(model_type == "lambda_II"){
-                                        Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
-                                        /************** this might not be working **************/
-                                        on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                        add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
-                                        
-                                        Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
-                                        /************** this might not be working **************/
-                                        on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                        add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                        if(num_partns1 > 1) {
+                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
+                                            /************** this might not be working **************/
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                        }
+                                        if(num_partns2 > 1) {
+                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
+                                            /************** this might not be working **************/
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                        }
                                     }
                                     else{
-                                        Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
-                                        /************** this might not be working **************/
-                                        on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                        add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
-                                        
-                                        Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
-                                        /************** this might not be working **************/
-                                        on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                        add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                        if(num_partns1 > 1) {
+                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
+                                            /************** this might not be working **************/
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                        }
+                                        if(num_partns2 > 1) {
+                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
+                                            /************** this might not be working **************/
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                        }
                                     }
                                     // sum over lambda
                                     Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -2486,7 +2523,7 @@ namespace gravity {
                                         partns2.add(name2+ "{" + to_string(i+1) + "}");
                                     }
                                     add(on2.in(o2_ids_uq,partns2));
-
+                                    
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     auto nb_entries_v2 = o2_ids.get_nb_entries();
                                     auto nb_entries = unique_ids.get_nb_entries();
@@ -2525,7 +2562,7 @@ namespace gravity {
                                         add(onSumComb.in(unique_ids) == 1);
                                         
                                         add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
-                                      }
+                                    }
                                     
                                     else{//means it is one of the lambda formulations
                                         
@@ -2602,12 +2639,12 @@ namespace gravity {
                                         
                                         if(model_type == "lambda_II"){
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2616,9 +2653,9 @@ namespace gravity {
                                                 for (int i=0 ; i<num_partns1+1; ++i) {
                                                     for (int j=0 ; j<num_partns2+1; ++j) {
                                                         string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        lambda_coef1.set_val(cur_idx,1);
+                                                        if(num_partns1 > 1) lambda_coef1.set_val(cur_idx,1);
                                                         cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(j+1);
-                                                        lambda_coef2.set_val(cur_idx,1);
+                                                        if(num_partns2 > 1) lambda_coef2.set_val(cur_idx,1);
                                                     }
                                                 }
                                             }
@@ -2628,74 +2665,80 @@ namespace gravity {
                                                 auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                                 auto cur_var_idx = unique_ids._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
                                                 cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1 ; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) {
+                                                    for (int i=1 ; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                    }
                                                 }
-                                                for (int i=1 ; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) {
+                                                    for (int i=1 ; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                    }
                                                 }
                                                 cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
-                                                on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
                                                 cur_idx = cur_var_idx+","+name2+"{"+to_string(num_partns2)+"},"+to_string(num_partns2+1);
-                                                on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
                                             }
                                         }
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
                                                 auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                                 auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                                for (int j=0; j<num_partns2+1; ++j) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
-                                                        for(int k=0; k<num_partns2+1; ++k){
-                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
-                                                            lambda_coef1.set_val(cur_idx,1);
-                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
-                                                            lambda_coef1.set_val(cur_idx,-1);
+                                                if(num_partns1 > 1) {
+                                                    for (int j=0; j<num_partns2+1; ++j) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                    }
+                                                    
+                                                    for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
+                                                            for(int k=0; k<num_partns2+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
+                                                                lambda_coef1.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
+                                                                lambda_coef1.set_val(cur_idx,-1);
+                                                            }
                                                         }
                                                     }
                                                 }
-                                                
-                                                for (int i=0; i<num_partns1+1; ++i) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
-                                                        for(int k=0; k<num_partns1+1; ++k){
-                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                            lambda_coef2.set_val(cur_idx,1);
-                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                            lambda_coef2.set_val(cur_idx,-1);
+                                                if(num_partns2 > 1) {
+                                                    for (int i=0; i<num_partns1+1; ++i) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                    }
+                                                    for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
+                                                            for(int k=0; k<num_partns1+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                                lambda_coef2.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                                lambda_coef2.set_val(cur_idx,-1);
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -2708,35 +2751,38 @@ namespace gravity {
                                                 auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                                 auto cur_var_idx = unique_ids._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
-                                                
-                                                for (int i=1; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef1.set_val(cur_idx, 1);
-                                                }
-                                                
-                                                for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns1; ++j) {
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef1.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) {
+                                                    on_coef1.set_val(cur_idx,1);
+                                                    
+                                                    for (int i=1; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef1.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns1; ++j) {
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef1.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef1.set_val(cur_idx,1);
+                                                        }
                                                     }
                                                 }
-                                                
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef2.set_val(cur_idx, 1);
-                                                }
-                                                
-                                                for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns2; ++j) {
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef2.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) {
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                    on_coef2.set_val(cur_idx,1);
+                                                    for (int i=1; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef2.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns2; ++j) {
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef2.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef2.set_val(cur_idx,1);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2764,26 +2810,32 @@ namespace gravity {
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            }
                                         }
                                         else{
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            }
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -2839,10 +2891,10 @@ namespace gravity {
                                 lb1.set_val(0), ub1.set_val(1);
                                 auto added1 = binvar1->add_bounds(lb1,ub1);
                                 reindex_vars();
-
+                                
                                 auto nb_entries_v1 = o1_ids.get_nb_entries();
                                 auto nb_entries = added.get_nb_entries();
-
+                                
                                 if(model_type == "on/off"){//if on/off is chosen
                                     Constraint<> onSumComb(pair.first+"_binarySum");
                                     onSumComb = sum((binvar1->in(added1)).in_matrix(nb_entries));
@@ -2850,7 +2902,7 @@ namespace gravity {
                                     
                                     add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar1->in(added1));
                                 }
-
+                                
                                 else{ //means it is one of the lambda formulations
                                     
                                     //difference is this has one more partition index
@@ -3037,7 +3089,7 @@ namespace gravity {
                                     {
                                         partns1.add(name1+ "{" + to_string(i+1) + "}");
                                     }
-
+                                    
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     param<int> lb1("lb1"), ub1("ub1");
@@ -3100,8 +3152,8 @@ namespace gravity {
                                         add(onSumComb.in(added) == 1);
                                         
                                         add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
-                                     }
-
+                                    }
+                                    
                                     else{//means it is one of the lambda formulations
                                         
                                         //difference is this has one more partition index
@@ -3331,45 +3383,44 @@ namespace gravity {
                                         bln_rep = sum(EP.in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - vlift->in(added);
                                         add(bln_rep.in(added) == 0);
                                         
-                                        // WAS HERE IN(ADDED_LAMBDA INSIDE OR OUTSIDE, AND FROM_ITH SEEMS WRONG)
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda->in(added_lambda).from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries+1,1,added_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries, 1, added_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
-                                        lambdaSum = sum(lambda.in_matrix(nb_entries));
+                                        lambdaSum = sum(lambda->in(added_lambda).in_matrix(nb_entries));
                                         add(lambdaSum.in(added) == 1);
                                     }
                                     
@@ -3408,7 +3459,7 @@ namespace gravity {
                                     lb2.set_val(0), ub2.set_val(1);
                                     auto added2 = binvar2->add_bounds(lb2,ub2);
                                     reindex_vars();
- 
+                                    
                                     auto nb_entries_v1 = o1_ids.get_nb_entries();
                                     auto nb_entries_v2 = o2_ids.get_nb_entries();
                                     auto nb_entries = added.get_nb_entries();
@@ -3463,7 +3514,7 @@ namespace gravity {
                                         
                                         add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar3->in(added3));
                                     }
-
+                                    
                                     else{//means it is one of the lambda formulations
                                         
                                         //difference is this has one more partition index
@@ -3486,8 +3537,14 @@ namespace gravity {
                                         auto inst_partition_bounds2 = indices(added,partns2_lambda);
                                         
                                         // Convex combination variables
-                                        var<> lambda(name1+"_lambda",pos_);
-                                        add(lambda.in(inst_partition_lambda));
+                                        auto lambda_ptr = _vars_name.find(name1+name2+"_lambda");
+                                        auto lambda = static_pointer_cast<var<double>>(lambda_ptr->second);
+                                        param<double> lb_lambda("lb_lambda"), ub_lambda("ub_lambda");
+                                        lb_lambda.in(added,partns_lambda);
+                                        ub_lambda.in(added,partns_lambda);
+                                        lb_lambda.set_val(0), ub_lambda.set_val(1);
+                                        auto added_lambda = lambda->add_bounds(lb_lambda,ub_lambda);
+                                        reindex_vars();
                                         
                                         /** Parameters */
                                         // Bounds on variable v1 & v2
@@ -3539,12 +3596,12 @@ namespace gravity {
                                         
                                         if(model_type == "lambda_II"){
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(added, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(added, partns2, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, range(1,num_partns1+1)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, range(1,num_partns2+1)));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3553,9 +3610,9 @@ namespace gravity {
                                                 for (int i=0 ; i<num_partns1+1; ++i) {
                                                     for (int j=0 ; j<num_partns2+1; ++j) {
                                                         string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        lambda_coef1.set_val(cur_idx,1);
+                                                        if(num_partns1 > 1) lambda_coef1.set_val(cur_idx,1);
                                                         cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(j+1);
-                                                        lambda_coef2.set_val(cur_idx,1);
+                                                        if(num_partns2 > 1) lambda_coef2.set_val(cur_idx,1);
                                                     }
                                                 }
                                             }
@@ -3565,74 +3622,81 @@ namespace gravity {
                                                 auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
                                                 cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1 ; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef1.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) {
+                                                    for (int i=1 ; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef1.set_val(cur_idx,1);
+                                                    }
                                                 }
-                                                for (int i=1 ; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
-                                                    on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) {
+                                                    for (int i=1 ; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(i+1);
+                                                        on_coef2.set_val(cur_idx,1);
+                                                    }
                                                 }
                                                 cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"},"+to_string(num_partns1+1);
-                                                on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) on_coef1.set_val(cur_idx,1);
                                                 cur_idx = cur_var_idx+","+name2+"{"+to_string(num_partns2)+"},"+to_string(num_partns2+1);
-                                                on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) on_coef2.set_val(cur_idx,1);
                                             }
                                         }
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(added, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(added, partns2, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, range(1,(num_partns1-2)*2+2)));
+                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, range(1,(num_partns2-2)*2+2)));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
                                                 auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
-                                                for (int j=0; j<num_partns2+1; ++j) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
-                                                    lambda_coef1.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
-                                                        for(int k=0; k<num_partns2+1; ++k){
-                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
-                                                            lambda_coef1.set_val(cur_idx,1);
-                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
-                                                            lambda_coef1.set_val(cur_idx,-1);
+                                                if(num_partns1 > 1) {
+                                                    for (int j=0; j<num_partns2+1; ++j) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(1);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string((num_partns1-2)*2+2);
+                                                        lambda_coef1.set_val(cur_idx,1);
+                                                    }
+                                                    
+                                                    for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
+                                                            for(int k=0; k<num_partns2+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+1);
+                                                                lambda_coef1.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+name2+"{"+to_string(k+1)+"},"+to_string(i+2);
+                                                                lambda_coef1.set_val(cur_idx,-1);
+                                                            }
                                                         }
                                                     }
                                                 }
-                                                
-                                                for (int i=0; i<num_partns1+1; ++i) {
-                                                    string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
-                                                    lambda_coef2.set_val(cur_idx,1);
-                                                }
-                                                
-                                                for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
-                                                    for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
-                                                        for(int k=0; k<num_partns1+1; ++k){
-                                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                            lambda_coef2.set_val(cur_idx,1);
-                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                            lambda_coef2.set_val(cur_idx,-1);
+                                                if(num_partns2 > 1) {
+                                                    for (int i=0; i<num_partns1+1; ++i) {
+                                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+name2+"{"+to_string(num_partns2+1)+"},"+to_string((num_partns2-2)*2+2);
+                                                        lambda_coef2.set_val(cur_idx,1);
+                                                    }
+                                                    
+                                                    for (int i=1 ; i<(num_partns2-2)*2+1; i=i+2) {
+                                                        for (int j=(i-1)/2 + 2; j<num_partns2+1; ++j) {
+                                                            for(int k=0; k<num_partns1+1; ++k){
+                                                                string cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                                lambda_coef2.set_val(cur_idx,1);
+                                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(k+1)+"},"+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                                lambda_coef2.set_val(cur_idx,-1);
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -3645,35 +3709,38 @@ namespace gravity {
                                                 auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef1.set_val(cur_idx,1);
-                                                
-                                                for (int i=1; i<num_partns1; ++i) {
-                                                    cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef1.set_val(cur_idx, 1);
-                                                }
-                                                
-                                                for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns1; ++j) {
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef1.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef1.set_val(cur_idx,1);
+                                                if(num_partns1 > 1) {
+                                                    on_coef1.set_val(cur_idx,1);
+                                                    
+                                                    for (int i=1; i<num_partns1; ++i) {
+                                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef1.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns1; ++j) {
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef1.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef1.set_val(cur_idx,1);
+                                                        }
                                                     }
                                                 }
-                                                
-                                                cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
-                                                on_coef2.set_val(cur_idx,1);
-                                                for (int i=1; i<num_partns2; ++i) {
-                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
-                                                    on_coef2.set_val(cur_idx, 1);
-                                                }
-                                                
-                                                for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
-                                                    for (int j=i/2+1; j<num_partns2; ++j) {
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
-                                                        on_coef2.set_val(cur_idx,-1);
-                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
-                                                        on_coef2.set_val(cur_idx,1);
+                                                if(num_partns2 > 1) {
+                                                    cur_idx = cur_var_idx+","+name2+"{"+to_string(1)+"},"+to_string(1);
+                                                    on_coef2.set_val(cur_idx,1);
+                                                    for (int i=1; i<num_partns2; ++i) {
+                                                        cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"},"+to_string(2);
+                                                        on_coef2.set_val(cur_idx, 1);
+                                                    }
+                                                    
+                                                    for (int i=2 ; i<(num_partns2-2)*2+2; i=i+2) {
+                                                        for (int j=i/2+1; j<num_partns2; ++j) {
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+1);
+                                                            on_coef2.set_val(cur_idx,-1);
+                                                            cur_idx = cur_var_idx+","+name2+"{"+to_string(j+1)+"},"+to_string(i+2);
+                                                            on_coef2.set_val(cur_idx,1);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -3684,47 +3751,53 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - vlift->in(added);
+                                        bln_rep = sum(EP.in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - vlift->in(added);
                                         add(bln_rep.in(added) == 0);
                                         
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries+1,1,added_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries, 1, added_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
+                                            }
                                         }
                                         else{
-                                            Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-                                            add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
-                                            
-                                            Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
-                                            /************** this might not be working **************/
-                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-                                            add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            if(num_partns1 > 1) {
+                                                Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            }
+                                            if(num_partns2 > 1) {
+                                                Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
+                                                /************** this might not be working **************/
+                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            }
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
-                                        lambdaSum = sum(lambda.in_matrix(nb_entries));
+                                        lambdaSum = sum(lambda->in(added_lambda).in_matrix(nb_entries));
                                         add(lambdaSum.in(added) == 1);
                                     }
                                 }
@@ -3921,51 +3994,51 @@ namespace gravity {
             _has_callback = true;
         }
         
-//        template<typename T>
-//        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
-//            for (auto &c_p: _cons_name) {
-//                auto c = c_p.second;
-//                if (!c->has_var(*v)) {
-//                    continue;
-//                }
-//                c->replace(v, f);
-//            }
-//            _vars_name.erase(v->_name);
-//            auto vid = *v->_vec_id;
-//            delete _vars.at(vid);
-//            _vars.erase(vid);
-//            reindex_vars();
-//        }
+        //        template<typename T>
+        //        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
+        //            for (auto &c_p: _cons_name) {
+        //                auto c = c_p.second;
+        //                if (!c->has_var(*v)) {
+        //                    continue;
+        //                }
+        //                c->replace(v, f);
+        //            }
+        //            _vars_name.erase(v->_name);
+        //            auto vid = *v->_vec_id;
+        //            delete _vars.at(vid);
+        //            _vars.erase(vid);
+        //            reindex_vars();
+        //        }
         
         
-//        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
-//            for (auto& c_pair:_cons_name) {
-//                if (!c_pair.second->is_ineq()) {
-//                    auto &lterms = c_pair.second->get_lterms();
-//                    if (!lterms.empty()) {
-//                        auto first = lterms.begin();
-//                        auto v = first->second._p;
-//                        if (v->_is_vector) {
-//                            continue;
-//                        }
-//                        auto f = *c_pair.second;
-//                        if (first->second._sign) {
-//                            //                    f -= *v;
-//                            //                    f *= -1;
-//                        }
-//                        else {
-//                            //                    f += *v;
-//                        }
-//                        DebugOff(f.to_str());
-//                        _cons.erase(c_pair.second->_id);
-//                        _cons_name.erase(c_pair.first);
-//                        replace(v,f);
-//                        //                project();
-//                        return;
-//                    }
-//                }
-//            }
-//        }
+        //        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+        //            for (auto& c_pair:_cons_name) {
+        //                if (!c_pair.second->is_ineq()) {
+        //                    auto &lterms = c_pair.second->get_lterms();
+        //                    if (!lterms.empty()) {
+        //                        auto first = lterms.begin();
+        //                        auto v = first->second._p;
+        //                        if (v->_is_vector) {
+        //                            continue;
+        //                        }
+        //                        auto f = *c_pair.second;
+        //                        if (first->second._sign) {
+        //                            //                    f -= *v;
+        //                            //                    f *= -1;
+        //                        }
+        //                        else {
+        //                            //                    f += *v;
+        //                        }
+        //                        DebugOff(f.to_str());
+        //                        _cons.erase(c_pair.second->_id);
+        //                        _cons_name.erase(c_pair.first);
+        //                        replace(v,f);
+        //                        //                project();
+        //                        return;
+        //                    }
+        //                }
+        //            }
+        //        }
         
         
         shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){

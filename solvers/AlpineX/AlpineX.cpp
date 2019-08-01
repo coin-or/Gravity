@@ -385,8 +385,8 @@ int main (int argc, char * argv[])
     
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
 //    SOCP.reset_constrs();
-    double max_time = 600;
-    int max_iter = 1000;
+    double max_time = 100000;
+    int max_iter = 0;
     double upperbound = grid.solve_acopf(ACRECT);
     SOCP.run_obbt(max_time,max_iter,{true,upperbound});
     auto original_SOC = grid.build_SCOPF();
@@ -832,10 +832,10 @@ int main (int argc, char * argv[])
             
             
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
+            Pf_to._num_partns = 15;
+            Qf_to._num_partns = 15;
+            Wii._num_partns = 5;
+            lji._num_partns = 5;
             
             Pf_from._num_partns = 10;
             Qf_from._num_partns = 10;
