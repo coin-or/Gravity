@@ -60,7 +60,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::AdvInd, 1);
         cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
-//        cplex.setParam(IloCplex::PreInd, 0);
+        cplex.setParam(IloCplex::PreInd, 0);
 //        cplex.setParam(IloCplex::RootAlg, 1);
         
         cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, 50); //relaxation induced neighbourhood search frequency

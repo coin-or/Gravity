@@ -823,8 +823,17 @@ namespace gravity {
                     auto coef = *static_pointer_cast<constant<type>>(term._coef);
                     lt._coef = constant<type>(coef).copy();
                 }
+                
+                //arrange the variables so that if they have the same base name, use them ordered in name
                 auto o1 = *static_pointer_cast<var<type>>(term._p->first);
                 auto o2 = *static_pointer_cast<var<type>>(term._p->second);
+                if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
+                         o2 = *static_pointer_cast<var<type>>(term._p->first);
+                         o1 = *static_pointer_cast<var<type>>(term._p->second);
+                    DebugOn("O1 name "<< o1._name << endl);
+                    DebugOn("O2 name "<< o2._name << endl);
+                }
+               
                 string name;
                 indices ids;
                 if(o1==o2){
@@ -937,7 +946,7 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                            //                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
@@ -1140,7 +1149,7 @@ namespace gravity {
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -1472,7 +1481,7 @@ namespace gravity {
                                 }
                                 
                                 else{
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     indices partns1("partns1");
@@ -1830,7 +1839,7 @@ namespace gravity {
                             }
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
-                                //                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
                                 
                                 var<int> on1(name1+"_binary",0,1);
                                 indices partns1("partns1");
@@ -2187,7 +2196,7 @@ namespace gravity {
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2197,6 +2206,11 @@ namespace gravity {
                                     }
                                     //                                    add(on1.in(union_ids(o1_ids, o2_ids),range(1,num_partns1)));
                                     add(on1.in(union_ids(o1_ids_uq, o2_ids_uq),partns1));
+                                    DebugOn("HERE IS THE INDEX SET" << endl);
+                                    on1._indices->print();
+                                    o1_ids_uq.print();
+                                    o2_ids_uq.print();
+                                    auto union_here = union_ids(o1_ids_uq, o2_ids_uq);
                                     
                                     indices partns2("partns2");
                                     for (int i = 0; i < num_partns2 ; ++i)
@@ -2506,7 +2520,7 @@ namespace gravity {
                                     }
                                 }
                                 else{
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2874,7 +2888,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                //                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -3082,7 +3096,7 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -3426,7 +3440,7 @@ namespace gravity {
                                     
                                 }
                                 else{
-                                    //                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -8378,7 +8392,7 @@ namespace gravity {
         
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0));
+        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
         
         
         //        void add_on_off(const Constraint<type>& c, var<bool>& on){
