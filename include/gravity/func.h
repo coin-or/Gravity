@@ -6389,13 +6389,15 @@ namespace gravity {
                 qname = ps2+","+ps1;
                 pair_it = _qterms->find(qname);
             }
+            if (pair_it == _qterms->end()) {
+                qname = ps1+","+ps2;
+            }
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
             _evaluated=false;
             if (_ftype <= lin_ && p1.is_var()) {
                 _ftype = quad_;
-            }
-            
+            }            
             if (pair_it == _qterms->end()) {
                 if (p1.is_var()) {
                     p_new1 = get_var(ps1);
