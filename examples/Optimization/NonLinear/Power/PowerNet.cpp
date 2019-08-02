@@ -2168,6 +2168,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     Wii.initialize_all(1.001);
     
     var<> lij("lij", lij_min,lij_max);
+    var<> eta("eta", 0, 1);
+
     //    var<> lji("lji", lji_min,lji_max);
     //    var<> RIij("RIij", Iij_min,Iij_max);
     //    var<> IIij("IIij", Iij_min,Iij_max);
@@ -2184,7 +2186,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     if(current){
         SDPOPF->add(lij.in(arcs));
     }
-    
+    if(interior){
+        SDPOPF->add(eta.in(range(0,0)));
+    }
     
     
     //    param<> zero("zero");
@@ -2218,7 +2222,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     //    SDPOPF->min(objt);
     //    SDPOPF->print();
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    if(interior)
+    {
+        obj=eta("0")*(-1);
+    }
     SDPOPF->min(obj);
+   
+    
+    //SDP.add(eta.in(range(0, 0)));
+    /**  Objective */
+  
     
     
     Constraint<> obj_UB("obj_UB");
@@ -2243,10 +2256,17 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDPOPF->add_lazy(SDP3 >= 0);
+            if(interior)
+            SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= eta);
+            else
+            SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
+            
         }
         else {
-            SDPOPF->add(SDP3 >= 0);
+                 if(interior)
+            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= eta);
+            else
+                SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
         
