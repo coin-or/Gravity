@@ -443,6 +443,23 @@ namespace gravity {
             return res;
         }
         
+        template<typename... Args>
+        var in_matrix(unsigned start_pos, unsigned nb_entries) const{
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_matrix(start_pos, nb_entries));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+            return res;
+        }
+        
         void reset_bounds(){
             _lb->uneval();
             _ub->uneval();

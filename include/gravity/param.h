@@ -93,7 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
-            *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -553,13 +553,13 @@ namespace gravity {
         }
         
         /** let this share the values of p */
-        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        template<class T2, typename std::enable_if<!is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& p){
             throw invalid_argument("cannot share vals with different typed params/vars");
         }
         
         /** let this share the values of p */
-        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& pp){
             _val->resize(pp._val->size());
             for (size_t i = 0; i < _val->size(); i++) {
@@ -643,7 +643,7 @@ namespace gravity {
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
             res._off=_off;
-            *res._in=*_in;
+            res._in=make_shared<bool>(*_in);
             return res;
         }
 
@@ -680,7 +680,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
         
@@ -722,7 +722,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
 
@@ -1443,10 +1443,14 @@ namespace gravity {
             return res.in(this->get_matrix_ids(nb_entries));
         }
         
+        param in_matrix(unsigned start_entry, unsigned nb_entries) const{
+            auto res(*this);
+            return res.in(this->get_matrix_ids(start_entry,nb_entries));
+        }
         
-        indices get_matrix_ids(unsigned nb_entries) const{
+        indices get_matrix_ids(unsigned start_entry, unsigned nb_entries) const{
             auto res(*this->_indices);
-            res.set_name("matrix("+_indices->get_name()+")");
+        res.set_name("matrix("+_indices->get_name()+","+to_string(start_entry)+","+to_string(nb_entries)+")");
             res._ids = make_shared<vector<vector<size_t>>>();
             string key = "", first_key="";
             int inst = -1;
@@ -1454,10 +1458,16 @@ namespace gravity {
             if(is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: _indices->_ids->at(0)){
                     key = _indices->_keys->at(key_ref);
-                    auto pos = nthOccurrence(key, ",", nb_entries);
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry+1);
+                    prestr = key.substr(0,start_pos);
+                    newstr = key.substr(start_pos+1);
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
                     if(pos>0){
-                        first_key = key.substr(0,pos);
+                        poststr = newstr.substr(pos);
                     }
+                    first_key = prestr+poststr;
                     if (first_key!=prev_key) {
                         res._ids->resize(res._ids->size()+1);
                         inst++;
@@ -1472,10 +1482,16 @@ namespace gravity {
             }
             else {
                 for (auto key: *_indices->_keys) {
-                    auto pos = nthOccurrence(key, ",", nb_entries);
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry+1);
+                    prestr = key.substr(0,start_pos);
+                    newstr = key.substr(start_pos+1);
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
                     if(pos>0){
-                        first_key = key.substr(0,pos);
+                        poststr = newstr.substr(pos);
                     }
+                    first_key = prestr+poststr;
                     if (first_key!=prev_key) {
                         res._ids->resize(res._ids->size()+1);
                         inst++;
@@ -1489,6 +1505,10 @@ namespace gravity {
                 }
             }
             return res;
+        }
+        
+        indices get_matrix_ids(unsigned start_pos) const{
+            return get_matrix_ids(start_pos,1);
         }
         
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries

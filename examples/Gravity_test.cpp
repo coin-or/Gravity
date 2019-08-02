@@ -963,8 +963,8 @@ TEST_CASE("testing multithread solve"){
         auto models = {ACOPF1, ACOPF2};
         /* run in parallel */
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(abs(ACOPF1->get_obj_val()-17551.89)<1e-4);
-        CHECK(abs(ACOPF2->get_obj_val()-17551.89)<1e-4);
+        CHECK(abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
+        CHECK(abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();
@@ -1406,6 +1406,14 @@ TEST_CASE("testing get_matrix()") {
     Constraint<> Sum("Sum");
     Sum = sum(dv2);
     Sum.print();
+    auto ids1 = indices(range(1,3),range(4,6),range(8,10));
+    var<> dv1("dv1");
+    dv1 = dv1.in(ids1);
+    dv1.print_vals(4);
+    auto dv3 = dv1.in_matrix(1,1);
+    Constraint<> Sum2("Sum2");
+    Sum2 = sum(dv3);
+    Sum2.print();
 }
 
 TEST_CASE("testing Outer Approximation") {

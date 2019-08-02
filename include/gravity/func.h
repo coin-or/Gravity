@@ -8664,6 +8664,16 @@ namespace gravity {
         return f * constant<T2>(p);
     }
     
+
+    template<typename type>
+    func<type> sum_at(const param<type>& p, int pos, int nb_entries){
+        func<type> res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        return unit<type>().tr()*p.vec();
+    }
+
     
     template<typename type>
     func<type> sum(const param<type>& p){
