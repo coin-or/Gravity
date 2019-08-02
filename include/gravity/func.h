@@ -973,14 +973,77 @@ namespace gravity {
                 df_xstar = df;
                 auto ids = v->_indices->get_unique_keys();
                 df_xstar._indices = make_shared<indices>(ids);
-                res.insert(true, df_xstar, *v);
+                 res.insert(true, df_xstar, *v);
                 res -= df_xstar*xstar;
             }
             res += f_xstar;
             res._indices = this->_indices;
+            merge_vars(res);
             return res;
         }
+        
+        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            double f_xstar, xv, dfv;
+            vector<double> xcurrent, dfvector;
+            uneval();
+            f_xstar=eval(nb_inst);
+            DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->get_double_val(posv, xv);
+                xcurrent.push_back(xv);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                dfv=df.eval(nb_inst);
+                dfvector.push_back(dfv);
+                indices ids("ids");
+                auto key=v->_indices->_keys;
+                ids.add((*key)[posv]);
 
+              
+                
+                param<type> df_xstar("df_xstar"+v->_name);
+                df_xstar.in(ids);
+                df_xstar.set_val(dfv);
+                
+
+                
+                auto v1=v->pcopy();
+                v1->_indices=make_shared<gravity::indices>(ids);
+                res.insert(true, df_xstar, *v1);
+                merge_vars(res);
+            //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
+                
+//                auto indcopy=v->_indices;
+//                v->_indices=make_shared<gravity::indices>(ids);
+//                res.insert(true, df_xstar, *v);
+//                merge_vars(res);
+//                v->_indices=indcopy;
+                res -= dfv*xv;
+            }
+            res += f_xstar;
+//            indices res_ind("res_ind");
+//            res_ind.add("0");
+//            res._indices=make_shared<gravity::indices>(res_ind);
+//
+//            res.eval_all();
+//            res.uneval();
+//            DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
+            res.print();
+//            DebugOn("Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(xcurrent[i]<<"\t");
+//            DebugOn(endl);
+//            DebugOn("DF at Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(dfvector[i]<<"\t");
+//            DebugOn(endl);
+            return res;
+        }
+        
+ 
         
         double l2norm(vector<double> x)
         {
@@ -1063,11 +1126,11 @@ namespace gravity {
                     }
                     uneval();
                     f_mid=eval(nb_inst);
-                    DebugOn("F_mid "<< f_mid<<endl);
-                    DebugOn("xf\t xt\t xmid"<<endl);
+                   // DebugOn("F_mid "<< f_mid<<endl);
+                    //DebugOn("xf\t xt\t xmid"<<endl);
                     for(auto i=0;i<x_start.size();i++)
                     {
-                        DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
+                      //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
                         
                     }
 
@@ -1081,7 +1144,7 @@ namespace gravity {
                     }
                     else
                     {
-                        DebugOn("Reached answer"<<endl);
+                        //DebugOn("Reached answer"<<endl);
                         solution_found=true;
                         break;
                     }
@@ -1093,19 +1156,19 @@ namespace gravity {
                     interval_norm=l2norm(interval);
                     iter++;
                 }
-            
-            DebugOn("F_mid "<<f_mid<<endl);
-            DebugOn("Interval_Norm "<<interval_norm<<endl);
-            DebugOn("Iter "<<iter<<endl);
+//
+//            DebugOn("F_mid "<<f_mid<<endl);
+//            DebugOn("Interval_Norm "<<interval_norm<<endl);
+//            DebugOn("Iter "<<iter<<endl);
             }
             
             res.first=mid;
             res.second=solution_found;
             if(res.second)
             {
-                DebugOn("Solution to line search found"<<endl);
+               // DebugOn("Solution to line search found"<<endl);
                 for(auto i=0;i<res.first.size();i++)
-                    DebugOn(res.first[i]<<endl);
+                    //DebugOn(res.first[i]<<endl);
                 counter=0;
                 for(auto &it: *_vars)
                 {
@@ -1114,7 +1177,7 @@ namespace gravity {
                     v->set_double_val(posv, mid[counter++]);
                 }
                 uneval();
-                DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
+              //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
                 
             }
             counter=0;
@@ -1316,10 +1379,10 @@ namespace gravity {
                              auto v = it.second.first;
                              size_t posv=v->get_id_inst(nb_inst);
                              v->get_double_val(posv, xv);
-                             DebugOn("Xvalues of Outer point\t"<<xv<<endl);
+                             //DebugOn("Xvalues of Outer point\t"<<xv<<endl);
                          }
                          uneval();
-                         DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
+                         //DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
 
             }
             }
