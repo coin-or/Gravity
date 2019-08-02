@@ -1126,7 +1126,7 @@ namespace gravity {
 //                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
 //                                    add(on_link_lambda.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
 //                                    on_link_lambda = sum(lambda_coef.in_matrix(nb_entries, 1)*lambda.from_ith(0,indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)) - sum(on_coef.in_matrix(nb_entries,1)*on.from_ith(0,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries));
-                                     on_link_lambda = sum((lambda_coef*lambda.from_ith(0,indices(inst_partition_lambda, range(1,num_partns1+1)))).in_matrix(nb_entries)) - sum(on_coef.in_matrix(nb_entries,1)*on.from_ith(0,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries));
+//                                     on_link_lambda = sum((lambda_coef*lambda.from_ith(0,indices(inst_partition_lambda, range(1,num_partns1+1)))).in_matrix(nb_entries)) - sum(on_coef.in_matrix(nb_entries,1)*on.from_ith(0,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries));
                                     on_link_lambda = sum(lambda.in_matrix(nb_entries-1));
                                     add(on_link_lambda <= 0);
                                     on_link_lambda.print();
