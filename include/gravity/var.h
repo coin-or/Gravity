@@ -427,9 +427,9 @@ namespace gravity {
         }
         
         template<typename... Args>
-        var in_matrix(unsigned nb_entries) const{
+        var in_matrix(unsigned start_pos) const{
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in_matrix(nb_entries));//TODO assert lb dim = res dim
+            res.param<type>::operator=(param<type>::in_matrix(start_pos));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);

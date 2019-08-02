@@ -1007,10 +1007,10 @@ namespace gravity{
         vector<indices> all_ids;
         all_ids = {ids1,forward<Args>(args)...};
         indices res("Union(");
-        res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
-        res._keys = make_shared<vector<string>>(*ids1._keys);
         auto nb_entries = ids1.get_nb_entries();
         if(!ids1.is_indexed()){ //if the index set is not indexed, we assume the rest are not indexed as well
+            res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
+            res._keys = make_shared<vector<string>>(*ids1._keys);
             for (size_t i= 1; i < all_ids.size(); i++) {
                 auto ids = all_ids[i];
                 if(nb_entries!=ids.get_nb_entries()){
@@ -1030,7 +1030,7 @@ namespace gravity{
         }
         else{  //means the ids1 is indexed so we assume all the rest are indexed as well
 //            res._ids = make_shared<vector<vector<size_t>>>(*ids1._ids);
-                for (size_t i= 1; i < all_ids.size(); i++) {
+                for (size_t i= 0; i < all_ids.size(); i++) {
                     auto ids = all_ids[i];
                     if(nb_entries!=ids.get_nb_entries()){
                         throw invalid_argument("union cannot be applied to index sets with different number of entries");
