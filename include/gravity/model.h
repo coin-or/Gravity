@@ -1452,14 +1452,13 @@ namespace gravity {
                                         
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
-                                        /*FIX THIS*/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries,1)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -1806,13 +1805,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -2165,13 +2164,13 @@ namespace gravity {
                                     // Representation of o1 with convex combination
                                     Constraint<> o1_rep(pair.first+"_o1_rep");
                                     /************** this might not be working **************/
-//                                    o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                    o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                     add(o1_rep.in(unique_ids) == 0);
                                     
                                     // Representation of o2 with convex combination
                                     Constraint<> o2_rep(pair.first+"_o2_rep");
                                     /************** this might not be working **************/
-//                                    o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                    o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                     add(o2_rep.in(unique_ids) == 0);
                                     
                                     // Linking partition variables1 with lambda
@@ -2493,13 +2492,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -2827,13 +2826,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda.from_ith(0,inst_partition_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -3417,13 +3416,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries+1,1,added_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries, 1, added_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -3790,13 +3789,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum(bounds1.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries+1,1,added_lambda).in_matrix(nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum(bounds2.in_matrix(nb_entries)*lambda->in_ignore_ith(nb_entries, 1, added_lambda).in_matrix(nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda

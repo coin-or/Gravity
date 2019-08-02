@@ -801,19 +801,19 @@ int main (int argc, char * argv[])
             auto nb_entries_v3 = var_indices3.get_nb_entries();
             
             Constraint<> z1Sum_auto("Pf_to_binarySum");
-            z1Sum_auto = sum(z1.in_matrix(nb_entries_v1));
+            z1Sum_auto = sum(z1.in_matrix(nb_entries_v1,1));
             SOCP.add(z1Sum_auto.in(var_indices1)==1);
             
             SOCP.add_on_off_McCormick_new("Pf_to,Pf_to", Pf_to_squared, Pf_to, Pf_to, z1, num_partitions1,num_partitions1);
             
             Constraint<> z2Sum_auto("Qf_to_binarySum");
-            z2Sum_auto = sum(z2.in_matrix(nb_entries_v1));
+            z2Sum_auto = sum(z2.in_matrix(nb_entries_v1,1));
             SOCP.add(z2Sum_auto.in(var_indices1)==1);
             
             SOCP.add_on_off_McCormick_new("Qf_to,Qf_to", Qf_to_squared, Qf_to, Qf_to,  z2, num_partitions2, num_partitions2);
             
             Constraint<> z3Sum_auto("ljiWii_binarySum");
-            z3Sum_auto = sum(z3.in_matrix(nb_entries_v3));
+            z3Sum_auto = sum(z3.in_matrix(nb_entries_v3,1));
             SOCP.add(z3Sum_auto.in(var_indices3)==1);
             
             SOCP.add_on_off_McCormick_new("Wii.to.in(Arc),lji", ljiWii_to,  lji, Wii_to, z3,  num_partitions4, num_partitions3);
