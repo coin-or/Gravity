@@ -1004,51 +1004,44 @@ namespace gravity{
      */
     template<typename... Args>
     indices union_ids(const indices& ids1, Args&&... args) {
-        
         vector<indices> all_ids;
         all_ids = {ids1,forward<Args>(args)...};
         indices res("Union(");
         res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
         res._keys = make_shared<vector<string>>(*ids1._keys);
         auto nb_entries = ids1.get_nb_entries();
-        
-        if(ids1._type == unindexed_){ //if the index set is not indexed, we assume the rest are not indexed as well
-        for (size_t i= 1; i < all_ids.size(); i++) {
-            auto ids = all_ids[i];
-            if(nb_entries!=ids.get_nb_entries()){
-                throw invalid_argument("union cannot be applied to index sets with different number of entries");
-            }
-            res.set_name(res.get_name() + ids.get_name()+",");
-            auto it = ids._keys->begin();
-            for (size_t i= 0; i < ids.size(); i++) {
-                auto kkey = res._keys->size();
-                auto pp = res._keys_map->insert(make_pair<>(*it,kkey));
-                if (pp.second) {//new index inserted
-                    res._keys->push_back(*it);
+        if(!ids1.is_indexed()){ //if the index set is not indexed, we assume the rest are not indexed as well
+            for (size_t i= 1; i < all_ids.size(); i++) {
+                auto ids = all_ids[i];
+                if(nb_entries!=ids.get_nb_entries()){
+                    throw invalid_argument("union cannot be applied to index sets with different number of entries");
                 }
-                it++;
+                res.set_name(res.get_name() + ids.get_name()+",");
+                auto it = ids._keys->begin();
+                for (size_t i= 0; i < ids.size(); i++) {
+                    auto kkey = res._keys->size();
+                    auto pp = res._keys_map->insert(make_pair<>(*it,kkey));
+                    if (pp.second) {//new index inserted
+                        res._keys->push_back(*it);
+                    }
+                    it++;
+                }
             }
-        }
-            
         }
         else{  //means the ids1 is indexed so we assume all the rest are indexed as well
-            res._ids = make_shared<vector<vector<size_t>>>(*ids1._ids);
+//            res._ids = make_shared<vector<vector<size_t>>>(*ids1._ids);
                 for (size_t i= 1; i < all_ids.size(); i++) {
                     auto ids = all_ids[i];
                     if(nb_entries!=ids.get_nb_entries()){
                         throw invalid_argument("union cannot be applied to index sets with different number of entries");
                     }
                     res.set_name(res.get_name() + ids.get_name()+",");
-                    auto it = ids._keys->begin();
                     auto it_ids = ids._ids->begin()->begin();
                     for (size_t i= 0; i < ids.size(); i++) {
                         auto kkey = res._keys->size();
-                        auto iidx = res._ids->begin()->size();
-                        //THIS PART WE SHOULD GO OVER THE IDS and insert the corresponding key
-                        auto pp1 = res._keys_map->insert(make_pair<>(*(it + *it_ids),kkey));
-//                        auto pp2 = res._ids->begin()->insert(make_pair<>(*(it_ids),iidx));
-                        if (pp1.second) {//new index inserted
-                            res._keys->push_back(*(it + *it_ids));
+                        auto pp = res._keys_map->insert(make_pair<>(ids._keys->at(*it_ids),kkey));
+                        if (pp.second) {//new index inserted
+                            res._keys->push_back(ids._keys->at(*it_ids));
                         }
                         it_ids++;
                     }
