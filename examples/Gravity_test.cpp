@@ -1326,7 +1326,7 @@ TEST_CASE("testing normal distributions") {
     }
 }
 
-TEST_CASE("testing set union") {
+TEST_CASE("testing set union unindexed") {
     indices ids1("index_set1");
     ids1 = indices(range(1,2), range(2,4));
     indices ids2("index_set2");
@@ -1339,6 +1339,27 @@ TEST_CASE("testing set union") {
     REQUIRE_THROWS_AS(union_ids(ids1,ids3), invalid_argument);
 }
 
+TEST_CASE("testing set union indexed") {
+    DebugOn("testing set union indexed" << endl);
+    indices ids1("index_set1");
+    ids1.add("1","2","3","4","5","6","7","8","9");
+    var<>  v1("v1");
+    v1.in(ids1);
+    
+    indices ids2("index_set2");
+    ids2.add("5,4", "3,5", "6,7", "7,8", "2,6", "8,9");
+    var<>  v2("v2");
+    v2 = v1.from(ids2);
+    
+    var<>  v3("v3");
+    v3 = v1.to(ids2);
+    
+    auto union_set = union_ids(*v2._indices, *v3._indices); //in this case, the keys are same, so the union should check not only keys but also ._ids in the individual index sets and add accordingly
+    auto ids_list = union_set._ids->at(0); //union_set should have the _ids to keep track of the indices, ******* //ids_list._ids should exist to keep track of the indices
+    CHECK(ids_list.size()==8); //in the _ids, the function should work in a way that union_set._ids = [4,2,5,6,1,7,3,8]
+    CHECK(union_set.size()==9);
+    REQUIRE_THROWS_AS(union_ids(ids1,ids2), invalid_argument);
+}
 
 TEST_CASE("testing from_ith() function") {
     indices ids("index_set");
@@ -1398,22 +1419,34 @@ TEST_CASE("testing in_ignore_ith() function") {
 }
 
 TEST_CASE("testing get_matrix()") {
+    DebugOn("testing get_matrix() function in both in_matrix(start) and in_matrix(start,nb_entries)" << endl);
     auto ids = indices(range(1,3),range(8,10));
     var<> dv("dv");
     dv = dv.in(ids);
     dv.print_vals(4);
+    
     auto dv2 = dv.in_matrix(0);
-    Constraint<> Sum("Sum");
-    Sum = sum(dv2);
-    Sum.print();
+    Constraint<> Sum1("Sum1");
+    Sum1 = sum(dv2);
+    Sum1.print();
+    CHECK(Sum1.get_nb_instances() == 1);
+    
+    auto dv3 = dv.in_matrix(1);
+    Constraint<> Sum2("Sum2");
+    Sum2 = sum(dv3);
+    Sum2.print();
+    CHECK(Sum2.get_nb_instances() == 3);
+    
     auto ids1 = indices(range(1,3),range(4,6),range(8,10));
     var<> dv1("dv1");
     dv1 = dv1.in(ids1);
     dv1.print_vals(4);
-    auto dv3 = dv1.in_matrix(1,1);
-    Constraint<> Sum2("Sum2");
-    Sum2 = sum(dv3);
-    Sum2.print();
+    
+    auto dv4 = dv1.in_matrix(1,1);
+    Constraint<> Sum3("Sum3");
+    Sum3 = sum(dv4);
+    Sum3.print();
+    CHECK(Sum3.get_nb_instances() == 9);
 }
 
 TEST_CASE("testing Outer Approximation") {

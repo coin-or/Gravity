@@ -82,7 +82,7 @@ int main (int argc, char * argv[])
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    
+    nodes.print();
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
     auto pg_max = grid.pg_max.in(gens);
