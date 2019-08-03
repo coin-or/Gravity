@@ -43,7 +43,7 @@ before_install:
 #- echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
 script:
-- make -j5
+- make
 - ../bin/Release/gravity_test
 - ../bin/Release/acopf
 - ../bin/Release/dcopf
