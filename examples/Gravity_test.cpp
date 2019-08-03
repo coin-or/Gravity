@@ -1447,12 +1447,16 @@ TEST_CASE("testing get_matrix()") {
 
 TEST_CASE("testing sum_ith()") {
     indices ids1("index_set2");
-    ids1.add("5,4,1", "5,5,1", "5,2,1", "7,8,4", "7,6,4", "7,9,4");
+    ids1.add("5,4,1", "5,2,1", "7,8,4", "5,5,1", "7,6,4", "7,9,4");
     var<>  v1("v1");
     v1.in(ids1);
     Constraint<> Sum1("Sum1");
     Sum1 = sum_ith(v1, 1, 1);
+    stringstream buffer;
+    auto console = cout.rdbuf(buffer.rdbuf());
     Sum1.print();
+    cout.rdbuf(console);
+    CHECK(buffer.str()==" Sum1 (Linear) : \nSum1[0]: v1[5,4,1] + v1[5,2,1] + v1[5,5,1] <= 0;\nSum1[1]: v1[7,8,4] + v1[7,6,4] + v1[7,9,4] <= 0;\n");
     CHECK(Sum1.get_nb_instances() == 2);
 }
 
