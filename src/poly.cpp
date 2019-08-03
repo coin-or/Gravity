@@ -425,7 +425,7 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (c_new->_is_transposed || c_new->is_double_indexed()) {
+        if (c_new->_is_transposed || c_new->is_matrix_indexed()) {
             str += print_transposed(ind,prec);
         }
         else{
@@ -538,7 +538,7 @@ namespace gravity{
     }
     
     string qterm::print_transposed(size_t inst, int prec) const{
-        if(!_p->first->is_double_indexed()){
+        if(!_p->first->is_matrix_indexed()){
             return print_transposed(prec);
         }
         string str;
@@ -569,7 +569,7 @@ namespace gravity{
     }
     
     string lterm::print_transposed(size_t inst, int prec) const{
-        if(!_p->is_double_indexed() && !_coef->is_matrix()){
+        if(!_p->is_matrix_indexed() && !_coef->is_matrix()){
             return print_transposed(prec);
         }
         string str;
@@ -587,7 +587,7 @@ namespace gravity{
                 coef = _coef->to_str(inst, idx,prec);
             }
             str += clean_print(_sign,coef);
-            if(_p->is_double_indexed()){
+            if(_p->is_matrix_indexed()){
                 str += _p->get_name(inst,idx);
             }
            else {
@@ -602,7 +602,7 @@ namespace gravity{
         string str;
         auto c_new = _coef;
         auto p_new = _p;
-        if (p_new->_is_vector || p_new->is_double_indexed()) {
+        if (p_new->_is_vector || p_new->is_matrix_indexed()) {
             str += print_transposed(ind,prec);
         }
         else{

@@ -150,7 +150,7 @@ namespace gravity {
         };
 
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_double_indexed()) {
+            if (is_matrix_indexed()) {
                 if (_indices->_ids->size()<=inst1) {
                     throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
                 }
@@ -286,7 +286,7 @@ namespace gravity {
             return (_indices && _indices->_ids);
         }
         
-        bool is_double_indexed() const{
+        bool is_matrix_indexed() const{
             return (_indices && _indices->_ids && _indices->_ids->size()>1);
         }
 
@@ -429,7 +429,7 @@ namespace gravity {
         }
 
         size_t get_dim(size_t i) const{
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 if(i>_indices->_ids->size()){
                     throw invalid_argument("get_dim(size_t i) i out of range\n");
                 }
@@ -442,7 +442,7 @@ namespace gravity {
         }
         
         size_t get_nb_inst() const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->size();
             if(is_indexed() && !_is_transposed){
                 return _indices->_ids->at(0).size();
@@ -1473,6 +1473,7 @@ namespace gravity {
         indices get_matrix_ids(unsigned start_entry, unsigned nb_entries) const{
             auto res(*this->_indices);
         res.set_name("matrix("+_indices->get_name()+","+to_string(start_entry)+","+to_string(nb_entries)+")");
+            res._type = matrix_;
             res._ids = make_shared<vector<vector<size_t>>>();
             string key = "", invariant_key="";
             map<string,size_t> invariant_map;
@@ -1627,7 +1628,7 @@ namespace gravity {
                 }
                 res._indices = make_shared<indices>(ids);
                 if(res._is_transposed){
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[1]=_indices->size();
                     }
                     else {
@@ -1635,7 +1636,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[0]=_indices->size();
                     }
                     else {
@@ -2009,7 +2010,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
