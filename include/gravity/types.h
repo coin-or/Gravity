@@ -966,9 +966,20 @@ namespace gravity{
             }
             return max_dim;
         }
-            
+        
+        size_t get_nb_rows() const {
+            if(_type != matrix_){
+                throw invalid_argument("cannot call get_nb_rows() on a non-indexed set");
+            }
+            return _ids->size();
+        };
+        
+        /** @return size of index set, if this is a matrix indexing, it returns the number of rows, if the set is a mask (has _ids) it returns the mask size, otherwize it return the total number of keys. **/
         size_t size() const {
             if(is_indexed()){
+                if(_type == matrix_){ //Matrix-indexed
+                    return get_nb_rows();
+                }
                 return _ids->at(0).size();
             }
             return _keys->size();
@@ -1001,7 +1012,7 @@ namespace gravity{
     
     /** Adds all new keys found in ids
      @return index set of added indices.
-     */
+     **/
     template<typename... Args>
     indices union_ids(const indices& ids1, Args&&... args) {
         vector<indices> all_ids;

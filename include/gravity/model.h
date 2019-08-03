@@ -120,7 +120,7 @@ namespace gravity {
                         if (!*c->_all_lazy || !c->_lazy[inst]) {
                             cid = c->_id+id_inst++;
                             
-                            if (v->_is_vector || v->is_double_indexed()) {
+                            if (v->_is_vector || v->is_matrix_indexed()) {
                                 auto dim = v->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
                                     res[idx] += dfdx->eval(inst,j);
@@ -563,7 +563,7 @@ namespace gravity {
                     size_t nb_inst = f->get_nb_inst();
                     for (size_t inst = 0; inst<nb_inst; inst++) {
                         if (!(f->_is_constraint && *c->_all_lazy && c->_lazy[inst])) {
-                            if(d2f->is_double_indexed()){
+                            if(d2f->is_matrix_indexed()){
                                 auto dim = d2f->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
                                     if(_nnz_pairs.insert({{vid + vi->get_id_inst(inst,j),vjd+vj->get_id_inst(inst,j)}, idx}).second){
@@ -4813,7 +4813,7 @@ namespace gravity {
                 if (f->is_constant() && f->_evaluated) {
                     continue;
                 }
-                if (f->is_double_indexed()) {
+                if (f->is_matrix_indexed()) {
                     
                     
                     f->_evaluated = false;
@@ -5830,7 +5830,7 @@ namespace gravity {
                     for (size_t inst = 0; inst< nb_ins; inst++){
                         if (!*c->_all_lazy || !c->_lazy[inst]) {
                             cid = c->_id+id++;
-                            if (v->_is_vector || v->is_double_indexed()) {
+                            if (v->_is_vector || v->is_matrix_indexed()) {
                                 auto dim = v->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
                                     iRow[idx] = cid;
@@ -5940,7 +5940,7 @@ namespace gravity {
                                 if (!*c->_all_lazy || !c->_lazy[inst]) {
                                     cid = c->_id+id++;
                                     
-                                    if (v->_is_vector || v->is_double_indexed()) {
+                                    if (v->_is_vector || v->is_matrix_indexed()) {
                                         auto dim = v->get_dim(inst);
                                         for (size_t j = 0; j<dim; j++) {
                                             
@@ -5967,7 +5967,7 @@ namespace gravity {
                             for (size_t inst = 0; inst< nb_ins; inst++){
                                 if (!*c->_all_lazy || !c->_lazy[inst]) {
                                     cid = c->_id+id++;
-                                    if (v->_is_vector || v->is_double_indexed()) {
+                                    if (v->_is_vector || v->is_matrix_indexed()) {
                                         auto dim = v->get_dim(inst);
                                         if (dfdx->is_matrix()) {
                                             for (size_t j = 0; j<dim; j++) {
@@ -6111,7 +6111,7 @@ namespace gravity {
                     size_t nb_inst = f->get_nb_inst();
                     for (size_t inst = 0; inst<nb_inst; inst++) {
                         if (!(f->_is_constraint && *c->_all_lazy && c->_lazy[inst])) {
-                            if(d2f->is_double_indexed()){
+                            if(d2f->is_matrix_indexed()){
                                 auto dim = d2f->get_dim(inst);
                                 for (size_t j = 0; j<dim; j++) {
                                     idx_all++;
@@ -6192,7 +6192,7 @@ namespace gravity {
                                 if (!*c->_all_lazy || !c->_lazy[inst]) {
                                     if (c->is_nonlinear()) {
                                         c_inst = c->get_id_inst(id_inst++);
-                                        if(d2f->is_double_indexed()){
+                                        if(d2f->is_matrix_indexed()){
                                             auto dim = d2f->get_dim(inst);
                                             for (size_t j = 0; j<dim; j++) {
                                                 hess = d2f->eval(inst,j);
@@ -6237,7 +6237,7 @@ namespace gravity {
                                             d2f->_evaluated=false;
                                         }
                                         c_inst = c->get_id_inst(id_inst++);
-                                        if(d2f->is_double_indexed()){
+                                        if(d2f->is_matrix_indexed()){
                                             auto dim = d2f->get_dim(inst);
                                             for (size_t j = 0; j<dim; j++) {
                                                 hess = d2f->eval(inst,j);
@@ -6329,7 +6329,7 @@ namespace gravity {
                             if (f->_is_constraint) {
                                 if (!*c->_all_lazy || !c->_lazy[inst]) {
                                     c_inst = c->get_id_inst(id_inst++);
-                                    if(d2f->is_double_indexed()){
+                                    if(d2f->is_matrix_indexed()){
                                         auto dim = d2f->get_dim(inst);
                                         for (size_t j = 0; j<dim; j++) {
                                             res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
@@ -6385,7 +6385,7 @@ namespace gravity {
                             if (!*c->_all_lazy || !c->_lazy[inst]) {
                                 c_inst = c->get_id_inst(id_inst++);
                                 if (c->is_quadratic()) {
-                                    if(d2f->is_double_indexed()){
+                                    if(d2f->is_matrix_indexed()){
                                         auto dim = d2f->get_dim(inst);
                                         for (size_t j = 0; j<dim; j++) {
                                             res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
@@ -6407,7 +6407,7 @@ namespace gravity {
                                         res[_idx_it[idx++]] += lambda[c->_id + c_inst] * _hess_vals[idx_in++];
                                     }
                                 }
-                                else if(d2f->is_double_indexed()){
+                                else if(d2f->is_matrix_indexed()){
                                     auto dim = d2f->get_dim(inst);
                                     for (size_t j = 0; j<dim; j++) {
                                         hess = d2f->eval(inst,j);

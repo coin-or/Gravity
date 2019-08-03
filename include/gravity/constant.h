@@ -257,7 +257,7 @@ namespace gravity {
             /* Both c1 and c2 are non-scalars */
             /* If it is a dot product */
             if(c1.is_row_vector() && c2.is_column_vector()){ /* c1^T.c2 */
-                if(!c1.is_double_indexed() && !c2.is_double_indexed() && c1._dim[1]!=c2._dim[0]){
+                if(!c1.is_matrix_indexed() && !c2.is_matrix_indexed() && c1._dim[1]!=c2._dim[0]){
                     throw invalid_argument("Dot product with mismatching dimensions");
                 }
                 _is_transposed = false;/* The result of a dot product is not transposed */
@@ -285,7 +285,7 @@ namespace gravity {
                 _dim[0] = max(_dim[0], p->_dim[0]);
             }
         }
-        virtual bool is_double_indexed() const{return false;};
+        virtual bool is_matrix_indexed() const{return false;};
         virtual bool is_constant() const{return false;};
         virtual bool is_zero() const{return false;}; /**< Returns true if constant equals 0 */
         virtual bool is_unit() const{return false;}; /**< Returns true if constant equals 1 */
