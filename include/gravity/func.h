@@ -974,14 +974,77 @@ namespace gravity {
                 df_xstar = df;
                 auto ids = v->_indices->get_unique_keys();
                 df_xstar._indices = make_shared<indices>(ids);
-                res.insert(true, df_xstar, *v);
+                 res.insert(true, df_xstar, *v);
                 res -= df_xstar*xstar;
             }
             res += f_xstar;
             res._indices = this->_indices;
+            merge_vars(res);
             return res;
         }
+        
+        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            double f_xstar, xv, dfv;
+            vector<double> xcurrent, dfvector;
+            uneval();
+            f_xstar=eval(nb_inst);
+            DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->get_double_val(posv, xv);
+                xcurrent.push_back(xv);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                dfv=df.eval(nb_inst);
+                dfvector.push_back(dfv);
+                indices ids("ids");
+                auto key=v->_indices->_keys;
+                ids.add((*key)[posv]);
 
+              
+                
+                param<type> df_xstar("df_xstar"+v->_name);
+                df_xstar.in(ids);
+                df_xstar.set_val(dfv);
+                
+
+                
+                auto v1=v->pcopy();
+                v1->_indices=make_shared<gravity::indices>(ids);
+                res.insert(true, df_xstar, *v1);
+                merge_vars(res);
+            //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
+                
+//                auto indcopy=v->_indices;
+//                v->_indices=make_shared<gravity::indices>(ids);
+//                res.insert(true, df_xstar, *v);
+//                merge_vars(res);
+//                v->_indices=indcopy;
+                res -= dfv*xv;
+            }
+            res += f_xstar;
+//            indices res_ind("res_ind");
+//            res_ind.add("0");
+//            res._indices=make_shared<gravity::indices>(res_ind);
+//
+//            res.eval_all();
+//            res.uneval();
+//            DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
+            res.print();
+//            DebugOn("Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(xcurrent[i]<<"\t");
+//            DebugOn(endl);
+//            DebugOn("DF at Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(dfvector[i]<<"\t");
+//            DebugOn(endl);
+            return res;
+        }
+        
+ 
         
         double l2norm(vector<double> x)
         {
@@ -994,14 +1057,14 @@ namespace gravity {
             return(res);
         }
         
-        //x_start is an interior oiint and x_end is an outer point.
-        //Interior and outer clasification depends on constraint type (\geq 0 or \leq 0) as input by con_type
-        pair<vector<double>,bool> linesearchbinary(vector<double> x_start, vector<double> x_end, size_t nb_inst, int con_type)
+        //x_start is an interior point and x_end is an outer point.
+        //Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
+        pair<vector<double>,bool> linesearchbinary(vector<double> x_start, vector<double> x_end, size_t nb_inst, ConstraintType ctype)
         {
             pair<vector<double>,bool> res;
             const double int_tol=1e-6, zero_tol=1e-6;
             const int max_iter=1000;
-            vector<double> x_f=x_start, x_t=x_end, xcurrent, interval, mid;
+            vector<double> x_f, x_t, xcurrent, interval, mid;
             double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
             bool solution_found=false;
             int iter=0;
@@ -1031,15 +1094,19 @@ namespace gravity {
             }
             uneval();
             f_b=eval(nb_inst);
-            if(con_type==-1)
+            if(ctype==leq)
             {
                 f_f=f_a;
                 f_t=f_b;
+                x_f=x_start;
+                x_t=x_end;
             }
             else
             {
                 f_f=f_b;
                 f_t=f_a;
+                x_f=x_end;
+                x_t=x_start;
             }
             interval_norm=l2norm(interval);
         
@@ -1060,17 +1127,25 @@ namespace gravity {
                     }
                     uneval();
                     f_mid=eval(nb_inst);
-                    if(f_mid>=zero_tol)
+                   // DebugOn("F_mid "<< f_mid<<endl);
+                    //DebugOn("xf\t xt\t xmid"<<endl);
+                    for(auto i=0;i<x_start.size();i++)
                     {
-                    x_f=mid;
+                      //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
+                        
                     }
-                    else if(f_mid<=zero_tol*(-1))
+
+                    if(f_mid>=zero_tol && f_mid<=f_t)
                     {
                     x_t=mid;
                     }
+                    else if(f_mid<=zero_tol*(-1) && f_mid>=f_f)
+                    {
+                    x_f=mid;
+                    }
                     else
                     {
-                        DebugOn("Reached answer"<<endl);
+                        //DebugOn("Reached answer"<<endl);
                         solution_found=true;
                         break;
                     }
@@ -1078,19 +1153,23 @@ namespace gravity {
                     {
                         interval[i]=x_t[i]-x_f[i];
                     }
+                    
                     interval_norm=l2norm(interval);
                     iter++;
                 }
+//
+//            DebugOn("F_mid "<<f_mid<<endl);
+//            DebugOn("Interval_Norm "<<interval_norm<<endl);
+//            DebugOn("Iter "<<iter<<endl);
             }
             
-         
             res.first=mid;
             res.second=solution_found;
             if(res.second)
             {
-                DebugOn("Solution to line search found"<<endl);
+               // DebugOn("Solution to line search found"<<endl);
                 for(auto i=0;i<res.first.size();i++)
-                    DebugOn(res.first[i]<<endl);
+                    //DebugOn(res.first[i]<<endl);
                 counter=0;
                 for(auto &it: *_vars)
                 {
@@ -1099,7 +1178,7 @@ namespace gravity {
                     v->set_double_val(posv, mid[counter++]);
                 }
                 uneval();
-                DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
+              //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
                 
             }
             counter=0;
@@ -1120,10 +1199,10 @@ namespace gravity {
         //First, if available,the outer point is at least at a distance perturb_distance greater than original value of variable
         //Else, if available, the algorithm returns any outer point produced by perturbing variable
         //Else, the algorithm does not return anything
-        vector<vector<double> > get_outer_point(size_t nb_inst, int con_type)
+         //Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
+        vector<vector<double> > get_outer_point(size_t nb_inst, ConstraintType ctype)
         {
             vector<vector<double> > res(_nb_vars);
-           // vector<vector<double> > res;
             vector<double> xcurrent, ub_v, lb_v;
             const int max_iter=1000;
             const double step_tol=1e-6, step_init=1e-3, perturb_dist=1e-3, zero_tol=1e-6;
@@ -1172,11 +1251,11 @@ namespace gravity {
                     sign=1;
                     dir=true;
                     
-                    if(con_type==-1 && dfdv<0)
+                    if(ctype==leq && dfdv<0)
                     {
                         dir=false;
                     }
-                    else if(con_type==1 && dfdv>0)
+                    else if(ctype==geq && dfdv>0)
                     {
                         dir=false;
                     }
@@ -1186,11 +1265,11 @@ namespace gravity {
                 {
                     sign=-1;
                     dir=true;
-                    if(con_type==-1 && dfdv<0)
+                    if(ctype==leq && dfdv<0)
                     {
                         dir=false;
                     }
-                    else if(con_type==1 && dfdv>0)
+                    else if(ctype==geq && dfdv>0)
                     {
                         dir=false;
                     }
@@ -1198,7 +1277,7 @@ namespace gravity {
                 }
                 else
                 {
-                if(con_type==-1)
+                if(ctype==leq)
                 {
                 if(dfdv>0)
                 {
@@ -1212,7 +1291,7 @@ namespace gravity {
                     sign=-1;
                 }
                 }
-                else if(con_type==1)
+                else if(ctype==geq)
                 {
                     if(dfdv<0)
                     {
@@ -1247,7 +1326,7 @@ namespace gravity {
                      }
                      uneval();
                      fnew=eval(nb_inst);
-                     if(con_type==-1)
+                     if(ctype==leq)
                      {
                          if(fnew>zero_tol && abs(xv-xcurrent[count])>=perturb_dist)
                          {
@@ -1266,7 +1345,7 @@ namespace gravity {
                              break;
                          }
                      }
-                     if(con_type==1)
+                     if(ctype==geq)
                      {
                          if(fnew<(zero_tol*(-1)) && abs(xv-xcurrent[count])>=perturb_dist)
                          {
@@ -1287,7 +1366,7 @@ namespace gravity {
                      }
                      iter++;
                  }
-                     if(perturb==true || (f>zero_tol && con_type==-1) || (f<(zero_tol*(-1)) && con_type==1) )
+                     if(perturb==true || (f>zero_tol && ctype==leq) || (f<(zero_tol*(-1)) && ctype==geq) )
                      {
                          for(auto i=0;i<count;i++)
                              res[res_count].push_back(xcurrent[i]);
@@ -1301,10 +1380,10 @@ namespace gravity {
                              auto v = it.second.first;
                              size_t posv=v->get_id_inst(nb_inst);
                              v->get_double_val(posv, xv);
-                             DebugOn("Xvalues of Outer point\t"<<xv<<endl);
+                             //DebugOn("Xvalues of Outer point\t"<<xv<<endl);
                          }
                          uneval();
-                         DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
+                         //DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
 
             }
             }

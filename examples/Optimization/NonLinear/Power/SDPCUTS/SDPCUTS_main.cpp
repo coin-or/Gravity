@@ -235,21 +235,31 @@ int main (int argc, char * argv[]) {
     bool current = true;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
+    //var<> eta("eta", 0, 10);
     if(current){
         SDP.add(lij.in(arcs),lji.in(arcs));
     }
     
+    //SDP.add(eta.in(range(0, 0)));
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+   // obj=eta("0")*(-1);
     SDP.min(obj);
     ACOPF.min(obj);
     
+    indices orig("orig");
+    orig.add({"0","1","2"});
+    
+//    indices orig1("orig1");
+//    orig1.add("0");
+    
     
     /** Constraints */
-//    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
-//    {
-    
-        auto bag_size = bags_3d.size();
+    auto bag_size = bags_3d.size();
+    Constraint<> SDP3("SDP_3D");
+  //      Constraint<> SDPD("SDPD");
+    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
+    {        
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
@@ -257,7 +267,7 @@ int main (int argc, char * argv[]) {
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         
         
-        Constraint<> SDP3("SDP_3D");
+        
         SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
         SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
         SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
@@ -265,15 +275,17 @@ int main (int argc, char * argv[]) {
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDP.add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
+            SDP.add_lazy(SDP3.in(orig) >= 0);
         }
         else {
-            SDP.add(SDP3.in(range(0,bag_size-1)) >= 0);
+            SDP.add(SDP3.in(orig) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
    
-        
-    //}
+//
+//        SDPD= - 0.002491499038*Im_Wij_[0] - 0.002405078286*Im_Wij_[1] + 0.002576479796*Im_Wij_[2] + 0.0006191834985*R_Wij_[0] - 0.002142755127*R_Wij_[1] - 0.004868374713*R_Wij_[2] + 0.002190591032*Wii_[0] + 0.0007469140267*Wii_[1] + 0.003457224761*Wii_[2] + 1.999982567e-08;
+//        SDP.add(SDPD.in(orig1) >= 0);
+    }
     
     /** Constraints */
     /* Second-order cone constraints */
@@ -434,204 +446,246 @@ int main (int argc, char * argv[]) {
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
+    SDP.print_solution();
     
-    func<> therm=Thermal_Limit_from.get_outer_app().in(arcs);
-    Thermal_Limit_from.uneval();
-//    func<> therm=Thermal_Limit_from.get_outer_app();
-//    therm.print();
-//    DebugOn("Outer"<<endl);
     
-       auto xvva=Thermal_Limit_from.get_outer_point(2, -1);
+       auto SDPcon=SDP.get_constraint("SDP_3D");
+    auto thermal=SDP.get_constraint("Thermal_Limit_from");
     
-    vector<double> x,y, xcurrent;
-
-//    for (auto &it: *Thermal_Limit_from._vars)
-//    {
-//             string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
-//        x.push_back(v.eval("0,1,2"));
-//    }
+     //for(auto i=0;i<SDPcon->get_nb_inst();i++)
+//            for(auto i=0;i<1;i++)
+//        {
+//            SDPcon->uneval();
+//            DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
 //
-//    for (auto &it: *Thermal_Limit_from._vars)
+//            if(abs(SDPcon->eval(i))<=tol)
+//            {
+//                SDPcon->uneval();
+//                func<> oas=SDPcon->get_outer_app_insti(i);
+//                oas.eval_all();
+//                Constraint<> OA_sol("OA_cuts_solution"+to_string(i));
+//                OA_sol=oas;
+//                SDP.add(OA_sol>=0);
+//                oas.uneval();
+//                auto oas_point=make_shared<func<>>(oas);
+//                SDP.merge_vars(oas_point);
+//                OA_sol.print();
+//                DebugOn("OA \t" <<oas.eval(0));
+//            }
+//}
+    
+    //for(auto i=0;i<thermal->get_nb_inst();i++)
+//    for(auto i=0;i<1;i++)
 //    {
-//        string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn("V eval\t"<<v.eval("0,1,2")<<endl);
-//        x.push_back(v.eval("0,1,2"));
-//    }
-  size_t nb_inst=2;
-    double xv,xva, xvb;
-//    for (auto &it: *SDP3._vars)
-//    {
-//    auto v = it.second.first;
+//        thermal->uneval();
+//        DebugOn("eval of con "<<thermal->eval(i)<<endl);
 //
-//        DebugOn("V id is\t"<<v->_id);
-//       DebugOn("v_name\t"<<v->_name);
-//        size_t posv=v->get_id_inst(nb_inst);
-//        v->get_double_val(posv, xv);
-////        var<> vk=SDP.get_var<double>("Wii.from");
-////        v->set_double_val(nb_inst, xv);
-//    xcurrent.push_back(xv);
-//        xva=xv+0.01;
-//        v->set_double_val(posv, xva);
-//        v->get_double_val(posv, xvb);
-//        x.push_back(xvb);
+//
+//            thermal->uneval();
+//            func<> oas=thermal->get_outer_app_insti(i);
+//            oas.eval_all();
+//            Constraint<> therm_sol("thermal_cuts_solution"+to_string(i));
+//            therm_sol=oas;
+//            SDP.add(therm_sol<=0);
+//            oas.uneval();
+//            auto oas_point=make_shared<func<>>(oas);
+//            SDP.merge_vars(oas_point);
+//            therm_sol.print();
+//            DebugOn("function value in main \t" <<oas.eval(0));
+//
 //    }
-//    DebugOn("xcurrent"<<endl);
-//    for(auto i=0;i<xcurrent.size();i++)
-//        DebugOn("xcurrent"<<xcurrent[i]<<endl);
-//    DebugOn("xstart"<<endl);
-//    for(auto i=0;i<x.size();i++)
-//        DebugOn("xstart"<<x[i]<<endl);
     
   
-    //double xv=0;
-//   for (auto &it: *Thermal_Limit_from._vars)
-//    {
-//        auto v = it.second.first;
-//        v->set_double_val(nbinst, xv);
-//        y.push_back(xv);
-//        DebugOn("xv\t"<<xv<<endl);
-//    }
-//
-//    auto xvv=Thermal_Limit_from.get_outer_point(0, -1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//        DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-//
-//    xvv=SOC.get_outer_point(0, -1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-//
-//    xvv=LNC1.get_outer_point(0, 1);
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
-//    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
-//        DebugOn(endl);
-//    }
-    //SDP.reset_constrs();
+       
+    
+        
+        
+        thermal->uneval();
+        func<> oas=thermal->get_outer_app();
+        oas.eval_all();
+        Constraint<> therm_sol("thermal_cuts_solution");
+        therm_sol=oas;
+        SDP.add(therm_sol<=0);
+        oas.uneval();
+        auto oas_point=make_shared<func<>>(oas);
+        SDP.merge_vars(oas_point);
+        therm_sol.print();
+        DebugOn("function value in main \t" <<oas.eval(0)<<"\t"<<oas.eval(1)<<"\t"<<oas.eval(2)<<"\t"<<oas.eval(3)<<"\t"<<oas.eval(4)<<endl);
+        
+    
     
 
-//    DebugOn("got xvv"<<endl);
-//    for(auto i=0;i<xvv.size();i++)
+//    
+  
+//    
+//    
+//    bool interior=false;
+//    pair<vector<double>,bool> xactive;
+//    vector<vector<double>> xinterior(SDPcon->get_nb_inst());
+//    vector<vector<double>> xouter_array;
+//    vector<double> xsolution;
+//    int counter;
+//    double xv;
+//    DebugOn("Number of con "<<SDPcon->get_nb_inst()<<endl);
+//    
+//   // for(auto i=0;i<SDPcon->get_nb_inst();i++)
+//            for(auto i=0;i<1;i++)
 //    {
-//        for(auto j=0;j<xvv[i].size();j++)
-//            DebugOn("XVV\t"<<xvv[i][j]<<"\t");
+//        SDPcon->uneval();
+//        DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
+//        
+//        if(abs(SDPcon->eval(i))<=tol)
+//        {
+//            SDPcon->uneval();
+//            func<> oas=SDPcon->get_outer_app_insti(i);
+//            oas.eval_all();
+//            Constraint<> OA_sol("OA_cuts_solution"+to_string(i));
+//            OA_sol=oas;
+//            SDP.add(OA_sol>=0);
+//            oas.uneval();
+//            auto oas_point=make_shared<func<>>(oas);
+//           // SDP.merge_vars(oas_point);
+//            OA_sol.print();
+//            DebugOn("OA \t" <<oas.eval(0));
+//            
+//            DebugOn("Active instant "<<i<<endl);
+//            xsolution.clear();
+//            counter=0;
+//            for (auto &it: *SDPcon->_vars)
+//            {
+//                auto v = it.second.first;
+//                size_t posv=v->get_id_inst(i);
+//                v->get_double_val(posv, xv);
+//                xsolution.push_back(xv);
+//            }
+//            if(interior==false)
+//            {
+//                auto SDPI=build_SDPOPF(grid, false, upper_bound, true);
+//                solver<> SDPOPFI(SDPI,solv_type);
+//                SDPOPFI.run(output = 5, tol = 1e-8);
+//                if(SDPI->_status==0|| SDPI->_status==1)
+//                {
+//                    auto SDPIcon=SDPI->get_constraint("SDP_3D");
+//                    for (auto &it: *SDPIcon->_vars)
+//                    {
+//                        for(auto nb_inst=0;nb_inst<SDPIcon->get_nb_inst();nb_inst++)
+//                        {
+//                            auto v = it.second.first;
+//                            size_t posv=v->get_id_inst(nb_inst);
+//                            v->get_double_val(posv, xv);
+//                            xinterior[nb_inst].push_back(xv);
+//                        }
+//                    }
+//                    interior=true;
+//                }
+//            }
+//            if(interior)
+//            {
+//                SDPcon->uneval();
+//                xouter_array= SDPcon->get_outer_point(i,  SDPcon->_ctype);
+//                vector<double> xinterior_i=xinterior[i];
+//                xinterior_i.pop_back();
+//                for(auto j=0;j<xouter_array.size();j++)
+//                    //for(auto j=0;j<1;j++)
+//                {
+//                    if(xouter_array[j].size()>0)
+//                    {
+//                        SDPcon->uneval();
+//                        xactive= SDPcon->linesearchbinary(xinterior_i,xouter_array[j], i, SDPcon->_ctype);
+//                        if(xactive.second)
+//                        {
+//                           // DebugOn("Active point found"<<endl);
+//                            
+//                            counter=0;
+//                            for (auto &it: *SDPcon->_vars)
+//                            {
+//                                auto v = it.second.first;
+//                                size_t posv=v->get_id_inst(i);
+//                                v->set_double_val(posv,xactive.first[counter++]);
+//                            }
+//                            SDPcon->uneval();
+////                            func<> oa_iter=SDPcon->get_outer_app_insti(i);
+////                            oa_iter.eval_all();
+////                            Constraint<> OA_itercon("OA_cuts_iterative "+to_string(i)+","+to_string(j));
+////                            OA_itercon=oa_iter;
+//                            //  SDP.add(OA_itercon>=0);
+//                            counter=0;
+//                            for (auto &it: *SDPcon->_vars)
+//                            {
+//                                auto v = it.second.first;
+//                                size_t posv=v->get_id_inst(i);
+//                                v->set_double_val(posv, xsolution[counter++]);
+//                            }
+////                            oas.uneval();
+////                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl);
+////                            
+//                        }
+//                    }
+//                }
+//                
+//                
+//            }
+//            
+//        }
+//    }
+//    
+    
+    //        DebugOn("Outer_approximation MWE");
+    //
+    ////    indices orig("orig");
+    ////    orig.add({"0","1","2"});
+    //    oacuts= SDPcon->get_outer_app();
+    //
+    //    oacuts.print();
+    //    oacuts.eval_all();
+    //
+    //      indices test("test");
+    //    test.add({"10", "20"});
+    //    Constraint<> OA("OA_at_solution");
+    //    OA=oacuts;
+    //    //OA.print();
+    //
+    //    Constraint<> OA_q("OA_q");
+    //    OA_q=OA;
+    //    SDP.add(OA_q.in(test)>=0);
+    //    DebugOn("OAQ MWE");
+    //    OA_q.print();
+    
+    
+    // SDP.print();
+    
+//    for(auto i=0;i<SDPcon->get_nb_inst();i++)
+//    {
+//        for(auto j=0;j<xinterior[i].size();j++)
+//        {
+//            DebugOn(xinterior[i][j]<<"\t");
+//        }
 //        DebugOn(endl);
 //    }
     
     
-    DebugOn("Outer point and function value from func.h"<<endl);
-    auto xvv=SDP3.get_outer_point(nb_inst, 1);
-    for (auto &it: *SDP3._vars)
-        {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(nb_inst);
-        v->get_double_val(posv, xv);
-        xcurrent.push_back(xv);
-//        double lb,ub;
-//        lb=v->get_double_lb(posv);
-//        ub=v->get_double_ub(posv);
-//        v->set_double_val(posv, (lb+ub)*0.5);
-//        x.push_back((lb+ub)*0.5);
-        }
-      // SDP.reset_constrs();
-    
-
- 
-    
-    DebugOn("Instance of function interested in\t"<<nb_inst<<endl);
-    
-        DebugOn("Outer point and function value from main"<<endl);
-    int counter=0;
-    for (auto &it: *SDP3._vars)
+    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
     {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(nb_inst);
-        v->set_double_val(posv, xvv[0][counter++]);
+        //DebugOn("Outer point and function value from func.h"<<endl);
+        SDP3.uneval();
+        
+        SDP.print();
+        //SDP.reset_constrs();
+        
+        solver<> SDPOPFA(SDP,solv_type);
+        double solver_time_start = get_wall_time();
+        
+        SDP.print();
+        SDPOPFA.run(output = 5, tol = 1e-6);
+        SDP.print_solution();
         
     }
-    DebugOn("Outer point "<<endl);
-    SDP3.uneval();
-    for(auto i=0;i<xvv[0].size();i++)
-        DebugOn("Xvalues of Outer point\t"<<xvv[0][i]<<endl);
-
-       DebugOn("Function value at pos"<<nb_inst<<" at outer point\t"<<SDP3.eval(nb_inst)<<endl);
-
     
-     DebugOn("All fvals at outer point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
+    
+   
+    
     
  
-
-//
-//    DebugOn("Function value at interior point\t"<<SDP3.eval(n)<<endl);
-//    DebugOn("All Function values at interior point\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2))<<endl;
-//    DebugOn("Interior point "<<endl);
-//    for(auto i=0;i<x.size();i++)
-//        DebugOn("xstart\t"<<x[i]<<endl);
-//
-   
-
-    
-    
-    
-
-//    counter=0;
-//    for (auto &it: *SDP3._vars)
-//    {
-//        auto v = it.second.first;
-//        size_t posv=v->get_id_inst(nb_inst);
-//        v->set_double_val(posv, xcurrent[counter++]);
-//    }
-    
-    func<> a=SDP3.get_outer_app().in(range(0,bag_size-1));
-    a.print();
-    
-        func<> aa=Thermal_Limit_from.get_outer_app().in(arcs);
-        aa.print();
-
-
-  SDP3.uneval();
-  //  DebugOn("all SDP3D fvals at original solution of SDPOPF\t"<<SDP3.eval(0)<<"\t"<<SDP3.eval(1)<<"\t"<<SDP3.eval(2)<<endl);
-
-   // auto res=SDP3.linesearchbinary(x, xvv[0], n, 1);
-//    if(res.second)
-//    {
-//        DebugOn("Active point found"<<endl);
-//        for(auto i=0;i<res.first.size();i++)
-//            DebugOn(res.first[i]<<endl);
-//    }
-//    for (auto &it: *KCL_P._vars)
-//    {
-//        string vname = it.first;
-//        var<> v=SDP.get_var<double>(vname);
-//        DebugOn(vname<<endl);
-//    }
-    
-    
-//
-//    //SDP.print();
-//    SDPOPF.run(output = 5, tol = 1e-6, "ma97");
-////    SDP.print_constraints_stats(tol);
-//    auto v = SDP.sorted_nonzero_constraints(tol);
-//
-//    for (int i = 0; i < v.size(); i++)
-//        cout << get<0>(v[i])<< " "
-//        << get<1>(v[i]) << " "
-//        << get<2>(v[i]) << "\n";
-    
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
@@ -660,7 +714,7 @@ int main (int argc, char * argv[]) {
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-           SDP.print_solution();
+        //   SDP.print_solution();
     
     
     
