@@ -93,7 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
-             *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -150,7 +150,7 @@ namespace gravity {
         };
 
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_double_indexed()) {
+            if (is_matrix_indexed()) {
                 if (_indices->_ids->size()<=inst1) {
                     throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
                 }
@@ -286,7 +286,7 @@ namespace gravity {
             return (_indices && _indices->_ids);
         }
         
-        bool is_double_indexed() const{
+        bool is_matrix_indexed() const{
             return (_indices && _indices->_ids && _indices->_ids->size()>1);
         }
 
@@ -429,7 +429,7 @@ namespace gravity {
         }
 
         size_t get_dim(size_t i) const{
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 if(i>_indices->_ids->size()){
                     throw invalid_argument("get_dim(size_t i) i out of range\n");
                 }
@@ -442,7 +442,7 @@ namespace gravity {
         }
         
         size_t get_nb_inst() const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->size();
             if(is_indexed() && !_is_transposed){
                 return _indices->_ids->at(0).size();
@@ -553,13 +553,13 @@ namespace gravity {
         }
         
         /** let this share the values of p */
-        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        template<class T2, typename std::enable_if<!is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& p){
             throw invalid_argument("cannot share vals with different typed params/vars");
         }
         
         /** let this share the values of p */
-        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& pp){
             _val->resize(pp._val->size());
             for (size_t i = 0; i < _val->size(); i++) {
@@ -643,7 +643,7 @@ namespace gravity {
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
             res._off=_off;
-            *res._in=*_in;
+            res._in=make_shared<bool>(*_in);
             return res;
         }
 
@@ -680,7 +680,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
         
@@ -722,7 +722,7 @@ namespace gravity {
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
             _off=p._off;
-            *_in=*p._in;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
 
@@ -1438,57 +1438,117 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
-        param in_matrix(unsigned nb_entries) const{
+//        param in_matrix(unsigned nb_entries) const{
+//            auto res(*this);
+//            return res.in(this->get_matrix_ids(nb_entries));
+//        }
+        
+        /** Create a matrix version of parameter where each row will be indexed based on the entries starting at start_pos and spanning nb_entries.
+         Example:
+         dv = {
+         [1,8] = 0
+         [1,9] = 0
+         [1,10] = 0
+         [1,11] = 0
+         [1,12] = 0
+         [2,8] = 0
+         [2,9] = 0
+         [2,10] = 0
+         [2,11] = 0
+         [2,12] = 0
+         [3,8] = 0
+         [3,9] = 0
+         [3,10] = 0
+         [3,11] = 0
+         [3,12] = 0
+         };
+         sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+         sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+         */
+        param in_matrix(unsigned start_entry, unsigned nb_entries) const{
             auto res(*this);
-            return res.in(this->get_matrix_ids(nb_entries));
+            return res.in(this->get_matrix_ids(start_entry,nb_entries));
         }
         
-        
-        indices get_matrix_ids(unsigned nb_entries) const{
+        indices get_matrix_ids(unsigned start_entry, unsigned nb_entries) const{
             auto res(*this->_indices);
-            res.set_name("matrix("+_indices->get_name()+")");
+        res.set_name("matrix("+_indices->get_name()+","+to_string(start_entry)+","+to_string(nb_entries)+")");
+            res._type = matrix_;
             res._ids = make_shared<vector<vector<size_t>>>();
-            string key = "", first_key="";
-            int inst = -1;
+            string key = "", invariant_key="";
+            map<string,size_t> invariant_map;
+            int row_id = 0;
             string prev_key = "";
             if(is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: _indices->_ids->at(0)){
                     key = _indices->_keys->at(key_ref);
-                    auto pos = nthOccurrence(key, ",", nb_entries);
-                    if(pos>0){
-                        first_key = key.substr(0,pos);
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
                     }
-                    if (first_key!=prev_key) {
-                        res._ids->resize(res._ids->size()+1);
-                        inst++;
+                    else {
+                        newstr = key;
+                    }
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
+                    if(pos>0){
+                        poststr = newstr.substr(pos+1);
+                    }
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
                     }
                     auto it1 = this->_indices->_keys_map->find(key);
                     if (it1 == this->_indices->_keys_map->end()){
                         throw invalid_argument("In function get_matrix_ids(), unknown key.");
                     }
-                    res._ids->at(inst).push_back(it1->second);
-                    prev_key = first_key;
+                    res._ids->at(row_id).push_back(it1->second);
                 }
             }
             else {
                 for (auto key: *_indices->_keys) {
-                    auto pos = nthOccurrence(key, ",", nb_entries);
-                    if(pos>0){
-                        first_key = key.substr(0,pos);
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
                     }
-                    if (first_key!=prev_key) {
-                        res._ids->resize(res._ids->size()+1);
-                        inst++;
+                    else {
+                        newstr = key;
+                    }
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
+                    if(pos>0){
+                        poststr = newstr.substr(pos+1);
+                    }
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
                     }
                     auto it1 = this->_indices->_keys_map->find(key);
                     if (it1 == this->_indices->_keys_map->end()){
                         throw invalid_argument("In function get_matrix_ids(), unknown key.");
                     }
-                    res._ids->at(inst).push_back(it1->second);
-                    prev_key = first_key;
+                    res._ids->at(row_id).push_back(it1->second);
                 }
             }
             return res;
+        }
+        
+        indices get_matrix_ids(unsigned start_pos) const{
+            return get_matrix_ids(start_pos,1);
         }
         
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
@@ -1568,7 +1628,7 @@ namespace gravity {
                 }
                 res._indices = make_shared<indices>(ids);
                 if(res._is_transposed){
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[1]=_indices->size();
                     }
                     else {
@@ -1576,7 +1636,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[0]=_indices->size();
                     }
                     else {
@@ -1950,7 +2010,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);

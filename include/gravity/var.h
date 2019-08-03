@@ -426,10 +426,49 @@ namespace gravity {
             return res;
         }
         
+//        template<typename... Args>
+//        var in_matrix(unsigned start_pos) const{
+//            var<type> res(*this);
+//            res.param<type>::operator=(param<type>::in_matrix(start_pos));//TODO assert lb dim = res dim
+//            res._type = var_c;
+//            if(res._real){
+//                auto real_var = static_pointer_cast<var<>>(res._real);
+//                res._real = make_shared<var<>>(real_var->in(*res._indices));
+//            }
+//            if(res._imag){
+//                auto imag_var = static_pointer_cast<var<>>(res._imag);
+//                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+//            }
+//            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+//            return res;
+//        }
+        
+        /** Create a matrix version of variable where each row will be indexed based on the entries starting at start_pos and spanning nb_entries.
+         Example:
+         dv = {
+         [1,8] = 0
+         [1,9] = 0
+         [1,10] = 0
+         [1,11] = 0
+         [1,12] = 0
+         [2,8] = 0
+         [2,9] = 0
+         [2,10] = 0
+         [2,11] = 0
+         [2,12] = 0
+         [3,8] = 0
+         [3,9] = 0
+         [3,10] = 0
+         [3,11] = 0
+         [3,12] = 0
+         };
+         sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+         sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+         */
         template<typename... Args>
-        var in_matrix(unsigned nb_entries) const{
+        var in_matrix(unsigned start_pos, unsigned nb_entries) const{
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in_matrix(nb_entries));//TODO assert lb dim = res dim
+            res.param<type>::operator=(param<type>::in_matrix(start_pos, nb_entries));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);

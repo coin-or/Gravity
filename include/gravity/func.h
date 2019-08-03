@@ -211,7 +211,7 @@ namespace gravity {
         size_t get_nb_vars(unsigned inst) const{
             size_t n = 0;
             for (auto &vp:*_vars) {
-                if(vp.second.first->_is_vector || vp.second.first->is_double_indexed()){
+                if(vp.second.first->_is_vector || vp.second.first->is_matrix_indexed()){
                     n += vp.second.first->get_dim(inst);
                 }
                 else {
@@ -249,7 +249,7 @@ namespace gravity {
         };
         
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_double_indexed()) {
+            if (is_matrix_indexed()) {
                 if (_indices->_ids->size()<=inst1) {
                     throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
                 }
@@ -716,6 +716,7 @@ namespace gravity {
             //                }
             //            }
             _indices = make_shared<indices>(ids);
+            _dim[0] = ids.size();
             //            if(_expr){
             //                _expr->in(ids);
             //            }
@@ -919,7 +920,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
@@ -2129,7 +2130,7 @@ namespace gravity {
                     _indices = v->_indices;
                     _dim[0] = v->_dim[0];
                 }
-                if(v->is_double_indexed()){
+                if(v->is_matrix_indexed()){
                     _indices = v->_indices;
                     return;
                 }
@@ -2140,19 +2141,19 @@ namespace gravity {
                     _indices = p->_indices;
                     _dim[0] = p->_dim[0];
                 }
-                if(p->is_double_indexed()){
+                if(p->is_matrix_indexed()){
                     _indices = p->_indices;
                     return;
                 }
             }
         }
         
-        bool is_double_indexed() const{
+        bool is_matrix_indexed() const{
             return (_indices && _indices->_ids && _indices->_ids->size()>1);
         }
         
         string to_str(size_t index, int prec) {            
-            if (is_constant() && !this->is_double_indexed()) {
+            if (is_constant() && !this->is_matrix_indexed()) {
                 return to_string_with_precision(eval(index),prec);
             }
             string str;
@@ -2209,7 +2210,7 @@ namespace gravity {
         }
         
         size_t get_dim(size_t i) const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->at(i).size();
             if (is_indexed()) {
                 return _indices->_ids->at(0).size();
@@ -2218,7 +2219,7 @@ namespace gravity {
         }
         
         size_t get_nb_inst() const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->size();
             if(is_indexed() && !_is_transposed){
                 return _indices->_ids->at(0).size();
@@ -2368,7 +2369,7 @@ namespace gravity {
         
         void allocate_mem(){
 //            _evaluated = false;
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         _dim[0] = max(_dim[0],_indices->_ids->at(i).at(j)+1);
@@ -2777,7 +2778,7 @@ namespace gravity {
             if(c._indices){
                 _indices = make_shared<indices>(*c._indices);
             }
-//            if(c.is_double_indexed()){
+//            if(c.is_matrix_indexed()){
 //                _indices = c._indices;
 //            }
             return *this;
@@ -3375,7 +3376,7 @@ namespace gravity {
                 res += eval_cst(i);
             if(!_lterms->empty()){
                 for (auto &pair:*_lterms) {
-                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_double_indexed()) {
+                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
                         auto dim = pair.second._p->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -3402,7 +3403,7 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._p->second->is_double_indexed()){
+                    if(pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -4578,10 +4579,10 @@ namespace gravity {
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
                 exp->_rson->eval_all();
             }
-            if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
+            if(exp->_otype==product_ && (exp->_lson->is_matrix_indexed() || exp->_rson->is_matrix_indexed()))
             {
                 auto dim = exp->_lson->get_dim(i);
-                if(exp->_rson->is_double_indexed()){
+                if(exp->_rson->is_matrix_indexed()){
                     dim = exp->_rson->get_dim(i);
                 }
                 if(dim==0){
@@ -4631,10 +4632,10 @@ namespace gravity {
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
                 exp->_rson->eval_all();
             }
-            if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
+            if(exp->_otype==product_ && (exp->_lson->is_matrix_indexed() || exp->_rson->is_matrix_indexed()))
             {
                 auto dim = exp->_lson->get_dim(i);
-                if(exp->_rson->is_double_indexed()){
+                if(exp->_rson->is_matrix_indexed()){
                     dim = exp->_rson->get_dim(i);
                 }
                 if(dim==0){
@@ -4962,7 +4963,7 @@ namespace gravity {
             }
             else {
                 //                if (is_constant() && i==_val->size()-1) {
-                if(is_double_indexed()){
+                if(is_matrix_indexed()){
                     _val->at(_indices->_ids->at(i).at(j)) = res;
                 }
                 else{
@@ -6468,13 +6469,15 @@ namespace gravity {
                 qname = ps2+","+ps1;
                 pair_it = _qterms->find(qname);
             }
+            if (pair_it == _qterms->end()) {
+                qname = ps1+","+ps2;
+            }
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
             _evaluated=false;
             if (_ftype <= lin_ && p1.is_var()) {
                 _ftype = quad_;
-            }
-            
+            }            
             if (pair_it == _qterms->end()) {
                 if (p1.is_var()) {
                     p_new1 = get_var(ps1);
@@ -8743,6 +8746,7 @@ namespace gravity {
         return f * constant<T2>(p);
     }
     
+
     
     template<typename type>
     func<type> sum(const param<type>& p){
@@ -8750,7 +8754,68 @@ namespace gravity {
         if (p.get_dim()==0) {
             return res;
         }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        }
         return unit<type>().tr()*p.vec();
+    }
+    
+    /** Create a matrix sum where each row will be indexed based on the entries starting at start_pos and spaning nb_entries.
+     Example:
+     dv = {
+     [1,8] = 0
+     [1,9] = 0
+     [1,10] = 0
+     [1,11] = 0
+     [1,12] = 0
+     [2,8] = 0
+     [2,9] = 0
+     [2,10] = 0
+     [2,11] = 0
+     [2,12] = 0
+     [3,8] = 0
+     [3,9] = 0
+     [3,10] = 0
+     [3,11] = 0
+     [3,12] = 0
+     };
+     sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+     sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+     */
+    template<typename type>
+    func<type> sum_ith(const param<type>& p, unsigned start_pos, unsigned nb_entries){
+        auto matrix_p = p.in_matrix(start_pos,nb_entries);
+        auto res = sum(matrix_p);
+        return res.in(range(0,matrix_p._indices->get_nb_rows()-1));
+    }
+    
+    /** Create a matrix sum where each row will be indexed based on the entries starting at start_pos and spaning nb_entries.
+     Example:
+     dv = {
+     [1,8] = 0
+     [1,9] = 0
+     [1,10] = 0
+     [1,11] = 0
+     [1,12] = 0
+     [2,8] = 0
+     [2,9] = 0
+     [2,10] = 0
+     [2,11] = 0
+     [2,12] = 0
+     [3,8] = 0
+     [3,9] = 0
+     [3,10] = 0
+     [3,11] = 0
+     [3,12] = 0
+     };
+     sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+     sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+     */
+    template<typename type>
+    func<type> sum_ith(const var<type>& p, unsigned start_pos, unsigned nb_entries){
+        auto matrix_p = p.in_matrix(start_pos,nb_entries);
+        auto res = sum(matrix_p);
+        return res.in(range(0,matrix_p._indices->get_nb_rows()-1));
     }
     
     template<typename type>
@@ -8758,6 +8823,9 @@ namespace gravity {
         func<type> res;
         if (p.get_dim()==0) {
             return res;
+        }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
         }
         return unit<type>().tr()*p.vec();
     }
@@ -8768,6 +8836,9 @@ namespace gravity {
         if (p.get_dim()==0) {
             return res;
         }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        }
         return unit<type>().tr()*p.vec();
     }
     
@@ -8776,6 +8847,9 @@ namespace gravity {
         func<type> res;
         if (p.get_dim()==0) {
             return res;
+        }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*(p.vec()).in(ids)).in(ids);
         }
         return unit<type>().tr()*(p.vec()).in(ids);
     }
