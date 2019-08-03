@@ -530,7 +530,7 @@ namespace gravity {
         string print_transposed(size_t inst, int prec){            
             string str;
             auto dim = _lson->get_dim(inst);
-            if(_rson->is_double_indexed()){
+            if(_rson->is_matrix_indexed()){
                 dim = _rson->get_dim(inst);
             }
             if(dim==0){
@@ -544,7 +544,7 @@ namespace gravity {
         
         
         string to_str(size_t inst,int prec) {
-            if(_otype==product_ && (_lson->is_double_indexed() || _rson->is_double_indexed())){
+            if(_otype==product_ && (_lson->is_matrix_indexed() || _rson->is_matrix_indexed())){
                 return print_transposed(inst,prec);
             }
             string str;

@@ -968,9 +968,20 @@ namespace gravity{
             }
             return max_dim;
         }
-            
+        
+        size_t get_nb_rows() const {
+            if(_type != matrix_){
+                throw invalid_argument("cannot call get_nb_rows() on a non-indexed set");
+            }
+            return _ids->size();
+        };
+        
+        /** @return size of index set, if this is a matrix indexing, it returns the number of rows, if the set is a mask (has _ids) it returns the mask size, otherwize it return the total number of keys. **/
         size_t size() const {
             if(is_indexed()){
+                if(_type == matrix_){ //Matrix-indexed
+                    return get_nb_rows();
+                }
                 return _ids->at(0).size();
             }
             return _keys->size();
@@ -1003,31 +1014,52 @@ namespace gravity{
     
     /** Adds all new keys found in ids
      @return index set of added indices.
-     */
+     **/
     template<typename... Args>
     indices union_ids(const indices& ids1, Args&&... args) {
         vector<indices> all_ids;
         all_ids = {ids1,forward<Args>(args)...};
         indices res("Union(");
-        res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
-        res._keys = make_shared<vector<string>>(*ids1._keys);
         auto nb_entries = ids1.get_nb_entries();
-        for (size_t i= 1; i < all_ids.size(); i++) {
-            auto ids = all_ids[i];
-            if(nb_entries!=ids.get_nb_entries()){
-                throw invalid_argument("union cannot be applied to index sets with different number of entries");
-            }
-            res.set_name(res.get_name() + ids.get_name()+",");
-            auto it = ids._keys->begin();
-            for (size_t i= 0; i < ids.size(); i++) {
-                auto idx = res._keys->size();
-                auto pp = res._keys_map->insert(make_pair<>(*it,idx));
-                if (pp.second) {//new index inserted
-                    res._keys->push_back(*it);
+        if(!ids1.is_indexed()){ //if the index set is not indexed, we assume the rest are not indexed as well
+            res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
+            res._keys = make_shared<vector<string>>(*ids1._keys);
+            for (size_t i= 1; i < all_ids.size(); i++) {
+                auto ids = all_ids[i];
+                if(nb_entries!=ids.get_nb_entries()){
+                    throw invalid_argument("union cannot be applied to index sets with different number of entries");
                 }
-                it++;
+                res.set_name(res.get_name() + ids.get_name()+",");
+                auto it = ids._keys->begin();
+                for (size_t i= 0; i < ids.size(); i++) {
+                    auto kkey = res._keys->size();
+                    auto pp = res._keys_map->insert(make_pair<>(*it,kkey));
+                    if (pp.second) {//new index inserted
+                        res._keys->push_back(*it);
+                    }
+                    it++;
+                }
             }
         }
+        else{  //means the ids1 is indexed so we assume all the rest are indexed as well
+//            res._ids = make_shared<vector<vector<size_t>>>(*ids1._ids);
+                for (size_t i= 0; i < all_ids.size(); i++) {
+                    auto ids = all_ids[i];
+                    if(nb_entries!=ids.get_nb_entries()){
+                        throw invalid_argument("union cannot be applied to index sets with different number of entries");
+                    }
+                    res.set_name(res.get_name() + ids.get_name()+",");
+                    auto it_ids = ids._ids->begin()->begin();
+                    for (size_t i= 0; i < ids.size(); i++) {
+                        auto kkey = res._keys->size();
+                        auto pp = res._keys_map->insert(make_pair<>(ids._keys->at(*it_ids),kkey));
+                        if (pp.second) {//new index inserted
+                            res._keys->push_back(ids._keys->at(*it_ids));
+                        }
+                        it_ids++;
+                    }
+                }
+            }
         auto name = res.get_name();
         res.set_name(name.substr(0,name.size()-1) + ")");
         return res;
