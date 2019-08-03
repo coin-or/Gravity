@@ -1438,11 +1438,33 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
-        param in_matrix(unsigned nb_entries) const{
-            auto res(*this);
-            return res.in(this->get_matrix_ids(nb_entries));
-        }
+//        param in_matrix(unsigned nb_entries) const{
+//            auto res(*this);
+//            return res.in(this->get_matrix_ids(nb_entries));
+//        }
         
+        /** Create a matrix version of parameter where each row will be indexed based on the entries starting at start_pos and spanning nb_entries.
+         Example:
+         dv = {
+         [1,8] = 0
+         [1,9] = 0
+         [1,10] = 0
+         [1,11] = 0
+         [1,12] = 0
+         [2,8] = 0
+         [2,9] = 0
+         [2,10] = 0
+         [2,11] = 0
+         [2,12] = 0
+         [3,8] = 0
+         [3,9] = 0
+         [3,10] = 0
+         [3,11] = 0
+         [3,12] = 0
+         };
+         sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+         sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+         */
         param in_matrix(unsigned start_entry, unsigned nb_entries) const{
             auto res(*this);
             return res.in(this->get_matrix_ids(start_entry,nb_entries));
@@ -1452,56 +1474,73 @@ namespace gravity {
             auto res(*this->_indices);
         res.set_name("matrix("+_indices->get_name()+","+to_string(start_entry)+","+to_string(nb_entries)+")");
             res._ids = make_shared<vector<vector<size_t>>>();
-            string key = "", first_key="";
-            int inst = -1;
+            string key = "", invariant_key="";
+            map<string,size_t> invariant_map;
+            int row_id = 0;
             string prev_key = "";
             if(is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: _indices->_ids->at(0)){
                     key = _indices->_keys->at(key_ref);
                     unsigned start_pos=0;
                     string prestr="", poststr="", newstr="";
-                    start_pos = nthOccurrence(key, ",", start_entry+1);
-                    prestr = key.substr(0,start_pos);
-                    newstr = key.substr(start_pos+1);
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
+                    }
+                    else {
+                        newstr = key;
+                    }
                     auto pos = nthOccurrence(newstr, ",", nb_entries);
                     if(pos>0){
-                        poststr = newstr.substr(pos);
+                        poststr = newstr.substr(pos+1);
                     }
-                    first_key = prestr+poststr;
-                    if (first_key!=prev_key) {
-                        res._ids->resize(res._ids->size()+1);
-                        inst++;
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
                     }
                     auto it1 = this->_indices->_keys_map->find(key);
                     if (it1 == this->_indices->_keys_map->end()){
                         throw invalid_argument("In function get_matrix_ids(), unknown key.");
                     }
-                    res._ids->at(inst).push_back(it1->second);
-                    prev_key = first_key;
+                    res._ids->at(row_id).push_back(it1->second);
                 }
             }
             else {
                 for (auto key: *_indices->_keys) {
                     unsigned start_pos=0;
                     string prestr="", poststr="", newstr="";
-                    start_pos = nthOccurrence(key, ",", start_entry+1);
-                    prestr = key.substr(0,start_pos);
-                    newstr = key.substr(start_pos+1);
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
+                    }
+                    else {
+                        newstr = key;
+                    }
                     auto pos = nthOccurrence(newstr, ",", nb_entries);
                     if(pos>0){
-                        poststr = newstr.substr(pos);
+                        poststr = newstr.substr(pos+1);
                     }
-                    first_key = prestr+poststr;
-                    if (first_key!=prev_key) {
-                        res._ids->resize(res._ids->size()+1);
-                        inst++;
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
                     }
                     auto it1 = this->_indices->_keys_map->find(key);
                     if (it1 == this->_indices->_keys_map->end()){
                         throw invalid_argument("In function get_matrix_ids(), unknown key.");
                     }
-                    res._ids->at(inst).push_back(it1->second);
-                    prev_key = first_key;
+                    res._ids->at(row_id).push_back(it1->second);
                 }
             }
             return res;
