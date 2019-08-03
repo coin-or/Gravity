@@ -1445,6 +1445,17 @@ TEST_CASE("testing get_matrix()") {
     CHECK(Sum3.get_nb_instances() == 15);
 }
 
+TEST_CASE("testing sum_ith()") {
+    indices ids1("index_set2");
+    ids1.add("5,4,1", "5,5,1", "5,2,1", "7,8,4", "7,6,4", "7,9,4");
+    var<>  v1("v1");
+    v1.in(ids1);
+    Constraint<> Sum1("Sum1");
+    Sum1 = sum_ith(v1, 1, 1);
+    Sum1.print();
+    CHECK(Sum1.get_nb_instances() == 2);
+}
+
 TEST_CASE("testing Outer Approximation") {
     DebugOn("testing Outer Approximation");
     indices buses("buses");
