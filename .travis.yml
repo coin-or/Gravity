@@ -43,15 +43,15 @@ before_install:
 #- echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
 script:
-- make
+- make gravity_test acopf sdpcuts
 - ../bin/Release/gravity_test
 - ../bin/Release/acopf
-- ../bin/Release/dcopf
-- ../bin/Release/socopf
+#- ../bin/Release/dcopf
+#- ../bin/Release/socopf
 - ../bin/Release/sdpcuts
 - ../bin/Release/sdpcuts -lz yes
-- ../bin/Release/svm -nb -1 -mu 1e2
-- ../bin/Release/stable_set
+#- ../bin/Release/svm -nb -1 -mu 1e2
+#- ../bin/Release/stable_set
 #- ../bin/Release/ising
 - cd ../
 - ./get_code_cov.sh
