@@ -500,7 +500,9 @@ namespace gravity{
         /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
         void filter_refs(const vector<bool>& keep) const{
             if(_ids){
-                assert(keep.size()==_ids->size());
+                if(keep.size()!=_ids->at(0).size()){
+                    throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+                }
                 vector<vector<size_t>> new_ids;
                 new_ids.resize(1);
                 for (auto idx = 0; idx<keep.size();idx++) {
