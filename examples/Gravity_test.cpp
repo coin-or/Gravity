@@ -1459,6 +1459,36 @@ TEST_CASE("testing sum_ith()") {
     CHECK(Sum1.get_nb_instances() == 2);
 }
 
+TEST_CASE("testing sum_ith() func<> version"){
+    DebugOn("testing sum_ith() func<> version" << endl);
+    
+    indices ids1("index set1""");
+    ids1 = indices(range(1,3),range(1,4),range(1,6));
+    
+    indices ids2("index set2");
+    ids2 = indices(range(1,3),range(1,4),range(1,5),range(1,6));
+    
+    param<> p1("p1");
+    p1.in(ids1);
+    p1 = 2;
+    
+    var<> v2("v2");
+    v2.in(ids2);
+    auto pp1 = p1.in_ignore_ith(2,1,ids2);
+    pp1.print_vals(2);
+//    Constraint<> Sum0("Sum0");//p1.in_ignore_ith(2,1,ids2)*
+//    Sum0 = sum(pp1);
+//    Sum0.print();
+    
+    Constraint<> Sum1("Sum1");//p1.in_ignore_ith(2,1,ids2)*
+    Sum1 = sum_ith(v2,1,2); //supposed to ignore range(1,5) and then sum over range(1,4) and range(1,5) assuming the function has 4 entries in the index set (I believe it should)
+    // I am also assuming that this function works for param<> as well
+//    Sum1 = pp1.tr()*v2.in_matrix(1,2);
+    Sum1.print();
+    CHECK(Sum1.get_nb_instances() == 3*6);
+    
+}
+
 TEST_CASE("testing Outer Approximation") {
     DebugOn("testing Outer Approximation");
     indices buses("buses");
