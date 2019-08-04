@@ -1,8 +1,8 @@
 language: cpp
 sudo: required
-cache:
-  directories:
-  - $HOME/.m2
+#cache:
+#  directories:
+#  - $HOME/.m2
 before_install:
 - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 - sudo apt update
@@ -13,13 +13,13 @@ before_install:
 - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 60
 # shutdown servies on Travis, which may have a memory impact
 # show memory usage before and after shutdown of services
-- sudo service --status-all
-- sudo free -m -t
-- sudo /etc/init.d/mysql stop
-- sudo /etc/init.d/postgresql stop
+#- sudo service --status-all
+#- sudo free -m -t
+#- sudo /etc/init.d/mysql stop
+#- sudo /etc/init.d/postgresql stop
 #- sudo /etc/init.d/redis-server stop
-- sudo free -m -t
-- sudo swapon -s
+#- sudo free -m -t
+#- sudo swapon -s
 #- export CC=/usr/bin/gcc-8
 #- export CXX=/usr/bin/g++-8
 #- sudo apt-get clean
