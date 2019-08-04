@@ -1470,13 +1470,22 @@ TEST_CASE("testing sum_ith() func<> version"){
     
     param<> p1("p1");
     p1.in(ids1);
-    p1 = 2;
+    size_t pos = 0;
+    for(auto i = 1; i<= 3; i++){
+        for(auto j = 1; j<= 4; j++){
+            for(auto k = 1; k<= 6; k++){
+                p1.set_val(pos, 100*i+10*j+k);
+                pos++;
+            }
+        }
+    }
     
     var<> v2("v2");
     v2.in(ids2);
     auto pp1 = p1.in_ignore_ith(2,1,ids2);
-    pp1.print_vals(2);
-//    Constraint<> Sum0("Sum0");//p1.in_ignore_ith(2,1,ids2)*
+    pp1.print_vals(4);
+    Constraint<> Sum0("Sum0");//p1.in_ignore_ith(2,1,ids2)*
+//    Sum0 = sum_ith(pp1,1,1);
 //    Sum0 = sum(pp1);
 //    Sum0.print();
     
