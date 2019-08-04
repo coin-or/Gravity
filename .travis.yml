@@ -1,26 +1,34 @@
 language: cpp
 sudo: required
-compiler:
-- gcc
-os:
-- linux
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-6
-    - g++-6
 before_install:
-- export CC=/usr/bin/gcc-6
-- export CXX=/usr/bin/g++-6
-- sudo apt-get clean
-- sudo rm -rf /var/lib/apt/lists/*
-- sudo apt-get update 
+- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+- sudo apt update
+- sudo apt-get install gcc-8 g++-8
+- sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60
+- sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
 - sudo apt-get install build-essential gfortran pkg-config liblapack-dev libblas-dev
+# To point to the new install
+- wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
+- tar xvzf Ipopt-3.12.12.tgz
+- mkdir third_party
+- mv Ipopt-3.12.12 ./third_party/CoinIpopt
+- cd ./third_party/CoinIpopt
+- cd ThirdParty/Mumps
+- "./get.Mumps"
+- cd ../..
+- mkdir build
+- cd build
+- "../configure"
+- make -j5
+- sudo make install
+- ls include/coin
+- ls lib
+- cd ../../../
+- echo $LANG
+- echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON
 script:
-- make gravity_test acopf sdpcuts
+- make -j2 gravity_test acopf sdpcuts
 - ../bin/Release/gravity_test
 - ../bin/Release/acopf
 #- ../bin/Release/dcopf
@@ -34,8 +42,3 @@ script:
 - ./get_code_cov.sh
 after_success: 
 - bash <(curl -s https://codecov.io/bash) -t 7a0a32a0-cc52-4460-9ec6-c4950095b532
-after_failure:
-# show memory usage again
-- sudo free -m -t
-# show actions of the OOM killer
-- sudo dmesg
