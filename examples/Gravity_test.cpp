@@ -181,16 +181,27 @@ TEST_CASE("testing matrix params") {
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
 #endif
     if(worker_id==0){
-        param<> mat("mat");
-        mat.set_size(3,3);
-        mat.set_val(1, 2, 2.3);
+        param<> mat("M");
+        mat.set_size(3,4);
+        for (auto i = 0; i<3;i++) {
+            for (auto j = 0; j<4;j++) {
+                mat.set_val(i, j, 10*i+j);
+            }
+        }
         mat.print();
-        CHECK(mat.eval(1,2)==2.3);
-        CHECK(mat(1,2).eval()==2.3);
+        CHECK(mat.eval(1,2)==12);
+        CHECK(mat(1,2).eval()==12);
         auto tr_mat = mat.tr();
         tr_mat.print();
-        CHECK(tr_mat.eval(2,1)==2.3);
-        CHECK(tr_mat(2,1).eval()==2.3);
+        CHECK(tr_mat.eval(2,1)==12);
+        CHECK(tr_mat(2,1).eval()==12);
+        
+        var<> v("v",0,1);
+        v.in(R(4));
+        Constraint<> Mv("Mv");
+        Mv = product(mat,v);
+        Mv.print();
+        
         /* Complex matrices */
         param<Cpx> Cmat("Cmat");
         Cmat.set_size(3,3);
