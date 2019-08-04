@@ -181,16 +181,27 @@ TEST_CASE("testing matrix params") {
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
 #endif
     if(worker_id==0){
-        param<> mat("mat");
-        mat.set_size(3,3);
-        mat.set_val(1, 2, 2.3);
+        param<> mat("M");
+        mat.set_size(3,4);
+        for (auto i = 0; i<3;i++) {
+            for (auto j = 0; j<4;j++) {
+                mat.set_val(i, j, 10*i+j);
+            }
+        }
         mat.print();
-        CHECK(mat.eval(1,2)==2.3);
-        CHECK(mat(1,2).eval()==2.3);
+        CHECK(mat.eval(1,2)==12);
+        CHECK(mat(1,2).eval()==12);
         auto tr_mat = mat.tr();
         tr_mat.print();
-        CHECK(tr_mat.eval(2,1)==2.3);
-        CHECK(tr_mat(2,1).eval()==2.3);
+        CHECK(tr_mat.eval(2,1)==12);
+        CHECK(tr_mat(2,1).eval()==12);
+        
+        var<> v("v",0,1);
+        v.in(R(4));
+        Constraint<> Mv("Mv");
+        Mv = product(mat,v);
+        Mv.print();
+        
         /* Complex matrices */
         param<Cpx> Cmat("Cmat");
         Cmat.set_size(3,3);
@@ -996,8 +1007,7 @@ TEST_CASE("testing socopf"){
         OPF.run(output=5, tol=1e-6);
         auto time_end = get_wall_time();
         DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
-        CHECK(abs(SOCOPF->_obj->get_val()-14999.71503774388)<tol);
-        CHECK(OPF.get_nb_iterations()==24);
+        CHECK(abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
     }
 }
 
@@ -1458,6 +1468,45 @@ TEST_CASE("testing sum_ith()") {
     cout.rdbuf(console);
     CHECK(buffer.str()==" Sum1 (Linear) : \nSum1[0]: v1[5,4,1] + v1[5,2,1] + v1[5,5,1] <= 0;\nSum1[1]: v1[7,8,4] + v1[7,6,4] + v1[7,9,4] <= 0;\n");
     CHECK(Sum1.get_nb_instances() == 2);
+}
+
+TEST_CASE("testing sum_ith() func<> version"){
+    DebugOn("testing sum_ith() func<> version" << endl);
+    
+    indices ids1("index set1""");
+    ids1 = indices(range(1,3),range(1,4),range(1,6));
+    
+    indices ids2("index set2");
+    ids2 = indices(range(1,3),range(1,4),range(1,5),range(1,6));
+    
+    param<> p1("p1");
+    p1.in(ids1);
+    size_t pos = 0;
+    for(auto i = 1; i<= 3; i++){
+        for(auto j = 1; j<= 4; j++){
+            for(auto k = 1; k<= 6; k++){
+                p1.set_val(pos, 100*i+10*j+k);
+                pos++;
+            }
+        }
+    }
+    
+    var<> v2("v2");
+    v2.in(ids2);
+    auto pp1 = p1.in_ignore_ith(2,1,ids2);
+    pp1.print_vals(4);
+    Constraint<> Sum0("Sum0");//p1.in_ignore_ith(2,1,ids2)*
+//    Sum0 = sum_ith(pp1,1,1);
+//    Sum0 = sum(pp1);
+//    Sum0.print();
+    
+    Constraint<> Sum1("Sum1");//p1.in_ignore_ith(2,1,ids2)*
+    Sum1 = sum_ith(v2,1,2); //supposed to ignore range(1,5) and then sum over range(1,4) and range(1,5) assuming the function has 4 entries in the index set (I believe it should)
+    // I am also assuming that this function works for param<> as well
+//    Sum1 = pp1.tr()*v2.in_matrix(1,2);
+    Sum1.print();
+    CHECK(Sum1.get_nb_instances() == 3*6);
+    
 }
 
 TEST_CASE("testing Outer Approximation") {

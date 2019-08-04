@@ -1526,7 +1526,7 @@ namespace gravity {
                     }
                     auto pos = nthOccurrence(newstr, ",", nb_entries);
                     if(pos>0){
-                        poststr = newstr.substr(pos+1);
+                        poststr = newstr.substr(pos);
                     }
                     invariant_key = prestr+poststr;
                     row_id = invariant_map.size();
