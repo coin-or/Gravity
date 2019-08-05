@@ -13,11 +13,44 @@ namespace gravity {
     
     template<typename T>
     void param<T>::copy_vals(const shared_ptr<param_>& p){
-        auto dim = p->get_dim();
-        func<T> f;
-        _val->resize(dim);
-        for (size_t i = 0; i < dim; i++) {
-            _val->at(i) = f.eval(p,i);
+        switch (p->get_intype()) {
+            case binary_:{
+                auto pp =  static_pointer_cast<param<bool>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            case short_:{
+                auto pp =  static_pointer_cast<param<short>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            case integer_:{
+                auto pp =  static_pointer_cast<param<int>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            case float_:{
+                auto pp =  static_pointer_cast<param<float>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            case double_:{
+                auto pp =  (param<double>*)(p.get());
+                copy_vals_(*pp);
+            }
+                break;
+            case long_:{
+                auto pp =  static_pointer_cast<param<long double>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            case complex_:{
+                auto pp =  static_pointer_cast<param<Cpx>>(p);
+                copy_vals_(*pp);
+            }
+                break;
+            default:
+                break;
         }
     }
     

@@ -4333,7 +4333,7 @@ namespace gravity{
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
-        if(v->is_double_indexed()){
+        if(v->is_matrix_indexed()){
             _indices = v->_indices;
         }
         if (v->_is_vector) {// i.e., it appears in a sum

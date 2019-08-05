@@ -215,6 +215,7 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -232,6 +233,7 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -317,13 +319,20 @@ namespace gravity {
             if(!indexed && !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void real_imag(const var<>& pr, const var<>& pi){
             this->_real = make_shared<var<>>(pr);
             this->_imag = make_shared<var<>>(pi);
+            this->_range->first.real(pr._range->first);
+            this->_range->first.imag(pi._range->first);
+            this->_range->second.real(pr._range->second);
+            this->_range->second.imag(pi._range->second);
         }
+        
         
         void mag_ang(const var<>& pmag, const var<>& pang){
             this->_mag = make_shared<var<>>(pmag);
@@ -383,10 +392,9 @@ namespace gravity {
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
-        var in_ith(unsigned start_position, const indices& ids) {
+        var from_ith(unsigned start_position, const indices& ids) {
             var<type> res(*this);
-            res.param<type>::operator=(param<type>::in_ith(start_position, ids));//TODO assert lb dim = res dim
+            res.param<type>::operator=(param<type>::from_ith(start_position, ids));//TODO assert lb dim = res dim
             res._type = var_c;
             if(res._real){
                 auto real_var = static_pointer_cast<var<>>(res._real);
@@ -396,6 +404,81 @@ namespace gravity {
                 auto imag_var = static_pointer_cast<var<>>(res._imag);
                 res._imag = make_shared<var<>>(imag_var->in(*res._indices));
             }
+            return res;
+        }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        var in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids_) {
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_ignore_ith(start_position, nb_entries, ids_));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            return res;
+        }
+        
+//        template<typename... Args>
+//        var in_matrix(unsigned start_pos) const{
+//            var<type> res(*this);
+//            res.param<type>::operator=(param<type>::in_matrix(start_pos));//TODO assert lb dim = res dim
+//            res._type = var_c;
+//            if(res._real){
+//                auto real_var = static_pointer_cast<var<>>(res._real);
+//                res._real = make_shared<var<>>(real_var->in(*res._indices));
+//            }
+//            if(res._imag){
+//                auto imag_var = static_pointer_cast<var<>>(res._imag);
+//                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+//            }
+//            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+//            return res;
+//        }
+        
+        /** Create a matrix version of variable where each row will be indexed based on the entries starting at start_pos and spanning nb_entries.
+         Example:
+         dv = {
+         [1,8] = 0
+         [1,9] = 0
+         [1,10] = 0
+         [1,11] = 0
+         [1,12] = 0
+         [2,8] = 0
+         [2,9] = 0
+         [2,10] = 0
+         [2,11] = 0
+         [2,12] = 0
+         [3,8] = 0
+         [3,9] = 0
+         [3,10] = 0
+         [3,11] = 0
+         [3,12] = 0
+         };
+         sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+         sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+         */
+        template<typename... Args>
+        var in_matrix(unsigned start_pos, unsigned nb_entries) const{
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::in_matrix(start_pos, nb_entries));//TODO assert lb dim = res dim
+            res._type = var_c;
+            if(res._real){
+                auto real_var = static_pointer_cast<var<>>(res._real);
+                res._real = make_shared<var<>>(real_var->in(*res._indices));
+            }
+            if(res._imag){
+                auto imag_var = static_pointer_cast<var<>>(res._imag);
+                res._imag = make_shared<var<>>(imag_var->in(*res._indices));
+            }
+            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         
@@ -475,6 +558,16 @@ namespace gravity {
             return (_lb->eval(i)!=numeric_limits<type>::lowest());
         };
         
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_below(size_t i = 0) const{
+            return (_lb->eval(i).real()!=numeric_limits<type>::lowest() && _lb->eval(i).imag()!=numeric_limits<type>::lowest());
+        };
+        
+        template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        bool is_bounded_above(size_t i = 0) const{
+            return (_ub->eval(i).real()!=numeric_limits<type>::max() && _ub->eval(i).imag()!=numeric_limits<type>::max());
+        };
+        
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         bool is_constant(size_t i=0) const;
@@ -509,6 +602,63 @@ namespace gravity {
             this->set_val(v);
             return *this;
         }
+        
+        /** let this share the values of p */
+        void share_vals(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<var<bool>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<var<short>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<var<int>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<var<float>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (var<double>*)(p.get());
+                    share_vals_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<var<long double>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<var<Cpx>>(p);
+                    share_vals_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_vals_(var<T2>& pp){
+            this->_val = pp._val;
+        }
+        
         /**
          \brief Update dimensions based on the current indexing-set
          \todo sparse matrix/double indexing
@@ -759,13 +909,13 @@ namespace gravity {
         
         
         /** Fill x with the variable's lower bound values */
-        void set_double_lb(double* x){set_double_lb_(x);};
+        void get_double_lb(double* x) const{get_double_lb_(x);};
         /** Fill x with the variable's upper bound values */
-        void set_double_ub(double* x){set_double_ub_(x);};
+        void get_double_ub(double* x) const{get_double_ub_(x);};
         
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
-        void set_double_lb_(double* x){
+        void get_double_lb_(double* x) const{
             auto vid = this->get_id();
             for (size_t i = 0; i < this->get_dim(); i++) {
                 x[vid+i] = (double)this->get_double_lb_(i);
@@ -773,7 +923,7 @@ namespace gravity {
         };
         
         template<typename T=type, typename enable_if<is_arithmetic<T>::value && is_convertible<T, double>::value>::type* = nullptr>
-        void set_double_ub_(double* x){
+        void get_double_ub_(double* x) const{
             auto vid = this->get_id();
             for (size_t i = 0; i < this->get_dim(); i++) {
                 x[vid+i] = (double)this->get_double_ub_(i);
@@ -781,13 +931,13 @@ namespace gravity {
         };
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_lb_(double* x){
-            throw invalid_argument("Cannot call get_lb_violation_ with a non-arithmetic type.");
+        void get_double_lb_(double* x) const{
+            throw invalid_argument("Cannot call get_double_lb_ with a non-arithmetic type.");
         };
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_ub_(double* x){
-            throw invalid_argument("Cannot call get_ub_violation_ with a non-arithmetic type.");
+        void get_double_ub_(double* x) const{
+            throw invalid_argument("Cannot call get_double_ub_ with a non-arithmetic type.");
         };
         
         
