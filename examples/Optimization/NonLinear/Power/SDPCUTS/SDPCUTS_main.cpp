@@ -277,9 +277,11 @@ int main (int argc, char * argv[]) {
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
             SDP.add_lazy(SDP3.in(orig) >= 0);
+            SDPOA.add_lazy(SDP3.in(orig) >= 0);
         }
         else {
-            SDP.add(SDP3.in(orig) >= 0);
+           SDP.add(SDP3.in(orig) >= 0);
+           SDPOA.add(SDP3.in(orig) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
    
@@ -293,7 +295,7 @@ int main (int argc, char * argv[]) {
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     SDP.add(SOC.in(bus_pairs_chord) == 0,true);
-    SDPOA.add(SOC.in(bus_pairs_chord) >= 0,true);
+    SDPOA.add(SOC.in(bus_pairs_chord) == 0,true);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -345,7 +347,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     SDP.add(Thermal_Limit_from.in(arcs));
-//    SDPOA.add(Thermal_Limit_from.in(arcs));
+    SDPOA.add(Thermal_Limit_from.in(arcs));
     
   
     
@@ -353,6 +355,8 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
+    SDPOA.add(Thermal_Limit_to.in(arcs));
+    
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
     func<> phi=(theta_U.in(bus_pairs)+theta_L.in(bus_pairs))/2.0;
@@ -417,8 +421,8 @@ int main (int argc, char * argv[]) {
         
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-       SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-        SDPOA.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+       //SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        //SDPOA.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
 
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
@@ -429,8 +433,8 @@ int main (int argc, char * argv[]) {
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SDP.add(I_from_Pf.in(arcs)==0, true);
-        SDPOA.add(I_from_Pf.in(arcs)<=0, true);
+        //SDP.add(I_from_Pf.in(arcs)==0, true);
+        //SDPOA.add(I_from_Pf.in(arcs)==0, true);
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
@@ -453,37 +457,41 @@ int main (int argc, char * argv[]) {
     auto lower_bound = SDP.get_obj_val();
     SDP.print_solution();
     
-    auto Ifrom = SDP.get_constraint("I_from_Pf_concave");
+   // auto Ifrom = SDP.get_constraint("I_from_Pf_concave");
     auto SOCcon=SDP.get_constraint("SOC_convex");
     auto SDPcon=SDP.get_constraint("SDP_3D");
     auto thermal=SDP.get_constraint("Thermal_Limit_from");
     
-    for(auto i=0;i<Ifrom->get_nb_inst();i++)
-    {
-        Ifrom->uneval();
-        DebugOn("eval of con "<<Ifrom->eval(i)<<endl);
-        
-//        if(abs(Ifrom->eval(i))<=tol)
-//        {
-            Ifrom->uneval();
-            func<> oas=Ifrom->get_outer_app_insti(i);
-            oas.eval_all();
-            Constraint<> Ifrom_OA("Ifrom_OA"+to_string(i));
-            Ifrom_OA=oas;
-            SDPOA.add(Ifrom_OA>=0);
-            oas.uneval();
-            auto oas_point=make_shared<func<>>(oas);
-            SDPOA.merge_vars(oas_point);
-            Ifrom_OA.print();
-            DebugOn("OA \t" <<oas.eval(0));
-//        }
-    }
+//    for(auto i=0;i<Ifrom->get_nb_inst();i++)
+//    {
+//        Ifrom->uneval();
+//        DebugOn("eval of con "<<Ifrom->eval(i)<<endl);
+//        
+////        if(abs(Ifrom->eval(i))<=tol)
+////        {
+//            Ifrom->uneval();
+//            func<> oas=Ifrom->get_outer_app_insti(i);
+//            oas.eval_all();
+//            Constraint<> Ifrom_OA("Ifrom_OA"+to_string(i));
+//            Ifrom_OA=oas;
+//            SDPOA.add(Ifrom_OA>=0);
+//            oas.uneval();
+//            auto oas_point=make_shared<func<>>(oas);
+//            SDPOA.merge_vars(oas_point);
+//            Ifrom_OA.print();
+//            DebugOn("OA \t" <<oas.eval(0)<<endl);
+////        }
+//    }
+    
+    DebugOn("Checking determinant Constraint "<<endl<<endl );
     
     for(auto i=0;i<SDPcon->get_nb_inst();i++)
     {
+        //for(auto i=0;i<1;i++)
+
         SDPcon->uneval();
-        DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
-        
+        DebugOn("F_xstar in main "<<SDPcon->eval(i)<<endl);
+
 //        if(abs(SDPcon->eval(i))<=tol)
 //        {
             SDPcon->uneval();
@@ -496,16 +504,18 @@ int main (int argc, char * argv[]) {
             auto oas_point=make_shared<func<>>(oas);
             SDPOA.merge_vars(oas_point);
             SDP_OA.print();
-            DebugOn("OA \t" <<oas.eval(0));
+            DebugOn("Eval of OA cut in main "<<oas.eval(0)<<endl<<endl);
 //        }
     }
     
-    for(auto i=0;i<thermal->get_nb_inst();i++)
+    DebugOn("Checking Thermal Constraint "<<endl<<endl );
+    
+    for(auto i=0;i<3;i++)
         {
             thermal->uneval();
-            DebugOn("eval of con "<<thermal->eval(i)<<endl);
-            
-            
+            DebugOn("F_xstar in main "<<thermal->eval(i)<<endl);
+
+
             thermal->uneval();
             func<> oas=thermal->get_outer_app_insti(i);
             oas.eval_all();
@@ -516,31 +526,31 @@ int main (int argc, char * argv[]) {
             auto oas_point=make_shared<func<>>(oas);
             SDPOA.merge_vars(oas_point);
             therm_sol.print();
-            DebugOn("function value in main \t" <<oas.eval(0));
-            
+            DebugOn("Eval of OA cut in main \t" <<oas.eval(0)<<endl<<endl);
+
         }
+//
+//
+//    for(auto i=0;i<SOCcon->get_nb_inst();i++)
+//        {
+//            SOCcon->uneval();
+//            DebugOn("eval of con "<<SOCcon->eval(i)<<endl);
+//
+//
+//            SOCcon->uneval();
+//            func<> oas=SOCcon->get_outer_app_insti(i);
+//            oas.eval_all();
+//            Constraint<> SOCcon_sol("SOCcon_cuts_solution"+to_string(i));
+//            SOCcon_sol=oas;
+//            SDPOA.add(SOCcon_sol<=0);
+//            oas.uneval();
+//            auto oas_point=make_shared<func<>>(oas);
+//            SDPOA.merge_vars(oas_point);
+//            SOCcon_sol.print();
+//            DebugOn("function value in main \t" <<oas.eval(0));
+//
+//        }
     
-  
-    for(auto i=0;i<SOCcon->get_nb_inst();i++)
-        {
-            SOCcon->uneval();
-            DebugOn("eval of con "<<SOCcon->eval(i)<<endl);
-            
-            
-            SOCcon->uneval();
-            func<> oas=SOCcon->get_outer_app_insti(i);
-            oas.eval_all();
-            Constraint<> SOCcon_sol("SOCcon_cuts_solution"+to_string(i));
-            SOCcon_sol=oas;
-            SDPOA.add(SOCcon_sol<=0);
-            oas.uneval();
-            auto oas_point=make_shared<func<>>(oas);
-            SDPOA.merge_vars(oas_point);
-            SOCcon_sol.print();
-            DebugOn("function value in main \t" <<oas.eval(0));
-            
-        }
-       
     
         
         
