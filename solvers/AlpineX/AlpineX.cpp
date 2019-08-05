@@ -851,8 +851,8 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
-            Wii._num_partns = 4;
-            lji._num_partns = 4;
+            Wii._num_partns = 2;
+            lji._num_partns = 2;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
@@ -867,7 +867,7 @@ int main (int argc, char * argv[])
             
             Constraint<> Equality_SOC_2("Equality_SOC_2");
             Equality_SOC_2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-            SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true);
+            SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true, "lambda_II");
             
             //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             //            I_to_Pf_EQ = Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
