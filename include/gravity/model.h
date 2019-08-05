@@ -809,7 +809,6 @@ namespace gravity {
             }
             for (auto &pair:*c._qterms) {
                 auto term = pair.second;
-                DebugOn("HERE IS THE NAME OF PAIR " << pair.first << endl);
                 lterm lt;
                 lt._sign = term._sign;
                 if (term._coef->is_function()) {
@@ -967,9 +966,6 @@ namespace gravity {
                             Constraint<> onSum(pair.first + "_binarySum");
                             onSum += sum(on.in_matrix(nb_entries,total_entries-nb_entries));
                             add(onSum.in(unique_ids) == 1);
-                            DebugOn("HERE IS THE ONSUM" << endl);
-                            onSum.print();
-                            onSum.print_symbolic();
                             
                             if(model_type == "on/off"){
                                 add_on_off_McCormick_refined(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids), on);
@@ -2493,7 +2489,15 @@ namespace gravity {
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
 //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        DebugOn("SIGN BUG IS HERE" << endl);
+                                        o1_rep ==(bounds1.from_ith(0,inst_partition_lambda).in_matrix(nb_entries, 1) * lambda.in_matrix(nb_entries,total_entries-nb_entries));
+
                                         add(o1_rep.in(unique_ids) == 0);
+                                        DebugOn("HERE IS THE o1_rep" << endl);
+                                        o1_rep.print();
+                                        o1_rep.print_symbolic();
+                                        DebugOn("HERE IS THE bounds1" << endl);
+                                        bounds1.print();
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
