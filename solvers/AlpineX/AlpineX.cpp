@@ -849,17 +849,17 @@ int main (int argc, char * argv[])
             
             
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 10;
-            Qf_to._num_partns = 10;
-            Wii._num_partns = 2;
-            lji._num_partns = 2;
+            Pf_to._num_partns = 2;
+            Qf_to._num_partns = 2;
+            Wii._num_partns = 1;
+            lji._num_partns = 1;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
             //            lij._num_partns = 4;
             
-            R_Wij._num_partns = 10;
-            Im_Wij._num_partns = 10;
+            R_Wij._num_partns = 2;
+            Im_Wij._num_partns = 1;
             
             //            Constraint<> Equality_SOC("Equality_SOC");
             //            Equality_SOC = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
