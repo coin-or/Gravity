@@ -211,7 +211,7 @@ namespace gravity {
         size_t get_nb_vars(unsigned inst) const{
             size_t n = 0;
             for (auto &vp:*_vars) {
-                if(vp.second.first->_is_vector || vp.second.first->is_double_indexed()){
+                if(vp.second.first->_is_vector || vp.second.first->is_matrix_indexed()){
                     n += vp.second.first->get_dim(inst);
                 }
                 else {
@@ -249,7 +249,7 @@ namespace gravity {
         };
         
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_double_indexed()) {
+            if (is_matrix_indexed()) {
                 if (_indices->_ids->size()<=inst1) {
                     throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
                 }
@@ -716,6 +716,7 @@ namespace gravity {
             //                }
             //            }
             _indices = make_shared<indices>(ids);
+            _dim[0] = ids.size();
             //            if(_expr){
             //                _expr->in(ids);
             //            }
@@ -901,6 +902,498 @@ namespace gravity {
         
         //        func_ get_dfdx(const param_& v); /**< Computes all derivatives and returns a copy of the derivative with respect to variable v. */
         
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+        }
+        
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        void init_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+        }
+        
+        /**
+         Recompute range based on stored values.
+         */
+        void reset_range(){
+            init_range();
+            if(is_matrix_indexed()){
+                for(auto i = 0; i<_indices->_ids->size();i++){
+                    for(auto j = 0; j<_indices->_ids->at(i).size();j++){
+                        auto idx = _indices->_ids->at(i).at(j);
+                        auto v = _val->at(idx);
+                        if(_range->first > v){
+                            _range->first = v;
+                        }
+                        if(_range->second  < v){
+                            _range->second = v;
+                        }
+                    }
+                }
+            }
+            else if(is_indexed()){
+                for(auto i = 0; i<_indices->_ids->at(0).size();i++){
+                    auto idx = _indices->_ids->at(0).at(i);
+                    auto v = _val->at(idx);
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
+            }
+            else {
+                for (auto v:*_val) {
+                    if(_range->first > v){
+                        _range->first = v;
+                    }
+                    if(_range->second  < v){
+                        _range->second = v;
+                    }
+                }
+            }
+        }
+        
+        func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar");
+            f_xstar = *this;
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                param<type> xstar("xstar_"+v->_name);
+                xstar.in(*v->_indices);
+                xstar.copy_vals(v);
+                param<type> df_xstar("df_xstar"+v->_name);
+                auto df = *compute_derivative(*v);
+                //df.uneval();
+                df.eval_all();
+                df_xstar = df;
+                auto ids = v->_indices->get_unique_keys();
+                df_xstar._indices = make_shared<indices>(ids);
+                 res.insert(true, df_xstar, *v);
+                res -= df_xstar*xstar;
+            }
+            res += f_xstar;
+            res._indices = this->_indices;
+            merge_vars(res);
+            return res;
+        }
+        
+        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            double f_xstar, xv, dfv;
+            vector<double> xcurrent, dfvector;
+            uneval();
+            f_xstar=eval(nb_inst);
+            DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->get_double_val(posv, xv);
+                xcurrent.push_back(xv);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                dfv=df.eval(nb_inst);
+                dfvector.push_back(dfv);
+                indices ids("ids");
+                auto key=v->_indices->_keys;
+                ids.add((*key)[posv]);
+
+              
+                
+                param<type> df_xstar("df_xstar"+v->_name);
+                df_xstar.in(ids);
+                df_xstar.set_val(dfv);
+                
+
+                
+                auto v1=v->pcopy();
+                v1->_indices=make_shared<gravity::indices>(ids);
+                res.insert(true, df_xstar, *v1);
+                merge_vars(res);
+            //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
+                
+//                auto indcopy=v->_indices;
+//                v->_indices=make_shared<gravity::indices>(ids);
+//                res.insert(true, df_xstar, *v);
+//                merge_vars(res);
+//                v->_indices=indcopy;
+                res -= dfv*xv;
+            }
+            res += f_xstar;
+//            indices res_ind("res_ind");
+//            res_ind.add("0");
+//            res._indices=make_shared<gravity::indices>(res_ind);
+//
+//            res.eval_all();
+//            res.uneval();
+//            DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
+            res.print();
+//            DebugOn("Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(xcurrent[i]<<"\t");
+//            DebugOn(endl);
+//            DebugOn("DF at Xcurrent from get_outer_app_insti"<<endl);
+//            for(auto i=0;i<xcurrent.size();i++)
+//                DebugOn(dfvector[i]<<"\t");
+//            DebugOn(endl);
+            return res;
+        }
+        
+ 
+        
+        double l2norm(vector<double> x)
+        {
+            double res=0;
+            for(auto i=0;i<x.size();i++)
+            {
+                res+=x[i]*x[i];
+            }
+            res=sqrt(res);
+            return(res);
+        }
+        
+        //x_start is an interior point and x_end is an outer point.
+        //Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
+        pair<vector<double>,bool> linesearchbinary(vector<double> x_start, vector<double> x_end, size_t nb_inst, ConstraintType ctype)
+        {
+            pair<vector<double>,bool> res;
+            const double int_tol=1e-6, zero_tol=1e-6;
+            const int max_iter=1000;
+            vector<double> x_f, x_t, xcurrent, interval, mid;
+            double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
+            bool solution_found=false;
+            int iter=0;
+            for(auto i=0;i<x_start.size();i++)
+            {
+                interval.push_back(x_end[i]-x_start[i]);
+                mid.push_back((x_end[i]+x_start[i])*0.5);
+            }
+            int counter=0;
+            for(auto &it: *_vars)
+            {
+               auto v = it.second.first;
+               size_t posv=v->get_id_inst(nb_inst);
+               v->get_double_val(posv, xv);
+               xcurrent.push_back(xv);
+               v->set_double_val(posv, x_start[counter++]);
+            }
+            uneval();
+            f_a=eval(nb_inst);
+            
+            counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->set_double_val(posv, x_end[counter++]);
+            }
+            uneval();
+            f_b=eval(nb_inst);
+            if(ctype==leq)
+            {
+                f_f=f_a;
+                f_t=f_b;
+                x_f=x_start;
+                x_t=x_end;
+            }
+            else
+            {
+                f_f=f_b;
+                f_t=f_a;
+                x_f=x_end;
+                x_t=x_start;
+            }
+            interval_norm=l2norm(interval);
+        
+            if(f_f<=0 && f_t>=0 )
+            {
+                while(interval_norm>int_tol && iter<=max_iter)
+                {
+                    for(auto i=0;i<x_start.size();i++)
+                    {
+                    mid[i]=(x_f[i]+x_t[i])*0.5;
+                    }
+                    counter=0;
+                    for(auto &it: *_vars)
+                    {
+                        auto v = it.second.first;
+                        size_t posv=v->get_id_inst(nb_inst);
+                        v->set_double_val(posv, mid[counter++]);
+                    }
+                    uneval();
+                    f_mid=eval(nb_inst);
+                   // DebugOn("F_mid "<< f_mid<<endl);
+                    //DebugOn("xf\t xt\t xmid"<<endl);
+                    for(auto i=0;i<x_start.size();i++)
+                    {
+                      //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
+                        
+                    }
+
+                    if(f_mid>=zero_tol && f_mid<=f_t)
+                    {
+                    x_t=mid;
+                    }
+                    else if(f_mid<=zero_tol*(-1) && f_mid>=f_f)
+                    {
+                    x_f=mid;
+                    }
+                    else
+                    {
+                        //DebugOn("Reached answer"<<endl);
+                        solution_found=true;
+                        break;
+                    }
+                    for(auto i=0;i<x_start.size();i++)
+                    {
+                        interval[i]=x_t[i]-x_f[i];
+                    }
+                    
+                    interval_norm=l2norm(interval);
+                    iter++;
+                }
+//
+//            DebugOn("F_mid "<<f_mid<<endl);
+//            DebugOn("Interval_Norm "<<interval_norm<<endl);
+//            DebugOn("Iter "<<iter<<endl);
+            }
+            
+            res.first=mid;
+            res.second=solution_found;
+            if(res.second)
+            {
+               // DebugOn("Solution to line search found"<<endl);
+                for(auto i=0;i<res.first.size();i++)
+                    //DebugOn(res.first[i]<<endl);
+                counter=0;
+                for(auto &it: *_vars)
+                {
+                    auto v = it.second.first;
+                    size_t posv=v->get_id_inst(nb_inst);
+                    v->set_double_val(posv, mid[counter++]);
+                }
+                uneval();
+              //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
+                
+            }
+            counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->set_double_val(posv, xcurrent[counter++]);
+            }
+            return res;
+        }
+            
+            
+            
+        
+        /** Finds a vector of outer points perturbing along each direction */
+        //Algorithm finds an outer point for each index of each variable if available
+        //First, if available,the outer point is at least at a distance perturb_distance greater than original value of variable
+        //Else, if available, the algorithm returns any outer point produced by perturbing variable
+        //Else, the algorithm does not return anything
+         //Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
+        vector<vector<double> > get_outer_point(size_t nb_inst, ConstraintType ctype)
+        {
+            vector<vector<double> > res(_nb_vars);
+            vector<double> xcurrent, ub_v, lb_v;
+            const int max_iter=1000;
+            const double step_tol=1e-6, step_init=1e-3, perturb_dist=1e-3, zero_tol=1e-6;
+            double step, f_start, xv=0,xv_p=0,f,ub,lb, fnew, dfdv;
+            int count=0, iter, sign, iter_dir;
+            bool perturb=true, dir;
+            f_start=eval(nb_inst);
+            for(auto &it: *_vars)
+            {
+                 auto v = it.second.first;
+                 size_t posv=v->get_id_inst(nb_inst);
+                 v->get_double_val(posv, xv);
+                 xcurrent.push_back(xv);
+            }
+            int res_count=0;
+            
+            
+            //No backtracking
+            
+           
+            //Once feasible direction is found algorithm does not reverse direction. So shall work from any current point only for monotonic function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
+            
+            //Perturb so that distance between new point and current point is greater than perturb dist
+            for(auto &it: *_vars)
+            {
+                perturb=true;
+                dir=false;
+                iter=0;
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                xv=xcurrent[count];
+                step=step_tol;
+                iter_dir=0;
+                ub=v->get_double_ub(posv);
+                lb=v->get_double_lb(posv);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                dfdv=df.eval(nb_inst);
+                // if interval zero do not perturb, perturb=false, else if x at upper bound (within perturb_dist) do not step out but set sign=-1,else if x at lower bound set sign=1, else go to white loop
+                if((ub-lb)<=perturb_dist)
+                {
+                    dir=false;
+                }
+                else if((xv-lb)<=perturb_dist)
+                {
+                    sign=1;
+                    dir=true;
+                    
+                    if(ctype==leq && dfdv<0)
+                    {
+                        dir=false;
+                    }
+                    else if(ctype==geq && dfdv>0)
+                    {
+                        dir=false;
+                    }
+                        
+                }
+                else if((ub-xv)<=perturb_dist)
+                {
+                    sign=-1;
+                    dir=true;
+                    if(ctype==leq && dfdv<0)
+                    {
+                        dir=false;
+                    }
+                    else if(ctype==geq && dfdv>0)
+                    {
+                        dir=false;
+                    }
+                    
+                }
+                else
+                {
+                if(ctype==leq)
+                {
+                if(dfdv>0)
+                {
+                    dir=true;
+                    sign=1;
+                    
+                }
+                else if(dfdv<0)
+                {
+                    dir=true;
+                    sign=-1;
+                }
+                }
+                else if(ctype==geq)
+                {
+                    if(dfdv<0)
+                    {
+                        dir=true;
+                        sign=1;
+                        
+                    }
+                    else if(dfdv>0)
+                    {
+                        dir=true;
+                        sign=-1;
+                    }
+                    
+                }
+                }
+                if(dir)
+                {
+                step=step_init;
+                perturb=false;
+                f=f_start;
+                while(!perturb && iter<=max_iter)
+                 {
+                     if(sign==1)
+                     {
+                         xv=std::min(xv*(1+step), ub);
+                         v->set_double_val(posv, xv);
+                     }
+                     else
+                     {
+                         xv=std::max(xv*(1-step), lb);
+                         v->set_double_val(posv, xv);
+                     }
+                     uneval();
+                     fnew=eval(nb_inst);
+                     if(ctype==leq)
+                     {
+                         if(fnew>zero_tol && abs(xv-xcurrent[count])>=perturb_dist)
+                         {
+                             perturb=true;
+                             xv_p=xv;
+                             break;
+                         }
+                         else if(fnew>f)
+                         {
+                             f=fnew;
+                             xv_p=xv;
+                         }
+                         else if(fnew<=f)
+                         {
+                             perturb=false;
+                             break;
+                         }
+                     }
+                     if(ctype==geq)
+                     {
+                         if(fnew<(zero_tol*(-1)) && abs(xv-xcurrent[count])>=perturb_dist)
+                         {
+                             perturb=true;
+                             xv_p=xv;
+                             break;
+                         }
+                         else if(fnew<f)
+                         {
+                             f=fnew;
+                             xv_p=xv;
+                         }
+                         else if(fnew>=f)
+                         {
+                             perturb=false;
+                             break;
+                         }
+                     }
+                     iter++;
+                 }
+                     if(perturb==true || (f>zero_tol && ctype==leq) || (f<(zero_tol*(-1)) && ctype==geq) )
+                     {
+                         for(auto i=0;i<count;i++)
+                             res[res_count].push_back(xcurrent[i]);
+                         res[res_count].push_back(xv_p);
+                         for(auto i=count+1;i<_nb_vars;i++)
+                             res[res_count].push_back(xcurrent[i]);
+                         res_count++;
+                         
+                         for(auto &it: *_vars)
+                         {
+                             auto v = it.second.first;
+                             size_t posv=v->get_id_inst(nb_inst);
+                             v->get_double_val(posv, xv);
+                             //DebugOn("Xvalues of Outer point\t"<<xv<<endl);
+                         }
+                         uneval();
+                         //DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
+
+            }
+            }
+            v->set_double_val(posv, xcurrent[count]);
+            f=f_start;
+            count++;
+            }
+            return(res);
+        }
+            
         
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
@@ -1637,7 +2130,7 @@ namespace gravity {
                     _indices = v->_indices;
                     _dim[0] = v->_dim[0];
                 }
-                if(v->is_double_indexed()){
+                if(v->is_matrix_indexed()){
                     _indices = v->_indices;
                     return;
                 }
@@ -1648,19 +2141,19 @@ namespace gravity {
                     _indices = p->_indices;
                     _dim[0] = p->_dim[0];
                 }
-                if(p->is_double_indexed()){
+                if(p->is_matrix_indexed()){
                     _indices = p->_indices;
                     return;
                 }
             }
         }
         
-        bool is_double_indexed() const{
+        bool is_matrix_indexed() const{
             return (_indices && _indices->_ids && _indices->_ids->size()>1);
         }
         
         string to_str(size_t index, int prec) {            
-            if (is_constant() && !this->is_double_indexed()) {
+            if (is_constant() && !this->is_matrix_indexed()) {
                 return to_string_with_precision(eval(index),prec);
             }
             string str;
@@ -1717,7 +2210,7 @@ namespace gravity {
         }
         
         size_t get_dim(size_t i) const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->at(i).size();
             if (is_indexed()) {
                 return _indices->_ids->at(0).size();
@@ -1726,7 +2219,7 @@ namespace gravity {
         }
         
         size_t get_nb_inst() const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->size();
             if(is_indexed() && !_is_transposed){
                 return _indices->_ids->at(0).size();
@@ -1876,7 +2369,7 @@ namespace gravity {
         
         void allocate_mem(){
 //            _evaluated = false;
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         _dim[0] = max(_dim[0],_indices->_ids->at(i).at(j)+1);
@@ -2285,7 +2778,7 @@ namespace gravity {
             if(c._indices){
                 _indices = make_shared<indices>(*c._indices);
             }
-//            if(c.is_double_indexed()){
+//            if(c.is_matrix_indexed()){
 //                _indices = c._indices;
 //            }
             return *this;
@@ -2848,9 +3341,9 @@ namespace gravity {
         }
         
         void eval_all(){
-            if(_val->size()==0){
+//            if(_val->size()==0){
                 allocate_mem();
-            }
+//            }
             auto nb_inst = get_nb_inst();
             for (size_t inst = 0; inst<nb_inst; inst++) {
                 eval(inst);
@@ -2883,7 +3376,7 @@ namespace gravity {
                 res += eval_cst(i);
             if(!_lterms->empty()){
                 for (auto &pair:*_lterms) {
-                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_double_indexed()) {
+                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
                         auto dim = pair.second._p->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -2910,7 +3403,7 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._p->second->is_double_indexed()){
+                    if(pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -4086,10 +4579,10 @@ namespace gravity {
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
                 exp->_rson->eval_all();
             }
-            if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
+            if(exp->_otype==product_ && (exp->_lson->is_matrix_indexed() || exp->_rson->is_matrix_indexed()))
             {
                 auto dim = exp->_lson->get_dim(i);
-                if(exp->_rson->is_double_indexed()){
+                if(exp->_rson->is_matrix_indexed()){
                     dim = exp->_rson->get_dim(i);
                 }
                 if(dim==0){
@@ -4139,10 +4632,10 @@ namespace gravity {
             if (exp->_rson->is_constant() && !exp->_rson->is_evaluated()) {
                 exp->_rson->eval_all();
             }
-            if(exp->_otype==product_ && (exp->_lson->is_double_indexed() || exp->_rson->is_double_indexed()))
+            if(exp->_otype==product_ && (exp->_lson->is_matrix_indexed() || exp->_rson->is_matrix_indexed()))
             {
                 auto dim = exp->_lson->get_dim(i);
-                if(exp->_rson->is_double_indexed()){
+                if(exp->_rson->is_matrix_indexed()){
                     dim = exp->_rson->get_dim(i);
                 }
                 if(dim==0){
@@ -4470,7 +4963,7 @@ namespace gravity {
             }
             else {
                 //                if (is_constant() && i==_val->size()-1) {
-                if(is_double_indexed()){
+                if(is_matrix_indexed()){
                     _val->at(_indices->_ids->at(i).at(j)) = res;
                 }
                 else{
@@ -5976,13 +6469,15 @@ namespace gravity {
                 qname = ps2+","+ps1;
                 pair_it = _qterms->find(qname);
             }
+            if (pair_it == _qterms->end()) {
+                qname = ps1+","+ps2;
+            }
             shared_ptr<param_> p_new1;
             shared_ptr<param_> p_new2;
             _evaluated=false;
             if (_ftype <= lin_ && p1.is_var()) {
                 _ftype = quad_;
-            }
-            
+            }            
             if (pair_it == _qterms->end()) {
                 if (p1.is_var()) {
                     p_new1 = get_var(ps1);
@@ -8251,6 +8746,7 @@ namespace gravity {
         return f * constant<T2>(p);
     }
     
+
     
     template<typename type>
     func<type> sum(const param<type>& p){
@@ -8258,7 +8754,68 @@ namespace gravity {
         if (p.get_dim()==0) {
             return res;
         }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        }
         return unit<type>().tr()*p.vec();
+    }
+    
+    /** Create a matrix sum where each row will be indexed based on the entries starting at start_pos and spaning nb_entries.
+     Example:
+     dv = {
+     [1,8] = 0
+     [1,9] = 0
+     [1,10] = 0
+     [1,11] = 0
+     [1,12] = 0
+     [2,8] = 0
+     [2,9] = 0
+     [2,10] = 0
+     [2,11] = 0
+     [2,12] = 0
+     [3,8] = 0
+     [3,9] = 0
+     [3,10] = 0
+     [3,11] = 0
+     [3,12] = 0
+     };
+     sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+     sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+     */
+    template<typename type>
+    func<type> sum_ith(const param<type>& p, unsigned start_pos, unsigned nb_entries){
+        auto matrix_p = p.in_matrix(start_pos,nb_entries);
+        auto res = sum(matrix_p);
+        return res.in(range(0,matrix_p._indices->get_nb_rows()-1));
+    }
+    
+    /** Create a matrix sum where each row will be indexed based on the entries starting at start_pos and spaning nb_entries.
+     Example:
+     dv = {
+     [1,8] = 0
+     [1,9] = 0
+     [1,10] = 0
+     [1,11] = 0
+     [1,12] = 0
+     [2,8] = 0
+     [2,9] = 0
+     [2,10] = 0
+     [2,11] = 0
+     [2,12] = 0
+     [3,8] = 0
+     [3,9] = 0
+     [3,10] = 0
+     [3,11] = 0
+     [3,12] = 0
+     };
+     sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+     sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+     */
+    template<typename type>
+    func<type> sum_ith(const var<type>& p, unsigned start_pos, unsigned nb_entries){
+        auto matrix_p = p.in_matrix(start_pos,nb_entries);
+        auto res = sum(matrix_p);
+        return res.in(range(0,matrix_p._indices->get_nb_rows()-1));
     }
     
     template<typename type>
@@ -8266,6 +8823,9 @@ namespace gravity {
         func<type> res;
         if (p.get_dim()==0) {
             return res;
+        }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
         }
         return unit<type>().tr()*p.vec();
     }
@@ -8276,6 +8836,9 @@ namespace gravity {
         if (p.get_dim()==0) {
             return res;
         }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        }
         return unit<type>().tr()*p.vec();
     }
     
@@ -8284,6 +8847,9 @@ namespace gravity {
         func<type> res;
         if (p.get_dim()==0) {
             return res;
+        }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*(p.vec()).in(ids)).in(ids);
         }
         return unit<type>().tr()*(p.vec()).in(ids);
     }

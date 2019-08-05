@@ -55,13 +55,32 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
 //        cplex.setParam(IloCplex::EpGap, mipgap);
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
-        cplex.setParam(IloCplex::Param::Threads, 1);
+//        cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
-//        cplex.setParam(IloCplex::RootAlg, 1);
 //        cplex.setParam(IloCplex::AdvInd, 1);
         cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
-//        cplex.setParam(IloCplex::PreInd, 0);
+        cplex.setParam(IloCplex::PreInd, 0);
+//        cplex.setParam(IloCplex::RootAlg, 1);
+        
+        cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, 50); //relaxation induced neighbourhood search frequency
+        cplex.setParam(IloCplex::Param::Emphasis::MIP, 4); //mip emphasis on finding feasible(hidden) solutions first ******* USE 0 or 4 as the setting ********
+        cplex.setParam(IloCplex::Param::MIP::Strategy::Probe, 3); // probe very aggresively
+        cplex.setParam(IloCplex::Param::MIP::Strategy::Dive, 2); //dive for probing only
+        cplex.setParam(IloCplex::Param::MIP::Strategy::VariableSelect, 4); //calculate reduced pseudocosts for branching
+        cplex.setParam(IloCplex::Param::MIP::Limits::CutPasses, 10); //number of passes to generate cuts in the root node
+//        cplex.setParam(IloCplex::Param::MIP::Limits::CutsFactor, 1.5); //proportion(-1) of total cuts added to the total number of rows
+        cplex.setParam(IloCplex::Param::MIP::Cuts::Disjunctive, 2); // generate disjunctive cuts aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::BQP, 2); //boolean quadratic polytope cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::Cliques, 2); //clique cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::Gomory, 2); //gomory cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::GUBCovers, 2); //GUBCovers cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::LiftProj, 2); //lift and project cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::Implied, 2); //global implied bound cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::LocalImplied, 2); //local implied bound cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::FlowCovers, 2); //flow cover cuts are used aggresively
+        cplex.setParam(IloCplex::Param::MIP::Cuts::MIRCut, 2); //mixed integer rounding cuts are used aggresively
+        
         IloNumArray vals(*_cplex_env);
         IloNumVarArray vars(*_cplex_env);
         double val = 0;
@@ -91,10 +110,10 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         for (auto i = 0; i < _cplex_vars.size(); i++) {
             for (auto j = 0; j < _model->_vars[i]->get_dim(); j++) {
                 if(cplex.isExtracted(_cplex_vars[i][j])){
-                    _model->_vars[i]->get_double_val(j,cplex.getValue(_cplex_vars[i][j]));
+                    _model->_vars[i]->set_double_val(j,cplex.getValue(_cplex_vars[i][j]));
                 }
                 else {
-                    _model->_vars[i]->get_double_val(j, 0);
+                    _model->_vars[i]->set_double_val(j, 0);
                 }
             }
         }

@@ -71,7 +71,9 @@ namespace gravity {
         /* For Ipopt Use */
         vector<double>                                 _l_dual; /*<<Dual values for lower bounds */
         vector<double>                                 _u_dual; /*<<Dual values for upper bounds */
-        
+        vector<bool>                                   _off; /*<< on/off flag for multiple usage, one per instance */
+        shared_ptr<bool>                               _in = nullptr;/*<< on/off flag for multiple usage, one per symbolic param/var */
+      //  shared_ptr<param_>                                        _off = nullptr;/*<< pointer on/off flag for multiple usage, one per instance */
         /**
          A shallow copy of p (ignoring _val and _range)
          @param[in] p param_ to copy from.
@@ -90,6 +92,8 @@ namespace gravity {
             _real = p._real;
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
+            _off=p._off;
+            _in=make_shared<bool>(*p._in);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -146,7 +150,7 @@ namespace gravity {
         };
 
         size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_double_indexed()) {
+            if (is_matrix_indexed()) {
                 if (_indices->_ids->size()<=inst1) {
                     throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
                 }
@@ -282,7 +286,7 @@ namespace gravity {
             return (_indices && _indices->_ids);
         }
         
-        bool is_double_indexed() const{
+        bool is_matrix_indexed() const{
             return (_indices && _indices->_ids && _indices->_ids->size()>1);
         }
 
@@ -425,7 +429,7 @@ namespace gravity {
         }
 
         size_t get_dim(size_t i) const{
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 if(i>_indices->_ids->size()){
                     throw invalid_argument("get_dim(size_t i) i out of range\n");
                 }
@@ -438,7 +442,7 @@ namespace gravity {
         }
         
         size_t get_nb_inst() const{
-            if(is_double_indexed())
+            if(is_matrix_indexed())
                 return _indices->_ids->size();
             if(is_indexed() && !_is_transposed){
                 return _indices->_ids->at(0).size();
@@ -450,9 +454,9 @@ namespace gravity {
         virtual void reset_bounds(){};
         
         /** Fill x with the variable's values */
-        virtual void set_double_val(double* x){};
+        virtual void get_double_val(double* x) const{};
         /** Fill the variable's values from x */
-        virtual void get_double_val(const double* x){};
+        virtual void set_double_val(const double* x){};
         
         /** Fill x with the variable's values */
         virtual void get_solution(vector<double>& x) const{};
@@ -460,18 +464,18 @@ namespace gravity {
         virtual void set_solution(const vector<double>& x){};
         
         /** Fill the variable's value at pos to x */
-        virtual void get_double_val(size_t pos, double x){};
+        virtual void set_double_val(size_t pos, double x){};
         
         /** Fill x from the variable's value at pos */
-        virtual void set_double_val(size_t pos, double& x){};
+        virtual void get_double_val(size_t pos, double& x) const{};
         
         /** round the value stored at position i to the nearest integer */
         virtual void round_vals(){};
 
         /** Fill x with the variable's lower bound values */
-        virtual void set_double_lb(double* x){};
+        virtual void get_double_lb(double* x) const{};
         /** Fill x with the variable's upper bound values */
-        virtual void set_double_ub(double* x){};
+        virtual void get_double_ub(double* x) const{};
         
         /** Return lower bound violation */
         virtual double get_lb_violation(size_t i){return 0;};
@@ -504,6 +508,7 @@ namespace gravity {
             update_type();
             init_range();
             _val = make_shared<vector<type>>();
+            _in = make_shared<bool>(true);
         }
         
         shared_ptr<param_> pcopy() const{return make_shared<param>(*this);};
@@ -513,7 +518,7 @@ namespace gravity {
         ~param(){};
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         param (const param<T2>& p) {
-            *this = p;            
+            *this = p;
         }
 
         param (const param& p):param() {
@@ -545,6 +550,23 @@ namespace gravity {
         template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
         void share_vals_(param<T2>& pp){
             this->_val = pp._val;
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<!is_convertible<T2, type>::value>::type* = nullptr>
+        void copy_vals_(param<T2>& p){
+            throw invalid_argument("cannot share vals with different typed params/vars");
+        }
+        
+        /** let this share the values of p */
+        template<class T2, typename std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
+        void copy_vals_(param<T2>& pp){
+            _val->resize(pp._val->size());
+            for (size_t i = 0; i < _val->size(); i++) {
+                _val->at(i) = pp._val->at(i);
+            }
+            _range->first = pp._range->first;
+            _range->second = pp._range->second;
         }
         
         /** let this share the values of p */
@@ -599,7 +621,7 @@ namespace gravity {
 //            res._vec_id = make_shared<size_t>();
 //            res._val = make_shared<vector<type>>(*_val);
             res._val = make_shared<vector<type>>();
-            res._val->resize(_val->size());
+            res.copy_vals(*this);
 //            res._val = make_shared<vector<type>>(*_val);
             res._range = make_shared<pair<type,type>>(*_range);
             res._name = _name;
@@ -620,6 +642,8 @@ namespace gravity {
             }
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
+            res._off=_off;
+            res._in=make_shared<bool>(*_in);
             return res;
         }
 
@@ -655,6 +679,8 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=p._off;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
         
@@ -695,6 +721,8 @@ namespace gravity {
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=p._off;
+            _in=make_shared<bool>(*p._in);
             return *this;
         }
 
@@ -721,6 +749,8 @@ namespace gravity {
             _indices = move(p._indices);
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
+            _off=move(p._off);
+            _in=move(p._in);
             return *this;
         }
 
@@ -845,17 +875,32 @@ namespace gravity {
             this->_polar = true;
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void real_imag(const param<>& pr, const param<>& pi){
             this->_real = make_shared<param<>>(pr);
             this->_imag = make_shared<param<>>(pi);
+            this->_range->first.real(pr._range->first);
+            this->_range->first.imag(pi._range->first);
+            this->_range->second.real(pr._range->second);
+            this->_range->second.imag(pi._range->second);
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void set_real(const param<>& p){
             _real = make_shared<param<>>(p);
+            this->_range->first.real(p._range->first);
+            this->_range->first.imag(0);
+            this->_range->second.real(p._range->second);
+            this->_range->second.imag(0);
         }
         
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void set_imag(const param<>& p){
             _imag = make_shared<param<>>(p);
+            this->_range->first.real(0);
+            this->_range->first.imag(p._range->first);
+            this->_range->second.real(0);
+            this->_range->second.imag(p._range->second);
         }
         
 
@@ -907,6 +952,8 @@ namespace gravity {
                 throw invalid_argument("Cannot call param::add_val(type val) on matrix");
             }
             _val->push_back(val);
+            _off.resize(_off.size()+1);
+            _off[_off.size()-1] = 0;
             update_range(val);
             _dim[0] = _val->size();
         }
@@ -932,6 +979,8 @@ namespace gravity {
             }
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
+            _off.resize(max(_off.size(),i+1));
+            _off[_off.size()-1] = 0;
             _val->at(i) = val;
             update_range(val);
         }
@@ -993,6 +1042,8 @@ namespace gravity {
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
+                _off.resize(max(_off.size(),index+1));
+                _off[_off.size()-1] = 0;
                 update_range(val);
                 return index;
             }
@@ -1387,88 +1438,141 @@ namespace gravity {
             throw invalid_argument("Cannot reverse sign of param");
         }
         
+//        param in_matrix(unsigned nb_entries) const{
+//            auto res(*this);
+//            return res.in(this->get_matrix_ids(nb_entries));
+//        }
+        
+        /** Create a matrix version of parameter where each row will be indexed based on the entries starting at start_pos and spanning nb_entries.
+         Example:
+         dv = {
+         [1,8] = 0
+         [1,9] = 0
+         [1,10] = 0
+         [1,11] = 0
+         [1,12] = 0
+         [2,8] = 0
+         [2,9] = 0
+         [2,10] = 0
+         [2,11] = 0
+         [2,12] = 0
+         [3,8] = 0
+         [3,9] = 0
+         [3,10] = 0
+         [3,11] = 0
+         [3,12] = 0
+         };
+         sum(dv.in_matrix(0,1)) <= 0 gives: dv[1,8] + dv[2,8] + dv[3,8] <= 0;
+         sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
+         */
+        param in_matrix(unsigned start_entry, unsigned nb_entries) const{
+            auto res(*this);
+            return res.in(this->get_matrix_ids(start_entry,nb_entries));
+        }
+        
+        indices get_matrix_ids(unsigned start_entry, unsigned nb_entries) const{
+            auto res(*this->_indices);
+        res.set_name("matrix("+_indices->get_name()+","+to_string(start_entry)+","+to_string(nb_entries)+")");
+            res._type = matrix_;
+            res._ids = make_shared<vector<vector<size_t>>>();
+            string key = "", invariant_key="";
+            map<string,size_t> invariant_map;
+            int row_id = 0;
+            string prev_key = "";
+            if(is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: _indices->_ids->at(0)){
+                    key = _indices->_keys->at(key_ref);
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
+                    }
+                    else {
+                        newstr = key;
+                    }
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
+                    if(pos>0){
+                        poststr = newstr.substr(pos+1);
+                    }
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(row_id).push_back(it1->second);
+                }
+            }
+            else {
+                for (auto key: *_indices->_keys) {
+                    unsigned start_pos=0;
+                    string prestr="", poststr="", newstr="";
+                    start_pos = nthOccurrence(key, ",", start_entry);
+                    if(start_pos>0){
+                        prestr = key.substr(0,start_pos);
+                        newstr = key.substr(start_pos+1);
+                    }
+                    else {
+                        newstr = key;
+                    }
+                    auto pos = nthOccurrence(newstr, ",", nb_entries);
+                    if(pos>0){
+                        poststr = newstr.substr(pos);
+                    }
+                    invariant_key = prestr+poststr;
+                    row_id = invariant_map.size();
+                    auto pp = invariant_map.insert(make_pair<>(invariant_key,row_id));
+                    if (pp.second) {//new invariant_key inserted
+                        res._ids->resize(row_id+1);
+                    }
+                    else {
+                        row_id = pp.first->second;
+                    }
+                    auto it1 = this->_indices->_keys_map->find(key);
+                    if (it1 == this->_indices->_keys_map->end()){
+                        throw invalid_argument("In function get_matrix_ids(), unknown key.");
+                    }
+                    res._ids->at(row_id).push_back(it1->second);
+                }
+            }
+            return res;
+        }
+        
+        indices get_matrix_ids(unsigned start_pos) const{
+            return get_matrix_ids(start_pos,1);
+        }
+        
+        /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         @param[in] ids_ index set
+         */        
+        param in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids) {
+            if(!_indices){
+                throw invalid_argument("unindexed param/var, first call in()");
+            }
+            return this->in(ids.ignore_ith(start_position, nb_entries));
+        }
+    
         /** Index parameter/variable in ids, look for the keys starting at the ith position
          @param[in] start_position If ids has keys with additional entries, use the substring starting after the start_position comma separator
          @param[in] ids_ index set
          */
-        template<typename... Args>
-        param in_ith(unsigned start_position, const indices& ids_) {
-            auto ids(ids_);
-            if(!ids._excluded_keys.empty()){
-                ids.remove_excluded();
-            }
+        param from_ith(unsigned start_position, const indices& ids) {
             if(!_indices){
                 throw invalid_argument("unindexed param/var, first call in()");
             }
-            param res(*this);
-            if(ids.empty()){
-                DebugOff("In function param.in_ith(unsigned position, const indices& ids), ids is empty!\n. Creating and empty variable! Check your sum/product operators.\n");
-                res._name += "_EMPTY";
-                res._dim[0] = 0;
-                res._dim[1] = 0;
-                //                res.set_range(0);
-                res.reset_range();
-                return res;
-            }
-            string key;
-            size_t nb_inst=1;
             /** Number of comma separated keys in current variable */
-            auto nb_sep_var = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            /** Number of comma separated keys in ids */
-            auto nb_sep_ids = count(ids._keys->front().begin(), ids._keys->front().end(), ',');
-            if(nb_sep_var > nb_sep_ids){/* ids can have more keys if it's a super set of indices */
-                throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), ids keys have less entries than current param/var, check indexing");
-            }
-            res._indices->_ids = make_shared<vector<vector<size_t>>>();
-            res._indices->_ids->resize(1);
-            nb_inst = ids.size();
-            if(ids.is_indexed()){/* If ids has key references, use those */
-                for(auto &key_ref: ids._ids->at(0)){
-                    key = _indices->_keys->at(key_ref);
-                    auto pos = nthOccurrence(key, ",", start_position);
-                    if(pos!=0){
-                        key = key.substr(pos+1);
-                    }
-                    pos = nthOccurrence(key, ",", nb_sep_var+1);
-                    if(pos!=0){
-                        key = key.substr(0,pos);
-                    }
-                    auto it = _indices->_keys_map->find(key);
-                    if (it == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
-                    }
-                    res._indices->_ids->at(0).push_back(it->second);
-                }
-                
-            }
-            else {
-                for(auto key: *ids._keys){
-                    auto pos = nthOccurrence(key, ",", start_position);
-                    if(pos!=0){
-                        key = key.substr(pos+1);
-                    }
-                    pos = nthOccurrence(key, ",", nb_sep_var+1);
-                    if(pos!=0){
-                        key = key.substr(0,pos);
-                    }
-                    auto it = _indices->_keys_map->find(key);
-                    if (it == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function in_ith(unsigned start_position, const indices& ids_), an index set has unrecognized key: " + key);
-                    }
-                    res._indices->_ids->at(0).push_back(it->second);
-                }
-            }
-
-            if(res._is_transposed){
-                res._dim[1]=res._indices->_ids->at(0).size();
-            }
-            else {
-                res._dim[0]=res._indices->_ids->at(0).size();
-            }
-            res._name += ".in("+ids.get_name()+")";
-            res._indices->set_name(ids.get_name());
-            res.reset_range();
-            return res;
+            auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
+            return this->in(ids.from_ith(start_position, nb_entries+1));
         }
         
         /** Index parameter/variable in the product of ids1...args
@@ -1501,6 +1605,11 @@ namespace gravity {
                         _dim[0] = dim;
                     }
                 }
+                _off.resize(dim);
+                for(auto i=0;i<dim;i++)
+                {
+                    _off[i] = false;
+                }
                 param res(*this);
                 res._name += ".in("+ids.get_name()+")";
                 return res;
@@ -1519,7 +1628,7 @@ namespace gravity {
                 }
                 res._indices = make_shared<indices>(ids);
                 if(res._is_transposed){
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[1]=_indices->size();
                     }
                     else {
@@ -1527,7 +1636,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    if(res.is_double_indexed()){
+                    if(res.is_matrix_indexed()){
                         res._dim[0]=_indices->size();
                     }
                     else {
@@ -1543,7 +1652,7 @@ namespace gravity {
             nb_inst = ids.size();
             if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
-                    key = _indices->_keys->at(key_ref);
+                    key = ids._keys->at(key_ref);
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
                         throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
@@ -1901,7 +2010,7 @@ namespace gravity {
          */
         void reset_range(){
             init_range();
-            if(is_double_indexed()){
+            if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
                     for(auto j = 0; j<_indices->_ids->at(i).size();j++){
                         auto idx = _indices->_ids->at(i).at(j);
@@ -1959,10 +2068,10 @@ namespace gravity {
             throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
-        void set_double_val(double* x){set_double_val_(x);};
+        void get_double_val(double* x) const{get_double_val_(x);};
             
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void set_double_val_(double* x){
+        void get_double_val_(double* x) const{
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 x[vid+i] = (double)_val->at(i);
@@ -1970,14 +2079,14 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_val_(double* x){
-            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
+        void get_double_val_(double* x) const{
+            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
-        void get_double_val(const double* x){get_double_val_(x);};
+        void set_double_val(const double* x){set_double_val_(x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_double_val_(const double* x){
+        void set_double_val_(const double* x){
             auto vid = get_id();
             for (size_t i = 0; i < get_dim(); i++) {
                 _val->at(i) = x[vid+i];
@@ -1985,8 +2094,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void get_double_val_(const double* x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        void set_double_val_(const double* x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
         /**
@@ -2005,31 +2114,31 @@ namespace gravity {
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         void set_solution_(const vector<double>& x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+            throw invalid_argument("Cannot call set_solution_ with a non-arithmetic type.");
         }
         
         
-        void get_double_val(size_t pos, double x){get_double_val_(pos,x);};
+        void set_double_val(size_t pos, double x){set_double_val_(pos,x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void get_double_val_(size_t pos, double x){
+        void set_double_val_(size_t pos, double x){
             _val->at(pos) = x;
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void get_double_val_(size_t i, double x){
-            throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
+        void set_double_val_(size_t i, double x){
+            throw invalid_argument("Cannot call set_double_val_ with a non-arithmetic type.");
         }
         
-        void set_double_val(size_t pos, double& x){set_double_val_(pos,x);};
+        void get_double_val(size_t pos, double& x) const{get_double_val_(pos,x);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void set_double_val_(size_t pos, double& x){
+        void get_double_val_(size_t pos, double& x) const{
             x = _val->at(pos);
         }
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void set_double_val_(size_t i, double& x){
+        void get_double_val_(size_t i, double& x) const{
             throw invalid_argument("Cannot call get_double_val_ with a non-arithmetic type.");
         }
         
@@ -2052,15 +2161,37 @@ namespace gravity {
         };
         
         
+        param& operator=(const func<type>& f) {
+            copy_vals(f);
+            if(f._indices)
+                *this = this->in(*f._indices);
+            return *this;
+        }
+        
+        template<typename T, typename=enable_if<is_convertible<T,type>::value>>
+        void copy_vals(const func<T>& f){
+            _dim[0] = f._dim[0];
+            _dim[1] = f._dim[1];
+            auto dim = get_dim();
+            _val->resize(dim);
+            for (size_t i = 0; i < dim; i++) {
+                _val->at(i) = f._val->at(i);
+            }
+            reset_range();
+        }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
         void copy_vals(const param<T>& p){
+            _dim[0] = p._dim[0];
+            _dim[1] = p._dim[1];
             auto dim = p.get_dim();
             _val->resize(dim);
-            for (size_t i = 0; i < dim; i++) {
+            for (size_t i = 0; i < p._val->size(); i++) {
                 _val->at(i) = p._val->at(i);
             }
+            reset_range();
         }
+
         
         void copy_vals(const shared_ptr<param_>& p);
                 

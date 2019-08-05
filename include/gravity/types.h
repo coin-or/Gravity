@@ -19,6 +19,22 @@
 #include <algorithm>
 #include <complex>      // std::complex
 
+inline int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
+{
+    size_t  pos = 0;
+    int     cnt = 0;
+    
+    while( cnt != nth )
+    {
+        pos+=1;
+        pos = str.find(findMe, pos);
+        if ( pos == std::string::npos )
+            return -1;
+        cnt++;
+    }
+    return pos;
+}
+
 namespace gravity{
 #define EPS 0.00001
 #define Cpx complex<double>
@@ -67,6 +83,7 @@ namespace gravity{
     using namespace std;
     
     static double pi = 4.*atan(1.);
+    
     
     class space{
     public:
@@ -291,6 +308,134 @@ namespace gravity{
             _dim->at(0) = n;
         }
         
+        /** Returns the number of comma-separated fields in each key */
+        unsigned get_nb_entries() const{
+            return count(_keys->front().begin(), _keys->front().end(), ',') + 1;
+        }
+        
+        /** Retain the entries starting at the ith position
+         @param[in] start_position Use the substring starting after the start_position comma separator
+         @param[in] nb_entries Number of comma separated entries to keep
+         */
+        indices from_ith(unsigned start_position, unsigned nb_entries) const{
+            indices res(this->get_name()+"from_ith("+to_string(start_position)+")");
+            string key;
+            res._ids = make_shared<vector<vector<size_t>>>();
+            res._ids->resize(1);
+            if(is_indexed()){/* If ids has key references, use those */
+                for(auto &key_ref: _ids->at(0)){
+                    key = _keys->at(key_ref);
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    if(pos>0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        key = key.substr(0,pos);
+                    }
+                    auto it = res._keys_map->find(key);
+                    if (it == res._keys_map->end()){
+                        res.insert(key);
+                        res._ids->at(0).push_back(res._keys->size()-1);
+                    }
+                    else{
+                        res._ids->at(0).push_back(it->second);
+                    }
+                }
+                
+            }
+            else {
+                for(auto key: *_keys){
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    if(pos>0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        key = key.substr(0,pos);
+                    }
+                    auto it = res._keys_map->find(key);
+                    if (it == res._keys_map->end()){
+                        res.insert(key);
+                        res._ids->at(0).push_back(res._keys->size()-1);
+                    }
+                    else{
+                        res._ids->at(0).push_back(it->second);
+                    }
+                }
+            }
+            return res;
+        }
+        
+        /** Remove keys starting at the ith position and spanning nb_entries
+         @param[in] start_position
+         */
+        indices ignore_ith(unsigned start_position, unsigned nb_entries) const{
+            indices res(this->get_name()+"ignore_ith("+to_string(start_position)+","+to_string(nb_entries)+")");
+            string key;
+            res._ids = make_shared<vector<vector<size_t>>>();
+            res._ids->resize(1);
+            if(is_indexed()){/* If current index set has key references, use those */
+                string first_part, last_part;
+                for(auto &key_ref: _ids->at(0)){
+                    key = _keys->at(key_ref);
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    first_part = key.substr(0,pos);
+                    if(pos>0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        last_part = key.substr(pos+1);
+                    }
+                    if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                        key = first_part+","+last_part;
+                    }
+                    else {
+                        key = first_part+last_part;
+                    }
+                    auto it = res._keys_map->find(key);
+                    if (it == res._keys_map->end()){
+                        res.insert(key);
+                        res._ids->at(0).push_back(res._keys->size()-1);
+                    }
+                    else{
+                        res._ids->at(0).push_back(it->second);
+                    }
+                }
+                
+            }
+            else {
+                string first_part, last_part;
+                for(auto key: *_keys){
+                    auto pos = nthOccurrence(key, ",", start_position);
+                    first_part = key.substr(0,pos);
+                    if(pos>0){
+                        key = key.substr(pos+1);
+                    }
+                    pos = nthOccurrence(key, ",", nb_entries);
+                    if(pos>0){
+                        last_part = key.substr(pos+1);
+                    }
+                    if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                        key = first_part+","+last_part;
+                    }
+                    else {
+                        key = first_part+last_part;
+                    }
+                    auto it = res._keys_map->find(key);
+                    if (it == res._keys_map->end()){
+                        res.insert(key);
+                        res._ids->at(0).push_back(res._keys->size()-1);
+                    }
+                    else{
+                        res._ids->at(0).push_back(it->second);
+                    }
+                }
+            }
+            return res;
+        }
+        
         /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
         indices get_unique_keys() const{
             indices res(_name);
@@ -311,12 +456,24 @@ namespace gravity{
             vector<bool> res;
             assert(_ids);
             set<size_t> unique_ids;
-            for (auto &idx:_ids->at(0)) {
-                if(ids._keys_map->count(_keys->at(idx))){
-                    res.push_back(true);
+            if(is_indexed()){/* If ids has key references, use those */
+                for (auto &idx:_ids->at(0)) {
+                    if(ids._keys_map->count(_keys->at(idx))){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
                 }
-                else {
-                    res.push_back(false);
+            }
+            else {
+                for (auto &key:*_keys) {
+                    if(ids._keys_map->count(key)){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
                 }
             }
             return res;
@@ -343,7 +500,9 @@ namespace gravity{
         /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
         void filter_refs(const vector<bool>& keep) const{
             if(_ids){
-                assert(keep.size()==_ids->size());
+                if(keep.size()!=_ids->at(0).size()){
+                    throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+                }
                 vector<vector<size_t>> new_ids;
                 new_ids.resize(1);
                 for (auto idx = 0; idx<keep.size();idx++) {
@@ -463,6 +622,9 @@ namespace gravity{
             _excluded_keys = cpy._excluded_keys;
             if(cpy._ids){
                 _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
+            }
+            else{
+                _ids = nullptr;
             }
             _time_extended = cpy._time_extended;
             _time_pos = cpy._time_pos;
@@ -687,6 +849,11 @@ namespace gravity{
             return added;
         }
         
+        
+        
+        
+        
+        
         template<typename... Args>
         void insert(const string& s1, Args&&... args) {
             add(s1,args...);
@@ -801,9 +968,20 @@ namespace gravity{
             }
             return max_dim;
         }
-            
+        
+        size_t get_nb_rows() const {
+            if(_type != matrix_){
+                throw invalid_argument("cannot call get_nb_rows() on a non-indexed set");
+            }
+            return _ids->size();
+        };
+        
+        /** @return size of index set, if this is a matrix indexing, it returns the number of rows, if the set is a mask (has _ids) it returns the mask size, otherwize it return the total number of keys. **/
         size_t size() const {
             if(is_indexed()){
+                if(_type == matrix_){ //Matrix-indexed
+                    return get_nb_rows();
+                }
                 return _ids->at(0).size();
             }
             return _keys->size();
@@ -834,7 +1012,58 @@ namespace gravity{
         }
     };
     
-    
+    /** Adds all new keys found in ids
+     @return index set of added indices.
+     **/
+    template<typename... Args>
+    indices union_ids(const indices& ids1, Args&&... args) {
+        vector<indices> all_ids;
+        all_ids = {ids1,forward<Args>(args)...};
+        indices res("Union(");
+        auto nb_entries = ids1.get_nb_entries();
+        if(!ids1.is_indexed()){ //if the index set is not indexed, we assume the rest are not indexed as well
+            res._keys_map = make_shared<map<string,size_t>>(*ids1._keys_map);
+            res._keys = make_shared<vector<string>>(*ids1._keys);
+            for (size_t i= 1; i < all_ids.size(); i++) {
+                auto ids = all_ids[i];
+                if(nb_entries!=ids.get_nb_entries()){
+                    throw invalid_argument("union cannot be applied to index sets with different number of entries");
+                }
+                res.set_name(res.get_name() + ids.get_name()+",");
+                auto it = ids._keys->begin();
+                for (size_t i= 0; i < ids.size(); i++) {
+                    auto kkey = res._keys->size();
+                    auto pp = res._keys_map->insert(make_pair<>(*it,kkey));
+                    if (pp.second) {//new index inserted
+                        res._keys->push_back(*it);
+                    }
+                    it++;
+                }
+            }
+        }
+        else{  //means the ids1 is indexed so we assume all the rest are indexed as well
+//            res._ids = make_shared<vector<vector<size_t>>>(*ids1._ids);
+                for (size_t i= 0; i < all_ids.size(); i++) {
+                    auto ids = all_ids[i];
+                    if(nb_entries!=ids.get_nb_entries()){
+                        throw invalid_argument("union cannot be applied to index sets with different number of entries");
+                    }
+                    res.set_name(res.get_name() + ids.get_name()+",");
+                    auto it_ids = ids._ids->begin()->begin();
+                    for (size_t i= 0; i < ids.size(); i++) {
+                        auto kkey = res._keys->size();
+                        auto pp = res._keys_map->insert(make_pair<>(ids._keys->at(*it_ids),kkey));
+                        if (pp.second) {//new index inserted
+                            res._keys->push_back(ids._keys->at(*it_ids));
+                        }
+                        it_ids++;
+                    }
+                }
+            }
+        auto name = res.get_name();
+        res.set_name(name.substr(0,name.size()-1) + ")");
+        return res;
+    }
     
     indices operator-(const indices& s1, const indices& s2);
     
@@ -907,6 +1136,10 @@ namespace gravity{
         }
         return res;
     }
+    
+    
 }
+
+
 
 #endif

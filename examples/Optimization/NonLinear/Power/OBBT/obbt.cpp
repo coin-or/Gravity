@@ -17,7 +17,12 @@ using namespace gravity;
 
 /* main */
 int main (int argc, char * argv[]) {
-//    auto err_init = MPI_Init(nullptr,nullptr);
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     int output = 0;
     bool loss_from = false;
     size_t num_bags = 0;
@@ -105,18 +110,26 @@ int main (int argc, char * argv[]) {
     PowerNet grid;
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
+   
+    
     
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
-    
-    
-    
+    auto arcs = indices(grid.arcs);
+ 
+   
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
+
     int nb_threads = thread::hardware_concurrency();
-    //int nb_threads =12;
+    int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
+#ifdef USE_MPI
+    nb_total_threads *= nb_workers;
+#endif
+    //int nb_threads = thread::hardware_concurrency();
+//    int nb_threads =12;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -124,14 +137,22 @@ int main (int argc, char * argv[]) {
     double upper_bound=OPF->get_obj_val();
     auto SDPL= build_SDPOPF(grid, loss_from, upper_bound);
     solver<> SDPLB(SDPL,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma57");
+    SDPLB.run(output = 5, tol = 1e-6, "ma97");
     double lower_bound=SDPL->get_obj_val();
     
+    auto gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    
     auto SDP=SDPL;
-//    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
-//    solver<> SDPLBI(SDP,solv_type);
-//    SDP->print();
-//    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
+    SDP->print();
+    SDP->print_solution();
+    
+    auto pf_to_min=grid.pf_to_min.in(arcs);
+    
+    //    auto SDP= build_SDPOPF_QC(grid, loss_from, upper_bound, lower_bound);
+    //    solver<> SDPLBI(SDP,solv_type);
+    //    SDP->print();
+    //    SDPLBI.run(output = 5, tol = 1e-6, "ma57");
     
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
@@ -149,10 +170,11 @@ int main (int argc, char * argv[]) {
     bool break_flag=false, time_limit = false, lifted_var=false, close=false;
     
     const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
-    const int max_iter=50,gap_count_int=6;;
+    const int max_iter=50,gap_count_int=6;
     
     
-    double solver_time_end, solver_time =0, solver_time_start = get_wall_time(), gap;
+    double solver_time_end, solver_time =0, solver_time_start = get_wall_time();
+    shared_ptr<map<string,size_t>> p_map;
     //Check if gap is already not zero at root node
     if (upper_bound-lower_bound>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
         
@@ -163,6 +185,11 @@ int main (int argc, char * argv[]) {
             string vname=it.first;
             v=SDP->get_var<double>(vname);
             auto v_keys=v.get_keys();
+            auto v_key_map=v.get_keys_map();
+//             if(vname=="Pf_to")
+//             {
+//                  p_map=pf_to_min.get_keys_map();
+//             }
             for(auto &key: *v_keys)
             {
                 p=vname+"|"+ key;
@@ -173,6 +200,27 @@ int main (int argc, char * argv[]) {
                 else{
                     fixed_point[p]=false;
                 }
+                auto key_pos=v_key_map->at(key);
+                
+                if(v._off[key_pos]==true)
+                {
+                    fixed_point[p]=true;
+                    DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                }
+               
+                if(vname=="Pf_to")
+                {
+                    
+            }
+//                auto key_pos=p_map->at(key);
+//
+//                if(pf_to_min._off[key_pos]==true)
+//                {
+//                   fixed_point[p]=true;
+//                    DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+//                }
+//                }
+
                 interval_original[p]=v.get_ub(key)-v.get_lb(key);
                 ub_original[p]=v.get_ub(key);
                 lb_original[p]=v.get_lb(key);
@@ -183,7 +231,7 @@ int main (int argc, char * argv[]) {
         }
         
         solver_time= get_wall_time()-solver_time_start;
-        
+         auto v_in_cons=SDP->_v_in_cons;
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
             iter++;
@@ -238,9 +286,14 @@ int main (int argc, char * argv[]) {
                                 batch_models.push_back(modelk);
                             }
                             //When batch models has reached size of nb_threads or when at the last key of last avriable
-                            if (batch_models.size()==nb_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
+                            if (batch_models.size()==nb_total_threads || (next(it)==SDP->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                             {
-                                double batch_time_start = get_wall_time();                            run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                double batch_time_start = get_wall_time();
+#ifdef USE_MPI
+                                run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
+#else
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+#endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
                                 DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
@@ -281,7 +334,7 @@ int main (int argc, char * argv[]) {
                                         else
                                         {
                                             if(dirk=="LB"){
-                                                vk.set_lb(keyk, objk);
+                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
                                             }
                                             else{
                                                 vk.set_ub(keyk, objk);
@@ -305,7 +358,6 @@ int main (int argc, char * argv[]) {
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                         {
-                                            //                                                    if(interval_original[pk]>=range_tol && !(abs(vk.get_ub(keyk))<=zero_val && abs(vk.get_lb(keyk))<=zero_val))
                                             //If original interval is itself smaller than range_tol, do not have to reset interval
                                             if(interval_original[pk]>=range_tol)
                                             {
@@ -326,14 +378,12 @@ int main (int argc, char * argv[]) {
                                                     
                                                     vk.set_ub(keyk, ub_original[pk]);
                                                     vk.set_lb(keyk, ub_original[pk]-range_tol);
-                                                    //  DebugOn("Entered if 2"<<endl);
                                                 }
                                                 //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
                                                 else if(left<lb_original[pk])
                                                 {
                                                     vk.set_lb(keyk, lb_original[pk]);
                                                     vk.set_ub(keyk, lb_original[pk]+range_tol);
-                                                    //  DebugOn("Entered if 3"<<endl);
                                                     
                                                 }
                                                 //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
@@ -409,55 +459,75 @@ int main (int argc, char * argv[]) {
         
         if(!close)
         {
-        
-        SDP->reset_constrs();
-        solver<> SDPLB1(SDP,solv_type);
-        
-        SDPLB1.run(output = 5, tol=1e-8);
-        }
-        SDP->print_constraints_stats(tol);
-        bool print_only_relaxed;
-        SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
-        
-        SDP->print_solution();
-        
-        SDP->print();
-        
-        if(SDP->_status==0)
-        {
             
-            DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
-            DebugOn("Solution Print"<<endl);
-            //                SDP->print_solution();
-            SDP->print_constraints_stats(tol);
-            gap = 100*(upper_bound - lower_bound)/upper_bound;
-            DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-            gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
-            DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-            DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-            DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
-            DebugOn("Time\t"<<solver_time<<endl);
+            SDP->reset_constrs();
+            solver<> SDPLB1(SDP,solv_type);
             
-        }
-        else
-        {
-            double gap = 100*(upper_bound - lower_bound)/upper_bound;
-            DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-            DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
-            DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
-        }
-        if(time_limit){
-            DebugOn("Reached Time limit!"<<endl);
-        }
-        else {
-            DebugOn("Terminate\t"<<terminate<<endl);
+            SDPLB1.run(output = 5, tol=1e-8);
         }
         
-        
-        DebugOn("Time\t"<<solver_time<<endl);
-        DebugOn("Iterations\t"<<iter<<endl);
     }
-//    MPI_Finalize();
+//    avg=sum/num_var;
+//
+//    DebugOn("Average interval reduction\t"<<avg<<endl);
+    
+    if(!close)
+    {
+#ifdef USE_MPI
+        if(worker_id==0){
+#endif
+            SDP->reset_constrs();
+            solver<> SDPLB1(SDP,solv_type);
+            
+            SDPLB1.run(output = 5, tol=1e-6, "ma97");
+            SDP->print_constraints_stats(tol);
+            bool print_only_relaxed;
+            SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
+            
+            //        SDP->print_solution();
+            
+            //        SDP->print();
+            
+            if(SDP->_status==0)
+            {
+                
+                DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
+                DebugOn("Solution Print"<<endl);
+                //                SDP->print_solution();
+                SDP->print_constraints_stats(tol);
+                gap = 100*(upper_bound - lower_bound)/upper_bound;
+                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+                gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
+                DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+                DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
+                DebugOn("Time\t"<<solver_time<<endl);
+                
+            }
+            else
+            {
+                double gap = 100*(upper_bound - lower_bound)/upper_bound;
+                DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+                DebugOn("Lower bounding problem status = " << SDP->_status <<endl);
+                DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
+            }
+            if(time_limit){
+                DebugOn("Reached Time limit!"<<endl);
+            }
+            else {
+                DebugOn("Terminate\t"<<terminate<<endl);
+            }
+            
+            
+            DebugOn("Time\t"<<solver_time<<endl);
+            DebugOn("Iterations\t"<<iter<<endl);
+#ifdef USE_MPI
+        }
+#endif
+    }
+#ifdef USE_MPI
+    MPI_Finalize();
+#endif
     return 0;
 }
 
