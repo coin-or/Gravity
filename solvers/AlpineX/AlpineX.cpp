@@ -82,7 +82,7 @@ int main (int argc, char * argv[])
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-   
+    
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
     auto pg_max = grid.pg_max.in(gens);
@@ -851,15 +851,15 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 2;
             Qf_to._num_partns = 2;
-            Wii._num_partns = 1;
-            lji._num_partns = 1;
+            Wii._num_partns = 2;
+            lji._num_partns = 2;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
             //            lij._num_partns = 4;
             
             R_Wij._num_partns = 2;
-            Im_Wij._num_partns = 1;
+            Im_Wij._num_partns = 2;
             
             //            Constraint<> Equality_SOC("Equality_SOC");
             //            Equality_SOC = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
@@ -900,7 +900,7 @@ int main (int argc, char * argv[])
             
             
             
-//                        SOCP.print();
+            //                        SOCP.print();
             //            auto binvar_ptr1 = SOCP._vars_name.find("Wii_binary");
             //            auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
             //            binvar1->print();
