@@ -1009,11 +1009,35 @@ namespace gravity {
                 df_xstar.in(ids);
                 df_xstar.set_val(dfv);
                 
-                
-                
-                auto v1=v->pcopy();
-                v1->_indices=make_shared<gravity::indices>(ids);
-                res.insert(true, df_xstar, *v1);
+                switch (v->get_intype()) {
+                    case binary_:
+                        res += df_xstar*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        break;
+                    case short_:
+                        res += df_xstar*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        break;
+                    case integer_:
+                        res += df_xstar*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        break;
+                    case float_:
+                        res += df_xstar*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        break;
+                    case double_:
+                        res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        break;
+//                    case long_:
+//                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
+//                        break;
+//                    case complex_:
+//                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
+//                        break;
+                    default:
+                        break;
+                }
+//
+//                auto v1=v->pcopy();
+//                v1->_indices=make_shared<gravity::indices>(ids);
+//                res.insert(true, df_xstar, *v1);
                 
                 
                 //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
@@ -1033,12 +1057,12 @@ namespace gravity {
             
             
             indices res_ind("res_ind");
-            res_ind.add("0");
+            res_ind.add(to_string(nb_inst));
             res._indices=make_shared<gravity::indices>(res_ind);
             
             res.eval_all();
             res.uneval();
-              merge_vars(res);
+//            res.merge_vars(*this);
             DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
            
