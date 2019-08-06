@@ -500,11 +500,11 @@ int main (int argc, char * argv[]) {
             Constraint<> SDP_OA("SDP_OA"+to_string(i));
             SDP_OA=oas;
             SDPOA.add(SDP_OA>=0);
-            oas.uneval();
-            auto oas_point=make_shared<func<>>(oas);
-            SDPOA.merge_vars(oas_point);
+//            oas.uneval();
+//            auto oas_point=make_shared<func<>>(oas);
+//            SDPOA.merge_vars(oas_point);
             SDP_OA.print();
-            DebugOn("Eval of OA cut in main "<<oas.eval(0)<<endl<<endl);
+            DebugOn("Eval of OA cut in main "<<SDP_OA.eval(0)<<endl<<endl);
 //        }
     }
     
@@ -523,10 +523,10 @@ int main (int argc, char * argv[]) {
             therm_sol=oas;
             SDPOA.add(therm_sol<=0);
             oas.uneval();
-            auto oas_point=make_shared<func<>>(oas);
-            SDPOA.merge_vars(oas_point);
+//            auto oas_point=make_shared<func<>>(oas);
+//            SDPOA.merge_vars(oas_point);
             therm_sol.print();
-            DebugOn("Eval of OA cut in main \t" <<oas.eval(0)<<endl<<endl);
+            DebugOn("Eval of OA cut in main \t" <<therm_sol.eval(0)<<endl<<endl);
 
         }
 //
