@@ -340,7 +340,7 @@ void CplexProgram::create_cplex_constraints() {
             for (auto& it_lterm: c->get_lterms()) {
                 IloNumExpr lterm(*_cplex_env);
                 idx = it_lterm.second._p->get_vec_id();
-                if (it_lterm.second._p->_is_vector || it_lterm.second._coef->is_matrix()) {
+                if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
                     auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j<dim; j++) {
                         lterm += c->eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
