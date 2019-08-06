@@ -1923,14 +1923,29 @@ namespace gravity {
 //            }
 //            return inst2;
 //        };
-        size_t get_max_cell_size(){
+        size_t get_max_cell_size(bool matrix_indexed = false){
             auto max_size = 0;
-            for (size_t i = 0; i<_dim[0]; i++) {
-                for (size_t j = 0; j<_dim[1]; j++) {
-                    eval(i,j);
-                    auto cell = to_str(i,j,5);
-                    if(max_size < cell.size()){
-                        max_size = cell.size();
+            auto nb_rows = _dim[0];
+            auto nb_cols = _dim[1];
+            if(matrix_indexed){
+                for (size_t i = 0; i<_indices->get_nb_rows(); i++) {
+                    for (size_t j = 0; j<_indices->_ids->at(i).size(); j++) {
+                        eval(i,j);
+                        auto cell = to_str(i,j,5);
+                        if(max_size < cell.size()){
+                            max_size = cell.size();
+                        }
+                    }
+                }
+            }
+            else {
+                for (size_t i = 0; i<_dim[0]; i++) {
+                    for (size_t j = 0; j<_dim[1]; j++) {
+                        eval(i,j);
+                        auto cell = to_str(i,j,5);
+                        if(max_size < cell.size()){
+                            max_size = cell.size();
+                        }
                     }
                 }
             }
@@ -1944,7 +1959,27 @@ namespace gravity {
             if (vals) {
                 str += " = { \n";
                 auto space_size = str.size();
-                if (is_matrix()) {
+                if (is_matrix_indexed()) {
+                    auto max_cell_size = get_max_cell_size(true);
+                    for (size_t i = 0; i<_indices->get_nb_rows(); i++) {
+                        str.insert(str.end(), space_size, ' ');
+                        str += "|";
+                        for (size_t j = 0; j<_indices->_ids->at(i).size(); j++) {
+                            auto cell = to_str(i,j,prec);
+                            auto cell_size = cell.size();
+                            cell.insert(0, floor((max_cell_size+1 - cell_size)/2.), ' ');
+                            cell.append(ceil((max_cell_size+1 - cell_size)/2.), ' ');
+                            str += cell;
+                            if(j!=_dim[1]-1){
+                                str += " ";
+                            }
+                        }
+                        str += "|\n";
+                    }
+                    str += "}\n";
+                    return str;
+                }
+                else if (is_matrix()) {
                     auto max_cell_size = get_max_cell_size();
                     for (size_t i = 0; i<_dim[0]; i++) {
                         str.insert(str.end(), space_size, ' ');
