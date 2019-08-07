@@ -1139,13 +1139,20 @@ namespace gravity {
                                 if(model_type == "lambda_II"){
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                     /************** this might not be working **************/
-                                    on_link_lambda = lambda.in_ignore_ith(0, 1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries,1) * lambda_coef.in_matrix(nb_entries+1,1); // - on_coef.in_matrix(nb_entries,1)* on.from_ith(0,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries,1);
+                                    auto ids = indices(const_idx,inst_partition_lambda);
+                                    ids.print();
+                                    on_link_lambda = lambda.in_ignore_ith(0, 1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries,1)*lambda_coef.in_matrix(nb_entries+1,1);// lambda_coef.in_ignore_ith(0, 1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries,1)); // - on_coef.in_matrix(nb_entries,1)* on.from_ith(0,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries,1);
                                     auto total_inst = on_link_lambda.get_nb_inst();
                                     DebugOn("total number of instances " << total_inst << endl);
                                     DebugOn("when you eliminate in_matrix from both variables the instance number becomes 54, but in matrix part has only 3 elements!" << endl);
-                                    lambda.print();
-                                    lambda.in_ignore_ith(0, 1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries,1).print();
-                                    add(on_link_lambda.in(indices(const_idx,unique_ids)));
+                                    lambda.print_vals(5);
+                                    auto indexed_lambda=lambda.in_ignore_ith(0, 1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries,1);
+                                    indexed_lambda.print_vals(5);
+                                    auto indexed_coef = lambda_coef.in_matrix(nb_entries+1,1);
+                                    lambda_coef.print_vals(5);
+                                    indexed_coef.print_vals(5);
+                                    add(on_link_lambda);
+                                    on_link_lambda.print();
                                     }
                                 else{
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
