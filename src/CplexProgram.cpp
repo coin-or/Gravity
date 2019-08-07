@@ -310,7 +310,7 @@ void CplexProgram::create_cplex_constraints() {
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
-        nb_inst = c->_dim[0];
+        nb_inst = c->get_nb_instances();
         inst = 0;
         for (size_t i = 0; i< nb_inst; i++) {
             IloNumExpr cc(*_cplex_env);
