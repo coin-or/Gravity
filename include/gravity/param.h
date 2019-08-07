@@ -1467,6 +1467,7 @@ namespace gravity {
          */
         param in_matrix(unsigned start_entry, unsigned nb_entries) const{
             if (this->_indices->get_nb_entries() < start_entry + nb_entries){
+                DebugOn("********************************need to throw invalid_argument on the ambient index set, not the index set defined for the param. (i.e. when from_ith is used on an index set with more entries)" << endl);
 //                throw invalid_argument("Number of entries exceeds the total number of entries!\n");
             }
             auto res(*this);
