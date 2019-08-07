@@ -1467,7 +1467,7 @@ namespace gravity {
          */
         param in_matrix(unsigned start_entry, unsigned nb_entries) const{
             if (this->_indices->get_nb_entries() < start_entry + nb_entries){
-                throw invalid_argument("Number of entries exceeds the total number of entries!\n");
+//                throw invalid_argument("Number of entries exceeds the total number of entries!\n");
             }
             auto res(*this);
             return res.in(this->get_matrix_ids(start_entry,nb_entries));
