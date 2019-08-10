@@ -1148,7 +1148,7 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
         c35 = -1*pow(x[6],2) + x[7];
         m.add(c35>=0);
         m.print();
-        bool use_cplex = false, relax = true;
+        bool use_cplex = true, relax = true;
         if(use_cplex){
             solver<> s(m,cplex);
             s.run(relax);

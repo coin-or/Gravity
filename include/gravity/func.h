@@ -1259,7 +1259,7 @@ namespace gravity {
             //No backtracking
             
             
-            //Once feasible direction is found algorithm does not reverse direction. So shall work from any current point only for monotonic function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
+            //Once feasible direction is found algorithm does not reverse direction. So shall work from any current point only for convex function and will work to identify one outer point, not necessarily at greater than perturb_dist from an active point for any nonconvex function
             
             //Perturb so that distance between new point and current point is greater than perturb dist
             for(auto &it: *_vars)
@@ -1345,7 +1345,7 @@ namespace gravity {
                 }
                 if(dir)
                 {
-                    step=step_init;
+                    step=dfdv;
                     perturb=false;
                     f=f_start;
                     while(!perturb && iter<=max_iter)
@@ -1430,6 +1430,138 @@ namespace gravity {
             return(res);
         }
         
+     
+        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t nb_inst, ConstraintType ctype)
+        {
+            pair<bool, vector<double>> res;
+            vector<double> xcurrent, xk, xsolution;
+            double xvk, xvk1, fk, dfdvk, xv,ub,lb;
+            const int max_iter=100;
+            const double active_tol=1e-6,zero_tol=1e-8;
+
+            int counter=0,iter=0;
+            bool solution=false;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->get_double_val(posv, xv);
+               // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
+                xcurrent.push_back(xv);
+                v->set_double_val(posv, x[counter++]);
+                
+            }
+            xk=x;
+            
+            
+            fk=eval(nb_inst);
+            auto vk=_vars->at(vname).first;
+            size_t posvk=vk->get_id_inst(nb_inst);
+            vk->get_double_val(posvk, xvk);
+            auto df = *compute_derivative(*vk);
+            df.uneval();
+            dfdvk=df.eval(nb_inst);
+            ub=vk->get_double_ub(posvk);
+            lb=vk->get_double_lb(posvk);
+
+            
+            
+             while(iter<=max_iter && !solution)
+                       {
+            vk->set_double_val(posvk, xvk);
+                           uneval();
+                           fk=eval(nb_inst);
+                           if(abs(fk)<=active_tol)
+                           {
+                               solution=true;
+                           break;
+                       }
+                                               auto df = *compute_derivative(*vk);
+                                               df.uneval();
+                                               dfdvk=df.eval(nb_inst);
+                           if(abs(dfdvk)>=zero_tol)
+                           xvk1=xvk-fk/dfdvk;
+                           else
+                               break;
+                        
+                           if(abs(xvk1-xvk)<=zero_tol)
+                               break;
+                           if(xvk1>=ub)
+                               xvk=ub;
+                           else if (xvk1<=lb)
+                               xvk=lb;
+                           else
+                               xvk=xvk1;
+                       
+                           
+                           iter++;
+            
+        }
+            
+   
+
+            for(auto &it: *_vars)
+            {
+  
+                
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                
+                v->get_double_val(posv, xv);
+                
+                // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
+                xsolution.push_back(xv);
+                
+                //Reset xcurrent
+                
+            }
+            res.first=solution;
+            res.second=xsolution;
+            counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->set_double_val(posv, xcurrent[counter++]);
+                
+            }
+            return res;
+        }
+
+        vector<vector<double> > get_active_point(size_t nb_inst, ConstraintType ctype)
+        {
+            vector<vector<double> > res(_nb_vars);
+            vector<double> xcurrent;
+            int res_count=0;
+            double xv;
+            
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                size_t posv=v->get_id_inst(nb_inst);
+                v->get_double_val(posv, xv);
+                // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
+                xcurrent.push_back(xv);
+                
+            }
+            
+            for(auto &it: *_vars)
+            {
+                auto vname=it.first;
+                
+                auto res_nr=newton_raphson(xcurrent, vname, nb_inst, ctype);
+                
+                if(res_nr.first==true)
+                {
+                    
+                    for(auto i=0;i<xcurrent.size();i++)
+                        res[res_count].push_back(res_nr.second[i]);
+                res_count++;
+                }
+            
+        }
+            return res;
+        }
         
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
