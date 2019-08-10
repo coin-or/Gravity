@@ -38,6 +38,7 @@ int main (int argc, char * argv[]) {
     bool lazy_bool = false;
     bool add_original=false;
     SolverType solv_type = ipopt;
+    SolverType solv_type_c = cplex;
     double tol = 1e-6;
     string mehrotra = "no";
     
@@ -118,7 +119,7 @@ int main (int argc, char * argv[]) {
     auto c0 = grid.c0.in(grid.gens);
     auto arcs = indices(grid.arcs);
  
-   
+    bool sdp_nonlin=true;
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
@@ -134,18 +135,59 @@ int main (int argc, char * argv[]) {
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
     OPFUB.run(output = 5, tol = 1e-6, "ma57");
+    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
-    auto SDPL= build_SDPOPF(grid, loss_from, upper_bound);
+    auto SDPL= build_SDPOPF(grid, loss_from, upper_bound, false, true);
+    auto SDP= build_SDPOPF(grid, loss_from, upper_bound, false, sdp_nonlin);
     solver<> SDPLB(SDPL,solv_type);
-    SDPLB.run(output = 5, tol = 1e-6, "ma97");
+    DebugOn("Lower bounding ipopt"<<endl);
+    SDPLB.run(output = 5, tol = 1e-6);
+    SDPL->print();
     double lower_bound=SDPL->get_obj_val();
+    const double active_tol=1e-6;
     
     auto gap = 100*(upper_bound - lower_bound)/upper_bound;
-    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Initial Gap ipopt = " << to_string(gap) << "%."<<endl);
     
-    auto SDP=SDPL;
+//    auto SDP=SDPL;
+//    SDP->print();
+//    SDP->print_solution();
+    
+    
+    if(!grid._tree && grid.add_3d_nlin && !sdp_nonlin)
+    {
+
+    auto SDPcon=SDPL->get_constraint("SDP_3D");
+
+    for(auto i=0;i<SDPcon->get_nb_inst();i++)
+        //  for(auto i=0;i<1;i++)
+    {
+        SDPcon->uneval();
+        DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
+        SDPcon->uneval();
+
+        if(abs(SDPcon->eval(i))<=active_tol)
+        {
+            SDPcon->uneval();
+            func<> oas=SDPcon->get_outer_app_insti(i);
+            oas.eval_all();
+            Constraint<> OA_sol("OA_cuts_solution"+to_string(i));
+            OA_sol=oas;
+            SDP->add(OA_sol>=0);
+            oas.uneval();
+        }
+    }
+    }
+    
+    DebugOn("cplex"<<endl);
+    solver<> SDPLB1(SDP,solv_type_c);
+    DebugOn("Lower bounding cplex"<<endl);
+    SDPLB1.run(output = 7, tol=1e-7);
     SDP->print();
-    SDP->print_solution();
+    
+    gap = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
+    DebugOn("Initial Gap cplex = " << to_string(gap) << "%."<<endl);
+    
     
     auto pf_to_min=grid.pf_to_min.in(arcs);
     
@@ -292,7 +334,8 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
 #else
-                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
+                               // run_parallel(batch_models,cplex,1e-7,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -423,6 +466,7 @@ int main (int argc, char * argv[]) {
                     DebugOn("Gap closed at iter "<< iter<<endl);
                     close=true;
                     terminate=true;
+                    SDP->print();
                     
                 }
             }
@@ -493,6 +537,7 @@ int main (int argc, char * argv[]) {
                 
                 DebugOn("\nResults: " << grid._name << " " << to_string(SDP->get_obj_val()) << " " <<endl);
                 DebugOn("Solution Print"<<endl);
+                SDP->print();
                 //                SDP->print_solution();
                 SDP->print_constraints_stats(tol);
                 gap = 100*(upper_bound - lower_bound)/upper_bound;

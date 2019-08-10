@@ -248,11 +248,7 @@ int main (int argc, char * argv[]) {
     SDP.min(obj);
     SDPOA.min(obj);
     
-//    indices orig("orig");
-//    orig.add({"0","1","2"});
-    
-//    indices orig1("orig1");
-//    orig1.add("0");
+
     
     
     /** Constraints */
@@ -295,7 +291,7 @@ int main (int argc, char * argv[]) {
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     SDP.add(SOC.in(bus_pairs_chord) == 0,true);
-    SDPOA.add(SOC.in(bus_pairs_chord) == 0,true);
+    //SDPOA.add(SOC.in(bus_pairs_chord) == 0,true);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -347,7 +343,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     SDP.add(Thermal_Limit_from.in(arcs));
-    SDPOA.add(Thermal_Limit_from.in(arcs));
+    //SDPOA.add(Thermal_Limit_from.in(arcs));
     
   
     
@@ -355,7 +351,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SDP.add(Thermal_Limit_to.in(arcs));
-    SDPOA.add(Thermal_Limit_to.in(arcs));
+    //SDPOA.add(Thermal_Limit_to.in(arcs));
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -457,268 +453,146 @@ int main (int argc, char * argv[]) {
     auto lower_bound = SDP.get_obj_val();
     SDP.print_solution();
     
-   // auto Ifrom = SDP.get_constraint("I_from_Pf_concave");
-    auto SOCcon=SDP.get_constraint("SOC_convex");
-    auto SDPcon=SDP.get_constraint("SDP_3D");
-    auto thermal=SDP.get_constraint("Thermal_Limit_from");
-    
-//    for(auto i=0;i<Ifrom->get_nb_inst();i++)
-//    {
-//        Ifrom->uneval();
-//        DebugOn("eval of con "<<Ifrom->eval(i)<<endl);
-//        
-////        if(abs(Ifrom->eval(i))<=tol)
-////        {
-//            Ifrom->uneval();
-//            func<> oas=Ifrom->get_outer_app_insti(i);
-//            oas.eval_all();
-//            Constraint<> Ifrom_OA("Ifrom_OA"+to_string(i));
-//            Ifrom_OA=oas;
-//            SDPOA.add(Ifrom_OA>=0);
-//            oas.uneval();
-//            auto oas_point=make_shared<func<>>(oas);
-//            SDPOA.merge_vars(oas_point);
-//            Ifrom_OA.print();
-//            DebugOn("OA \t" <<oas.eval(0)<<endl);
-////        }
-//    }
-    
-//    DebugOn("Checking determinant Constraint "<<endl<<endl );
-//
-//    for(auto i=0;i<SDPcon->get_nb_inst();i++)
-//    {
-//        //for(auto i=0;i<1;i++)
-//
-//        SDPcon->uneval();
-//        DebugOn("F_xstar in main "<<SDPcon->eval(i)<<endl);
-//
-////        if(abs(SDPcon->eval(i))<=tol)
-////        {
-//            SDPcon->uneval();
-//            func<> oas=SDPcon->get_outer_app_insti(i);
-//            oas.eval_all();
-//            Constraint<> SDP_OA("SDP_OA"+to_string(i));
-//            SDP_OA=oas;
-//            SDPOA.add(SDP_OA>=0);
-////            oas.uneval();
-////            auto oas_point=make_shared<func<>>(oas);
-////            SDPOA.merge_vars(oas_point);
-//            SDP_OA.print();
-//            DebugOn("Eval of OA cut in main "<<SDP_OA.eval(0)<<endl<<endl);
-////        }
-//    }
-//
-//    DebugOn("Checking Thermal Constraint "<<endl<<endl );
-//
-//    for(auto i=0;i<3;i++)
-//        {
-//            thermal->uneval();
-//            DebugOn("F_xstar in main "<<thermal->eval(i)<<endl);
-//
-//
-//            thermal->uneval();
-//            func<> oas=thermal->get_outer_app_insti(i);
-//            oas.eval_all();
-//            Constraint<> therm_sol("thermal_cuts_solution"+to_string(i));
-//            therm_sol=oas;
-//            SDPOA.add(therm_sol<=0);
-//            oas.uneval();
-////            auto oas_point=make_shared<func<>>(oas);
-////            SDPOA.merge_vars(oas_point);
-//            therm_sol.print();
-//            DebugOn("Eval of OA cut in main \t" <<therm_sol.eval(0)<<endl<<endl);
-//
-//        }
-//
-//
-//    for(auto i=0;i<SOCcon->get_nb_inst();i++)
-//        {
-//            SOCcon->uneval();
-//            DebugOn("eval of con "<<SOCcon->eval(i)<<endl);
-//
-//
-//            SOCcon->uneval();
-//            func<> oas=SOCcon->get_outer_app_insti(i);
-//            oas.eval_all();
-//            Constraint<> SOCcon_sol("SOCcon_cuts_solution"+to_string(i));
-//            SOCcon_sol=oas;
-//            SDPOA.add(SOCcon_sol<=0);
-//            oas.uneval();
-//            auto oas_point=make_shared<func<>>(oas);
-//            SDPOA.merge_vars(oas_point);
-//            SOCcon_sol.print();
-//            DebugOn("function value in main \t" <<oas.eval(0));
-//
-//        }
-    
-    
-        
-        
-//        thermal->uneval();
-//        func<> oas=thermal->get_outer_app();
-//        oas.eval_all();
-//        Constraint<> therm_sol("thermal_cuts_solution");
-//        therm_sol=oas;
-//        SDPOA.add(therm_sol<=0);
-//        oas.uneval();
-//        auto oas_point=make_shared<func<>>(oas);
-//        SDPOA.merge_vars(oas_point);
-//        therm_sol.print();
-//        DebugOn("function value in main \t" <<oas.eval(0)<<"\t"<<oas.eval(1)<<"\t"<<oas.eval(2)<<"\t"<<oas.eval(3)<<"\t"<<oas.eval(4)<<endl);
-    
-    
     
 
-//    
-  
-//    
-//    
+    
+    auto con=SDP.get_constraint("SOC_convex");
+    
+    vector<double> xsolution;
+    double xv;
+    
+    xsolution.clear();
+   int counter=0;
+    for (auto &it: *con->_vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(0);
+        v->get_double_val(posv, xv);
+        xsolution.push_back(xv);
+    }
+    
+    auto res=con->newton_raphson(xsolution,"Im_Wij", 0, con->_ctype);
+    
+    if(res.first)
+    {
+        for(auto i=0;i<res.second.size();i++)
+            DebugOn("xsol"<< res.second[i]<<"\t");
+        DebugOn(endl<<"Active point "<<endl);
+    }
+    
+    //First iteration
+    //Possible improvements: Find interior point via optimization when point is an active point
+    //Best way to do this is to rewrite the model as g(x)<=\eta y and set y (a flag) for each con
+    //wait for Hassan to do this
+    //generate as many OA iterative cuts as given by num_iter_cuts
+    
+    
+    //const string con_names[]={"SDP_3D", "SOC_convex", "Thermal_Limit_from", "Thermal_Limit_to"};
+    const string con_names[]={"SOC_convex", "Thermal_Limit_from"};
+
     bool interior=false;
     pair<vector<double>,bool> xactive;
-    vector<vector<double>> xinterior(SDPcon->get_nb_inst());
-    vector<vector<double>> xouter_array;
-    vector<double> xsolution;
-    int counter;
-    double xv;
-    const double active_tol=1e-6;
-    DebugOn("Number of con "<<SDPcon->get_nb_inst()<<endl);
     
-    for(auto i=0;i<SDPcon->get_nb_inst();i++)
-          //  for(auto i=0;i<1;i++)
+    vector<vector<double>> xouter_array;
+//    vector<double> xsolution;
+//    int counter;
+//    double xv;
+    const double active_tol=1e-6;
+    
+    
+    for (auto &cname: con_names)
     {
-        SDPcon->uneval();
-        DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
-        SDPcon->uneval();
-        
-        if(abs(SDPcon->eval(i))<=active_tol)
+        auto con=SDP.get_constraint(cname);
+        for(auto i=0;i<con->get_nb_inst();i++)
+            //  for(auto i=0;i<1;i++)
         {
-            SDPcon->uneval();
-            func<> oas=SDPcon->get_outer_app_insti(i);
-            oas.eval_all();
-            Constraint<> OA_sol("OA_cuts_solution"+to_string(i));
-            OA_sol=oas;
-            SDPOA.add(OA_sol>=0);
-            oas.uneval();
-            auto oas_point=make_shared<func<>>(oas);
-           // SDP.merge_vars(oas_point);
-            OA_sol.print();
-            DebugOn("OA \t" <<oas.eval(0));
+            con->uneval();
+            DebugOn("eval of con "<<con->eval(i)<<endl);
+            con->uneval();
             
-            DebugOn("Active instant "<<i<<endl);
-            xsolution.clear();
-            counter=0;
-            for (auto &it: *SDPcon->_vars)
+            if(abs(con->eval(i))<=active_tol)
             {
-                auto v = it.second.first;
-                size_t posv=v->get_id_inst(i);
-                v->get_double_val(posv, xv);
-                xsolution.push_back(xv);
+                con->uneval();
+                func<> oacon=con->get_outer_app_insti(i);
+                oacon.eval_all();
+                Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+                OA_sol=oacon;
+                if(con->_ctype==leq)
+                    SDPOA.add(OA_sol<=0);
+                else if(con->_ctype==geq)
+                    SDPOA.add(OA_sol>=0);
+                
+                oacon.uneval();
+                
+                OA_sol.print();
+                DebugOn("OA \t" <<oacon.eval(0));
+                
+                DebugOn("Active instant "<<i<<endl);
             }
-            if(interior==false)
+            else //If constraint is not active xsolution is an interior point
             {
-                auto SDPI=build_SDPOPF(grid, false, upper_bound, true);
-                solver<> SDPOPFI(SDPI,solv_type);
-                SDPOPFI.run(output = 5, tol = 1e-8);
-                if(SDPI->_status==0|| SDPI->_status==1)
+                xsolution.clear();
+                for (auto &it: *con->_vars)
                 {
-                    auto SDPIcon=SDPI->get_constraint("SDP_3D");
-                    for (auto &it: *SDPIcon->_vars)
-                    {
-                        for(auto nb_inst=0;nb_inst<SDPIcon->get_nb_inst();nb_inst++)
-                        {
-                            auto v = it.second.first;
-                            size_t posv=v->get_id_inst(nb_inst);
-                            v->get_double_val(posv, xv);
-                            xinterior[nb_inst].push_back(xv);
-                        }
-                    }
-                    interior=true;
+                    auto v = it.second.first;
+                    size_t posv=v->get_id_inst(i);
+                    v->get_double_val(posv, xv);
+                    xsolution.push_back(xv);
                 }
-            }
-            if(interior)
-            {
-                SDPcon->uneval();
-                xouter_array= SDPcon->get_outer_point(i,  SDPcon->_ctype);
-                vector<double> xinterior_i=xinterior[i];
-                xinterior_i.pop_back();
+                
+                xouter_array= con->get_outer_point(i,  con->_ctype);
+                
                 for(auto j=0;j<xouter_array.size();j++)
-                    //for(auto j=0;j<1;j++)
+                    //                    //for(auto j=0;j<1;j++)
                 {
                     if(xouter_array[j].size()>0)
                     {
-                        SDPcon->uneval();
-                        xactive= SDPcon->linesearchbinary(xinterior_i,xouter_array[j], i, SDPcon->_ctype);
+                        con->uneval();
+                        xactive= con->linesearchbinary(xsolution,xouter_array[j], i, con->_ctype);
                         if(xactive.second)
                         {
-                           // DebugOn("Active point found"<<endl);
+                            // DebugOn("Active point found"<<endl);
                             
                             counter=0;
-                            for (auto &it: *SDPcon->_vars)
+                            for (auto &it: *con->_vars)
                             {
                                 auto v = it.second.first;
                                 size_t posv=v->get_id_inst(i);
                                 v->set_double_val(posv,xactive.first[counter++]);
                             }
-                            SDPcon->uneval();
-                            func<> oa_iter=SDPcon->get_outer_app_insti(i);
+                            con->uneval();
+                            func<> oa_iter=con->get_outer_app_insti(i);
                             oa_iter.eval_all();
-                            Constraint<> OA_itercon("OA_cuts_iterative "+to_string(i)+","+to_string(j));
+                            Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(j));
                             OA_itercon=oa_iter;
-                           // SDPOA.add(OA_itercon>=0);
-                            counter=0;
-                            for (auto &it: *SDPcon->_vars)
-                            {
-                                auto v = it.second.first;
-                                size_t posv=v->get_id_inst(i);
-                                v->set_double_val(posv, xsolution[counter++]);
-                            }
-//                            oas.uneval();
-//                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl);
-//
+                            if(con->_ctype==leq)
+                                SDPOA.add(OA_itercon<=0);
+                            else if(con->_ctype==geq)
+                                SDPOA.add(OA_itercon>=0);
+                            
                         }
                     }
                 }
                 
                 
+                // SDPOA.add(OA_itercon>=0);
+                counter=0;
+                for (auto &it: *con->_vars)
+                {
+                    auto v = it.second.first;
+                    size_t posv=v->get_id_inst(i);
+                    v->set_double_val(posv, xsolution[counter++]);
+                }
+                //                            oas.uneval();
+                //                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl)
+                
+                
+                
+                
+                
             }
-            
         }
     }
-//
-    
-    //        DebugOn("Outer_approximation MWE");
-    //
-    ////    indices orig("orig");
-    ////    orig.add({"0","1","2"});
-    //    oacuts= SDPcon->get_outer_app();
-    //
-    //    oacuts.print();
-    //    oacuts.eval_all();
-    //
-    //      indices test("test");
-    //    test.add({"10", "20"});
-    //    Constraint<> OA("OA_at_solution");
-    //    OA=oacuts;
-    //    //OA.print();
-    //
-    //    Constraint<> OA_q("OA_q");
-    //    OA_q=OA;
-    //    SDP.add(OA_q.in(test)>=0);
-    //    DebugOn("OAQ MWE");
-    //    OA_q.print();
-    
-    
-    // SDP.print();
-    
-//    for(auto i=0;i<SDPcon->get_nb_inst();i++)
-//    {
-//        for(auto j=0;j<xinterior[i].size();j++)
-//        {
-//            DebugOn(xinterior[i][j]<<"\t");
-//        }
-//        DebugOn(endl);
-//    }
-    
     
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
     {
@@ -728,7 +602,7 @@ int main (int argc, char * argv[]) {
         SDPOA.print();
         //SDP.reset_constrs();
         
-        solver<> SDPOPFA(SDPOA,solv_type);
+        solver<> SDPOPFA(SDPOA,cplex);
         double solver_time_start = get_wall_time();
         
         SDPOPFA.run(output = 5, tol = 1e-7);
@@ -738,9 +612,44 @@ int main (int argc, char * argv[]) {
     }
     
     
-   
+    con=SDP.get_constraint("SOC_convex");
+    xsolution.clear();
+    counter=0;
+    for (auto &it: *con->_vars)
+    {
+        auto v = it.second.first;
+        size_t posv=v->get_id_inst(0);
+        v->get_double_val(posv, xv);
+        xsolution.push_back(xv);
+    }
+    
+    res=con->newton_raphson(xsolution,"Im_Wij", 0, con->_ctype);
+    
+    if(res.first)
+    {
+        for(auto i=0;i<res.second.size();i++)
+            DebugOn("xsol"<< res.second[i]<<"\t");
+        DebugOn(endl<<"Active point "<<endl);
+    }
+
+    
+//    xsolution.clear();
+//    counter=0;
+//    for (auto &it: *obj._vars)
+//    {
+//        auto v = it.second.first;
+//        size_t posv=v->get_id_inst(0);
+//        v->get_double_val(posv, xsolution[counter++]);
+//    }
     
     
+    
+    
+//    indices ids("ids");
+//    ids.add("0");
+//    obj._indices=make_shared<gravity::indices>(ids);
+    
+       //obj.newton_raphson(xsolution, 0,con->_ctype);
  
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();

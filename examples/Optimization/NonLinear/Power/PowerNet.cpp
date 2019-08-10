@@ -2031,7 +2031,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, bool interior)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, bool interior, bool sdp)
 {
     bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, current=true, add_original=false, convexify=true;
     loss=true;
@@ -2255,6 +2255,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
         SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        if(sdp)
+        {
         if (lazy_bool) {
             if(interior)
             SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= eta);
@@ -2269,7 +2271,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
                 SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
-        
+        }
     }
     
     /** Constraints */
