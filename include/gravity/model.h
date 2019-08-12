@@ -1120,7 +1120,7 @@ namespace gravity {
                                 // Representation of the quadratic term with secant
                                 Constraint<> quad_ub(pair.first+"_quad_ub");
                                 /************** this might not be working **************/
-                                quad_ub = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                 add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
                                 
                                 Constraint<> quad_lb(pair.first+"_quad_lb");
@@ -1139,14 +1139,13 @@ namespace gravity {
                                 if(model_type == "lambda_II"){
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                     /************** this might not be working **************/
-                                    on_link_lambda = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries+1,total_entries-nb_entries) -
-                                     on.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,on_coef.get_matrix_ids(nb_entries,total_entries-nb_entries)) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
+                                    on_link_lambda = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries,total_entries-nb_entries) - on.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,on_coef.get_matrix_ids(nb_entries,total_entries-nb_entries)) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
                                     add(on_link_lambda.in(indices(unique_ids,const_idx)) <= 0);
                                 }
                                 else{
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                     /************** this might not be working **************/
-                                    on_link_lambda = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries+1,total_entries-nb_entries) -
+                                    on_link_lambda = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries,total_entries-nb_entries) -
                                     on.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,on_coef.get_matrix_ids(nb_entries,total_entries-nb_entries)) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
                                     add(on_link_lambda.in(indices(unique_ids,const_idx)) <= 0);
                                 }
@@ -1481,7 +1480,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                         add(bln_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o1 with convex combination
@@ -1867,7 +1866,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                         add(bln_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o1 with convex combination
@@ -2260,7 +2259,7 @@ namespace gravity {
                                     // Representation of the bilinear term with convex combination
                                     Constraint<> bln_rep(pair.first+"_bln_rep");
                                     /************** this might not be working **************/
-                                    bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                    bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                     add(bln_rep.in(unique_ids) == 0);
                                     
                                     // Representation of o1 with convex combination
@@ -2615,7 +2614,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                         add(bln_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o1 with convex combination
@@ -2634,15 +2633,18 @@ namespace gravity {
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-                                            on_link_lambda1 = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef1.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef1.in_matrix(nb_entries+1,total_entries-nb_entries) - on1.in_matrix(nb_entries_v1,1).from_ith(0,on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2)) * on_coef1.in_matrix(nb_entries,1);
+                                            on_link_lambda1 = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef1.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef1.in_matrix(nb_entries,total_entries-nb_entries) - on1.in_matrix(nb_entries_v1,1).in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,total_entries-1)) * on_coef1.in_matrix(nb_entries,1);
                                             
-                                            
-                                            on1.in_matrix(nb_entries_v1,1).print_vals(5);
-                                            on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2).print();
-                                            on1.in_matrix(nb_entries_v1,1).from_ith(0, on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2)).print_vals(5);
+                                            DebugOn("CHECK HERE" << endl);
                                             on_coef1.in_matrix(nb_entries,1).print_vals(5);
-//                                            add(on_link_lambda1.in(indices(unique_ids,const_idx1)) <= 0);
-                                            on_link_lambda1.print();
+                                            on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2).from_ith(0,nb_entries).print();
+                                            on1.in(on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2).from_ith(0,nb_entries)).print_vals(5);
+                                            on1.in(on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,nb_entries+1).ignore_ith(nb_entries_v1,nb_entries_v2)).print_vals(5);
+                                            on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,nb_entries+1)).print_vals(5);
+                                            on1.in_matrix(nb_entries_v1,1).from_ith(0,on_coef1.get_matrix_ids(nb_entries,1).ignore_ith(nb_entries_v1,nb_entries_v2)).print_vals(5);
+                                            on1.in_matrix(nb_entries_v1,1).in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries_v1,1).from_ith(0,total_entries-1)).print_vals(5);
+////                                            add(on_link_lambda1.in(indices(unique_ids,const_idx1)) <= 0);
+//                                            on_link_lambda1.print();
                                             
                                             
                                             //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
@@ -2994,7 +2996,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries)) - vlift.in(unique_ids);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                         add(bln_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o1 with convex combination
@@ -3260,7 +3262,7 @@ namespace gravity {
                                     // Representation of the quadratic term with secant
                                     Constraint<> quad_ub(pair.first+"_quad_ub");
                                     /************** this might not be working **************/
-                                    quad_ub = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries)) - vlift->in(added);
+                                    quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries) - vlift->in(added);
                                     add(quad_ub.in(added) >= 0); /*using it as the upper bound to be valid*/
                                     
                                     Constraint<> quad_lb(pair.first+"_quad_lb");
@@ -3279,14 +3281,14 @@ namespace gravity {
                                     if(model_type == "lambda_II"){
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                         /************** this might not be working **************/
-                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
-                                        //                                        add(on_link_lambda.in(indices(added,range(1,num_partns1+1))) <= 0);
+                                        on_link_lambda = lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries,total_entries-nb_entries) - binvar1->in(added1).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,on_coef.get_matrix_ids(nb_entries,total_entries-nb_entries)) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
+                                        add(on_link_lambda.in(indices(added,const_idx)) <= 0);
                                     }
                                     else{
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                         /************** this might not be working **************/
-                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
-                                        //                                        add(on_link_lambda.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
+                                        on_link_lambda = lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef.in_matrix(nb_entries,total_entries-nb_entries) - binvar1->in(added1).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,on_coef.get_matrix_ids(nb_entries,total_entries-nb_entries)) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
+                                        add(on_link_lambda.in(indices(added,const_idx)) <= 0);
                                     }
                                     
                                     
@@ -3625,7 +3627,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries)) - vlift->in(added);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries) - vlift->in(added);
                                         add(bln_rep.in(added) == 0);
                                         
                                         // Representation of o1 with convex combination
@@ -4032,7 +4034,7 @@ namespace gravity {
                                         // Representation of the bilinear term with convex combination
                                         Constraint<> bln_rep(pair.first+"_bln_rep");
                                         /************** this might not be working **************/
-                                        bln_rep = sum(EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries)) - vlift->in(added);
+                                        bln_rep = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries) - vlift->in(added);
                                         add(bln_rep.in(added) == 0);
                                         
                                         // Representation of o1 with convex combination
