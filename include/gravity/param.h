@@ -287,7 +287,7 @@ namespace gravity {
         }
         
         bool is_matrix_indexed() const{
-            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+            return (_indices && ((_indices->_ids && _indices->_ids->size()>1) || _indices->_type==matrix_));
         }
 
         bool is_binary() const {
@@ -1622,7 +1622,7 @@ namespace gravity {
             string key, excluded;
             size_t nb_inst=1;
             param res(*this);
-            if(ids._ids && ids._ids->size()>1){/* Double-indexed set */
+            if(ids._type==matrix_ || (ids._ids && ids._ids->size()>1)){/* Double-indexed set */
                 nb_inst = ids._ids->size();
                 /* Check that the current param has the keys found in ids */
                 for(auto key: *ids._keys){
@@ -1654,6 +1654,7 @@ namespace gravity {
             }
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
+            res._indices->_type = ids._type;
             nb_inst = ids.size();
             if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){

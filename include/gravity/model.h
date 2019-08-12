@@ -1119,16 +1119,17 @@ namespace gravity {
                                 /** Constraints */
                                 // Representation of the quadratic term with secant
                                 Constraint<> quad_ub(pair.first+"_quad_ub");
-                                /************** this might not be working **************/
-                                quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
-                                 quad_ub.print();
-                                add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
-                                
                                 DebugOn("CHECK HERE" << endl);
                                 EP.print_vals(5);
                                 lambda.print_vals(5);
                                 EP.in_matrix(nb_entries,total_entries-nb_entries).print_vals(5);
                                 lambda.in_matrix(nb_entries,total_entries-nb_entries).print_vals(5);
+                                /************** this might not be working **************/
+                                quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries).tr()*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
+                                add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
+                                quad_ub.print();
+                                
+                                
                                
                                 
                                 Constraint<> quad_lb(pair.first+"_quad_lb");
