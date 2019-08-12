@@ -290,7 +290,7 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC.in(bus_pairs_chord) == 0,true);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
     //SDPOA.add(SOC.in(bus_pairs_chord) == 0,true);
     
     /* Flow conservation */
@@ -429,8 +429,8 @@ int main (int argc, char * argv[]) {
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-//        SDP.add(I_from_Pf.in(arcs)==0, true);
-//        SDPOA.add(I_from_Pf.in(arcs)==0, true);
+       // SDP.add(I_from_Pf.in(arcs)==0, true);
+        //SDPOA.add(I_from_Pf.in(arcs)==0, true);
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
@@ -456,53 +456,33 @@ int main (int argc, char * argv[]) {
     
 
     
-    auto con=SDP.get_constraint("SOC_convex");
     
-    vector<double> xsolution;
-    double xv;
-    
-    xsolution.clear();
-   int counter=0;
-    for (auto &it: *con->_vars)
-    {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(0);
-        v->get_double_val(posv, xv);
-        xsolution.push_back(xv);
-    }
-    
-    auto res=con->newton_raphson(xsolution,"Im_Wij", 0, con->_ctype);
-    
-    if(res.first)
-    {
-        for(auto i=0;i<res.second.size();i++)
-            DebugOn("xsol"<< res.second[i]<<"\t");
-        DebugOn(endl<<"Active point "<<endl);
-    }
-    
+
     //First iteration
     //Possible improvements: Find interior point via optimization when point is an active point
     //Best way to do this is to rewrite the model as g(x)<=\eta y and set y (a flag) for each con
     //wait for Hassan to do this
     //generate as many OA iterative cuts as given by num_iter_cuts
     
-    
-    //const string con_names[]={"SDP_3D", "SOC_convex", "Thermal_Limit_from", "Thermal_Limit_to"};
-    const string con_names[]={"SOC_convex", "Thermal_Limit_from"};
+   
+ 
+    //const string con_names[]={"SOC_convex", "Thermal_Limit_from"};
 
     bool interior=false;
     pair<vector<double>,bool> xactive;
     
-    vector<vector<double>> xouter_array;
-//    vector<double> xsolution;
-//    int counter;
-//    double xv;
+    vector<vector<double>> xouter_array, xactive_array;
+    vector<double> xsolution;
+    int counter;
+    double xv;
     const double active_tol=1e-6;
+    string cname;
     
-    
-    for (auto &cname: con_names)
+    for (auto &con: SDP._cons_vec)
     {
-        auto con=SDP.get_constraint(cname);
+        cname=con->_name;
+        if(!con->is_linear())
+        {
         for(auto i=0;i<con->get_nb_inst();i++)
             //  for(auto i=0;i<1;i++)
         {
@@ -517,16 +497,17 @@ int main (int argc, char * argv[]) {
                 oacon.eval_all();
                 Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
                 OA_sol=oacon;
+                //Assuming no nonlinear equality constraints
                 if(con->_ctype==leq)
                     SDPOA.add(OA_sol<=0);
                 else if(con->_ctype==geq)
                     SDPOA.add(OA_sol>=0);
-                
+
                 oacon.uneval();
-                
+
                 OA_sol.print();
                 DebugOn("OA \t" <<oacon.eval(0));
-                
+
                 DebugOn("Active instant "<<i<<endl);
             }
             else //If constraint is not active xsolution is an interior point
@@ -539,26 +520,22 @@ int main (int argc, char * argv[]) {
                     v->get_double_val(posv, xv);
                     xsolution.push_back(xv);
                 }
-                
-                xouter_array= con->get_outer_point(i,  con->_ctype);
-                
-                for(auto j=0;j<xouter_array.size();j++)
+
+                xactive_array= con->get_active_point(i,  con->_ctype);
+
+                for(auto j=0;j<xactive_array.size();j++)
                     //                    //for(auto j=0;j<1;j++)
                 {
-                    if(xouter_array[j].size()>0)
+                    if(xactive_array[j].size()>0)
                     {
                         con->uneval();
-                        xactive= con->linesearchbinary(xsolution,xouter_array[j], i, con->_ctype);
-                        if(xactive.second)
-                        {
-                            // DebugOn("Active point found"<<endl);
-                            
+
                             counter=0;
                             for (auto &it: *con->_vars)
                             {
                                 auto v = it.second.first;
                                 size_t posv=v->get_id_inst(i);
-                                v->set_double_val(posv,xactive.first[counter++]);
+                                v->set_double_val(posv,xactive_array[j][counter++]);
                             }
                             con->uneval();
                             func<> oa_iter=con->get_outer_app_insti(i);
@@ -569,12 +546,12 @@ int main (int argc, char * argv[]) {
                                 SDPOA.add(OA_itercon<=0);
                             else if(con->_ctype==geq)
                                 SDPOA.add(OA_itercon>=0);
-                            
+
                         }
                     }
-                }
-                
-                
+
+
+
                 // SDPOA.add(OA_itercon>=0);
                 counter=0;
                 for (auto &it: *con->_vars)
@@ -585,52 +562,84 @@ int main (int argc, char * argv[]) {
                 }
                 //                            oas.uneval();
                 //                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl)
-                
-                
-                
-                
-                
+
+
+
+
+
             }
+        }
+        }
+        else
+        {
+            Constraint<> lin(cname);
+            lin=*con;
+            if(con->_ctype==leq)
+                SDPOA.add(lin<=0);
+            else if(con->_ctype==geq)
+                SDPOA.add(lin>=0);
+            else
+                SDPOA.add(lin==0);
         }
     }
     
-    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
-    {
+  
         //DebugOn("Outer point and function value from func.h"<<endl);
 //        SDP3.uneval();
 //
         SDPOA.print();
         //SDP.reset_constrs();
         
-        solver<> SDPOPFA(SDPOA,cplex);
-        double solver_time_start = get_wall_time();
+       // solver<> SDPOPFA(SDPOA,ipopt);
+        solver_time_start = get_wall_time();
         
-        SDPOPFA.run(output = 5, tol = 1e-7);
-        SDPOA.print_solution();
-        SDPOA.print_constraints_stats(tol);
+        //SDPOPFA.run(output = 5, tol = 1e-7);
+        //SDPOA.print_solution();
+       // SDPOA.print_constraints_stats(tol);
         
-    }
     
+    auto con_lag=SDPOA.get_constraint("KCL_P");
     
-    con=SDP.get_constraint("SOC_convex");
-    xsolution.clear();
+    auto dual_con=con_lag->_dual;
+    
+
+    
+
     counter=0;
-    for (auto &it: *con->_vars)
-    {
-        auto v = it.second.first;
-        size_t posv=v->get_id_inst(0);
-        v->get_double_val(posv, xv);
-        xsolution.push_back(xv);
-    }
+ 
+
+//    indices idso("idso");
+//    idso.add("0");
+//    obj._indices=make_shared<gravity::indices>(idso);
+//    obj._name="obj";
+//    obj.eval_all();
+//    DebugOn("obj\t"<<obj.eval("0"));
+//    obj.get_outer_app_insti(0);
     
-    res=con->newton_raphson(xsolution,"Im_Wij", 0, con->_ctype);
-    
-    if(res.first)
-    {
-        for(auto i=0;i<res.second.size();i++)
-            DebugOn("xsol"<< res.second[i]<<"\t");
-        DebugOn(endl<<"Active point "<<endl);
-    }
+//     auto con=SDP.get_constraint("SDP_3D");
+//
+//     func<> oacon=con->get_outer_app_insti(0);
+//    oacon.print();
+//
+//    oacon=con->get_outer_app_insti(1);
+//    oacon.print();
+//
+//    oacon=con->get_outer_app_insti(2);
+//    oacon.print();
+//
+//
+//
+//    con=SDP.get_constraint("Thermal_Limit_from");
+//
+//    oacon=con->get_outer_app_insti(0);
+//    oacon.print();
+//
+//    oacon=con->get_outer_app_insti(1);
+//    oacon.print();
+//
+//    oacon=con->get_outer_app_insti(2);
+//    oacon.print();
+//
 
     
 //    xsolution.clear();
