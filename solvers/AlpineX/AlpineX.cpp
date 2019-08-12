@@ -852,7 +852,7 @@ int main (int argc, char * argv[])
             Pf_to._num_partns = 2;
             Qf_to._num_partns = 2;
             Wii._num_partns = 2;
-            lji._num_partns = 2;
+            lji._num_partns = 1;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
