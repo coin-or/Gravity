@@ -403,8 +403,42 @@ namespace gravity{
             string key;
             res._ids = make_shared<vector<vector<size_t>>>();
             res._ids->resize(1);
-            if(is_indexed()){/* If current index set has key references, use those */
-                string first_part, last_part;
+            string first_part, last_part;
+            if(_type == matrix_){/* If ids is matrix indexed */
+                res._type = matrix_;
+                auto nb_rows = this->get_nb_rows();
+                res._ids->resize(nb_rows);
+                for (size_t i = 0; i<nb_rows; i++) {
+                    for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                        auto key_ref = _ids->at(i).at(j);
+                        key = _keys->at(key_ref);
+                        auto pos = nthOccurrence(key, ",", start_position);
+                        first_part = key.substr(0,pos);
+                        if(pos>0){
+                            key = key.substr(pos+1);
+                        }
+                        pos = nthOccurrence(key, ",", nb_entries);
+                        if(pos>0){
+                            last_part = key.substr(pos+1);
+                        }
+                        if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                            key = first_part+","+last_part;
+                        }
+                        else {
+                            key = first_part+last_part;
+                        }
+                        auto it = res._keys_map->find(key);
+                        if (it == res._keys_map->end()){
+                            res.insert(key);
+                            res._ids->at(0).push_back(res._keys->size()-1);
+                        }
+                        else{
+                            res._ids->at(0).push_back(it->second);
+                        }
+                    }
+                }
+            }
+            else if(is_indexed()){/* If current index set has key references, use those */
                 for(auto &key_ref: _ids->at(0)){
                     key = _keys->at(key_ref);
                     auto pos = nthOccurrence(key, ",", start_position);
