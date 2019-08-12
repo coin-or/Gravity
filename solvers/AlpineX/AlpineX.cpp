@@ -940,6 +940,8 @@ int main (int argc, char * argv[])
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
+//    SOCP.print();
+    SOCP.print_solution();
     
     
     return 0;
