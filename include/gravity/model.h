@@ -1142,13 +1142,13 @@ namespace gravity {
 //                                    on_link_lambda = lambda.from_ith(1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries+1,total_entries-nb_entries)*lambda_coef.in_matrix(nb_entries+1,total_entries-nb_entries);
                                     auto ids0 = indices(const_idx,inst_partition_lambda);
                                     ids0.print();
-                                    auto ids1 = *(on_coef.in_matrix(nb_entries,total_entries-nb_entries))._indices;
+                                    auto ids1 = *(on_coef.in_matrix(nb_entries+1,total_entries-nb_entries))._indices;
                                     ids1.print();
                                     auto ids2 = ids1.from_ith(1,total_entries);
                                     ids2.print();
-                                    on_link_lambda = on.in(ids2) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
+                                    on_link_lambda = on.in(ids2) * on_coef.in_matrix(nb_entries+1,total_entries-nb_entries);
                                     on.in(ids2).print_vals(5);
-                                    on_coef.in_matrix(nb_entries,total_entries-nb_entries).print_vals(5);
+                                    on_coef.in_matrix(nb_entries+1,total_entries-nb_entries).print_vals(5);
                                     
                                     add(on_link_lambda.in(indices(unique_ids,const_idx)) <= 0);
                                     on_link_lambda.print();
