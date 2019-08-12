@@ -828,12 +828,12 @@ namespace gravity {
                 auto o1 = *static_pointer_cast<var<type>>(term._p->first);
                 auto o2 = *static_pointer_cast<var<type>>(term._p->second);
                 if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
-                         o2 = *static_pointer_cast<var<type>>(term._p->first);
-                         o1 = *static_pointer_cast<var<type>>(term._p->second);
+                    o2 = *static_pointer_cast<var<type>>(term._p->first);
+                    o1 = *static_pointer_cast<var<type>>(term._p->second);
                     DebugOn("O1 name "<< o1._name << endl);
                     DebugOn("O2 name "<< o2._name << endl);
                 }
-               
+                
                 string name;
                 indices ids;
                 if(o1==o2){
@@ -843,18 +843,18 @@ namespace gravity {
                 else {
                     name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
                     // No need to check the reverse order now, since the variables are already ordered by name
-//                    auto it = _vars_name.find(name);
-//                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
-//                        o2 = *static_pointer_cast<var<type>>(term._p->first);
-//                        o1 = *static_pointer_cast<var<type>>(term._p->second);
-//                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-//                    }
-//                    it = _vars_name.find(name);
-//                    if(it==_vars_name.end()){/* Switch back to original order */
-//                        o1 = *static_pointer_cast<var<type>>(term._p->first);
-//                        o2 = *static_pointer_cast<var<type>>(term._p->second);
-//                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-//                    }
+                    //                    auto it = _vars_name.find(name);
+                    //                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
+                    //                        o2 = *static_pointer_cast<var<type>>(term._p->first);
+                    //                        o1 = *static_pointer_cast<var<type>>(term._p->second);
+                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    //                    }
+                    //                    it = _vars_name.find(name);
+                    //                    if(it==_vars_name.end()){/* Switch back to original order */
+                    //                        o1 = *static_pointer_cast<var<type>>(term._p->first);
+                    //                        o2 = *static_pointer_cast<var<type>>(term._p->second);
+                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    //                    }
                     ids = combine(*o1._indices,*o2._indices);
                 }
                 auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
@@ -947,7 +947,7 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
@@ -1028,17 +1028,17 @@ namespace gravity {
                                     }
                                     
                                     // Lambda coefficient matrix when linking with partition variables
-                                    lambda_coef.in(indices(const_idx, inst_partition_lambda));
+                                    lambda_coef.in(indices(inst_partition_lambda, const_idx));
                                     
                                     // Partition coefficient matrix when linking with lambda variables
-                                    on_coef.in(indices(const_idx, inst_partition));
+                                    on_coef.in(indices(inst_partition, const_idx));
                                     
                                     // fill lambda_coef
                                     for (size_t inst = 0; inst< nb_ins; inst++){
                                         auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                         auto cur_var_idx = unique_ids._keys->at(cur_var_id);
                                         for (int i=0 ; i<num_partns1+1; ++i) {
-                                            string cur_idx = to_string(i+1) + "," + cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
+                                            string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}," + to_string(i+1);
                                             lambda_coef.set_val(cur_idx,1);
                                         }
                                     }
@@ -1047,15 +1047,15 @@ namespace gravity {
                                     for (size_t inst = 0; inst< nb_ins; inst++){
                                         auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                         auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                        string cur_idx = to_string(1) +","+cur_var_idx+","+name1+"{"+to_string(1)+"}";
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"}," + to_string(1);
                                         on_coef.set_val(cur_idx,1);
                                         for (int i=1 ; i<num_partns1; ++i) {
-                                            cur_idx = to_string(i+1) + "," +cur_var_idx+","+name1+"{"+to_string(i)+"}";
+                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(i)+"}," + to_string(i+1);
                                             on_coef.set_val(cur_idx,1);
-                                            cur_idx = to_string(i+1) + "," + cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
+                                            cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}," + to_string(i+1);
                                             on_coef.set_val(cur_idx,1);
                                         }
-                                        cur_idx = to_string(num_partns1+1)+ "," +cur_var_idx+","+name1+"{"+to_string(num_partns1)+"}";
+                                        cur_idx = cur_var_idx+","+name1+"{"+to_string(num_partns1)+"}," + to_string(num_partns1+1);
                                         on_coef.set_val(cur_idx,1);
                                     }
                                 }
@@ -1068,26 +1068,26 @@ namespace gravity {
                                     }
                                     
                                     // Lambda coefficient matrix when linking with partition variables
-                                    lambda_coef.in(indices(const_idx, inst_partition_lambda));
+                                    lambda_coef.in(indices(inst_partition_lambda, const_idx));
                                     
                                     // Partition coefficient matrix when linking with lambda variables
-                                    on_coef.in(indices(const_idx, inst_partition));
+                                    on_coef.in(indices(inst_partition, const_idx));
                                     
                                     // fill lambda_coef
                                     for (size_t inst = 0; inst< nb_ins; inst++){
                                         auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                         auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                        string cur_idx = to_string(1) + "," + cur_var_idx+","+name1+"{"+to_string(1)+"}";
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"}," + to_string(1);
                                         lambda_coef.set_val(cur_idx,1);
                                         for (int i=1 ; i<(num_partns1-2)*2+1; i=i+2) {
                                             for (int j=(i-1)/2 + 2; j<num_partns1+1; ++j) {
-                                                cur_idx = to_string(i+1) + "," + cur_var_idx+","+name1+"{"+to_string(j+1)+"}";
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"}," + to_string(i+1) ;
                                                 lambda_coef.set_val(cur_idx,1);
-                                                cur_idx = to_string(i+2) + "," + cur_var_idx+","+name1+"{"+to_string(j+1)+"}";
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"}," + to_string(i+2);
                                                 lambda_coef.set_val(cur_idx,-1);
                                             }
                                         }
-                                        cur_idx = to_string((num_partns1-2)*2+2) + "," + cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"}";
+                                        cur_idx =  cur_var_idx+","+name1+"{"+to_string(num_partns1+1)+"}," + to_string((num_partns1-2)*2+2);
                                         lambda_coef.set_val(cur_idx,1);
                                     }
                                     
@@ -1095,19 +1095,19 @@ namespace gravity {
                                     for (size_t inst = 0; inst< nb_ins; inst++){
                                         auto cur_var_id = vlift.in(unique_ids).get_id_inst(inst);
                                         auto cur_var_idx = unique_ids._keys->at(cur_var_id);
-                                        string cur_idx = to_string(1) + "," + cur_var_idx+","+name1+"{"+to_string(1)+"}";
+                                        string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"}," + to_string(1);
                                         on_coef.set_val(cur_idx,1);
                                         
                                         for (int i=1; i<num_partns1; ++i) {
-                                            cur_idx = to_string(2) + "," + cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
+                                            cur_idx =  cur_var_idx+","+name1+"{"+to_string(i+1)+"}," + to_string(2);
                                             on_coef.set_val(cur_idx, 1);
                                         }
                                         
                                         for (int i=2 ; i<(num_partns1-2)*2+2; i=i+2) {
                                             for (int j=i/2+1; j<num_partns1; ++j) {
-                                                cur_idx = to_string(i+1) + "," + cur_var_idx+","+name1+"{"+to_string(j+1)+"}";
+                                                cur_idx =  cur_var_idx +","+name1+"{"+to_string(j+1)+"}," +  to_string(i+1);
                                                 on_coef.set_val(cur_idx,-1);
-                                                cur_idx = to_string(i+2) + "," + cur_var_idx+","+name1+"{"+to_string(j+1)+"}";
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+",}" + to_string(i+2) ;
                                                 on_coef.set_val(cur_idx,1);
                                             }
                                         }
@@ -1139,19 +1139,22 @@ namespace gravity {
                                 if(model_type == "lambda_II"){
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                     /************** this might not be working **************/
-//                                    on_link_lambda = lambda.from_ith(1, indices(const_idx,inst_partition_lambda)).in_matrix(nb_entries+1,total_entries-nb_entries)*lambda_coef.in_matrix(nb_entries+1,total_entries-nb_entries);
-                                    on_link_lambda = on.from_ith(1,indices(const_idx, inst_partition)).in_matrix(nb_entries+1,total_entries-nb_entries) * on_coef.in_matrix(nb_entries+1,total_entries-nb_entries);
-                                    on.from_ith(1,indices(const_idx, inst_partition)).in_matrix(nb_entries+1,total_entries-nb_entries).print_vals(5);
-                                    on_coef.in_matrix(nb_entries+1,total_entries-nb_entries).print_vals(5);
+                                    //                                    on_link_lambda = lambda.from_ith(1, indices(inst_partition_lambda,const_idx)).in_matrix(nb_entries+1,total_entries-nb_entries)*lambda_coef.in_matrix(nb_entries+1,total_entries-nb_entries);
+                                    on_link_lambda = on.from_ith(0,indices(inst_partition, const_idx)).in_matrix(nb_entries,total_entries-nb_entries) * on_coef.in_matrix(nb_entries,total_entries-nb_entries);
+                                    on.from_ith(0,indices(inst_partition,const_idx)).print_vals(5);
+                                    on.from_ith(0,indices(inst_partition,const_idx)).in_matrix(nb_entries,total_entries-nb_entries).print_vals(5);
+                                    
+                                    on_coef.in_matrix(nb_entries,total_entries-nb_entries).print_vals(5);
+                                    on_coef.print();
                                     
                                     add(on_link_lambda.in(indices(unique_ids,const_idx)) <= 0);
                                     on_link_lambda.print();
-                                    }
+                                }
                                 else{
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                     /************** this might not be working **************/
-//                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
-//                                    add(on_link_lambda.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                    //                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
+                                    //                                    add(on_link_lambda.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                 }
                                 
                                 
@@ -1170,7 +1173,7 @@ namespace gravity {
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -1311,14 +1314,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -1363,13 +1381,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -1476,24 +1505,24 @@ namespace gravity {
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -1503,7 +1532,7 @@ namespace gravity {
                                 }
                                 
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     indices partns1("partns1");
@@ -1658,14 +1687,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -1714,13 +1758,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -1838,28 +1893,28 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
                                         else{
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
                                         // sum over lambda
@@ -1871,7 +1926,7 @@ namespace gravity {
                             }
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
-                                                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
                                 
                                 var<int> on1(name1+"_binary",0,1);
                                 indices partns1("partns1");
@@ -2026,14 +2081,29 @@ namespace gravity {
                                     param<> on_coef1(name1+"_partition_linking_coefficients1");
                                     param<> on_coef2(name2+"_partition_linking_coefficients2");
                                     
+                                    // create constraint indices
+                                    indices const_idx1("const_idx1");
+                                    indices const_idx2("const_idx2");
+                                    
                                     if(model_type == "lambda_II"){
-                                        // Lambda coefficient matrix when linking with partition variables
-                                        if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                        if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<num_partns1+1; ++i){
+                                            const_idx1.add(to_string(i+1));
+                                        }
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<num_partns2+1; ++i){
+                                            const_idx2.add(to_string(i+1));
+                                        }
                                         
                                         // Lambda coefficient matrix when linking with partition variables
-                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                        if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                        if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                        
+                                        // Lambda coefficient matrix when linking with partition variables
+                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                         
                                         // fill lambda_coef1 and lambda_coef2
                                         for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2083,13 +2153,24 @@ namespace gravity {
                                     
                                     
                                     else /*means model_type == "lambda_III" */{
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                            const_idx1.add(to_string(i+1));
+                                        }
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                            const_idx2.add(to_string(i+1));
+                                        }
+                                        
                                         // Lambda coefficient matrix when linking with partition variables
-                                        if(num_partns1 > 1)  lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                        if(num_partns2 > 1)  lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                        if(num_partns1 > 1)  lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                        if(num_partns2 > 1)  lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                         
                                         // Partition coefficient matrix when linking with lambda variables
-                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                        if(num_partns1 > 1)  on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                        if(num_partns2 > 1)  on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                         
                                         // fill lambda_coef1 and lambda_coef2
                                         for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2205,28 +2286,28 @@ namespace gravity {
                                         if(num_partns1 > 1) {
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                         }
                                         if(num_partns2 > 1) {
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                     }
                                     else{
                                         if(num_partns1 > 1) {
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                         }
                                         if(num_partns2 > 1) {
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                     }
                                     // sum over lambda
@@ -2238,7 +2319,7 @@ namespace gravity {
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2367,14 +2448,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2419,13 +2515,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2533,24 +2640,24 @@ namespace gravity {
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -2559,7 +2666,7 @@ namespace gravity {
                                     }
                                 }
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2700,14 +2807,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2756,13 +2878,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(unique_ids, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(unique_ids, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -2876,28 +3009,28 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
                                         else{
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
                                         // sum over lambda
@@ -2937,7 +3070,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -3019,12 +3152,21 @@ namespace gravity {
                                     // Partition coefficient matrix when linking with lambda variables
                                     param<> on_coef(name1+"_partition_linking_coefficients");
                                     
+                                    // create constraint indices
+                                    indices const_idx("const_idx");
+                                    
                                     if(model_type == "lambda_II"){
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<num_partns1+1; ++i){
+                                            const_idx.add(to_string(i+1));
+                                        }
+                                        
                                         // Lambda coefficient matrix when linking with partition variables
-                                        lambda_coef.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
+                                        lambda_coef.in(indices(inst_partition_lambda, const_idx));
                                         
                                         // Partition coefficient matrix when linking with lambda variables
-                                        on_coef.in(indices(inst_partition, range(1,num_partns1+1)));
+                                        on_coef.in(indices(inst_partition, const_idx));
                                         
                                         // fill lambda_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3054,11 +3196,17 @@ namespace gravity {
                                     }
                                     
                                     else /*means model_type == "lambda_III" */{
+                                        
+                                        //fill constraint indices
+                                        for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                            const_idx.add(to_string(i+1));
+                                        }
+                                        
                                         // Lambda coefficient matrix when linking with partition variables
-                                        lambda_coef.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
+                                        lambda_coef.in(indices(inst_partition_lambda, const_idx));
                                         
                                         // Partition coefficient matrix when linking with lambda variables
-                                        on_coef.in(indices(inst_partition, range(1,(num_partns1-2)*2+2)));
+                                        on_coef.in(indices(inst_partition, const_idx));
                                         
                                         // fill lambda_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3126,14 +3274,14 @@ namespace gravity {
                                     if(model_type == "lambda_II"){
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                         /************** this might not be working **************/
-//                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
-//                                        add(on_link_lambda.in(indices(added,range(1,num_partns1+1))) <= 0);
+                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
+                                        //                                        add(on_link_lambda.in(indices(added,range(1,num_partns1+1))) <= 0);
                                     }
                                     else{
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                         /************** this might not be working **************/
-//                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
-//                                        add(on_link_lambda.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
+                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
+                                        //                                        add(on_link_lambda.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                     }
                                     
                                     
@@ -3146,7 +3294,7 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -3299,14 +3447,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            on_coef1.in(indices(added, partns1, range(1,num_partns1+1)));
-                                            on_coef2.in(indices(added, partns2, range(1,num_partns2+1)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            on_coef1.in(indices(added, partns1, const_idx1));
+                                            on_coef2.in(indices(added, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3351,13 +3514,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            on_coef1.in(indices(added, partns1, range(1,(num_partns1-2)*2+2)));
-                                            on_coef2.in(indices(added, partns2, range(1,(num_partns2-2)*2+2)));
+                                            on_coef1.in(indices(added, partns1, const_idx1));
+                                            on_coef2.in(indices(added, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3465,24 +3639,24 @@ namespace gravity {
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-//                                            add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-//                                            add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
                                         Constraint<> lambdaSum(pair.first+"_lambdaSum");
@@ -3492,7 +3666,7 @@ namespace gravity {
                                     
                                 }
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -3670,14 +3844,29 @@ namespace gravity {
                                         param<> on_coef1(name1+"_partition_linking_coefficients1");
                                         param<> on_coef2(name2+"_partition_linking_coefficients2");
                                         
+                                        // create constraint indices
+                                        indices const_idx1("const_idx1");
+                                        indices const_idx2("const_idx2");
+                                        
                                         if(model_type == "lambda_II"){
-                                            // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,num_partns2+1)));
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns1+1; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<num_partns2+1; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
                                             
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, range(1,num_partns1+1)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, range(1,num_partns2+1)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
+                                            
+                                            // Lambda coefficient matrix when linking with partition variables
+                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3726,13 +3915,24 @@ namespace gravity {
                                         
                                         
                                         else /*means model_type == "lambda_III" */{
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns1-2)*2+2; ++i){
+                                                const_idx1.add(to_string(i+1));
+                                            }
+                                            
+                                            //fill constraint indices
+                                            for (int i=0; i<(num_partns2-2)*2+2; ++i){
+                                                const_idx2.add(to_string(i+1));
+                                            }
+                                            
                                             // Lambda coefficient matrix when linking with partition variables
-                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) lambda_coef1.in(indices(inst_partition_lambda, const_idx1));
+                                            if(num_partns2 > 1) lambda_coef2.in(indices(inst_partition_lambda, const_idx2));
                                             
                                             // Partition coefficient matrix when linking with lambda variables
-                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, range(1,(num_partns1-2)*2+2)));
-                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, range(1,(num_partns2-2)*2+2)));
+                                            if(num_partns1 > 1) on_coef1.in(indices(added, partns1, const_idx1));
+                                            if(num_partns2 > 1) on_coef2.in(indices(added, partns2, const_idx2));
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
@@ -3847,28 +4047,28 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
                                         else{
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
-//                                                add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
-//                                                add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
                                         // sum over lambda
@@ -7581,6 +7781,7 @@ namespace gravity {
                     
                     auto inst_id = pair.second._p->get_id_inst(inst);
                     auto num_partns = pair.second._p->get_num_partns();
+                    auto in_SOC_partn = pair.second._p->get_in_SOC_partn();
                     
                     /* update the coef_val as coef_val * sign */
                     if (!pair.second._sign) coef_val = -coef_val;
@@ -7590,7 +7791,7 @@ namespace gravity {
                     UB_off = (pair.second._p->get_double_ub(inst_id));
                     
                     auto lifted = pair.second._p->get_lift();
-                    if (lifted){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1
+                    if (lifted || (num_partns == 1) || in_SOC_partn){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1, similarly if number of partitions is 1
                         LB_on = (pair.second._p->get_double_lb(inst_id));
                         UB_on = (pair.second._p->get_double_ub(inst_id));
                     }
@@ -8452,157 +8653,355 @@ namespace gravity {
             }
         }
         
-        template<typename T1>
-        void on_off_SORC_partition(const Constraint<T1>& c, int num_SORC_partitions) {
-            if (!c.is_quadratic())
+        template<typename T=type>
+        void on_off_SOC_partition(Constraint<type>& c, int num_SOC_partitions1, int num_SOC_partitions2 = 10) { //currently the function asssumes there are only qterms!
+            
+            //introduce the extra constraint x1^2 + x2^2 <= t^2 and call SOC_partition on this,
+            //then, replace x1^2 + x2^2 with t^2 in the original constraint and call SOC_partition on this as well
+            //derive the hyperplane coefficients for each instance and store them as param
+            //make the indexing correct
+            //assign _in_SOC_partn = true
+            //create binary variables and the constraint that sums to 1 (with proper indexing)
+            //call add_on_off_multivariate_refined
+            
+            auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
+            auto is_SOC = c.check_soc();
+            
+            if (!is_rotated_SOC && !is_SOC)
             {
-                throw invalid_argument("SORC partition can only be applied to quadratic constraints! \n");
+                throw invalid_argument("SOC partition can only be applied to second-order cones! \n");
+            }
+            if (c._lterms != nullptr)
+            {
+                throw invalid_argument("Current SOC partition version can only handle quadratic & bilinear terms! \n");
+            }
+            if (c.get_ctype() == eq){
+                throw invalid_argument("Please provide the constraint in the convex format (either <= or >=), and make sure you add the convex constraint to the model as well!");
+            }
+            //convert the constraint into standard format
+            Constraint<type> n_c(c);
+            if (c.get_ctype() == geq){
+                n_c *= -1;
             }
             
-        }
-        
-        template<typename T1>
-        void on_off_SOC_partition(const Constraint<T1>& c, int num_SOC_partitions) {
-            if (!c.is_quadratic())
+            if (is_SOC) //if it is SOC
             {
-                throw invalid_argument("SOC partition can only be applied to quadratic constraints! \n");
+                unsigned num_qterms = 0;
+                for (auto &qt_pair: *c._qterms){
+                    ++num_qterms;
+                }
+                if (num_qterms >= 4){ //we need to split the constraint into two
+                    if (num_qterms > 4){
+                        throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
+                    }
+                    Constraint<type> SOC_1; //to split the constraint (first half)
+                    Constraint<type> SOC_2; //to split the constraint (second half)
+                    bool first = false; //for adding -t^2 to which
+                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or c._indices->_keys->at(inst)? ***/
+                    
+                    //                        shared_ptr<pair<type,type>> term_range; //for range issues
+                   
+                    //go over the qterms
+                    unsigned counter = 0;
+                    for (auto &qt_pair: *n_c._qterms) {
+                        //TODO: adapt get_range for qterms and use it for updating the range of variables
+                        auto coef = qt_pair.second._coef->copy();
+                        auto sign = qt_pair.second._sign;
+                        if (coef->is_function()) {
+                            auto f_cst = *((func<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(f_cst._range,var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, f_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, f_cst, *qt_pair.second._p);
+                        }
+                        else if(coef->is_param()) {
+                            auto p_cst = *((param<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(p_cst._range,var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                        }
+                        else if(coef->is_number()) {
+                            auto p_cst = *((constant<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                        }
+                        ++counter;
+                    }
+                    var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
+                    //TODO: consider the case where there can be multiple negative terms!
+                    if (first) { //add constraints accordingly
+                        SOC_1 += pow(t.in(aux_idx),2);
+                        add(SOC_1.in(aux_idx) <= 0);
+                        
+                        SOC_2 -= pow(t.in(aux_idx),2);
+                        add(SOC_2.in(aux_idx) <= 0);
+                    }
+                    else{
+                        SOC_1 -= pow(t.in(aux_idx),2);
+                        add(SOC_1.in(aux_idx) <= 0);
+                        
+                        SOC_2 += pow(t.in(aux_idx),2);
+                        add(SOC_2.in(aux_idx) <= 0);
+                    }
+                    
+                }
+                //TODO: copy the _range of the old constraint to the new one?
+                /****************************************************************************************** generate hyperplanes for both SOC_1 and SOC_2 ***/
+                
+                else { //we can directly generate the hyperplanes
+                    /****************************************************************************************** generate hyperplanes for n_c ***/
+                }
+            }
+            else { //means its rotated SOC
+                
+                unsigned num_qterms = 0;
+                unsigned num_blnterms = 0;
+                for (auto &qt_pair: *c._qterms) {
+                    if (qt_pair.second._p->first!=qt_pair.second._p->second) ++num_blnterms;
+                    else ++num_qterms;
+                }
+                if (num_blnterms > 1){
+                    throw invalid_argument("Current SOC partition version can only allow one bilinear term! \n");
+                }
+                if (num_qterms + 2*num_blnterms >= 4){ //we need to split the constraint into two
+                    
+                    if (num_qterms + 2*num_blnterms > 4){
+                        throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
+                    }
+                    Constraint<type> SOC_1; //to split the constraint (first half)
+                    Constraint<type> SOC_2; //to split the constraint (second half)
+                    bool first = false; //for adding -t^2 to which
+                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or c._indices->_keys->at(inst)? ***/
+                    
+                    //                        shared_ptr<pair<type,type>> term_range; //for range issues
+                    
+                    //go over the qterms
+                    unsigned counter = 0;
+                    for (auto &qt_pair: *n_c._qterms) {
+                        //TODO: adapt get_range for qterms and use it for updating the range of variables
+                        auto coef = qt_pair.second._coef->copy();
+                        auto sign = qt_pair.second._sign; /****************************************************************************************** check here bilinearity to update counter, and insert based on that, need to make sure bilinear term added to only one const and the rest to the other ***/
+                        if (coef->is_function()) {
+                            auto f_cst = *((func<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(f_cst._range,var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, f_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, f_cst, *qt_pair.second._p);
+                        }
+                        else if(coef->is_param()) {
+                            auto p_cst = *((param<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(p_cst._range,var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                        }
+                        else if(coef->is_number()) {
+                            auto p_cst = *((constant<type>*)(coef.get()));
+                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
+                            if (counter < 2) {
+                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                if (!sign) first = true;
+                            }
+                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                        }
+                        ++counter;
+                    }
+                    var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
+                    //TODO: consider the case where there can be multiple negative terms!
+                    if (first) { //add constraints accordingly
+                        SOC_1 += pow(t.in(aux_idx),2);
+                        add(SOC_1.in(aux_idx) <= 0);
+                        
+                        SOC_2 -= pow(t.in(aux_idx),2);
+                        add(SOC_2.in(aux_idx) <= 0);
+                    }
+                    else{
+                        SOC_1 -= pow(t.in(aux_idx),2);
+                        add(SOC_1.in(aux_idx) <= 0);
+                        
+                        SOC_2 += pow(t.in(aux_idx),2);
+                        add(SOC_2.in(aux_idx) <= 0);
+                    }
+                    
+                }
+                //TODO: copy the _range of the old constraint to the new one?
+                
+                else { //we can directly generate the hyperplanes by standardizing the bilinear term
+                    
+                }
             }
             
+            Constraint<type> standard_SOC; //to create a standard format of SOC constraint
+            //                shared_ptr<pair<type,type>> term_range; //for range issues
+            
+            //TODO: adapt get_range for qterms and use it for updating the range of variables
+            for (auto &qt_pair: *c._qterms) {
+                if (c.get_ctype() == leq){ //get the leq format
+                    //                        on_off_SOC_partition(standard_SOC, num_SORC_partitions);
+                    standard_SOC.print();
+                }
+                else{
+                    standard_SOC *= -1;
+                    standard_SOC.print();
+                    //                        on_off_SOC_partition(standard_SOC, num_SORC_partitions);
+                }
+            }
         }
         
-        template<typename T=type,
-        typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
-        
-        
-        //        void add_on_off(const Constraint<type>& c, var<bool>& on){
-        //            if (c.get_ftype() != lin_) {
-        //                cerr << "Nonlinear constraint.\n";
-        //                exit(-1);
-        //            }
-        //            Constraint<type> res(c.get_name() + "_on/off");
-        //                double b;
-        //                for(auto it: c->_coef) {
-        //                    auto v = getparam_<double>(it.first);
-        //                    if (!v->is_bounded_below() || !v->is_bounded_above()) {
-        //                        cerr << "Variable " << v->_name << " in constraint " << c._name << " does not have finite bounds.\n";
-        //                        exit(1);
-        //                    }
-        //                    if (c.get_type() == leq || c.get_type() == eq) {
-        //                        if (it.second < 0) res -= it.second*v->get_lb_off()*(1-on);
-        //                        else res -= it.second*v->get_ub_off()*(1-on);
-        //                    }
-        //                    else{ // geq
-        //                        if (it.second < 0) res -= it.second*v->get_ub_off()*(1-on);
-        //                        else res -= it.second*v->get_lb_off()*(1-on);
-        //                    }
-        //                }
-        //                if (c.get_type() == eq) {
-        //                    Constraint res2(c.get_name() + "_on/off2");
-        //                    for(auto it: orig_q->_coefs) {
-        //                        v = getparam_<double>(it.first);
-        //                        if (it.second < 0) res2 -= it.second*v->get_ub_off()*(1-on);
-        //                        else res2 -= it.second*v->get_lb_off()*(1-on);
-        //                    }
-        //                    res2 += *orig_q;
-        //                    res2 -= b*on;
-        //                    res2 >= 0;
-        //                    addConstraint(res2);
-        //                }
-        //                res += *orig_q;
-        //                res -= orig_q->get_const();
-        //                res -= b*on;
-        //                if (c.get_type() == eq or c.get_type() == leq) res <= 0;
-        //                else res >= 0;
-        //            add_constraint(res);
-        //        }
-        
-        
-        void add_on_off(var<>& v, var<bool>& on){
-            //    if(v.get_ub() != v.get_ub_off()) {
-            //        Constraint UB(v._name + "_UB_on/off");
-            //        UB += v - v.get_ub() * on - (1 - on) * v.get_ub_off();
-            //        UB <= 0;
-            //        addConstraint(UB);
-            //    }
-            //    if(v.get_lb() != v.get_lb_off()) {
-            //        Constraint LB(v._name + "_LB_on/off");
-            //        LB += v - v.get_lb() * on - (1 - on) * v.get_lb_off();
-            //        LB >= 0;
-            //        addConstraint(LB);
-            //    }
-        }
-        
-        
-        
-        //        void add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on) {
-        //    Constraint MC1(name+"_McCormick1");
-        //    MC1 += v;
-        //    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
-        //    MC1 >= 0;
-        //    add_on_off(MC1, on);
-        //    Constraint MC2(name+"_McCormick2");
-        //    MC2 += v;
-        //    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
-        //    MC2 >= 0;
-        //    add_on_off(MC2, on);
-        //    Constraint MC3(name+"_McCormick3");
-        //    MC3 += v;
-        //    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
-        //    MC3 <= 0;
-        //    add_on_off(MC3, on);
-        //    Constraint MC4(name+"_McCormick4");
-        //    MC4 += v;
-        //    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
-        //    MC4 <= 0;
-        //    add_on_off(MC4, on);
-        //        }
-        
-        
-        template<class T=type>
-        inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
-            return _obj->eval(c,i);
-        }
-        
-        template<class T=type>
-        inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
-            return _obj->eval(c,i,j);
-        }
-        
-        
-    };
-    
-    //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
-    
-    //    template<typename T>
-    //    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
-    //        auto fcpy = f.copy();
-    //        fcpy->allocate_mem();
-    //        return make_pair<>(fcpy,maximize);
-    //    };
-    //
-    //    template<typename T>
-    //    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
-    //        auto fcpy = f.copy();
-    //        f->_val->resize(1);
-    //        return make_pair<>(fcpy,minimize);
-    //    };
-    //
-    //    template<typename T>
-    //    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
-    //        f->_val->resize(1);
-    //        auto fcpy = move(f.copy());
-    //        return make_pair<>(fcpy,minimize);
-    //    };
-    
-    template<typename type = double>
-    class Program{
-    public:
-        //        virtual void update_model(){};
-        string _status;
-    };
     
     
+    template<typename T=type,
+    typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
+    void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+    
+    
+    //        void add_on_off(const Constraint<type>& c, var<bool>& on){
+    //            if (c.get_ftype() != lin_) {
+    //                cerr << "Nonlinear constraint.\n";
+    //                exit(-1);
+    //            }
+    //            Constraint<type> res(c.get_name() + "_on/off");
+    //                double b;
+    //                for(auto it: c->_coef) {
+    //                    auto v = getparam_<double>(it.first);
+    //                    if (!v->is_bounded_below() || !v->is_bounded_above()) {
+    //                        cerr << "Variable " << v->_name << " in constraint " << c._name << " does not have finite bounds.\n";
+    //                        exit(1);
+    //                    }
+    //                    if (c.get_type() == leq || c.get_type() == eq) {
+    //                        if (it.second < 0) res -= it.second*v->get_lb_off()*(1-on);
+    //                        else res -= it.second*v->get_ub_off()*(1-on);
+    //                    }
+    //                    else{ // geq
+    //                        if (it.second < 0) res -= it.second*v->get_ub_off()*(1-on);
+    //                        else res -= it.second*v->get_lb_off()*(1-on);
+    //                    }
+    //                }
+    //                if (c.get_type() == eq) {
+    //                    Constraint res2(c.get_name() + "_on/off2");
+    //                    for(auto it: orig_q->_coefs) {
+    //                        v = getparam_<double>(it.first);
+    //                        if (it.second < 0) res2 -= it.second*v->get_ub_off()*(1-on);
+    //                        else res2 -= it.second*v->get_lb_off()*(1-on);
+    //                    }
+    //                    res2 += *orig_q;
+    //                    res2 -= b*on;
+    //                    res2 >= 0;
+    //                    addConstraint(res2);
+    //                }
+    //                res += *orig_q;
+    //                res -= orig_q->get_const();
+    //                res -= b*on;
+    //                if (c.get_type() == eq or c.get_type() == leq) res <= 0;
+    //                else res >= 0;
+    //            add_constraint(res);
+    //        }
+    
+    
+    void add_on_off(var<>& v, var<bool>& on){
+        //    if(v.get_ub() != v.get_ub_off()) {
+        //        Constraint UB(v._name + "_UB_on/off");
+        //        UB += v - v.get_ub() * on - (1 - on) * v.get_ub_off();
+        //        UB <= 0;
+        //        addConstraint(UB);
+        //    }
+        //    if(v.get_lb() != v.get_lb_off()) {
+        //        Constraint LB(v._name + "_LB_on/off");
+        //        LB += v - v.get_lb() * on - (1 - on) * v.get_lb_off();
+        //        LB >= 0;
+        //        addConstraint(LB);
+        //    }
+    }
+    
+    
+    
+    //        void add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on) {
+    //    Constraint MC1(name+"_McCormick1");
+    //    MC1 += v;
+    //    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
+    //    MC1 >= 0;
+    //    add_on_off(MC1, on);
+    //    Constraint MC2(name+"_McCormick2");
+    //    MC2 += v;
+    //    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
+    //    MC2 >= 0;
+    //    add_on_off(MC2, on);
+    //    Constraint MC3(name+"_McCormick3");
+    //    MC3 += v;
+    //    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
+    //    MC3 <= 0;
+    //    add_on_off(MC3, on);
+    //    Constraint MC4(name+"_McCormick4");
+    //    MC4 += v;
+    //    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
+    //    MC4 <= 0;
+    //    add_on_off(MC4, on);
+    //        }
+    
+    
+    template<class T=type>
+    inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
+        return _obj->eval(c,i);
+    }
+    
+    template<class T=type>
+    inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
+        return _obj->eval(c,i,j);
+    }
+    
+    
+};
+
+//    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
+
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
+//        auto fcpy = f.copy();
+//        fcpy->allocate_mem();
+//        return make_pair<>(fcpy,maximize);
+//    };
+//
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
+//        auto fcpy = f.copy();
+//        f->_val->resize(1);
+//        return make_pair<>(fcpy,minimize);
+//    };
+//
+//    template<typename T>
+//    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
+//        f->_val->resize(1);
+//        auto fcpy = move(f.copy());
+//        return make_pair<>(fcpy,minimize);
+//    };
+
+template<typename type = double>
+class Program{
+public:
+    //        virtual void update_model(){};
+    string _status;
+};
+
+
 }
 
 

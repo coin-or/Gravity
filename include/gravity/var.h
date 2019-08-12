@@ -40,6 +40,7 @@ namespace gravity {
         bool _in_q_cone = false; /**< Used by Mosek */
         bool _psd = false; /**< Has to be positive semidefinite */
         bool _lift=false;/*flag to show if variable is a lifted variable*/
+        bool _in_SOC_partn=false;/*flag to show if variable appers in a SOC partition*/
         
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         int _num_partns = 1;/*number of partitons*/
@@ -993,6 +994,7 @@ namespace gravity {
         int get_cur_partn() const{ return _cur_partn;};
         
         bool get_lift() const{return _lift;};
+        bool get_in_SOC_partn() const{return _in_SOC_partn;};
         
     };
     
