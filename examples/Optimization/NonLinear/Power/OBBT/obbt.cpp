@@ -138,7 +138,7 @@ int main (int argc, char * argv[]) {
     OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     auto SDPL= build_SDPOPF(grid, loss_from, upper_bound, false, true);
-    auto SDP= build_SDPOPF(grid, loss_from, upper_bound, false, sdp_nonlin);
+    auto SDP= build_SDPOPF_linear(grid, upper_bound);
     solver<> SDPLB(SDPL,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 5, tol = 1e-6);
@@ -153,31 +153,7 @@ int main (int argc, char * argv[]) {
 //    SDP->print();
 //    SDP->print_solution();
     
-    
-    if(!grid._tree && grid.add_3d_nlin && !sdp_nonlin)
-    {
 
-    auto SDPcon=SDPL->get_constraint("SDP_3D");
-
-    for(auto i=0;i<SDPcon->get_nb_inst();i++)
-        //  for(auto i=0;i<1;i++)
-    {
-        SDPcon->uneval();
-        DebugOn("eval of con "<<SDPcon->eval(i)<<endl);
-        SDPcon->uneval();
-
-        if(abs(SDPcon->eval(i))<=active_tol)
-        {
-            SDPcon->uneval();
-            func<> oas=SDPcon->get_outer_app_insti(i);
-            oas.eval_all();
-            Constraint<> OA_sol("OA_cuts_solution"+to_string(i));
-            OA_sol=oas;
-            SDP->add(OA_sol>=0);
-            oas.uneval();
-        }
-    }
-    }
     
     DebugOn("cplex"<<endl);
     solver<> SDPLB1(SDP,solv_type_c);
@@ -334,8 +310,8 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
 #else
-                                run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
-                               // run_parallel(batch_models,cplex,1e-7,nb_threads);
+                              //  run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
+                               run_parallel(batch_models,cplex,1e-7,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -521,9 +497,9 @@ int main (int argc, char * argv[]) {
         if(worker_id==0){
 #endif
             SDP->reset_constrs();
-            solver<> SDPLB1(SDP,solv_type);
+            solver<> SDPLB1(SDP,solv_type_c);
             
-            SDPLB1.run(output = 5, tol=1e-6, "ma97");
+            SDPLB1.run(output = 5, tol=1e-7);
             SDP->print_constraints_stats(tol);
             bool print_only_relaxed;
             SDP->print_nonzero_constraints(tol,print_only_relaxed=true);
