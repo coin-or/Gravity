@@ -6117,7 +6117,6 @@ namespace gravity {
             return false;
         }
         
-        
         bool check_soc(){
             if (_qterms->empty() || !_pterms->empty() || _expr) {
                 return false;

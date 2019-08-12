@@ -491,6 +491,7 @@ namespace gravity {
         virtual int get_cur_partn() const{return 0;};
         
         virtual bool get_lift() const{return 0;};
+        virtual bool get_in_SOC_partn() const{return 0;};
 
     };
 

@@ -53,6 +53,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _lb = v._lb;
     _ub = v._ub;
     _lift=v._lift;
+    _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
     return *this;
@@ -64,6 +65,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _lb = move(v._lb);
     _ub = move(v._ub);
     _lift=v._lift;
+    _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
     return *this;
