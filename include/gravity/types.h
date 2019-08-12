@@ -430,10 +430,10 @@ namespace gravity{
                         auto it = res._keys_map->find(key);
                         if (it == res._keys_map->end()){
                             res.insert(key);
-                            res._ids->at(0).push_back(res._keys->size()-1);
+                            res._ids->at(i).push_back(res._keys->size()-1);
                         }
                         else{
-                            res._ids->at(0).push_back(it->second);
+                            res._ids->at(i).push_back(it->second);
                         }
                     }
                 }
