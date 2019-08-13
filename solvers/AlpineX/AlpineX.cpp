@@ -907,6 +907,9 @@ int main (int argc, char * argv[])
             //            auto binvar_ptr2 = SOCP._vars_name.find("WiiWii_binary");
             //            auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
             //            binvar2->print();
+            
+            SOCP.on_off_SOC_partition(Equality_SOC_2);
+            
         }
     }
     
