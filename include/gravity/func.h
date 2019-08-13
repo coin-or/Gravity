@@ -1046,22 +1046,21 @@ namespace gravity {
                 
                 switch (v->get_intype()) {
                     case binary_:
-                        res += df_xstar*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<bool>>(v)).in(ids);
                         break;
                     case short_:
-                        res += df_xstar*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<short>>(v)).in(ids);
                         break;
                     case integer_:
-                        res += df_xstar*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<int>>(v)).in(ids);
                         break;
                     case float_:
-                      //  res += df_xstar.transpose()*(*static_pointer_cast<param<float>>(v)).in(ids);
-                        res += df_xstar*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<float>>(v)).in(ids);
                         break;
                         break;
                     case double_:
-                        res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
-                        //res += df_xstar.transpose()*(*static_pointer_cast<param<double>>(v)).in(ids);
+                       // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<double>>(v)).in(ids);
                         break;
 //                    case long_:
 //                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
@@ -1103,7 +1102,7 @@ namespace gravity {
             res.eval_all();
             res.uneval();
             
-          //  res.print();
+            res.print();
 //            res.merge_vars(*this);
            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
@@ -1122,103 +1121,7 @@ namespace gravity {
             return res;
         }
         
-//        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
-//            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-//            double f_xstar, xv, dfv;
-//            vector<double> xcurrent, dfvector;
-//            uneval();
-//            f_xstar=eval(nb_inst);
-//            DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
-//            for(auto &it: *_vars){
-//                auto v = it.second.first;
-//                size_t posv=v->get_id_inst(nb_inst);
-//                v->get_double_val(posv, xv);
-//                xcurrent.push_back(xv);
-//                auto df = *compute_derivative(*v);
-//                df.uneval();
-//                dfv=df.eval(nb_inst);
-//                dfvector.push_back(dfv);
-//                indices ids("ids");
-//                auto key=v->_indices->_keys;
-//                ids.add((*key)[posv]);
-//
-//
-//
-//                param<type> df_xstar("df_xstar"+v->_name);
-//                df_xstar.in(ids);
-//                df_xstar.set_val(dfv);
-//
-//                switch (v->get_intype()) {
-//                    case binary_:
-//                        res += df_xstar*(*static_pointer_cast<param<bool>>(v)).in(ids);
-//                        break;
-//                    case short_:
-//                        res += df_xstar*(*static_pointer_cast<param<short>>(v)).in(ids);
-//                        break;
-//                    case integer_:
-//                        res += df_xstar*(*static_pointer_cast<param<int>>(v)).in(ids);
-//                        break;
-//                    case float_:
-//                        res += df_xstar*(*static_pointer_cast<param<float>>(v)).in(ids);
-//                        break;
-//                    case double_:
-//                        res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
-//                        break;
-//                        //                    case long_:
-//                        //                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
-//                        //                        break;
-//                        //                    case complex_:
-//                        //                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
-//                        //                        break;
-//                    default:
-//                        break;
-//                }
-//                //
-//                //                auto v1=v->pcopy();
-//                //                v1->_indices=make_shared<gravity::indices>(ids);
-//                //                res.insert(true, df_xstar, *v1);
-//
-//
-//                //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
-//
-//                //                auto indcopy=v->_indices;
-//                //                v->_indices=make_shared<gravity::indices>(ids);
-//                //                res.insert(true, df_xstar, *v);
-//                //                merge_vars(res);
-//                //                v->_indices=indcopy;
-//                res -= dfv*xv;
-//            }
-//
-//
-//            res += f_xstar;
-//
-//            res.print();
-//
-//
-//            indices res_ind("res_ind");
-//            res_ind.add(to_string(nb_inst));
-//            res._indices=make_shared<gravity::indices>(res_ind);
-//
-//            res.eval_all();
-//            res.uneval();
-//            //            res.merge_vars(*this);
-//            DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
-//
-//
-//
-//
-//            //res.print();
-//            //            DebugOn("Xcurrent from get_outer_app_insti"<<endl);
-//            //            for(auto i=0;i<xcurrent.size();i++)
-//            //                DebugOn(xcurrent[i]<<"\t");
-//            //            DebugOn(endl);
-//            //            DebugOn("DF at Xcurrent from get_outer_app_insti"<<endl);
-//            //            for(auto i=0;i<xcurrent.size();i++)
-//            //                DebugOn(dfvector[i]<<"\t");
-//            //            DebugOn(endl);
-//            return res;
-//        }
-        
+
         double l2norm(vector<double> x)
         {
             double res=0;
@@ -1240,6 +1143,7 @@ namespace gravity {
             vector<double> x_f, x_t, xcurrent, interval, mid;
             double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
             bool solution_found=false;
+            size_t posv;
             int iter=0;
             for(auto i=0;i<x_start.size();i++)
             {
@@ -1250,10 +1154,24 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                if(v->_is_vector && nb_inst==0)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xcurrent.push_back(xv);
+                        v->set_double_val(posv, x_start[counter++]);
+                    }
+                
+                }
+                else
+                {
+                posv=v->get_id_inst(nb_inst);
                 v->get_double_val(posv, xv);
                 xcurrent.push_back(xv);
                 v->set_double_val(posv, x_start[counter++]);
+            }
             }
             uneval();
             f_a=eval(nb_inst);
@@ -1573,8 +1491,8 @@ namespace gravity {
             pair<bool, vector<double>> res;
             vector<double> xcurrent, xk, xsolution;
             double xvk, xvk1, fk, dfdvk, xv,ub,lb;
-            const int max_iter=100;
-            const double active_tol=1e-6,zero_tol=1e-8;
+            const int max_iter=10000;
+            const double active_tol=1e-5,zero_tol=1e-8;
 
             int counter=0,iter=0;
             bool solution=false;
