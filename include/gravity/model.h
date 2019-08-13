@@ -4495,9 +4495,9 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff > tol) {
-                                DebugOff("Violated inequality: ");
+                                DebugOn("Violated inequality: ");
                                 //                                c->print(inst);
-                                DebugOff(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
@@ -4527,9 +4527,9 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOff("Violated inequality: ");
+                                DebugOn("Violated inequality: ");
                                 //                        c->print(inst);
-                                DebugOff(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {

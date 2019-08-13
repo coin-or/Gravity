@@ -488,7 +488,7 @@ int main (int argc, char * argv[]) {
     //wait for Hassan to do this
     //generate as many OA iterative cuts as given by num_iter_cuts
     
-    
+        
     
     
     
@@ -617,7 +617,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPFA(SDPOA,cplex);
     solver_time_start = get_wall_time();
 
-    SDPOPFA.run(output = 5, tol = 1e-7);
+    SDPOPFA.run(output = 5, tol = 1e-6);
     SDPOA.print_solution();
      SDPOA.print_constraints_stats(tol);
     

@@ -1073,20 +1073,7 @@ namespace gravity {
                 }
                 
                 
-//
-//                auto v1=v->pcopy();
-//                v1->_indices=make_shared<gravity::indices>(ids);
-//                res.insert(true, df_xstar, *v1);
-                
-                
-                //Alterntaively tried the below as well, both forms give correct functional form of OA cut in the absence of merge_vars
-                
-                //                auto indcopy=v->_indices;
-                //                v->_indices=make_shared<gravity::indices>(ids);
-                //                res.insert(true, df_xstar, *v);
-                //                merge_vars(res);
-                //                v->_indices=indcopy;
-                
+
             }
             
             
@@ -1154,7 +1141,7 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                if(v->_is_vector && nb_inst==0)
+                if(v->_is_vector)
                 {
                     for (auto i=0;i<v->_dim[0];i++)
                     {
@@ -1180,8 +1167,20 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->set_double_val(posv, x_end[counter++]);
+                    }
+                    
+                }
+                else{
+                posv=v->get_id_inst(nb_inst);
                 v->set_double_val(posv, x_end[counter++]);
+                }
             }
             uneval();
             f_b=eval(nb_inst);
@@ -1213,19 +1212,31 @@ namespace gravity {
                     for(auto &it: *_vars)
                     {
                         auto v = it.second.first;
-                        size_t posv=v->get_id_inst(nb_inst);
+                        
+                        if(v->_is_vector)
+                        {
+                            for (auto i=0;i<v->_dim[0];i++)
+                            {
+                                posv=i;
+                                v->set_double_val(posv, mid[counter++]);
+                            }
+                            
+                        }
+                        else{
+                        posv=v->get_id_inst(nb_inst);
                         v->set_double_val(posv, mid[counter++]);
+                        }
                     }
                     uneval();
                     f_mid=eval(nb_inst);
                     // DebugOn("F_mid "<< f_mid<<endl);
                     //DebugOn("xf\t xt\t xmid"<<endl);
-                    for(auto i=0;i<x_start.size();i++)
-                    {
-                        //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
-                        
-                    }
-                    
+//                    for(auto i=0;i<x_start.size();i++)
+//                    {
+//                        //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
+//
+//                    }
+//
                     if(f_mid>=zero_tol && f_mid<=f_t)
                     {
                         x_t=mid;
@@ -1256,28 +1267,39 @@ namespace gravity {
             
             res.first=mid;
             res.second=solution_found;
-            if(res.second)
-            {
-                // DebugOn("Solution to line search found"<<endl);
-                for(auto i=0;i<res.first.size();i++)
-                    //DebugOn(res.first[i]<<endl);
-                    counter=0;
-                for(auto &it: *_vars)
-                {
-                    auto v = it.second.first;
-                    size_t posv=v->get_id_inst(nb_inst);
-                    v->set_double_val(posv, mid[counter++]);
-                }
-                uneval();
-                //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
-                
-            }
+//            if(res.second)
+//            {
+//                // DebugOn("Solution to line search found"<<endl);
+//                for(auto i=0;i<res.first.size();i++)
+//                    //DebugOn(res.first[i]<<endl);
+//                    counter=0;
+//                for(auto &it: *_vars)
+//                {
+//                    auto v = it.second.first;
+//                    size_t posv=v->get_id_inst(nb_inst);
+//                    v->set_double_val(posv, mid[counter++]);
+//                }
+//                uneval();
+//                //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
+//
+//            }
             counter=0;
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->set_double_val(posv, xcurrent[counter++]);
+                    }
+                    
+                }
+                else{
                 size_t posv=v->get_id_inst(nb_inst);
                 v->set_double_val(posv, xcurrent[counter++]);
+                }
             }
             return res;
         }
@@ -1486,24 +1508,38 @@ namespace gravity {
         }
         
      
-        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t nb_inst, ConstraintType ctype)
+        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
             vector<double> xcurrent, xk, xsolution;
             double xvk, xvk1, fk, dfdvk, xv,ub,lb;
             const int max_iter=10000;
             const double active_tol=1e-5,zero_tol=1e-8;
+            size_t posv, posvk;
 
             int counter=0,iter=0;
             bool solution=false;
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xcurrent.push_back(xv);
+                        v->set_double_val(posv, x[counter++]);
+                    }
+                    
+                }
+                else
+                {
+                posv=v->get_id_inst(nb_inst);
                 v->get_double_val(posv, xv);
-               // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
                 xcurrent.push_back(xv);
                 v->set_double_val(posv, x[counter++]);
+                }
                 
             }
             xk=x;
@@ -1511,14 +1547,23 @@ namespace gravity {
             
             fk=eval(nb_inst);
             auto vk=_vars->at(vname).first;
-            size_t posvk=vk->get_id_inst(nb_inst);
-            vk->get_double_val(posvk, xvk);
+            
             auto df = *compute_derivative(*vk);
+            if(vk->_is_vector)
+            {
+                posvk=vpos;
+                df.uneval();
+                dfdvk=df.eval(posvk);
+            }
+            else
+            {
+            posvk=vk->get_id_inst(nb_inst);
             df.uneval();
             dfdvk=df.eval(nb_inst);
+            }
+            vk->get_double_val(posvk, xvk);
             ub=vk->get_double_ub(posvk);
             lb=vk->get_double_lb(posvk);
-
             
             
              while(iter<=max_iter && !solution)
@@ -1533,7 +1578,14 @@ namespace gravity {
                        }
                                                auto df = *compute_derivative(*vk);
                                                df.uneval();
-                                               dfdvk=df.eval(nb_inst);
+                           if(vk->_is_vector)
+                           {
+                                dfdvk=df.eval(posvk);
+                           }
+                           else
+                           {
+                                dfdvk=df.eval(nb_inst);
+                           }
                            if(abs(dfdvk)>=zero_tol)
                            xvk1=xvk-fk/dfdvk;
                            else
@@ -1560,7 +1612,23 @@ namespace gravity {
   
                 
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                
+                
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xsolution.push_back(xv);
+    
+                    }
+                    
+                }
+                else
+                {
+                
+                posv=v->get_id_inst(nb_inst);
                 
                 v->get_double_val(posv, xv);
                 
@@ -1570,14 +1638,28 @@ namespace gravity {
                 //Reset xcurrent
                 
             }
+            }
             res.first=solution;
             res.second=xsolution;
             counter=0;
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->set_double_val(posv, xcurrent[counter++]);
+                        
+                    }
+                    
+                }
+                else
+                {
+                posv=v->get_id_inst(nb_inst);
                 v->set_double_val(posv, xcurrent[counter++]);
+                }
                 
             }
             return res;
@@ -1589,22 +1671,57 @@ namespace gravity {
             vector<double> xcurrent;
             int res_count=0;
             double xv;
-            
+            size_t posv;
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xcurrent.push_back(xv);
+                    }
+                    
+                }
+                else
+                {
+                posv=v->get_id_inst(nb_inst);
                 v->get_double_val(posv, xv);
                 // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
                 xcurrent.push_back(xv);
                 
             }
-            
+            }
             for(auto &it: *_vars)
             {
                 auto vname=it.first;
+                auto v=it.second.first;
                 
-                auto res_nr=newton_raphson(xcurrent, vname, nb_inst, ctype);
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
+                        
+                        if(res_nr.first==true)
+                        {
+                            
+                            for(auto i=0;i<xcurrent.size();i++)
+                                res[res_count].push_back(res_nr.second[i]);
+                            res_count++;
+                        }
+                        
+                    }
+                    
+                }
+                else
+                {
+                    posv=0;
+                
+                auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
                 
                 if(res_nr.first==true)
                 {
@@ -1612,6 +1729,7 @@ namespace gravity {
                     for(auto i=0;i<xcurrent.size();i++)
                         res[res_count].push_back(res_nr.second[i]);
                 res_count++;
+                }
                 }
             
         }
