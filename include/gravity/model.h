@@ -388,6 +388,34 @@ namespace gravity {
             _name = name;
         }
         
+        void add_var(const shared_ptr<param_>& v){
+            switch (v->get_intype()) {
+                case binary_:
+                    add(*static_pointer_cast<var<bool>>(v));
+                    break;
+                case short_:
+                    add(*static_pointer_cast<var<short>>(v));
+                    break;
+                case integer_:
+                    add(*static_pointer_cast<var<int>>(v));
+                    break;
+                case float_:
+                    add(*static_pointer_cast<var<float>>(v));
+                    break;
+                case double_:
+                    add(*static_pointer_cast<var<double>>(v));
+                    break;
+                case long_:
+                    add(*static_pointer_cast<var<long double>>(v));
+                    break;
+                case complex_:
+                    add(*static_pointer_cast<var<Cpx>>(v));
+                    break;
+                default:
+                    break;
+            }
+        }
+        
         template <typename T>
         void add_var(var<T>& v){//Add variables by copy
             auto name = v._name.substr(0,v._name.find_first_of("."));
