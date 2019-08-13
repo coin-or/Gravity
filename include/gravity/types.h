@@ -693,6 +693,26 @@ namespace gravity{
             return *this;
         }
         
+        indices deep_copy() const{
+            indices cpy;
+            cpy._name = _name;
+            cpy._type = _type;
+            cpy._dim = _dim;
+            cpy._excluded_keys = _excluded_keys;
+            if(_ids){
+                cpy._ids = make_shared<vector<vector<size_t>>>(*_ids);
+            }
+            if(_keys){
+                cpy._keys = make_shared<vector<string>>(*_keys);
+            }
+            if(_keys_map){
+                cpy._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+            }
+            cpy._time_extended = _time_extended;
+            cpy._time_pos = _time_pos;
+            return cpy;
+        }
+        
         indices& operator=(indices&& cpy){
             if(!cpy._name.empty())
                 _name = cpy._name;
