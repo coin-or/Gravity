@@ -591,7 +591,7 @@ int main (int argc, char * argv[]) {
     SDPOA.print();
     //SDP.reset_constrs();
     
-    solver<> SDPOPFA(SDPOA,ipopt);
+    solver<> SDPOPFA(SDPOA,cplex);
     solver_time_start = get_wall_time();
     
     SDPOPFA.run(output = 5, tol = 1e-7);
