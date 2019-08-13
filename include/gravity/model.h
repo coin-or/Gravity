@@ -8652,7 +8652,7 @@ namespace gravity {
         }
         
         template<typename T=type>
-        void on_off_SOC_partition(Constraint<type>& c, int num_SOC_partitions1, int num_SOC_partitions2 = 10) { //currently the function asssumes there are only qterms!
+        void on_off_SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10) { //currently the function asssumes there are only qterms!
             
             //introduce the extra constraint x1^2 + x2^2 <= t^2 and call SOC_partition on this,
             //then, replace x1^2 + x2^2 with t^2 in the original constraint and call SOC_partition on this as well
@@ -8685,17 +8685,21 @@ namespace gravity {
             if (is_SOC) //if it is SOC
             {
                 unsigned num_qterms = 0;
-                for (auto &qt_pair: *c._qterms){
+                for (auto &qt_pair: *n_c._qterms){
                     ++num_qterms;
                 }
                 if (num_qterms >= 4){ //we need to split the constraint into two
                     if (num_qterms > 4){
                         throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
                     }
-                    Constraint<type> SOC_1; //to split the constraint (first half)
-                    Constraint<type> SOC_2; //to split the constraint (second half)
+                    Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
+                    Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
+                    
+                    func<type> SOC_1_func; //to insert the elements
+                    func<type> SOC_2_func;
+                    
                     bool first = false; //for adding -t^2 to which
-                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or c._indices->_keys->at(inst)? ***/
+                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
                     
                     //                        shared_ptr<pair<type,type>> term_range; //for range issues
                    
@@ -8707,66 +8711,68 @@ namespace gravity {
                         auto sign = qt_pair.second._sign;
                         if (coef->is_function()) {
                             auto f_cst = *((func<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(f_cst._range,var_range);
                             if (counter < 2) {
-                                SOC_1.insert(sign, f_cst, *qt_pair.second._p);
+                                SOC_1_func.insert(sign, f_cst, *qt_pair.second._p);
                                 if (!sign) first = true;
                             }
-                            else SOC_2.insert(sign, f_cst, *qt_pair.second._p);
+                            else SOC_2_func.insert(sign, f_cst, *qt_pair.second._p);
                         }
                         else if(coef->is_param()) {
                             auto p_cst = *((param<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(p_cst._range,var_range);
                             if (counter < 2) {
-                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                SOC_1_func.insert(sign, p_cst, *qt_pair.second._p);
                                 if (!sign) first = true;
                             }
-                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                            else SOC_2_func.insert(sign, p_cst, *qt_pair.second._p);
                         }
                         else if(coef->is_number()) {
                             auto p_cst = *((constant<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
                             if (counter < 2) {
-                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
+                                SOC_1_func.insert(sign, p_cst, *qt_pair.second._p);
                                 if (!sign) first = true;
                             }
-                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
+                            else SOC_2_func.insert(sign, p_cst, *qt_pair.second._p);
                         }
                         ++counter;
                     }
+                    //TODO: copy the _range of the old constraint to the new one?
+                    
                     var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
                     //TODO: consider the case where there can be multiple negative terms!
                     if (first) { //add constraints accordingly
-                        SOC_1 += pow(t.in(aux_idx),2);
+                        SOC_1 = SOC_1_func + pow(t.in(aux_idx),2);
                         add(SOC_1.in(aux_idx) <= 0);
                         
-                        SOC_2 -= pow(t.in(aux_idx),2);
+                        SOC_2 = SOC_2_func - pow(t.in(aux_idx),2);
                         add(SOC_2.in(aux_idx) <= 0);
                     }
                     else{
-                        SOC_1 -= pow(t.in(aux_idx),2);
+                        SOC_1 = SOC_1_func - pow(t.in(aux_idx),2);
                         add(SOC_1.in(aux_idx) <= 0);
                         
-                        SOC_2 += pow(t.in(aux_idx),2);
+                        SOC_2 = SOC_2_func + pow(t.in(aux_idx),2);
                         add(SOC_2.in(aux_idx) <= 0);
                     }
                     
+                    //call the hyperplane function to generate the on/off hyperplanes
+                    add_on_off_SOC_hyperplanes(SOC_1, num_SOC_partitions1);
+                    add_on_off_SOC_hyperplanes(SOC_2, num_SOC_partitions2);
                 }
-                //TODO: copy the _range of the old constraint to the new one?
-                /****************************************************************************************** generate hyperplanes for both SOC_1 and SOC_2 ***/
-                
                 else { //we can directly generate the hyperplanes
-                    /****************************************************************************************** generate hyperplanes for n_c ***/
+                    add_on_off_SOC_hyperplanes(n_c, num_SOC_partitions1); //this uses the first int as the number of partitions not the total one
                 }
             }
             else { //means its rotated SOC
                 
                 unsigned num_qterms = 0;
                 unsigned num_blnterms = 0;
-                for (auto &qt_pair: *c._qterms) {
+                for (auto &qt_pair: *n_c._qterms) {
                     if (qt_pair.second._p->first!=qt_pair.second._p->second) ++num_blnterms;
                     else ++num_qterms;
                 }
@@ -8778,93 +8784,78 @@ namespace gravity {
                     if (num_qterms + 2*num_blnterms > 4){
                         throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
                     }
-                    Constraint<type> SOC_1; //to split the constraint (first half)
-                    Constraint<type> SOC_2; //to split the constraint (second half)
-                    bool first = false; //for adding -t^2 to which
-                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or c._indices->_keys->at(inst)? ***/
+                    Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
+                    Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
+                    
+                    func<type> SOC_1_func; //to insert the elements
+                    func<type> SOC_2_func;
+                    
+                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
                     
                     //                        shared_ptr<pair<type,type>> term_range; //for range issues
                     
                     //go over the qterms
-                    unsigned counter = 0;
                     for (auto &qt_pair: *n_c._qterms) {
                         //TODO: adapt get_range for qterms and use it for updating the range of variables
+                        
                         auto coef = qt_pair.second._coef->copy();
-                        auto sign = qt_pair.second._sign; /****************************************************************************************** check here bilinearity to update counter, and insert based on that, need to make sure bilinear term added to only one const and the rest to the other ***/
+                        auto sign = qt_pair.second._sign; /****************************************************************************************** check here bilinearity to update counter(x2), and insert based on that, need to make sure bilinear term added to only one const and the rest to the other ***/
                         if (coef->is_function()) {
                             auto f_cst = *((func<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(f_cst._range,var_range);
-                            if (counter < 2) {
+                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
                                 SOC_1.insert(sign, f_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
                             }
                             else SOC_2.insert(sign, f_cst, *qt_pair.second._p);
                         }
                         else if(coef->is_param()) {
                             auto p_cst = *((param<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(p_cst._range,var_range);
-                            if (counter < 2) {
+                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
                                 SOC_1.insert(sign, p_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
                             }
                             else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
                         }
                         else if(coef->is_number()) {
                             auto p_cst = *((constant<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(c.get_range(qt_pair.second._p));
+                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
                             //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
-                            if (counter < 2) {
+                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
                                 SOC_1.insert(sign, p_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
                             }
                             else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
                         }
-                        ++counter;
                     }
+                    //TODO: copy the _range of the old constraint to the new one?
+                    
                     var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
                     //TODO: consider the case where there can be multiple negative terms!
-                    if (first) { //add constraints accordingly
-                        SOC_1 += pow(t.in(aux_idx),2);
+                   //add constraints accordingly
+                        SOC_1 = SOC_1_func + pow(t.in(aux_idx),2);
                         add(SOC_1.in(aux_idx) <= 0);
                         
-                        SOC_2 -= pow(t.in(aux_idx),2);
+                        SOC_2 = SOC_2_func - pow(t.in(aux_idx),2);
                         add(SOC_2.in(aux_idx) <= 0);
-                    }
-                    else{
-                        SOC_1 -= pow(t.in(aux_idx),2);
-                        add(SOC_1.in(aux_idx) <= 0);
-                        
-                        SOC_2 += pow(t.in(aux_idx),2);
-                        add(SOC_2.in(aux_idx) <= 0);
-                    }
-                    
+
+                    //call the hyperplane function to generate the on/off hyperplanes
+                    add_on_off_SOC_hyperplanes(SOC_1,num_SOC_partitions1);
+                    add_on_off_SOC_hyperplanes(SOC_2,num_SOC_partitions2);
                 }
-                //TODO: copy the _range of the old constraint to the new one?
                 
-                else { //we can directly generate the hyperplanes by standardizing the bilinear term
-                    
-                }
-            }
-            
-            Constraint<type> standard_SOC; //to create a standard format of SOC constraint
-            //                shared_ptr<pair<type,type>> term_range; //for range issues
-            
-            //TODO: adapt get_range for qterms and use it for updating the range of variables
-            for (auto &qt_pair: *c._qterms) {
-                if (c.get_ctype() == leq){ //get the leq format
-                    //                        on_off_SOC_partition(standard_SOC, num_SORC_partitions);
-                    standard_SOC.print();
-                }
-                else{
-                    standard_SOC *= -1;
-                    standard_SOC.print();
-                    //                        on_off_SOC_partition(standard_SOC, num_SORC_partitions);
+                
+                else{ //we can directly generate the hyperplanes by standardizing the bilinear term
+                    add_on_off_SOC_hyperplanes(n_c,num_SOC_partitions1);
                 }
             }
         }
         
+        template<typename T=type>
+        void add_on_off_SOC_hyperplanes(Constraint<type>& c, int num_SOC_partitions) { //currently the function asssumes there are only qterms!
+            DebugOn("SOC_hyperplane function!" << endl);
+            c.print();
+        }
     
     
     template<typename T=type,
