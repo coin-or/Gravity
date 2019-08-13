@@ -993,7 +993,7 @@ namespace gravity {
          
             uneval();
             f_xstar=eval(nb_inst);
-            DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
             size_t posv;
             
         
@@ -1005,7 +1005,7 @@ namespace gravity {
                 dfvector.clear();
                 auto df = *compute_derivative(*v);
                 df.eval_all();
-                if(v->_is_vector && nb_inst==0)
+                if(v->_is_vector)
                 {
                     
                   
@@ -1102,7 +1102,7 @@ namespace gravity {
             res.eval_all();
             res.uneval();
             
-            res.print();
+            //res.print();
 //            res.merge_vars(*this);
            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
