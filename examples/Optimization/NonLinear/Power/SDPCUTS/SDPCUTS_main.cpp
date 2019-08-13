@@ -308,7 +308,7 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC.in(bus_pairs_chord) <= 0);
+    SDP.add(SOC.in(bus_pairs_chord) == 0, true);
     //SDPOA.add(SOC.in(bus_pairs_chord) = 0,true);
     
     /* Flow conservation */
@@ -452,7 +452,7 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        //SDP.add(I_from_Pf.in(arcs)==0, true);
+        SDP.add(I_from_Pf.in(arcs)==0, true);
         //SDPOA.add(I_from_Pf.in(arcs)==0, true);
 
         
@@ -506,6 +506,14 @@ int main (int argc, char * argv[]) {
     const double active_tol=1e-6;
     string cname;
 
+    for (auto &it: SDP._vars)
+    {
+        auto v = it.second;
+        if(!SDPOA.has_var(*v)){
+            SDPOA.add_var(v);
+        }
+    }
+
     for (auto &con: SDP._cons_vec)
     {
         cname=con->_name;
@@ -525,6 +533,13 @@ int main (int argc, char * argv[]) {
                     oacon.eval_all();
                     Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
                     OA_sol=oacon;
+//                    for (auto &it: *oacon._vars)
+//                    {
+//                        auto v = it.second.first;
+//                        if(!SDPOA.has_var(*v)){
+//                            SDPOA.add_var(v);
+//                        }
+//                    }
                     //Assuming no nonlinear equality constraints
                     if(con->_ctype==leq)
                         SDPOA.add(OA_sol<=0);
@@ -568,6 +583,13 @@ int main (int argc, char * argv[]) {
                             oa_iter.eval_all();
                             Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(j));
                             OA_itercon=oa_iter;
+//                            for (auto &it: *oa_iter._vars)
+//                            {
+//                                auto v = it.second.first;
+//                                if(!SDPOA.has_var(*v)){
+//                                    SDPOA.add_var(v);
+//                                }
+//                            }
                             if(con->_ctype==leq)
                                 SDPOA.add(OA_itercon<=0);
                             else if(con->_ctype==geq)
@@ -598,14 +620,21 @@ int main (int argc, char * argv[]) {
         }
         else
         {
-            Constraint<> lin(cname);
-                        lin=*con;
-                        if(con->_ctype==leq)
-                            SDPOA.add(lin<=0);
-                        else if(con->_ctype==geq)
-                            SDPOA.add(lin>=0);
-                        else
-                            SDPOA.add(lin==0);
+//            Constraint<> lin(cname);
+//                        lin=*con;
+//                        if(con->_ctype==leq)
+//            for (auto &it: *con->_vars)
+//            {
+//                auto v = it.second.first;
+//                if(!SDPOA.has_var(*v)){
+//                    SDPOA.add_var(v);
+//                }
+//            }
+            SDPOA.add(*con);
+//                        else if(con->_ctype==geq)
+//                            SDPOA.add(lin>=0);
+//                        else
+//                            SDPOA.add(lin==0);
         }
     }
 
