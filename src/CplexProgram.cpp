@@ -179,6 +179,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             }
 //            for (int i = 0; i < real_var->get_dim(); i++) {
+//                _cplex_vars.at(vid)[i].setName(real_var->get_name(i).c_str());
 //                cout << real_var->_indices->_keys->at(i) << " : ";
 //                cout << to_string(_cplex_vars.at(vid)[i].getId()) << " in [";
 //                cout << lb[i] << "," << ub[i]<< "]\n";
@@ -221,6 +222,9 @@ void CplexProgram::fill_in_cplex_vars() {
         }
         default:
             break;
+        }
+        for (int i = 0; i < v->get_dim(); i++) {
+            _cplex_vars.at(vid)[i].setName(v->get_name(i).c_str());
         }
     }
 }
@@ -357,14 +361,21 @@ void CplexProgram::create_cplex_constraints() {
             }
             cc += c->eval(c->get_cst(), inst);
 
+            
             if(c->get_ctype()==geq) {
-                _cplex_model->add(cc >= 0);
+                IloConstraint c_(cc >= 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             else if(c->get_ctype()==leq) {
-                _cplex_model->add(cc <= 0);
+                IloConstraint c_(cc <= 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             else if(c->get_ctype()==eq) {
-                _cplex_model->add(cc == 0);
+                IloConstraint c_(cc == 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             inst++;
         }
@@ -381,8 +392,8 @@ void CplexProgram::prepare_model() {
     create_cplex_constraints();
     create_callback();
     set_cplex_objective();
-//    IloCplex cplex(*_cplex_model);
-//    cplex.exportModel("lpex2.lp");
+    IloCplex cplex(*_cplex_model);
+    cplex.exportModel("lpex.lp");
 
     //    print_constraints();
 }
