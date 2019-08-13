@@ -36,7 +36,7 @@ int main (int argc, char * argv[]) {
     SolverType solv_type = ipopt;
     double tol = 1e-6;
     string mehrotra = "no";
-
+    
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
@@ -136,7 +136,7 @@ int main (int argc, char * argv[]) {
     /** Sets */
     auto bus_pairs = grid.get_bus_pairs();
     auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
-     if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
+    if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
         bus_pairs_chord = bus_pairs;
     }
     auto nodes = indices(grid.nodes);
@@ -253,6 +253,7 @@ int main (int argc, char * argv[]) {
     
     //SDP.add(eta.in(range(0, 0)));
     /**  Objective */
+
    // auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
    // obj=eta("0")*(-1);
     
@@ -264,14 +265,16 @@ int main (int argc, char * argv[]) {
     Constraint<> obj("obj");
     obj  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0);
     SDP.add(obj <= 0);
+
+
     
     
     /** Constraints */
     auto bag_size = bags_3d.size();
     Constraint<> SDP3("SDP_3D");
-  //      Constraint<> SDPD("SDPD");
+    //      Constraint<> SDPD("SDPD");
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
-    {        
+    {
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
@@ -291,14 +294,14 @@ int main (int argc, char * argv[]) {
             //SDPOA.add_lazy(SDP3.in(orig) >= 0);
         }
         else {
-           SDP.add(SDP3.in(range(0, bag_size-1)) >= 0);
-          // SDPOA.add(SDP3.in(orig) >= 0);
+            SDP.add(SDP3.in(range(0, bag_size-1)) >= 0);
+            // SDPOA.add(SDP3.in(orig) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
-   
-//
-//        SDPD= - 0.002491499038*Im_Wij_[0] - 0.002405078286*Im_Wij_[1] + 0.002576479796*Im_Wij_[2] + 0.0006191834985*R_Wij_[0] - 0.002142755127*R_Wij_[1] - 0.004868374713*R_Wij_[2] + 0.002190591032*Wii_[0] + 0.0007469140267*Wii_[1] + 0.003457224761*Wii_[2] + 1.999982567e-08;
-//        SDP.add(SDPD.in(orig1) >= 0);
+        
+        //
+        //        SDPD= - 0.002491499038*Im_Wij_[0] - 0.002405078286*Im_Wij_[1] + 0.002576479796*Im_Wij_[2] + 0.0006191834985*R_Wij_[0] - 0.002142755127*R_Wij_[1] - 0.004868374713*R_Wij_[2] + 0.002190591032*Wii_[0] + 0.0007469140267*Wii_[1] + 0.003457224761*Wii_[2] + 1.999982567e-08;
+        //        SDP.add(SDPD.in(orig1) >= 0);
     }
     
     /** Constraints */
@@ -306,7 +309,7 @@ int main (int argc, char * argv[]) {
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     SDP.add(SOC.in(bus_pairs_chord) <= 0);
-    //SDPOA.add(SOC.in(bus_pairs_chord) == 0,true);
+    //SDPOA.add(SOC.in(bus_pairs_chord) = 0,true);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -360,7 +363,7 @@ int main (int argc, char * argv[]) {
     SDP.add(Thermal_Limit_from.in(arcs));
     //SDPOA.add(Thermal_Limit_from.in(arcs));
     
-  
+    
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
@@ -408,32 +411,37 @@ int main (int argc, char * argv[]) {
         var<Cpx> Sij("Sij"), Sji("Sji");
         Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
         Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
-
-//        Constraint<> PLoss("PLoss");
-//        PLoss = pow(Pf_from,2);
-//        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
-//        SDP.add(PLoss.in(arcs)==0,true);
-//        Constraint<> PLoss2("PLoss2");
-//        PLoss2 = pow(Pf_to,2);
-//        PLoss2 -= pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
-//        SDP.add(PLoss2.in(arcs)==0,true);
-//        Constraint<> PLoss("PLoss");
-//        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
-//        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
-//        PLoss += pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
-//        SDP.add(PLoss.in(arcs)==0,true);
         
-//        Constraint<> QLoss("QLoss");
-//        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
-//        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
-//        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
-//        SDP.add(QLoss.in(arcs)==0,true);
-//        SDP.print();
+        //        Constraint<> PLoss("PLoss");
+        //        PLoss = pow(Pf_from,2);
+        //        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
+        //        SDP.add(PLoss.in(arcs)==0,true);
+        //        Constraint<> PLoss2("PLoss2");
+        //        PLoss2 = pow(Pf_to,2);
+        //        PLoss2 -= pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
+        //        SDP.add(PLoss2.in(arcs)==0,true);
+        //        Constraint<> PLoss("PLoss");
+        //        PLoss = pow(Pf_from,2) - pow(Pf_to,2);
+        //        PLoss -= pow((g_ff*Wii.from(arcs) + g_ft*R_Wij.in(arcs) + b_ft*Im_Wij.in(arcs)),2);
+        //        PLoss += pow((g_tt*Wii.to(arcs) + g_tf*R_Wij.in(arcs) - b_tf*Im_Wij.in(arcs)),2);
+        //        SDP.add(PLoss.in(arcs)==0,true);
+        
+        //        Constraint<> QLoss("QLoss");
+        //        QLoss = pow(Qf_from,2) - pow(Qf_to,2);
+        //        QLoss -= pow((g_ft*Im_Wij.in(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in(arcs)),2);
+        //        QLoss += pow(-1*(b_tt*Wii.to(arcs) + b_tf*R_Wij.in(arcs) + g_tf*Im_Wij.in(arcs)),2);
+        //        SDP.add(QLoss.in(arcs)==0,true);
+        //        SDP.print();
         
         Constraint<Cpx> I_from("I_from");
+
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
       // SDP.add_real(I_from.in(arcs)==0);
 //        SDPOA.add_real(I_from.in(arcs)-pow(tr,2)*L_from==0);
+
+
+
+        
 
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
@@ -441,49 +449,54 @@ int main (int argc, char * argv[]) {
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
         //SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
-    
+        
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+
+        
      //   SDP.add(I_from_Pf.in(arcs)==0, true);
         //SDPOA.add(I_from_Pf.in(arcs)==0, true);
+
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-    //    SDP.add(I_to_Pf.in(arcs)==0, true);
+        //    SDP.add(I_to_Pf.in(arcs)==0, true);
         
     }
     
- 
+    
     
     total_time_start = get_wall_time();
     /* Solver selection */
     solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
-//    SDP.print();
+    //    SDP.print();
     SDPOPF.run(output = 5, tol = 1e-6);
-//    SDP.print_solution();
+    //    SDP.print_solution();
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val();
     SDP.print_solution();
     
     
-
     
     
-
+    
+    
     //First iteration
     //Possible improvements: Find interior point via optimization when point is an active point
     //Best way to do this is to rewrite the model as g(x)<=\eta y and set y (a flag) for each con
     //wait for Hassan to do this
     //generate as many OA iterative cuts as given by num_iter_cuts
     
-   
- 
-    //const string con_names[]={"SOC_convex", "Thermal_Limit_from"};
     
+    
+    
+    
+
     SDP.print();
+
 
     bool interior=false;
     pair<vector<double>,bool> xactive;
@@ -500,53 +513,53 @@ int main (int argc, char * argv[]) {
         cname=con->_name;
         if(!con->is_linear())
         {
-        for(auto i=0;i<con->get_nb_inst();i++)
-            //  for(auto i=0;i<1;i++)
-        {
-            con->uneval();
-            DebugOn("eval of con "<<con->eval(i)<<endl);
-            con->uneval();
-            
-            if(abs(con->eval(i))<=active_tol)
+            for(auto i=0;i<con->get_nb_inst();i++)
+                //  for(auto i=0;i<1;i++)
             {
                 con->uneval();
-                func<> oacon=con->get_outer_app_insti(i);
-                oacon.eval_all();
-                Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
-                OA_sol=oacon;
-                //Assuming no nonlinear equality constraints
-                if(con->_ctype==leq)
-                    SDPOA.add(OA_sol<=0);
-                else if(con->_ctype==geq)
-                    SDPOA.add(OA_sol>=0);
-
-                oacon.uneval();
-
-                OA_sol.print();
-                DebugOn("OA \t" <<oacon.eval(0));
-
-                DebugOn("Active instant "<<i<<endl);
-            }
-            else //If constraint is not active xsolution is an interior point
-            {
-                xsolution.clear();
-                for (auto &it: *con->_vars)
+                DebugOn("eval of con "<<con->eval(i)<<endl);
+                con->uneval();
+                
+                if(abs(con->eval(i))<=active_tol)
                 {
-                    auto v = it.second.first;
-                    size_t posv=v->get_id_inst(i);
-                    v->get_double_val(posv, xv);
-                    xsolution.push_back(xv);
+                    con->uneval();
+                    func<> oacon=con->get_outer_app_insti(i);
+                    oacon.eval_all();
+                    Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+                    OA_sol=oacon;
+                    //Assuming no nonlinear equality constraints
+                    if(con->_ctype==leq)
+                        SDPOA.add(OA_sol<=0);
+                    else if(con->_ctype==geq)
+                        SDPOA.add(OA_sol>=0);
+                    
+                    oacon.uneval();
+                    
+                    OA_sol.print();
+                    DebugOn("OA \t" <<oacon.eval(0));
+                    
+                    DebugOn("Active instant "<<i<<endl);
                 }
-
-                xactive_array= con->get_active_point(i,  con->_ctype);
-
-                for(auto j=0;j<xactive_array.size();j++)
-                    //                    //for(auto j=0;j<1;j++)
+                else //If constraint is not active xsolution is an interior point
                 {
-                    if(xactive_array[j].size()>0)
+                    xsolution.clear();
+                    for (auto &it: *con->_vars)
                     {
-                        con->uneval();
-
+                        auto v = it.second.first;
+                        size_t posv=v->get_id_inst(i);
+                        v->get_double_val(posv, xv);
+                        xsolution.push_back(xv);
+                    }
+                    
+                    xactive_array= con->get_active_point(i,  con->_ctype);
+                    
+                    for(auto j=0;j<xactive_array.size();j++)
+                        //                    //for(auto j=0;j<1;j++)
+                    {
+                        if(xactive_array[j].size()>0)
+                        {
+                            con->uneval();
+                            
                             counter=0;
                             for (auto &it: *con->_vars)
                             {
@@ -563,120 +576,70 @@ int main (int argc, char * argv[]) {
                                 SDPOA.add(OA_itercon<=0);
                             else if(con->_ctype==geq)
                                 SDPOA.add(OA_itercon>=0);
-
+                            
                         }
                     }
-
-
-
-                // SDPOA.add(OA_itercon>=0);
-                counter=0;
-                for (auto &it: *con->_vars)
-                {
-                    auto v = it.second.first;
-                    size_t posv=v->get_id_inst(i);
-                    v->set_double_val(posv, xsolution[counter++]);
+                    
+                    
+                    
+//                    SDPOA.add(OA_itercon>=0);
+                    counter=0;
+                    for (auto &it: *con->_vars)
+                    {
+                        auto v = it.second.first;
+                        size_t posv=v->get_id_inst(i);
+                        v->set_double_val(posv, xsolution[counter++]);
+                    }
+                    //                            oas.uneval();
+                    //                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl)
+                    
+                    
+                    
+                    
+                    
                 }
-                //                            oas.uneval();
-                //                            DebugOn("oas.eval(0)\t"<<oas.eval(0)<<endl)
-
-
-
-
-
             }
-        }
         }
         else
         {
-            Constraint<> lin(cname);
-            lin=*con;
-            if(con->_ctype==leq)
-                SDPOA.add(lin<=0);
-            else if(con->_ctype==geq)
-                SDPOA.add(lin>=0);
-            else
-                SDPOA.add(lin==0);
+            Constraint<> lin(*con);
+            SDPOA.add(lin);
+                        lin=*con;
+                        if(con->_ctype==leq)
+                            SDPOA.add(lin<=0);
+                        else if(con->_ctype==geq)
+                            SDPOA.add(lin>=0);
+                        else
+                            SDPOA.add(lin==0);
         }
     }
     
+    
+    //DebugOn("Outer point and function value from func.h"<<endl);
+    //        SDP3.uneval();
+    //
+    SDPOA.print();
+    //SDP.reset_constrs();
+    
+    solver<> SDPOPFA(SDPOA,cplex);
+    solver_time_start = get_wall_time();
+    
+    SDPOPFA.run(output = 5, tol = 1e-7);
+    //SDPOA.print_solution();
+    // SDPOA.print_constraints_stats(tol);
+    
+
+    
+    
+    
+    
   
-        //DebugOn("Outer point and function value from func.h"<<endl);
-//        SDP3.uneval();
-//
-        SDPOA.print();
-        //SDP.reset_constrs();
-        
-       // solver<> SDPOPFA(SDPOA,ipopt);
-        solver_time_start = get_wall_time();
-        
-        //SDPOPFA.run(output = 5, tol = 1e-7);
-        //SDPOA.print_solution();
-       // SDPOA.print_constraints_stats(tol);
-        
-    
-    auto con_lag=SDPOA.get_constraint("KCL_P");
-    
-    auto dual_con=con_lag->_dual;
-    
+
+
 
     
 
-    counter=0;
- 
-
-    indices idso("idso");
-    idso.add("0");
-    obj._indices=make_shared<gravity::indices>(idso);
-    obj._name="obj";
-    obj.eval_all();
-    DebugOn("obj\t"<<obj.eval("0"));
-    obj.get_outer_app_insti(0);
     
-//     auto con=SDP.get_constraint("SDP_3D");
-//
-//     func<> oacon=con->get_outer_app_insti(0);
-//    oacon.print();
-//
-//    oacon=con->get_outer_app_insti(1);
-//    oacon.print();
-//
-//    oacon=con->get_outer_app_insti(2);
-//    oacon.print();
-//
-//
-//
-//    con=SDP.get_constraint("Thermal_Limit_from");
-//
-//    oacon=con->get_outer_app_insti(0);
-//    oacon.print();
-//
-//    oacon=con->get_outer_app_insti(1);
-//    oacon.print();
-//
-//    oacon=con->get_outer_app_insti(2);
-//    oacon.print();
-//
-
-    
-//    xsolution.clear();
-//    counter=0;
-//    for (auto &it: *obj._vars)
-//    {
-//        auto v = it.second.first;
-//        size_t posv=v->get_id_inst(0);
-//        v->get_double_val(posv, xsolution[counter++]);
-//    }
-    
-    
-    
-    
-//    indices ids("ids");
-//    ids.add("0");
-//    obj._indices=make_shared<gravity::indices>(ids);
-    
-       //obj.newton_raphson(xsolution, 0,con->_ctype);
- 
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
@@ -694,23 +657,23 @@ int main (int argc, char * argv[]) {
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     DebugOn("\nResults: " << grid._name << " " << to_string(lower_bound) << " " << to_string(total_time)<<endl);
     
-   // solver<> SDPOAS(SDPOA,solv_type);
+    // solver<> SDPOAS(SDPOA,solv_type);
     
-   // SDP.print();
-//    SDPOAS.run(output = 5, tol = 1e-6);
-//    SDPOA.print_constraints_stats(tol);
-//    SDPOA.print_nonzero_constraints(tol,true);
-//    upper_bound = SDPOA.get_obj_val();
-//    gap = 100*(upper_bound - lower_bound)/upper_bound;
-//    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-//    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-//    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    // SDP.print();
+    //    SDPOAS.run(output = 5, tol = 1e-6);
+    //    SDPOA.print_constraints_stats(tol);
+    //    SDPOA.print_nonzero_constraints(tol,true);
+    //    upper_bound = SDPOA.get_obj_val();
+    //    gap = 100*(upper_bound - lower_bound)/upper_bound;
+    //    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    //    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    //    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     //
     //        string result_name="/Users/smitha/Desktop/Results/SDPCUTS.txt";
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-        //   SDP.print_solution();
+    //   SDP.print_solution();
     
     
     
