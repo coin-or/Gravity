@@ -841,7 +841,7 @@ int main (int argc, char * argv[])
         bus_pairs1.add("1,4", "4,5", "5,6");
         
         indices bus_pairs2("bus_pairs2");
-        bus_pairs2.add("8,9"); //"5,6", "3,6", "6,7", "7,8", "2,8"
+        bus_pairs2.add("8,9", "5,6", "3,6"); //"5,6", "3,6", "6,7", "7,8", "2,8"
         
         
         
@@ -851,23 +851,26 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 2;
             Qf_to._num_partns = 2;
-            Wii._num_partns = 2;
+            Wii._num_partns = 5;
             lji._num_partns = 1;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
             //            lij._num_partns = 4;
             
-            R_Wij._num_partns = 1;
-            Im_Wij._num_partns = 1;
+            R_Wij._num_partns = 10;
+            Im_Wij._num_partns = 10;
             
-            //            Constraint<> Equality_SOC("Equality_SOC");
-            //            Equality_SOC = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
-            //            SOCP.add(Equality_SOC.in(bus_pairs1) == 0, true);
+            Constraint<> Equality_SOC("Equality_SOC");
+            Equality_SOC = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
+            SOCP.add(Equality_SOC.in(bus_pairs1) == 0, true, "lambda_II");
+//            SOCP.add(Equality_SOC.in(bus_pairs1) == 0, true);
             
             Constraint<> Equality_SOC_2("Equality_SOC_2");
-            Equality_SOC_2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
+            Equality_SOC_2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs2);
             SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true, "lambda_II");
+//            SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true);
+
             
             //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             //            I_to_Pf_EQ = Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
@@ -908,7 +911,7 @@ int main (int argc, char * argv[])
             //            auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
             //            binvar2->print();
             
-            SOCP.on_off_SOC_partition(Equality_SOC_2);
+//            SOCP.on_off_SOC_partition(Equality_SOC_2);
             
         }
     }
@@ -921,7 +924,7 @@ int main (int argc, char * argv[])
     /** use the following line if you want to relax the integer variables **/
 //        SOCOPF_CPX.run(true);
     SOCOPF_CPX.run(output,tol = 1e-6);
-    SOCP.print(5);
+//    SOCP.print(5);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
@@ -944,8 +947,8 @@ int main (int argc, char * argv[])
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
-    SOCP.print();
-    SOCP.print_solution();
+//    SOCP.print();
+//    SOCP.print_solution();
     
     
     return 0;
