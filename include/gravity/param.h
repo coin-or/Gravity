@@ -287,6 +287,9 @@ namespace gravity {
         }
         
         bool is_matrix_indexed() const{
+            if(_indices && ((_indices->_ids && _indices->_ids->size()>1) && _indices->_type!=matrix_)){
+                throw invalid_argument("matrix issue");
+            }
             return (_indices && ((_indices->_ids && _indices->_ids->size()>1) || _indices->_type==matrix_));
         }
 
@@ -825,9 +828,9 @@ namespace gravity {
         }
 
         inline type eval(size_t i) const {
-//            if(is_matrix()){
-//                throw invalid_argument("eval() should be called with double index here\n");
-//            }
+            if(is_matrix()){
+                throw invalid_argument("eval() should be called with double index here\n");
+            }
             auto idx = get_id_inst(i);
 //            if (is_indexed()) {
 //                if (_indices->_ids->size()>1) {
@@ -852,9 +855,9 @@ namespace gravity {
         inline type eval(size_t i, size_t j) const {
 
             if (is_indexed() && _indices->_ids->size()>1) {
-//                if (_indices->_ids->at(i).at(j) >= _val->size()) {
-//                    throw invalid_argument("eval(i,j): out of range");
-//                }
+                if (_indices->_ids->at(i).at(j) >= _val->size()) {
+                    throw invalid_argument("eval(i,j): out of range");
+                }
                 return _val->at(_indices->_ids->at(i).at(j));
             }
 
@@ -1564,7 +1567,8 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("unindexed param/var, first call in()");
             }
-            return this->in(ids.ignore_ith(start_position, nb_entries));
+            auto ids_cpy = ids.deep_copy();
+            return this->in(ids_cpy.ignore_ith(start_position, nb_entries));
         }
     
         /** Index parameter/variable in ids, look for the keys starting at the ith position
@@ -1577,7 +1581,8 @@ namespace gravity {
             }
             /** Number of comma separated keys in current variable */
             auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            return this->in(ids.from_ith(start_position, nb_entries+1));
+            auto ids_cpy = ids.deep_copy();
+            return this->in(ids_cpy.from_ith(start_position, nb_entries+1));
         }
         
         /** Index parameter/variable in the product of ids1...args
@@ -1622,41 +1627,25 @@ namespace gravity {
             string key, excluded;
             size_t nb_inst=1;
             param res(*this);
-            if(ids._type==matrix_ || (ids._ids && ids._ids->size()>1)){/* Double-indexed set */
-                nb_inst = ids._ids->size();
-                /* Check that the current param has the keys found in ids */
-                for(auto key: *ids._keys){
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
-                    }
-                }
-                res._indices = make_shared<indices>(ids);
-                if(res._is_transposed){
-                    if(res.is_matrix_indexed()){
-                        res._dim[1]=_indices->size();
-                    }
-                    else {
-                        res._dim[1]=res._indices->size();
-                    }
-                }
-                else {
-                    if(res.is_matrix_indexed()){
-                        res._dim[0]=_indices->size();
-                    }
-                    else {
-                        res._dim[0]=res._indices->size();
-                    }
-                }
-                res._name += ".in("+ids.get_name()+")";
-                res.reset_range();
-                return res;
-            }
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_type = ids._type;
             nb_inst = ids.size();
-            if(ids.is_indexed()){/* If ids has key references, use those */
+            if(ids._type==matrix_){
+                res._indices->_ids->resize(nb_inst);
+                for (size_t i = 0; i<nb_inst; i++) {
+                    for (size_t j = 0; j<ids._ids->at(i).size(); j++) {
+                        auto key_ref = ids._ids->at(i).at(j);
+                        key = ids._keys->at(key_ref);
+                        auto it = _indices->_keys_map->find(key);
+                        if (it == _indices->_keys_map->end()){
+                            throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
+                        }
+                        res._indices->_ids->at(i).push_back(it->second);
+                    }
+                }
+            }
+            else if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
                     key = ids._keys->at(key_ref);
                     auto it = _indices->_keys_map->find(key);
