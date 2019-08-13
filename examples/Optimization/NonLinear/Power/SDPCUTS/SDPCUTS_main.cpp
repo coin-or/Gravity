@@ -196,6 +196,13 @@ int main (int argc, char * argv[]) {
     
     double upper_bound = grid.solve_acopf(ACRECT);
     
+    param<double> zero;
+    zero.in(range(0,1));
+    zero.set_val(0);
+    
+    param<double> ub;
+    ub.in(range(0,1));
+    ub.set_val(upper_bound);
     
     /** Build model */
     Model<> SDP("SDP Model");
@@ -205,8 +212,11 @@ int main (int argc, char * argv[]) {
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
+    var<> eta("eta", zero, ub);
     SDP.add(Pg.in(gens),Qg.in(gens));
+    SDP.add(eta.in(range(0, 1)));
     SDPOA.add(Pg.in(gens),Qg.in(gens));
+    SDPOA.add(eta.in(range(0, 1)));
     
     /* Power flow variables */
     var<> Pf_from("Pf_from", -1.*S_max,S_max);
@@ -243,12 +253,17 @@ int main (int argc, char * argv[]) {
     
     //SDP.add(eta.in(range(0, 0)));
     /**  Objective */
-    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+   // auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
    // obj=eta("0")*(-1);
-    SDP.min(obj);
-    SDPOA.min(obj);
     
-
+    //auto obj_eta=eta(0);
+    
+    SDP.min(eta(0));
+    SDPOA.min(eta(0));
+    
+    Constraint<> obj("obj");
+    obj  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0);
+    SDP.add(obj <= 0);
     
     
     /** Constraints */
@@ -297,46 +312,46 @@ int main (int argc, char * argv[]) {
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SDP.add(KCL_P.in(nodes) == 0);
-    SDPOA.add(KCL_P.in(nodes) == 0);
+    //SDPOA.add(KCL_P.in(nodes) == 0);
     
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SDP.add(KCL_Q.in(nodes) == 0);
-    SDPOA.add(KCL_Q.in(nodes) == 0);
+    //SDPOA.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SDP.add(Flow_P_From.in(arcs) == 0);
-    SDPOA.add(Flow_P_From.in(arcs) == 0);
+   // SDPOA.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SDP.add(Flow_P_To.in(arcs) == 0);
-    SDPOA.add(Flow_P_To.in(arcs) == 0);
+   // SDPOA.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SDP.add(Flow_Q_From.in(arcs) == 0);
-    SDPOA.add(Flow_Q_From.in(arcs) == 0);
+   // SDPOA.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SDP.add(Flow_Q_To.in(arcs) == 0);
-    SDPOA.add(Flow_Q_To.in(arcs) == 0);
+    //SDPOA.add(Flow_Q_To.in(arcs) == 0);
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
     SDP.add(PAD_UB.in(bus_pairs));
-    SDPOA.add(PAD_UB.in(bus_pairs));
+   // SDPOA.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SDP.add(PAD_LB.in(bus_pairs));
-    SDPOA.add(PAD_LB.in(bus_pairs));
+    //SDPOA.add(PAD_LB.in(bus_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -369,7 +384,7 @@ int main (int argc, char * argv[]) {
     LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
                                                                                         sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
     SDP.add(LNC1.in(bus_pairs) >= 0);
-    SDPOA.add(LNC1.in(bus_pairs) >= 0);
+  //  SDPOA.add(LNC1.in(bus_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(sin(phi.in(bus_pairs))*Im_Wij.in(bus_pairs) + cos(phi.in(bus_pairs))*R_Wij.in(bus_pairs));
@@ -378,7 +393,7 @@ int main (int argc, char * argv[]) {
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SDP.add(LNC2.in(bus_pairs) >= 0);
-    SDPOA.add(LNC2.in(bus_pairs) >= 0);
+   // SDPOA.add(LNC2.in(bus_pairs) >= 0);
     
     if(current){
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
@@ -416,9 +431,9 @@ int main (int argc, char * argv[]) {
 //        SDP.print();
         
         Constraint<Cpx> I_from("I_from");
-        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-//       SDP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-//        SDPOA.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
+      // SDP.add_real(I_from.in(arcs)==0);
+//        SDPOA.add_real(I_from.in(arcs)-pow(tr,2)*L_from==0);
 
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
@@ -429,7 +444,7 @@ int main (int argc, char * argv[]) {
     
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-       // SDP.add(I_from_Pf.in(arcs)==0, true);
+     //   SDP.add(I_from_Pf.in(arcs)==0, true);
         //SDPOA.add(I_from_Pf.in(arcs)==0, true);
         
         Constraint<> I_to_Pf("I_to_Pf");
@@ -467,6 +482,8 @@ int main (int argc, char * argv[]) {
    
  
     //const string con_names[]={"SOC_convex", "Thermal_Limit_from"};
+    
+    SDP.print();
 
     bool interior=false;
     pair<vector<double>,bool> xactive;
@@ -608,13 +625,13 @@ int main (int argc, char * argv[]) {
     counter=0;
  
 
-//    indices idso("idso");
-//    idso.add("0");
-//    obj._indices=make_shared<gravity::indices>(idso);
-//    obj._name="obj";
-//    obj.eval_all();
-//    DebugOn("obj\t"<<obj.eval("0"));
-//    obj.get_outer_app_insti(0);
+    indices idso("idso");
+    idso.add("0");
+    obj._indices=make_shared<gravity::indices>(idso);
+    obj._name="obj";
+    obj.eval_all();
+    DebugOn("obj\t"<<obj.eval("0"));
+    obj.get_outer_app_insti(0);
     
 //     auto con=SDP.get_constraint("SDP_3D");
 //
