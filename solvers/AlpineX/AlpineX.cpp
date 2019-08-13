@@ -851,14 +851,14 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 2;
             Qf_to._num_partns = 2;
-            Wii._num_partns = 1;
+            Wii._num_partns = 2;
             lji._num_partns = 1;
             
             //            Pf_from._num_partns = 10;
             //            Qf_from._num_partns = 10;
             //            lij._num_partns = 4;
             
-            R_Wij._num_partns = 2;
+            R_Wij._num_partns = 1;
             Im_Wij._num_partns = 1;
             
             //            Constraint<> Equality_SOC("Equality_SOC");
@@ -940,7 +940,7 @@ int main (int argc, char * argv[])
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
-//    SOCP.print();
+    SOCP.print();
     SOCP.print_solution();
     
     
