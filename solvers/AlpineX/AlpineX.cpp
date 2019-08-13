@@ -919,8 +919,9 @@ int main (int argc, char * argv[])
     auto solver_time_start = get_wall_time();
     
     /** use the following line if you want to relax the integer variables **/
-    //    SOCOPF_CPX.run(true);
+//        SOCOPF_CPX.run(true);
     SOCOPF_CPX.run(output,tol = 1e-6);
+    SOCP.print(5);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
