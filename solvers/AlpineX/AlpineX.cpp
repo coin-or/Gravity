@@ -284,10 +284,13 @@ int main (int argc, char * argv[])
         /* Second-order cone */
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP.add(SOC.in(bus_pairs) == 0, true);
+        SOCP.add(SOC.in(bus_pairs) <= 0);
+//        SOCP.add(SOC.in(bus_pairs) == 0, true);
         
         //trial use SOC_partition
-        SOCP.on_off_SOC_partition(I_to_Pf);
+//        SOCP.on_off_SOC_partition(I_to_Pf);
+        SOCP.on_off_SOC_partition(SOC);
+
         
     }
     

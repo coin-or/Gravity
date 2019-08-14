@@ -8764,7 +8764,7 @@ namespace gravity {
                     Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
-                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
+                    auto aux_idx = *n_c._indices; /*** use this or n_c._indices->_keys->at(inst)? ***/
                     
                     //go over the qterms
                     for (auto &qt_pair: *n_c._qterms) {
@@ -8821,7 +8821,7 @@ namespace gravity {
             
             if (is_SOC){ //this will follow the standard creation of the hyperplane
                 
-                //create the variables ******************************************************************(maybe need to declare indices as well)
+                //create the variables
                 var<> lhs_first_var;
                 var<> lhs_second_var;
                 var<> rhs_var;
@@ -8863,6 +8863,7 @@ namespace gravity {
                 }
                
                 //combine all the indices
+                //How to combine safely when the index sets are same? ***********************************************************************************************************************
                 auto inst_combined  = combine(*lhs_first_var._indices,*lhs_second_var._indices,*rhs_var._indices);
                 auto inst_combined_partn = indices(inst_combined,hyper_idx);
                 
@@ -8921,11 +8922,6 @@ namespace gravity {
                     }
                 }
                 
-                //scale the hyperplane coefficients
-//                lhs_first_coef = lhs_first_coef*lhs_first_scale;
-//                lhs_second_coef = lhs_second_coef*lhs_second_scale;
-//                rhs_coef = rhs_coef*rhs_scale;
-                
                 // set the _in_SOC_partn to true
                 lhs_first_var._in_SOC_partn = true;
                 lhs_second_var._in_SOC_partn = true;
@@ -8943,7 +8939,7 @@ namespace gravity {
             
             else if (is_rotated_SOC){ //this will follow bilinear scheme
                 
-                //create the variables ******************************************************************(maybe need to declare indices as well)
+                //create the variables
                 var<> quad_var;
                 var<> bln_first_var;
                 var<> bln_second_var;
@@ -9034,11 +9030,6 @@ namespace gravity {
                         first_plus_second_coef.set_val(cur_idx,first_plus_second_val*bln_scale);
                     }
                 }
-                
-                //scale the hyperplane coefficients
-//                quad_coef = quad_coef*quad_scale;
-//                first_minus_second_coef = first_minus_second_coef*bln_scale;
-//                first_plus_second_coef = first_plus_second_coef*bln_scale;
                 
                 // set the _in_SOC_partn to true
                 quad_var._in_SOC_partn = true;
