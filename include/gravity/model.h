@@ -1122,7 +1122,7 @@ namespace gravity {
                                 /************** this might not be working **************/
                                 quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                 add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
-
+                                
                                 Constraint<> quad_lb(pair.first+"_quad_lb");
                                 quad_lb = pow(o1.from_ith(0,unique_ids),2) - vlift.in(unique_ids);
                                 quad_lb._relaxed = true;
@@ -1902,7 +1902,7 @@ namespace gravity {
                                                 /************** this might not be working **************/
                                                 on_link_lambda1 = lambda.in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef1.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef1.in_matrix(nb_entries,total_entries-nb_entries) - binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,nb_entries+1)) * on_coef1.in_matrix(nb_entries,1);
                                                 add(on_link_lambda1.in(indices(unique_ids,const_idx1)) <= 0);
-                                               
+                                                
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
@@ -2623,13 +2623,13 @@ namespace gravity {
                                         /************** this might not be working **************/
                                         o1_rep = bounds1.from_ith(0,inst_partition_lambda).in_matrix(nb_entries, 1) * lambda.in_matrix(nb_entries,total_entries-nb_entries) - o1.in(o1_ids);
                                         add(o1_rep.in(unique_ids) == 0);
-
+                                        
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
                                         o2_rep = bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries,1) * lambda.in_matrix(nb_entries,total_entries-nb_entries) - o2.in(o2_ids);
                                         add(o2_rep.in(unique_ids) == 0);
-
+                                        
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
@@ -3132,7 +3132,7 @@ namespace gravity {
                                         auto bound_partn = o1_global_lb + increment*i;
                                         bound_partn.eval_all();
                                         for (size_t inst = 0; inst< nb_ins; inst++){
-//                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                            //                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                             auto cur_var_id = vlift->get_id_inst(inst);
                                             auto cur_var_idx = added._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
@@ -3165,7 +3165,7 @@ namespace gravity {
                                         
                                         // fill lambda_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
-//                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                            //                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                             auto cur_var_id = vlift->get_id_inst(inst);
                                             auto cur_var_idx = added._keys->at(cur_var_id);
                                             for (int i=0 ; i<num_partns1+1; ++i) {
@@ -3176,7 +3176,7 @@ namespace gravity {
                                         
                                         // fill on_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
-//                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                            //                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                             auto cur_var_id = vlift->get_id_inst(inst);
                                             auto cur_var_idx = added._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3207,7 +3207,7 @@ namespace gravity {
                                         
                                         // fill lambda_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
-//                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                            //                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                             auto cur_var_id = vlift->get_id_inst(inst);
                                             auto cur_var_idx = added._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3226,7 +3226,7 @@ namespace gravity {
                                         
                                         // fill on_coef
                                         for (size_t inst = 0; inst< nb_ins; inst++){
-//                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                            //                                            auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                             auto cur_var_id = vlift->get_id_inst(inst);
                                             auto cur_var_idx = added._keys->at(cur_var_id);
                                             string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3424,7 +3424,7 @@ namespace gravity {
                                             auto bound_partn2 = o2_global_lb + increment2*i;
                                             bound_partn2.eval_all();
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
@@ -3473,7 +3473,7 @@ namespace gravity {
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 for (int i=0 ; i<num_partns1+1; ++i) {
@@ -3488,7 +3488,7 @@ namespace gravity {
                                             
                                             // fill on_coef1 and on_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3537,7 +3537,7 @@ namespace gravity {
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 for (int j=0; j<num_partns2+1; ++j) {
@@ -3581,7 +3581,7 @@ namespace gravity {
                                             
                                             // fill on_coef1 and on_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3816,7 +3816,7 @@ namespace gravity {
                                             auto bound_partn1 = o1_global_lb + increment1*i;
                                             bound_partn1.eval_all();
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(i+1)+"}";
@@ -3834,7 +3834,7 @@ namespace gravity {
                                             auto bound_partn2 = o2_global_lb + increment2*i;
                                             bound_partn2.eval_all();
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name2+"{"+to_string(i+1)+"}";
@@ -3876,7 +3876,7 @@ namespace gravity {
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 for (int i=0 ; i<num_partns1+1; ++i) {
@@ -3891,7 +3891,7 @@ namespace gravity {
                                             
                                             // fill on_coef1 and on_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -3944,7 +3944,7 @@ namespace gravity {
                                             
                                             // fill lambda_coef1 and lambda_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 if(num_partns1 > 1) {
@@ -3991,7 +3991,7 @@ namespace gravity {
                                             
                                             // fill on_coef1 and on_coef2
                                             for (size_t inst = 0; inst< nb_ins; inst++){
-//                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
+                                                //                                                auto cur_var_id = vlift->in(added).get_id_inst(inst);
                                                 auto cur_var_id = vlift->get_id_inst(inst);
                                                 auto cur_var_idx = added._keys->at(cur_var_id);
                                                 string cur_idx = cur_var_idx+","+name1+"{"+to_string(1)+"},"+to_string(1);
@@ -4059,7 +4059,7 @@ namespace gravity {
                                                 /************** this might not be working **************/
                                                 on_link_lambda1 = lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef1.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef1.in_matrix(nb_entries,total_entries-nb_entries) - binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,nb_entries+1)) * on_coef1.in_matrix(nb_entries,1);
                                                 add(on_link_lambda1.in(indices(added,const_idx1)) <= 0);
-                                               
+                                                
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
@@ -4074,7 +4074,7 @@ namespace gravity {
                                                 /************** this might not be working **************/
                                                 on_link_lambda1 = lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries).from_ith(0,lambda_coef1.get_matrix_ids(nb_entries,total_entries-nb_entries))*lambda_coef1.in_matrix(nb_entries,total_entries-nb_entries) - binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,on_coef1.get_matrix_ids(nb_entries,1).from_ith(0,nb_entries+1)) * on_coef1.in_matrix(nb_entries,1);
                                                 add(on_link_lambda1.in(indices(added,const_idx1)) <= 0);
-                                               
+                                                
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
@@ -8675,7 +8675,7 @@ namespace gravity {
             {
                 throw invalid_argument("SOC partition can only be applied to second-order cones! \n");
             }
-            if (c._lterms != nullptr)
+            if (!c._lterms->empty())
             {
                 throw invalid_argument("Current SOC partition version can only handle quadratic & bilinear terms! \n");
             }
@@ -8701,68 +8701,39 @@ namespace gravity {
                     Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
-                    func<type> SOC_1_func; //to insert the elements
-                    func<type> SOC_2_func;
-                    
                     bool first = false; //for adding -t^2 to which
                     auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
                     
-                    //                        shared_ptr<pair<type,type>> term_range; //for range issues
-                   
                     //go over the qterms
                     unsigned counter = 0;
                     for (auto &qt_pair: *n_c._qterms) {
-                        //TODO: adapt get_range for qterms and use it for updating the range of variables
-                        auto coef = qt_pair.second._coef->copy();
                         auto sign = qt_pair.second._sign;
-                        if (coef->is_function()) {
-                            auto f_cst = *((func<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(f_cst._range,var_range);
-                            if (counter < 2) {
-                                SOC_1_func.insert(sign, f_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
-                            }
-                            else SOC_2_func.insert(sign, f_cst, *qt_pair.second._p);
+                        if (counter < 2) {
+                            SOC_1.insert(qt_pair.second);
+                            if (!sign) first = true;
                         }
-                        else if(coef->is_param()) {
-                            auto p_cst = *((param<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(p_cst._range,var_range);
-                            if (counter < 2) {
-                                SOC_1_func.insert(sign, p_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
-                            }
-                            else SOC_2_func.insert(sign, p_cst, *qt_pair.second._p);
-                        }
-                        else if(coef->is_number()) {
-                            auto p_cst = *((constant<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
-                            if (counter < 2) {
-                                SOC_1_func.insert(sign, p_cst, *qt_pair.second._p);
-                                if (!sign) first = true;
-                            }
-                            else SOC_2_func.insert(sign, p_cst, *qt_pair.second._p);
-                        }
+                        else SOC_2.insert(qt_pair.second);
+                        
                         ++counter;
                     }
-                    //TODO: copy the _range of the old constraint to the new one?
+                    //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
+                    SOC_1._range = n_c._range;
+                    SOC_2._range = n_c._range;
                     
                     var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
                     //TODO: consider the case where there can be multiple negative terms!
                     if (first) { //add constraints accordingly
-                        SOC_1 = SOC_1_func + pow(t.in(aux_idx),2);
+                        SOC_1 += pow(t.in(aux_idx),2);
                         add(SOC_1.in(aux_idx) <= 0);
                         
-                        SOC_2 = SOC_2_func - pow(t.in(aux_idx),2);
+                        SOC_2 -= pow(t.in(aux_idx),2);
                         add(SOC_2.in(aux_idx) <= 0);
                     }
                     else{
-                        SOC_1 = SOC_1_func - pow(t.in(aux_idx),2);
+                        SOC_1 -= pow(t.in(aux_idx),2);
                         add(SOC_1.in(aux_idx) <= 0);
                         
-                        SOC_2 = SOC_2_func + pow(t.in(aux_idx),2);
+                        SOC_2 += pow(t.in(aux_idx),2);
                         add(SOC_2.in(aux_idx) <= 0);
                     }
                     
@@ -8793,58 +8764,28 @@ namespace gravity {
                     Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
-                    func<type> SOC_1_func; //to insert the elements
-                    func<type> SOC_2_func;
-                    
                     auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
-                    
-                    //                        shared_ptr<pair<type,type>> term_range; //for range issues
                     
                     //go over the qterms
                     for (auto &qt_pair: *n_c._qterms) {
-                        //TODO: adapt get_range for qterms and use it for updating the range of variables
-                        
-                        auto coef = qt_pair.second._coef->copy();
-                        auto sign = qt_pair.second._sign; /****************************************************************************************** check here bilinearity to update counter(x2), and insert based on that, need to make sure bilinear term added to only one const and the rest to the other ***/
-                        if (coef->is_function()) {
-                            auto f_cst = *((func<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(f_cst._range,var_range);
-                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
-                                SOC_1.insert(sign, f_cst, *qt_pair.second._p);
-                            }
-                            else SOC_2.insert(sign, f_cst, *qt_pair.second._p);
+                        if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
+                            SOC_1.insert(qt_pair.second);
                         }
-                        else if(coef->is_param()) {
-                            auto p_cst = *((param<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(p_cst._range,var_range);
-                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
-                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
-                            }
-                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
-                        }
-                        else if(coef->is_number()) {
-                            auto p_cst = *((constant<type>*)(coef.get()));
-                            //                            auto var_range = make_shared<pair<type,type>>(n_c.get_range(qt_pair.second._p));
-                            //                            term_range = get_product_range(make_shared<pair<type,type>>(p_cst.eval(),p_cst.eval()),var_range);
-                            if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
-                                SOC_1.insert(sign, p_cst, *qt_pair.second._p);
-                            }
-                            else SOC_2.insert(sign, p_cst, *qt_pair.second._p);
-                        }
+                        else SOC_2.insert(qt_pair.second);
                     }
-                    //TODO: copy the _range of the old constraint to the new one?
+                    //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
+                    SOC_1._range = n_c._range;
+                    SOC_2._range = n_c._range;
                     
                     var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
                     //TODO: consider the case where there can be multiple negative terms!
-                   //add constraints accordingly
-                        SOC_1 = SOC_1_func + pow(t.in(aux_idx),2);
-                        add(SOC_1.in(aux_idx) <= 0);
-                        
-                        SOC_2 = SOC_2_func - pow(t.in(aux_idx),2);
-                        add(SOC_2.in(aux_idx) <= 0);
-
+                    //add constraints accordingly
+                    SOC_1 += pow(t.in(aux_idx),2);
+                    add(SOC_1.in(aux_idx) <= 0);
+                    
+                    SOC_2 -= pow(t.in(aux_idx),2);
+                    add(SOC_2.in(aux_idx) <= 0);
+                    
                     //call the hyperplane function to generate the on/off hyperplanes
                     add_on_off_SOC_hyperplanes(SOC_1,num_SOC_partitions1);
                     add_on_off_SOC_hyperplanes(SOC_2,num_SOC_partitions2);
@@ -8857,155 +8798,398 @@ namespace gravity {
             }
         }
         
-        template<typename T=type>
+        template<typename T=type> //function for creating hyperplanes to have an inner approximation
         void add_on_off_SOC_hyperplanes(Constraint<type>& c, int num_SOC_partitions) { //currently the function asssumes there are only qterms!
-            
-            //when deriving the hyperplanes, check the term is bilinear or quadratic
-            //derive the hyperplane coefficients for each instance and store them as param
-            //make the indexing correct
-            //assign _in_SOC_partn = true via set_in_SOC_partn(true);
-            //create binary variables and the constraint that sums to 1 (with proper indexing)
-            //call add_on_off_multivariate_refined
-            
             
             DebugOn("SOC_hyperplane function!" << endl);
             c.print();
+            
+            auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
+            auto is_SOC = c.check_soc();
+            
+            //create hyperplane indices
+            indices hyper_idx("hyper_idx");
+            for (int i=0; i<num_SOC_partitions; ++i) {
+                hyper_idx.add(to_string(i+1));
+            }
+            //get the combined index set
+            auto inst_hyper = indices(*c._indices,hyper_idx);
+
+            Constraint<type> SOC_hyperplanes(c._name + "_hyperplane"); //create the hyperplane constraint
+            var<int> on(c._name + "_binary",0,1); //create the partition variable
+            Constraint<type> onSum(c._name + "_binarySum"); //create the partition assignment constraint
+            
+            if (is_SOC){ //this will follow the standard creation of the hyperplane
+                
+                //create the variables ******************************************************************(maybe need to declare indices as well)
+                var<> lhs_first_var;
+                var<> lhs_second_var;
+                var<> rhs_var;
+                
+                //create the scaling factors for the variables
+                double lhs_first_scale;
+                double lhs_second_scale;
+                double rhs_scale;
+                
+                //flag for assignment
+                bool first_occupied = false;
+                
+                for (auto &qt_pair: *c._qterms) {
+                    auto sign = qt_pair.second._sign;
+                    if (!qt_pair.second._p->first->is_double()) {
+                        throw invalid_argument("Current hyperplanes only support double type variables!");
+                    }
+                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+                    }
+                    if (sign){
+                        if (!first_occupied){
+                            lhs_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                            lhs_first_scale = std::sqrt(coef->eval());
+                            first_occupied = true;
+                        }
+                        else{
+                            lhs_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                            lhs_second_scale = std::sqrt(coef->eval());
+                        }
+                    }
+                    else{
+                        rhs_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                        rhs_scale = std::sqrt(coef->eval());
+                    }
+                }
+               
+                //combine all the indices
+                auto inst_combined  = combine(*lhs_first_var._indices,*lhs_second_var._indices,*rhs_var._indices);
+                auto inst_combined_partn = indices(inst_combined,hyper_idx);
+                
+                //collect the number of entries
+                auto nb_entries_v1 = lhs_first_var._indices->get_nb_entries();
+                auto nb_entries_v2 = lhs_second_var._indices->get_nb_entries();
+                auto nb_entries_v3 = rhs_var._indices->get_nb_entries();
+                
+                //create the multipliers for the hyperplane
+                param<double> lhs_first_coef("lhs_first_coef");
+                param<double> lhs_second_coef("lhs_second_coef");
+                param<double> rhs_coef("rhs_coef");
+                
+                lhs_first_coef.in(inst_combined_partn);
+                lhs_second_coef.in(inst_combined_partn);
+                rhs_coef.in(inst_combined_partn);
+                
+                on.in(inst_combined_partn);
+
+                //create the summation constraint for partition
+                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(onSum.in(*c._indices) == 1);
+                
+                size_t nb_ins = lhs_first_var.get_nb_inst(); //get the number of instances
+                
+                // fill hyperplane coefficients
+                for (int i=0 ; i<num_SOC_partitions; ++i) {
+                    //calculate the hyperplane coefficients
+                    auto rhs_val = std::cos(2*M_PI*i/num_SOC_partitions)*std::sin(2*M_PI*(i+1)/num_SOC_partitions) - std::cos(2*M_PI*(i+1)/num_SOC_partitions)*std::sin(2*M_PI*i/num_SOC_partitions);
+                    auto lhs_first_val = std::sin(2*M_PI*i/num_SOC_partitions)-std::sin(2*M_PI*(i+1)/num_SOC_partitions);
+                    auto lhs_second_val = std::cos(2*M_PI*(i+1)/num_SOC_partitions)-std::cos(2*M_PI*i/num_SOC_partitions);
+                    if (rhs_val < 0)
+                    {
+                        rhs_val = -rhs_val;
+                        lhs_first_val = -lhs_first_val;
+                        lhs_second_val = -lhs_second_val;
+                    }
+                    
+                    for (size_t inst = 0; inst< nb_ins; inst++){
+                        // lhs_first
+                        auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+                        auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+                        
+                        // lhs_second
+                        auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+                        auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+                        
+                        // rhs
+                        auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+                        auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+                        
+                        string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+1);
+                        lhs_first_coef.set_val(cur_idx,lhs_first_val*lhs_first_scale);
+                        lhs_second_coef.set_val(cur_idx,lhs_second_val*lhs_second_scale);
+                        rhs_coef.set_val(cur_idx,rhs_val*rhs_scale);
+                    }
+                }
+                
+                //scale the hyperplane coefficients
+//                lhs_first_coef = lhs_first_coef*lhs_first_scale;
+//                lhs_second_coef = lhs_second_coef*lhs_second_scale;
+//                rhs_coef = rhs_coef*rhs_scale;
+                
+                // set the _in_SOC_partn to true
+                lhs_first_var._in_SOC_partn = true;
+                lhs_second_var._in_SOC_partn = true;
+                rhs_var._in_SOC_partn = true;
+              
+                SOC_hyperplanes = lhs_first_var.from_ith(0, inst_combined_partn) * lhs_first_coef + lhs_second_var.from_ith(nb_entries_v1, inst_combined_partn) * lhs_second_coef + rhs_var.from_ith(nb_entries_v1 + nb_entries_v2, inst_combined_partn) * rhs_coef;
+                SOC_hyperplanes.in(inst_hyper) <= 0;
+//                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                
+                // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
+                lhs_first_var._in_SOC_partn = false;
+                lhs_second_var._in_SOC_partn = false;
+                rhs_var._in_SOC_partn = false;
+            }
+            
+            else if (is_rotated_SOC){ //this will follow bilinear scheme
+                
+                //create the variables ******************************************************************(maybe need to declare indices as well)
+                var<> quad_var;
+                var<> bln_first_var;
+                var<> bln_second_var;
+                
+                //create the scaling factors for the variables
+                double quad_scale;
+                double bln_scale;
+                
+                for (auto &qt_pair: *c._qterms) {
+                    if (!qt_pair.second._p->first->is_double()) {
+                        throw invalid_argument("Current hyperplanes only support double type variables!");
+                    }
+                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+                    }
+                    if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                        if (!qt_pair.second._p->second->is_double()) {
+                            throw invalid_argument("Current hyperplanes only support double type variables!");
+                        }
+                            //we do not check the sign of the bilinear term, since current assumption is that the sign is negative
+                            bln_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            bln_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->second);
+                            auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                            bln_scale = std::sqrt(coef->eval())/2; //dividing to two since the standard form has 1/4 as the multiplier
+                    }
+                    else{
+                        quad_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                        quad_scale = std::sqrt(coef->eval());
+                    }
+                }
+                
+                //combine all the indices
+                auto inst_combined  = combine(*quad_var._indices,*bln_first_var._indices,*bln_second_var._indices);
+                auto inst_combined_partn = indices(inst_combined,hyper_idx);
+                
+                //collect the number of entries
+                auto nb_entries_v1 = quad_var._indices->get_nb_entries();
+                auto nb_entries_v2 = bln_first_var._indices->get_nb_entries();
+                auto nb_entries_v3 = bln_second_var._indices->get_nb_entries();
+                
+                //create the multipliers for the hyperplane
+                param<double> quad_coef("quad_coef");
+                param<double> first_minus_second_coef("first_minus_second_coef");
+                param<double> first_plus_second_coef("first_plus_second_coef");
+                
+                quad_coef.in(inst_combined_partn);
+                first_minus_second_coef.in(inst_combined_partn);
+                first_plus_second_coef.in(inst_combined_partn);
+                
+                on.in(inst_combined_partn);
+                
+                //create the summation constraint for partition
+                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(onSum.in(*c._indices) == 1);
+                
+                size_t nb_ins = quad_var.get_nb_inst(); //get the number of instances
+                
+                // fill hyperplane coefficients
+                for (int i=0 ; i<num_SOC_partitions; ++i) {
+                    //calculate the hyperplane coefficients
+                    auto first_plus_second_val = std::cos(2*M_PI*i/num_SOC_partitions)*std::sin(2*M_PI*(i+1)/num_SOC_partitions) - std::cos(2*M_PI*(i+1)/num_SOC_partitions)*std::sin(2*M_PI*i/num_SOC_partitions);
+                    auto quad_val = std::sin(2*M_PI*i/num_SOC_partitions)-std::sin(2*M_PI*(i+1)/num_SOC_partitions);
+                    auto first_minus_second_val = std::cos(2*M_PI*(i+1)/num_SOC_partitions)-std::cos(2*M_PI*i/num_SOC_partitions);
+                    if (first_plus_second_val < 0)
+                    {
+                        first_plus_second_val = -first_plus_second_val;
+                        quad_val = -quad_val;
+                        first_minus_second_val = -first_minus_second_val;
+                    }
+                    
+                    for (size_t inst = 0; inst< nb_ins; inst++){
+                        // quad
+                        auto cur_var_id_quad = quad_var.get_id_inst(inst);
+                        auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+                        
+                        // bln_first
+                        auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+                        auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+                        
+                        // bln_second
+                        auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+                        auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+                        
+                        string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+1);
+                        quad_coef.set_val(cur_idx,quad_val*quad_scale);
+                        first_minus_second_coef.set_val(cur_idx,first_minus_second_val*bln_scale);
+                        first_plus_second_coef.set_val(cur_idx,first_plus_second_val*bln_scale);
+                    }
+                }
+                
+                //scale the hyperplane coefficients
+//                quad_coef = quad_coef*quad_scale;
+//                first_minus_second_coef = first_minus_second_coef*bln_scale;
+//                first_plus_second_coef = first_plus_second_coef*bln_scale;
+                
+                // set the _in_SOC_partn to true
+                quad_var._in_SOC_partn = true;
+                bln_first_var._in_SOC_partn = true;
+                bln_second_var._in_SOC_partn = true;
+                
+                SOC_hyperplanes = quad_var.from_ith(0, inst_combined_partn) * quad_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) - bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_minus_second_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) + bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_plus_second_coef;
+                SOC_hyperplanes.in(inst_hyper) <= 0;
+//                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                
+                // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
+                quad_var._in_SOC_partn = false;
+                bln_first_var._in_SOC_partn = false;
+                bln_second_var._in_SOC_partn = false;
+            }
         }
+        
+        
+        template<typename T=type,
+        typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
+        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+        
+        
+        //        void add_on_off(const Constraint<type>& c, var<bool>& on){
+        //            if (c.get_ftype() != lin_) {
+        //                cerr << "Nonlinear constraint.\n";
+        //                exit(-1);
+        //            }
+        //            Constraint<type> res(c.get_name() + "_on/off");
+        //                double b;
+        //                for(auto it: c->_coef) {
+        //                    auto v = getparam_<double>(it.first);
+        //                    if (!v->is_bounded_below() || !v->is_bounded_above()) {
+        //                        cerr << "Variable " << v->_name << " in constraint " << c._name << " does not have finite bounds.\n";
+        //                        exit(1);
+        //                    }
+        //                    if (c.get_type() == leq || c.get_type() == eq) {
+        //                        if (it.second < 0) res -= it.second*v->get_lb_off()*(1-on);
+        //                        else res -= it.second*v->get_ub_off()*(1-on);
+        //                    }
+        //                    else{ // geq
+        //                        if (it.second < 0) res -= it.second*v->get_ub_off()*(1-on);
+        //                        else res -= it.second*v->get_lb_off()*(1-on);
+        //                    }
+        //                }
+        //                if (c.get_type() == eq) {
+        //                    Constraint res2(c.get_name() + "_on/off2");
+        //                    for(auto it: orig_q->_coefs) {
+        //                        v = getparam_<double>(it.first);
+        //                        if (it.second < 0) res2 -= it.second*v->get_ub_off()*(1-on);
+        //                        else res2 -= it.second*v->get_lb_off()*(1-on);
+        //                    }
+        //                    res2 += *orig_q;
+        //                    res2 -= b*on;
+        //                    res2 >= 0;
+        //                    addConstraint(res2);
+        //                }
+        //                res += *orig_q;
+        //                res -= orig_q->get_const();
+        //                res -= b*on;
+        //                if (c.get_type() == eq or c.get_type() == leq) res <= 0;
+        //                else res >= 0;
+        //            add_constraint(res);
+        //        }
+        
+        
+        void add_on_off(var<>& v, var<bool>& on){
+            //    if(v.get_ub() != v.get_ub_off()) {
+            //        Constraint UB(v._name + "_UB_on/off");
+            //        UB += v - v.get_ub() * on - (1 - on) * v.get_ub_off();
+            //        UB <= 0;
+            //        addConstraint(UB);
+            //    }
+            //    if(v.get_lb() != v.get_lb_off()) {
+            //        Constraint LB(v._name + "_LB_on/off");
+            //        LB += v - v.get_lb() * on - (1 - on) * v.get_lb_off();
+            //        LB >= 0;
+            //        addConstraint(LB);
+            //    }
+        }
+        
+        
+        
+        //        void add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on) {
+        //    Constraint MC1(name+"_McCormick1");
+        //    MC1 += v;
+        //    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
+        //    MC1 >= 0;
+        //    add_on_off(MC1, on);
+        //    Constraint MC2(name+"_McCormick2");
+        //    MC2 += v;
+        //    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
+        //    MC2 >= 0;
+        //    add_on_off(MC2, on);
+        //    Constraint MC3(name+"_McCormick3");
+        //    MC3 += v;
+        //    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
+        //    MC3 <= 0;
+        //    add_on_off(MC3, on);
+        //    Constraint MC4(name+"_McCormick4");
+        //    MC4 += v;
+        //    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
+        //    MC4 <= 0;
+        //    add_on_off(MC4, on);
+        //        }
+        
+        
+        template<class T=type>
+        inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
+            return _obj->eval(c,i);
+        }
+        
+        template<class T=type>
+        inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
+            return _obj->eval(c,i,j);
+        }
+        
+        
+    };
+    
+    //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
+    
+    //    template<typename T>
+    //    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
+    //        auto fcpy = f.copy();
+    //        fcpy->allocate_mem();
+    //        return make_pair<>(fcpy,maximize);
+    //    };
+    //
+    //    template<typename T>
+    //    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
+    //        auto fcpy = f.copy();
+    //        f->_val->resize(1);
+    //        return make_pair<>(fcpy,minimize);
+    //    };
+    //
+    //    template<typename T>
+    //    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
+    //        f->_val->resize(1);
+    //        auto fcpy = move(f.copy());
+    //        return make_pair<>(fcpy,minimize);
+    //    };
+    
+    template<typename type = double>
+    class Program{
+    public:
+        //        virtual void update_model(){};
+        string _status;
+    };
     
     
-    template<typename T=type,
-    typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-    void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
-    
-    
-    //        void add_on_off(const Constraint<type>& c, var<bool>& on){
-    //            if (c.get_ftype() != lin_) {
-    //                cerr << "Nonlinear constraint.\n";
-    //                exit(-1);
-    //            }
-    //            Constraint<type> res(c.get_name() + "_on/off");
-    //                double b;
-    //                for(auto it: c->_coef) {
-    //                    auto v = getparam_<double>(it.first);
-    //                    if (!v->is_bounded_below() || !v->is_bounded_above()) {
-    //                        cerr << "Variable " << v->_name << " in constraint " << c._name << " does not have finite bounds.\n";
-    //                        exit(1);
-    //                    }
-    //                    if (c.get_type() == leq || c.get_type() == eq) {
-    //                        if (it.second < 0) res -= it.second*v->get_lb_off()*(1-on);
-    //                        else res -= it.second*v->get_ub_off()*(1-on);
-    //                    }
-    //                    else{ // geq
-    //                        if (it.second < 0) res -= it.second*v->get_ub_off()*(1-on);
-    //                        else res -= it.second*v->get_lb_off()*(1-on);
-    //                    }
-    //                }
-    //                if (c.get_type() == eq) {
-    //                    Constraint res2(c.get_name() + "_on/off2");
-    //                    for(auto it: orig_q->_coefs) {
-    //                        v = getparam_<double>(it.first);
-    //                        if (it.second < 0) res2 -= it.second*v->get_ub_off()*(1-on);
-    //                        else res2 -= it.second*v->get_lb_off()*(1-on);
-    //                    }
-    //                    res2 += *orig_q;
-    //                    res2 -= b*on;
-    //                    res2 >= 0;
-    //                    addConstraint(res2);
-    //                }
-    //                res += *orig_q;
-    //                res -= orig_q->get_const();
-    //                res -= b*on;
-    //                if (c.get_type() == eq or c.get_type() == leq) res <= 0;
-    //                else res >= 0;
-    //            add_constraint(res);
-    //        }
-    
-    
-    void add_on_off(var<>& v, var<bool>& on){
-        //    if(v.get_ub() != v.get_ub_off()) {
-        //        Constraint UB(v._name + "_UB_on/off");
-        //        UB += v - v.get_ub() * on - (1 - on) * v.get_ub_off();
-        //        UB <= 0;
-        //        addConstraint(UB);
-        //    }
-        //    if(v.get_lb() != v.get_lb_off()) {
-        //        Constraint LB(v._name + "_LB_on/off");
-        //        LB += v - v.get_lb() * on - (1 - on) * v.get_lb_off();
-        //        LB >= 0;
-        //        addConstraint(LB);
-        //    }
-    }
-    
-    
-    
-    //        void add_on_off_McCormick(std::string name, var<>& v, var<>& v1, var<>& v2, var<bool>& on) {
-    //    Constraint MC1(name+"_McCormick1");
-    //    MC1 += v;
-    //    MC1 -= v1.get_lb()*v2 + v2.get_lb()*v1 - v1.get_lb()*v2.get_lb();
-    //    MC1 >= 0;
-    //    add_on_off(MC1, on);
-    //    Constraint MC2(name+"_McCormick2");
-    //    MC2 += v;
-    //    MC2 -= v1.get_ub()*v2 + v2.get_ub()*v1 - v1.get_ub()*v2.get_ub();
-    //    MC2 >= 0;
-    //    add_on_off(MC2, on);
-    //    Constraint MC3(name+"_McCormick3");
-    //    MC3 += v;
-    //    MC3 -= v1.get_lb()*v2 + v2.get_ub()*v1 - v1.get_lb()*v2.get_ub();
-    //    MC3 <= 0;
-    //    add_on_off(MC3, on);
-    //    Constraint MC4(name+"_McCormick4");
-    //    MC4 += v;
-    //    MC4 -= v1.get_ub()*v2 + v2.get_lb()*v1 - v1.get_ub()*v2.get_lb();
-    //    MC4 <= 0;
-    //    add_on_off(MC4, on);
-    //        }
-    
-    
-    template<class T=type>
-    inline type eval(const shared_ptr<constant_>& c, size_t i=0) {
-        return _obj->eval(c,i);
-    }
-    
-    template<class T=type>
-    inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
-        return _obj->eval(c,i,j);
-    }
-    
-    
-};
-
-//    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
-
-//    template<typename T>
-//    pair<shared_ptr<func_>, ObjectiveType> max(const func<T>& f){
-//        auto fcpy = f.copy();
-//        fcpy->allocate_mem();
-//        return make_pair<>(fcpy,maximize);
-//    };
-//
-//    template<typename T>
-//    pair<shared_ptr<func_>, ObjectiveType> min(const func<T>& f){
-//        auto fcpy = f.copy();
-//        f->_val->resize(1);
-//        return make_pair<>(fcpy,minimize);
-//    };
-//
-//    template<typename T>
-//    pair<shared_ptr<func_>, ObjectiveType> min(func<T>&& f){
-//        f->_val->resize(1);
-//        auto fcpy = move(f.copy());
-//        return make_pair<>(fcpy,minimize);
-//    };
-
-template<typename type = double>
-class Program{
-public:
-    //        virtual void update_model(){};
-    string _status;
-};
-
-
 }
 
 
