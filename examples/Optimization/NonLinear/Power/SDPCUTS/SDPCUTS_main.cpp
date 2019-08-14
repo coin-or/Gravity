@@ -195,14 +195,7 @@ int main (int argc, char * argv[]) {
     
     
     double upper_bound = grid.solve_acopf(ACRECT);
-    
-    param<double> zero;
-    zero.in(range(0,0));
-    zero.set_val(0);
-    
-    param<double> one;
-    one.in(range(0,0));
-    one.set_val(1);
+
     
     /** Build model */
     Model<> SDP("SDP Model");
@@ -212,7 +205,7 @@ int main (int argc, char * argv[]) {
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
-    var<> eta("eta", zero, one);
+    var<> eta("eta", 0, 1);
     SDP.add(Pg.in(gens),Qg.in(gens));
     SDP.add(eta.in(range(0,0)));
 //    SDPOA.add(Pg.in(gens),Qg.in(gens));
