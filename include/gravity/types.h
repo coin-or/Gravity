@@ -1198,22 +1198,22 @@ namespace gravity{
         auto nb_keys = ids1.size();
         for (auto i = 0; i< nb_keys; i++) {
             string combined_key, key = "", prev_key = "";
-            bool same_key = true;
+//            bool same_key = true;
             for (auto &ids: all_ids) {
                 auto idx = ids.get_id_inst(i);
                 key = ids._keys->at(idx);
-                if(prev_key!="" && key!=prev_key){
-                    same_key = false;
-                }
-                prev_key = key;
+//                if(prev_key!="" && key!=prev_key){
+//                    same_key = false;
+//                }
+//                prev_key = key;
                 combined_key += key +",";
             }
-            if(same_key){
-                combined_key = key;
-            }
-            else {
+//            if(same_key){
+//                combined_key = key;
+//            }
+//            else {
                 combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
-            }
+//            }
             res.add(combined_key);
         }
         return res;

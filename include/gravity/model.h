@@ -7923,7 +7923,6 @@ namespace gravity {
                     Constraint<type> res1(c.get_name() + "_" + to_string(i) + "_on/off");
                     res1 = LHS - offCoef1*(1-on) - onCoef1*on;
                     add_constraint(res1.in(*c._indices)<=0);
-                    
                     Constraint<type> n_c(c);
                     n_c *= -1;
                     get_on_off_coefficients_standard(n_c);
@@ -7947,6 +7946,7 @@ namespace gravity {
                 else { //if c.get_ctype() == geq
                     Constraint<type> n_c(c);
                     n_c *= -1;
+                    n_c._ctype = leq;
                     get_on_off_coefficients_standard(n_c);
                     auto offCoef = n_c._offCoef.deep_copy();
                     auto onCoef = n_c._onCoef.deep_copy();
@@ -8686,14 +8686,12 @@ namespace gravity {
             Constraint<type> n_c(c);
             if (c.get_ctype() == geq){
                 n_c *= -1;
+                n_c._ctype = leq;
             }
             
             if (is_SOC) //if it is SOC
             {
-                unsigned num_qterms = 0;
-                for (auto &qt_pair: *n_c._qterms){
-                    ++num_qterms;
-                }
+                unsigned num_qterms = n_c._qterms->size();
                 if (num_qterms >= 4){ //we need to split the constraint into two
                     if (num_qterms > 4){
                         throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
@@ -8720,7 +8718,8 @@ namespace gravity {
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
-                    var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
+                    var<type> t("t_" + n_c._name, 0, 10); //create the auxilary variable
+                    add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
                     if (first) { //add constraints accordingly
                         SOC_1 += pow(t.in(aux_idx),2);
@@ -8777,7 +8776,8 @@ namespace gravity {
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
-                    var<type> t("t_" + n_c._name, pos_); //create the auxilary variable
+                    var<type> t("t_" + n_c._name, 0,10); //create the auxilary variable
+                    add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
                     //add constraints accordingly
                     SOC_1 += pow(t.in(aux_idx),2);
@@ -8881,11 +8881,11 @@ namespace gravity {
                 lhs_second_coef.in(inst_combined_partn);
                 rhs_coef.in(inst_combined_partn);
                 
-                on.in(inst_combined_partn);
+                add(on.in(inst_combined_partn));
 
                 //create the summation constraint for partition
                 onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
-//                add(onSum.in(*c._indices) == 1);
+                add(onSum.in(*c._indices) == 1);
                 
                 size_t nb_ins = lhs_first_var.get_nb_inst(); //get the number of instances
                 
@@ -8929,7 +8929,7 @@ namespace gravity {
               
                 SOC_hyperplanes = lhs_first_var.from_ith(0, inst_combined_partn) * lhs_first_coef + lhs_second_var.from_ith(nb_entries_v1, inst_combined_partn) * lhs_second_coef + rhs_var.from_ith(nb_entries_v1 + nb_entries_v2, inst_combined_partn) * rhs_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-//                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 lhs_first_var._in_SOC_partn = false;
@@ -8990,11 +8990,11 @@ namespace gravity {
                 first_minus_second_coef.in(inst_combined_partn);
                 first_plus_second_coef.in(inst_combined_partn);
                 
-                on.in(inst_combined_partn);
                 
+                add(on.in(inst_combined_partn));
                 //create the summation constraint for partition
                 onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
-//                add(onSum.in(*c._indices) == 1);
+                add(onSum.in(*c._indices) == 1);
                 
                 size_t nb_ins = quad_var.get_nb_inst(); //get the number of instances
                 
@@ -9038,7 +9038,7 @@ namespace gravity {
                 
                 SOC_hyperplanes = quad_var.from_ith(0, inst_combined_partn) * quad_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) - bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_minus_second_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) + bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_plus_second_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-//                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 quad_var._in_SOC_partn = false;
