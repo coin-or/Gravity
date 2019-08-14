@@ -289,7 +289,7 @@ int main (int argc, char * argv[])
         
         //trial use SOC_partition
 //        SOCP.on_off_SOC_partition(I_to_Pf);
-        SOCP.on_off_SOC_partition(SOC);
+        SOCP.on_off_SOC_partition(SOC, 1000, 1000);
 
         
     }
