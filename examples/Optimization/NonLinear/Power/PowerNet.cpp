@@ -2169,6 +2169,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     
     var<> lij("lij", lij_min,lij_max);
     var<> eta("eta", 0, 1);
+    var<> eta_int("eta_int", 0, 1);
+    SDPOPF->add(eta.in(range(0,0)));
 
     //    var<> lji("lji", lji_min,lji_max);
     //    var<> RIij("RIij", Iij_min,Iij_max);
@@ -2187,7 +2189,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
         SDPOPF->add(lij.in(arcs));
     }
     if(interior){
-        SDPOPF->add(eta.in(range(0,0)));
+        SDPOPF->add(eta_int.in(range(0,0)));
     }
     
     
@@ -2221,22 +2223,22 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     //
     //    SDPOPF->min(objt);
     //    SDPOPF->print();
-    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    func<> obj = eta(0);
     if(interior)
     {
-        obj=eta("0")*(-1);
+        obj=eta_int(0)*(-1);
     }
     SDPOPF->min(obj);
    
     
-    //SDP.add(eta.in(range(0, 0)));
+   
     /**  Objective */
   
     
     
     Constraint<> obj_UB("obj_UB");
-    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
-    SDPOPF->add(obj_UB<=0);
+    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta*upper_bound;
+    SDPOPF->add(obj_UB.in(range(0,0))<=0);
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
@@ -2259,14 +2261,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
         {
         if (lazy_bool) {
             if(interior)
-            SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= eta);
+            SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= eta_int);
             else
             SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
             
         }
         else {
                  if(interior)
-            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= eta);
+            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= eta_int);
             else
                 SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
@@ -2408,8 +2410,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
         //        SDPOPF->add(II_conj.in(arcs)==0, convexify);
         
         Constraint<Cpx> I_from("I_from");
-        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        SDPOPF->add_real(I_from.in(arcs)==pow(tr,2)*L_from);
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
+        SDPOPF->add_real(I_from.in(arcs)==0);
         
         //        var<Cpx> L_to("L_to");
         //        L_to.set_real(lji.in(arcs));

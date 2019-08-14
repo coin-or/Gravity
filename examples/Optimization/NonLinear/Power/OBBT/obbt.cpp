@@ -138,12 +138,11 @@ int main (int argc, char * argv[]) {
     OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     auto SDPL= build_SDPOPF(grid, loss_from, upper_bound, false, true);
-    auto SDP= build_SDPOPF_linear(grid, upper_bound);
     solver<> SDPLB(SDPL,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 5, tol = 1e-6);
     SDPL->print();
-    double lower_bound=SDPL->get_obj_val();
+    double lower_bound=SDPL->get_obj_val()*upper_bound;
     const double active_tol=1e-6;
     
     auto gap = 100*(upper_bound - lower_bound)/upper_bound;
@@ -153,7 +152,7 @@ int main (int argc, char * argv[]) {
 //    SDP->print();
 //    SDP->print_solution();
     
-
+    auto SDP=SDPL->buildOA();
     
     DebugOn("cplex"<<endl);
     solver<> SDPLB1(SDP,solv_type_c);
@@ -161,7 +160,7 @@ int main (int argc, char * argv[]) {
     SDPLB1.run(output = 7, tol=1e-7);
     SDP->print();
     
-    gap = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
+    gap = 100*(upper_bound - SDP->get_obj_val()*upper_bound)/upper_bound;
     DebugOn("Initial Gap cplex = " << to_string(gap) << "%."<<endl);
     
     
@@ -518,10 +517,10 @@ int main (int argc, char * argv[]) {
                 SDP->print_constraints_stats(tol);
                 gap = 100*(upper_bound - lower_bound)/upper_bound;
                 DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
-                gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
+                gap = 100*(upper_bound - (SDP->get_obj_val())*upper_bound)/upper_bound;
                 DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                 DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                DebugOn("Lower bound = " << to_string((SDP->get_obj_val())) << "."<<endl);
+                DebugOn("Lower bound = " << to_string((SDP->get_obj_val())*upper_bound) << "."<<endl);
                 DebugOn("Time\t"<<solver_time<<endl);
                 
             }

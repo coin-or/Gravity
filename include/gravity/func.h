@@ -1088,8 +1088,8 @@ namespace gravity {
             
             res.eval_all();
             res.uneval();
-            DebugOn("printin res in func.h"<<endl);
-            res.print();
+//            DebugOn("printin res in func.h"<<endl);
+//            res.print();
 //            res.merge_vars(*this);
            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
