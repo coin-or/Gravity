@@ -1107,7 +1107,7 @@ namespace gravity {
                                             for (int j=i/2+1; j<num_partns1; ++j) {
                                                 cur_idx =  cur_var_idx +","+name1+"{"+to_string(j+1)+"}," +  to_string(i+1);
                                                 on_coef.set_val(cur_idx,-1);
-                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+",}" + to_string(i+2) ;
+                                                cur_idx = cur_var_idx+","+name1+"{"+to_string(j+1)+"}," + to_string(i+2) ;
                                                 on_coef.set_val(cur_idx,1);
                                             }
                                         }
@@ -3086,11 +3086,11 @@ namespace gravity {
                                 auto nb_entries = added.get_nb_entries();
                                 auto total_entries = inst_partition.get_nb_entries();
                                 
+                                Constraint<> onSumComb(pair.first+"_binarySum");
+                                onSumComb = sum((binvar1->in(added1)).in_matrix(nb_entries,total_entries-nb_entries));
+                                add(onSumComb.in(added) == 1);
+                                
                                 if(model_type == "on/off"){//if on/off is chosen
-                                    Constraint<> onSumComb(pair.first+"_binarySum");
-                                    onSumComb = sum((binvar1->in(added1)).in_matrix(nb_entries,total_entries-nb_entries));
-                                    add(onSumComb.in(added) == 1);
-                                    
                                     add_on_off_McCormick_refined(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids), binvar1->in(added1));
                                 }
                                 
@@ -4049,7 +4049,7 @@ namespace gravity {
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-                                        o2_rep = bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries,1) * lambda->in(added).in_matrix(nb_entries,total_entries-nb_entries) - o2.in(o2_ids);
+                                        o2_rep = bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda).in_matrix(nb_entries,1) * lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries) - o2.in(o2_ids);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -8668,14 +8668,6 @@ namespace gravity {
         template<typename T=type>
         void on_off_SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10) { //currently the function asssumes there are only qterms!
             
-            //introduce the extra constraint x1^2 + x2^2 <= t^2 and call SOC_partition on this,
-            //then, replace x1^2 + x2^2 with t^2 in the original constraint and call SOC_partition on this as well
-            //derive the hyperplane coefficients for each instance and store them as param
-            //make the indexing correct
-            //assign _in_SOC_partn = true
-            //create binary variables and the constraint that sums to 1 (with proper indexing)
-            //call add_on_off_multivariate_refined
-            
             auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
             auto is_SOC = c.check_soc();
             
@@ -8867,6 +8859,15 @@ namespace gravity {
         
         template<typename T=type>
         void add_on_off_SOC_hyperplanes(Constraint<type>& c, int num_SOC_partitions) { //currently the function asssumes there are only qterms!
+            
+            //when deriving the hyperplanes, check the term is bilinear or quadratic
+            //derive the hyperplane coefficients for each instance and store them as param
+            //make the indexing correct
+            //assign _in_SOC_partn = true via set_in_SOC_partn(true);
+            //create binary variables and the constraint that sums to 1 (with proper indexing)
+            //call add_on_off_multivariate_refined
+            
+            
             DebugOn("SOC_hyperplane function!" << endl);
             c.print();
         }
