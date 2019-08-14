@@ -33,8 +33,8 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-    //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -387,9 +387,9 @@ int main (int argc, char * argv[])
     //    SOCP.reset_constrs();
     double max_time = 100000;
     int max_iter = 5;
-    int precision = 6;
+    int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-    //    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -829,10 +829,10 @@ int main (int argc, char * argv[])
         nonzero_arcs.add("40,25,37", "4,2,30" ,"13,6,31", "19,10,32", "36,22,35", "9,5,6", "28,16,24", "18,10,13", "38,23,36", "14,7,8", "1,1,39", "16,9,39", "17,10,11", "11,6,7", "29,17,18");
         
         indices arcs1("arcs1");
-        arcs1.add("0,1,4", "1,4,5", "2,5,6");
+        arcs1.add("0,1,4", "1,4,5");
         
         indices arcs2("arcs2");
-        arcs2.add("2,5,6", "3,3,6", "4,6,7");
+        arcs2.add("2,5,6");
         
         indices arcs3("arcs3");
         arcs3.add("5,7,8", "6,2,8", "7,8,9");
@@ -841,7 +841,7 @@ int main (int argc, char * argv[])
         bus_pairs1.add("1,4", "4,5", "5,6");
         
         indices bus_pairs2("bus_pairs2");
-        bus_pairs2.add("8,9", "5,6"); //"5,6", "3,6", "6,7", "7,8", "2,8"
+        bus_pairs2.add("8,9", "5,6","3,6"); //"5,6", "3,6", "6,7", "7,8", "2,8"
         
         
         
@@ -849,67 +849,24 @@ int main (int argc, char * argv[])
             
             
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 2;
-            Qf_to._num_partns = 2;
-            Wii._num_partns = 1;
-            lji._num_partns = 1;
+            Pf_to._num_partns = 10;
+            Qf_to._num_partns = 10;
+            Wii._num_partns = 3;
+            lji._num_partns = 3;
             
-            //            Pf_from._num_partns = 10;
-            //            Qf_from._num_partns = 10;
-            //            lij._num_partns = 4;
+//            R_Wij._num_partns = 10;
+//            Im_Wij._num_partns = 10;
             
-            R_Wij._num_partns = 3;
-            Im_Wij._num_partns = 1;
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
+//            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_II");
+            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_III");
+//            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
             
-            Constraint<> Equality_SOC("Equality_SOC");
-            Equality_SOC = pow(R_Wij.in(bus_pairs1), 2) + pow(Im_Wij.in(bus_pairs1), 2) - Wii.from(bus_pairs1)*Wii.to(bus_pairs1);
-            SOCP.add(Equality_SOC.in(bus_pairs1) == 0, true, "lambda_II");
-//            SOCP.add(Equality_SOC.in(bus_pairs1) == 0, true);
-            
-            Constraint<> Equality_SOC_2("Equality_SOC_2");
-            Equality_SOC_2 = pow(R_Wij.in(bus_pairs2), 2) + pow(Im_Wij.in(bus_pairs2), 2) - Wii.from(bus_pairs2)*Wii.to(bus_pairs2);
-            SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true, "lambda_II");
-//            SOCP.add(Equality_SOC_2.in(bus_pairs2) == 0, true);
 
             
-            //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            //            I_to_Pf_EQ = Wii.to(arcs1)*lji.in(arcs1)-(pow(Pf_to.in(arcs1),2) + pow(Qf_to.in(arcs1), 2));
-            //            SOCP.add(I_to_Pf_EQ.in(arcs1)==0, true);
-            //
-            //            Constraint<> I_to_Pf_EQ_2("I_to_Pf_EQ_2");
-            //            I_to_Pf_EQ_2 = lji.in(arcs2)*Wii.to(arcs2)-(pow(Pf_to.in(arcs2),2) + pow(Qf_to.in(arcs2), 2));
-            //            SOCP.add(I_to_Pf_EQ_2.in(arcs2)==0, true);
-            //
-            //            Constraint<> I_to_Pf_EQ_3("I_to_Pf_EQ_3");
-            //            I_to_Pf_EQ_3 = lji.in(arcs3)*Wii.to(arcs3)-(pow(Pf_to.in(arcs3),2) + pow(Qf_to.in(arcs3), 2));
-            //            SOCP.add(I_to_Pf_EQ_3.in(arcs3)==0, true);
             
             
-            
-            
-            
-            //            Constraint<> I_from_Pf_EQ("I_from_Pf_EQ");
-            //            I_from_Pf_EQ=lij.in(nonzero_arcs)*Wii.from(nonzero_arcs)-pow(tr.in(nonzero_arcs),2)*(pow(Pf_from.in(nonzero_arcs),2) + pow(Qf_from.in(nonzero_arcs),2));
-            //            SOCP.add(I_from_Pf_EQ.in(nonzero_arcs)==0,true);
-            
-            //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            //            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
-            //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
-            //
-            //            Constraint<> I_from_Pf_EQ("I_from_Pf_EQ");
-            //            I_from_Pf_EQ=lij.in(nonzero_idx)*Wii.from(nonzero_idx)-pow(tr.in(nonzero_idx),2)*(pow(Pf_from.in(nonzero_idx),2) + pow(Qf_from.in(nonzero_idx),2));
-            //            SOCP.add(I_from_Pf_EQ.in(nonzero_idx)==0,true);
-            
-            
-            
-            
-            //                        SOCP.print();
-            //            auto binvar_ptr1 = SOCP._vars_name.find("Wii_binary");
-            //            auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
-            //            binvar1->print();
-            //            auto binvar_ptr2 = SOCP._vars_name.find("WiiWii_binary");
-            //            auto binvar2 = static_pointer_cast<var<int>>(binvar_ptr2->second);
-            //            binvar2->print();
             
 //            SOCP.on_off_SOC_partition(Equality_SOC_2);
             
@@ -947,8 +904,8 @@ int main (int argc, char * argv[])
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
-    SOCP.print();
-    SOCP.print_solution();
+//    SOCP.print();
+//    SOCP.print_solution();
     
     
     return 0;

@@ -995,6 +995,7 @@ namespace gravity {
         
         bool get_lift() const{return _lift;};
         bool get_in_SOC_partn() const{return _in_SOC_partn;};
+        void set_in_SOC_partn(bool in_SOC_partn) {this->_in_SOC_partn = in_SOC_partn;};
         
     };
     
