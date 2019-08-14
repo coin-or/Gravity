@@ -33,8 +33,8 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -272,8 +272,8 @@ int main (int argc, char * argv[])
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP.add(I_from_Pf.in(arcs)>=0);
-        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+        SOCP.add(I_from_Pf.in(arcs)==0,true);
+//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
@@ -284,7 +284,10 @@ int main (int argc, char * argv[])
         /* Second-order cone */
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP.add(SOC.in(bus_pairs) <= 0);
+        SOCP.add(SOC.in(bus_pairs) == 0, true);
+        
+        //trial use SOC_partition
+        SOCP.on_off_SOC_partition(I_to_Pf);
         
     }
     
@@ -389,7 +392,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+//    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -857,18 +860,14 @@ int main (int argc, char * argv[])
 //            R_Wij._num_partns = 10;
 //            Im_Wij._num_partns = 10;
             
-            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
+//            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+//            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_II");
-            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_III");
+//            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_III");
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
             
-
             
             
-            
-            
-//            SOCP.on_off_SOC_partition(Equality_SOC_2);
             
         }
     }
