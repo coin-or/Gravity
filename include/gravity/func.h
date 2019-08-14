@@ -1022,7 +1022,7 @@ namespace gravity {
                            res -= dfv*xv;
                 }
                 }
-                else if(!v->_is_vector)
+                else if(!(v->_is_vector))
                 {
                 posv=v->get_id_inst(nb_inst);
                 v->get_double_val(posv, xv);
@@ -1088,8 +1088,8 @@ namespace gravity {
             
             res.eval_all();
             res.uneval();
-            
-            //res.print();
+            DebugOn("printin res in func.h"<<endl);
+            res.print();
 //            res.merge_vars(*this);
            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             

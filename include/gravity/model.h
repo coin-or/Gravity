@@ -8436,6 +8436,141 @@ namespace gravity {
             }
         }
         
+    //Outer approximation of model. Assumes no nonlinear equality constraints
+        shared_ptr<Model<>> buildOA()
+        {
+            auto OA=make_shared<Model<>>(_name+"-OA Model");
+            const double active_tol=1e-6;
+            
+            vector<double> xsolution;
+            double xv;
+            size_t posv;
+             vector<vector<double>> xactive_array;
+            int counter;
+        for (auto &it: _vars)
+        {
+            auto v = it.second;
+            if(!OA->has_var(*v)){
+                OA->add_var(v);
+            }
+        }
+            auto obj=*_obj;
+            OA->min(obj);
+            string cname;
+        for (auto &con: _cons_vec)
+        {
+            cname=con->_name;
+            if(!con->is_linear())
+            {
+                for(auto i=0;i<con->get_nb_inst();i++)
+                    
+                {
+                    con->uneval();
+                    if(abs(con->eval(i))<=active_tol ||( con->is_convex() && !con->is_rotated_soc() && !con->check_soc()))
+                    {
+                        con->uneval();
+                        func<> oacon=con->get_outer_app_insti(i);
+                        oacon.eval_all();
+                        Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+                        OA_sol=oacon;
+                        if(con->_ctype==leq)
+                            OA->add(OA_sol<=0);
+                            else if(con->_ctype==geq)
+                            OA->add(OA_sol>=0);
+                            oacon.uneval();
+                    }
+                    else //If constraint is not active xsolution is an interior point
+                    {
+                        xsolution.clear();
+                        for (auto &it: *con->_vars)
+                        {
+                            auto v = it.second.first;
+                            if(v->_is_vector)
+                            {
+                                for (auto i=0;i<v->_dim[0];i++)
+                                {
+                                    posv=i;
+                                    v->get_double_val(posv, xv);
+                                    xsolution.push_back(xv);
+                                }
+                            }
+                            else
+                            {
+                            posv=v->get_id_inst(i);
+                            v->get_double_val(posv, xv);
+                            xsolution.push_back(xv);
+                            }
+                        }
+                        
+                        xactive_array= con->get_active_point(i,  con->_ctype);
+                        
+                        for(auto j=0;j<xactive_array.size();j++)
+                        {
+                            if(xactive_array[j].size()>0)
+                            {
+                                con->uneval();
+                                
+                                counter=0;
+                                for (auto &it: *con->_vars)
+                                {
+                                    auto v = it.second.first;
+                                    if(v->_is_vector)
+                                    {
+                                        for (auto i=0;i<v->_dim[0];i++)
+                                        {
+                                            posv=i;
+                                            v->set_double_val(posv, xactive_array[j][counter++]);
+                                        }
+                                    }
+                                    else
+                                    {
+                                    posv=v->get_id_inst(i);
+                                    v->set_double_val(posv,xactive_array[j][counter++]);
+                                    }
+                                }
+                                con->uneval();
+                                func<> oa_iter=con->get_outer_app_insti(i);
+                                oa_iter.eval_all();
+                                Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(j));
+                                OA_itercon=oa_iter;
+            
+                                if(con->_ctype==leq)
+                                OA->add(OA_itercon<=0);
+                                else if(con->_ctype==geq)
+                                OA->add(OA_itercon>=0);
+                                        
+                        }
+                        }
+                
+                        
+                        counter=0;
+                        for (auto &it: *con->_vars)
+                        {
+                            auto v = it.second.first;
+                            if(v->_is_vector)
+                            {
+                                for (auto i=0;i<v->_dim[0];i++)
+                                {
+                                    posv=i;
+                                    v->set_double_val(posv, xsolution[counter++]);
+                                }
+                            }
+                            else
+                            {
+                                posv=v->get_id_inst(i);
+                                v->set_double_val(posv,xsolution[counter++]);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                OA->add(*con);
+            }
+        }
+            return OA;
+        }
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
         void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
