@@ -7856,7 +7856,7 @@ namespace gravity {
             
         }
         
-        void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on){
+        void add_on_off_multivariate_refined(Constraint<type>& c, const var<int>& on, bool big_M = false){
             if (c.get_ftype() != lin_) {
                 cerr << "Nonlinear constraint.\n";
                 exit(-1);
@@ -7875,8 +7875,10 @@ namespace gravity {
             std::bitset<64> S;
             //decide on the subset selection limit
             int num_subset;
-            if (n_terms <= 2) num_subset = 1;
+            
+            if ((n_terms <= 2) || (big_M)) num_subset = 1;
             else num_subset = std::pow(2,n_terms) -1;
+            
             for (int i = 0 ; i< num_subset ; ++i) { //should be num_subset
                 S = i;
                 int j = 0;
@@ -8689,6 +8691,10 @@ namespace gravity {
                 n_c._ctype = leq;
             }
             
+            //create the variables for bound calculations
+            var<> v1;
+            var<> v2;
+            
             if (is_SOC) //if it is SOC
             {
                 unsigned num_qterms = n_c._qterms->size();
@@ -8700,25 +8706,88 @@ namespace gravity {
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
                     bool first = false; //for adding -t^2 to which
-                    auto aux_idx = *n_c._indices; /****************************************************************************************** use this or n_c._indices->_keys->at(inst)? ***/
+                    auto aux_idx = *n_c._indices;
+                    
+                    //flag for assignment
+                    bool first_occupied = false;
                     
                     //go over the qterms
                     unsigned counter = 0;
                     for (auto &qt_pair: *n_c._qterms) {
+                        if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+                            throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+                        }
                         auto sign = qt_pair.second._sign;
+                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
                         if (counter < 2) {
                             SOC_1.insert(qt_pair.second);
-                            if (!sign) first = true;
+                            if (sign ^ (coef->is_positive())) {
+                                first = true;
+                            }
                         }
                         else SOC_2.insert(qt_pair.second);
                         
                         ++counter;
                     }
+                    
                     //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
-                    var<type> t("t_" + n_c._name, 0, 10); //create the auxilary variable
+                    if (first){
+                        for (auto &qt_pair: *SOC_2._qterms) {
+                            if (!first_occupied){
+                                v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                                first_occupied = true;
+                            }
+                            else v2 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        }
+                    }
+                    else{
+                        for (auto &qt_pair: *SOC_1._qterms) {
+                            if (!first_occupied){
+                                v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                                first_occupied = true;
+                            }
+                            else v2 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        }
+                    }
+
+                    //update the upper bound of t
+                    param<type> ub("ub");
+                    ub.in(aux_idx);
+                    
+                    for (int i=0; i<aux_idx.size(); i++) {
+                        //calculate all the possibilities and assign the worst case
+                        size_t id1;
+                        size_t id2;
+                        
+                        if(v1._indices->_ids == nullptr){
+                            id1 = i;
+                        }
+                        else id1 = v1._indices->_ids->at(0).at(i);
+                        auto key1 = v1._indices->_keys->at(id1);
+                        
+                        if(v2._indices->_ids == nullptr){
+                            id2 = i;
+                        }
+                        else id2 = v2._indices->_ids->at(0).at(i);
+                        auto key2 = v2._indices->_keys->at(id2);
+                        
+                        auto prod_b1 = std::max(v1.get_lb(key1)*v1.get_lb(key1), v1.get_ub(key1)*v1.get_ub(key1));
+                        auto prod_b2 = std::max(v2.get_lb(key2)*v2.get_lb(key2), v2.get_ub(key2)*v2.get_ub(key2));
+                        
+                        size_t id3;
+                        if(aux_idx._ids == nullptr){
+                            id3 = i;
+                        }
+                        else id3 = aux_idx._ids->at(0).at(i);
+                        auto key3 = aux_idx._keys->at(id3);
+                        
+                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2));
+                    }
+                    
+                    var<type> t("t_" + n_c._name, 0, ub); //create the auxilary variable
                     add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
                     if (first) { //add constraints accordingly
@@ -8765,18 +8834,65 @@ namespace gravity {
                     
                     auto aux_idx = *n_c._indices; /*** use this or n_c._indices->_keys->at(inst)? ***/
                     
+                    //flag for assignment
+                    bool first_occupied = false;
+                    
                     //go over the qterms
                     for (auto &qt_pair: *n_c._qterms) {
                         if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
                             SOC_1.insert(qt_pair.second);
                         }
-                        else SOC_2.insert(qt_pair.second);
+                        else {
+                            if (!first_occupied) {
+                                v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                                first_occupied = true;
+                            }
+                            else {
+                                v2 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            }
+                            SOC_2.insert(qt_pair.second);
+                        }
                     }
                     //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
-                    var<type> t("t_" + n_c._name, 0,10); //create the auxilary variable
+                    
+                    //update the upper bound of t
+                    param<type> ub("ub");
+                    ub.in(aux_idx);
+                    
+                    for (int i=0; i<aux_idx.size(); i++) {
+                        //calculate all the possibilities and assign the worst case
+                        size_t id1;
+                        size_t id2;
+                        
+                        if(v1._indices->_ids == nullptr){
+                            id1 = i;
+                        }
+                        else id1 = v1._indices->_ids->at(0).at(i);
+                        auto key1 = v1._indices->_keys->at(id1);
+                        
+                        if(v2._indices->_ids == nullptr){
+                            id2 = i;
+                        }
+                        else id2 = v2._indices->_ids->at(0).at(i);
+                        auto key2 = v2._indices->_keys->at(id2);
+
+                        auto prod_b1 = std::max(v1.get_lb(key1)*v1.get_lb(key1), v1.get_ub(key1)*v1.get_ub(key1));
+                        auto prod_b2 = std::max(v2.get_lb(key2)*v2.get_lb(key2), v2.get_ub(key2)*v2.get_ub(key2));
+                        
+                        size_t id3;
+                        if(aux_idx._ids == nullptr){
+                            id3 = i;
+                        }
+                        else id3 = aux_idx._ids->at(0).at(i);
+                        auto key3 = aux_idx._keys->at(id3);
+                        
+                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2));
+                    }
+                    
+                    var<type> t("t_" + n_c._name, 0,ub); //create the auxilary variable
                     add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
                     //add constraints accordingly
@@ -8835,30 +8951,32 @@ namespace gravity {
                 bool first_occupied = false;
                 
                 for (auto &qt_pair: *c._qterms) {
-                    auto sign = qt_pair.second._sign;
                     if (!qt_pair.second._p->first->is_double()) {
                         throw invalid_argument("Current hyperplanes only support double type variables!");
                     }
                     if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
                         throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
                     }
-                    if (sign){
+                    auto sign = qt_pair.second._sign;
+                    auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                    if (sign ^ (coef->is_negative())) {
                         if (!first_occupied){
                             lhs_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
-                            auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
-                            lhs_first_scale = std::sqrt(coef->eval());
+                            if(coef->is_positive()) lhs_first_scale = std::sqrt(coef->eval());
+                            else lhs_first_scale = std::sqrt((-1)*coef->eval());
                             first_occupied = true;
                         }
                         else{
                             lhs_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
-                            auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
-                            lhs_second_scale = std::sqrt(coef->eval());
+                            if(coef->is_positive()) lhs_second_scale = std::sqrt(coef->eval());
+                            else lhs_second_scale = std::sqrt((-1)*coef->eval());
+                            
                         }
                     }
                     else{
                         rhs_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
-                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
-                        rhs_scale = std::sqrt(coef->eval());
+                        if(coef->is_positive()) rhs_scale = std::sqrt(coef->eval());
+                        else rhs_scale = std::sqrt((-1)*coef->eval());
                     }
                 }
                
@@ -8929,7 +9047,7 @@ namespace gravity {
               
                 SOC_hyperplanes = lhs_first_var.from_ith(0, inst_combined_partn) * lhs_first_coef + lhs_second_var.from_ith(nb_entries_v1, inst_combined_partn) * lhs_second_coef + rhs_var.from_ith(nb_entries_v1 + nb_entries_v2, inst_combined_partn) * rhs_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 lhs_first_var._in_SOC_partn = false;
@@ -8963,12 +9081,14 @@ namespace gravity {
                             bln_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
                             bln_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->second);
                             auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
-                            bln_scale = std::sqrt(coef->eval())/2; //dividing to two since the standard form has 1/4 as the multiplier
+                            if(coef->is_positive()) bln_scale = std::sqrt(coef->eval())/2; //dividing to two since the standard form has 1/4 as the multiplier
+                            else bln_scale = std::sqrt((-1)*coef->eval())/(2);
                     }
                     else{
                         quad_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
                         auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
-                        quad_scale = std::sqrt(coef->eval());
+                        if(coef->is_positive()) quad_scale = std::sqrt(coef->eval());
+                        else quad_scale = std::sqrt((-1)*coef->eval());
                     }
                 }
                 
@@ -9038,7 +9158,7 @@ namespace gravity {
                 
                 SOC_hyperplanes = quad_var.from_ith(0, inst_combined_partn) * quad_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) - bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_minus_second_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) + bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_plus_second_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-                add_on_off_multivariate_refined(SOC_hyperplanes, on);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 quad_var._in_SOC_partn = false;
