@@ -255,9 +255,9 @@ int main (int argc, char * argv[]) {
     SDP.min(eta(0));
    // SDPOA.min(eta(0));
     
-    Constraint<> obj("obj");
-    obj  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
-    SDP.add(obj.in(range(0,0)) <= 0);
+    Constraint<> obj_UB("obj_UB");
+    obj_UB  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
+    SDP.add(obj_UB.in(range(0,0)) <= 0);
 
 
     
@@ -634,16 +634,16 @@ int main (int argc, char * argv[]) {
 //
 //
     
-    auto SDPOA=SDP.buildOA();
-    SDPOA->print();
-
-
-    solver<> SDPOPFA(SDPOA,cplex);
-    solver_time_start = get_wall_time();
-
-    SDPOPFA.run(output = 5, tol = 1e-6);
-    SDPOA->print_solution();
-     SDPOA->print_constraints_stats(tol);
+//    auto SDPOA=SDP.buildOA();
+//    SDPOA->print();
+//
+//
+//    solver<> SDPOPFA(SDPOA,cplex);
+//    solver_time_start = get_wall_time();
+//
+//    SDPOPFA.run(output = 5, tol = 1e-6);
+//    SDPOA->print_solution();
+//     SDPOA->print_constraints_stats(tol);
     
 
     
@@ -667,7 +667,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    lower_bound = SDPOA->get_obj_val()*upper_bound;
+   // lower_bound = SDPOA->get_obj_val()*upper_bound;
     gap = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Final Gap with OA model = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
@@ -693,6 +693,28 @@ int main (int argc, char * argv[]) {
     //   SDP.print_solution();
     
     
+    
+    auto con=SDP.get_constraint("Qf_from,Qf_from_McCormick_squared");
+    DebugOn("SOC or not "<< con->check_soc());
+    int nb_discr=4;
+    func<> res;
+    bool flag;
+    vector<double> d;
+
+        for(auto i=0;i<con->get_nb_instances();i++)
+        {
+            for (auto d1=0;d1<nb_discr;d1++)
+            {d.clear();
+                d.push_back(d1);
+            flag=con->get_grid_discretize(nb_discr, i, d);
+            if(flag){
+            res=con->get_outer_app_insti(i);
+            res.print();
+            }
+        }
+    }
+    
+   
     
     return 0;
     

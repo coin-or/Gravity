@@ -31,7 +31,7 @@ int main (int argc, char * argv[]) {
     string sdp_cuts_s = "yes";
     
     string loss_s = "yes";
-    string time_s = "60";
+    string time_s = "1000";
     
     string lazy_s = "no";
     string orig_s = "no";
@@ -152,12 +152,13 @@ int main (int argc, char * argv[]) {
 //    SDP->print();
 //    SDP->print_solution();
     
-    auto SDP=SDPL->buildOA();
+    auto SDP=SDPL->buildOA(4);
+    SDP->print();
     
     DebugOn("cplex"<<endl);
-    solver<> SDPLB1(SDP,solv_type_c);
+    solver<> SDPLB1(SDP,solv_type);
     DebugOn("Lower bounding cplex"<<endl);
-    SDPLB1.run(output = 7, tol=1e-7);
+    SDPLB1.run(output = 7, tol=1e-6);
     SDP->print();
     
     gap = 100*(upper_bound - SDP->get_obj_val()*upper_bound)/upper_bound;
@@ -309,8 +310,8 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
 #else
-                              //  run_parallel(batch_models,ipopt,1e-7,nb_threads, "ma57");
-                               run_parallel(batch_models,cplex,1e-7,nb_threads);
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                               //run_parallel(batch_models,cplex,1e-7,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -496,7 +497,7 @@ int main (int argc, char * argv[]) {
         if(worker_id==0){
 #endif
             SDP->reset_constrs();
-            solver<> SDPLB1(SDP,solv_type_c);
+            solver<> SDPLB1(SDP,solv_type);
             
             SDPLB1.run(output = 5, tol=1e-7);
             SDP->print_constraints_stats(tol);

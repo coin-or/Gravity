@@ -957,6 +957,76 @@ namespace gravity {
                 }
             }
         }
+        //Assumes that no variable is of vector format
+        //To generalize to any convex function, use newton raphson and loop over all varaibles twice (fix different variabels to discretized values each time)
+        //If looping over all variables twice, have to check for feasibility of an assignment
+        
+        //Assumes soc, rotated soc variables are ordered in a standard form (x_1^2+x_2^2<=x_3x_4)
+        bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            // res = gradf(x*)*(x-x*) + f(x*)
+         
+            size_t posv;
+            double lb, ub, xv;
+            vector<double> xgrid;
+            bool solution;
+            const double zero_tol=1e-8;
+            solution=true;
+            xgrid.clear();
+            int counter=0;
+            for(auto it=_vars->begin(); it!=_vars->end(); it++)
+            {
+                auto v = (*it).second.first;
+                posv=v->get_id_inst(nb_inst);
+                if(next(it) != _vars->end())
+                {
+             
+                ub=v->get_double_ub(posv);
+                lb=v->get_double_lb(posv);
+                xv=lb+d[counter++]*(ub-lb)/nb_discr;
+                v->set_double_val(posv, xv);
+                xgrid.push_back(xv);
+                }
+                else
+                {
+                 if(check_soc())
+                 {
+                     xv=sqrt(pow(xgrid[0],2)+pow(xgrid[1],2));
+                     v->set_double_val(posv, xv);
+                      xgrid.push_back(xv);
+                     
+                 }
+                    if(check_rotated_soc())
+                    {
+                        if(abs(xgrid[2])>=zero_tol)
+                        {
+                        xv=(pow(xgrid[0],2)+pow(xgrid[1],2))/(xgrid[2]);
+                        v->set_double_val(posv, xv);
+                        xgrid.push_back(xv);
+                        }
+                        else
+                        {
+                            solution=false;
+                        }
+                        
+                    }
+                    if(_name.find("_squared")!=std::string::npos)
+                    {
+                        xv=pow(xgrid[0],2);
+                        v->set_double_val(posv, xv);
+                        xgrid.push_back(xv);
+                    }
+                }
+            }
+//            for(auto i=0;i<xgrid.size();i++)
+//            {
+//                DebugOn(xgrid[i]<<"\t");
+//                
+//            }
+//            DebugOn(endl);
+                return solution;
+        }
+        
+        
         
         func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
