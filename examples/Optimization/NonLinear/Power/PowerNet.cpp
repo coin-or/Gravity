@@ -2239,6 +2239,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss, double upper_bound, 
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta*upper_bound;
     SDPOPF->add(obj_UB.in(range(0,0))<=0);
+    
+//    Constraint<> obj_UB1("obj_UB1");
+//    obj_UB1=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
+//    SDPOPF->add(obj_UB1.in(range(0,0))<=0);
+    
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         

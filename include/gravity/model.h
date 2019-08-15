@@ -8437,15 +8437,17 @@ namespace gravity {
         }
         
     //Outer approximation of model. Assumes no nonlinear equality constraints
-        shared_ptr<Model<>> buildOA()
+        shared_ptr<Model<>> buildOA(int nb_discr)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
             const double active_tol=1e-6;
             
-            vector<double> xsolution;
+            vector<double> xsolution, d;
             double xv;
             size_t posv;
-             vector<vector<double>> xactive_array;
+            func<> res;
+            bool flag;
+            vector<vector<double>> xactive_array;
             int counter;
         for (auto &it: _vars)
         {
@@ -8466,19 +8468,65 @@ namespace gravity {
                     
                 {
                     con->uneval();
-                    if(abs(con->eval(i))<=active_tol ||( con->is_convex() && !con->is_rotated_soc() && !con->check_soc()))
+                   // if(abs(con->eval(i))<=active_tol ||( con->is_convex() && !con->is_rotated_soc() && !con->check_soc()))
+                    if(con->_name=="SDP_3D")
                     {
-                        con->uneval();
-                        func<> oacon=con->get_outer_app_insti(i);
-                        oacon.eval_all();
-                        Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
-                        OA_sol=oacon;
-                        if(con->_ctype==leq)
-                            OA->add(OA_sol<=0);
-                            else if(con->_ctype==geq)
-                            OA->add(OA_sol>=0);
-                            oacon.uneval();
+//                        if(abs(con->eval(i))<=active_tol)
+//                    {
+//                        con->uneval();
+//                        func<> oacon=con->get_outer_app_insti(i);
+//                        oacon.eval_all();
+//                        Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+//                        OA_sol=oacon;
+//                        if(con->_ctype==leq)
+//                            OA->add(OA_sol<=0);
+//                            else if(con->_ctype==geq)
+//                            OA->add(OA_sol>=0);
+//                            oacon.uneval();
+//                    }
+                        OA->add(*con);
                     }
+                    else if(con->_name=="obj_UB")
+                    {
+                        Constraint<> obj_UB("obj_UB");
+                        obj_UB=*con;
+                        OA->add(obj_UB<=0);
+                    }
+                    else if(con->_name=="obj_UB1")
+                    {
+                        Constraint<> obj_UB1("obj_UB1");
+                        obj_UB1=*con;
+                        OA->add(obj_UB1<=0);
+                    }
+//                    else if(con->_name=="SOC_convex")
+//                    {
+//                        Constraint<> SOC_convex("SOC_convex");
+//                        SOC_convex=*con;
+//                        OA->add(SOC_convex<=0);
+//                    }
+//                    else if(con->_name=="I_from_Pf_concave")
+//                    {
+//                        Constraint<> I_from_Pf_concave("I_from_Pf_concave");
+//                        I_from_Pf_concave=*con;
+//                        OA->add(I_from_Pf_concave<=0);
+//                    }
+                    else if(con->_name=="Thermal_Limit_from")
+                    {
+                        Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+                        Thermal_Limit_from=*con;
+                        OA->add(Thermal_Limit_from<=0);
+                    }
+                    else if(con->_name=="Thermal_Limit_to")
+                    {
+                        Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+                        Thermal_Limit_to=*con;
+                        OA->add(Thermal_Limit_to<=0);
+                    }
+//                    else if(con->_name.find("squared")!=string::npos)
+//                    {
+////                     
+//                        OA->add(*con);
+//                    }
                     else //If constraint is not active xsolution is an interior point
                     {
                         xsolution.clear();
@@ -8501,48 +8549,65 @@ namespace gravity {
                             xsolution.push_back(xv);
                             }
                         }
-                        
-                        xactive_array= con->get_active_point(i,  con->_ctype);
-                        
-                        for(auto j=0;j<xactive_array.size();j++)
+                        if(con->check_rotated_soc())
                         {
-                            if(xactive_array[j].size()>0)
+                           
+                        for (auto d1=0;d1<nb_discr;d1++)
+                        {
+                            for (auto d2=0;d2<nb_discr;d2++)
                             {
-                                con->uneval();
-                                
-                                counter=0;
-                                for (auto &it: *con->_vars)
-                                {
-                                    auto v = it.second.first;
-                                    if(v->_is_vector)
-                                    {
-                                        for (auto i=0;i<v->_dim[0];i++)
-                                        {
-                                            posv=i;
-                                            v->set_double_val(posv, xactive_array[j][counter++]);
-                                        }
-                                    }
-                                    else
-                                    {
-                                    posv=v->get_id_inst(i);
-                                    v->set_double_val(posv,xactive_array[j][counter++]);
-                                    }
+                                for (auto d3=0;d3<nb_discr;d3++)
+                            {
+                                 d.clear();
+                                d.push_back(d1);
+                                d.push_back(d2);
+                                d.push_back(d3);
+                                flag=con->get_grid_discretize(nb_discr, i, d);
+                                if(flag){
+                                    con->uneval();
+                                    func<> oa_iter=con->get_outer_app_insti(i);
+                                    oa_iter.eval_all();
+                                    Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1)+to_string(d2)+to_string(d3));
+                                    OA_itercon=oa_iter;
+                                    
+                                    if(con->_ctype==leq)
+                                        OA->add(OA_itercon<=0);
+                                    else if(con->_ctype==geq)
+                                        OA->add(OA_itercon>=0);
                                 }
-                                con->uneval();
-                                func<> oa_iter=con->get_outer_app_insti(i);
-                                oa_iter.eval_all();
-                                Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(j));
-                                OA_itercon=oa_iter;
-            
-                                if(con->_ctype==leq)
-                                OA->add(OA_itercon<=0);
-                                else if(con->_ctype==geq)
-                                OA->add(OA_itercon>=0);
-                                        
+                            
+                        }
+                            }
                         }
                         }
-                
                         
+                        if(con->_name.find("squared")!=string::npos)
+                        {
+                            
+                            for (auto d1=0;d1<nb_discr;d1++)
+                            {
+                         
+                                        d.clear();
+                                        d.push_back(d1);
+                                
+                                        flag=con->get_grid_discretize(nb_discr, i, d);
+                                        if(flag){
+                                            con->uneval();
+                                            func<> oa_iter=con->get_outer_app_insti(i);
+                                            oa_iter.eval_all();
+                                            Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1));
+                                            OA_itercon=oa_iter;
+                                            
+                                            if(con->_ctype==leq)
+                                                OA->add(OA_itercon<=0);
+                                            else if(con->_ctype==geq)
+                                                OA->add(OA_itercon>=0);
+                                        
+                                        
+                                
+                                }
+                            }
+                        }
                         counter=0;
                         for (auto &it: *con->_vars)
                         {
@@ -8562,7 +8627,8 @@ namespace gravity {
                             }
                         }
                     }
-                }
+                    
+                    }
             }
             else
             {
