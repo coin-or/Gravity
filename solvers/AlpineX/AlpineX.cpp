@@ -33,8 +33,8 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -287,11 +287,6 @@ int main (int argc, char * argv[])
         SOCP.add(SOC.in(bus_pairs) <= 0);
 //        SOCP.add(SOC.in(bus_pairs) == 0, true);
         
-        //trial use SOC_partition
-//        SOCP.on_off_SOC_partition(I_to_Pf);
-        SOCP.on_off_SOC_partition(SOC, 1000, 1000);
-
-        
     }
     
     
@@ -395,7 +390,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-//    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -869,6 +864,13 @@ int main (int argc, char * argv[])
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_III");
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
             
+            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+            I_to_Pf_temp = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
+            I_to_Pf_temp.in(nonzero_idx) >= 0;
+            
+            //trial use SOC_partition
+            SOCP.on_off_SOC_partition(I_to_Pf_temp,50,10);
+            
             
             
             
@@ -883,7 +885,7 @@ int main (int argc, char * argv[])
     /** use the following line if you want to relax the integer variables **/
 //        SOCOPF_CPX.run(true);
     SOCOPF_CPX.run(output,tol = 1e-6);
-//    SOCP.print(5);
+    SOCP.print(5);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
