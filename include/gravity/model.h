@@ -8449,192 +8449,117 @@ namespace gravity {
             bool flag;
             vector<vector<double>> xactive_array;
             int counter;
-        for (auto &it: _vars)
-        {
-            auto v = it.second;
-            if(!OA->has_var(*v)){
-                OA->add_var(v);
-            }
-        }
-            auto obj=*_obj;
-            OA->min(obj);
-            string cname;
-        for (auto &con: _cons_vec)
-        {
-            cname=con->_name;
-            if(!con->is_linear())
+            for (auto &it: _vars)
             {
-                for(auto i=0;i<con->get_nb_inst();i++)
-                    
-                {
-                    con->uneval();
-                   // if(abs(con->eval(i))<=active_tol ||( con->is_convex() && !con->is_rotated_soc() && !con->check_soc()))
-                    if(con->_name=="SDP_3D")
-                    {
-//                        if(abs(con->eval(i))<=active_tol)
-//                    {
-//                        con->uneval();
-//                        func<> oacon=con->get_outer_app_insti(i);
-//                        oacon.eval_all();
-//                        Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
-//                        OA_sol=oacon;
-//                        if(con->_ctype==leq)
-//                            OA->add(OA_sol<=0);
-//                            else if(con->_ctype==geq)
-//                            OA->add(OA_sol>=0);
-//                            oacon.uneval();
-//                    }
-                        OA->add(*con);
-                    }
-                    else if(con->_name=="obj_UB")
-                    {
-                        Constraint<> obj_UB("obj_UB");
-                        obj_UB=*con;
-                        OA->add(obj_UB<=0);
-                    }
-                    else if(con->_name=="obj_UB1")
-                    {
-                        Constraint<> obj_UB1("obj_UB1");
-                        obj_UB1=*con;
-                        OA->add(obj_UB1<=0);
-                    }
-//                    else if(con->_name=="SOC_convex")
-//                    {
-//                        Constraint<> SOC_convex("SOC_convex");
-//                        SOC_convex=*con;
-//                        OA->add(SOC_convex<=0);
-//                    }
-//                    else if(con->_name=="I_from_Pf_concave")
-//                    {
-//                        Constraint<> I_from_Pf_concave("I_from_Pf_concave");
-//                        I_from_Pf_concave=*con;
-//                        OA->add(I_from_Pf_concave<=0);
-//                    }
-                    else if(con->_name=="Thermal_Limit_from")
-                    {
-                        Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-                        Thermal_Limit_from=*con;
-                        OA->add(Thermal_Limit_from<=0);
-                    }
-                    else if(con->_name=="Thermal_Limit_to")
-                    {
-                        Constraint<> Thermal_Limit_to("Thermal_Limit_to");
-                        Thermal_Limit_to=*con;
-                        OA->add(Thermal_Limit_to<=0);
-                    }
-//                    else if(con->_name.find("squared")!=string::npos)
-//                    {
-////                     
-//                        OA->add(*con);
-//                    }
-                    else //If constraint is not active xsolution is an interior point
-                    {
-                        xsolution.clear();
-                        for (auto &it: *con->_vars)
-                        {
-                            auto v = it.second.first;
-                            if(v->_is_vector)
+                auto v = it.second;
+                if(!OA->has_var(*v)){
+                    OA->add_var(v);
+                }
+            }
+            auto obj=*_obj;
+            if(_objt==minimize){
+                OA->min(obj);
+            }
+            else {
+                OA->max(obj);
+            }
+            string cname;
+            for (auto &con: _cons_vec)
+            {
+                if(!con->is_linear() && !con->_ctype==eq) {
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                            Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+                            OA_sol=con->get_outer_app_insti(i);
+                            if(con->_ctype==leq) {
+                                OA->add(OA_sol<=0);
+                            }
+                            else {
+                                OA->add(OA_sol>=0);
+                            }
+                        }/** TODO: perturbation and symbolic version */
+                        else /* If constraint is not active xsolution is an interior point */
+                        {/**TODO func.get_x(xsolution) */
+                            xsolution.clear();
+                            for (auto &it: *con->_vars)
                             {
-                                for (auto i=0;i<v->_dim[0];i++)
+                                auto v = it.second.first;
+                                if(v->_is_vector)
                                 {
-                                    posv=i;
+                                    for (auto i=0;i<v->_dim[0];i++)
+                                    {
+                                        posv=i;
+                                        v->get_double_val(posv, xv);
+                                        xsolution.push_back(xv);
+                                    }
+                                }
+                                else
+                                {
+                                    posv=v->get_id_inst(i);
                                     v->get_double_val(posv, xv);
                                     xsolution.push_back(xv);
                                 }
                             }
-                            else
+                            if(con->check_rotated_soc())
                             {
-                            posv=v->get_id_inst(i);
-                            v->get_double_val(posv, xv);
-                            xsolution.push_back(xv);
-                            }
-                        }
-                        if(con->check_rotated_soc())
-                        {
-                           
-                        for (auto d1=0;d1<nb_discr;d1++)
-                        {
-                            for (auto d2=0;d2<nb_discr;d2++)
-                            {
-                                for (auto d3=0;d3<nb_discr;d3++)
-                            {
-                                 d.clear();
-                                d.push_back(d1);
-                                d.push_back(d2);
-                                d.push_back(d3);
-                                flag=con->get_grid_discretize(nb_discr, i, d);
-                                if(flag){
-                                    con->uneval();
-                                    func<> oa_iter=con->get_outer_app_insti(i);
-                                    oa_iter.eval_all();
-                                    Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1)+to_string(d2)+to_string(d3));
-                                    OA_itercon=oa_iter;
-                                    
-                                    if(con->_ctype==leq)
-                                        OA->add(OA_itercon<=0);
-                                    else if(con->_ctype==geq)
-                                        OA->add(OA_itercon>=0);
+                                
+                                for (auto d1=0;d1<nb_discr;d1++)
+                                {
+                                    for (auto d2=0;d2<nb_discr;d2++)
+                                    {
+                                        for (auto d3=0;d3<nb_discr;d3++)
+                                        {
+                                            d.clear();
+                                            d.push_back(d1);
+                                            d.push_back(d2);
+                                            d.push_back(d3);
+                                            flag=con->get_grid_discretize(nb_discr, i, d);
+                                            if(flag){
+                                                con->uneval();
+                                                func<> oa_iter=con->get_outer_app_insti(i);
+                                                oa_iter.eval_all();
+                                                Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1)+to_string(d2)+to_string(d3));
+                                                OA_itercon=oa_iter;
+                                                
+                                                if(con->_ctype==leq)
+                                                    OA->add(OA_itercon<=0);
+                                                else if(con->_ctype==geq)
+                                                    OA->add(OA_itercon>=0);
+                                            }
+                                            
+                                        }
+                                    }
                                 }
-                            
-                        }
                             }
-                        }
+                            
+                            
+                            counter=0;
+                            for (auto &it: *con->_vars)
+                            {
+                                auto v = it.second.first;
+                                if(v->_is_vector)
+                                {
+                                    for (auto i=0;i<v->_dim[0];i++)
+                                    {
+                                        posv=i;
+                                        v->set_double_val(posv, xsolution[counter++]);
+                                    }
+                                }
+                                else
+                                {
+                                    posv=v->get_id_inst(i);
+                                    v->set_double_val(posv,xsolution[counter++]);
+                                }
+                            }
                         }
                         
-                        if(con->_name.find("squared")!=string::npos)
-                        {
-                            
-                            for (auto d1=0;d1<nb_discr;d1++)
-                            {
-                         
-                                        d.clear();
-                                        d.push_back(d1);
-                                
-                                        flag=con->get_grid_discretize(nb_discr, i, d);
-                                        if(flag){
-                                            con->uneval();
-                                            func<> oa_iter=con->get_outer_app_insti(i);
-                                            oa_iter.eval_all();
-                                            Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1));
-                                            OA_itercon=oa_iter;
-                                            
-                                            if(con->_ctype==leq)
-                                                OA->add(OA_itercon<=0);
-                                            else if(con->_ctype==geq)
-                                                OA->add(OA_itercon>=0);
-                                        
-                                        
-                                
-                                }
-                            }
-                        }
-                        counter=0;
-                        for (auto &it: *con->_vars)
-                        {
-                            auto v = it.second.first;
-                            if(v->_is_vector)
-                            {
-                                for (auto i=0;i<v->_dim[0];i++)
-                                {
-                                    posv=i;
-                                    v->set_double_val(posv, xsolution[counter++]);
-                                }
-                            }
-                            else
-                            {
-                                posv=v->get_id_inst(i);
-                                v->set_double_val(posv,xsolution[counter++]);
-                            }
-                        }
                     }
-                    
-                    }
+                }
+                else
+                {
+                    OA->add(*con);
+                }
             }
-            else
-            {
-                OA->add(*con);
-            }
-        }
             return OA;
         }
         template<typename T=type,
