@@ -957,12 +957,18 @@ namespace gravity {
                 }
             }
         }
-        //Assumes that no variable is of vector format
-        //To generalize to any convex function, use newton raphson and loop over all varaibles twice (fix different variabels to discretized values each time)
-        //If looping over all variables twice, have to check for feasibility of an assignment
         
-        //Assumes soc, rotated soc variables are ordered in a standard form (x_1^2+x_2^2<=x_3x_4)
-        bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        /** Get a set of active points by uniformly discretizing the variable domain
+         @param[in] nb_discr:
+         @param[in] nb_inst:
+         @param[in] d:
+         @return True if found at least one active point after discretizing
+         Assumes that no variable is of vector format
+         Assumes soc, rotated soc variables are ordered in a standard form (x_1^2+x_2^2<=x_3x_4)
+         To generalize to any convex function, use newton raphson and loop over all varaibles twice (fix different variabels to discretized values each time)
+         If looping over all variables twice, have to check for feasibility of an assignment
+         **/
+        bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){
             // res = gradf(x*)*(x-x*) + f(x*)
          
             size_t posv;
@@ -9654,6 +9660,9 @@ namespace gravity {
     func<double> get_imag(constant_* c);
     func<double> get_mag(constant_* c);
     func<double> get_ang(constant_* c);
+    
+    vector<vector<int>> build_compositions(int k, int n);
+    
     }
     
     
