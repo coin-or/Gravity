@@ -766,8 +766,8 @@ namespace gravity {
             if(c.is_constant() || c.is_linear() || c.is_convex()){
                 return c;
             }
-            if(c.is_nonlinear()){
-                throw invalid_argument("lift can only be called on polynomial constraints");
+            if(c.is_nonlinear() || c.is_polynomial()){
+                throw invalid_argument("lift can only be called on quadratic constraints");
             }
             // lambda models are taken from Padberg's paper as they are described in type II and type III
             if((model_type != "on/off") && (model_type != "lambda_II") && (model_type != "lambda_III")){
@@ -807,6 +807,7 @@ namespace gravity {
                 }
                 lifted.insert(term);
             }
+            bool lift_sign; //create lift_sign for correct lower/upper bounding the variables etc
             for (auto &pair:*c._qterms) {
                 auto term = pair.second;
                 lterm lt;
@@ -822,6 +823,16 @@ namespace gravity {
                 else if(term._coef->is_number()) {
                     auto coef = *static_pointer_cast<constant<type>>(term._coef);
                     lt._coef = constant<type>(coef).copy();
+                    lift_sign = (term._sign ^ coef.is_negative()); //TODO: update prod_sign in other cases of coef type. Don't know how to do!
+                }
+                
+                if (c.func<type>::is_concave()) //reverse the sign if the constraint is concave
+                {
+                    DebugOn("Changing the sign of the lifted variable." << endl);
+                     lift_sign = !lift_sign;
+                }
+                else{
+                    DebugOn("Keeping the sign of the lifted variable same." << endl);
                 }
                 
                 //arrange the variables so that if they have the same base name, use them ordered in name
@@ -947,6 +958,16 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
+                            //check the sign of the lift and the correspoinding boudning functions
+                            if(lift_sign){
+                                vlift._lift_ub = true;
+                                vlift._lift_lb = false;
+                            }
+                            else{
+                                vlift._lift_ub = false;
+                                vlift._lift_lb = true;
+                            }
+                            
                             DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
@@ -1117,16 +1138,19 @@ namespace gravity {
                                 
                                 
                                 /** Constraints */
+                                if (vlift._lift_ub){
                                 // Representation of the quadratic term with secant
                                 Constraint<> quad_ub(pair.first+"_quad_ub");
                                 /************** this might not be working **************/
                                 quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda.in_matrix(nb_entries,total_entries-nb_entries) - vlift.in(unique_ids);
                                 add(quad_ub.in(unique_ids) >= 0); /*using it as the upper bound to be valid*/
-                                
+                                }
+                                if (vlift._lift_lb){
                                 Constraint<> quad_lb(pair.first+"_quad_lb");
                                 quad_lb = pow(o1.from_ith(0,unique_ids),2) - vlift.in(unique_ids);
                                 quad_lb._relaxed = true;
                                 add(quad_lb.in(unique_ids) <= 0); /*using it as the lower bound to be valid*/
+                                }
                                 
                                 // Representation of o1 with convex combination
                                 Constraint<> o1_rep(pair.first+"_o1_rep");
@@ -3064,6 +3088,16 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
+                                //check the sign of the lift and the correspoinding boudning functions
+                                if(lift_sign){
+                                    vlift->_lift_ub = true;
+                                    vlift->_lift_lb = false;
+                                }
+                                else{
+                                    vlift->_lift_ub = false;
+                                    vlift->_lift_lb = true;
+                                }
+                                
                                 DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -3251,16 +3285,21 @@ namespace gravity {
                                     
                                     
                                     /** Constraints */
+                                    
+                                    if (vlift->_lift_ub){
                                     // Representation of the quadratic term with secant
                                     Constraint<> quad_ub(pair.first+"_quad_ub");
                                     /************** this might not be working **************/
                                     quad_ub = EP.in_matrix(nb_entries,total_entries-nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries,total_entries-nb_entries) - vlift->in(added);
                                     add(quad_ub.in(added) >= 0); /*using it as the upper bound to be valid*/
+                                    }
                                     
+                                    if (vlift->_lift_lb){
                                     Constraint<> quad_lb(pair.first+"_quad_lb");
                                     quad_lb = o1.from_ith(0,added)*o2.from_ith(nb_entries_v1,added) - vlift->in(added);
                                     quad_lb._relaxed = true;
                                     add(quad_lb.in(added) <= 0); /*using it as the lower bound to be valid*/
+                                    }
                                     
                                     // Representation of o1 with convex combination
                                     Constraint<> o1_rep(pair.first+"_o1_rep");
@@ -4384,9 +4423,198 @@ namespace gravity {
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-                    auto lifted = lift(*newc, method_type);
+                    //before sending the function to lift, modify the bilinear terms to standard format
+                    Constraint<type> newc_standard(newc->_name+"_standard");
+                    if (!newc->get_cst()->is_zero()) {
+                        if (newc->get_cst()->is_number()) {
+                            auto f_cst = static_pointer_cast<constant<type>>(newc->get_cst());
+                            newc_standard.add_cst(*f_cst);
+                        }
+                        else if (newc->get_cst()->is_param()) {
+                            auto f_cst = static_pointer_cast<param<type>>(newc->get_cst());
+                            newc_standard.add_cst(*f_cst);
+                        }
+                        else {
+                            auto f_cst = static_pointer_cast<func<type>>(newc->get_cst());
+                            newc_standard.add_cst(*f_cst);
+                        }
+                        if (newc_standard._cst->is_function()) {
+                            newc_standard.embed(*static_pointer_cast<func<type>>(newc_standard._cst));
+                        }
+                    }
+                    for (auto &pair:*newc->_lterms) {
+                        auto term = pair.second;
+                        newc_standard.insert(term);
+                    }
+                    //here we will introduce two auxiliary variables for the bilinear term
+                    for (auto &pair:*newc->_qterms) {
+                        auto term = pair.second;
+                        if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
+                            DebugOn("bilinear term encountered: " << pair.first << endl);
+                            lterm lt1;
+                            lterm lt2;
+                            lt1._sign = term._sign;
+                            lt2._sign = term._sign;
+                            if (term._coef->is_function()) {
+                                auto coef = *static_pointer_cast<func<type>>(term._coef);
+                                lt1._coef = func<type>(coef).copy();
+                                lt2._coef = func<type>(coef).copy();
+                            }
+                            else if(term._coef->is_param()) {
+                                auto coef = *static_pointer_cast<param<type>>(term._coef);
+                                lt1._coef = param<type>(coef).copy();
+                                lt2._coef = param<type>(coef).copy();
+                            }
+                            else if(term._coef->is_number()) {
+                                auto coef = *static_pointer_cast<constant<type>>(term._coef);
+                                lt1._coef = constant<type>(coef).copy();
+                                lt2._coef = constant<type>(coef).copy();
+                            }
+                            
+                            auto v1 = *static_pointer_cast<var<type>>(term._p->first); //assign the pointers to the variables
+                            auto v2 = *static_pointer_cast<var<type>>(term._p->second);
+                         
+                            if((v1._name > v2._name)){    //get the variables in the alphabetical order
+                                v2 = *static_pointer_cast<var<type>>(term._p->first);
+                                v1 = *static_pointer_cast<var<type>>(term._p->second);
+                            }
+                            auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
+                            
+                            // I am not sure that we need the following part or not!! ***************************************************************************************************************************************
+                            auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+                            auto v1_ids = *v1._indices;
+                            auto v2_ids = *v2._indices;
+                            if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                                auto keep_refs = ids.get_unique_refs();
+                                v1_ids.filter_refs(keep_refs);
+                                v2_ids.filter_refs(keep_refs);
+                            }
+                            // ***************************************************************************************************************************************
+                                
+                            param<type> lb1("lb1"), ub1("ub1");
+                            lb1.in(unique_ids);ub1.in(unique_ids);
+                            param<type> lb2("lb2"), ub2("ub2");
+                            lb2.in(unique_ids);ub2.in(unique_ids);
+                            
+                            //get the bounds for the auxiliary variables y1 and y2
+                            for (int i=0; i<unique_ids.size(); i++) {
+                                size_t id1;
+                                size_t id2;
+                                if(v1_ids._ids == nullptr){
+                                    id1 = i;
+                                }
+                                else id1 = v1_ids._ids->at(0).at(i);
+                                if(v2_ids._ids == nullptr){
+                                    id2 = i;
+                                }
+                                else id2 = v2_ids._ids->at(0).at(i);
+                                auto key1 = v1_ids._keys->at(id1);
+                                auto key2 = v2_ids._keys->at(id2);
+                                
+                                auto sum_b1 = v1.get_lb(key1) - v2.get_ub(key2);
+                                auto sum_b2 = v1.get_ub(key1) - v2.get_lb(key2);
+                                auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
+                                auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
+                                
+                                lb1.set_val(key1+","+key2, sum_b1);
+                                ub1.set_val(key1+","+key2, sum_b2);
+                                
+                                lb2.set_val(key1+","+key2, sum_b3);
+                                ub2.set_val(key1+","+key2, sum_b4);
+                            }
+                            
+                            string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+                            string aux2_name = "aux2("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+                            
+                            auto it1 = _vars_name.find(aux1_name);
+                            auto it2 = _vars_name.find(aux2_name);
+                            
+                            if(it1==_vars_name.end()){
+                                //define variables
+                                var<type> y1(aux1_name, lb1, ub1);
+                                add(y1.in(unique_ids));
+                                lt1._p = make_shared<var<type>>(y1.in(ids));
+                                
+                                var<type> y2(aux2_name, lb2, ub2);
+                                add(y2.in(unique_ids));
+                                lt2._p = make_shared<var<type>>(y2.in(ids));
+                                
+                                //add constraints
+                                Constraint<type> link1(pair.first+"_link1");
+                                link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids));
+                                add(link1.in(unique_ids) == 0);
+                                
+                                Constraint<type> link2(pair.first+"_link2");
+                                link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids));
+                                add(link2.in(unique_ids) == 0);
+                            }
+                            else{
+                                //get variables
+                                auto y1 = static_pointer_cast<var<type>>(it1->second);
+                                auto added1 = y1->add_bounds(lb1,ub1);
+                                lt1._p = make_shared<var<type>>(y1->in(ids));
+                                if(!added1.empty()){
+                                    assert(v1._indices->size()==v2._indices->size());
+                                    if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                                        auto keep_refs = ids.diff_refs(added1);
+                                        v1_ids.filter_refs(keep_refs);
+                                        v2_ids.filter_refs(keep_refs);
+                                    }
+                                    reindex_vars();
+                                }
+                                auto y2 = static_pointer_cast<var<type>>(it2->second);
+                                auto added2 = y2->add_bounds(lb2,ub2);
+                                lt2._p = make_shared<var<type>>(y2->in(ids));
+                                if(!added2.empty()){
+                                    assert(v1._indices->size()==v2._indices->size());
+                                    if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                                        auto keep_refs = ids.diff_refs(added2);
+                                        v1_ids.filter_refs(keep_refs);
+                                        v2_ids.filter_refs(keep_refs);
+                                    }
+                                    reindex_vars();
+                                }
+                                
+                                //add constraints
+                                Constraint<type> link1(pair.first+"_link1");
+                                link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids));
+                                add(link1.in(unique_ids) == 0);
+                                
+                                Constraint<type> link2(pair.first+"_link2");
+                                link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids));
+                                add(link2.in(unique_ids) == 0);
+                                
+                            }
+                            
+                            newc_standard.insert(lt1);
+                            newc_standard.insert(lt2);
+                        }
+                        else { //means it is quadratic term
+                            DebugOn("quadratic term encountered: " << pair.first << endl);
+                            newc_standard.insert(term);
+                        }
+                    }
+                    for (auto &pair:*newc->_pterms) {
+                        auto term = pair.second;
+                        newc_standard.insert(term);
+                    }
+
+                    newc_standard._range = newc->_range;
+                    newc_standard._all_convexity = newc->_all_convexity;
+                    newc_standard._all_sign = newc->_all_sign;
+                    newc_standard._ftype = newc->_ftype;
+                    newc_standard._ctype = newc->_ctype;
+                    newc_standard._indices = newc->_indices;
+                    newc_standard._dim[0] = newc->_dim[0];
+                    
+                    DebugOn("Here is the newc_standard 2 " << endl);
+                    newc_standard.print();
+                    //call the lift function and add that constraint
+                    auto lifted = lift(newc_standard, method_type);
+//                    auto lifted = lift(*newc, method_type);
                     return add_constraint(lifted);
                 }
+                    
                 embed(newc, false);
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);
@@ -5820,11 +6048,15 @@ namespace gravity {
                 add(MC4.in(*vlift._indices));
             }
             else {
+                if (vlift._lift_ub){
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
                 add(MC4.in(*vlift._indices));
+                }
+                
+                if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
                 if(var_equal)
                 {
@@ -5835,6 +6067,7 @@ namespace gravity {
                     MC5 >= 0;
                     MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
+                }
                 }
             }
             //    MC4.print();
@@ -8641,18 +8874,22 @@ namespace gravity {
                         //                    LB_partn += increment;
                     }
                 }
+                if (vlift._lift_ub){
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
                 //                add_on_off_multivariate_new(MC_secant, on);
                 add_on_off_multivariate_refined(MC_secant, on);
+                }
                 
+                if (vlift._lift_lb){
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
                 MC_squared -= v1*v1;
                 MC_squared >= 0;
                 MC_squared._relaxed = true; /* MC_squared is a relaxation of a non-convex constraint */
                 add(MC_squared.in(*vlift._indices));
+                }
                 
                 Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
                 v1_on_off_LB = v1.from_ith(0,inst_partition) - on*v1_on_LB - (1-on)*v1_off_LB;
@@ -8714,6 +8951,9 @@ namespace gravity {
                     //go over the qterms
                     unsigned counter = 0;
                     for (auto &qt_pair: *n_c._qterms) {
+                        if (!qt_pair.second._p->first->is_double()) {
+                            throw invalid_argument("Current hyperplanes only support double type variables!");
+                        }
                         if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
                             throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
                         }
@@ -8839,6 +9079,9 @@ namespace gravity {
                     
                     //go over the qterms
                     for (auto &qt_pair: *n_c._qterms) {
+                        if (!qt_pair.second._p->first->is_double()) {
+                            throw invalid_argument("Current hyperplanes only support double type variables!");
+                        }
                         if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
                             SOC_1.insert(qt_pair.second);
                         }
@@ -9047,7 +9290,8 @@ namespace gravity {
               
                 SOC_hyperplanes = lhs_first_var.from_ith(0, inst_combined_partn) * lhs_first_coef + lhs_second_var.from_ith(nb_entries_v1, inst_combined_partn) * lhs_second_coef + rhs_var.from_ith(nb_entries_v1 + nb_entries_v2, inst_combined_partn) * rhs_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
+//                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on, false);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 lhs_first_var._in_SOC_partn = false;
@@ -9158,7 +9402,8 @@ namespace gravity {
                 
                 SOC_hyperplanes = quad_var.from_ith(0, inst_combined_partn) * quad_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) - bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_minus_second_coef + (bln_first_var.from_ith(nb_entries_v1, inst_combined_partn) + bln_second_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_partn) ) * first_plus_second_coef;
                 SOC_hyperplanes.in(inst_hyper) <= 0;
-                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
+//                add_on_off_multivariate_refined(SOC_hyperplanes, on, true);
+                add_on_off_multivariate_refined(SOC_hyperplanes, on, false);
                 
                 // set the _in_SOC_partn to false back for removing the confusion in get_on_off_coefficients
                 quad_var._in_SOC_partn = false;

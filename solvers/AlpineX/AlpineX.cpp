@@ -33,8 +33,8 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+        string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -272,8 +272,9 @@ int main (int argc, char * argv[])
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP.add(I_from_Pf.in(arcs)==0,true);
-//        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+//        SOCP.add(I_from_Pf.in(arcs)==0,true);
+        SOCP.add(I_from_Pf.in(arcs)>=0);
+        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
@@ -285,7 +286,7 @@ int main (int argc, char * argv[])
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
         SOCP.add(SOC.in(bus_pairs) <= 0);
-//        SOCP.add(SOC.in(bus_pairs) == 0, true);
+        //        SOCP.add(SOC.in(bus_pairs) == 0, true);
         
     }
     
@@ -390,7 +391,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+//    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -852,24 +853,27 @@ int main (int argc, char * argv[])
             /* Set the number of partitions (default is 1)*/
             Pf_to._num_partns = 10;
             Qf_to._num_partns = 10;
-            Wii._num_partns = 3;
-            lji._num_partns = 3;
+            Wii._num_partns = 5;
+            lji._num_partns = 5;
             
-//            R_Wij._num_partns = 10;
-//            Im_Wij._num_partns = 10;
+            //            R_Wij._num_partns = 10;
+            //            Im_Wij._num_partns = 10;
+            
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            SOCP.add(I_to_Pf_EQ.in(arcs)==0, true, "lambda_II");
             
 //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
 //            I_to_Pf_EQ = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
 //            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_II");
-//            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true, "lambda_III");
-//            SOCP.add(I_to_Pf_EQ.in(nonzero_idx)==0, true);
             
-            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
-            I_to_Pf_temp = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
-            I_to_Pf_temp.in(nonzero_idx) >= 0;
             
-            //trial use SOC_partition
-            SOCP.on_off_SOC_partition(I_to_Pf_temp,50,10);
+//            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+//            I_to_Pf_temp = lji.in(nonzero_idx)*Wii.to(nonzero_idx)-(pow(Pf_to.in(nonzero_idx),2) + pow(Qf_to.in(nonzero_idx), 2));
+//            I_to_Pf_temp.in(nonzero_idx) >= 0;
+//
+//            //trial use SOC_partition
+//            SOCP.on_off_SOC_partition(I_to_Pf_temp,1000,100);
             
             
             
@@ -883,7 +887,7 @@ int main (int argc, char * argv[])
     auto solver_time_start = get_wall_time();
     
     /** use the following line if you want to relax the integer variables **/
-//        SOCOPF_CPX.run(true);
+    //        SOCOPF_CPX.run(true);
     SOCOPF_CPX.run(output,tol = 1e-6);
     SOCP.print(5);
     solver_time_end = get_wall_time();
@@ -908,8 +912,9 @@ int main (int argc, char * argv[])
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
-//    SOCP.print();
-//    SOCP.print_solution();
+//    auto nonzero_idx3 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf_temp_SOC_1");
+//    auto nonzero_idx4 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf_temp_SOC_2");
+    
     
     
     return 0;
