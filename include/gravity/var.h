@@ -39,8 +39,10 @@ namespace gravity {
         shared_ptr<func<type>>   _ub; /**< Upper Bound */
         bool _in_q_cone = false; /**< Used by Mosek */
         bool _psd = false; /**< Has to be positive semidefinite */
-        bool _lift=false;/*flag to show if variable is a lifted variable*/
-        bool _in_SOC_partn=false;/*flag to show if variable appers in a SOC partition*/
+        bool _lift = false;/*flag to show if variable is a lifted variable*/
+        bool _lift_lb = false;/*flag to show if the lifted variables need lower-bounding function*/
+        bool _lift_ub = false;/*flag to show if the lifted variables need upper-bounding function*/
+        bool _in_SOC_partn = false;/*flag to show if variable appers in a SOC partition*/
         
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         int _num_partns = 1;/*number of partitons*/
