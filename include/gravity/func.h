@@ -957,8 +957,63 @@ namespace gravity {
                 }
             }
         }
-        
-
+        /** Return a vector of the current model variables in instance inst_i of func
+         @param[in] inst_i:
+         **/
+        vector<double> get_x(int inst_i){
+            vector<double> res;
+            size_t posv;
+            double xv;
+        for(auto &it: *_vars)
+        {
+            auto v = it.second.first;
+            if(v->_is_vector)
+            {
+                for (auto i=0;i<v->_dim[0];i++)
+                {
+                    posv=i;
+                    v->get_double_val(posv, xv);
+                    res.push_back(xv);
+                }
+                
+            }
+            else
+            {
+                posv=v->get_id_inst(inst_i);
+                v->get_double_val(posv, xv);
+                res.push_back(xv);
+                
+            }
+        }
+            return res;
+        }
+        /** sets model variables in instance inst_i of func to x
+         @param[in] inst_i:
+         @param[in] x:
+         **/
+         void set_x(int inst_i, vector<double> x){
+            size_t posv;
+            int counter=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->set_double_val(posv, x[counter++]);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    v->set_double_val(posv, x[counter++]);
+                    
+                }
+            }
+        }
         /** Get a set of active points by uniformly discretizing the variable domain
          @param[in] nb_discr:
          @param[in] nb_inst:
@@ -969,7 +1024,7 @@ namespace gravity {
          To generalize to any convex function, use newton raphson and loop over all varaibles twice (fix different variabels to discretized values each time)
          If looping over all variables twice, have to check for feasibility of an assignment
          **/
-        bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){
+         bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){
             // res = gradf(x*)*(x-x*) + f(x*)
          
             size_t posv;
@@ -1243,71 +1298,32 @@ namespace gravity {
             res=sqrt(res);
             return(res);
         }
-        
-        //x_start is an interior point and x_end is an outer point.
-        //Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
-        pair<vector<double>,bool> linesearchbinary(vector<double> x_start, vector<double> x_end, size_t nb_inst, ConstraintType ctype)
-        {
-            pair<vector<double>,bool> res;
+        /** Set variables of instance nb_inst of func to the solution of the line search (that is to the active point)
+         @param[in] x_start: interior point
+         @param[in] nb_inst: instance number
+         @param[in] ctype:
+         @return True if line search successfully solved
+         x_start is an interior point and x_end is an outer point.
+         Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
+         **/
+         bool linesearchbinary(vector<double> x_start, size_t nb_inst, ConstraintType ctype)
+         {
+            bool success;
             const double int_tol=1e-6, zero_tol=1e-6;
             const int max_iter=1000;
-            vector<double> x_f, x_t, xcurrent, interval, mid;
+            vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
             double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
             bool solution_found=false;
             size_t posv;
             int iter=0;
-            for(auto i=0;i<x_start.size();i++)
-            {
-                interval.push_back(x_end[i]-x_start[i]);
-                mid.push_back((x_end[i]+x_start[i])*0.5);
-            }
-            int counter=0;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->get_double_val(posv, xv);
-                        xcurrent.push_back(xv);
-                        v->set_double_val(posv, x_start[counter++]);
-                    }
-                
-                }
-                else
-                {
-                posv=v->get_id_inst(nb_inst);
-                v->get_double_val(posv, xv);
-                xcurrent.push_back(xv);
-                v->set_double_val(posv, x_start[counter++]);
-            }
-            }
-            uneval();
-            f_a=eval(nb_inst);
-            
-            counter=0;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->set_double_val(posv, x_end[counter++]);
-                    }
-                    
-                }
-                else{
-                posv=v->get_id_inst(nb_inst);
-                v->set_double_val(posv, x_end[counter++]);
-                }
-            }
+            x_end=get_x(nb_inst);
             uneval();
             f_b=eval(nb_inst);
+            
+            set_x(x_start, nb_inst);
+            uneval();
+            f_a=eval(nb_inst);
+     
             if(ctype==leq)
             {
                 f_f=f_a;
@@ -1332,25 +1348,7 @@ namespace gravity {
                     {
                         mid[i]=(x_f[i]+x_t[i])*0.5;
                     }
-                    counter=0;
-                    for(auto &it: *_vars)
-                    {
-                        auto v = it.second.first;
-                        
-                        if(v->_is_vector)
-                        {
-                            for (auto i=0;i<v->_dim[0];i++)
-                            {
-                                posv=i;
-                                v->set_double_val(posv, mid[counter++]);
-                            }
-                            
-                        }
-                        else{
-                        posv=v->get_id_inst(nb_inst);
-                        v->set_double_val(posv, mid[counter++]);
-                        }
-                    }
+                    set_x(mid, nb_inst);
                     uneval();
                     f_mid=eval(nb_inst);
                     // DebugOn("F_mid "<< f_mid<<endl);
@@ -1372,7 +1370,7 @@ namespace gravity {
                     else
                     {
                         //DebugOn("Reached answer"<<endl);
-                        solution_found=true;
+                        success=true;
                         break;
                     }
                     for(auto i=0;i<x_start.size();i++)
@@ -1389,43 +1387,8 @@ namespace gravity {
                 //            DebugOn("Iter "<<iter<<endl);
             }
             
-            res.first=mid;
-            res.second=solution_found;
-//            if(res.second)
-//            {
-//                // DebugOn("Solution to line search found"<<endl);
-//                for(auto i=0;i<res.first.size();i++)
-//                    //DebugOn(res.first[i]<<endl);
-//                    counter=0;
-//                for(auto &it: *_vars)
-//                {
-//                    auto v = it.second.first;
-//                    size_t posv=v->get_id_inst(nb_inst);
-//                    v->set_double_val(posv, mid[counter++]);
-//                }
-//                uneval();
-//                //  DebugOn("Function value at pos "<<nb_inst<<" at solution of line search "<<eval(nb_inst));
-//
-//            }
-            counter=0;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->set_double_val(posv, xcurrent[counter++]);
-                    }
-                    
-                }
-                else{
-                size_t posv=v->get_id_inst(nb_inst);
-                v->set_double_val(posv, xcurrent[counter++]);
-                }
-            }
-            return res;
+     
+            return success;
         }
         
         
