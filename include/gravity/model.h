@@ -955,18 +955,22 @@ namespace gravity {
                     vlift._lift = true;
                     add(vlift.in(unique_ids));
                     lt._p = make_shared<var<type>>(vlift.in(ids));
+                    
+                    //check the sign of the lift and the correspoinding boudning functions
+                    if(lift_sign){
+                        vlift._lift_ub = true;
+                        vlift._lift_lb = false;
+                    }
+                    else{
+                        vlift._lift_ub = false;
+                        vlift._lift_lb = true;
+                    }
+                    
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                            //check the sign of the lift and the correspoinding boudning functions
-                            if(lift_sign){
-                                vlift._lift_ub = true;
-                                vlift._lift_lb = false;
-                            }
-                            else{
-                                vlift._lift_ub = false;
-                                vlift._lift_lb = true;
-                            }
+                            
+                            
                             
                             DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
@@ -3085,19 +3089,21 @@ namespace gravity {
                         o1_ids_uq.filter_refs(keep_refs1);
                         o2_ids_uq.filter_refs(keep_refs2);
                         reindex_vars();
+                        
+                        //check the sign of the lift and the correspoinding boudning functions
+                        if(lift_sign){
+                            vlift->_lift_ub = true;
+                            vlift->_lift_lb = false;
+                        }
+                        else{
+                            vlift->_lift_ub = false;
+                            vlift->_lift_lb = true;
+                        }
+                        
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                //check the sign of the lift and the correspoinding boudning functions
-                                if(lift_sign){
-                                    vlift->_lift_ub = true;
-                                    vlift->_lift_lb = false;
-                                }
-                                else{
-                                    vlift->_lift_ub = false;
-                                    vlift->_lift_lb = true;
-                                }
-                                
+
                                 DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -4448,35 +4454,33 @@ namespace gravity {
                     }
                     //here we will introduce two auxiliary variables for the bilinear term
                     for (auto &pair:*newc->_qterms) {
-                        auto term = pair.second;
                         if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
-                            DebugOn("bilinear term encountered: " << pair.first << endl);
-                            lterm lt1;
-                            lterm lt2;
-                            lt1._sign = term._sign;
-                            lt2._sign = term._sign;
-                            if (term._coef->is_function()) {
-                                auto coef = *static_pointer_cast<func<type>>(term._coef);
+                            qterm lt1;
+                            qterm lt2;
+                            lt1._sign = !(pair.second._sign);
+                            lt2._sign = pair.second._sign;
+                            if (pair.second._coef->is_function()) {
+                                auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
                                 lt1._coef = func<type>(coef).copy();
                                 lt2._coef = func<type>(coef).copy();
                             }
-                            else if(term._coef->is_param()) {
-                                auto coef = *static_pointer_cast<param<type>>(term._coef);
+                            else if(pair.second._coef->is_param()) {
+                                auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
                                 lt1._coef = param<type>(coef).copy();
                                 lt2._coef = param<type>(coef).copy();
                             }
-                            else if(term._coef->is_number()) {
-                                auto coef = *static_pointer_cast<constant<type>>(term._coef);
+                            else if(pair.second._coef->is_number()) {
+                                auto coef = *static_pointer_cast<constant<type>>(pair.second._coef);
                                 lt1._coef = constant<type>(coef).copy();
                                 lt2._coef = constant<type>(coef).copy();
                             }
                             
-                            auto v1 = *static_pointer_cast<var<type>>(term._p->first); //assign the pointers to the variables
-                            auto v2 = *static_pointer_cast<var<type>>(term._p->second);
+                            auto v1 = *static_pointer_cast<var<type>>(pair.second._p->first); //assign the pointers to the variables
+                            auto v2 = *static_pointer_cast<var<type>>(pair.second._p->second);
                          
                             if((v1._name > v2._name)){    //get the variables in the alphabetical order
-                                v2 = *static_pointer_cast<var<type>>(term._p->first);
-                                v1 = *static_pointer_cast<var<type>>(term._p->second);
+                                v2 = *static_pointer_cast<var<type>>(pair.second._p->first);
+                                v1 = *static_pointer_cast<var<type>>(pair.second._p->second);
                             }
                             auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
                             
@@ -4516,11 +4520,11 @@ namespace gravity {
                                 auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
                                 auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
                                 
-                                lb1.set_val(key1+","+key2, sum_b1);
-                                ub1.set_val(key1+","+key2, sum_b2);
+                                lb1.set_val(key1+","+key2, sum_b1/2);
+                                ub1.set_val(key1+","+key2, sum_b2/2);
                                 
-                                lb2.set_val(key1+","+key2, sum_b3);
-                                ub2.set_val(key1+","+key2, sum_b4);
+                                lb2.set_val(key1+","+key2, sum_b3/2);
+                                ub2.set_val(key1+","+key2, sum_b4/2);
                             }
                             
                             string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
@@ -4533,26 +4537,26 @@ namespace gravity {
                                 //define variables
                                 var<type> y1(aux1_name, lb1, ub1);
                                 add(y1.in(unique_ids));
-                                lt1._p = make_shared<var<type>>(y1.in(ids));
-                                
+                                y1._num_partns = v1._num_partns + v2._num_partns;
+                                lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
                                 var<type> y2(aux2_name, lb2, ub2);
                                 add(y2.in(unique_ids));
-                                lt2._p = make_shared<var<type>>(y2.in(ids));
-                                
+                                lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2.in(ids)), make_shared<var<type>>(y2.in(ids))));
                                 //add constraints
                                 Constraint<type> link1(pair.first+"_link1");
-                                link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids));
+                                link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
                                 add(link1.in(unique_ids) == 0);
                                 
                                 Constraint<type> link2(pair.first+"_link2");
-                                link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids));
+                                link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
                                 add(link2.in(unique_ids) == 0);
                             }
                             else{
                                 //get variables
                                 auto y1 = static_pointer_cast<var<type>>(it1->second);
                                 auto added1 = y1->add_bounds(lb1,ub1);
-                                lt1._p = make_shared<var<type>>(y1->in(ids));
+                                y1->_num_partns = v1._num_partns + v2._num_partns;
+                                lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
                                 if(!added1.empty()){
                                     assert(v1._indices->size()==v2._indices->size());
                                     if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
@@ -4564,7 +4568,7 @@ namespace gravity {
                                 }
                                 auto y2 = static_pointer_cast<var<type>>(it2->second);
                                 auto added2 = y2->add_bounds(lb2,ub2);
-                                lt2._p = make_shared<var<type>>(y2->in(ids));
+                                lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2->in(ids)), make_shared<var<type>>(y2->in(ids))));
                                 if(!added2.empty()){
                                     assert(v1._indices->size()==v2._indices->size());
                                     if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
@@ -4577,11 +4581,11 @@ namespace gravity {
                                 
                                 //add constraints
                                 Constraint<type> link1(pair.first+"_link1");
-                                link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids));
+                                link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
                                 add(link1.in(unique_ids) == 0);
                                 
                                 Constraint<type> link2(pair.first+"_link2");
-                                link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids));
+                                link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
                                 add(link2.in(unique_ids) == 0);
                                 
                             }
@@ -4590,8 +4594,7 @@ namespace gravity {
                             newc_standard.insert(lt2);
                         }
                         else { //means it is quadratic term
-                            DebugOn("quadratic term encountered: " << pair.first << endl);
-                            newc_standard.insert(term);
+                            newc_standard.insert(pair.second);
                         }
                     }
                     for (auto &pair:*newc->_pterms) {
