@@ -253,7 +253,7 @@ int main (int argc, char * argv[]) {
     //auto obj_eta=eta(0);
     
     SDP.min(eta(0));
-   // SDPOA.min(eta(0));
+    //SDPOA.min(eta(0));
     
     Constraint<> obj_UB("obj_UB");
     obj_UB  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
@@ -463,7 +463,7 @@ int main (int argc, char * argv[]) {
     double solver_time_start = get_wall_time();
     
     //    SDP.print();
-    SDPOPF.run(output = 5, tol = 1e-7, "ma57");
+    SDPOPF.run(output = 5, tol = 1e-7, "ma27");
     //    SDP.print_solution();
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
@@ -692,11 +692,19 @@ int main (int argc, char * argv[]) {
     
      SDP.print_solution();
     
+    auto SDPOA= SDP.copy();
     
-    
-    auto con=SDP.get_constraint("Qf_from,Qf_from_McCormick_squared");
+    auto con=SDP.get_constraint("Im_Wij,Im_Wij_McCormick_squared");
     
     con->get_outer_app_squared();
+    
+    SDPOA->get_outer_app_uniform(10, *con);
+    
+    solver<> SDPOPFA(SDPOA,ipopt);
+    SDPOPFA.run(output = 5, tol = 1e-6, "ma27");
+  
+    
+    SDPOA->print();
     
    // con->get_outer_app_uniform(4);
     
