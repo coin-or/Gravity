@@ -958,6 +958,7 @@ namespace gravity {
             }
         }
         
+
         /** Get a set of active points by uniformly discretizing the variable domain
          @param[in] nb_discr:
          @param[in] nb_inst:
@@ -1032,7 +1033,50 @@ namespace gravity {
                 return solution;
         }
         
+        /** Returns a set of OA cuts at a given solution for a _squared constraint
+         @param[in] nb_discr:
+         @return func of OA cuts ( for all func instance)
+         **/
+        func<> get_outer_app_squared()
+        {
+            func<> res;
+            vector<double> lb,ub;
+            if(is_quadratic() && _lterms->size()==1 && _qterms->size()==1 && _qterms->begin()->second._p->first==_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- x^2 or x^2-ay
+            {
+               
+                auto y=_lterms->begin()->second;
+                res.insert(y);
+                auto x=_qterms->begin()->second._p->first;
+                
+                double c=eval_coef(_qterms->begin()->second._coef, 0);
+                /** Fill x with the variable's lower bound values */
+                //x->get_double_lb(double* x) const{};
+                param<type> xstar("xstar_"+x->_name);
+                xstar.in(*x->_indices);
+                xstar.copy_vals(x);
+                if(_qterms->begin()->second._sign){
+                res+=c*xstar*xstar;
+                }
+                else{
+                res-=c*xstar*xstar;
+                }
+               
+                
+
+                res.insert(_qterms->begin()->second._sign, c*xstar, *x);
+                res.print();
+                
+            }/*TODO Else*/
+            
+         return res;
+            
+        }
         
+
+        
+        
+   
+
         
         func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)

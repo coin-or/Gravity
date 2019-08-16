@@ -690,29 +690,35 @@ int main (int argc, char * argv[]) {
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-    //   SDP.print_solution();
+     SDP.print_solution();
     
     
     
     auto con=SDP.get_constraint("Qf_from,Qf_from_McCormick_squared");
-    DebugOn("SOC or not "<< con->check_soc());
-    int nb_discr=4;
-    func<> res;
-    bool flag;
-    vector<double> d;
-
-        for(auto i=0;i<con->get_nb_instances();i++)
-        {
-            for (auto d1=0;d1<nb_discr;d1++)
-            {d.clear();
-                d.push_back(d1);
-            flag=con->get_grid_discretize(nb_discr, i, d);
-            if(flag){
-            res=con->get_outer_app_insti(i);
-            res.print();
-            }
-        }
-    }
+    
+    con->get_outer_app_squared();
+    
+   // con->get_outer_app_uniform(4);
+    
+    
+//    DebugOn("SOC or not "<< con->check_soc());
+//    int nb_discr=4;
+//    func<> res;
+//    bool flag;
+//    vector<double> d;
+//
+//        for(auto i=0;i<con->get_nb_instances();i++)
+//        {
+//            for (auto d1=0;d1<nb_discr;d1++)
+//            {d.clear();
+//                d.push_back(d1);
+//            flag=con->get_grid_discretize(nb_discr, i, d);
+//            if(flag){
+//            res=con->get_outer_app_insti(i);
+//            res.print();
+//            }
+//        }
+//    }
     
    
     
