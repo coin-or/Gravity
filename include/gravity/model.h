@@ -857,12 +857,12 @@ namespace gravity {
                 auto o1 = *static_pointer_cast<var<type>>(term._p->first);
                 auto o2 = *static_pointer_cast<var<type>>(term._p->second);
                 if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
-                         o2 = *static_pointer_cast<var<type>>(term._p->first);
-                         o1 = *static_pointer_cast<var<type>>(term._p->second);
+                    o2 = *static_pointer_cast<var<type>>(term._p->first);
+                    o1 = *static_pointer_cast<var<type>>(term._p->second);
                     DebugOn("O1 name "<< o1._name << endl);
                     DebugOn("O2 name "<< o2._name << endl);
                 }
-               
+                
                 string name;
                 indices ids;
                 if(o1==o2){
@@ -872,18 +872,18 @@ namespace gravity {
                 else {
                     name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
                     // No need to check the reverse order now, since the variables are already ordered by name
-//                    auto it = _vars_name.find(name);
-//                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
-//                        o2 = *static_pointer_cast<var<type>>(term._p->first);
-//                        o1 = *static_pointer_cast<var<type>>(term._p->second);
-//                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-//                    }
-//                    it = _vars_name.find(name);
-//                    if(it==_vars_name.end()){/* Switch back to original order */
-//                        o1 = *static_pointer_cast<var<type>>(term._p->first);
-//                        o2 = *static_pointer_cast<var<type>>(term._p->second);
-//                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-//                    }
+                    //                    auto it = _vars_name.find(name);
+                    //                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
+                    //                        o2 = *static_pointer_cast<var<type>>(term._p->first);
+                    //                        o1 = *static_pointer_cast<var<type>>(term._p->second);
+                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    //                    }
+                    //                    it = _vars_name.find(name);
+                    //                    if(it==_vars_name.end()){/* Switch back to original order */
+                    //                        o1 = *static_pointer_cast<var<type>>(term._p->first);
+                    //                        o2 = *static_pointer_cast<var<type>>(term._p->second);
+                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+                    //                    }
                     ids = combine(*o1._indices,*o2._indices);
                 }
                 auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
@@ -976,7 +976,7 @@ namespace gravity {
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
-                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                            DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                             var<int> on(name1+"_binary",0,1);
                             
                             indices partns("partns");
@@ -1156,18 +1156,18 @@ namespace gravity {
                                 if(model_type == "lambda_II"){
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                     /************** this might not be working **************/
-//                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
-//                                    add(on_link_lambda.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
+                                    //                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
+                                    //                                    add(on_link_lambda.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                     //THIS IS THE WAY IT IS SUPPOSED TO BE
-//                                    on_link_lambda = sum((lambda_coef*lambda.from_ith(0,indices(inst_partition_lambda, range(1,num_partns1+1)))).in_matrix(nb_entries,1)) - sum((on_coef*on.from_ith(0,indices(inst_partition, range(1,num_partns1+1)))).in_matrix(nb_entries,1));
+                                    //                                    on_link_lambda = sum((lambda_coef*lambda.from_ith(0,indices(inst_partition_lambda, range(1,num_partns1+1)))).in_matrix(nb_entries,1)) - sum((on_coef*on.from_ith(0,indices(inst_partition, range(1,num_partns1+1)))).in_matrix(nb_entries,1));
                                     on_link_lambda.print();
                                     on_link_lambda.print_symbolic();
-                                   
+                                    
                                 }
                                 else{
                                     Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                     /************** this might not be working **************/
-//                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
+                                    //                                    on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*on.in_matrix(nb_entries));
                                     add(on_link_lambda.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                 }
                                 
@@ -1187,7 +1187,7 @@ namespace gravity {
                             if(binvar_ptr1 !=_vars_name.end()){ //means v1 has been partitioned before
                                 
                                 if(name1 == name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -1480,36 +1480,36 @@ namespace gravity {
                                         
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
@@ -1520,7 +1520,7 @@ namespace gravity {
                                 }
                                 
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN FIRST -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                     indices partns1("partns1");
@@ -1833,13 +1833,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -1847,13 +1847,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
@@ -1861,13 +1861,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
@@ -1880,7 +1880,7 @@ namespace gravity {
                             }
                             
                             else if(binvar_ptr2 !=_vars_name.end()){ //means v2 has been partitioned before)
-                                                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
+                                DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> SEEN SECOND -> DIFF VARS <<<<<<<<<<<" << endl);
                                 
                                 var<int> on1(name1+"_binary",0,1);
                                 indices partns1("partns1");
@@ -2192,13 +2192,13 @@ namespace gravity {
                                     // Representation of o1 with convex combination
                                     Constraint<> o1_rep(pair.first+"_o1_rep");
                                     /************** this might not be working **************/
-//                                    o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                    //                                    o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                     add(o1_rep.in(unique_ids) == 0);
                                     
                                     // Representation of o2 with convex combination
                                     Constraint<> o2_rep(pair.first+"_o2_rep");
                                     /************** this might not be working **************/
-//                                    o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                    //                                    o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                     add(o2_rep.in(unique_ids) == 0);
                                     
                                     // Linking partition variables1 with lambda
@@ -2206,13 +2206,13 @@ namespace gravity {
                                         if(num_partns1 > 1) {
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                         }
                                         if(num_partns2 > 1) {
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                     }
@@ -2220,13 +2220,13 @@ namespace gravity {
                                         if(num_partns1 > 1) {
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                         }
                                         if(num_partns2 > 1) {
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                     }
@@ -2239,7 +2239,7 @@ namespace gravity {
                             }
                             else{ //means both variables v1 and v2 haven't been partitioned
                                 if(name1==name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2520,36 +2520,36 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
@@ -2559,7 +2559,7 @@ namespace gravity {
                                     }
                                 }
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS NOT SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     var<int> on1(name1+"_binary",0,1);
                                     indices partns1("partns1");
@@ -2854,13 +2854,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(unique_ids) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(unique_ids) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -2868,13 +2868,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(unique_ids,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(unique_ids,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
@@ -2882,13 +2882,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(on1.in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(unique_ids,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(unique_ids,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda.in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(unique_ids, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(on2.in_ignore_ith(0,nb_entries_v1,indices(unique_ids,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(unique_ids,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
@@ -2929,7 +2929,7 @@ namespace gravity {
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
-                                                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
+                                DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> SINGLE <<<<<<<<<<<" << endl);
                                 auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                 auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
                                 
@@ -3118,13 +3118,13 @@ namespace gravity {
                                     if(model_type == "lambda_II"){
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_II");
                                         /************** this might not be working **************/
-//                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
+                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,num_partns1+1))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
                                         add(on_link_lambda.in(indices(added,range(1,num_partns1+1))) <= 0);
                                     }
                                     else{
                                         Constraint<> on_link_lambda(pair.first+"_on_link_lambda_III");
                                         /************** this might not be working **************/
-//                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
+                                        //                                        on_link_lambda = sum(lambda_coef.in_ignore_ith(nb_entries+1, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef.in_ignore_ith(nb_entries+1,1,indices(inst_partition, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*binvar1->in(added1).in_matrix(nb_entries));
                                         add(on_link_lambda.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                     }
                                     
@@ -3138,7 +3138,7 @@ namespace gravity {
                             else{ //else add 2d partition
                                 
                                 if(name1 == name2){
-                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> SAME VARS <<<<<<<<<<<" << endl);
                                     
                                     indices partns1("partns1");
                                     for (int i = 0; i < num_partns1 ; ++i)
@@ -3444,36 +3444,36 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
                                         if(model_type == "lambda_II"){
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                         }
                                         else{
                                             Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                            //                                            on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                             add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             
                                             Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                             /************** this might not be working **************/
-//                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                            //                                            on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                             add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                         }
                                         // sum over lambda
@@ -3484,7 +3484,7 @@ namespace gravity {
                                     
                                 }
                                 else{
-                                                                        DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
+                                    DebugOn("<<<<<<<<<< THIS IS SEEN BOTH -> DOUBLE -> DIFF VARS <<<<<<<<<<<" << endl);
                                     
                                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                                     auto binvar1 = static_pointer_cast<var<int>>(binvar_ptr1->second);
@@ -3817,13 +3817,13 @@ namespace gravity {
                                         // Representation of o1 with convex combination
                                         Constraint<> o1_rep(pair.first+"_o1_rep");
                                         /************** this might not be working **************/
-//                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
+                                        //                                        o1_rep == sum((bounds1.from_ith(0,inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o1.from_ith(0,inst_partition_lambda);
                                         add(o1_rep.in(added) == 0);
                                         
                                         // Representation of o2 with convex combination
                                         Constraint<> o2_rep(pair.first+"_o2_rep");
                                         /************** this might not be working **************/
-//                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
+                                        //                                        o2_rep == sum((bounds2.in_ignore_ith(nb_entries, 1, inst_partition_lambda)*lambda->in(added_lambda)).in_matrix(nb_entries,total_entries-nb_entries)) - o2.from_ith(nb_entries_v1,inst_partition_lambda);
                                         add(o2_rep.in(added) == 0);
                                         
                                         // Linking partition variables1 with lambda
@@ -3831,13 +3831,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns1+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,num_partns1+1))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(added,range(1,num_partns1+1))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_II");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,num_partns2+1))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,num_partns2+1))).in_matrix(nb_entries)*(binvar2->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(added,range(1,num_partns2+1))) <= 0);
                                             }
                                         }
@@ -3845,13 +3845,13 @@ namespace gravity {
                                             if(num_partns1 > 1) {
                                                 Constraint<> on_link_lambda1(pair.first+"_on_link_lambda1_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
+                                                //                                                on_link_lambda1 = sum(lambda_coef1.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef1.in_ignore_ith(nb_entries+1,1,indices(added, partns1, range(1,(num_partns1-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(nb_entries_v1,nb_entries_v2,indices(added,partns1))).in_matrix(nb_entries_v1));
                                                 add(on_link_lambda1.in(indices(added,range(1,(num_partns1-2)*2+2))) <= 0);
                                             }
                                             if(num_partns2 > 1) {
                                                 Constraint<> on_link_lambda2(pair.first+"_on_link_lambda2_III");
                                                 /************** this might not be working **************/
-//                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
+                                                //                                                on_link_lambda2 = sum(lambda_coef2.in_ignore_ith(nb_entries+2, 1, indices(inst_partition_lambda, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*lambda->in(added_lambda).in_matrix(nb_entries)) - sum(on_coef2.in_ignore_ith(nb_entries+1,1,indices(added, partns2, range(1,(num_partns2-2)*2+2))).in_matrix(nb_entries)*(binvar1->in_ignore_ith(0,nb_entries_v1,indices(added,partns2))).in_matrix(nb_entries_v2));
                                                 add(on_link_lambda2.in(indices(added,range(1,(num_partns2-2)*2+2))) <= 0);
                                             }
                                         }
@@ -8436,11 +8436,15 @@ namespace gravity {
             }
         }
         
-    //Outer approximation of model. Assumes no nonlinear equality constraints
+        
+        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
+         @param[in] nb_discr:
+         @param[in] nb_perturb:
+         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
+         **/
         shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
-            const double active_tol=1e-6;
             vector<double> xsolution;
             
             get_solution(xsolution);
@@ -8471,7 +8475,7 @@ namespace gravity {
                     else
                     {
                         Constraint<> OA_sol("OA_cuts_uniform "+con->_name);
-                        OA_sol=con->get_outer_app_uniform(OA, nb_discr);
+                        OA.get_outer_app_uniform(nb_discr, con);
                         if(con->_ctype==leq) {
                             OA->add(OA_sol<=0);
                         }
@@ -8486,13 +8490,17 @@ namespace gravity {
                 }
             }
             set_solution(xsolution);
-            get_outer_app_active(*this, nb_perturb);
+            OA.get_outer_app_active(*this, nb_perturb);
             set_solution(xsolution);
             return OA;
         }
-            
-            
-    void get_outer_app_active(Model<> nonlin, int nb_pert)
+        
+        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
+         @param[in] nonlin: original nonlinear model at whose solution (at the active point) OA cuts are added:
+         @param[in] nb_perturb:
+         @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
+         **/
+        void get_outer_app_active(Model<> nonlin, int nb_perturb)
         {
             const double active_tol=1e-6;
             for (auto &con: nonlin._cons_vec)
@@ -8503,7 +8511,7 @@ namespace gravity {
                         Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
                         OA_sol=con->get_outer_app_insti(i);
                         if(con->_ctype==leq) {
-                        add(OA_sol<=0);
+                            add(OA_sol<=0);
                         }
                         else {
                             add(OA_sol>=0);
@@ -8512,9 +8520,13 @@ namespace gravity {
                 }
             }
             
-           
-        }
             
+        }
+        /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
+         @param[in] nb_discr:
+         @param[in] con:
+         @return void. OA cuts are added to the model that calls the function (for all func instances)
+         **/
         void get_outer_app_uniform(int nb_discr, Constraint<> con)
         {
             
@@ -8528,141 +8540,145 @@ namespace gravity {
                 
                 for(auto d=0;d<nb_discr;d++)
                 {
-                for(auto i=0;i<con.get_nb_inst();i++)
-                {
-                posv=x->get_id_inst(i);
-                lb=x->get_double_lb(posv);
-                ub=x->get_double_ub(posv);
-                x->set_double_val(posv, lb+d*(ub-lb)/nb_discr);
-                }
-                    Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
+                    for(auto i=0;i<con.get_nb_inst();i++)
+                    {
+                        posv=x->get_id_inst(i);
+                        lb=x->get_double_lb(posv);
+                        ub=x->get_double_ub(posv);
+                        x->set_double_val(posv, lb+d*(ub-lb)/nb_discr);
+                    }
+                    Constraint<> OA_uniform("OA_cuts_uniform "+con._name+to_string(d));
                     OA_uniform=con.get_outer_app_squared();
-//                    if()
+                    if(con._ctype==leq) {
+                        add(OA_uniform<=0);
+                    }
+                    else {
+                        add(OA_uniform>=0);
+                    }
                     
-                //}
-            }
+                }
+            }/*TODO Else (discretization for general constraint)*/
         }
-        }
-//                for
-//                /** Fill x with the variable's lower bound values */
-//                    //x->get_double_lb(double* x) const{};
-//                    param<type> xstar("xstar_"+x->_name);
-//                xstar.in(*x->_indices);
-//                xstar.copy_vals(x);
-//                if(_qterms->begin()->second._sign){
-//                    res+=xstar*xstar;
-//                }
-//                else{
-//                    res-=xstar*xstar;
-//                }
-//                res.insert(_qterms->begin()->second._sign, 2*xstar, *x);
-//                res.print();
-//                
-//            }/*TODO Else*/
-//            
-//            return res;
-//            
-//        }
+        //                for
+        //                /** Fill x with the variable's lower bound values */
+        //                    //x->get_double_lb(double* x) const{};
+        //                    param<type> xstar("xstar_"+x->_name);
+        //                xstar.in(*x->_indices);
+        //                xstar.copy_vals(x);
+        //                if(_qterms->begin()->second._sign){
+        //                    res+=xstar*xstar;
+        //                }
+        //                else{
+        //                    res-=xstar*xstar;
+        //                }
+        //                res.insert(_qterms->begin()->second._sign, 2*xstar, *x);
+        //                res.print();
+        //
+        //            }/*TODO Else*/
+        //
+        //            return res;
+        //
+        //        }
         
-    
-                        
-//        vector<double> xsolution, d;
-//        double xv;
-//        size_t posv;
-//        func<> res;
-//        bool flag;
-//        vector<vector<double>> xactive_array;
-//        int counter;
-//                    for(auto i=0;i<con->get_nb_inst();i++){
-//                        if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-//                            Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
-//                            OA_sol=con->get_outer_app_insti(i);
-//                            if(con->_ctype==leq) {
-//                                OA->add(OA_sol<=0);
-//                            }
-//                            else {
-//                                OA->add(OA_sol>=0);
-//                            }
-//                        }/** TODO: perturbation and symbolic version */
-//                    else /* If constraint is not active xsolution is an interior point */
-//                        {/**TODO func.get_x(xsolution) */
-//                            xsolution.clear();
-//                            for (auto &it: *con->_vars)
-//                            {
-//                                auto v = it.second.first;
-//                                if(v->_is_vector)
-//                                {
-//                                    for (auto i=0;i<v->_dim[0];i++)
-//                                    {
-//                                        posv=i;
-//                                        v->get_double_val(posv, xv);
-//                                        xsolution.push_back(xv);
-//                                    }
-//                                }
-//                                else
-//                                {
-//                                    posv=v->get_id_inst(i);
-//                                    v->get_double_val(posv, xv);
-//                                    xsolution.push_back(xv);
-//                                }
-//                            }
-//                            if(con->check_rotated_soc())
-//                            {
-//
-//                                for (auto d1=0;d1<nb_discr;d1++)
-//                                {
-//                                    for (auto d2=0;d2<nb_discr;d2++)
-//                                    {
-//                                        for (auto d3=0;d3<nb_discr;d3++)
-//                                        {
-//                                            d.clear();
-//                                            d.push_back(d1);
-//                                            d.push_back(d2);
-//                                            d.push_back(d3);
-//                                            flag=con->get_grid_discretize(nb_discr, i, d);
-//                                            if(flag){
-//                                                con->uneval();
-//                                                func<> oa_iter=con->get_outer_app_insti(i);
-//                                                oa_iter.eval_all();
-//                                                Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1)+to_string(d2)+to_string(d3));
-//                                                OA_itercon=oa_iter;
-//
-//                                                if(con->_ctype==leq)
-//                                                    OA->add(OA_itercon<=0);
-//                                                else if(con->_ctype==geq)
-//                                                    OA->add(OA_itercon>=0);
-//                                            }
-//
-//                                        }
-//                                    }
-//                                }
-//                            }
-//
-//
-//                            counter=0;
-//                            for (auto &it: *con->_vars)
-//                            {
-//                                auto v = it.second.first;
-//                                if(v->_is_vector)
-//                                {
-//                                    for (auto i=0;i<v->_dim[0];i++)
-//                                    {
-//                                        posv=i;
-//                                        v->set_double_val(posv, xsolution[counter++]);
-//                                    }
-//                                }
-//                                else
-//                                {
-//                                    posv=v->get_id_inst(i);
-//                                    v->set_double_val(posv,xsolution[counter++]);
-//                                }
-//                            }
-//                        }
-//
-//                    }
-//                }
-//                }
-                
+        
+        
+        //        vector<double> xsolution, d;
+        //        double xv;
+        //        size_t posv;
+        //        func<> res;
+        //        bool flag;
+        //        vector<vector<double>> xactive_array;
+        //        int counter;
+        //                    for(auto i=0;i<con->get_nb_inst();i++){
+        //                        if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+        //                            Constraint<> OA_sol("OA_cuts_solution"+cname+to_string(i));
+        //                            OA_sol=con->get_outer_app_insti(i);
+        //                            if(con->_ctype==leq) {
+        //                                OA->add(OA_sol<=0);
+        //                            }
+        //                            else {
+        //                                OA->add(OA_sol>=0);
+        //                            }
+        //                        }/** TODO: perturbation and symbolic version */
+        //                    else /* If constraint is not active xsolution is an interior point */
+        //                        {/**TODO func.get_x(xsolution) */
+        //                            xsolution.clear();
+        //                            for (auto &it: *con->_vars)
+        //                            {
+        //                                auto v = it.second.first;
+        //                                if(v->_is_vector)
+        //                                {
+        //                                    for (auto i=0;i<v->_dim[0];i++)
+        //                                    {
+        //                                        posv=i;
+        //                                        v->get_double_val(posv, xv);
+        //                                        xsolution.push_back(xv);
+        //                                    }
+        //                                }
+        //                                else
+        //                                {
+        //                                    posv=v->get_id_inst(i);
+        //                                    v->get_double_val(posv, xv);
+        //                                    xsolution.push_back(xv);
+        //                                }
+        //                            }
+        //                            if(con->check_rotated_soc())
+        //                            {
+        //
+        //                                for (auto d1=0;d1<nb_discr;d1++)
+        //                                {
+        //                                    for (auto d2=0;d2<nb_discr;d2++)
+        //                                    {
+        //                                        for (auto d3=0;d3<nb_discr;d3++)
+        //                                        {
+        //                                            d.clear();
+        //                                            d.push_back(d1);
+        //                                            d.push_back(d2);
+        //                                            d.push_back(d3);
+        //                                            flag=con->get_grid_discretize(nb_discr, i, d);
+        //                                            if(flag){
+        //                                                con->uneval();
+        //                                                func<> oa_iter=con->get_outer_app_insti(i);
+        //                                                oa_iter.eval_all();
+        //                                                Constraint<> OA_itercon("OA_cuts_iterative "+cname+to_string(i)+","+to_string(d1)+to_string(d2)+to_string(d3));
+        //                                                OA_itercon=oa_iter;
+        //
+        //                                                if(con->_ctype==leq)
+        //                                                    OA->add(OA_itercon<=0);
+        //                                                else if(con->_ctype==geq)
+        //                                                    OA->add(OA_itercon>=0);
+        //                                            }
+        //
+        //                                        }
+        //                                    }
+        //                                }
+        //                            }
+        //
+        //
+        //                            counter=0;
+        //                            for (auto &it: *con->_vars)
+        //                            {
+        //                                auto v = it.second.first;
+        //                                if(v->_is_vector)
+        //                                {
+        //                                    for (auto i=0;i<v->_dim[0];i++)
+        //                                    {
+        //                                        posv=i;
+        //                                        v->set_double_val(posv, xsolution[counter++]);
+        //                                    }
+        //                                }
+        //                                else
+        //                                {
+        //                                    posv=v->get_id_inst(i);
+        //                                    v->set_double_val(posv,xsolution[counter++]);
+        //                                }
+        //                            }
+        //                        }
+        //
+        //                    }
+        //                }
+        //                }
+        
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
         void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);

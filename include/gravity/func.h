@@ -1033,40 +1033,44 @@ namespace gravity {
                 return solution;
         }
         
-        /** Returns a set of OA cuts at a given solution for a _squared constraint
+        /** Returns a set of OA cuts at the current model variables for a _squared constraint. This if is specific to constraints of the form ay- bx^2 or bx^2-ay
          @param[in] nb_discr:
-         @return func of OA cuts ( for all func instance)
+         @return func of OA cuts ( for all func instance, symbolic)
          **/
         func<> get_outer_app_squared()
         {
             func<> res;
             vector<double> lb,ub;
-            if(is_quadratic() && _lterms->size()==1 && _qterms->size()==1 && _qterms->begin()->second._p->first==_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- x^2 or x^2-ay
+            double coef_x, coef_x_times2;
+            if(is_quadratic() && _lterms->size()==1 && _qterms->size()==1 && _qterms->begin()->second._p->first==_qterms->begin()->second._p->second) 
             {
                
                 auto y=_lterms->begin()->second;
                 res.insert(y);
                 auto x=_qterms->begin()->second._p->first;
                 
-                double c=eval_coef(_qterms->begin()->second._coef, 0);
-                /** Fill x with the variable's lower bound values */
-                //x->get_double_lb(double* x) const{};
+                double coef_x=eval_coef(_qterms->begin()->second._coef, 0);
+                double coef_x_times2=coef_x*2;
                 param<type> xstar("xstar_"+x->_name);
                 xstar.in(*x->_indices);
                 xstar.copy_vals(x);
                 if(_qterms->begin()->second._sign){
-                res+=c*xstar*xstar;
+                res-=coef_x*xstar*xstar;
                 }
                 else{
-                res-=c*xstar*xstar;
+                res+=coef_x*xstar*xstar;
                 }
                
                 
 
-                res.insert(_qterms->begin()->second._sign, c*xstar, *x);
+                res.insert(_qterms->begin()->second._sign, coef_x_times2*xstar, *x);
                 res.print();
                 
-            }/*TODO Else*/
+//                DebugOn("Sign x2 "<<_qterms->begin()->second._sign<<endl);
+//                DebugOn("Coefficient x2 "<<coef_x<<endl);
+//                DebugOn("Coefficient x2 times 2 "<<coef_x_times2<<endl);
+                
+            }
             
          return res;
             
