@@ -1860,6 +1860,77 @@ namespace gravity {
             return res;
         }
         
+        vector<vector<double> > get_active_point_outer(size_t nb_inst, ConstraintType ctype)
+        {
+            vector<vector<double> > res(_nb_vars);
+            vector<double> xcurrent;
+            int res_count=0;
+            double xv;
+            size_t posv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xcurrent.push_back(xv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(nb_inst);
+                    v->get_double_val(posv, xv);
+                    // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
+                    xcurrent.push_back(xv);
+                    
+                }
+            }
+            for(auto &it: *_vars)
+            {
+                auto vname=it.first;
+                auto v=it.second.first;
+                
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
+                        
+                        if(res_nr.first==true)
+                        {
+                            
+                            for(auto i=0;i<xcurrent.size();i++)
+                                res[res_count].push_back(res_nr.second[i]);
+                            res_count++;
+                        }
+                        
+                    }
+                    
+                }
+                else
+                {
+                    posv=0;
+                    
+                    auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
+                    
+                    if(res_nr.first==true)
+                    {
+                        
+                        for(auto i=0;i<xcurrent.size();i++)
+                            res[res_count].push_back(res_nr.second[i]);
+                        res_count++;
+                    }
+                }
+                
+            }
+            return res;
+        }
+        
         /** Computes and stores the derivative of f with respect to all variables. */
         void compute_derivatives(){
             size_t vid = 0, vjd = 0;

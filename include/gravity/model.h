@@ -8445,9 +8445,13 @@ namespace gravity {
         shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
-            vector<double> xsolution;
+            vector<double> xsolution(_nb_vars);
             
             get_solution(xsolution);
+            DebugOn("xsolution"<<endl);
+            for(auto i=0;i<xsolution.size();i++)
+                DebugOn(xsolution[i]<<endl);
+            
             for (auto &it: _vars)
             {
                 auto v = it.second;
@@ -8474,14 +8478,7 @@ namespace gravity {
                     }
                     else
                     {
-                        Constraint<> OA_sol("OA_cuts_uniform "+con->_name);
-                        OA.get_outer_app_uniform(nb_discr, con);
-                        if(con->_ctype==leq) {
-                            OA->add(OA_sol<=0);
-                        }
-                        else {
-                            OA->add(OA_sol>=0);
-                        }
+                        OA->get_outer_app_uniform(nb_discr, *con);
                     }
                 }
                 else
@@ -8490,12 +8487,12 @@ namespace gravity {
                 }
             }
             set_solution(xsolution);
-            OA.get_outer_app_active(*this, nb_perturb);
+            OA->get_outer_app_active(*this, nb_perturb);
             set_solution(xsolution);
             return OA;
         }
         
-        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
+        /** Outer approximation of active (nonlinear) constraints of the model
          @param[in] nonlin: original nonlinear model at whose solution (at the active point) OA cuts are added:
          @param[in] nb_perturb:
          @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
@@ -8505,6 +8502,7 @@ namespace gravity {
             const double active_tol=1e-6;
             for (auto &con: nonlin._cons_vec)
             {
+             if(!con->is_linear()) {
                 con->uneval();
                 for(auto i=0;i<con->get_nb_inst();i++){
                     if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
@@ -8519,7 +8517,7 @@ namespace gravity {
                     }/** TODO: perturbation and symbolic version, need to set and rest variables incase of using perturb */
                 }
             }
-            
+            }
             
         }
         /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented

@@ -692,16 +692,17 @@ int main (int argc, char * argv[]) {
     
      SDP.print_solution();
     
-    auto SDPOA= SDP.copy();
     
-    auto con=SDP.get_constraint("Im_Wij,Im_Wij_McCormick_squared");
+    auto SDPOA= SDP.buildOA(4, 4);
     
-    con->get_outer_app_squared();
-    
-    SDPOA->get_outer_app_uniform(10, *con);
-    
-    solver<> SDPOPFA(SDPOA,ipopt);
-    SDPOPFA.run(output = 5, tol = 1e-6, "ma27");
+//    auto con=SDP.get_constraint("Im_Wij,Im_Wij_McCormick_squared");
+//    
+//    con->get_outer_app_squared();
+//    
+//    SDPOA->get_outer_app_uniform(10, *con);
+//    
+//    solver<> SDPOPFA(SDPOA,ipopt);
+//    SDPOPFA.run(output = 5, tol = 1e-6, "ma27");
   
     
     SDPOA->print();
