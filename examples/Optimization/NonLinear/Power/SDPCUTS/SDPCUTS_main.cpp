@@ -301,7 +301,8 @@ int main (int argc, char * argv[]) {
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-    SDP.add(SOC.in(bus_pairs_chord) == 0, true);
+    SDP.add(SOC.in(bus_pairs_chord) == 0, true, "on/off", true);
+    // SDP.add(SOC.in(bus_pairs_chord) == 0, true);
     //SDPOA.add(SOC.in(bus_pairs_chord) = 0,true);
     
     /* Flow conservation */
@@ -353,7 +354,8 @@ int main (int argc, char * argv[]) {
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    SDP.add(Thermal_Limit_from.in(arcs));
+    //SDP.add(Thermal_Limit_from.in(arcs));
+    SDP.add(Thermal_Limit_from.in(arcs), true, "on/off", true);
     //SDPOA.add(Thermal_Limit_from.in(arcs));
     
     
@@ -361,7 +363,8 @@ int main (int argc, char * argv[]) {
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SDP.add(Thermal_Limit_to.in(arcs));
+    //SDP.add(Thermal_Limit_to.in(arcs));
+    SDP.add(Thermal_Limit_to.in(arcs), true, "on/off", true);
     //SDPOA.add(Thermal_Limit_to.in(arcs));
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
@@ -445,7 +448,8 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SDP.add(I_from_Pf.in(arcs)==0, true);
+        SDP.add(I_from_Pf.in(arcs)==0, true, "on/off", true);
+          //SDP.add(I_from_Pf.in(arcs)==0, true);
         //SDPOA.add(I_from_Pf.in(arcs)==0, true);
 
         
@@ -457,21 +461,21 @@ int main (int argc, char * argv[]) {
     
     
     
-    total_time_start = get_wall_time();
+//    total_time_start = get_wall_time();
     /* Solver selection */
-    solver<> SDPOPF(SDP,solv_type);
+//    solver<> SDPOPF(SDP,solv_type);
     double solver_time_start = get_wall_time();
     
     //    SDP.print();
-    SDPOPF.run(output = 5, tol = 1e-7, "ma27");
-    //    SDP.print_solution();
-    SDP.print_constraints_stats(tol);
-    SDP.print_nonzero_constraints(tol,true);
-    auto lower_bound = SDP.get_obj_val()*upper_bound;
-    SDP.print_solution();
+   // SDPOPF.run(output = 5, tol = 1e-7, "ma27");
+//    //    SDP.print_solution();
+
+//    auto lower_bound = SDP.get_obj_val()*upper_bound;
+//    SDP.print_solution();
     
     
     
+
     
     
     
@@ -657,22 +661,7 @@ int main (int argc, char * argv[]) {
     
 
     
-    double gap = 100*(upper_bound - lower_bound)/upper_bound;
-    double solver_time_end = get_wall_time();
-    double total_time_end = get_wall_time();
-    auto solve_time = solver_time_end - solver_time_start;
-    auto total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
-    DebugOn(out <<endl);
-    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-   // lower_bound = SDPOA->get_obj_val()*upper_bound;
-    gap = 100*(upper_bound - lower_bound)/upper_bound;
-    DebugOn("Final Gap with OA model = " << to_string(gap) << "%."<<endl);
-    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    DebugOn("\nResults: " << grid._name << " " << to_string(lower_bound) << " " << to_string(total_time)<<endl);
+
     
     // solver<> SDPOAS(SDPOA,solv_type);
     
@@ -690,10 +679,75 @@ int main (int argc, char * argv[]) {
     //        ofstream fout(result_name.c_str(), ios_base::app);
     //    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<SDP.get_obj_val()<<"\t"<<std::setprecision(5)<<solve_time<<endl;
     
-     SDP.print_solution();
+   
+    
+    auto SDPI=SDP.build_model_interior();
+    solver<> SDPINT(SDPI,solv_type);
+    SDPINT.run(output = 5, tol = 1e-7, "ma27");
+
+    vector<double> xint(SDPI._nb_vars);
+
+    SDPI.get_solution(xint);
+
+    solver<> SDPOPF(SDP,solv_type);
+    solver_time_start = get_wall_time();
+    
+    //    SDP.print();
+    SDPOPF.run(output = 5, tol = 1e-7, "ma27");
+    SDP.print_solution();
+    SDP.print_constraints_stats(tol);
+    SDP.print_nonzero_constraints(tol,true);
+    auto lower_bound = SDP.get_obj_val()*upper_bound;
+    
+    SDP.print_solution();
+    
+//
+//     for (auto &con: SDP._cons_vec)
+//     {
+//         if(!con->is_linear()) {
+//             for(auto i=0;i<con->get_nb_inst();i++){
+//    for(auto &it: *con->_vars)
+//    {
+//        auto v = it.second.first;
+//        DebugOn("name\t"<<v->_name<<endl);
+//        if(v->_is_vector)
+//        {
+//            DebugOn("Exception: Vector variables are not currently supported"<<endl);
+//            DebugOn("Throw exception" <<endl);
+//            break;
+//        }
+//    }
+//             }
+//         }
+//             }
+//
+    double gap = 100*(upper_bound - lower_bound)/upper_bound;
+    double solver_time_end = get_wall_time();
+    double total_time_end = get_wall_time();
+    auto solve_time = solver_time_end - solver_time_start;
+    auto total_time = total_time_end - total_time_start;
+    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    DebugOn(out <<endl);
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     
     
-    auto SDPOA= SDP.buildOA(4, 4);
+    auto SDPOA= SDP.buildOA(4, 4, xint);
+
+    SDPOA->print();
+
+        solver<> SDPOPFA(SDPOA,ipopt);
+        SDPOPFA.run(output = 5, tol = 1e-6, "ma27");
+    
+    lower_bound = SDPOA->get_obj_val()*upper_bound;
+    gap = 100*(upper_bound - lower_bound)/upper_bound;
+    DebugOn("Final Gap with OA model = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    DebugOn("\nResults: " << grid._name << " " << to_string(lower_bound) << " " << to_string(total_time)<<endl);
+    
+    //auto SDPOA= SDP.buildOA(4, 4,);
     
 //    auto con=SDP.get_constraint("Im_Wij,Im_Wij_McCormick_squared");
 //    
@@ -704,8 +758,7 @@ int main (int argc, char * argv[]) {
 //    solver<> SDPOPFA(SDPOA,ipopt);
 //    SDPOPFA.run(output = 5, tol = 1e-6, "ma27");
   
-    
-    SDPOA->print();
+
     
    // con->get_outer_app_uniform(4);
     

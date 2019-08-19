@@ -790,8 +790,8 @@ namespace gravity {
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        Constraint<type> lift(const Constraint<type>& c, string model_type){
-            if(c.is_constant() || c.is_linear() || c.is_convex()){
+        Constraint<type> lift(const Constraint<type>& c, string model_type, bool reform=false){
+            if((c.is_constant() || c.is_linear() || c.is_convex()) && !reform){
                 return c;
             }
             if(c.is_nonlinear()){
@@ -4028,11 +4028,11 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
+        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool reform=false){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c,convexify, method_type);
+            add_constraint(c,convexify, method_type, reform);
         }
         
         
@@ -4101,7 +4101,7 @@ namespace gravity {
         //        }
         
         
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool reform=false){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -4142,21 +4142,21 @@ namespace gravity {
                 }
                 newc->update_str();
                 if(convexify){
-                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq && !reform){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
                         c_cvx._name = newc->_name+"_convex";
                         c_cvx._relaxed = true;
                         add_constraint(c_cvx <= 0);
                     }
-                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq && !reform){
                         DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                         Constraint<type> c_ccve(*newc);
                         c_ccve._name = newc->_name+"_concave";
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-                    auto lifted = lift(*newc, method_type);
+                    auto lifted = lift(*newc, method_type, reform);
                     return add_constraint(lifted);
                 }
                 embed(newc, false);
@@ -8440,9 +8440,10 @@ namespace gravity {
         /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
          @param[in] nb_discr:
          @param[in] nb_perturb:
+         @param[in] xinterior:
          @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
          **/
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb)
+        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, vector<double> xinterior)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
             vector<double> xsolution(_nb_vars);
@@ -8487,7 +8488,7 @@ namespace gravity {
                 }
             }
             set_solution(xsolution);
-            OA->add_outer_app_active(*this, nb_perturb);
+            OA->add_outer_app_active(*this, nb_perturb, xinterior);
             set_solution(xsolution);
             return OA;
         }
@@ -8498,14 +8499,14 @@ namespace gravity {
          @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
          Assumption: nonlinear constraint to be perturbed does not have any vector variables
          **/
-        void add_outer_app_active(Model<> nonlin, int nb_perturb)
+        void add_outer_app_active(Model<> nonlin, int nb_perturb, vector<double> xinterior)
         {
             const double active_tol=1e-6, perturb_dist=1e-3;
             vector<double> xsolution(_nb_vars);
-            vector<double> xinterior,xactive, xcurrent;
+            vector<double> xactive, xcurrent;
             double fk,  sign_coef=-1.0;
             bool outer;
-            int counter=0, k;
+            int counter=0;
             size_t posv;
             for (auto &con: nonlin._cons_vec)
             {
@@ -8524,26 +8525,22 @@ namespace gravity {
                     }
                 }
              }
-            }/** TODO: perturbation and symbolic version, need to set and rest variables incase of using perturb */
+            }
                     get_solution(xsolution);
-                    auto res=get_interior_point(nonlin);
-                    if(res.first){
-                        xinterior=res.second;
-                        //set_solution(xsolution);
-                    
             for (auto &con: nonlin._cons_vec)
             {
                 if(!con->is_linear()) {
                     for(auto i=0;i<con->get_nb_inst();i++){
+                        con->uneval();
                         if(abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
                             set_solution(xinterior);
                             xinterior=con->get_x(i);
                             set_solution(xsolution);
                             xcurrent=con->get_x(i);
-                            for(auto j=0;j<nb_perturb;j++)
+                            for(auto j=1;j<=nb_perturb;j++)
                             {
                                 counter=0;
-                                for(auto &it: *_vars)
+                                for(auto &it: *con->_vars)
                                 {
                                     auto v = it.second.first;
                                     if(v->_is_vector)
@@ -8555,23 +8552,22 @@ namespace gravity {
                                     else
                                     {
                                         outer=false;
-                                        for(k=0;k<=1;k++);
+                                        for(auto k=-1;k<=1;k+=2)
                                         {
                                         posv=v->get_id_inst(i);
-                                            v->set_double_val(posv, xcurrent[counter]+std::pow(sign_coef, k)*j*perturb_dist);
+                                            v->set_double_val(posv, xcurrent[counter]*(1+k*j*perturb_dist));
                                             con->uneval();
                                             fk=con->eval(i);
                                             if((fk>active_tol && con->_ctype==leq) || (fk<(active_tol*(-1)) && con->_ctype==geq)){
                                                 outer=true;
                                                 break;
-                                        
                                         }
                                     }
                                         if(outer)
                                         {
                                             auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
                                             if(res_search){
-                                                Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(i));
+                                                Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
                                                 OA_active=con->get_outer_app_insti(i);
                                                 if(con->_ctype==leq) {
                                                     add(OA_active<=0);
@@ -8584,20 +8580,65 @@ namespace gravity {
                                             
                                         }
                                     }
-                                     con->set_x(i, xcurrent);
+                                    con->set_x(i, xcurrent);
                                     counter++;
                                 }
-                            }
-                            
-                            
                   }
                 }
             }
            }
          }
         }
-                 
-                
+        /** Returns an interior point of a model
+         @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
+         Assuming model has no nonlinear equality constraints
+         **/
+        Model<> build_model_interior()
+        {
+            Model<> Interior(_name+"Interior");
+            vector<double> xinterior(_nb_vars);
+
+            
+            for (auto &it: _vars)
+            {
+                auto v = it.second;
+                if(!Interior.has_var(*v)){
+                    Interior.add_var(v);
+                }
+            }
+            var<> eta_int("eta_int", -1, 0);
+            
+            Interior.add(eta_int.in(range(0,0)));
+            auto obj=eta_int;
+           
+            Interior.min(obj);
+        
+           
+    
+            for (auto &con: _cons_vec)
+            {
+                if(!con->is_linear()) {
+                     Constraint<> Inter_con(*con);
+                    if(con->_ctype==leq)
+                    {
+                        Inter_con -= eta_int;
+                        Interior.add(Inter_con<=0);
+                    }
+                    else
+                    {
+                        Inter_con += eta_int;
+                        Interior.add(Inter_con>=0);
+                    }
+                }
+                else
+                {
+                    Interior.add(*con);
+                }
+            }
+            
+            return Interior;
+        }
+        
                 
             
         /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
