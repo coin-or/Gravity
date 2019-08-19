@@ -1119,7 +1119,7 @@ namespace gravity {
                 
 
                 res.insert(_qterms->begin()->second._sign, coef_x_times2*xstar, *x);
-                res.print();
+            //    res.print();
                 
 //                DebugOn("Sign x2 "<<_qterms->begin()->second._sign<<endl);
 //                DebugOn("Coefficient x2 "<<coef_x<<endl);
@@ -1308,19 +1308,17 @@ namespace gravity {
          **/
          bool linesearchbinary(vector<double> x_start, size_t nb_inst, ConstraintType ctype)
          {
-            bool success;
+            bool success=false;
             const double int_tol=1e-6, zero_tol=1e-6;
             const int max_iter=1000;
             vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
-            double  f_a,f_b,f_f, f_t, f_mid, interval_norm, xv;
-            bool solution_found=false;
-            size_t posv;
+            double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
             int iter=0;
             x_end=get_x(nb_inst);
             uneval();
             f_b=eval(nb_inst);
             
-            set_x(x_start, nb_inst);
+            set_x(nb_inst, x_start);
             uneval();
             f_a=eval(nb_inst);
      
@@ -1338,6 +1336,13 @@ namespace gravity {
                 x_f=x_end;
                 x_t=x_start;
             }
+             
+             for(auto i=0;i<x_start.size();i++)
+             {
+                 interval.push_back(x_t[i]-x_f[i]);
+                 mid.push_back((x_end[i]+x_start[i])*0.5);
+             }
+             
             interval_norm=l2norm(interval);
             
             if(f_f<=0 && f_t>=0 )
@@ -1348,7 +1353,7 @@ namespace gravity {
                     {
                         mid[i]=(x_f[i]+x_t[i])*0.5;
                     }
-                    set_x(mid, nb_inst);
+                    set_x(nb_inst, mid);
                     uneval();
                     f_mid=eval(nb_inst);
                     // DebugOn("F_mid "<< f_mid<<endl);
