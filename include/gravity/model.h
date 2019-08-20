@@ -8443,15 +8443,15 @@ namespace gravity {
          @param[in] xinterior:
          @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
          **/
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, vector<double> xinterior)
+        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, bool interior, vector<double> xinterior)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
             vector<double> xsolution(_nb_vars);
             
             get_solution(xsolution);
-            DebugOn("xsolution"<<endl);
-            for(auto i=0;i<xsolution.size();i++)
-                DebugOn(xsolution[i]<<endl);
+            //  DebugOn("xsolution"<<endl);
+            //            for(auto i=0;i<xsolution.size();i++)
+            //                DebugOn(xsolution[i]<<endl);
             
             for (auto &it: _vars)
             {
@@ -8488,7 +8488,7 @@ namespace gravity {
                 }
             }
             set_solution(xsolution);
-            OA->add_outer_app_active(*this, nb_perturb, xinterior);
+            OA->add_outer_app_active(*this, nb_perturb, interior, xinterior);
             set_solution(xsolution);
             return OA;
         }
@@ -8499,95 +8499,102 @@ namespace gravity {
          @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
          Assumption: nonlinear constraint to be perturbed does not have any vector variables
          **/
-        void add_outer_app_active(Model<> nonlin, int nb_perturb, vector<double> xinterior)
+        void add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior, vector<double> xinterior)
         {
             const double active_tol=1e-6, perturb_dist=1e-3;
             vector<double> xsolution(_nb_vars);
             vector<double> xactive, xcurrent;
-            double fk,  sign_coef=-1.0;
+            double fk;
             bool outer;
             int counter=0;
             size_t posv;
             for (auto &con: nonlin._cons_vec)
             {
-             if(!con->is_linear()) {
-                con->uneval();
-                for(auto i=0;i<con->get_nb_inst();i++){
-                    if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                        Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
-                        OA_sol=con->get_outer_app_insti(i);
-                        if(con->_ctype==leq) {
-                            add(OA_sol<=0);
-                        }
-                        else {
-                            add(OA_sol>=0);
+                if(!con->is_linear() && con->_name!="obj_UB") {
+                    
+                    con->uneval();
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                            Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
+                            OA_sol=con->get_outer_app_insti(i);
+                            if(con->_ctype==leq) {
+                                add(OA_sol<=0);
+                            }
+                            else {
+                                add(OA_sol>=0);
+                            }
                         }
                     }
                 }
-             }
+                else if(con->_name=="obj_UB"){
+                    add(*con);
+                }
             }
-                    get_solution(xsolution);
-            for (auto &con: nonlin._cons_vec)
+            if(interior)
             {
-                if(!con->is_linear()) {
-                    for(auto i=0;i<con->get_nb_inst();i++){
-                        con->uneval();
-                        if(abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
-                            set_solution(xinterior);
-                            xinterior=con->get_x(i);
-                            set_solution(xsolution);
-                            xcurrent=con->get_x(i);
-                            for(auto j=1;j<=nb_perturb;j++)
-                            {
-                                counter=0;
-                                for(auto &it: *con->_vars)
+                get_solution(xsolution);
+                for (auto &con: nonlin._cons_vec)
+                {
+                    if(!con->is_linear()) {
+                        for(auto i=0;i<con->get_nb_inst();i++){
+                            con->uneval();
+                            if(abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
+                                set_solution(xinterior);
+                                xinterior=con->get_x(i);
+                                set_solution(xsolution);
+                                xcurrent=con->get_x(i);
+                                for(auto j=1;j<=nb_perturb;j++)
                                 {
-                                    auto v = it.second.first;
-                                    if(v->_is_vector)
+                                    counter=0;
+                                    for(auto &it: *con->_vars)
                                     {
-                                        DebugOn("Exception: Vector variables are not currently supported"<<endl);
-                                        DebugOn("Throw exception" <<endl);
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        outer=false;
-                                        for(auto k=-1;k<=1;k+=2)
+                                        auto v = it.second.first;
+                                        if(v->_is_vector)
                                         {
-                                        posv=v->get_id_inst(i);
-                                            v->set_double_val(posv, xcurrent[counter]*(1+k*j*perturb_dist));
-                                            con->uneval();
-                                            fk=con->eval(i);
-                                            if((fk>active_tol && con->_ctype==leq) || (fk<(active_tol*(-1)) && con->_ctype==geq)){
-                                                outer=true;
-                                                break;
+                                            DebugOn("Exception: Vector variables are not currently supported"<<endl);
+                                            DebugOn("Throw exception" <<endl);
+                                            break;
                                         }
-                                    }
-                                        if(outer)
+                                        else
                                         {
-                                            auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
-                                            if(res_search){
-                                                Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
-                                                OA_active=con->get_outer_app_insti(i);
-                                                if(con->_ctype==leq) {
-                                                    add(OA_active<=0);
+                                            outer=false;
+                                            for(auto k=-1;k<=1;k+=2)
+                                            {
+                                                posv=v->get_id_inst(i);
+                                                v->set_double_val(posv, xcurrent[counter]*(1+k*j*perturb_dist));
+                                                con->uneval();
+                                                fk=con->eval(i);
+                                                if((fk>active_tol && con->_ctype==leq) || (fk<(active_tol*(-1)) && con->_ctype==geq)){
+                                                    outer=true;
+                                                    break;
                                                 }
-                                                else {
-                                                    add(OA_active>=0);
+                                            }
+                                            if(outer)
+                                            {
+                                                auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
+                                                if(res_search){
+                                                    Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
+                                                    OA_active=con->get_outer_app_insti(i);
+                                                    if(con->_ctype==leq) {
+                                                        add(OA_active<=0);
+                                                    }
+                                                    else {
+                                                        add(OA_active>=0);
+                                                    }
+                                                    
                                                 }
                                                 
                                             }
-                                            
                                         }
+                                        con->set_x(i, xcurrent);
+                                        counter++;
                                     }
-                                    con->set_x(i, xcurrent);
-                                    counter++;
                                 }
-                  }
+                            }
+                        }
+                    }
                 }
             }
-           }
-         }
         }
         /** Returns an interior point of a model
          @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
@@ -8597,7 +8604,7 @@ namespace gravity {
         {
             Model<> Interior(_name+"Interior");
             vector<double> xinterior(_nb_vars);
-
+            
             
             for (auto &it: _vars)
             {
@@ -8610,15 +8617,15 @@ namespace gravity {
             
             Interior.add(eta_int.in(range(0,0)));
             auto obj=eta_int;
-           
+            
             Interior.min(obj);
-        
-           
-    
+            
+            
+            
             for (auto &con: _cons_vec)
             {
                 if(!con->is_linear()) {
-                     Constraint<> Inter_con(*con);
+                    Constraint<> Inter_con(*con);
                     if(con->_ctype==leq)
                     {
                         Inter_con -= eta_int;
@@ -8639,8 +8646,8 @@ namespace gravity {
             return Interior;
         }
         
-                
-            
+        
+        
         /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
          @param[in] nb_discr:
          @param[in] con:
