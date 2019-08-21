@@ -176,14 +176,14 @@ int main (int argc, char * argv[]) {
     
     bool break_flag=false, time_limit = false, lifted_var=false, close=false;
     
-    const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
+    const double rel_tol=1e-2, abs_tol=1e3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
     const int max_iter=1000,gap_count_int=6;
     
     
     double solver_time_end, solver_time_start = get_wall_time();
     shared_ptr<map<string,size_t>> p_map;
     //Check if gap is already not zero at root node
-    if ((upper_bound-lower_bound)>=upp_low_tol && (upper_bound-lower_bound)/(upper_bound+zero_tol)>=upp_low_tol)
+    if ((upper_bound-lower_bound)>=abs_tol || (upper_bound-lower_bound)/(upper_bound+zero_tol)>=rel_tol)
         
     {
         terminate=false;
@@ -409,7 +409,7 @@ int main (int argc, char * argv[]) {
                     auto gap = 100*(upper_bound - (SDP->get_obj_val()))/upper_bound;
                     DebugOn("Gap "<<gap<<endl);
                 }
-                if (upper_bound-SDP->get_obj_val()<=upp_low_tol || (upper_bound-SDP->get_obj_val())/(upper_bound+zero_tol)<=upp_low_tol)
+                if (upper_bound-SDP->get_obj_val()<=abs_tol && (upper_bound-SDP->get_obj_val())/(upper_bound+zero_tol)<=rel_tol)
                 {
                     DebugOn("Gap closed at iter "<< iter<<endl);
                     close=true;
@@ -527,7 +527,7 @@ int main (int argc, char * argv[]) {
     }
     
     
-    string result_name="~/obbt_results/pglibopf.txt";
+    string result_name=string(prj_dir)+"/results_obbt/pglibopf.txt";
     ofstream fout(result_name.c_str(), ios_base::app);
     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
     
