@@ -407,7 +407,7 @@ int main (int argc, char * argv[]) {
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SDP.add(I_from_Pf.in(arcs)==0, true, "on/off", true);
+        SDP.add(I_from_Pf.in(arcs)==0, true);
           //SDP.add(I_from_Pf.in(arcs)==0, true);
        
         
@@ -424,12 +424,13 @@ int main (int argc, char * argv[]) {
     solver_time_start = get_wall_time();
     
     SDPOPF.run(output = 5, tol = 1e-7, "ma57");
-    SDP.print_solution();
+   // SDP.print_solution();
+    SDP.print();
     SDP.print_constraints_stats(tol);
     SDP.print_nonzero_constraints(tol,true);
     auto lower_bound = SDP.get_obj_val()*upper_bound;
     
-    SDP.print_solution();
+    //SDP.print_solution();
     
 
     double gap = 100*(upper_bound - lower_bound)/upper_bound;
@@ -442,6 +443,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+   
     
     return 0;
     

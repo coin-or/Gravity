@@ -2036,7 +2036,6 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, add_original=false, convexify=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
-    double ilb, iub;
     num_bags = atoi(num_bags_s.c_str());
     
     cout << "\nnum bags = " << num_bags << endl;
@@ -2044,7 +2043,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     if(!grid._tree && grid._bags.empty()){
         grid.get_tree_decomp_bags();
     }
-    grid.update_ref_bus();
+    //grid.update_ref_bus();
     
     /* Grid Stats */
     auto nb_gen = grid.get_nb_active_gens();
@@ -2067,7 +2066,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    grid.update_pij_bounds();
+    //grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2159,8 +2158,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
-    var<> eta("eta", 0, 1);
-    SDPOPF->add(eta.in(range(0,0)));
+//    var<> eta("eta", 0, 1);
+//    SDPOPF->add(eta.in(range(0,0)));
 
     
     if(current){
@@ -2170,7 +2169,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
    
     
     
-    func<> obj = eta(0);
+    func<> obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
     SDPOPF->min(obj);
    
     
@@ -2180,8 +2179,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     
     Constraint<> obj_UB("obj_UB");
-    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta*upper_bound;
-    SDPOPF->add(obj_UB.in(range(0,0))<=0);
+    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upper_bound;
+    //SDPOPF->add(obj_UB.in(range(0,0))<=0);
     
     
     /** Constraints */
@@ -2267,12 +2266,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
+   // SDPOPF->add(Thermal_Limit_from.in(arcs));
     SDPOPF->add(Thermal_Limit_from.in(arcs), true, "on/off", true);
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
+    //SDPOPF->add(Thermal_Limit_to.in(arcs));
     SDPOPF->add(Thermal_Limit_to.in(arcs), true, "on/off", true);
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
