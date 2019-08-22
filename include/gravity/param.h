@@ -287,7 +287,10 @@ namespace gravity {
         }
         
         bool is_matrix_indexed() const{
-            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+            if(_indices && ((_indices->_ids && _indices->_ids->size()>1) && _indices->_type!=matrix_)){
+                throw invalid_argument("matrix issue");
+            }
+            return (_indices && ((_indices->_ids && _indices->_ids->size()>1) || _indices->_type==matrix_));
         }
 
         bool is_binary() const {
@@ -491,6 +494,8 @@ namespace gravity {
         virtual int get_cur_partn() const{return 0;};
         
         virtual bool get_lift() const{return 0;};
+        virtual bool get_in_SOC_partn() const{return 0;};
+        virtual void set_in_SOC_partn(bool in_SOC_partn) {};
 
     };
 
@@ -824,9 +829,9 @@ namespace gravity {
         }
 
         inline type eval(size_t i) const {
-//            if(is_matrix()){
-//                throw invalid_argument("eval() should be called with double index here\n");
-//            }
+            if(is_matrix()){
+                throw invalid_argument("eval() should be called with double index here\n");
+            }
             auto idx = get_id_inst(i);
 //            if (is_indexed()) {
 //                if (_indices->_ids->size()>1) {
@@ -851,9 +856,9 @@ namespace gravity {
         inline type eval(size_t i, size_t j) const {
 
             if (is_indexed() && _indices->_ids->size()>1) {
-//                if (_indices->_ids->at(i).at(j) >= _val->size()) {
-//                    throw invalid_argument("eval(i,j): out of range");
-//                }
+                if (_indices->_ids->at(i).at(j) >= _val->size()) {
+                    throw invalid_argument("eval(i,j): out of range");
+                }
                 return _val->at(_indices->_ids->at(i).at(j));
             }
 
@@ -1466,6 +1471,10 @@ namespace gravity {
          sum(dv.in_matrix(1,1)) <= 0 gives: dv[1,8] + dv[1,9] + dv[1,10] + dv[1,11] + dv[1,12] <= 0;
          */
         param in_matrix(unsigned start_entry, unsigned nb_entries) const{
+            if (this->_indices->get_nb_entries() < start_entry + nb_entries){
+//                DebugOn("********************************need to throw invalid_argument on the ambient index set, not the index set defined for the param. (i.e. when from_ith is used on an index set with more entries)" << endl);
+                throw invalid_argument("Number of entries exceeds the total number of entries!\n");
+            }
             auto res(*this);
             return res.in(this->get_matrix_ids(start_entry,nb_entries));
         }
@@ -1559,7 +1568,8 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("unindexed param/var, first call in()");
             }
-            return this->in(ids.ignore_ith(start_position, nb_entries));
+            auto ids_cpy = ids.deep_copy();
+            return this->in(ids_cpy.ignore_ith(start_position, nb_entries));
         }
     
         /** Index parameter/variable in ids, look for the keys starting at the ith position
@@ -1572,7 +1582,8 @@ namespace gravity {
             }
             /** Number of comma separated keys in current variable */
             auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            return this->in(ids.from_ith(start_position, nb_entries+1));
+            auto ids_cpy = ids.deep_copy();
+            return this->in(ids_cpy.from_ith(start_position, nb_entries+1));
         }
         
         /** Index parameter/variable in the product of ids1...args
@@ -1617,40 +1628,25 @@ namespace gravity {
             string key, excluded;
             size_t nb_inst=1;
             param res(*this);
-            if(ids._ids && ids._ids->size()>1){/* Double-indexed set */
-                nb_inst = ids._ids->size();
-                /* Check that the current param has the keys found in ids */
-                for(auto key: *ids._keys){
-                    auto it1 = _indices->_keys_map->find(key);
-                    if (it1 == _indices->_keys_map->end()){
-                        throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
-                    }
-                }
-                res._indices = make_shared<indices>(ids);
-                if(res._is_transposed){
-                    if(res.is_matrix_indexed()){
-                        res._dim[1]=_indices->size();
-                    }
-                    else {
-                        res._dim[1]=res._indices->size();
-                    }
-                }
-                else {
-                    if(res.is_matrix_indexed()){
-                        res._dim[0]=_indices->size();
-                    }
-                    else {
-                        res._dim[0]=res._indices->size();
-                    }
-                }
-                res._name += ".in("+ids.get_name()+")";
-                res.reset_range();
-                return res;
-            }
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
+            res._indices->_type = ids._type;
             nb_inst = ids.size();
-            if(ids.is_indexed()){/* If ids has key references, use those */
+            if(ids._type==matrix_){
+                res._indices->_ids->resize(nb_inst);
+                for (size_t i = 0; i<nb_inst; i++) {
+                    for (size_t j = 0; j<ids._ids->at(i).size(); j++) {
+                        auto key_ref = ids._ids->at(i).at(j);
+                        key = ids._keys->at(key_ref);
+                        auto it = _indices->_keys_map->find(key);
+                        if (it == _indices->_keys_map->end()){
+                            throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
+                        }
+                        res._indices->_ids->at(i).push_back(it->second);
+                    }
+                }
+            }
+            else if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
                     key = ids._keys->at(key_ref);
                     auto it = _indices->_keys_map->find(key);
@@ -1920,14 +1916,29 @@ namespace gravity {
 //            }
 //            return inst2;
 //        };
-        size_t get_max_cell_size(){
+        size_t get_max_cell_size(bool matrix_indexed = false){
             auto max_size = 0;
-            for (size_t i = 0; i<_dim[0]; i++) {
-                for (size_t j = 0; j<_dim[1]; j++) {
-                    eval(i,j);
-                    auto cell = to_str(i,j,5);
-                    if(max_size < cell.size()){
-                        max_size = cell.size();
+            auto nb_rows = _dim[0];
+            auto nb_cols = _dim[1];
+            if(matrix_indexed){
+                for (size_t i = 0; i<_indices->get_nb_rows(); i++) {
+                    for (size_t j = 0; j<_indices->_ids->at(i).size(); j++) {
+                        eval(i,j);
+                        auto cell = to_str(i,j,5);
+                        if(max_size < cell.size()){
+                            max_size = cell.size();
+                        }
+                    }
+                }
+            }
+            else {
+                for (size_t i = 0; i<_dim[0]; i++) {
+                    for (size_t j = 0; j<_dim[1]; j++) {
+                        eval(i,j);
+                        auto cell = to_str(i,j,5);
+                        if(max_size < cell.size()){
+                            max_size = cell.size();
+                        }
                     }
                 }
             }
@@ -1941,7 +1952,27 @@ namespace gravity {
             if (vals) {
                 str += " = { \n";
                 auto space_size = str.size();
-                if (is_matrix()) {
+                if (is_matrix_indexed()) {
+                    auto max_cell_size = get_max_cell_size(true);
+                    for (size_t i = 0; i<_indices->get_nb_rows(); i++) {
+                        str.insert(str.end(), space_size, ' ');
+                        str += "|";
+                        for (size_t j = 0; j<_indices->_ids->at(i).size(); j++) {
+                            auto cell = to_str(i,j,prec);
+                            auto cell_size = cell.size();
+                            cell.insert(0, floor((max_cell_size+1 - cell_size)/2.), ' ');
+                            cell.append(ceil((max_cell_size+1 - cell_size)/2.), ' ');
+                            str += cell;
+                            if(j!=_dim[1]-1){
+                                str += " ";
+                            }
+                        }
+                        str += "|\n";
+                    }
+                    str += "}\n";
+                    return str;
+                }
+                else if (is_matrix()) {
                     auto max_cell_size = get_max_cell_size();
                     for (size_t i = 0; i<_dim[0]; i++) {
                         str.insert(str.end(), space_size, ' ');

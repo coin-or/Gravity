@@ -53,15 +53,20 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         else {
             cplex.extract(*_cplex_model);
         }
-//        cplex.setParam(IloCplex::EpGap, mipgap);
+
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::AdvInd, 1);
+
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
 //        cplex.setParam(IloCplex::PreInd, 0);
+
 //        cplex.setParam(IloCplex::RootAlg, 1);
+//        cplex.setParam(IloCplex::EpGap, 0.001);
+        cplex.setParam(IloCplex::PreInd, 1);
+        cplex.setParam(IloCplex::MIPDisplay, 2);
         
 //        cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, 50); //relaxation induced neighbourhood search frequency
 //        cplex.setParam(IloCplex::Param::Emphasis::MIP, 4); //mip emphasis on finding feasible(hidden) solutions first ******* USE 0 or 4 as the setting ********
@@ -69,7 +74,9 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::Param::MIP::Strategy::Dive, 2); //dive for probing only
 //        cplex.setParam(IloCplex::Param::MIP::Strategy::VariableSelect, 4); //calculate reduced pseudocosts for branching
 //        cplex.setParam(IloCplex::Param::MIP::Limits::CutPasses, 10); //number of passes to generate cuts in the root node
+
 ////        cplex.setParam(IloCplex::Param::MIP::Limits::CutsFactor, 1.5); //proportion(-1) of total cuts added to the total number of rows
+
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::Disjunctive, 2); // generate disjunctive cuts aggresively
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::BQP, 2); //boolean quadratic polytope cuts are used aggresively
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::Cliques, 2); //clique cuts are used aggresively
@@ -180,6 +187,7 @@ void CplexProgram::fill_in_cplex_vars() {
                 _cplex_vars.at(vid) = IloNumVarArray(*_cplex_env,lb,ub);
             }
 //            for (int i = 0; i < real_var->get_dim(); i++) {
+//                _cplex_vars.at(vid)[i].setName(real_var->get_name(i).c_str());
 //                cout << real_var->_indices->_keys->at(i) << " : ";
 //                cout << to_string(_cplex_vars.at(vid)[i].getId()) << " in [";
 //                cout << lb[i] << "," << ub[i]<< "]\n";
@@ -222,6 +230,9 @@ void CplexProgram::fill_in_cplex_vars() {
         }
         default:
             break;
+        }
+        for (int i = 0; i < v->get_dim(); i++) {
+            _cplex_vars.at(vid)[i].setName(v->get_name(i).c_str());
         }
     }
 }
@@ -311,7 +322,7 @@ void CplexProgram::create_cplex_constraints() {
         if (c->is_nonlinear()) {
             throw invalid_argument("Cplex cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
-        nb_inst = c->_dim[0];
+        nb_inst = c->get_nb_instances();
         inst = 0;
         for (size_t i = 0; i< nb_inst; i++) {
             IloNumExpr cc(*_cplex_env);
@@ -340,7 +351,7 @@ void CplexProgram::create_cplex_constraints() {
             for (auto& it_lterm: c->get_lterms()) {
                 IloNumExpr lterm(*_cplex_env);
                 idx = it_lterm.second._p->get_vec_id();
-                if (it_lterm.second._p->_is_vector || it_lterm.second._coef->is_matrix()) {
+                if (it_lterm.second._p->_is_vector || it_lterm.second._p->is_matrix_indexed() || it_lterm.second._coef->is_matrix()) {
                     auto dim = it_lterm.second._p->get_dim(i);
                     for (int j = 0; j<dim; j++) {
                         lterm += c->eval(it_lterm.second._coef,i,j)*_cplex_vars[idx][it_lterm.second._p->get_id_inst(i,j)];
@@ -358,14 +369,21 @@ void CplexProgram::create_cplex_constraints() {
             }
             cc += c->eval(c->get_cst(), inst);
 
+            
             if(c->get_ctype()==geq) {
-                _cplex_model->add(cc >= 0);
+                IloConstraint c_(cc >= 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             else if(c->get_ctype()==leq) {
-                _cplex_model->add(cc <= 0);
+                IloConstraint c_(cc <= 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             else if(c->get_ctype()==eq) {
-                _cplex_model->add(cc == 0);
+                IloConstraint c_(cc == 0);
+                c_.setName(c->_name.c_str());
+                _cplex_model->add(c_);
             }
             inst++;
         }
@@ -382,8 +400,8 @@ void CplexProgram::prepare_model() {
     create_cplex_constraints();
     create_callback();
     set_cplex_objective();
-//    IloCplex cplex(*_cplex_model);
-//    cplex.exportModel("lpex2.lp");
+    IloCplex cplex(*_cplex_model);
+//    cplex.exportModel("lpex.lp");
 
     //    print_constraints();
 }

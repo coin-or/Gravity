@@ -1443,7 +1443,6 @@ TEST_CASE("testing in_ignore_ith() function") {
 }
 
 TEST_CASE("testing get_matrix()") {
-    DebugOn("testing get_matrix() function in in_matrix(start,nb_entries)" << endl);
     auto ids = indices(range(1,3),range(8,12));
     var<> dv("dv");
     dv = dv.in(ids);
@@ -1457,7 +1456,7 @@ TEST_CASE("testing get_matrix()") {
     Constraint<> Sum2("Sum2");
     Sum2 = sum(dv.in_matrix(1,1));
     Sum2.print();
-    CHECK(Sum2.get_nb_instances() == 3); //you will see that in this case , it does not even does a sum!
+    CHECK(Sum2.get_nb_instances() == 3);
     
     auto ids1 = indices(range(1,3),range(4,7),range(8,12));
     var<> dv1("dv1");
@@ -1487,8 +1486,6 @@ TEST_CASE("testing sum_ith()") {
 }
 
 TEST_CASE("testing sum_ith() func<> version"){
-    DebugOn("testing sum_ith() func<> version" << endl);
-    
     indices ids1("index set1""");
     ids1 = indices(range(1,3),range(1,4),range(1,6));
     
@@ -1526,7 +1523,6 @@ TEST_CASE("testing sum_ith() func<> version"){
 }
 
 TEST_CASE("testing Outer Approximation") {
-    DebugOn("testing Outer Approximation");
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
     indices bus_pairs("bpairs");

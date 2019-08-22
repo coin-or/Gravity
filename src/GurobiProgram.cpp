@@ -109,7 +109,7 @@ void GurobiProgram::update_solution(){
         for (auto i = 0; i < dim; i++) {
             auto vid = idx + v->get_id_inst(i);
             gvar = _grb_vars.at(vid);
-            v->get_double_val(i,gvar.get(GRB_DoubleAttr_X));
+            v->set_double_val(i,gvar.get(GRB_DoubleAttr_X));
         }
     }
 }
