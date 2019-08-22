@@ -391,7 +391,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-    //    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);

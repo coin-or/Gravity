@@ -8932,6 +8932,12 @@ namespace gravity {
             //create the variables for bound calculations
             var<> v1;
             var<> v2;
+            var<> bln1;
+            var<> bln2;
+            
+            double v1_scale;
+            double v2_scale;
+            double bln_scale;
             
             if (is_SOC) //if it is SOC
             {
@@ -8977,6 +8983,17 @@ namespace gravity {
                     
                     if (first){
                         for (auto &qt_pair: *SOC_2._qterms) {
+                            if (!first_occupied){
+                                v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                                auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                                if(coef->is_positive()) v1_scale = std::sqrt(coef->eval());
+                                else lhs_first_scale = std::sqrt((-1)*coef->eval());
+                                first_occupied = true;
+                            }
+                            else v2 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        }
+                        //I was here
+                        for (auto &qt_pair: *SOC_1._qterms) {
                             if (!first_occupied){
                                 v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
                                 first_occupied = true;
