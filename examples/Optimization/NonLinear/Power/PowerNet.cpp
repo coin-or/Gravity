@@ -311,6 +311,7 @@ void PowerNet::update_pij_bounds()
 indices PowerNet::gens_per_node() const{
     indices ids("gens_per_node");
     ids = indices(gens);
+    ids._type = matrix_;
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
     string key;
@@ -363,6 +364,7 @@ indices PowerNet::get_ref_bus_pairs_to()
 
 indices PowerNet::out_arcs_per_node() const{
     auto ids = indices(arcs);
+    ids._type = matrix_;
     ids.set_name("out_arcs_per_node");
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());
@@ -389,6 +391,7 @@ indices PowerNet::out_arcs_per_node() const{
 
 indices PowerNet::in_arcs_per_node() const{
     auto ids = indices(arcs);
+    ids._type = matrix_;
     ids.set_name("in_arcs_per_node");
     ids._ids = make_shared<vector<vector<size_t>>>();
     ids._ids->resize(get_nb_active_nodes());

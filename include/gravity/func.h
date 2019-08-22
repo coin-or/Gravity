@@ -2653,7 +2653,10 @@ namespace gravity {
         }
         
         bool is_matrix_indexed() const{
-            return (_indices && _indices->_ids && _indices->_ids->size()>1);
+            if(_indices && ((_indices->_ids && _indices->_ids->size()>1) && _indices->_type!=matrix_)){
+                throw invalid_argument("matrix issue");
+            }
+            return (_indices && ((_indices->_ids && _indices->_ids->size()>1) || _indices->_type==matrix_));
         }
         
         string to_str(size_t index, int prec) {
@@ -6620,7 +6623,6 @@ namespace gravity {
             }
             return false;
         }
-        
         
         bool check_soc(){
             if (_qterms->empty() || !_pterms->empty() || _expr) {
