@@ -58,7 +58,11 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::AdvInd, 1);
+
+//        cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
+//        cplex.setParam(IloCplex::PreInd, 0);
+
 //        cplex.setParam(IloCplex::RootAlg, 1);
 //        cplex.setParam(IloCplex::EpGap, 0.001);
         cplex.setParam(IloCplex::PreInd, 1);
@@ -70,6 +74,9 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::Param::MIP::Strategy::Dive, 2); //dive for probing only
 //        cplex.setParam(IloCplex::Param::MIP::Strategy::VariableSelect, 4); //calculate reduced pseudocosts for branching
 //        cplex.setParam(IloCplex::Param::MIP::Limits::CutPasses, 10); //number of passes to generate cuts in the root node
+
+////        cplex.setParam(IloCplex::Param::MIP::Limits::CutsFactor, 1.5); //proportion(-1) of total cuts added to the total number of rows
+
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::Disjunctive, 2); // generate disjunctive cuts aggresively
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::BQP, 2); //boolean quadratic polytope cuts are used aggresively
 //        cplex.setParam(IloCplex::Param::MIP::Cuts::Cliques, 2); //clique cuts are used aggresively
