@@ -852,6 +852,22 @@ TEST_CASE("testing monomials"){
     }
 }
 
+TEST_CASE("testing monomials"){
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        auto v = build_compositions(4, 2);
+        for (auto i = 0; i< v.size(); i++) {
+            for (auto &row:v[i]) {
+                cout << row << " ";
+            }
+            cout << endl;
+        }
+    }
+}
+
 TEST_CASE("testing simple model"){
     int worker_id = 0;
 #ifdef USE_MPI
@@ -1148,7 +1164,7 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
         c35 = -1*pow(x[6],2) + x[7];
         m.add(c35>=0);
         m.print();
-        bool use_cplex = false, relax = true;
+        bool use_cplex = true, relax = true;
         if(use_cplex){
             solver<> s(m,cplex);
             s.run(relax);
