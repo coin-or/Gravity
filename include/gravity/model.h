@@ -4610,8 +4610,6 @@ namespace gravity {
                     newc_standard._indices = newc->_indices;
                     newc_standard._dim[0] = newc->_dim[0];
                     
-                    DebugOn("Here is the newc_standard 2 " << endl);
-                    newc_standard.print();
                     //call the lift function and add that constraint
                     auto lifted = lift(newc_standard, method_type);
 //                    auto lifted = lift(*newc, method_type);
@@ -8908,7 +8906,7 @@ namespace gravity {
         }
         
         template<typename T=type>
-        void on_off_SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10) { //currently the function asssumes there are only qterms!
+        void SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10, bool use_lambda = false) { //currently the function asssumes there are only qterms!
             
             auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
             auto is_SOC = c.check_soc();
@@ -9049,11 +9047,22 @@ namespace gravity {
                     }
                     
                     //call the hyperplane function to generate the on/off hyperplanes
+                    if(use_lambda){
+                        add_lambda_SOC_hyperplanes_symmetric(SOC_1, num_SOC_partitions1);
+                        add_lambda_SOC_hyperplanes_symmetric(SOC_2, num_SOC_partitions2);
+                    }
+                    else{
                     add_on_off_SOC_hyperplanes(SOC_1, num_SOC_partitions1);
                     add_on_off_SOC_hyperplanes(SOC_2, num_SOC_partitions2);
+                    }
                 }
                 else { //we can directly generate the hyperplanes
-                    add_on_off_SOC_hyperplanes(n_c, num_SOC_partitions1); //this uses the first int as the number of partitions not the total one
+                    if(use_lambda){
+                        add_lambda_SOC_hyperplanes_symmetric(n_c, num_SOC_partitions1); //this uses the first int as the number of partitions not the total one
+                    }
+                    else{
+                        add_on_off_SOC_hyperplanes(n_c, num_SOC_partitions1); //this uses the first int as the number of partitions not the total one
+                    }
                 }
             }
             else { //means its rotated SOC
@@ -9138,7 +9147,7 @@ namespace gravity {
                         ub.set_val(key3, std::sqrt(prod_b1+prod_b2));
                     }
                     
-                    var<type> t("t_" + n_c._name, 0,ub); //create the auxilary variable
+                    var<type> t("t_" + n_c._name, 0, ub); //create the auxilary variable
                     add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
                     //add constraints accordingly
@@ -9149,16 +9158,982 @@ namespace gravity {
                     add(SOC_2.in(aux_idx) <= 0);
                     
                     //call the hyperplane function to generate the on/off hyperplanes
+                    if(use_lambda){
+                        add_lambda_SOC_hyperplanes_symmetric(SOC_1,num_SOC_partitions1);
+                        add_lambda_SOC_hyperplanes_symmetric(SOC_2,num_SOC_partitions2);
+                    }
+                    else{
                     add_on_off_SOC_hyperplanes(SOC_1,num_SOC_partitions1);
                     add_on_off_SOC_hyperplanes(SOC_2,num_SOC_partitions2);
+                    }
                 }
                 
                 
                 else{ //we can directly generate the hyperplanes by standardizing the bilinear term
-                    add_on_off_SOC_hyperplanes(n_c,num_SOC_partitions1);
+                    if(use_lambda){
+                        add_lambda_SOC_hyperplanes_symmetric(n_c,num_SOC_partitions1);
+                    }
+                    else{
+                        add_on_off_SOC_hyperplanes(n_c,num_SOC_partitions1);
+                    }
                 }
             }
         }
+        
+        void add_lambda_SOC_hyperplanes_symmetric(Constraint<type>& c, int num_SOC_partitions){ //currently this is not fully correct
+            //TODO: scale the coefficients properly
+            
+            DebugOn("SOC_hyperplane function!" << endl);
+            c.print();
+            
+            auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
+            auto is_SOC = c.check_soc();
+            
+            //create hyperplane indices
+            indices hyper_idx("hyper_idx");
+            for (int i=0; i<num_SOC_partitions; ++i) {
+                hyper_idx.add(to_string(i+1));
+            }
+            //get the combined index set
+            auto inst_hyper = indices(*c._indices,hyper_idx);
+            
+            //create lambda indices
+            indices lambda_idx("lambda_idx");
+            for (int i=0; i<num_SOC_partitions+2; ++i) {
+                lambda_idx.add(to_string(i+1));
+            }
+            //get the combined index set
+            auto inst_lambda = indices(*c._indices,lambda_idx);
+            
+            //create on_link_lambda indices
+            indices on_link_lambda_idx("on_link_lambda_idx");
+            for (int i=0; i<num_SOC_partitions+1; ++i) {
+                on_link_lambda_idx.add(to_string(i+1));
+            }
+            
+            Constraint<type> v1_rep_pos(c._name + "_v1_rep_pos"); //create the v1_rep constraint (positive side)
+            Constraint<type> v1_rep_neg(c._name + "_v1_rep_neg"); //create the v1_rep constraint (negative side)
+            Constraint<type> v2_rep_pos(c._name + "_v2_rep_pos"); //create the v2_rep constraint (positive side)
+            Constraint<type> v2_rep_neg(c._name + "_v2_rep_neg"); //create the v2_rep constraint (negative side)
+            Constraint<type> v3_rep(c._name + "_v3_rep"); //create the v3_rep constraint
+            var<int> on(c._name + "_binary",0,1); //create the partition variable
+            Constraint<type> onSum(c._name + "_binarySum"); //create the partition assignment constraint
+            var<> lambda(c._name + "_lambda",0,1); //create the lambda variable
+            Constraint<type> lambdaSum(c._name + "_lambdaSum"); //create the lambda constraint
+            Constraint<type> on_link_lambda(c._name + "_on_link_lambda"); // lambda linking with the partition variables
+            var<int> v1_sign(c._name + "_v1_sign",0,1); //create the sign indicator for v1 (1 if negative 0 positive)
+            var<int> v2_sign(c._name + "_v2_sign",0,1); //create the sign indicator for v2 (1 if negative 0 positive)
+            
+            if (is_SOC){ //this will follow the standard creation of the hyperplane
+                
+                //create the variables
+                var<> lhs_first_var;
+                var<> lhs_second_var;
+                var<> rhs_var;
+                
+                //create the scaling factors for the variables
+                double lhs_first_scale;
+                double lhs_second_scale;
+                double rhs_scale;
+                
+                //flag for assignment
+                bool first_occupied = false;
+                
+                for (auto &qt_pair: *c._qterms) {
+                    if (!qt_pair.second._p->first->is_double()) {
+                        throw invalid_argument("Current hyperplanes only support double type variables!");
+                    }
+                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+                    }
+                    auto sign = qt_pair.second._sign;
+                    auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                    if (sign ^ (coef->is_negative())) {
+                        if (!first_occupied){
+                            lhs_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            if(coef->is_positive()) lhs_first_scale = std::sqrt(coef->eval());
+                            else lhs_first_scale = std::sqrt((-1)*coef->eval());
+                            first_occupied = true;
+                        }
+                        else{
+                            lhs_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                            if(coef->is_positive()) lhs_second_scale = std::sqrt(coef->eval());
+                            else lhs_second_scale = std::sqrt((-1)*coef->eval());
+                            
+                        }
+                    }
+                    else{
+                        rhs_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        if(coef->is_positive()) rhs_scale = std::sqrt(coef->eval());
+                        else rhs_scale = std::sqrt((-1)*coef->eval());
+                    }
+                }
+                
+                //combine all the indices
+                //How to combine safely when the index sets are same? ***********************************************************************************************************************
+                auto inst_combined  = combine(*lhs_first_var._indices,*lhs_second_var._indices,*rhs_var._indices);
+                auto inst_combined_partn = indices(inst_combined, hyper_idx);
+                auto inst_combined_lambda = indices(inst_combined, lambda_idx);
+                
+                //collect the number of entries
+                auto nb_entries_v1 = lhs_first_var._indices->get_nb_entries();
+                auto nb_entries_v2 = lhs_second_var._indices->get_nb_entries();
+                auto nb_entries_v3 = rhs_var._indices->get_nb_entries();
+                
+                //create the multipliers for the hyperplane
+                param<double> v1_coef("v1_coef");
+                param<double> v2_coef("v2_coef");
+                param<double> v3_coef("v3_coef");
+                
+                v1_coef.in(inst_combined_lambda);
+                v2_coef.in(inst_combined_lambda);
+                v3_coef.in(inst_combined_lambda);
+                
+                // Lambda coefficient matrix when linking with partition variables
+                param<> lambda_coef(c._name+"_lambda_linking_coefficients");
+                // Partition coefficient matrix when linking with lambda variables
+                param<> on_coef(c._name+"_partition_linking_coefficients");
+                
+                // we can use constraint_idx as the hyper_idx since there will be exactly |num_SOC_partitions| many linking constraints
+                lambda_coef.in(indices(inst_combined_lambda, on_link_lambda_idx));
+                on_coef.in(indices(inst_combined_partn, on_link_lambda_idx));
+                
+                //on variable constraint and definition
+                add(on.in(inst_combined_partn));
+                
+                //create the summation constraint for partition
+                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+                add(onSum.in(*c._indices) == 1);
+                
+                //lambda variable constraint and definition
+                add(lambda.in(inst_combined_lambda));
+                
+                //create the summation constraint for partition
+                lambdaSum = sum(lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+                add(lambdaSum.in(*c._indices) == 1);
+                
+                add(v1_sign.in(inst_combined));
+                add(v2_sign.in(inst_combined));
+                
+                size_t nb_ins = lhs_first_var.get_nb_inst(); //get the number of instances
+                
+                // fill lambda_coef
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    // lhs_first
+                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+                    
+                    // lhs_second
+                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+                    
+                    // rhs
+                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+                    
+                    //for constraints
+                    for (int i=0 ; i<num_SOC_partitions+1; ++i) {
+                        string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2)+","+to_string(i+1);
+                        lambda_coef.set_val(cur_idx,1);
+                    }
+                }
+                
+                // fill on_coef
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    // lhs_first
+                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+                    
+                    // lhs_second
+                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+                    
+                    // rhs
+                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+                    
+                    //first and last constraint
+                    string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(1)+","+to_string(1);
+                    on_coef.set_val(cur_idx,1);
+                    cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(num_SOC_partitions)+","+to_string(num_SOC_partitions+1);
+                    on_coef.set_val(cur_idx,1);
+                    
+                    //for constraints
+                    for (int i=0 ; i<num_SOC_partitions-1; ++i) {
+                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+1)+","+to_string(i+2);
+                        on_coef.set_val(cur_idx,1);
+                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2)+","+to_string(i+2);
+                        on_coef.set_val(cur_idx,1);
+                    }
+                }
+                
+                on_link_lambda = lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,lambda_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1))*lambda_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) - on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,on_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1)) * on_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                add(on_link_lambda.in(indices(*c._indices,on_link_lambda_idx)) <= 0);
+                
+                //USE THE SCALES *******************************************************************************************************************
+                // fill lambda representation coefficients
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    
+                    size_t id1;
+                    if(lhs_first_var._indices->_ids == nullptr){
+                        id1 = inst;
+                    }
+                    else id1 = lhs_first_var._indices->_ids->at(0).at(inst);
+                    auto key1 = lhs_first_var._indices->_keys->at(id1);
+                    
+                    size_t id2;
+                    if(lhs_second_var._indices->_ids == nullptr){
+                        id2 = inst;
+                    }
+                    else id2 = lhs_second_var._indices->_ids->at(0).at(inst);
+                    auto key2 = lhs_second_var._indices->_keys->at(id2);
+                    
+                    size_t id3;
+                    if(rhs_var._indices->_ids == nullptr){
+                        id3 = inst;
+                    }
+                    else id3 = rhs_var._indices->_ids->at(0).at(inst);
+                    auto key3 = rhs_var._indices->_keys->at(id3);
+                    
+                    double radius1 = std::max(std::abs(lhs_first_var.get_lb(key1)), std::abs(lhs_first_var.get_ub(key1)))*lhs_first_scale;
+                    double radius2 = std::max(std::abs(lhs_second_var.get_lb(key2)), std::abs(lhs_first_var.get_ub(key2)))*lhs_second_scale;
+                    double radius3 = rhs_var.get_ub(key3)*rhs_scale;
+                    
+                    double radius = std::min( std::sqrt(std::pow(radius1,2)+std::pow(radius2,2)), radius3);
+                    
+                    // lhs_first
+                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+                    
+                    // lhs_second
+                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+                    
+                    // rhs
+                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+                    
+                    string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(1);
+                    v1_coef.set_val(cur_idx,0);
+                    v2_coef.set_val(cur_idx,0);
+                    v3_coef.set_val(cur_idx,0);
+                    
+                    for (int i=0 ; i<num_SOC_partitions+1; ++i) {
+                        //calculate the hyperplane coefficients
+                        auto v1_val = radius*std::cos(M_PI*i/(2*num_SOC_partitions));
+                        auto v2_val = radius*std::sin(M_PI*i/(2*num_SOC_partitions));
+                        auto v3_val = radius;
+                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2);
+                        v1_coef.set_val(cur_idx,v1_val/lhs_first_scale);
+                        v2_coef.set_val(cur_idx,v2_val/lhs_second_scale);
+                        v3_coef.set_val(cur_idx,v3_val/rhs_scale);
+                    }
+                }
+                
+                v1_rep_pos = lhs_first_var + 100 * v1_sign - v1_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v1_rep_pos.in(*c._indices) >= 0;
+                add(v1_rep_pos);
+                
+                v1_rep_neg = lhs_first_var - 100 * (1 - v1_sign) + v1_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v1_rep_neg.in(*c._indices) <= 0;
+                add(v1_rep_neg);
+                
+                v2_rep_pos = lhs_second_var + 100 * v2_sign - v2_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v2_rep_pos.in(*c._indices) >= 0;
+                add(v2_rep_pos);
+                
+                v2_rep_neg = lhs_second_var - 100 * (1 - v2_sign) + v2_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v2_rep_neg.in(*c._indices) <= 0;
+                add(v2_rep_neg);
+                
+                v3_rep = rhs_var - v3_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v3_rep.in(*c._indices) <= 0;
+                add(v3_rep);
+            }
+            
+            else if (is_rotated_SOC){ //this will follow bilinear scheme
+                
+                //create the variables
+                var<> quad_var;
+                var<> bln_first_var;
+                var<> bln_second_var;
+                
+                //create the scaling factors for the variables
+                double quad_scale;
+                double bln_scale;
+                
+                for (auto &qt_pair: *c._qterms) {
+                    if (!qt_pair.second._p->first->is_double()) {
+                        throw invalid_argument("Current hyperplanes only support double type variables!");
+                    }
+                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+                    }
+                    if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+                        if (!qt_pair.second._p->second->is_double()) {
+                            throw invalid_argument("Current hyperplanes only support double type variables!");
+                        }
+                        //we do not check the sign of the bilinear term, since current assumption is that the sign is negative
+                        bln_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        bln_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->second);
+                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                        if(coef->is_positive()) bln_scale = std::sqrt(coef->eval())/2; //dividing to two since the standard form has 1/4 as the multiplier
+                        else bln_scale = std::sqrt((-1)*coef->eval())/(2);
+                    }
+                    else{
+                        quad_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+                        if(coef->is_positive()) quad_scale = std::sqrt(coef->eval());
+                        else quad_scale = std::sqrt((-1)*coef->eval());
+                    }
+                }
+                
+                //combine all the indices
+                auto inst_combined  = combine(*quad_var._indices,*bln_first_var._indices,*bln_second_var._indices);
+                auto inst_combined_partn = indices(inst_combined,hyper_idx);
+                auto inst_combined_lambda = indices(inst_combined, lambda_idx);
+                
+                //collect the number of entries
+                auto nb_entries_v1 = quad_var._indices->get_nb_entries();
+                auto nb_entries_v2 = bln_first_var._indices->get_nb_entries();
+                auto nb_entries_v3 = bln_second_var._indices->get_nb_entries();
+                
+                //create the multipliers for the hyperplane
+                param<double> quad_coef("quad_coef");
+                param<double> first_minus_second_coef("first_minus_second_coef");
+                param<double> first_plus_second_coef("first_plus_second_coef");
+                
+                quad_coef.in(inst_combined_lambda);
+                first_minus_second_coef.in(inst_combined_lambda);
+                first_plus_second_coef.in(inst_combined_lambda);
+                
+                // Lambda coefficient matrix when linking with partition variables
+                param<> lambda_coef(c._name+"_lambda_linking_coefficients");
+                // Partition coefficient matrix when linking with lambda variables
+                param<> on_coef(c._name+"_partition_linking_coefficients");
+                
+                // we can use constraint_idx as the hyper_idx since there will be exactly |num_SOC_partitions| many linking constraints
+                lambda_coef.in(indices(inst_combined_lambda, on_link_lambda_idx));
+                on_coef.in(indices(inst_combined_partn, on_link_lambda_idx));
+                
+                //on variable constraint and definition
+                add(on.in(inst_combined_partn));
+                
+                //create the summation constraint for partition
+                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+                add(onSum.in(*c._indices) == 1);
+                
+                //lambda variable constraint and definition
+                add(lambda.in(inst_combined_lambda));
+                
+                //create the summation constraint for partition
+                lambdaSum = sum(lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+                add(lambdaSum.in(*c._indices) == 1);
+                
+                add(v1_sign.in(inst_combined));
+                add(v2_sign.in(inst_combined));
+                
+                size_t nb_ins = quad_var.get_nb_inst(); //get the number of instances
+                
+                // fill lambda_coef
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    // quad
+                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+                    
+                    // bln_first
+                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+                    
+                    // bln_second
+                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+                    
+                    //for constraints
+                    for (int i=0 ; i<num_SOC_partitions+1; ++i) {
+                        string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2)+","+to_string(i+1);
+                        lambda_coef.set_val(cur_idx,1);
+                    }
+                }
+                
+                // fill on_coef
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    // quad
+                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+                    
+                    // bln_first
+                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+                    
+                    // bln_second
+                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+                    
+                    //first and last constraints
+                    string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(1)+","+to_string(1);
+                    on_coef.set_val(cur_idx,1);
+                    cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(num_SOC_partitions)+","+to_string(num_SOC_partitions+1);
+                    on_coef.set_val(cur_idx,1);
+                    
+                    //for constraints
+                    for (int i=0 ; i<num_SOC_partitions-1; ++i) {
+                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+1)+","+to_string(i+2);
+                        on_coef.set_val(cur_idx,1);
+                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2)+","+to_string(i+2);
+                        on_coef.set_val(cur_idx,1);
+                    }
+                }
+                
+                on_link_lambda = lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,lambda_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1))*lambda_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) - on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,on_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1)) * on_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                add(on_link_lambda.in(indices(*c._indices,on_link_lambda_idx)) <= 0);
+                
+                
+                //USE THE SCALES *******************************************************************************************************************
+                // fill lambda representation coefficients
+                for (size_t inst = 0; inst< nb_ins; inst++){
+                    
+                    size_t id1;
+                    if(quad_var._indices->_ids == nullptr){
+                        id1 = inst;
+                    }
+                    else id1 = quad_var._indices->_ids->at(0).at(inst);
+                    auto key1 = quad_var._indices->_keys->at(id1);
+                    
+                    size_t id2;
+                    if(bln_first_var._indices->_ids == nullptr){
+                        id2 = inst;
+                    }
+                    else id2 = bln_first_var._indices->_ids->at(0).at(inst);
+                    auto key2 = bln_first_var._indices->_keys->at(id2);
+                    
+                    size_t id3;
+                    if(bln_second_var._indices->_ids == nullptr){
+                        id3 = inst;
+                    }
+                    else id3 = bln_second_var._indices->_ids->at(0).at(inst);
+                    auto key3 = bln_second_var._indices->_keys->at(id3);
+                    
+                    double radius1 = std::max(std::abs(quad_var.get_lb(key1)), std::abs(quad_var.get_ub(key1)))*quad_scale;
+                    double radius2 = std::max(std::abs(bln_first_var.get_lb(key2) - bln_second_var.get_ub(key3)), std::abs(bln_first_var.get_ub(key2) - bln_second_var.get_lb(key3)))*bln_scale;
+                    double radius3 = (bln_first_var.get_ub(key2) + bln_second_var.get_ub(key3))*bln_scale;
+                    
+                    double radius = std::min( std::sqrt(std::pow(radius1,2)+std::pow(radius2,2)), radius3);
+                    
+                    // quad
+                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+                    
+                    // bln_first
+                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+                    
+                    // bln_second
+                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+                    
+                    string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(1);
+                    quad_coef.set_val(cur_idx,0);
+                    first_minus_second_coef.set_val(cur_idx,0);
+                    first_plus_second_coef.set_val(cur_idx,0);
+                    
+                    for (int i=0 ; i<num_SOC_partitions+1; ++i) {
+                        //calculate the hyperplane coefficients
+                        auto quad_val = radius*std::cos(M_PI*i/(2*num_SOC_partitions));
+                        auto first_minus_second_val = radius*std::sin(M_PI*i/(2*num_SOC_partitions));
+                        auto first_plus_second_val = radius;
+                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2);
+                        quad_coef.set_val(cur_idx,quad_val/quad_scale);
+                        first_minus_second_coef.set_val(cur_idx,first_minus_second_val/bln_scale);
+                        first_plus_second_coef.set_val(cur_idx,first_plus_second_val/bln_scale);
+                    }
+                }
+                
+                
+                v1_rep_pos = quad_var + 100 * v1_sign - quad_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v1_rep_pos.in(*c._indices) >= 0;
+                add(v1_rep_pos);
+                
+                v1_rep_neg = quad_var - 100 * (1 - v1_sign) + quad_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v1_rep_neg.in(*c._indices) <= 0;
+                add(v1_rep_neg);
+                
+                v2_rep_pos = (bln_first_var - bln_second_var) + 100 * v2_sign - first_minus_second_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v2_rep_pos.in(*c._indices) >= 0;
+                add(v2_rep_pos);
+                
+                v2_rep_neg = (bln_first_var - bln_second_var)  - 100 * (1 - v2_sign) + first_minus_second_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v2_rep_neg.in(*c._indices) <= 0;
+                add(v2_rep_neg);
+                
+                v3_rep = (bln_first_var + bln_second_var) - first_plus_second_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+                v3_rep.in(*c._indices) <= 0;
+                add(v3_rep);
+                
+            }
+            
+        }
+        
+//        void add_lambda_SOC_hyperplanes(Constraint<type>& c, int num_SOC_partitions){ //currently this is not fully correct
+//            //TODO: scale the coefficients properly, and consider |x1| >= |lambda_rep| and |x2| >= |lambda_rep|
+//
+//            DebugOn("SOC_hyperplane function!" << endl);
+//            c.print();
+//
+//            auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
+//            auto is_SOC = c.check_soc();
+//
+//            //create hyperplane indices
+//            indices hyper_idx("hyper_idx");
+//            for (int i=0; i<num_SOC_partitions; ++i) {
+//                hyper_idx.add(to_string(i+1));
+//            }
+//            //get the combined index set
+//            auto inst_hyper = indices(*c._indices,hyper_idx);
+//
+//            //create lambda indices
+//            indices lambda_idx("lambda_idx");
+//            for (int i=0; i<num_SOC_partitions+1; ++i) {
+//                lambda_idx.add(to_string(i+1));
+//            }
+//            //get the combined index set
+//            auto inst_lambda = indices(*c._indices,lambda_idx);
+//
+//            Constraint<type> v1_rep(c._name + "_v1_rep"); //create the v1_rep constraint
+//            Constraint<type> v2_rep(c._name + "_v2_rep"); //create the v2_rep constraint
+//            Constraint<type> v3_rep(c._name + "_v3_rep"); //create the v3_rep constraint
+//            var<int> on(c._name + "_binary",0,1); //create the partition variable
+//            Constraint<type> onSum(c._name + "_binarySum"); //create the partition assignment constraint
+//            var<> lambda(c._name + "_lambda",0,1); //create the lambda variable
+//            Constraint<type> lambdaSum(c._name + "_lambdaSum"); //create the lambda constraint
+//            Constraint<type> on_link_lambda(c._name + "_on_link_lambda"); // lambda linking with the partition variables
+//
+//            if (is_SOC){ //this will follow the standard creation of the hyperplane
+//
+//                //create the variables
+//                var<> lhs_first_var;
+//                var<> lhs_second_var;
+//                var<> rhs_var;
+//
+//                //create the scaling factors for the variables
+//                double lhs_first_scale;
+//                double lhs_second_scale;
+//                double rhs_scale;
+//
+//                //flag for assignment
+//                bool first_occupied = false;
+//
+//                for (auto &qt_pair: *c._qterms) {
+//                    if (!qt_pair.second._p->first->is_double()) {
+//                        throw invalid_argument("Current hyperplanes only support double type variables!");
+//                    }
+//                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+//                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+//                    }
+//                    auto sign = qt_pair.second._sign;
+//                    auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+//                    if (sign ^ (coef->is_negative())) {
+//                        if (!first_occupied){
+//                            lhs_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+//                            if(coef->is_positive()) lhs_first_scale = std::sqrt(coef->eval());
+//                            else lhs_first_scale = std::sqrt((-1)*coef->eval());
+//                            first_occupied = true;
+//                        }
+//                        else{
+//                            lhs_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+//                            if(coef->is_positive()) lhs_second_scale = std::sqrt(coef->eval());
+//                            else lhs_second_scale = std::sqrt((-1)*coef->eval());
+//
+//                        }
+//                    }
+//                    else{
+//                        rhs_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+//                        if(coef->is_positive()) rhs_scale = std::sqrt(coef->eval());
+//                        else rhs_scale = std::sqrt((-1)*coef->eval());
+//                    }
+//                }
+//
+//                //combine all the indices
+//                //How to combine safely when the index sets are same? ***********************************************************************************************************************
+//                auto inst_combined  = combine(*lhs_first_var._indices,*lhs_second_var._indices,*rhs_var._indices);
+//                auto inst_combined_partn = indices(inst_combined, hyper_idx);
+//                auto inst_combined_lambda = indices(inst_combined, lambda_idx);
+//
+//                //collect the number of entries
+//                auto nb_entries_v1 = lhs_first_var._indices->get_nb_entries();
+//                auto nb_entries_v2 = lhs_second_var._indices->get_nb_entries();
+//                auto nb_entries_v3 = rhs_var._indices->get_nb_entries();
+//
+//                //create the multipliers for the hyperplane
+//                param<double> v1_coef("v1_coef");
+//                param<double> v2_coef("v2_coef");
+//                param<double> v3_coef("v3_coef");
+//
+//                v1_coef.in(inst_combined_lambda);
+//                v2_coef.in(inst_combined_lambda);
+//                v3_coef.in(inst_combined_lambda);
+//
+//                // Lambda coefficient matrix when linking with partition variables
+//                param<> lambda_coef(c._name+"_lambda_linking_coefficients");
+//                // Partition coefficient matrix when linking with lambda variables
+//                param<> on_coef(c._name+"_partition_linking_coefficients");
+//
+//                // we can use constraint_idx as the hyper_idx since there will be exactly |num_SOC_partitions| many linking constraints
+//                lambda_coef.in(indices(inst_combined_lambda, hyper_idx));
+//                on_coef.in(indices(inst_combined_partn, hyper_idx));
+//
+//                //on variable constraint and definition
+//                add(on.in(inst_combined_partn));
+//
+//                //create the summation constraint for partition
+//                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(onSum.in(*c._indices) == 1);
+//
+//                //lambda variable constraint and definition
+//                add(lambda.in(inst_combined_lambda));
+//
+//                //create the summation constraint for partition
+//                lambdaSum = sum(lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(lambdaSum.in(*c._indices) == 1);
+//
+//                size_t nb_ins = lhs_first_var.get_nb_inst(); //get the number of instances
+//
+//                // fill lambda_coef
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//                    // lhs_first
+//                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+//
+//                    // lhs_second
+//                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+//
+//                    // rhs
+//                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+//                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+//
+//                    //for constraints
+//                    for (int i=0 ; i<num_SOC_partitions; ++i) {
+//                        string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2)+","+to_string(i+1);
+//                        lambda_coef.set_val(cur_idx,1);
+//                    }
+//                }
+//
+//                // fill on_coef
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//                    // lhs_first
+//                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+//
+//                    // lhs_second
+//                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+//
+//                    // rhs
+//                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+//                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+//
+//                    //first constraint
+//                    string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(1)+","+to_string(1);
+//                    on_coef.set_val(cur_idx,1);
+//                    cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(num_SOC_partitions)+","+to_string(1);
+//                    on_coef.set_val(cur_idx,1);
+//
+//                    //for constraints
+//                    for (int i=0 ; i<num_SOC_partitions-1; ++i) {
+//                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+1)+","+to_string(i+2);
+//                        on_coef.set_val(cur_idx,1);
+//                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2)+","+to_string(i+2);
+//                        on_coef.set_val(cur_idx,1);
+//                    }
+//                }
+//
+//                on_link_lambda = lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,lambda_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1))*lambda_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) - on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,on_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1)) * on_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                add(on_link_lambda.in(indices(*c._indices,hyper_idx)) <= 0);
+//
+//                //USE THE SCALES *******************************************************************************************************************
+//                // fill lambda representation coefficients
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//
+//                    size_t id1;
+//                    if(lhs_first_var._indices->_ids == nullptr){
+//                        id1 = inst;
+//                    }
+//                    else id1 = lhs_first_var._indices->_ids->at(0).at(inst);
+//                    auto key1 = lhs_first_var._indices->_keys->at(id1);
+//
+//                    size_t id2;
+//                    if(lhs_second_var._indices->_ids == nullptr){
+//                        id2 = inst;
+//                    }
+//                    else id2 = lhs_second_var._indices->_ids->at(0).at(inst);
+//                    auto key2 = lhs_second_var._indices->_keys->at(id2);
+//
+//                    size_t id3;
+//                    if(rhs_var._indices->_ids == nullptr){
+//                        id3 = inst;
+//                    }
+//                    else id3 = rhs_var._indices->_ids->at(0).at(inst);
+//                    auto key3 = rhs_var._indices->_keys->at(id3);
+//
+//                    double radius1 = std::max(std::abs(lhs_first_var.get_lb(key1)), std::abs(lhs_first_var.get_ub(key1)));
+//                    double radius2 = std::max(std::abs(lhs_second_var.get_lb(key2)), std::abs(lhs_first_var.get_ub(key2)));
+//                    double radius3 = rhs_var.get_ub(key3);
+//
+//                    double radius = std::min( std::sqrt(std::pow(radius1,2)+std::pow(radius2,2)), radius3);
+//
+//                    // lhs_first
+//                    auto cur_var_id_lhs_first = lhs_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_first = lhs_first_var._indices->_keys->at(cur_var_id_lhs_first);
+//
+//                    // lhs_second
+//                    auto cur_var_id_lhs_second = lhs_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_lhs_second = lhs_second_var._indices->_keys->at(cur_var_id_lhs_second);
+//
+//                    // rhs
+//                    auto cur_var_id_rhs = rhs_var.get_id_inst(inst);
+//                    auto cur_var_idx_rhs = rhs_var._indices->_keys->at(cur_var_id_rhs);
+//
+//                    string cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(1);
+//                    v1_coef.set_val(cur_idx,0);
+//                    v2_coef.set_val(cur_idx,0);
+//                    v3_coef.set_val(cur_idx,0);
+//
+//                    for (int i=0 ; i<num_SOC_partitions; ++i) {
+//                        //calculate the hyperplane coefficients
+//                        auto v1_val = radius*std::cos(2*M_PI*i/(num_SOC_partitions));
+//                        auto v2_val = radius*std::sin(2*M_PI*i/(num_SOC_partitions));
+//                        auto v3_val = radius;
+//                        cur_idx = cur_var_idx_lhs_first+","+cur_var_idx_lhs_second+","+cur_var_idx_rhs+","+to_string(i+2);
+//                        v1_coef.set_val(cur_idx,v1_val);
+//                        v2_coef.set_val(cur_idx,v2_val);
+//                        v3_coef.set_val(cur_idx,v3_val);
+//                    }
+//                }
+//
+//                v1_rep = lhs_first_var.from_ith(0, inst_combined_lambda) - v1_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v1_rep.in(*c._indices) == 0;
+//                add(v1_rep);
+//
+//                v2_rep = lhs_second_var.from_ith(nb_entries_v1, inst_combined_lambda) - v2_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v2_rep.in(*c._indices) == 0;
+//                add(v2_rep);
+//
+//                v3_rep = rhs_var.from_ith(nb_entries_v1+nb_entries_v2, inst_combined_lambda) - v3_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v3_rep.in(*c._indices) <= 0;
+//                add(v3_rep);
+//            }
+//
+//            else if (is_rotated_SOC){ //this will follow bilinear scheme
+//
+//                //create the variables
+//                var<> quad_var;
+//                var<> bln_first_var;
+//                var<> bln_second_var;
+//
+//                //create the scaling factors for the variables
+//                double quad_scale;
+//                double bln_scale;
+//
+//                for (auto &qt_pair: *c._qterms) {
+//                    if (!qt_pair.second._p->first->is_double()) {
+//                        throw invalid_argument("Current hyperplanes only support double type variables!");
+//                    }
+//                    if (!qt_pair.second._coef->is_number()) { /*means coef is not a number*/
+//                        throw invalid_argument("Current hyperplanes only support constant coefficients for the variables");
+//                    }
+//                    if (qt_pair.second._p->first!=qt_pair.second._p->second) {
+//                        if (!qt_pair.second._p->second->is_double()) {
+//                            throw invalid_argument("Current hyperplanes only support double type variables!");
+//                        }
+//                        //we do not check the sign of the bilinear term, since current assumption is that the sign is negative
+//                        bln_first_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+//                        bln_second_var = *static_pointer_cast<var<double>>(qt_pair.second._p->second);
+//                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+//                        if(coef->is_positive()) bln_scale = std::sqrt(coef->eval())/2; //dividing to two since the standard form has 1/4 as the multiplier
+//                        else bln_scale = std::sqrt((-1)*coef->eval())/(2);
+//                    }
+//                    else{
+//                        quad_var = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
+//                        auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
+//                        if(coef->is_positive()) quad_scale = std::sqrt(coef->eval());
+//                        else quad_scale = std::sqrt((-1)*coef->eval());
+//                    }
+//                }
+//
+//                //combine all the indices
+//                auto inst_combined  = combine(*quad_var._indices,*bln_first_var._indices,*bln_second_var._indices);
+//                auto inst_combined_partn = indices(inst_combined, hyper_idx);
+//                auto inst_combined_lambda = indices(inst_combined, lambda_idx);
+//
+//                //collect the number of entries
+//                auto nb_entries_v1 = quad_var._indices->get_nb_entries();
+//                auto nb_entries_v2 = bln_first_var._indices->get_nb_entries();
+//                auto nb_entries_v3 = bln_second_var._indices->get_nb_entries();
+//
+//                //create the multipliers for the hyperplane
+//                param<double> quad_coef("quad_coef");
+//                param<double> first_minus_second_coef("first_minus_second_coef");
+//                param<double> first_plus_second_coef("first_plus_second_coef");
+//
+//                quad_coef.in(inst_combined_lambda);
+//                first_minus_second_coef.in(inst_combined_lambda);
+//                first_plus_second_coef.in(inst_combined_lambda);
+//
+//                // Lambda coefficient matrix when linking with partition variables
+//                param<> lambda_coef(c._name+"_lambda_linking_coefficients");
+//                // Partition coefficient matrix when linking with lambda variables
+//                param<> on_coef(c._name+"_partition_linking_coefficients");
+//
+//                // we can use constraint_idx as the hyper_idx since there will be exactly |num_SOC_partitions| many linking constraints
+//                lambda_coef.in(indices(inst_combined_lambda, hyper_idx));
+//                on_coef.in(indices(inst_combined_partn, hyper_idx));
+//
+//                //on variable constraint and definition
+//                add(on.in(inst_combined_partn));
+//
+//                //create the summation constraint for partition
+//                onSum = sum(on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(onSum.in(*c._indices) == 1);
+//
+//                //lambda variable constraint and definition
+//                add(lambda.in(inst_combined_lambda));
+//
+//                //create the summation constraint for partition
+//                lambdaSum = sum(lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1));
+//                add(lambdaSum.in(*c._indices) == 1);
+//
+//                size_t nb_ins = quad_var.get_nb_inst(); //get the number of instances
+//
+//                // fill lambda_coef
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//                    // quad
+//                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+//                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+//
+//                    // bln_first
+//                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+//
+//                    // bln_second
+//                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+//
+//                    //for constraints
+//                    for (int i=0 ; i<num_SOC_partitions; ++i) {
+//                        string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2)+","+to_string(i+1);
+//                        lambda_coef.set_val(cur_idx,1);
+//                    }
+//                }
+//
+//                // fill on_coef
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//                    // quad
+//                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+//                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+//
+//                    // bln_first
+//                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+//
+//                    // bln_second
+//                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+//
+//                    //first constraint
+//                    string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(1)+","+to_string(1);
+//                    on_coef.set_val(cur_idx,1);
+//                    cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(num_SOC_partitions)+","+to_string(1);
+//                    on_coef.set_val(cur_idx,1);
+//
+//                    //for constraints
+//                    for (int i=0 ; i<num_SOC_partitions-1; ++i) {
+//                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+1)+","+to_string(i+2);
+//                        on_coef.set_val(cur_idx,1);
+//                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2)+","+to_string(i+2);
+//                        on_coef.set_val(cur_idx,1);
+//                    }
+//                }
+//
+//                on_link_lambda = lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,lambda_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1))*lambda_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) - on.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1).from_ith(0,on_coef.get_matrix_ids(nb_entries_v1+nb_entries_v2+nb_entries_v3,1)) * on_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                add(on_link_lambda.in(indices(*c._indices,hyper_idx)) <= 0);
+//
+//                //USE THE SCALES *******************************************************************************************************************
+//                // fill lambda representation coefficients
+//                for (size_t inst = 0; inst< nb_ins; inst++){
+//
+//                    size_t id1;
+//                    if(quad_var._indices->_ids == nullptr){
+//                        id1 = inst;
+//                    }
+//                    else id1 = quad_var._indices->_ids->at(0).at(inst);
+//                    auto key1 = quad_var._indices->_keys->at(id1);
+//
+//                    size_t id2;
+//                    if(bln_first_var._indices->_ids == nullptr){
+//                        id2 = inst;
+//                    }
+//                    else id2 = bln_first_var._indices->_ids->at(0).at(inst);
+//                    auto key2 = bln_first_var._indices->_keys->at(id2);
+//
+//                    size_t id3;
+//                    if(bln_second_var._indices->_ids == nullptr){
+//                        id3 = inst;
+//                    }
+//                    else id3 = bln_second_var._indices->_ids->at(0).at(inst);
+//                    auto key3 = bln_second_var._indices->_keys->at(id3);
+//
+//                    double radius1 = std::max(std::abs(quad_var.get_lb(key1)), std::abs(quad_var.get_ub(key1)));
+//                    double radius2 = std::max(std::abs(bln_first_var.get_lb(key2) - bln_second_var.get_ub(key3)), std::abs(bln_first_var.get_ub(key2) - bln_second_var.get_lb(key3)));
+//                    double radius3 = (bln_first_var.get_ub(key2) + bln_second_var.get_ub(key3));
+//
+//                    double radius = std::min( std::sqrt(std::pow(radius1,2)+std::pow(radius2,2)), radius3);
+//
+//                    // quad
+//                    auto cur_var_id_quad = quad_var.get_id_inst(inst);
+//                    auto cur_var_idx_quad = quad_var._indices->_keys->at(cur_var_id_quad);
+//
+//                    // bln_first
+//                    auto cur_var_id_bln_first = bln_first_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_first = bln_first_var._indices->_keys->at(cur_var_id_bln_first);
+//
+//                    // bln_second
+//                    auto cur_var_id_bln_second = bln_second_var.get_id_inst(inst);
+//                    auto cur_var_idx_bln_second = bln_second_var._indices->_keys->at(cur_var_id_bln_second);
+//
+//                    string cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(1);
+//                    quad_coef.set_val(cur_idx,0);
+//                    first_minus_second_coef.set_val(cur_idx,0);
+//                    first_plus_second_coef.set_val(cur_idx,0);
+//
+//                    for (int i=0 ; i<num_SOC_partitions; ++i) {
+//                        //calculate the hyperplane coefficients
+//                        auto quad_val = radius*std::cos(2*M_PI*i/(num_SOC_partitions));
+//                        auto first_minus_second_val = radius*std::sin(2*M_PI*i/(num_SOC_partitions));
+//                        auto first_plus_second_val = radius;
+//                        cur_idx = cur_var_idx_quad+","+cur_var_idx_bln_first+","+cur_var_idx_bln_second+","+to_string(i+2);
+//                        quad_coef.set_val(cur_idx,quad_val);
+//                        first_minus_second_coef.set_val(cur_idx,first_minus_second_val);
+//                        first_plus_second_coef.set_val(cur_idx,first_plus_second_val);
+//                    }
+//                }
+//
+//
+//                v1_rep = quad_var.from_ith(0, inst_combined_lambda) - quad_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v1_rep.in(*c._indices) == 0;
+//                add(v1_rep);
+//
+//                v2_rep = (bln_first_var.from_ith(nb_entries_v1, inst_combined_lambda) - bln_second_var.from_ith(nb_entries_v1+nb_entries_v2 , inst_combined_lambda)) - first_minus_second_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v2_rep.in(*c._indices) == 0;
+//                add(v2_rep);
+//
+//                v3_rep = (bln_first_var.from_ith(nb_entries_v1, inst_combined_lambda) + bln_second_var.from_ith(nb_entries_v1+nb_entries_v2 , inst_combined_lambda)) - first_plus_second_coef.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1) * lambda.in_matrix(nb_entries_v1+nb_entries_v2+nb_entries_v3,1);
+//                v3_rep.in(*c._indices) <= 0;
+//                add(v3_rep);
+//
+//            }
+//
+//        }
         
         template<typename T=type> //function for creating hyperplanes to have an inner approximation
         void add_on_off_SOC_hyperplanes(Constraint<type>& c, int num_SOC_partitions) { //currently the function asssumes there are only qterms!
@@ -9226,6 +10201,7 @@ namespace gravity {
                     }
                 }
                
+                
                 //combine all the indices
                 //How to combine safely when the index sets are same? ***********************************************************************************************************************
                 auto inst_combined  = combine(*lhs_first_var._indices,*lhs_second_var._indices,*rhs_var._indices);
@@ -9338,6 +10314,7 @@ namespace gravity {
                         else quad_scale = std::sqrt((-1)*coef->eval());
                     }
                 }
+                
                 
                 //combine all the indices
                 auto inst_combined  = combine(*quad_var._indices,*bln_first_var._indices,*bln_second_var._indices);
