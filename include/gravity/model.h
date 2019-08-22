@@ -9096,6 +9096,10 @@ namespace gravity {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
 
         template<typename T=type>
         void SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10, bool use_lambda = false) { //currently the function asssumes there are only qterms!
@@ -9460,6 +9464,7 @@ namespace gravity {
                     
                 }
             }/*TODO Else (discretization for general constraint)*/
+        }
 
         
         void add_lambda_SOC_hyperplanes_symmetric(Constraint<type>& c, int num_SOC_partitions){ //currently this is not fully correct
