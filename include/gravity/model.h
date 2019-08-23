@@ -8940,23 +8940,13 @@ namespace gravity {
             }
         }
         
-        
         /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
-         @param[in] nb_discr:
-         @param[in] nb_perturb:
-         @param[in] xinterior:
-         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
+         @param[in] nb_discr: number of OA cuts per nonlinear constraint
+         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
          **/
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, bool interior, vector<double> xinterior)
+        shared_ptr<Model<>> buildOA(int nb_discr)
         {
             auto OA=make_shared<Model<>>(_name+"-OA Model");
-            vector<double> xsolution(_nb_vars);
-            
-            get_solution(xsolution);
-            //  DebugOn("xsolution"<<endl);
-            //            for(auto i=0;i<xsolution.size();i++)
-            //                DebugOn(xsolution[i]<<endl);
-            
             for (auto &it: _vars)
             {
                 auto v = it.second;
@@ -8991,6 +8981,20 @@ namespace gravity {
                     OA->add(*con);
                 }
             }
+            return OA;
+        }
+        
+        
+        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
+         @param[in] nb_discr:
+         @param[in] nb_perturb:
+         @param[in] xinterior:
+         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
+         **/
+        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, bool interior, vector<double> xinterior)
+        {
+            auto OA= buildOA(nb_discr);
+            vector<double> xsolution(_nb_vars);
             set_solution(xsolution);
             OA->add_outer_app_active(*this, nb_perturb, interior, xinterior);
             set_solution(xsolution);

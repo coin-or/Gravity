@@ -33,7 +33,7 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
 //        string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
@@ -305,6 +305,8 @@ int main (int argc, char * argv[])
     Constraint<> Equality_SOC("Equality_SOC");
     Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
+    
+//    SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -866,6 +868,12 @@ int main (int argc, char * argv[])
             //            SOCP.add(I_to_Pf_EQ.in(nonzero_arcs)==0, true, "lambda_II");
             
             
+            Constraint<> Equality_SOC("Equality_SOC");
+            Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+            Equality_SOC.in(bus_pairs) >= 0;
+//            ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
+            SOCP.SOC_partition(Equality_SOC,10,10,true);
+            
             Constraint<> I_to_Pf_temp("I_to_Pf_temp");
             I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             I_to_Pf_temp.in(arcs) >= 0;
@@ -878,42 +886,43 @@ int main (int argc, char * argv[])
         }
     }
     
+    
+    
+//    solver<> SOCPOPF(SOCP,ipopt);
+//    double solver_time_start = get_wall_time();
+//
+//    SOCPOPF.run(output = 5, tol = 1e-7, "ma27");
+//    SOCP.print_solution();
+//    SOCP.print_constraints_stats(tol);
+//    SOCP.print_nonzero_constraints(tol,true);
+//    auto lower_bound = SOCP.get_obj_val()*upperbound;
+//
+//    gap = 100*(upperbound - lower_bound)/upperbound;
+//    solver_time_end = get_wall_time();
+//    total_time_end = get_wall_time();
+//    solve_time = solver_time_end - solver_time_start;
+//    total_time = total_time_end - total_time_start;
+//    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+//    DebugOn(out <<endl);
+//    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+//    DebugOn("Upper bound = " << to_string(upperbound) << "."<<endl);
+//    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    auto SOCPI=SOCP.build_model_interior();
-    solver<> SOCPINT(SOCPI,ipopt);
-    SOCPINT.run(output = 5, tol = 1e-7, "ma27");
-    
-    vector<double> xint(SOCPI._nb_vars);
-    
-    SOCPI.get_solution(xint);
-    
-    solver<> SOCPOPF(SOCP,ipopt);
-    double solver_time_start = get_wall_time();
-    
-    SOCPOPF.run(output = 5, tol = 1e-7, "ma27");
-    SOCP.print_solution();
-    SOCP.print_constraints_stats(tol);
-    SOCP.print_nonzero_constraints(tol,true);
-    auto lower_bound = SOCP.get_obj_val()*upperbound;
-    
-    gap = 100*(upperbound - lower_bound)/upperbound;
-    solver_time_end = get_wall_time();
-    total_time_end = get_wall_time();
-    solve_time = solver_time_end - solver_time_start;
-    total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
-    DebugOn(out <<endl);
-    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-    DebugOn("Upper bound = " << to_string(upperbound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    
-    auto SOCPOA = SOCP.buildOA(4, 4, true, xint);
+//    auto SOCPI=SOCP.build_model_interior();
+//    solver<> SOCPINT(SOCPI,ipopt);
+//    SOCPINT.run(output = 5, tol = 1e-7, "ma27");
+//
+//    vector<double> xint(SOCPI._nb_vars);
+//
+//    SOCPI.get_solution(xint);
+    auto SOCPOA = SOCP.buildOA(4);
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(*SOCPOA, cplex);
-    solver_time_start = get_wall_time();
+    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    auto solver_time_start = get_wall_time();
     
     /** use the following line if you want to relax the integer variables **/
     //        SOCOPF_CPX.run(true);
@@ -929,7 +938,7 @@ int main (int argc, char * argv[])
     
     
     
-    out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCPOA->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
+    auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCPOA->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
