@@ -423,7 +423,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     solver_time_start = get_wall_time();
     
-    SDPOPF.run(output = 5, tol = 1e-7, "ma57");
+    SDPOPF.run(output = 5, tol = 1e-7);
    // SDP.print_solution();
     SDP.print();
     SDP.print_constraints_stats(tol);
@@ -448,7 +448,7 @@ int main (int argc, char * argv[]) {
     SDP.reset_constrs();
     solver<> SDPLB1(SDP,solv_type);
     
-    auto status = SDPLB1.run(output = 5, tol, "ma97");
+    auto status = SDPLB1.run(output = 5, tol);
     SDP.print_constraints_stats(tol);
     bool print_only_relaxed;
     SDP.print_nonzero_constraints(tol,print_only_relaxed=true);
