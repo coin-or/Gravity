@@ -795,7 +795,7 @@ namespace gravity {
          @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
          **/
         template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        Constraint<type> get_standard_SOC(const Constraint<type>& c){
+        Constraint<type> get_standard_SOC(Constraint<type>& c){
             if(!c.is_rotated_soc()){
                 return c;
             }
