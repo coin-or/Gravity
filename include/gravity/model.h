@@ -789,15 +789,211 @@ namespace gravity {
             //            c_imag.print_symbolic();
         }
         
+        /** Reformulate rotated SOCs into standard SOCs and add linking constraints to the model.
+         @param[in] c: constraint to reformulate
+         @return the linearized constraint
+         @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
+         **/
         template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        Constraint<type> lift(const Constraint<type>& c, string model_type, bool reform=false){
-            if((c.is_constant() || c.is_linear() || c.is_convex()) && !reform){
+        Constraint<type> get_standard_SOC(const Constraint<type>& c){
+            if(!c.is_rotated_soc()){
+                return c;
+            }
+            Constraint<type> newc_standard(c._name+"_standard");
+            if (!c.get_cst()->is_zero()) {
+                if (c.get_cst()->is_number()) {
+                    auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
+                    newc_standard.add_cst(*f_cst);
+                }
+                else if (c.get_cst()->is_param()) {
+                    auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
+                    newc_standard.add_cst(*f_cst);
+                }
+                else {
+                    auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
+                    newc_standard.add_cst(*f_cst);
+                }
+                if (newc_standard._cst->is_function()) {
+                    newc_standard.embed(*static_pointer_cast<func<type>>(newc_standard._cst));
+                }
+            }
+            for (auto &pair:*c._lterms) {
+                auto term = pair.second;
+                newc_standard.insert(term);
+            }
+            //here we will introduce two auxiliary variables for the bilinear term
+            for (auto &pair:*c._qterms) {
+                if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
+                    qterm lt1;
+                    qterm lt2;
+                    lt1._sign = !(pair.second._sign);
+                    lt2._sign = pair.second._sign;
+                    if (pair.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
+                        lt1._coef = func<type>(coef).copy();
+                        lt2._coef = func<type>(coef).copy();
+                    }
+                    else if(pair.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
+                        lt1._coef = param<type>(coef).copy();
+                        lt2._coef = param<type>(coef).copy();
+                    }
+                    else if(pair.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<type>>(pair.second._coef);
+                        lt1._coef = constant<type>(coef).copy();
+                        lt2._coef = constant<type>(coef).copy();
+                    }
+                    
+                    auto v1 = *static_pointer_cast<var<type>>(pair.second._p->first); //assign the pointers to the variables
+                    auto v2 = *static_pointer_cast<var<type>>(pair.second._p->second);
+                    
+                    if((v1._name > v2._name)){    //get the variables in the alphabetical order
+                        v2 = *static_pointer_cast<var<type>>(pair.second._p->first);
+                        v1 = *static_pointer_cast<var<type>>(pair.second._p->second);
+                    }
+                    auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
+                    
+                    // I am not sure that we need the following part or not!! ***************************************************************************************************************************************
+                    auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+                    auto v1_ids = *v1._indices;
+                    auto v2_ids = *v2._indices;
+                    if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                        auto keep_refs = ids.get_unique_refs();
+                        v1_ids.filter_refs(keep_refs);
+                        v2_ids.filter_refs(keep_refs);
+                    }
+                    // ***************************************************************************************************************************************
+                    
+                    param<type> lb1("lb1"), ub1("ub1");
+                    lb1.in(unique_ids);ub1.in(unique_ids);
+                    param<type> lb2("lb2"), ub2("ub2");
+                    lb2.in(unique_ids);ub2.in(unique_ids);
+                    
+                    //get the bounds for the auxiliary variables y1 and y2
+                    for (int i=0; i<unique_ids.size(); i++) {
+                        size_t id1;
+                        size_t id2;
+                        if(v1_ids._ids == nullptr){
+                            id1 = i;
+                        }
+                        else id1 = v1_ids._ids->at(0).at(i);
+                        if(v2_ids._ids == nullptr){
+                            id2 = i;
+                        }
+                        else id2 = v2_ids._ids->at(0).at(i);
+                        auto key1 = v1_ids._keys->at(id1);
+                        auto key2 = v2_ids._keys->at(id2);
+                        
+                        auto sum_b1 = v1.get_lb(key1) - v2.get_ub(key2);
+                        auto sum_b2 = v1.get_ub(key1) - v2.get_lb(key2);
+                        auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
+                        auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
+                        
+                        lb1.set_val(key1+","+key2, sum_b1/2);
+                        ub1.set_val(key1+","+key2, sum_b2/2);
+                        
+                        lb2.set_val(key1+","+key2, sum_b3/2);
+                        ub2.set_val(key1+","+key2, sum_b4/2);
+                    }
+                    
+                    string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+                    string aux2_name = "aux2("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+                    
+                    auto it1 = _vars_name.find(aux1_name);
+                    auto it2 = _vars_name.find(aux2_name);
+                    
+                    if(it1==_vars_name.end()){
+                        //define variables
+                        var<type> y1(aux1_name, lb1, ub1);
+                        add(y1.in(unique_ids));
+                        y1._num_partns = v1._num_partns + v2._num_partns;
+                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
+                        var<type> y2(aux2_name, lb2, ub2);
+                        add(y2.in(unique_ids));
+                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2.in(ids)), make_shared<var<type>>(y2.in(ids))));
+                        //add constraints
+                        Constraint<type> link1(pair.first+"_link1");
+                        link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
+                        add(link1.in(unique_ids) == 0);
+                        
+                        Constraint<type> link2(pair.first+"_link2");
+                        link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
+                        add(link2.in(unique_ids) == 0);
+                    }
+                    else{
+                        //get variables
+                        auto y1 = static_pointer_cast<var<type>>(it1->second);
+                        auto added1 = y1->add_bounds(lb1,ub1);
+                        y1->_num_partns = v1._num_partns + v2._num_partns;
+                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
+                        if(!added1.empty()){
+                            assert(v1._indices->size()==v2._indices->size());
+                            if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                                auto keep_refs = ids.diff_refs(added1);
+                                v1_ids.filter_refs(keep_refs);
+                                v2_ids.filter_refs(keep_refs);
+                            }
+                            reindex_vars();
+                        }
+                        auto y2 = static_pointer_cast<var<type>>(it2->second);
+                        auto added2 = y2->add_bounds(lb2,ub2);
+                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2->in(ids)), make_shared<var<type>>(y2->in(ids))));
+                        if(!added2.empty()){
+                            assert(v1._indices->size()==v2._indices->size());
+                            if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                                auto keep_refs = ids.diff_refs(added2);
+                                v1_ids.filter_refs(keep_refs);
+                                v2_ids.filter_refs(keep_refs);
+                            }
+                            reindex_vars();
+                        }
+                        
+                        //add constraints
+                        Constraint<type> link1(pair.first+"_link1");
+                        link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
+                        add(link1.in(unique_ids) == 0);
+                        
+                        Constraint<type> link2(pair.first+"_link2");
+                        link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
+                        add(link2.in(unique_ids) == 0);
+                        
+                    }
+                    
+                    newc_standard.insert(lt1);
+                    newc_standard.insert(lt2);
+                }
+                else { /* square term */
+                    newc_standard.insert(pair.second);
+                }
+            }
+            
+            newc_standard._range = c._range;
+            newc_standard._all_convexity = c._all_convexity;
+            newc_standard._all_sign = c._all_sign;
+            newc_standard._ftype = c._ftype;
+            newc_standard._ctype = c._ctype;
+            newc_standard._indices = c._indices;
+            newc_standard._dim[0] = c._dim[0];
+            newc_standard._dim[1] = c._dim[1];
+            return newc_standard;
+        }
+        
+        
+        /** Lift and linearize the nonlinear constraint c, return the linearized form and add linking constraints to the model.
+         @param[in] c: constraint to linearize
+         @param[in] partition_model: formulation used for partitionning the nonconvex parts of the constraint
+         @return the linearized constraint
+         @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
+         **/
+        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
+        Constraint<type> lift(const Constraint<type>& c, string model_type){
+            if(c.is_constant() || c.is_linear()){
                 return c;
             }
             if(c.is_nonlinear() || c.is_polynomial()){
-                throw invalid_argument("lift can only be called on quadratic constraints");
+                throw invalid_argument("lift can only be called on quadratic constraints for now");
             }
-            // lambda models are taken from Padberg's paper as they are described in type II and type III
+            /* Lambda models are taken from Padberg's paper as they are described in type II and type III */
             if((model_type != "on/off") && (model_type != "lambda_II") && (model_type != "lambda_III")){
                 throw invalid_argument("model_type can only be one of the following: 'on/off', 'lambda_II', 'lambda_III' ");
             }
@@ -835,7 +1031,7 @@ namespace gravity {
                 }
                 lifted.insert(term);
             }
-            bool lift_sign; //create lift_sign for correct lower/upper bounding the variables etc
+            bool lift_sign; /* create lift_sign for correct lower/upper bounding of the variables */
             for (auto &pair:*c._qterms) {
                 auto term = pair.second;
                 lterm lt;
@@ -856,11 +1052,11 @@ namespace gravity {
                 
                 if (c.func<type>::is_concave()) //reverse the sign if the constraint is concave
                 {
-                    DebugOn("Changing the sign of the lifted variable." << endl);
+                    DebugOff("Changing the sign of the lifted variable." << endl);
                      lift_sign = !lift_sign;
                 }
                 else{
-                    DebugOn("Keeping the sign of the lifted variable same." << endl);
+                    DebugOff("Keeping the sign of the lifted variable same." << endl);
                 }
                 
                 //arrange the variables so that if they have the same base name, use them ordered in name
@@ -869,8 +1065,8 @@ namespace gravity {
                 if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
                     o2 = *static_pointer_cast<var<type>>(term._p->first);
                     o1 = *static_pointer_cast<var<type>>(term._p->second);
-                    DebugOn("O1 name "<< o1._name << endl);
-                    DebugOn("O2 name "<< o2._name << endl);
+                    DebugOff("O1 name "<< o1._name << endl);
+                    DebugOff("O2 name "<< o2._name << endl);
                 }
                 
                 string name;
@@ -881,19 +1077,6 @@ namespace gravity {
                 }
                 else {
                     name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-                    // No need to check the reverse order now, since the variables are already ordered by name
-                    //                    auto it = _vars_name.find(name);
-                    //                    if(it==_vars_name.end()){/* Check if reverse product was already lifted */
-                    //                        o2 = *static_pointer_cast<var<type>>(term._p->first);
-                    //                        o1 = *static_pointer_cast<var<type>>(term._p->second);
-                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-                    //                    }
-                    //                    it = _vars_name.find(name);
-                    //                    if(it==_vars_name.end()){/* Switch back to original order */
-                    //                        o1 = *static_pointer_cast<var<type>>(term._p->first);
-                    //                        o2 = *static_pointer_cast<var<type>>(term._p->second);
-                    //                        name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
-                    //                    }
                     ids = combine(*o1._indices,*o2._indices);
                 }
                 auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
@@ -977,7 +1160,7 @@ namespace gravity {
                     auto keep_refs2 = o2_ids_uq.get_unique_refs();
                     o1_ids_uq.filter_refs(keep_refs1);
                     o2_ids_uq.filter_refs(keep_refs2);
-                    reindex_vars();
+//                    reindex_vars();
                     
                     var<type> vlift(name, lb, ub);
                     vlift._lift = true;
@@ -4237,6 +4420,7 @@ namespace gravity {
             lifted._ctype = c._ctype;
             lifted._indices = c._indices;
             lifted._dim[0] = c._dim[0];
+            lifted._dim[1] = c._dim[1];
             return lifted;
         }
         
@@ -4335,11 +4519,11 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool reform=false){
+        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c,convexify, method_type, reform);
+            add_constraint(c,convexify, method_type);
         }
         
         
@@ -4408,13 +4592,16 @@ namespace gravity {
         //        }
         
         
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool reform=false){
+        /** Add constraint to model
+         @param[in] c: constraint to add
+         @param[in] lift_flag: if true, add a linearized version of this constraint and the constraints linking the lifted variables to the original ones.
+         @return a pointer to the added constraint
+         @note If lift = true, this function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables. Note also that if this is an equation f(x) = 0 s.t. f(x)<=0 or f(x)>=0 is convex, will add the convex inequality to the model.
+         **/
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off"){
             if (c.get_dim()==0) {
                 return nullptr;
             }
-            //            if(c.is_redundant(1e-8)){/* TO DO move this test to the solve part */
-            //                DebugOn(c._name << " is redundant, not adding it to the model" << endl);
-            //            }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
                 for (auto &vp: *newc->_vars) {
@@ -4448,206 +4635,24 @@ namespace gravity {
                     return newc;
                 }
                 newc->update_str();
-                if(convexify){
-                    if(newc->func<type>::is_convex() && newc->_ctype==eq && !reform){
+                if(lift_flag){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
                         c_cvx._name = newc->_name+"_convex";
                         c_cvx._relaxed = true;
                         add_constraint(c_cvx <= 0);
                     }
-                    if(newc->func<type>::is_concave() && newc->_ctype==eq && !reform){
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
                         DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                         Constraint<type> c_ccve(*newc);
                         c_ccve._name = newc->_name+"_concave";
                         c_ccve._relaxed = true;
                         add_constraint(c_ccve >= 0);
                     }
-
-                    //before sending the function to lift, modify the bilinear terms to standard format
-                    Constraint<type> newc_standard(newc->_name+"_standard");
-                    if (!newc->get_cst()->is_zero()) {
-                        if (newc->get_cst()->is_number()) {
-                            auto f_cst = static_pointer_cast<constant<type>>(newc->get_cst());
-                            newc_standard.add_cst(*f_cst);
-                        }
-                        else if (newc->get_cst()->is_param()) {
-                            auto f_cst = static_pointer_cast<param<type>>(newc->get_cst());
-                            newc_standard.add_cst(*f_cst);
-                        }
-                        else {
-                            auto f_cst = static_pointer_cast<func<type>>(newc->get_cst());
-                            newc_standard.add_cst(*f_cst);
-                        }
-                        if (newc_standard._cst->is_function()) {
-                            newc_standard.embed(*static_pointer_cast<func<type>>(newc_standard._cst));
-                        }
-                    }
-                    for (auto &pair:*newc->_lterms) {
-                        auto term = pair.second;
-                        newc_standard.insert(term);
-                    }
-                    //here we will introduce two auxiliary variables for the bilinear term
-                    for (auto &pair:*newc->_qterms) {
-                        if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
-                            qterm lt1;
-                            qterm lt2;
-                            lt1._sign = !(pair.second._sign);
-                            lt2._sign = pair.second._sign;
-                            if (pair.second._coef->is_function()) {
-                                auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
-                                lt1._coef = func<type>(coef).copy();
-                                lt2._coef = func<type>(coef).copy();
-                            }
-                            else if(pair.second._coef->is_param()) {
-                                auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
-                                lt1._coef = param<type>(coef).copy();
-                                lt2._coef = param<type>(coef).copy();
-                            }
-                            else if(pair.second._coef->is_number()) {
-                                auto coef = *static_pointer_cast<constant<type>>(pair.second._coef);
-                                lt1._coef = constant<type>(coef).copy();
-                                lt2._coef = constant<type>(coef).copy();
-                            }
-                            
-                            auto v1 = *static_pointer_cast<var<type>>(pair.second._p->first); //assign the pointers to the variables
-                            auto v2 = *static_pointer_cast<var<type>>(pair.second._p->second);
-                         
-                            if((v1._name > v2._name)){    //get the variables in the alphabetical order
-                                v2 = *static_pointer_cast<var<type>>(pair.second._p->first);
-                                v1 = *static_pointer_cast<var<type>>(pair.second._p->second);
-                            }
-                            auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
-                            
-                            // I am not sure that we need the following part or not!! ***************************************************************************************************************************************
-                            auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
-                            auto v1_ids = *v1._indices;
-                            auto v2_ids = *v2._indices;
-                            if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                                auto keep_refs = ids.get_unique_refs();
-                                v1_ids.filter_refs(keep_refs);
-                                v2_ids.filter_refs(keep_refs);
-                            }
-                            // ***************************************************************************************************************************************
-                                
-                            param<type> lb1("lb1"), ub1("ub1");
-                            lb1.in(unique_ids);ub1.in(unique_ids);
-                            param<type> lb2("lb2"), ub2("ub2");
-                            lb2.in(unique_ids);ub2.in(unique_ids);
-                            
-                            //get the bounds for the auxiliary variables y1 and y2
-                            for (int i=0; i<unique_ids.size(); i++) {
-                                size_t id1;
-                                size_t id2;
-                                if(v1_ids._ids == nullptr){
-                                    id1 = i;
-                                }
-                                else id1 = v1_ids._ids->at(0).at(i);
-                                if(v2_ids._ids == nullptr){
-                                    id2 = i;
-                                }
-                                else id2 = v2_ids._ids->at(0).at(i);
-                                auto key1 = v1_ids._keys->at(id1);
-                                auto key2 = v2_ids._keys->at(id2);
-                                
-                                auto sum_b1 = v1.get_lb(key1) - v2.get_ub(key2);
-                                auto sum_b2 = v1.get_ub(key1) - v2.get_lb(key2);
-                                auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
-                                auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
-                                
-                                lb1.set_val(key1+","+key2, sum_b1/2);
-                                ub1.set_val(key1+","+key2, sum_b2/2);
-                                
-                                lb2.set_val(key1+","+key2, sum_b3/2);
-                                ub2.set_val(key1+","+key2, sum_b4/2);
-                            }
-                            
-                            string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
-                            string aux2_name = "aux2("+v1.get_name(true,true)+v2.get_name(true,true)+")";
-                            
-                            auto it1 = _vars_name.find(aux1_name);
-                            auto it2 = _vars_name.find(aux2_name);
-                            
-                            if(it1==_vars_name.end()){
-                                //define variables
-                                var<type> y1(aux1_name, lb1, ub1);
-                                add(y1.in(unique_ids));
-                                y1._num_partns = v1._num_partns + v2._num_partns;
-                                lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
-                                var<type> y2(aux2_name, lb2, ub2);
-                                add(y2.in(unique_ids));
-                                lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2.in(ids)), make_shared<var<type>>(y2.in(ids))));
-                                //add constraints
-                                Constraint<type> link1(pair.first+"_link1");
-                                link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
-                                add(link1.in(unique_ids) == 0);
-                                
-                                Constraint<type> link2(pair.first+"_link2");
-                                link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
-                                add(link2.in(unique_ids) == 0);
-                            }
-                            else{
-                                //get variables
-                                auto y1 = static_pointer_cast<var<type>>(it1->second);
-                                auto added1 = y1->add_bounds(lb1,ub1);
-                                y1->_num_partns = v1._num_partns + v2._num_partns;
-                                lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
-                                if(!added1.empty()){
-                                    assert(v1._indices->size()==v2._indices->size());
-                                    if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                                        auto keep_refs = ids.diff_refs(added1);
-                                        v1_ids.filter_refs(keep_refs);
-                                        v2_ids.filter_refs(keep_refs);
-                                    }
-                                    reindex_vars();
-                                }
-                                auto y2 = static_pointer_cast<var<type>>(it2->second);
-                                auto added2 = y2->add_bounds(lb2,ub2);
-                                lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2->in(ids)), make_shared<var<type>>(y2->in(ids))));
-                                if(!added2.empty()){
-                                    assert(v1._indices->size()==v2._indices->size());
-                                    if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                                        auto keep_refs = ids.diff_refs(added2);
-                                        v1_ids.filter_refs(keep_refs);
-                                        v2_ids.filter_refs(keep_refs);
-                                    }
-                                    reindex_vars();
-                                }
-                                
-                                //add constraints
-                                Constraint<type> link1(pair.first+"_link1");
-                                link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
-                                add(link1.in(unique_ids) == 0);
-                                
-                                Constraint<type> link2(pair.first+"_link2");
-                                link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
-                                add(link2.in(unique_ids) == 0);
-                                
-                            }
-                            
-                            newc_standard.insert(lt1);
-                            newc_standard.insert(lt2);
-                        }
-                        else { //means it is quadratic term
-                            newc_standard.insert(pair.second);
-                        }
-                    }
-                    for (auto &pair:*newc->_pterms) {
-                        auto term = pair.second;
-                        newc_standard.insert(term);
-                    }
-
-                    newc_standard._range = newc->_range;
-                    newc_standard._all_convexity = newc->_all_convexity;
-                    newc_standard._all_sign = newc->_all_sign;
-                    newc_standard._ftype = newc->_ftype;
-                    newc_standard._ctype = newc->_ctype;
-                    newc_standard._indices = newc->_indices;
-                    newc_standard._dim[0] = newc->_dim[0];
                     
-                    //call the lift function and add that constraint
-                    auto lifted = lift(newc_standard, method_type);
-//                    auto lifted = lift(*newc, method_type);
+                    /* Call the lift function and add corresponding constraints */
+                    auto lifted = lift(*newc, method_type);
                     return add_constraint(lifted);
                 }
                     
@@ -10686,7 +10691,7 @@ namespace gravity {
         
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        void run_obbt(double max_time = 300, unsigned max_iter=100, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+        void run_obbt(double max_time = 1000, unsigned max_iter=1e4, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
         
         
         //        void add_on_off(const Constraint<type>& c, var<bool>& on){

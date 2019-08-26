@@ -197,7 +197,8 @@ int main (int argc, char * argv[]) {
             {
                 p=vname+"|"+ key;
                 //Do not do OBBT on lifted variables
-                if(v._lift){
+//                if(v._lift){
+                if(false){
                     fixed_point[p]=true;
                 }
                 else{

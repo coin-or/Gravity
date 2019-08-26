@@ -871,15 +871,17 @@ int main (int argc, char * argv[])
             Constraint<> Equality_SOC("Equality_SOC");
             Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
             Equality_SOC.in(bus_pairs) >= 0;
+            auto Standard_Eq_SOC = SOCP.get_standard_SOC(Equality_SOC);
 //            ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
-            SOCP.SOC_partition(Equality_SOC,10,10,true);
+            SOCP.SOC_partition(Standard_Eq_SOC,10,10,true);
             
             Constraint<> I_to_Pf_temp("I_to_Pf_temp");
             I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             I_to_Pf_temp.in(arcs) >= 0;
             
             //trial use SOC_partition
-            SOCP.SOC_partition(I_to_Pf_temp,10,10,true);
+            auto Standard_I_to_Pf_temp = SOCP.get_standard_SOC(I_to_Pf_temp);
+            SOCP.SOC_partition(Standard_I_to_Pf_temp,10,10,true);
 //            SOCP.SOC_partition(I_to_Pf_temp,12,12,false);
             
             

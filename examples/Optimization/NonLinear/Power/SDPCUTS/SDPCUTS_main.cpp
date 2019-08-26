@@ -341,7 +341,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     //SDP.add(Thermal_Limit_from.in(arcs));
-    SDP.add(Thermal_Limit_from.in(arcs), true, "on/off", true);
+    SDP.add(Thermal_Limit_from.in(arcs), true);
     
     
     
@@ -349,7 +349,7 @@ int main (int argc, char * argv[]) {
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SDP.add(Thermal_Limit_to.in(arcs), true, "on/off", true);
+    SDP.add(Thermal_Limit_to.in(arcs), true);
 
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -398,12 +398,12 @@ int main (int argc, char * argv[]) {
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
         SDP.add_real(I_from.in(arcs)==0);
      
-        var<Cpx> L_to("L_to");
-        L_to.set_real(lji.in(arcs));
-        
-        Constraint<Cpx> I_to("I_to");
-        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        //SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+//        var<Cpx> L_to("L_to");
+//        L_to.set_real(lji.in(arcs));
+//
+//        Constraint<Cpx> I_to("I_to");
+//        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
+//        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
@@ -411,9 +411,9 @@ int main (int argc, char * argv[]) {
           //SDP.add(I_from_Pf.in(arcs)==0, true);
        
         
-        Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-        //    SDP.add(I_to_Pf.in(arcs)==0, true, "on/off", true);
+//        Constraint<> I_to_Pf("I_to_Pf");
+//        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+//        SDP.add(I_to_Pf.in(arcs)==0, true);
         
     }
     
@@ -444,7 +444,37 @@ int main (int argc, char * argv[]) {
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
    
+    SDP.run_obbt();
+    SDP.reset_constrs();
+    solver<> SDPLB1(SDP,solv_type);
     
+    auto status = SDPLB1.run(output = 5, tol, "ma97");
+    SDP.print_constraints_stats(tol);
+    bool print_only_relaxed;
+    SDP.print_nonzero_constraints(tol,print_only_relaxed=true);
+    
+    //        SDP.print_solution();
+    
+    //        SDP.print();
+    
+    if(status==0)
+    {
+        total_time_end = get_wall_time();
+        total_time = total_time_end - total_time_start;
+        DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " <<endl);
+        SDP.print_constraints_stats(tol);
+        
+        DebugOn("Initial Gap Nonlinear = " << to_string(gap) << "%."<<endl);
+        lower_bound=SDP.get_obj_val()*upper_bound;
+        gap = 100*(upper_bound - lower_bound)/upper_bound;
+        DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+        DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+        DebugOn("Time\t"<<total_time<<endl);
+    }
+    else {
+        DebugOn("WARNING: Relaxation did not converge!"<<endl);
+    }
     return 0;
     
 }
