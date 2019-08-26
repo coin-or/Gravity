@@ -357,7 +357,8 @@ namespace gravity {
 //
 //        DebugOn("Average interval reduction\t"<<avg<<endl);
 
-        if(!close)
+//        if(!close)
+        if(false)
         {
 #ifdef USE_MPI
             if(worker_id==0){
@@ -365,7 +366,7 @@ namespace gravity {
                 this->reset_constrs();
                 solver<T> SDPLB1(*this,solv_type);
 
-                SDPLB1.run(output = 5, tol=1e-6);
+                SDPLB1.run(output = 5, tol=1e-6, "ma97");
                 this->print_constraints_stats(tol);
                 bool print_only_relaxed;
                 this->print_nonzero_constraints(tol,print_only_relaxed=true);
