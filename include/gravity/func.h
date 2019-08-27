@@ -790,6 +790,7 @@ namespace gravity {
                     auto vv = static_pointer_cast<param_>(uexp->_son);
                     if(vv->get_name(false,false)==name){
                         son.insert(v);
+                        son.unbounded_range();
                     }
                     else{
                         return func();
@@ -817,8 +818,14 @@ namespace gravity {
                     case log_:
                         return uexp->_coef*get_derivative(uexp->_son,v)/son;
                         break;
+                    case abs_:
+                        return uexp->_coef*df_abs(son)*get_derivative(uexp->_son,v);
+                        break;
                     case relu_:
                         return uexp->_coef*unit_step(son)*get_derivative(uexp->_son,v);
+                        break;
+                    case df_abs_:
+                        return zero<type>();
                         break;
                     case unit_step_:
                         return zero<type>();
@@ -839,6 +846,7 @@ namespace gravity {
                     auto vv = static_pointer_cast<param_>(bexp->_lson);
                     if(vv->get_name(false,false)==name){
                         lson.insert(v);
+                        lson.unbounded_range();
                     }
                 }
                 else {
@@ -852,6 +860,7 @@ namespace gravity {
                     auto vv = static_pointer_cast<param_>(bexp->_rson);
                     if(vv->get_name(false,false)==name){
                         rson.insert(v);
+                        rson.unbounded_range();
                     }
                 }
                 else {
@@ -913,6 +922,18 @@ namespace gravity {
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
         void init_range() {
             _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max()), Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
+        }
+        
+        template<typename T=type,
+        typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        void unbounded_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::lowest(), numeric_limits<type>::max()));
+        }
+        
+        
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type>
+        void unbounded_range() {
+            _range = make_shared<pair<type,type>>(make_pair<>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest()), Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
         }
         
         /**
@@ -1059,7 +1080,7 @@ namespace gravity {
                  }
                     if(check_rotated_soc())
                     {
-                        if(abs(xgrid[2])>=zero_tol)
+                        if(std::abs(xgrid[2])>=zero_tol)
                         {
                         xv=(pow(xgrid[0],2)+pow(xgrid[1],2))/(xgrid[2]);
                         v->set_double_val(posv, xv);
@@ -1533,7 +1554,7 @@ namespace gravity {
                         fnew=eval(nb_inst);
                         if(ctype==leq)
                         {
-                            if(fnew>zero_tol && abs(xv-xcurrent[count])>=perturb_dist)
+                            if(fnew>zero_tol && std::abs(xv-xcurrent[count])>=perturb_dist)
                             {
                                 perturb=true;
                                 xv_p=xv;
@@ -1552,7 +1573,7 @@ namespace gravity {
                         }
                         if(ctype==geq)
                         {
-                            if(fnew<(zero_tol*(-1)) && abs(xv-xcurrent[count])>=perturb_dist)
+                            if(fnew<(zero_tol*(-1)) && std::abs(xv-xcurrent[count])>=perturb_dist)
                             {
                                 perturb=true;
                                 xv_p=xv;
@@ -1663,7 +1684,7 @@ namespace gravity {
             vk->set_double_val(posvk, xvk);
                            uneval();
                            fk=eval(nb_inst);
-                           if(abs(fk)<=active_tol)
+                           if(std::abs(fk)<=active_tol)
                            {
                                solution=true;
                            break;
@@ -1678,12 +1699,12 @@ namespace gravity {
                            {
                                 dfdvk=df.eval(nb_inst);
                            }
-                           if(abs(dfdvk)>=zero_tol)
+                           if(std::abs(dfdvk)>=zero_tol)
                            xvk1=xvk-fk/dfdvk;
                            else
                                break;
                         
-                           if(abs(xvk1-xvk)<=zero_tol)
+                           if(std::abs(xvk1-xvk)<=zero_tol)
                                break;
                            if(xvk1>=ub)
                                xvk=ub;
@@ -5009,15 +5030,25 @@ namespace gravity {
                 case exp_:
                     return exp->_coef*std::exp(res);
                     break;
+                case abs_:{
+                    return exp->_coef*std::abs(res);
+                }
                 case relu_:{
                     if(res < 0)
                         res = 0;
                     return exp->_coef*res;
                 }
+                case df_abs_:{
+                    if(res == 0)
+                        return 0;
+                    if(res < 0)
+                        return -1*exp->_coef;
+                    return exp->_coef;
+                }
                 case unit_step_:{
                     if(res <= 0)
                         return 0;
-                    return exp->_coef*1;
+                    return exp->_coef;
                 }
                     break;
                 default:
@@ -5059,12 +5090,22 @@ namespace gravity {
                 case exp_:
                     return exp->_coef*std::exp(res);
                     break;
+                case abs_:{
+                    return exp->_coef*std::abs(res);
+                }
                 case relu_:{
                     if(res.real() < 0)
                         res.real(0);
                     if(res.imag() < 0)
                         res.imag(0);
                     return exp->_coef*res;
+                }
+                case df_abs_:{
+                    if(res.real() == 0 && res.imag() == 0)
+                        return Cpx(0,0);
+                    if(res.real() <= 0 || res.imag() <= 0)
+                        return Cpx(-1,0)*exp->_coef;
+                    return exp->_coef*Cpx(1,0);
                 }
                 case unit_step_:{
                     if(res.real() <= 0 || res.imag() <= 0)
@@ -5213,15 +5254,25 @@ namespace gravity {
                 case exp_:
                     return exp->_coef*std::exp(res);
                     break;
+                case abs_:{
+                    return exp->_coef*std::abs(res);
+                }
                 case relu_:{
                     if(res < 0)
                         res = 0;
                     return exp->_coef*res;
                 }
+                case df_abs_:{
+                    if(res == 0)
+                        return 0;
+                    if(res < 0)
+                        return -1*exp->_coef;
+                    return exp->_coef;
+                }
                 case unit_step_:{
                     if(res <= 0)
                         return 0;
-                    return exp->_coef*1;
+                    return exp->_coef;
                 }
                     break;
                 default:
@@ -5254,12 +5305,22 @@ namespace gravity {
                 case exp_:
                     return exp->_coef*std::exp(res);
                     break;
+                case abs_:{
+                    return exp->_coef*std::abs(res);
+                }
                 case relu_:{
                     if(res.real() < 0)
                         res.real(0);
                     if(res.imag() < 0)
                         res.imag(0);
                     return exp->_coef*res;
+                }
+                case df_abs_:{
+                    if(res.real() == 0 && res.imag() == 0)
+                        return Cpx(0,0);
+                    if(res.real() <= 0 || res.imag() <= 0)
+                        return Cpx(-1,0)*exp->_coef;
+                    return exp->_coef*Cpx(1,0);
                 }
                 case unit_step_:{
                     if(res.real() <= 0 || res.imag() <= 0)
@@ -7721,6 +7782,17 @@ namespace gravity {
     }
     
     template<class T1>
+    constant<T1> df_abs(const constant<T1>& p1){
+        if(p1.is_zero()){
+            return zero<T1>();
+        }
+        if(p1.is_non_positive()){
+            return -1*unit<T1>();
+        }
+        return unit<T1>();
+    }
+    
+    template<class T1>
     constant<T1> cos(const constant<T1>& p1){
         constant<T1> res(p1);
         res.set_val(cos(res.eval()));
@@ -7826,6 +7898,9 @@ namespace gravity {
                     res.second = neg_;
                 }
                 return res;
+            }
+            case abs_:{
+                return {convex_,pos_};
             }
             case relu_:{
                 res.first = convex_;
@@ -8090,6 +8165,33 @@ namespace gravity {
         return res;
     }
     
+    template<class T1>
+    func<T1> df_abs(const param<T1>& p1){
+        func<T1> res(uexpr<T1>(df_abs_, p1.copy()));
+        if(p1.is_zero()){
+            res._range->first = zero<T1>().eval();
+            res._range->second = zero<T1>().eval();
+        }
+        else if(p1.is_negative()){
+            res._range->first = -1*unit<T1>().eval();
+            res._range->second = -1*unit<T1>().eval();
+        }
+        else if(p1.is_positive()){
+            res._range->first = unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        else {
+            res._range->first = -1*unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        res._all_convexity = undet_;
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
     template<class T, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
     func<T> cos(const param<T>& p1){
         func<T> res(uexpr<T>(cos_, p1.copy()));
@@ -8181,6 +8283,27 @@ namespace gravity {
     template<class T1>
     func<T1> ReLU(const param<T1>& p1){
         func<T1> res(uexpr<T1>(relu_, p1.copy()));
+        if (p1.is_var()) {
+            res._all_convexity = convex_;
+        }
+        res._all_sign = non_neg_;
+        res._range->first = zero<T1>().eval();
+        if(p1.is_positive()){
+            res._all_sign = pos_;
+            res._range->first = p1._range->first;
+        }
+        res._range->second = gravity::max(zero<T1>().eval(),p1._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = p1._indices;
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> abs(const param<T1>& p1){
+        func<T1> res(uexpr<T1>(abs_, p1.copy()));
         if (p1.is_var()) {
             res._all_convexity = convex_;
         }
@@ -8688,8 +8811,60 @@ namespace gravity {
     }
     
     template<class T1>
+    func<T1> df_abs(const func<T1>& f){
+        func<T1> res(uexpr<T1>(df_abs_, f.copy()));
+        if(f.is_zero()){
+            res._range->first = zero<T1>().eval();
+            res._range->second = zero<T1>().eval();
+        }
+        else if(f.is_negative()){
+            res._range->first = -1*unit<T1>().eval();
+            res._range->second = -1*unit<T1>().eval();
+        }
+        else if(f.is_positive()){
+            res._range->first = unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        else {
+            res._range->first = -1*unit<T1>().eval();
+            res._range->second = unit<T1>().eval();
+        }
+        res._all_convexity = undet_;
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T1>
     func<T1> ReLU(const func<T1>& f){
         func<T1> res(uexpr<T1>(relu_, f.copy()));
+        if (f.is_linear()) {
+            res._all_convexity = convex_;
+        }
+        else if(!f.is_constant()){
+            res._all_convexity = undet_;
+        }
+        res._all_sign = non_neg_;
+        res._range->first = zero<T1>().eval();
+        if(f.is_positive()){
+            res._all_sign = pos_;
+            res._range->first = f._range->first;
+        }
+        res._range->second = gravity::max(zero<T1>().eval(),f._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res._indices = f._indices;
+        return res;
+    }
+    
+    template<class T1>
+    func<T1> abs(const func<T1>& f){
+        func<T1> res(uexpr<T1>(abs_, f.copy()));
         if (f.is_linear()) {
             res._all_convexity = convex_;
         }

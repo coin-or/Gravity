@@ -317,7 +317,7 @@ int main (int argc, char * argv[]) {
                                             objk=std::min(objk+range_tol, boundk1);
                                             
                                         }
-                                        if(abs(boundk1-objk) <= fixed_tol_abs || abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
+                                        if(std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
                                         {//do not close intervals to OBBT before finishing at least one full iteration over all variables
                                             if(iter>1)
                                                 fixed_point[pk]=true;
@@ -348,7 +348,7 @@ int main (int argc, char * argv[]) {
                                             
                                         }
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
-                                        if(abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                        if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                         {
                                             //If original interval is itself smaller than range_tol, do not have to reset interval
                                             if(interval_original[pk]>=range_tol)

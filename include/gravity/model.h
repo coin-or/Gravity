@@ -4766,7 +4766,7 @@ namespace gravity {
             else if(f.is_nonlinear()){
                 _type = nlin_m;
             }
-            //            embed(_obj);
+            embed(_obj);
         }
         
         template<typename T1>
@@ -4833,7 +4833,7 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            auto diff = abs(c->eval(inst));
+                            auto diff = std::abs(c->eval(inst));
                             if(diff>tol){
                                 DebugOn(c->_name << " Non-zero equation: " << to_string(inst) << ", value = "<< diff << endl);
                             }
@@ -4879,10 +4879,10 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            auto diff = abs(c->eval(inst));
+                            auto diff = std::abs(c->eval(inst));
                             if(diff>tol){
-                                v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4890,8 +4890,8 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff < -tol) {
-                                v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4899,8 +4899,8 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff > tol) {
-                                v.push_back(make_tuple(abs(diff), c->_id, inst));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_id, inst));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4930,10 +4930,10 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            auto diff = abs(c->eval(inst));
+                            auto diff = std::abs(c->eval(inst));
                             if(diff>tol){
-                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4941,8 +4941,8 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff < -tol) {
-                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4950,8 +4950,8 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             auto diff = c->eval(inst);
                             if(diff > tol) {
-                                v.push_back(make_tuple(abs(diff), c->_indices->_keys->at(inst)));
-                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< abs(diff) << endl);
+                                v.push_back(make_tuple(std::abs(diff), c->_indices->_keys->at(inst)));
+                                if(print_name) DebugOn(" Non-zero >= inequality: " << c->_name << " instance: " << to_string(inst) << ", value = "<< std::abs(diff) << endl);
                             }
                         }
                         break;
@@ -4991,7 +4991,7 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            diff = abs(c->eval(inst));
+                            diff = std::abs(c->eval(inst));
                             if(diff > tol) {
                                 DebugOff("Violated equation: ");
                                 //                        c->print(inst);
@@ -5036,7 +5036,7 @@ namespace gravity {
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
-                            else if (abs(diff)>tol) {
+                            else if (std::abs(diff)>tol) {
                                 c->_active[inst] = false;
                                 //                        if (*c->_all_lazy) {
                                 //                            c->_lazy[inst] = true;
@@ -5068,7 +5068,7 @@ namespace gravity {
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
-                            else if (abs(diff)> tol) {
+                            else if (std::abs(diff)> tol) {
                                 c->_active[inst] = false;
                                 //                        if (*c->_all_lazy) {
                                 //                            c->_lazy[inst] = true;
@@ -5123,7 +5123,7 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            diff = abs(c->eval(inst));
+                            diff = std::abs(c->eval(inst));
                             if(diff > tol) {
                                 DebugOff("Violated equation: ");
                                 //                        c->print(inst);
@@ -5168,7 +5168,7 @@ namespace gravity {
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
-                            else if (abs(diff)>tol) {
+                            else if (std::abs(diff)>tol) {
                                 c->_active[inst] = false;
                                 //                        if (*c->_all_lazy) {
                                 //                            c->_lazy[inst] = true;
@@ -5200,7 +5200,7 @@ namespace gravity {
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
-                            else if (abs(diff)> tol) {
+                            else if (std::abs(diff)> tol) {
                                 c->_active[inst] = false;
                                 //                        if (*c->_all_lazy) {
                                 //                            c->_lazy[inst] = true;
@@ -7038,6 +7038,21 @@ namespace gravity {
             if (_obj->_new) {
                 _obj->allocate_mem();
                 _obj->compute_derivatives();
+                for (auto &df_p:*_obj->get_dfdx()) {
+                    auto df = static_pointer_cast<func<type>>(df_p.second);
+                    DebugOff(df->to_str() << endl);
+                    for (auto &df2_p:*df_p.second->get_dfdx()) {
+                        if (df2_p.second->get_expr() || _type==nlin_m) {
+                            df2_p.second = embed(df2_p.second);
+                        }
+                    }
+                    if (df->get_expr() || _type==nlin_m) {
+                        df_p.second = embed(df);
+                    }
+                    else {
+                        embed(df);
+                    }
+                }
                 if (!_obj->is_linear()) {
                     for (auto &vi_p: _obj->get_vars()) {
                         vi = vi_p.second.first.get();
@@ -9027,7 +9042,7 @@ namespace gravity {
                     
                     con->uneval();
                     for(auto i=0;i<con->get_nb_inst();i++){
-                        if(abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                        if(std::abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
                             Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
                             OA_sol=con->get_outer_app_insti(i);
                             if(con->_ctype==leq) {
@@ -9051,7 +9066,7 @@ namespace gravity {
                     if(!con->is_linear()) {
                         for(auto i=0;i<con->get_nb_inst();i++){
                             con->uneval();
-                            if(abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
+                            if(std::abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
                                 set_solution(xinterior);
                                 xinterior=con->get_x(i);
                                 set_solution(xsolution);
