@@ -29,18 +29,6 @@ using namespace gravity;
 auto err_init = MPI_Init(nullptr,nullptr);
 #endif
 
-TEST_CASE("testing numerical precision") {
-    int worker_id = 0;
-#ifdef USE_MPI
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-#endif
-    if(worker_id==0){
-        double bMVA = 100.0;
-        double smax = 996.0;
-        double smax2 = smax/bMVA;
-        CHECK(smax2==9.9600000000000008);
-    }
-}
 
 TEST_CASE("testing constants") {
     int worker_id = 0;
@@ -65,10 +53,10 @@ TEST_CASE("testing constants") {
         CHECK(cx2.is_complex());
         CHECK(cx2.is_negative());
         auto mag0 = sqrmag(cx2);
-        CHECK(abs(mag0.eval()-5)<1e-8);
+        CHECK(std::abs(mag0.eval()-5)<1e-8);
         auto ang0 = angle(cx2);
         ang0.println();
-        CHECK(abs(ang0.eval()-(-2.677945045))<1e-8);
+        CHECK(std::abs(ang0.eval()-(-2.677945045))<1e-8);
         auto cx3 = conj(cx1);
         CHECK(cx3.eval().real()==cx1.eval().real());
         CHECK(cx3.eval().imag()==-1*cx1.eval().imag());
@@ -195,13 +183,13 @@ TEST_CASE("testing matrix params") {
         tr_mat.print();
         CHECK(tr_mat.eval(2,1)==12);
         CHECK(tr_mat(2,1).eval()==12);
-        
+
         var<> v("v",0,1);
         v.in(R(4));
         Constraint<> Mv("Mv");
         Mv = product(mat,v);
         Mv.print();
-        
+
         /* Complex matrices */
         param<Cpx> Cmat("Cmat");
         Cmat.set_size(3,3);
@@ -726,7 +714,7 @@ TEST_CASE("testing quadratic function factorization"){
         solver<> s(test,ipopt);
         s.run(5, 1e-6);
         test->print_solution();
-        CHECK(abs(test->_obj->get_val()-58.3836718)<1e-6);
+        CHECK(std::abs(test->_obj->get_val()-58.3836718)<1e-6);
     }
 }
 
@@ -939,36 +927,36 @@ TEST_CASE("testing complex constraint expansion"){
         z.real_imag(x, y);
         w1.real_imag(u1, v1);
         w2.real_imag(u2, v2);
-        
+
         param<> pr1("pr1"), pi1("pi1"),pr2("pr2");
         pr1 = {1,2};pi1 = {0,-1};pr2 = {-2,2};
         param<Cpx> p1("p1");
         p1.real_imag(pr1, pi1);
-        
+
         Constraint<Cpx> C_lin1("C_lin1");
         C_lin1 = p1*z;
         M.add(C_lin1.in(ids)==0);
-        
+
         param<Cpx> p2("p2");
         p2.set_real(pr2);/* zero imaginary */
         Constraint<Cpx> C_lin2("C_lin2");
         C_lin2 = p2*z;
         M.add(C_lin2.in(ids)==0);
-        
+
         Constraint<Cpx> C_quad("C_quad");
         C_quad = z*w1;
         M.add(C_quad.in(ids)==0);
-        
+
         Constraint<Cpx> C_norm("C_norm");
         C_norm = z*conj(z);
         M.add(C_norm.in(ids)==0);
-        
+
         Constraint<Cpx> C_pol("C_pol");
         C_pol = z*w1*w2;
         M.add(C_pol.in(ids)==0);
         M.print();
-        
-        
+
+
     }
 }
 
@@ -990,8 +978,8 @@ TEST_CASE("testing multithread solve"){
         auto models = {ACOPF1, ACOPF2};
         /* run in parallel */
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
-        CHECK(abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
+        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
+        CHECK(std::abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();
@@ -1023,7 +1011,7 @@ TEST_CASE("testing socopf"){
         OPF.run(output=5, tol=1e-6);
         auto time_end = get_wall_time();
         DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
-        CHECK(abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
+        CHECK(std::abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
     }
 }
 
@@ -1034,30 +1022,30 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
 #endif
     if(worker_id==0){
         /* This test identifies a bug in Cplex's MIQCP presolve. Turn Cplex = true and relax = false to get an infeasible status, with relax=true, Cplex returns feasible. Also turning off presolve returns feasible. */
-        
+
         /* Start indexing from 1 */
         indices R1 = range(1,1);
         indices R2 = range(1,2);
         indices R4 = range(1,4);
         indices R10 = range(1,10);
-        
+
         Model<> m;
-        
+
         /* Bounds */
         param<> x_lb("x_lb");
         param<> x_ub("x_ub");
         x_lb = {-2,-2,-1,35,-4,-3,0,0,-4,0};
         x_ub = {2,2,1,37,-2,5,25,4,4,4};
-        
+
         var<> x("x",x_lb,x_ub);
         var<int> A1("A1",0,1), A2("A2",0,1), A6("A6",0,1);
         m.add(A1.in(R1), A2.in(R1), A6.in(R1));
         var<> L7("L7",0,1), L8("L8",0,1), L9("L9",0,1), L10("L10",0,1);
         m.add(x.in(R10), L7.in(R2), L8.in(R2), L9.in(R4), L10.in(R2));
-        
-        
+
+
         m.min(x[3]+x[4]+x[5]);
-        
+
         Constraint<> c1("c1");
         c1 = x[3] - x[7];
         m.add(c1==0);
@@ -1173,7 +1161,7 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
             solver<> s(m,ipopt);
             s.run(5,1e-6);
         }
-        CHECK(abs(m.get_obj_val()-31.003139013)<1e-6);
+        CHECK(std::abs(m.get_obj_val()-31.003139013)<1e-6);
         m.print_solution();
     }
 }
@@ -1226,7 +1214,7 @@ TEST_CASE("Alpine issue") {
         m.add(c4==0);
         cout << "y4 lower bound = " << y4._range->first << endl;
         cout << "y4 upper bound = " << y4._range->second << endl;
-        
+
         auto obj = 30 + y3*y4 +30*y1*y2 + y1*y2*y3*y4;
         cout << "Objective lower bound = " << obj._range->first << endl;
         cout << "Objective upper bound = " << obj._range->second << endl;
@@ -1258,12 +1246,12 @@ TEST_CASE("Alpine issue") {
         relax.add(c1<=0);
         relax.add(c2<=0);
         relax.add(c3<=0);
-        
+
         Constraint<> obj_ub("obj_ub");
-        
+
         obj_ub = 30 + y34 +30*y12 + y1234;
         relax.add(obj_ub<=3);
-        
+
         Constraint<> c1_relax("c1_relax");
         c1_relax = x11 + 2*x12 + x22 + 2*x1 + 2*x2 - y1 + 1;
         relax.add(c1_relax==0);
@@ -1276,28 +1264,59 @@ TEST_CASE("Alpine issue") {
         Constraint<> c4_relax("c4_relax");
         c4_relax = 12*x11 -36*x12 + 27*x22 - 32*x1 + 48*x2 - y4 + 18;
         relax.add(c4_relax==0);
-        
+
         Constraint<> soc1("soc1");
         soc1 = x11 - pow(x1,2);
         relax.add(soc1 >= 0);
         Constraint<> soc2("soc2");
         soc2 = x22 - pow(x2,2);
         relax.add(soc2 >= 0);
-        
+
         Constraint<> rot_soc("rot_soc");
         rot_soc = x11*x22 - pow(x12,2);
         relax.add(rot_soc >= 0);
         CHECK(rot_soc.is_rotated_soc());
-        
+
         relax.add_McCormick("x12", x12, x1, x2);
         relax.add_McCormick("y12", y12, y1, y2);
         relax.add_McCormick("y34", y34, y3, y4);
         relax.add_McCormick("y1234", y1234, y12, y34);
-        
+
         relax.print_symbolic();
         solver<> s2(relax,ipopt);
         s2.run();
         relax.print_solution();
+    }
+}
+
+TEST_CASE("testing absolute value function") {
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        
+        
+        Model<> M("Test");
+        var<> x("x", -1, 6);
+        var<> y("y", -2, 2);
+        var<> obj("obj", pos_);
+        M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
+        
+        M.min(obj);
+        Constraint<> obj_lb("obj_lb");
+        obj_lb = obj;
+        M.add(obj_lb == abs(x)+y);
+        
+        M.print();
+        solver<> NLP(M,ipopt);
+        int output;
+        double tol;
+        string lin_solver;
+        NLP.run(output=5,tol=1e-6);
+        M.print_solution();
+        M.print_symbolic();
+
     }
 }
 
@@ -1593,7 +1612,7 @@ TEST_CASE("testing OpenMPI") {
     /* run in parallel */
     run_MPI(models, ipopt, tol=1e-6, nb_threads=2);
     if(worker_id==0){
-    	//CHECK(abs(ACOPF1->get_obj_val()-17551.890927)<tol);
+    	//CHECK(std::abs(ACOPF1->get_obj_val()-17551.890927)<tol);
     	//CHECK(ACOPF1->is_feasible(tol));
     	ACOPF1->print_solution();
     	ACOPF2->print_solution();

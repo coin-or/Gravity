@@ -2760,7 +2760,7 @@ shared_ptr<Model<>> build_SDPOPF_linear(PowerNet& grid, double upper_bound) {
             DebugOn("eval of con "<<con->eval(i)<<endl);
             con->uneval();
             
-            if(abs(con->eval(i))<=active_tol)
+            if(std::abs(con->eval(i))<=active_tol)
             {
                 con->uneval();
                 func<> oacon=con->get_outer_app_insti(i);
