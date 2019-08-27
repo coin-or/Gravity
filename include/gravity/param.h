@@ -1793,6 +1793,57 @@ namespace gravity {
             return res;
         }
 
+        /* Index param/var based on outgoing arcs out of nodes */
+        param sum_out(const indices& nodes) {
+            param res(*this);
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_type = matrix_;
+            res._indices->_ids->resize(nodes.size());
+            if(nodes.empty()){
+                res._name += "_EMPTY";
+                return res;
+            }
+            string key;
+            int idx = 0;
+            for(auto it = _indices->_keys->begin(); it!= _indices->_keys->end(); it++) {
+                key = *it;
+                key = key.substr(key.find_first_of(",")+1);
+                key = key.substr(0,key.find_first_of(","));
+                auto it1 = nodes._keys_map->find(key);
+                if (it1 == nodes._keys_map->end()){
+                    throw invalid_argument("In function param.out(const indices& nodes), unknown key " + key);
+                }
+                res._indices->_ids->at(it1->second).push_back(idx++);
+            }
+            res._name += ".sum_out("+nodes.get_name()+")";
+            return res;
+        }
+        
+        /* Index param/var based on outgoing arcs out of nodes */
+        param sum_in(const indices& nodes) {
+            param res(*this);
+            res._indices->_ids = make_shared<vector<vector<size_t>>>();
+            res._indices->_type = matrix_;
+            res._indices->_ids->resize(nodes.size());
+            if(nodes.empty()){
+                res._name += "_EMPTY";
+                return res;
+            }
+            string key;
+            int idx = 0;
+            for(auto it = _indices->_keys->begin(); it!= _indices->_keys->end(); it++) {
+                key = *it;
+                key = key.substr(key.find_first_of(",")+1);
+                key = key.substr(key.find_first_of(",")+1);
+                auto it1 = nodes._keys_map->find(key);
+                if (it1 == nodes._keys_map->end()){
+                    throw invalid_argument("In function param.sum_in(const indices& nodes), unknown key " + key);
+                }
+                res._indices->_ids->at(it1->second).push_back(idx++);
+            }
+            res._name += ".sum_in("+nodes.get_name()+")";
+            return res;
+        }
 
 
         /* Index param/var based on outgoing arcs out of nodes in vec */
