@@ -158,9 +158,9 @@ namespace gravity {
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads, "ma57",true);
+                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"",true);
 #else
-                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma57");
+                                run_parallel(batch_models,ipopt,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
