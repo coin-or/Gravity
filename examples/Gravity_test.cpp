@@ -1399,6 +1399,7 @@ TEST_CASE("testing from_ith() function") {
     CHECK(dp._range->first==-231.5);
     CHECK(dp._range->second==1.5);
     REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
+    ids.print();
     auto ndp = dp.from_ith(2,ids);
     ndp.print();
     CHECK(ndp.get_dim()==ids.size());
@@ -1483,6 +1484,25 @@ TEST_CASE("testing sum_ith()") {
     cout.rdbuf(console);
     CHECK(buffer.str()==" Sum1 (Linear) : \nSum1[0]: v1[5,4,1] + v1[5,2,1] + v1[5,5,1] <= 0;\nSum1[1]: v1[7,8,4] + v1[7,6,4] + v1[7,9,4] <= 0;\n");
     CHECK(Sum1.get_nb_instances() == 2);
+}
+
+TEST_CASE("sum over outgoing") {
+    int precision = 4;
+    /** Define indices */
+    indices arcs("arcs");
+    arcs.add("a1,1,2", "a2,1,3", "a3,1,4", "a4,3,4", "a5,2,4", "a6,1,5", "a7,1,5");
+    indices nodes("nodes");
+    nodes.add("1", "2", "3", "4", "5");
+    /** Declare model,vars and constraints */
+    Model<> M("Test");
+    var<>  v1("flux", 0, 1);
+    M.add(v1.in(arcs));
+    Constraint<> Sum0("Sum0");
+    Sum0 = v1.sum_out(nodes) + v1.sum_in(nodes);
+    M.add(Sum0.in(nodes) == 0);
+    M.print_symbolic();
+    M.print();
+    CHECK(Sum0.get_nb_instances() == nodes.size());
 }
 
 TEST_CASE("testing sum_ith() func<> version"){
