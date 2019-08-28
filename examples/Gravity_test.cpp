@@ -12,11 +12,9 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include <gravity/model.h>
-#include <gravity/solver.h>
-#include <gravity/constraint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <gravity/solver.h>
 #include <gravity/doctest.h>
 #include <PowerNet.h>
 //#include <variant>
@@ -1298,15 +1296,15 @@ TEST_CASE("testing absolute value function") {
         
         
         Model<> M("Test");
-        var<> x("x", -1, 6);
-        var<> y("y", -2, 2);
+        var<> x("x", -6, 2);
+        var<> y("y", -3, 2);
         var<> obj("obj", pos_);
         M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
         
         M.min(obj);
         Constraint<> obj_lb("obj_lb");
         obj_lb = obj;
-        M.add(obj_lb == abs(x)+y);
+        M.add(obj_lb == abs(x)*y + 6);
         
         M.print();
         solver<> NLP(M,ipopt);
