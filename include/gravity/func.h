@@ -5166,10 +5166,10 @@ namespace gravity {
                     return exp->_coef*(lval/rval);
                     break;
                 case min_:
-                    return exp->_coef*(std::min(lval,rval));
+                    return exp->_coef*(gravity::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(std::max(lval,rval));
+                    return exp->_coef*(gravity::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
@@ -5222,10 +5222,10 @@ namespace gravity {
                     return exp->_coef*(powl(lval,rval));
                     break;
                 case min_:
-                    return exp->_coef*(std::min(lval,rval));
+                    return exp->_coef*(gravity::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(std::max(lval,rval));
+                    return exp->_coef*(gravity::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
