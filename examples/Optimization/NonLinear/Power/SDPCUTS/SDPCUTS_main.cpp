@@ -444,37 +444,37 @@ int main (int argc, char * argv[]) {
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
    
-    SDP.run_obbt();
-    SDP.reset_constrs();
-    solver<> SDPLB1(SDP,solv_type);
-    
-    auto status = SDPLB1.run(output = 5, tol);
-    SDP.print_constraints_stats(tol);
-    bool print_only_relaxed;
-    SDP.print_nonzero_constraints(tol,print_only_relaxed=true);
-    
-    //        SDP.print_solution();
-    
-    //        SDP.print();
-    
-    if(status==0)
-    {
-        total_time_end = get_wall_time();
-        total_time = total_time_end - total_time_start;
-        DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " <<endl);
-        SDP.print_constraints_stats(tol);
-        
-        DebugOn("Initial Gap Nonlinear = " << to_string(gap) << "%."<<endl);
-        lower_bound=SDP.get_obj_val()*upper_bound;
-        gap = 100*(upper_bound - lower_bound)/upper_bound;
-        DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-        DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-        DebugOn("Time\t"<<total_time<<endl);
-    }
-    else {
-        DebugOn("WARNING: Relaxation did not converge!"<<endl);
-    }
+//    SDP.run_obbt();
+//    SDP.reset_constrs();
+//    solver<> SDPLB1(SDP,solv_type);
+//    
+//    auto status = SDPLB1.run(output = 5, tol);
+//    SDP.print_constraints_stats(tol);
+//    bool print_only_relaxed;
+//    SDP.print_nonzero_constraints(tol,print_only_relaxed=true);
+//    
+//    //        SDP.print_solution();
+//    
+//    //        SDP.print();
+//    
+//    if(status==0)
+//    {
+//        total_time_end = get_wall_time();
+//        total_time = total_time_end - total_time_start;
+//        DebugOn("\nResults: " << grid._name << " " << to_string(SDP.get_obj_val()) << " " <<endl);
+//        SDP.print_constraints_stats(tol);
+//        
+//        DebugOn("Initial Gap Nonlinear = " << to_string(gap) << "%."<<endl);
+//        lower_bound=SDP.get_obj_val()*upper_bound;
+//        gap = 100*(upper_bound - lower_bound)/upper_bound;
+//        DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+//        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+//        DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+//        DebugOn("Time\t"<<total_time<<endl);
+//    }
+//    else {
+//        DebugOn("WARNING: Relaxation did not converge!"<<endl);
+//    }
     return 0;
     
 }
