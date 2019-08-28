@@ -882,6 +882,12 @@ namespace gravity {
                         return bexp->_coef*((lson.get_derivative(v)*(rson) - (lson)*rson.get_derivative(v))/(rson*rson));
                         // (f'g - fg')/g^2
                         break;
+                    case min_:
+                        return 0.5*bexp->_coef*(lson.get_derivative(v) + rson.get_derivative(v) - df_abs(lson-rson)*(lson.get_derivative(v)-rson.get_derivative(v)));
+                        break;
+                    case max_:
+                        return 0.5*bexp->_coef*(lson.get_derivative(v) + rson.get_derivative(v) + df_abs(lson-rson)*(lson.get_derivative(v)-rson.get_derivative(v)));
+                        break;
                     case power_:
                         if (!rson.is_number()) {
                             throw invalid_argument("Function in exponent not supported yet.\n");
@@ -5160,10 +5166,10 @@ namespace gravity {
                     return exp->_coef*(lval/rval);
                     break;
                 case min_:
-                    return exp->_coef*(gravity::min(lval,rval));
+                    return exp->_coef*(std::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(gravity::max(lval,rval));
+                    return exp->_coef*(std::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");
@@ -5216,10 +5222,10 @@ namespace gravity {
                     return exp->_coef*(powl(lval,rval));
                     break;
                 case min_:
-                    return exp->_coef*(gravity::min(lval,rval));
+                    return exp->_coef*(std::min(lval,rval));
                     break;
                 case max_:
-                    return exp->_coef*(gravity::max(lval,rval));
+                    return exp->_coef*(std::max(lval,rval));
                     break;
                 default:
                     throw invalid_argument("Unsupported binary operator");

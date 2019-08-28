@@ -37,7 +37,7 @@ string operator_str(gravity::OperatorType ot){
         case gravity::abs_:
             return "abs";
         case gravity::df_abs_:
-            return "sd_abs";
+            return "df_abs";
         case gravity::unit_step_:
             return "UnitStep";
         case gravity::min_:
