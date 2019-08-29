@@ -1647,6 +1647,12 @@ namespace gravity {
                         res._indices->_ids->at(i).push_back(it->second);
                     }
                 }
+                if(res._is_transposed){
+                    res._dim[1]=res._indices->_ids->size();
+                }
+                else {
+                    res._dim[0]=res._indices->_ids->size();
+                }
             }
             else if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
@@ -1657,7 +1663,12 @@ namespace gravity {
                     }
                     res._indices->_ids->at(0).push_back(it->second);
                 }
-                
+                if(res._is_transposed){
+                    res._dim[1]=res._indices->_ids->at(0).size();
+                }
+                else {
+                    res._dim[0]=res._indices->_ids->at(0).size();
+                }
             }
             else {
                 for(auto key: *ids._keys){
@@ -1674,12 +1685,12 @@ namespace gravity {
                     }
                     res._indices->_ids->at(0).push_back(it->second);
                 }
-            }
-            if(res._is_transposed){
-                res._dim[1]=res._indices->_ids->at(0).size();
-            }
-            else {
-                res._dim[0]=res._indices->_ids->at(0).size();
+                if(res._is_transposed){
+                    res._dim[1]=res._indices->_ids->at(0).size();
+                }
+                else {
+                    res._dim[0]=res._indices->_ids->at(0).size();
+                }
             }
             res._name += ".in("+ids.get_name()+")";
             res._indices->set_name(ids.get_name());
