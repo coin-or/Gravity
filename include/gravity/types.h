@@ -310,6 +310,9 @@ namespace gravity{
         
         /** Returns the number of comma-separated fields in each key */
         unsigned get_nb_entries() const{
+            if(_keys->empty()){
+                return 0;
+            }
             return count(_keys->front().begin(), _keys->front().end(), ',') + 1;
         }
         

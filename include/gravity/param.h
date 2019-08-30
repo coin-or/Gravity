@@ -1672,12 +1672,20 @@ namespace gravity {
             }
             else {
                 for(auto key: *ids._keys){
-                    if(_indices->_type==to_){/** Assumed to be the last entry in the key */
-                        key = key.substr(key.find_last_of(",")+1,key.size());
-                    }
-                    else if(_indices->_type==from_){/** Assumed to be the one to last entry in the key */
-                        key = key.substr(0, key.find_last_of(","));
-                        key = key.substr(key.find_last_of(",")+1,key.size());
+                    if(_indices->_type==to_ || _indices->_type==from_){
+                        string pref="";
+                        if(nb_entries>3){/* key has a prefix */
+                            pref = key.substr(0, key.find_last_of(","));
+                            pref = pref.substr(0, pref.find_last_of(","));
+                            pref = pref.substr(0, pref.find_last_of(",")+1);
+                        }
+                        if(_indices->_type==to_){
+                            key = pref+key.substr(key.find_last_of(",")+1,key.size());
+                        }
+                        else if(_indices->_type==from_){
+                            key = key.substr(0, key.find_last_of(","));
+                            key = pref+key.substr(key.find_last_of(",")+1,key.size());
+                        }
                     }
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
