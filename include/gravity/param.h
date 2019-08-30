@@ -1671,6 +1671,7 @@ namespace gravity {
                 }
             }
             else {
+                auto nb_entries = ids.get_nb_entries();
                 for(auto key: *ids._keys){
                     if(_indices->_type==to_ || _indices->_type==from_){
                         string pref="";
