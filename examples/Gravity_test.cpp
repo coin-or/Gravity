@@ -1332,10 +1332,10 @@ TEST_CASE("testing min/max functions") {
         var<> obj("obj", -10,10);
         M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
         
-        M.min(obj);
-        Constraint<> obj_lb("obj_lb");
-        obj_lb = obj;
-        M.add(obj_lb == min(x,3*y) + 6 - max(2*x,y));
+        M.min(min(x,3*y) + 6 - max(2*x,y));
+//        Constraint<> obj_lb("obj_lb");
+//        obj_lb = obj;
+//        M.add(obj_lb == );
         
         M.print();
         solver<> NLP(M,ipopt);
