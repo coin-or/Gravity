@@ -12,6 +12,10 @@
 using namespace std;
 string operator_str(gravity::OperatorType ot){
     switch (ot) {
+        case gravity::div_:
+            return "/";
+        case gravity::product_:
+            return "*";
         case gravity::log_:
             return "log";
         case gravity::exp_:
