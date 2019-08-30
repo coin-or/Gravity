@@ -1314,7 +1314,38 @@ TEST_CASE("testing absolute value function") {
         NLP.run(output=5,tol=1e-6);
         M.print_solution();
         M.print_symbolic();
+        CHECK(M.get_obj_val()<=1e-6);
+    }
+}
 
+TEST_CASE("testing min/max functions") {
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        
+        
+        Model<> M("Test");
+        var<> x("x", -6, 3);
+        var<> y("y", -3, 2);
+        var<> obj("obj", -10,10);
+        M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
+        
+        M.min(obj);
+        Constraint<> obj_lb("obj_lb");
+        obj_lb = obj;
+        M.add(obj_lb == min(x,3*y) + 6 - max(2*x,y));
+        
+        M.print();
+        solver<> NLP(M,ipopt);
+        int output;
+        double tol;
+        string lin_solver;
+        NLP.run(output=5,tol=1e-6);
+        M.print_solution();
+        M.print_symbolic();
+        CHECK(std::abs(M.get_obj_val()-(-9))<tol);
     }
 }
 
