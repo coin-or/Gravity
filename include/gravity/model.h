@@ -8512,52 +8512,58 @@ namespace gravity {
             }
         }
 
+        //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
+        //INPUT: an SOC constraint to satisfy at equality, number of desired partitions, another number of partitions if the original SOC constraint involves more than 3 variables (we need to seperate that into different SOC constraints), use_lambda option for using the lambda formulation to activate the hyperplanes where the default is the on/off formulation
         template<typename T=type>
-        void SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10, bool use_lambda = false) { //currently the function asssumes there are only qterms!
+        void SOC_partition(Constraint<type>& c, int num_SOC_partitions1 = 10, int num_SOC_partitions2 = 10, bool use_lambda = false) { //currently the function asssumes there are only qterms in the original SOC constraint
+            // TODO: incorporate linear terms in the constraint, or convert those into the standard format as well!
             
-            auto is_rotated_SOC = c.check_rotated_soc(); //collect the information about the cone
+            auto is_rotated_SOC = c.check_rotated_soc(); //check the constraint is either an SOC or a rotated SOC
             auto is_SOC = c.check_soc();
             
-            if (!is_rotated_SOC && !is_SOC)
+            if (!is_rotated_SOC && !is_SOC) // if the constraint is not an SOC, throw an error
             {
                 throw invalid_argument("SOC partition can only be applied to second-order cones! \n");
             }
-            if (!c._lterms->empty())
+            if (!c._lterms->empty()) //currently, there is no support for linear terms in the SOC constraint
             {
                 throw invalid_argument("Current SOC partition version can only handle quadratic & bilinear terms! \n");
             }
-            if (c.get_ctype() == eq){
+            if (c.get_ctype() == eq){ //the original constraint should be either leq or geq since we need to also have the convex relaxation of the original constraint as the upper bound on the cone itself
                 throw invalid_argument("Please provide the constraint in the convex format (either <= or >=), and make sure you add the convex constraint to the model as well!");
             }
-            //convert the constraint into standard format
+            //convert the constraint into standard format if the constraint is given as a >= constraint
             Constraint<type> n_c(c);
             if (c.get_ctype() == geq){
                 n_c *= -1;
                 n_c._ctype = leq;
             }
             
-            //create the variables for bound calculations
+            //create the variables for bound calculations on the auxiliary variable for the case when there are more than 3 terms in the given SOC constraint
             var<> v1;
             var<> v2;
             
-            if (is_SOC) //if it is SOC
+            if (is_SOC) //if the original constraint is an SOC
             {
                 unsigned num_qterms = n_c._qterms->size();
                 if (num_qterms >= 4){ //we need to split the constraint into two
-                    if (num_qterms > 4){
+                    if (num_qterms > 4){ //current version do not support more than 4 quadratic terms in the constraint
+                        //TODO: create a generic scheme to further divide the constraint into smaller constraints and add them recursively
                         throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
                     }
+                    //create the two constraints for the divided version of the original constraint
                     Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
-                    bool first = false; //for adding -t^2 to which
+                    //in order to decide which constraint +t^2 should be added (the auxiliary variable to connect the separated SOC constraints)
+                    bool first = false;
                     auto aux_idx = *n_c._indices;
                     
-                    //flag for assignment
+                    //flag for assignment when assigning the variable pointers
                     bool first_occupied = false;
                     
                     //go over the qterms
-                    unsigned counter = 0;
+                    unsigned counter = 0; // counter is for dividing the constraint into two with 2 quadratic terms each
                     for (auto &qt_pair: *n_c._qterms) {
                         if (!qt_pair.second._p->first->is_double()) {
                             throw invalid_argument("Current hyperplanes only support double type variables!");
@@ -8569,20 +8575,20 @@ namespace gravity {
                         auto coef = static_pointer_cast<constant<type>>(qt_pair.second._coef);
                         if (counter < 2) {
                             SOC_1.insert(qt_pair.second);
-                            if (sign ^ (coef->is_positive())) {
+                            if (sign ^ (coef->is_positive())) { //update the first to true if the variable appearing has a negative sign
                                 first = true;
                             }
                         }
                         else SOC_2.insert(qt_pair.second);
-                        
                         ++counter;
                     }
                     
                     //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
+                    //set the ranges of the functions properly
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
-                    if (first){
+                    if (first){ //if the t^2 is added to the first constraint, colect the other variables' pointers to obtain proper bounds for t
                         for (auto &qt_pair: *SOC_2._qterms) {
                             if (!first_occupied){
                                 v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
@@ -8601,10 +8607,11 @@ namespace gravity {
                         }
                     }
 
-                    //update the upper bound of t
+                    //update the upper bound of t properly based on the bounds on the other variables appering the reduced SOC constraint
                     param<type> ub("ub");
                     ub.in(aux_idx);
                     
+                    //go over all the instances and calculate the upper bound for t
                     for (int i=0; i<aux_idx.size(); i++) {
                         //calculate all the possibilities and assign the worst case
                         size_t id1;
@@ -8622,6 +8629,7 @@ namespace gravity {
                         else id2 = v2._indices->_ids->at(0).at(i);
                         auto key2 = v2._indices->_keys->at(id2);
                         
+                        //the largest possible values for the squared variables
                         auto prod_b1 = std::max(v1.get_lb(key1)*v1.get_lb(key1), v1.get_ub(key1)*v1.get_ub(key1));
                         auto prod_b2 = std::max(v2.get_lb(key2)*v2.get_lb(key2), v2.get_ub(key2)*v2.get_ub(key2));
                         
@@ -8632,7 +8640,7 @@ namespace gravity {
                         else id3 = aux_idx._ids->at(0).at(i);
                         auto key3 = aux_idx._keys->at(id3);
                         
-                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2));
+                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2)); //since it is a cone constraint t can be at most this
                     }
                     
                     var<type> t("t_" + n_c._name, 0, ub); //create the auxilary variable
@@ -8653,7 +8661,7 @@ namespace gravity {
                         add(SOC_2.in(aux_idx) <= 0);
                     }
                     
-                    //call the hyperplane function to generate the on/off hyperplanes
+                    //call the hyperplane function to generate the disjunctive union of hyperplanes, if use_lambda is specified use the lambda formulation, otherwise use the on_off formulation
                     if(use_lambda){
                         add_lambda_SOC_hyperplanes_symmetric(SOC_1, num_SOC_partitions1);
                         add_lambda_SOC_hyperplanes_symmetric(SOC_2, num_SOC_partitions2);
@@ -8663,7 +8671,7 @@ namespace gravity {
                     add_on_off_SOC_hyperplanes(SOC_2, num_SOC_partitions2);
                     }
                 }
-                else { //we can directly generate the hyperplanes
+                else { //if the number of qterms is less than 4, we can directly generate the hyperplanes
                     if(use_lambda){
                         add_lambda_SOC_hyperplanes_symmetric(n_c, num_SOC_partitions1); //this uses the first int as the number of partitions not the total one
                     }
@@ -8672,28 +8680,29 @@ namespace gravity {
                     }
                 }
             }
-            else { //means its rotated SOC
+            else { //means the original constraint is a rotated SOC (then we should take care of the bilinear terms)
                 
                 unsigned num_qterms = 0;
                 unsigned num_blnterms = 0;
-                for (auto &qt_pair: *n_c._qterms) {
+                for (auto &qt_pair: *n_c._qterms) { //go over the terms and count the standardized number of quadratic terms (which means a bilinear term will have 2 terms since it can be standardized with two quadratic terms)
                     if (qt_pair.second._p->first!=qt_pair.second._p->second) ++num_blnterms;
                     else ++num_qterms;
                 }
-                if (num_blnterms > 1){
+                if (num_blnterms > 1){ //current procedure does not allow two bilinear terms
                     throw invalid_argument("Current SOC partition version can only allow one bilinear term! \n");
                 }
                 if (num_qterms + 2*num_blnterms >= 4){ //we need to split the constraint into two
                     
-                    if (num_qterms + 2*num_blnterms > 4){
+                    if (num_qterms + 2*num_blnterms > 4){ //current procedure does not allow more than 4 standard quadratic terms
                         throw invalid_argument("Current SOC partition version can only up to four quadratic terms! \n");
                     }
+                    //create the individual SOC constraint for the separated halves
                     Constraint<type> SOC_1(n_c._name + "_SOC_1"); //to split the constraint (first half)
                     Constraint<type> SOC_2(n_c._name + "_SOC_2"); //to split the constraint (second half)
                     
                     auto aux_idx = *n_c._indices; /*** use this or n_c._indices->_keys->at(inst)? ***/
                     
-                    //flag for assignment
+                    //flag for assignment when assigning the variable pointers
                     bool first_occupied = false;
                     
                     //go over the qterms
@@ -8701,10 +8710,10 @@ namespace gravity {
                         if (!qt_pair.second._p->first->is_double()) {
                             throw invalid_argument("Current hyperplanes only support double type variables!");
                         }
-                        if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear
+                        if (qt_pair.second._p->first!=qt_pair.second._p->second){ //if the term is bilinear insert that into the first constraint by default
                             SOC_1.insert(qt_pair.second);
                         }
-                        else {
+                        else { //if the term is quadratic, automatically insert that into the second part, and get the variables for calculating the bound of the auxiliary variable t
                             if (!first_occupied) {
                                 v1 = *static_pointer_cast<var<double>>(qt_pair.second._p->first);
                                 first_occupied = true;
@@ -8715,15 +8724,17 @@ namespace gravity {
                             SOC_2.insert(qt_pair.second);
                         }
                     }
+                    //update the range of the functions appropriately
                     //TODO: remove the ranges of extra terms in SOC_1 and SOC_2
                     SOC_1._range = n_c._range;
                     SOC_2._range = n_c._range;
                     
                     
-                    //update the upper bound of t
+                    //create the parameter for the upper bound of t
                     param<type> ub("ub");
                     ub.in(aux_idx);
                     
+                    //go over all the instances and calculate the best possible bound for the aux variable
                     for (int i=0; i<aux_idx.size(); i++) {
                         //calculate all the possibilities and assign the worst case
                         size_t id1;
@@ -8741,6 +8752,7 @@ namespace gravity {
                         else id2 = v2._indices->_ids->at(0).at(i);
                         auto key2 = v2._indices->_keys->at(id2);
 
+                        //these terms are the largest possible values that the squared variables can take
                         auto prod_b1 = std::max(v1.get_lb(key1)*v1.get_lb(key1), v1.get_ub(key1)*v1.get_ub(key1));
                         auto prod_b2 = std::max(v2.get_lb(key2)*v2.get_lb(key2), v2.get_ub(key2)*v2.get_ub(key2));
                         
@@ -8751,20 +8763,20 @@ namespace gravity {
                         else id3 = aux_idx._ids->at(0).at(i);
                         auto key3 = aux_idx._keys->at(id3);
                         
-                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2));
+                        ub.set_val(key3, std::sqrt(prod_b1+prod_b2)); //since the constraint is SOC, this is the maximum value t can take
                     }
                     
                     var<type> t("t_" + n_c._name, 0, ub); //create the auxilary variable
                     add(t.in(aux_idx));
                     //TODO: consider the case where there can be multiple negative terms!
-                    //add constraints accordingly
+                    //add constraints accordingly with including the auxiliary term
                     SOC_1 += pow(t.in(aux_idx),2);
                     add(SOC_1.in(aux_idx) <= 0);
                     
                     SOC_2 -= pow(t.in(aux_idx),2);
                     add(SOC_2.in(aux_idx) <= 0);
                     
-                    //call the hyperplane function to generate the on/off hyperplanes
+                    //call the hyperplane function to generate the disjunctive union of hyperplanes (either with using lambda formulation or on/off formulation)
                     if(use_lambda){
                         add_lambda_SOC_hyperplanes_symmetric(SOC_1,num_SOC_partitions1);
                         add_lambda_SOC_hyperplanes_symmetric(SOC_2,num_SOC_partitions2);
@@ -8776,7 +8788,7 @@ namespace gravity {
                 }
                 
                 
-                else{ //we can directly generate the hyperplanes by standardizing the bilinear term
+                else{ //if the total number of standard terms are less than 4, we can directly generate the hyperplanes by standardizing the bilinear term
                     if(use_lambda){
                         add_lambda_SOC_hyperplanes_symmetric(n_c,num_SOC_partitions1);
                     }
