@@ -33,7 +33,8 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //        string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
@@ -393,7 +394,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+//    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -460,32 +461,29 @@ int main (int argc, char * argv[])
         
         if (current_partition_on_off_automated){
             
-            
+            // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
+            Pf_to._num_partns = 30;
+            Qf_to._num_partns = 30;
             Wii._num_partns = 10;
             lji._num_partns = 10;
             
-            //            R_Wij._num_partns = 10;
-            //            Im_Wij._num_partns = 10;
-            
-            //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            //            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            //            SOCP.add(I_to_Pf_EQ.in(arcs)==0, true, "lambda_II");
-            
-            //            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            //            I_to_Pf_EQ = lji.in(nonzero_arcs)*Wii.to(nonzero_arcs)-(pow(Pf_to.in(nonzero_arcs),2) + pow(Qf_to.in(nonzero_arcs), 2));
-            //            SOCP.add(I_to_Pf_EQ.in(nonzero_arcs)==0, true, "lambda_II");
+            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            auto I_to_Pf_EQ_Standard = SOCP.get_standard_SOC(I_to_Pf_EQ);
+            SOCP.add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+
             
             
-            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
-            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            I_to_Pf_temp.in(arcs) >= 0;
             
-            //trial use SOC_partition
-            SOCP.SOC_partition(I_to_Pf_temp,10,10,true);
-//            SOCP.SOC_partition(I_to_Pf_temp,12,12,false);
+            // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
+//            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+//            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            I_to_Pf_temp.in(arcs) >= 0;
+//
+//            //trial use SOC_partition
+//            SOCP.SOC_partition(I_to_Pf_temp,20,20,true);
+////            SOCP.SOC_partition(I_to_Pf_temp,12,12,false);
             
             
         }
@@ -548,14 +546,14 @@ int main (int argc, char * argv[])
     
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     
-    gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
 
-//    SOCP.print();
+    SOCP.print();
 //    SOCP.print_solution();
     
     return 0;
