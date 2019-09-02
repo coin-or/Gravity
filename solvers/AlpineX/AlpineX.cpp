@@ -35,7 +35,7 @@ int main (int argc, char * argv[])
     //    Switch the data file to another instance
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-//        string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -282,12 +282,10 @@ int main (int argc, char * argv[])
         SOCP.add(I_to_Pf.in(arcs)>=0);
         SOCP.get_constraint("I_to_Pf")->_relaxed = true;
         
-        
         /* Second-order cone */
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij.in(bus_pairs), 2) + pow(Im_Wij.in(bus_pairs), 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
         SOCP.add(SOC.in(bus_pairs) <= 0);
-        //        SOCP.add(SOC.in(bus_pairs) == 0, true);
         
     }
     
@@ -463,18 +461,16 @@ int main (int argc, char * argv[])
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 30;
-            Qf_to._num_partns = 30;
-            Wii._num_partns = 10;
-            lji._num_partns = 10;
+            Pf_to._num_partns = 2;
+            Qf_to._num_partns = 2;
+            Wii._num_partns = 2;
+            lji._num_partns = 2;
             
             Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             auto I_to_Pf_EQ_Standard = SOCP.get_standard_SOC(I_to_Pf_EQ);
             SOCP.add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
 
-            
-            
             
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
 //            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
@@ -519,7 +515,9 @@ int main (int argc, char * argv[])
 //    vector<double> xint(SOCPI._nb_vars);
 //
 //    SOCPI.get_solution(xint);
-    auto SOCPOA = SOCP.buildOA(4);
+    auto SOCPOA = SOCP.buildOA(6);
+    SOCPOA->print();
+    SOCP.print();
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
@@ -553,7 +551,7 @@ int main (int argc, char * argv[])
     nonzero_idx2.print();
     
 
-    SOCP.print();
+//    SOCP.print();
 //    SOCP.print_solution();
     
     return 0;
