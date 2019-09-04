@@ -1363,17 +1363,20 @@ namespace gravity {
             }
             return *this;
         }
-
-        param& operator=(const initializer_list<type>& l) {
+        param& operator=(const vector<type>& vec) {
             if(_indices){
-                for(auto &v:l)
-                    set_val(v);
+                for(auto i = 0; i<vec.size();i++)
+                    set_val(i,vec[i]);
             }
             else {
-                for(auto &v:l)
-                    add_val(v);
+                for(auto i = 0; i<vec.size();i++)
+                    add_val(vec[i]);
             }
             return *this;
+        }
+
+        param& operator=(const initializer_list<type>& l) {
+            return *this = vector<type>(l);
         }
 
         param operator()(size_t i, size_t j){
