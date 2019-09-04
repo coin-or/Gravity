@@ -23,7 +23,7 @@ string(SUBSTRING ${GUROBI_VERSION} 0 2 GUROBI_VERSION_SHORT)
 message("Gurobi version short ${GUROBI_VERSION_SHORT}")
 
 find_path(GUROBI_INCLUDE_DIR gurobi_c++.h HINTS "${GUROBI_DIR}/include")
-find_library(GUROBI_LIBRARY libgurobi${GUROBI_VERSION_SHORT}.so HINTS ${GUROBI_DIR}/lib)
+find_library(GUROBI_LIBRARY libgurobi${GUROBI_VERSION_SHORT}.dylib HINTS ${GUROBI_DIR}/lib)
 find_library(GUROBI_CPP_LIBRARY libgurobi_c++.a HINTS ${GUROBI_DIR}/lib)
 
 include(FindPackageHandleStandardArgs)
