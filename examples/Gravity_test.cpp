@@ -1301,10 +1301,7 @@ TEST_CASE("testing absolute value function") {
         var<> obj("obj", pos_);
         M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
         
-        M.min(obj);
-        Constraint<> obj_lb("obj_lb");
-        obj_lb = obj;
-        M.add(obj_lb == abs(x)*y + 6);
+        M.min(abs(2*x)*y + 36);
         
         M.print();
         solver<> NLP(M,ipopt);
@@ -1314,7 +1311,7 @@ TEST_CASE("testing absolute value function") {
         NLP.run(output=5,tol=1e-6);
         M.print_solution();
         M.print_symbolic();
-        CHECK(M.get_obj_val()<=1e-6);
+        CHECK(M.get_obj_val()<=tol);
     }
 }
 
@@ -1333,9 +1330,6 @@ TEST_CASE("testing min/max functions") {
         M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
         
         M.min(min(x,3*y) + 6 - max(2*x,y));
-//        Constraint<> obj_lb("obj_lb");
-//        obj_lb = obj;
-//        M.add(obj_lb == );
         
         M.print();
         solver<> NLP(M,ipopt);
