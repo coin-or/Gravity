@@ -1514,7 +1514,7 @@ TEST_CASE("testing get_matrix()") {
 }
 
 TEST_CASE("testing sum_ith()") {
-    indices ids1("index_set2");
+    indices ids1("index_set1");
     ids1.add("5,4,1", "5,2,1", "7,8,4", "5,5,1", "7,6,4", "7,9,4");
     var<>  v1("v1");
     v1.in(ids1);
@@ -1526,6 +1526,20 @@ TEST_CASE("testing sum_ith()") {
     cout.rdbuf(console);
     CHECK(buffer.str()==" Sum1 (Linear) : \nSum1[0]: v1[5,4,1] + v1[5,2,1] + v1[5,5,1] <= 0;\nSum1[1]: v1[7,8,4] + v1[7,6,4] + v1[7,9,4] <= 0;\n");
     CHECK(Sum1.get_nb_instances() == 2);
+    indices ids2("index_set2");
+    ids2.add("4,1", "2,1", "8,4");
+    indices ids3("index_set3");
+    ids3.add("4,1", "2,1");
+    param<>  p2("p2");
+    p2.in(ids2);
+    var<>  v2("p2");
+    v2.in(ids2);
+    p2("4,1") = -3.4;
+    p2("8,4") = 1.5;
+    p2("2,1") = -6;
+    Constraint<> Sum2("Sum2");
+    Sum2 = sum(v2,ids3) + sum(p2,ids3);
+    Sum2.print();
 }
 
 TEST_CASE("sum over outgoing") {
@@ -1542,7 +1556,7 @@ TEST_CASE("sum over outgoing") {
     Constraint<> Sum0("Sum0");
     Sum0 = v1.sum_out(nodes) + v1.sum_in(nodes);
     M.add(Sum0.in(nodes) == 0);
-    M.print_symbolic();
+//    M.print_symbolic();
     M.print();
     CHECK(Sum0.get_nb_instances() == nodes.size());
 }
