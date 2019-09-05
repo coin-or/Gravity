@@ -2116,6 +2116,9 @@ namespace gravity {
          Recompute range based on stored values.
          */
         void reset_range(){
+            if(is_var()){
+                return;
+            }
             init_range();
             if(is_matrix_indexed()){
                 for(auto i = 0; i<_indices->_ids->size();i++){
