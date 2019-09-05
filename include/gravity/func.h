@@ -9530,6 +9530,18 @@ namespace gravity {
     }
     
     template<typename type>
+    func<type> sum(const param<type>& p, const indices& ids){
+        func<type> res;
+        if (p.get_dim()==0) {
+            return res;
+        }
+        if(p.is_matrix_indexed()){
+            return (unit<type>().tr()*(p.vec()).in(ids)).in(ids);
+        }
+        return unit<type>().tr()*(p.vec()).in(ids);
+    }
+    
+    template<typename type>
     func<type> sum(const var<type>& p, const indices& ids){
         func<type> res;
         if (p.get_dim()==0) {
