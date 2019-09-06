@@ -309,6 +309,7 @@ void GurobiProgram::create_grb_constraints(){
                     }
                     quadlhs += c->eval(c->get_cst(), i);
                     grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"_"+to_string(i));
+                grb_mod->re
 //                }
             }
         }
