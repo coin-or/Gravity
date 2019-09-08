@@ -791,6 +791,9 @@ namespace gravity {
                     if(vv->get_name(false,false)==name){
                         son.insert(v);
                         son.unbounded_range();
+                        son._indices = v._indices;
+                        son._dim[0] = v._dim[0];
+                        son._dim[1] = v._dim[1];
                     }
                     else{
                         return func();
@@ -847,6 +850,9 @@ namespace gravity {
                     if(vv->get_name(false,false)==name){
                         lson.insert(v);
                         lson.unbounded_range();
+                        lson._indices = v._indices;
+                        lson._dim[0] = v._dim[0];
+                        lson._dim[1] = v._dim[1];
                     }
                 }
                 else {
@@ -861,6 +867,9 @@ namespace gravity {
                     if(vv->get_name(false,false)==name){
                         rson.insert(v);
                         rson.unbounded_range();
+                        rson._indices = v._indices;
+                        rson._dim[0] = v._dim[0];
+                        rson._dim[1] = v._dim[1];
                     }
                 }
                 else {
