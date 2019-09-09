@@ -2270,14 +2270,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
    // SDPOPF->add(Thermal_Limit_from.in(arcs));
-    SDPOPF->add(Thermal_Limit_from.in(arcs));
+    SDPOPF->add(Thermal_Limit_from.in(arcs), true);
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     //SDPOPF->add(Thermal_Limit_to.in(arcs));
-    SDPOPF->add(Thermal_Limit_to.in(arcs));
+    SDPOPF->add(Thermal_Limit_to.in(arcs), true);
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
