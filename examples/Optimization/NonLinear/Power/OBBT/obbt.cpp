@@ -528,7 +528,7 @@ int main (int argc, char * argv[]) {
     }
     
     
-    string result_name=string(prj_dir)+"/results_obbt/pglibopf.txt";
+    string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     ofstream fout(result_name.c_str(), ios_base::app);
     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
     
