@@ -987,7 +987,7 @@ namespace gravity {
          @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
          **/
         template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        Constraint<type> lift(const Constraint<type>& c, string model_type){
+        Constraint<type> lift(Constraint<type>& c, string model_type){
             if(c.is_constant() || c.is_linear()){
                 return c;
             }
@@ -1053,11 +1053,11 @@ namespace gravity {
                 
                 if (c.func<type>::is_concave()) //reverse the sign if the constraint is concave
                 {
-                    DebugOff("Changing the sign of the lifted variable." << endl);
+                    DebugOn("Changing the sign of the lifted variable." << endl);
                      lift_sign = !lift_sign;
                 }
                 else{
-                    DebugOff("Keeping the sign of the lifted variable same." << endl);
+                    DebugOn("Keeping the sign of the lifted variable same." << endl);
                 }
                 
                 //arrange the variables so that if they have the same base name, use them ordered in name
@@ -1166,6 +1166,7 @@ namespace gravity {
                     lt._p = make_shared<var<type>>(vlift.in(ids));
                     
                     //check the sign of the lift and the correspoinding bounding functions
+                    if(c.check_soc() && c.is_eq()){
                     if(lift_sign){
                         vlift._lift_ub = true;
                         vlift._lift_lb = false;
@@ -1174,7 +1175,13 @@ namespace gravity {
                         vlift._lift_ub = false;
                         vlift._lift_lb = true;
                     }
-                    
+                    }
+                    else{
+                        vlift._lift_ub = true;
+                        vlift._lift_lb = true;
+                    }
+                        
+                        
                     if((num_partns1 > 1) || (num_partns2 > 1)) {
                         if (o1 == o2) //if the variables are same add 1d partition
                         {
@@ -3273,6 +3280,7 @@ namespace gravity {
                         reindex_vars();
                         
                         //check the sign of the lift and the correspoinding boudning functions
+                        if(c.check_soc() && c.is_eq()){
                         if(lift_sign){
                             vlift->_lift_ub = true;
                             vlift->_lift_lb = false;
@@ -3281,7 +3289,11 @@ namespace gravity {
                             vlift->_lift_ub = false;
                             vlift->_lift_lb = true;
                         }
-                        
+                        }
+                        else{
+                            vlift->_lift_ub = true;
+                            vlift->_lift_lb = true;
+                        }
                         if((num_partns1 > 1) || (num_partns2 > 1)) {
                             if (o1 == o2) //if the variables are same add 1d partition
                             {
