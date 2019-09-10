@@ -17,7 +17,7 @@ namespace gravity {
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
     void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-                
+        
 #ifdef USE_MPI
         auto err_init = MPI_Init(nullptr,nullptr);
         int worker_id, nb_workers;
@@ -33,7 +33,7 @@ namespace gravity {
         int output = 0;
         SolverType solv_type = ipopt;
         double tol = 1e-6;
-
+        
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
         string p, pk;
@@ -45,13 +45,13 @@ namespace gravity {
         double boundk1, objk, left, right, mid, temp, tempa;
         bool terminate=false;
         bool infeasible=false;
-
+        
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
-
+        
         const double upp_low_tol=1e-3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
         const int gap_count_int=6;
-
-
+        
+        
         double solver_time_end, solver_time =0, solver_time_start = get_wall_time(), gap;
         shared_ptr<map<string,size_t>> p_map;
         //Check if gap is already not zero at root node
@@ -77,29 +77,29 @@ namespace gravity {
                     fixed_point[p]=false;
                 }
                 auto key_pos=v_key_map->at(key);
-
+                
                 if(v._off[key_pos]==true)
                 {
                     fixed_point[p]=true;
                     DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                 }
-
-
+                
+                
                 interval_original[p]=v.get_ub(key)-v.get_lb(key);
                 ub_original[p]=v.get_ub(key);
                 lb_original[p]=v.get_lb(key);
                 interval_new[p]=v.get_ub(key)-v.get_lb(key);
-
+                
             }
-
+            
         }
-
+        
         solver_time= get_wall_time()-solver_time_start;
         auto v_in_cons=this->_v_in_cons;
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
             iter++;
-//            terminate=true;
+            //            terminate=true;
             for (auto it=this->_vars_name.begin(); it!=this->_vars_name.end(); it++)
             {
                 vname=it->first;
@@ -107,12 +107,12 @@ namespace gravity {
                 auto v_keys=v.get_keys();
                 for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                 {
-
+                    
                     auto key = *it_key;
                     solver_time_end=get_wall_time();
                     solver_time= solver_time_end-solver_time_start;
                     if(solver_time>=max_time)
-
+                        
                     {
                         break_flag=true;
                         time_limit = true;
@@ -123,7 +123,7 @@ namespace gravity {
                     if(std::abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                     {
                         fixed_point[p]=true;
-
+                        
                     }
                     //Either if not fixed point, or if at the last key of the last variable
                     if(fixed_point[p]==false || (next(it)==this->_vars_name.end() && next(it_key)==v.get_keys()->end()))
@@ -147,9 +147,9 @@ namespace gravity {
                             else
                             {
                                 modelk->max(vark(key));
-
+                                
                             }
-
+                            
                             if(fixed_point[p]==false){
                                 batch_models.push_back(modelk);
                             }
@@ -191,25 +191,25 @@ namespace gravity {
                                             boundk1=vk.get_ub(keyk);
                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
                                             objk=std::min(objk+range_tol, boundk1);
-
+                                            
                                         }
                                         if(std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
                                         {//do not close intervals to OBBT before finishing at least one full iteration over all variables
                                             if(iter>1)
                                                 fixed_point[pk]=true;
-
+                                            
                                         }
                                         else
                                         {
                                             if(dirk=="LB"){
                                                 auto objk_rounded = floor(objk*std::pow(10,precision))/std::pow(10,precision);
-//                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
-                                                  vk.set_lb(keyk, objk_rounded);/* IN MPI this needs to be broadcasted back to the other workers */
+                                                //                                                vk.set_lb(keyk, objk);/* IN MPI this needs to be broadcasted back to the other workers */
+                                                vk.set_lb(keyk, objk_rounded);/* IN MPI this needs to be broadcasted back to the other workers */
                                             }
                                             else{
                                                 auto objk_rounded = ceil(objk*std::pow(10,precision))/std::pow(10,precision);
                                                 vk.set_ub(keyk, objk_rounded);
-//                                                vk.set_ub(keyk, objk);
+                                                //                                                vk.set_ub(keyk, objk);
                                             }
                                             //If crossover in bounds,just exchange them
                                             if(vk.get_ub(keyk)<vk.get_lb(keyk))
@@ -221,15 +221,15 @@ namespace gravity {
                                                 auto temp_rounded = floor(temp*std::pow(10,precision))/std::pow(10,precision);
                                                 vk.set_ub(keyk, tempa_rounded);
                                                 vk.set_lb(keyk, temp_rounded);
-//                                                vk.set_ub(keyk, tempa);
-//                                                vk.set_lb(keyk, temp);
-
+                                                //                                                vk.set_ub(keyk, tempa);
+                                                //                                                vk.set_lb(keyk, temp);
+                                                
                                             }
                                             else if(!vk._lift){
                                                 fixed_point[pk]=false;
                                                 terminate=false;
                                             }
-
+                                            
                                         }
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
@@ -249,8 +249,8 @@ namespace gravity {
                                                     auto left_rounded = floor(left*std::pow(10,precision))/std::pow(10,precision);
                                                     vk.set_ub(keyk, right_rounded);
                                                     vk.set_lb(keyk, left_rounded);
-//                                                    vk.set_ub(keyk, right);
-//                                                    vk.set_lb(keyk, left);
+                                                    //                                                    vk.set_ub(keyk, right);
+                                                    //                                                    vk.set_lb(keyk, left);
                                                 }
                                                 //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
                                                 else if(right>ub_original[pk])
@@ -259,8 +259,8 @@ namespace gravity {
                                                     auto lb_rounded = floor((ub_original[pk]-range_tol)*std::pow(10,precision))/std::pow(10,precision);
                                                     vk.set_ub(keyk, ub_rounded);
                                                     vk.set_lb(keyk, lb_rounded);
-//                                                    vk.set_ub(keyk, ub_original[pk]);
-//                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                    //                                                    vk.set_ub(keyk, ub_original[pk]);
+                                                    //                                                    vk.set_lb(keyk, ub_original[pk]-range_tol);
                                                 }
                                                 //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
                                                 else if(left<lb_original[pk])
@@ -269,13 +269,13 @@ namespace gravity {
                                                     auto ub_rounded = ceil((lb_original[pk]+range_tol)*std::pow(10,precision))/std::pow(10,precision);
                                                     vk.set_lb(keyk, lb_rounded);
                                                     vk.set_ub(keyk, ub_rounded);
-//                                                    vk.set_lb(keyk, lb_original[pk]);
-//                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
-
+                                                    //                                                    vk.set_lb(keyk, lb_original[pk]);
+                                                    //                                                    vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                    
                                                 }
                                                 //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
                                                 //than range_tol
-
+                                                
                                             }
                                         }
                                     }
@@ -283,7 +283,7 @@ namespace gravity {
                                     {
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         //                                            model->print();
-
+                                        
                                         //                                        fixed_point[pk]=true;
                                     }
                                 }
@@ -293,7 +293,7 @@ namespace gravity {
                     }
                 }
             }
-
+            
             //Check if OBBT has converged, can check every gap_count_int intervals
             //                    if(iter%gap_count_int==0)
             //                    {
@@ -313,12 +313,12 @@ namespace gravity {
             //
             //                        }
             //                    }
-
+            
             if(break_flag==true)
             {
                 DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
                 DebugOn("Iterations\t"<<iter<<endl);
-
+                
                 break;
             }
             solver_time= get_wall_time()-solver_time_start;
@@ -338,26 +338,26 @@ namespace gravity {
                 sum+=interval_gap.back();
                 DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
             }
-
+            
         }
         avg=sum/num_var;
-
+        
         DebugOn("Average interval reduction\t"<<avg<<endl);
-
-//        if(!close)
-//        {
-//
-//            this->reset_constrs();
-//            solver<T> SDPLB1(*this,solv_type);
-//
-//            SDPLB1.run(output = 5, tol=1e-8);
-//        }
-//
-//        avg=sum/num_var;
-//
-//        DebugOn("Average interval reduction\t"<<avg<<endl);
-
-//        if(!close)
+        
+        //        if(!close)
+        //        {
+        //
+        //            this->reset_constrs();
+        //            solver<T> SDPLB1(*this,solv_type);
+        //
+        //            SDPLB1.run(output = 5, tol=1e-8);
+        //        }
+        //
+        //        avg=sum/num_var;
+        //
+        //        DebugOn("Average interval reduction\t"<<avg<<endl);
+        
+        //        if(!close)
         if(false)
         {
 #ifdef USE_MPI
@@ -365,16 +365,16 @@ namespace gravity {
 #endif
                 this->reset_constrs();
                 solver<T> SDPLB1(*this,solv_type);
-
+                
                 SDPLB1.run(output = 5, tol=1e-6, "ma97");
                 this->print_constraints_stats(tol);
                 bool print_only_relaxed;
                 this->print_nonzero_constraints(tol,print_only_relaxed=true);
-
+                
                 //        this->print_solution();
-
+                
                 //        this->print();
-
+                
                 //                if(this->_status==0)
                 //                {
                 //
@@ -404,8 +404,8 @@ namespace gravity {
                 else {
                     DebugOn("Terminate\t"<<terminate<<endl);
                 }
-
-
+                
+                
                 DebugOn("Time\t"<<solver_time<<endl);
                 DebugOn("Iterations\t"<<iter<<endl);
 #ifdef USE_MPI
@@ -415,9 +415,8 @@ namespace gravity {
 #ifdef USE_MPI
         MPI_Finalize();
 #endif
-
+        
     }
-
     template void gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
