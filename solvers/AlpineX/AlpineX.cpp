@@ -22,14 +22,9 @@ int main (int argc, char * argv[])
     
     // Specify the additional constraints
     bool current = true;
-    bool current_partition_lambda = false;
-    bool current_partition_on_off = false;
-    bool current_partition_on_off_temp = false;
     bool current_partition_on_off_automated = true;
     
     //    Specify the use of partitioning scheme without current
-    bool do_partition = false;
-    bool do_Model_III = false;
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
@@ -148,102 +143,6 @@ int main (int argc, char * argv[])
     Wii.initialize_all(1.001);
     
     /************** Add the lifted variables *****************/
-    //     If the partition scheme is on
-    if (do_partition){
-        var<> WijWji("WijWji");
-        SOCP.add(WijWji.in(bus_pairs));
-        
-        var<> R_WijWij("R_WijWij",pos_);
-        SOCP.add(R_WijWij.in(bus_pairs));
-        
-        var<> Im_WijWij("Im_WijWij",pos_);
-        SOCP.add(Im_WijWij.in(bus_pairs));
-        
-        if (do_Model_III){
-            model_type = "Model_III";
-        }
-        
-        /* Second-order cone constraints */
-        Constraint<> SOC("SOC_original");
-        SOC = R_WijWij + Im_WijWij - WijWji;
-        SOCP.add(SOC.in(bus_pairs) == 0);
-        
-        //collect the bounds on variables
-        
-        //bounds for Wii
-        auto LB_Wii = grid.w_min;
-        auto UB_Wii = grid.w_max;
-        
-        auto LB_R_Wij = grid.wr_min;
-        auto UB_R_Wij = grid.wr_max;
-        
-        auto LB_Im_Wij = grid.wi_min;
-        auto UB_Im_Wij = grid.wi_max;
-        
-        
-        // define the number of partitions for variables
-        int num_partitions1 = 2; //number of partitions for Wii(from)
-        int num_partitions2 = 2; //number of partitions for Wii(to)
-        int num_partitions3 = 10; //number of partitions for R_Wi
-        
-        /************** THIS SHOULD BE AN EVEN NUMBER FOR BETTER ACCURACY ***************/
-        int num_partitions4 = 10; //number of partitions for Im_Wij
-        
-        // allocate the partition bound arrays
-        vector<double> p1(num_partitions1+1); //bounds for Wii(from)
-        vector<double> p2(num_partitions2+1); //bounds for Wii(to)
-        vector<double> p3(num_partitions3+1); //bounds for R_Wij
-        vector<double> p4(num_partitions4+1); //bounds for Im_Wij
-        
-        //parsing related items
-        string delimiter = ","; //delimiter for correcly seperating the keys
-        string fromIDX; //from index of the key
-        string toIDX; //to index of the key
-        string myString; //temporary string
-        size_t pos; //position of the delimiter
-        size_t delimiter_lenght = delimiter.length();
-        
-        vector<int> constraint_idx = {0,3,6};
-        
-        //        for (int i=0; i<bus_pairs.size(); ++i) {
-        for (int j=0; j<constraint_idx.size(); ++j) {
-            int i = constraint_idx[j];
-            myString = bus_pairs._keys->at(i);
-            pos = bus_pairs._keys->at(i).find(delimiter);
-            
-            fromIDX = myString.substr(0, pos);
-            toIDX = myString.substr(pos+delimiter_lenght);
-            
-            
-            //fill the partition bounds for the variables
-            for (int j=0; j<num_partitions1+1; ++j) {
-                p1[j] = (num_partitions1-j)*LB_Wii.eval(fromIDX)+(j)*UB_Wii.eval(fromIDX);
-            }
-            transform(p1.begin(), p1.end(), p1.begin(), bind(divides<double>(), placeholders::_1, num_partitions1));
-            
-            for (int j=0; j<num_partitions2+1; ++j) {
-                p2[j] = (num_partitions2-j)*LB_Wii.eval(toIDX)+(j)*UB_Wii.eval(toIDX);
-            }
-            transform(p2.begin(), p2.end(), p2.begin(), bind(divides<double>(), placeholders::_1, num_partitions2));
-            
-            for (int j=0; j<num_partitions3+1; ++j) {
-                p3[j] = (num_partitions3-j)*LB_R_Wij.eval(i)+(j)*UB_R_Wij.eval(i);
-            }
-            transform(p3.begin(), p3.end(), p3.begin(), bind(divides<double>(), placeholders::_1, num_partitions3));
-            
-            for (int j=0; j<num_partitions4+1; ++j) {
-                p4[j] = (num_partitions4-j)*LB_Im_Wij.eval(i)+(j)*UB_Im_Wij.eval(i);
-            }
-            transform(p4.begin(), p4.end(), p4.begin(), bind(divides<double>(), placeholders::_1, num_partitions4));
-            
-            //add the partitions&relaxation on the variables
-            SOCP.partition("WijWji" + to_string(i), model_type, WijWji(i), Wii(fromIDX), Wii(toIDX),p1,p2);
-            SOCP.partition("R_WijWij" + to_string(i), model_type, R_WijWij(i), R_Wij(i), R_Wij(i),p3,p3);
-            SOCP.partition("Im_WijWij" + to_string(i), model_type, Im_WijWij(i), Im_Wij(i), Im_Wij(i),p4,p4);
-        }
-    }
-    
-    
     if(current){
         
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
@@ -383,16 +282,13 @@ int main (int argc, char * argv[])
     ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     
-    
-    //  SOCP.print();
-    
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
     //    SOCP.reset_constrs();
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
     double upperbound = grid.solve_acopf(ACRECT);
-//    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP.run_obbt(max_time,max_iter,{true,upperbound},precision);
     auto original_SOC = grid.build_SCOPF();
     solver<> SOCOPF_ORIG(original_SOC, ipopt);
     SOCOPF_ORIG.run(output, tol = 1e-6);
@@ -401,6 +297,9 @@ int main (int argc, char * argv[])
     DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Gap after OBBT = " << to_string(gap) << "%."<<endl);
+    
+    auto nonzero_idx = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
+    nonzero_idx.print();
     
     if(current){
         //THESE ARE ALREADY INCLUDED BEFORE OBBT
@@ -461,8 +360,8 @@ int main (int argc, char * argv[])
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 2;
-            Qf_to._num_partns = 2;
+            Pf_to._num_partns = 3;
+            Qf_to._num_partns = 3;
             Wii._num_partns = 2;
             lji._num_partns = 2;
             
@@ -515,14 +414,17 @@ int main (int argc, char * argv[])
 //    vector<double> xint(SOCPI._nb_vars);
 //
 //    SOCPI.get_solution(xint);
-    auto SOCPOA = SOCP.buildOA(6);
-    SOCPOA->print();
-    SOCP.print();
+    
+//    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
+//    SOCP.print();
+//    auto SOCPOA = SOCP.buildOA(4);
+//    DebugOn("THIS IS THE OA FORMULATION" << endl);
+//    SOCPOA->print();
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
     
     /** use the following line if you want to relax the integer variables **/
@@ -539,20 +441,17 @@ int main (int argc, char * argv[])
     
     
     
-    auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCPOA->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
+    auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP.get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
     //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
     
-    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
+    gap = 100*(upperbound - SOCP.get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
     auto nonzero_idx2 = SOCP.sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
     nonzero_idx2.print();
     
-
-//    SOCP.print();
-//    SOCP.print_solution();
     
     return 0;
     
