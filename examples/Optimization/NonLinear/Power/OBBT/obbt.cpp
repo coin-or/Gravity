@@ -9,7 +9,7 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <optionParser.hpp>
+//#include <optionParser.hpp>
 //#include <math.h>
 using namespace std;
 using namespace gravity;
@@ -24,7 +24,7 @@ int main (int argc, char * argv[]) {
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     int output = 0;
-    bool current = false;
+    bool current = true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     string solver_str = "ipopt";
@@ -44,67 +44,75 @@ int main (int argc, char * argv[]) {
     
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    fname=argv[1];
+    time_s=argv[2];
+    
+    std::string::size_type sz;
+    
+    auto max_time=std::stod(time_s, &sz);
+    auto nb_threads=std::stod(threads_s, &sz);
     
     // create a OptionParser with options
-    op::OptionParser opt;
-    opt.add_option("h", "help",
-                   "shows option help");//No option means Default values which may be seen above using option strings
-    opt.add_option("f", "file", "Input file name", fname);
-    opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
-    opt.add_option("threads", "threads", "Number of threads, defaut 24", threads_s);
-    opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
-    opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
-    opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
-    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
-    opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
-    // parse the options and verify that all went well. If not, errors and help will be shown
-    bool correct_parsing = opt.parse_options(argc, argv);
-    
-    if (!correct_parsing) {
-        return EXIT_FAILURE;
-    }
-    
-    fname = opt["f"];
-    bool has_help = op::str2bool(opt["h"]);
-    if (has_help) {
-        opt.show_help();
-        exit(0);
-    }
-    solver_str = opt["s"];
-    if (solver_str.compare("gurobi")==0) {
-        solv_type = gurobi;
-    }
-    else if(solver_str.compare("cplex")==0) {
-        solv_type = cplex;
-    }else if(solver_str.compare("Mosek")==0) {
-        solv_type = _mosek;
-    }
-    lazy_s = opt["lz"];
-    if (lazy_s.compare("no")==0) {
-        lazy_bool = false;
-    }
-    
-    current_s = opt["l"];
-    if (current_s.compare("no")==0) {
-        current = false;
-    }
-    else {
-        current = true;
-    }
-    
-    orig_s = opt["o"];
-    if (orig_s.compare("no")==0) {
-        add_original = false;
-    }
-    else {
-        add_original = true;
-    }
-    num_bags = atoi(opt["b"].c_str());
-    
-    
-    //    double max_time = 40;
-    auto max_time = op::str2double(opt["t"]);
-    auto nb_threads = op::str2double(opt["threads"]);
+//    op::OptionParser opt;
+//    opt.add_option("h", "help",
+//                   "shows option help");//No option means Default values which may be seen above using option strings
+//    opt.add_option("f", "file", "Input file name", fname);
+//    opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
+//    opt.add_option("threads", "threads", "Number of threads, defaut 24", threads_s);
+//    opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
+//    opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
+//    opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
+//    opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
+//    opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
+//    // parse the options and verify that all went well. If not, errors and help will be shown
+//    bool correct_parsing = opt.parse_options(argc, argv);
+//
+//    if (!correct_parsing) {
+//        return EXIT_FAILURE;
+//    }
+//
+//    fname = opt["f"];
+//    bool has_help = op::str2bool(opt["h"]);
+//    if (has_help) {
+//        opt.show_help();
+//        exit(0);
+//    }
+//    solver_str = opt["s"];
+//    if (solver_str.compare("gurobi")==0) {
+//        solv_type = gurobi;
+//    }
+//    else if(solver_str.compare("cplex")==0) {
+//        solv_type = cplex;
+//    }else if(solver_str.compare("Mosek")==0) {
+//        solv_type = _mosek;
+//    }
+//    lazy_s = opt["lz"];
+//    if (lazy_s.compare("no")==0) {
+//        lazy_bool = false;
+//    }
+//
+//    current_s = opt["l"];
+//    if (current_s.compare("no")==0) {
+//        current = false;
+//    }
+//    else {
+//        current = true;
+//    }
+//
+//    orig_s = opt["o"];
+//    if (orig_s.compare("no")==0) {
+//        add_original = false;
+//    }
+//    else {
+//        add_original = true;
+//    }
+//    num_bags = atoi(opt["b"].c_str());
+//
+//
+//    //    double max_time = 40;
+//
+//    auto max_time = op::str2double(opt["t"]);
+ 
     
     
     cout << "\nnum bags = " << num_bags << endl;
