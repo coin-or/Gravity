@@ -413,6 +413,13 @@ int main (int argc, char * argv[]) {
                 if (upper_bound-SDP->get_obj_val()<=abs_tol && (upper_bound-SDP->get_obj_val())/(upper_bound+zero_tol)<=rel_tol)
                 {
                     DebugOn("Gap closed at iter "<< iter<<endl);
+                    DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
+                    lower_bound=SDP->get_obj_val();
+                    gap = 100*(upper_bound - lower_bound)/upper_bound;
+                    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+                    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+                    DebugOn("Time\t"<<solver_time<<endl);
                     close=true;
                     terminate=true;
                     SDP->print();
@@ -530,8 +537,13 @@ int main (int argc, char * argv[]) {
     
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     ofstream fout(result_name.c_str(), ios_base::app);
+#ifdef USE_MPI
+    if(worker_id==0){
+#endif
     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
-    
+#ifdef USE_MPI
+    }
+#endif
     
     return 0;
 }
