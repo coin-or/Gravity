@@ -129,14 +129,14 @@ string clean_print(bool pos, const string& v, bool brackets){
 //    return pos;
 //}
 
-op::OptionParser readOptions(int argc, char * argv[]){
-    string log_level ="0";
-    op::OptionParser opt;
-    opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
-    opt.add_option("l", "log", "Log level (def. 0)", log_level );
+// op::OptionParser readOptions(int argc, char * argv[]){
+//     string log_level ="0";
+//     op::OptionParser opt;
+//     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
+//     opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
-    return opt;
-}
+//     return opt;
+// }
 
 bool operator <(const Cpx& lhs, const Cpx& rhs){
     return lhs.real()<rhs.real() && lhs.imag()<rhs.imag();
