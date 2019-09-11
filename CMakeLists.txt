@@ -174,13 +174,13 @@ endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
 
 # cpp_option_parser
-set(OPT_PARSER_VERSION v1.0)
-include(ExternalOptParser)
-set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
-link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
+#set(OPT_PARSER_VERSION v1.0)
+#include(ExternalOptParser)
+#set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
+#link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
 #link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
-include_directories(${OPT_PARSER_INCLUDE_DIR})
-include_directories(${THIRDPARTY_INSTALL_PATH}/include)
+#include_directories(${OPT_PARSER_INCLUDE_DIR})
+#include_directories(${THIRDPARTY_INSTALL_PATH}/include)
 
 
 
