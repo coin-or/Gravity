@@ -2,17 +2,18 @@
 
 include_directories(${PROJECT_INCLUDE_DIR})
 
-#message(STATUS "Adding Option Parser")
-#ExternalProject_Add(opt_parser
-#        SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser
-#        BUILD_IN_SOURCE 1
-#        BUILD_COMMAND cmake .
-#        INSTALL_COMMAND make
-#)
-#ExternalProject_Get_Property(opt_parser install_dir)
-#add_library(option_parser STATIC IMPORTED)
-#set_property(TARGET option_parser PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser/liboption_parser.a)
-#add_dependencies(option_parser opt_parser)
+
+  #message(STATUS "Adding Option Parser")
+  #ExternalProject_Add(opt_parser
+  #    SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser
+  #    BUILD_IN_SOURCE 1
+  #    BUILD_COMMAND cmake .
+  #    INSTALL_COMMAND make
+  #)
+  #ExternalProject_Get_Property(opt_parser install_dir)
+  #add_library(option_parser STATIC IMPORTED)
+  #set_property(TARGET option_parser PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/third_party/cpp_option_parser/liboption_parser.a)
+  #add_dependencies(option_parser opt_parser)
 
 
 # add the automatically determined parts of the RPATH
@@ -58,8 +59,15 @@ add_library(gravity STATIC ${SOURCES} ${HEADERS})
 if(ADD_EIGEN)
  add_dependencies(gravity eigen)
 endif(ADD_EIGEN)
-#add_dependencies(gravity opt_parser)
+if(OPT_PARSER)
+add_dependencies(gravity opt_parser)
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a)
+endif()
+
+if(NOT OPT_PARSER)
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES})
+endif()
+
 if(Cov)
   set_target_properties(gravity
   PROPERTIES
