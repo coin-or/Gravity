@@ -174,13 +174,13 @@ endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
 
 # cpp_option_parser
-set(OPT_PARSER_VERSION v1.0)
-include(ExternalOptParser)
-set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
-link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
+#set(OPT_PARSER_VERSION v1.0)
+#include(ExternalOptParser)
+#set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
+#link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
 #link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
-include_directories(${OPT_PARSER_INCLUDE_DIR})
-include_directories(${THIRDPARTY_INSTALL_PATH}/include)
+#include_directories(${OPT_PARSER_INCLUDE_DIR})
+#include_directories(${THIRDPARTY_INSTALL_PATH}/include)
 
 
 
@@ -216,6 +216,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Release)
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 
 set(CMAKE_BUILD_TYPE "Release")
 if (Debug)
