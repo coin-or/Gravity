@@ -11,7 +11,9 @@
 #include <gravity/solver.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef USE_OPT_PARSER
 #include <optionParser.hpp>
+#endif
 
 using namespace std;
 using namespace gravity;
@@ -40,7 +42,11 @@ int main (int argc, char * argv[]) {
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
+    fname="/Users/smitha/Utils/pglib-opf-master/sad/pglib_opf_case14_ieee__sad.m";
+    
     // create a OptionParser with options
+    
+#ifdef USE_OPT_PARSER
     op::OptionParser opt;
     opt.add_option("h", "help",
                    "shows option help"); // no default value means boolean options, which default value is false
@@ -53,11 +59,11 @@ int main (int argc, char * argv[]) {
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
-    
+
     if (!correct_parsing) {
         return EXIT_FAILURE;
     }
-    
+
     fname = opt["f"];
     bool has_help = op::str2bool(opt["h"]);
     if (has_help) {
@@ -80,7 +86,7 @@ int main (int argc, char * argv[]) {
     else if(lazy_s.compare("yes")==0) {
         lazy_bool = true;
     }
-    
+
     current_from_s = opt["If"];
     if (current_from_s.compare("no")==0) {
         current_from = false;
@@ -89,7 +95,7 @@ int main (int argc, char * argv[]) {
         current_from = true;
     }
     bool add_original = true;
-    
+
     orig_s = opt["o"];
     if (orig_s.compare("no")==0) {
         add_original = false;
@@ -97,9 +103,9 @@ int main (int argc, char * argv[]) {
     else {
         add_original = true;
     }
-    
-    
-    
+
+
+
     current_to_s = opt["It"];
     if (current_to_s.compare("no")==0) {
         current_to = false;
@@ -107,12 +113,24 @@ int main (int argc, char * argv[]) {
     else {
         current_to = true;
     }
-    
+        num_bags = atoi(opt["b"].c_str());
+
     current_from=true;
     current_to=true;
     loss=true;
+#else
+    if(argc==2){
+        fname=argv[1];    }
+    else{
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    }
+    current=true;
     
-    num_bags = atoi(opt["b"].c_str());
+
+    
+    
+#endif
+
     
     cout << "\nnum bags = " << num_bags << endl;
     
@@ -341,7 +359,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     //SDP.add(Thermal_Limit_from.in(arcs));
-    SDP.add(Thermal_Limit_from.in(arcs));
+    SDP.add(Thermal_Limit_from.in(arcs), true);
     
     
     
@@ -349,7 +367,7 @@ int main (int argc, char * argv[]) {
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SDP.add(Thermal_Limit_to.in(arcs));
+    SDP.add(Thermal_Limit_to.in(arcs), true);
 
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -398,22 +416,22 @@ int main (int argc, char * argv[]) {
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
         SDP.add_real(I_from.in(arcs)==0);
      
-//        var<Cpx> L_to("L_to");
-//        L_to.set_real(lji.in(arcs));
-//
-//        Constraint<Cpx> I_to("I_to");
-//        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-//        SDP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
+        SDP.add_real(I_to.in(arcs)==0);
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SDP.add(I_from_Pf.in(arcs)==0, true);
-          //SDP.add(I_from_Pf.in(arcs)==0, true);
+       
        
         
-//        Constraint<> I_to_Pf("I_to_Pf");
-//        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-//        SDP.add(I_to_Pf.in(arcs)==0, true);
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+        SDP.add(I_to_Pf.in(arcs)==0, true);
         
     }
     
