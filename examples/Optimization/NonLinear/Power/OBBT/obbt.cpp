@@ -197,7 +197,7 @@ int main (int argc, char * argv[]) {
     bool break_flag=false, time_limit = false, lifted_var=false, close=false;
     
     const double rel_tol=1e-2, abs_tol=1e3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
-    const int max_iter=1000,gap_count_int=6;
+    const int max_iter=1000,gap_count_int=1;
     
     
     double solver_time_end, solver_time_start = get_wall_time();
