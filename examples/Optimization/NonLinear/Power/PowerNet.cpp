@@ -2348,16 +2348,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SDPOPF->add(I_from_Pf.in(arcs)==0, true);
         
-        var<Cpx> L_to("L_to");
-        L_to.set_real(lji.in(arcs));
+        //var<Cpx> L_to("L_to");
+        //L_to.set_real(lji.in(arcs));
 
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
-        SDPOPF->add_real(I_to.in(arcs)==0);
+        //SDPOPF->add_real(I_to.in(arcs)==0);
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
-        SDPOPF->add(I_to_Pf.in(arcs)==0, true);
+        //SDPOPF->add(I_to_Pf.in(arcs)==0, true);
         
         
     }
