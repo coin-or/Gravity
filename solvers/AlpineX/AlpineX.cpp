@@ -204,8 +204,6 @@ int main (int argc, char * argv[])
     Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
     
-//    SOCP.add(Equality_SOC.in(bus_pairs) == 0, true);
-    
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + grid.pl - sum(Pg, gen_nodes) + grid.gs*Wii;
@@ -360,10 +358,10 @@ int main (int argc, char * argv[])
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 3;
-            Qf_to._num_partns = 3;
-            Wii._num_partns = 2;
-            lji._num_partns = 2;
+            Pf_to._num_partns = 20;
+            Qf_to._num_partns = 20;
+            Wii._num_partns = 10;
+            lji._num_partns = 10;
             
             Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
@@ -414,6 +412,7 @@ int main (int argc, char * argv[])
 //    vector<double> xint(SOCPI._nb_vars);
 //
 //    SOCPI.get_solution(xint);
+    
     
 //    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
 //    SOCP.print();
