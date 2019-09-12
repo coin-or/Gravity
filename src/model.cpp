@@ -45,16 +45,17 @@ namespace gravity {
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
         
         const double rel_tol=1e-2, abs_tol=1e3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
-        int gap_count_int=6, iter=0;
+        int gap_count_int=1, iter=0;
         
         SolverType solv_type = ipopt;
         const double tol = 1e-6;
           int output = 0;
         
         double lower_bound=this->get_obj_val();
-        
+
         
         double solver_time, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
+        gapnl=(upper_bound.second-lower_bound)/(upper_bound.second)*100;
         shared_ptr<map<string,size_t>> p_map;
         //Check if gap is already not zero at root node
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
@@ -71,9 +72,9 @@ namespace gravity {
                 {
                     p=vname+"|"+ key;
                     //Do not do OBBT on lifted variables
-                    //                if(v._lift){
-                    if(false){
+                                if(v._lift){
                         fixed_point[p]=true;
+                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                     }
                     else{
                         fixed_point[p]=false;
@@ -286,6 +287,7 @@ namespace gravity {
                     }
                     if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
                     {
+                        this->print();
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                         lower_bound=this->get_obj_val();
@@ -296,7 +298,7 @@ namespace gravity {
                         DebugOn("Time\t"<<solver_time<<endl);
                         close=true;
                         terminate=true;
-                        this->print();
+                       
                         
                     }
                 }
