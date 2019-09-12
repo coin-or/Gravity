@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
-    string threads_s="24";
+    string threads_s="12";
     
     string lazy_s = "no";
     string orig_s = "no";
@@ -217,13 +217,14 @@ int main (int argc, char * argv[]) {
             {
                 p=vname+"|"+ key;
                 //Do not do OBBT on lifted variables
-//                if(v._lift){
-                if(false){
+                if(v._lift){
                     fixed_point[p]=true;
+                     DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                 }
                 else{
                     fixed_point[p]=false;
                 }
+                
                 auto key_pos=v_key_map->at(key);
                 
                 if(v._off[key_pos]==true)

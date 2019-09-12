@@ -42,8 +42,6 @@ int main (int argc, char * argv[]) {
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
-    fname="/Users/smitha/Utils/pglib-opf-master/sad/pglib_opf_case14_ieee__sad.m";
-    
     // create a OptionParser with options
     
 #ifdef USE_OPT_PARSER
