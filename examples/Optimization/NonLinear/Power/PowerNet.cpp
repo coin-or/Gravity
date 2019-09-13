@@ -2220,6 +2220,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     SDPOPF->add(SOC.in(bus_pairs_chord) == 0,true);
+
+    
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");

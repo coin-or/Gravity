@@ -305,7 +305,7 @@ int main (int argc, char * argv[]) {
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
     //SDP.add(SOC.in(bus_pairs_chord) == 0, true, "on/off", true);
-    SDP.add(SOC.in(bus_pairs_chord) == 0, true);
+    SDP.add(SOC.in(bus_pairs_chord) <= 0);
    
     
     /* Flow conservation */
@@ -417,7 +417,7 @@ int main (int argc, char * argv[]) {
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
 
-        Constraint<Cpx> I_to("I_to");
+            Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
         SDP.add_real(I_to.in(arcs)==0);
         
