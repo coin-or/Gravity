@@ -86,6 +86,8 @@ int main (int argc, char * argv[])
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
     auto pg_max = grid.pg_max.in(gens);
+    auto pg_max_sq = grid.pg_max_sq.in(gens);
+    auto pg_min_sq = grid.pg_min_sq.in(gens);
     auto qg_min = grid.qg_min.in(gens);
     auto qg_max = grid.qg_max.in(gens);
     auto c1 = grid.c1.in(gens);
@@ -131,8 +133,10 @@ int main (int argc, char * argv[])
     /* power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
     var<> Qg ("Qg", qg_min, qg_max);
+    var<> etag("etag", pg_min_sq, pg_max_sq);
     SOCP->add(Pg.in(gens),Qg.in(gens));
-    ACOPF.add(Pg.in(gens),Qg.in(gens));
+    SOCP->add(etag.in(gens));
+    //ACOPF.add(Pg.in(gens),Qg.in(gens));
     
     /* power flow variables */
     var<> Pf_from("Pf_from", -1*grid.S_max,grid.S_max);
@@ -140,7 +144,7 @@ int main (int argc, char * argv[])
     var<> Pf_to("Pf_to", -1*grid.S_max,grid.S_max);
     var<> Qf_to("Qf_to", -1*grid.S_max,grid.S_max);
     SOCP->add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
-    ACOPF.add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
+    //ACOPF.add(Pf_from.in(arcs), Qf_from.in(arcs), Pf_to.in(arcs), Qf_to.in(arcs));
     
     /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", grid.wr_min, grid.wr_max);
@@ -151,21 +155,25 @@ int main (int argc, char * argv[])
     SOCP->add(Wii.in(nodes));
     SOCP->add(R_Wij.in(bus_pairs));
     SOCP->add(Im_Wij.in(bus_pairs));
-    ACOPF.add(Wii.in(nodes));
-    ACOPF.add(R_Wij.in(bus_pairs));
-    ACOPF.add(Im_Wij.in(bus_pairs));
+    //ACOPF.add(Wii.in(nodes));
+    //ACOPF.add(R_Wij.in(bus_pairs));
+    //ACOPF.add(Im_Wij.in(bus_pairs));
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
     if(current){
         SOCP->add(lij.in(arcs));
-       // SOCP.add(lji.in(arcs));
+        SOCP->add(lji.in(arcs));
     }
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
     //lij.initialize_all(1.0);
     Wii.initialize_all(1.001);
+    
+    Constraint<> obj_cost("obj_cost");
+    obj_cost=etag-pow(Pg,2);
+    SOCP->add(obj_cost.in(gens)>=0);
     
     /************** Add the lifted variables *****************/
     if(current){
@@ -188,23 +196,23 @@ int main (int argc, char * argv[])
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
         SOCP->add_real(I_from.in(arcs)==0);
         
-//        var<Cpx> L_to("L_to");
-//        L_to.set_real(lji.in(arcs));
-//
-//        Constraint<Cpx> I_to("I_to");
-//        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
-//        SOCP.add_real(I_to.in(arcs)==0);
+        var<Cpx> L_to("L_to");
+        L_to.set_real(lji.in(arcs));
+
+        Constraint<Cpx> I_to("I_to");
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
+        SOCP->add_real(I_to.in(arcs)==0);
 //
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SOCP->add(I_from_Pf.in(arcs)==0, true);
        
-        //        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
+            //   SOCP->get_constraint("I_from_Pf")->_relaxed = true;
         
-//        Constraint<> I_to_Pf("I_to_Pf");
-//        I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//        SOCP.add(I_to_Pf.in(arcs)>=0);
-//        SOCP.get_constraint("I_to_Pf")->_relaxed = true;
+        Constraint<> I_to_Pf("I_to_Pf");
+        I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+        SOCP->add(I_to_Pf.in(arcs)>=0);
+    //    SOCP->get_constraint("I_to_Pf")->_relaxed = true;
         
         /* Second-order cone */
         Constraint<> SOC("SOC");
@@ -217,9 +225,9 @@ int main (int argc, char * argv[])
     
     
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = product(c1,Pg) + product(c2,etag) + sum(c0);
     SOCP->min(obj);
-    ACOPF.min(obj);
+    //ACOPF.min(obj);
     
     /** Constraints */
     
@@ -227,39 +235,39 @@ int main (int argc, char * argv[])
     /* Equality of Second-order cone (for upperbound) */
     Constraint<> Equality_SOC("Equality_SOC");
     Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
+    ////ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
     
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SOCP->add(KCL_P.in(nodes) == 0);
-    ACOPF.add(KCL_P.in(nodes) == 0);
+    //ACOPF.add(KCL_P.in(nodes) == 0);
     
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SOCP->add(KCL_Q.in(nodes) == 0);
-    ACOPF.add(KCL_Q.in(nodes) == 0);
+    //ACOPF.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_From.in(arcs) == 0);
-    ACOPF.add(Flow_P_From.in(arcs) == 0);
+    //ACOPF.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_To.in(arcs) == 0);
-    ACOPF.add(Flow_P_To.in(arcs) == 0);
+    //ACOPF.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SOCP->add(Flow_Q_From.in(arcs) == 0);
-    ACOPF.add(Flow_Q_From.in(arcs) == 0);
+    //ACOPF.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SOCP->add(Flow_Q_To.in(arcs) == 0);
-    ACOPF.add(Flow_Q_To.in(arcs) == 0);
+    //ACOPF.add(Flow_Q_To.in(arcs) == 0);
 
     
     
@@ -268,13 +276,13 @@ int main (int argc, char * argv[])
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
         SOCP->add(PAD_UB.in(bus_pairs));
-        ACOPF.add(PAD_UB.in(bus_pairs));
+        //ACOPF.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SOCP->add(PAD_LB.in(bus_pairs));
-    ACOPF.add(PAD_LB.in(bus_pairs));
+    //ACOPF.add(PAD_LB.in(bus_pairs));
 
     
     
@@ -284,7 +292,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_from <= pow(S_max,2);
     //SDP.add(Thermal_Limit_from.in(arcs));
     SOCP->add(Thermal_Limit_from.in(arcs), true);
-    ACOPF.add(Thermal_Limit_from.in(arcs));
+    //ACOPF.add(Thermal_Limit_from.in(arcs));
     
     
     
@@ -292,7 +300,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SOCP->add(Thermal_Limit_to.in(arcs), true);
-    ACOPF.add(Thermal_Limit_to.in(arcs));
+    //ACOPF.add(Thermal_Limit_to.in(arcs));
 
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
@@ -311,7 +319,7 @@ int main (int argc, char * argv[])
     LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
                                                                                         sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
     SOCP->add(LNC1.in(bus_pairs) >= 0);
-    ACOPF.add(LNC1.in(bus_pairs) >= 0);
+    //ACOPF.add(LNC1.in(bus_pairs) >= 0);
     
     
     Constraint<> LNC2("LNC2");
@@ -321,10 +329,10 @@ int main (int argc, char * argv[])
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SOCP->add(LNC2.in(bus_pairs) >= 0);
-    ACOPF.add(LNC2.in(bus_pairs) >= 0);
+    //ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     Constraint<> obj_UB("obj_UB");
-    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-upperbound;
+    obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
@@ -336,7 +344,7 @@ int main (int argc, char * argv[])
   
     
     double max_time = 100000;
-    int max_iter = 10;
+    int max_iter = 5;
     int precision = 4;
     solver<> SOCPOPF(SOCP, ipopt);
     SOCPOPF.run(output, tol = 1e-6);
@@ -411,7 +419,7 @@ int main (int argc, char * argv[])
         
         
         
-        if (current_partition_on_off_automated){
+        if (false){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
@@ -462,45 +470,48 @@ int main (int argc, char * argv[])
 //    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
     
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-//    auto SOCPI=SOCP.build_model_interior();
+//    auto SOCPI=SOCP->build_model_interior();
+//    SOCPI->print();
 //    solver<> SOCPINT(SOCPI,ipopt);
 //    SOCPINT.run(output = 5, tol = 1e-7, "ma27");
 //
-//    vector<double> xint(SOCPI._nb_vars);
+//    vector<double> xint(SOCPI->_nb_vars);
 //
-//    SOCPI.get_solution(xint);
+//    SOCPI->get_solution(xint);
     
     
-//    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
-//    SOCP.print();
-//    auto SOCPOA = SOCP.buildOA(4);
-//    DebugOn("THIS IS THE OA FORMULATION" << endl);
-//    SOCPOA->print();
+    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
+    SOCP->print();
+    auto SOCPOA = SOCP->buildOA(10);
+    DebugOn("THIS IS THE OA FORMULATION" << endl);
+    SOCPOA->print();
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCP, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, ipopt);
     auto solver_time_start = get_wall_time();
     
     /** use the following line if you want to relax the integer variables **/
     //        SOCOPF_CPX.run(true);
     SOCOPF_CPX.run(output,tol = 1e-6);
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
+    DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
     total_time = total_time_end - total_time_start;
     
     /* Solver selection */
-    //    solver<> ACOPF_IPOPT(ACOPF, ipopt);
-    //    ACOPF_IPOPT.run(output, tol = 1e-6);
+    //    solver<> //ACOPF_IPOPT(//ACOPF, ipopt);
+    //    //ACOPF_IPOPT.run(output, tol = 1e-6);
     
     
     
     auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
-    //    double gap = 100*(ACOPF.get_obj_val() - SOCP.get_obj_val())/ACOPF.get_obj_val();
+    //    double gap = 100*(//ACOPF.get_obj_val() - SOCP.get_obj_val())///ACOPF.get_obj_val();
     
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
