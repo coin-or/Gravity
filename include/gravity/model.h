@@ -667,6 +667,7 @@ namespace gravity {
             _first_call_jac = true;
             _first_call_hess = true;
             _first_call_gard_obj = true;
+            _type = lin_m;
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
@@ -4633,19 +4634,23 @@ namespace gravity {
         };
         
         
-        
-        void del_constraint(const Constraint<type>& c){
-            _cons_name.erase(c.get_name());
-            _cons.erase(c._id);
+        /**
+         Delete constraint from model and reindex remaining constraints
+         @param[in] c_name: constraint name
+         */
+        void remove(const string& c_name){
+            _cons_name.erase(c_name);
             _built = false;
             _cons_vec.clear();
-            _cons_vec.resize(_cons.size());
+            _cons.clear();
+            _cons_vec.resize(_cons_name.size());
             size_t i = 0;
-            for(auto& c_p: _cons)
+            for(auto& c_p: _cons_name)
             {
+                _cons[i] = c_p.second;
                 _cons_vec[i++] = c_p.second;
             }
-            /* TODO: make sure other infos in model are updated */
+            reindex();
         };
         
         /**
