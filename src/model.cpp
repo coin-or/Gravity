@@ -17,7 +17,10 @@ namespace gravity {
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
     void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-
+        
+#ifdef USE_MPI
+        int worker_id, nb_workers;
+#endif
         int nb_threads = 12;
         int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
