@@ -20,6 +20,8 @@ namespace gravity {
         
 #ifdef USE_MPI
         int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
         int nb_threads = 12;
         int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
@@ -404,9 +406,6 @@ namespace gravity {
             }
 #endif
         }
-#ifdef USE_MPI
-        MPI_Finalize();
-#endif
     }
     
     

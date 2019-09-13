@@ -197,6 +197,7 @@ int main (int argc, char * argv[]) {
     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
 #ifdef USE_MPI
     }
+    MPI_Finalize();
 #endif
     
     return 0;
