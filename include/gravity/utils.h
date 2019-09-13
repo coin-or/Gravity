@@ -25,7 +25,9 @@
 #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+#ifdef USE_OPT_PARSER
 #include <optionParser.hpp>
+#endif
 #include <vector>
 #include <gravity/types.h>
 #include <gravity/GravityConfig.h>
@@ -36,9 +38,9 @@ std::string clean_print(bool pos, const std::string& v, bool brackets = false);
 
 
 
-
+#ifdef USE_OPT_PARSER
 op::OptionParser readOptions(int argc, char * argv[]);
-
+#endif
 
 
 //Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10
