@@ -17,14 +17,8 @@ namespace gravity {
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
     void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-        
-#ifdef USE_MPI
-        auto err_init = MPI_Init(nullptr,nullptr);
-        int worker_id, nb_workers;
-        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-#endif
-        int nb_threads = thread::hardware_concurrency();
+
+        int nb_threads = 12;
         int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
         nb_total_threads *= nb_workers;
