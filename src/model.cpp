@@ -16,8 +16,8 @@ namespace gravity {
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    void Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-        
+    std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
+        std::tuple<bool,int,double> res;
 #ifdef USE_MPI
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -406,6 +406,10 @@ namespace gravity {
             }
 #endif
         }
+         std::get<0>(res) = terminate;
+         std::get<1>(res) = iter;
+         std::get<2>(res) = solver_time;
+        return res;
     }
     
     
@@ -422,7 +426,7 @@ namespace gravity {
 //
     
     
-    template void gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
+    template std::tuple<bool,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
 //    template class Model<double>;
