@@ -189,6 +189,8 @@ int main (int argc, char * argv[]) {
         SDP->run_obbt(max_time, max_iter, ub, precision);
     
     }
+    lower_bound=SDP->get_obj_val();
+    gap=100*(upper_bound - lower_bound)/upper_bound;
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     ofstream fout(result_name.c_str(), ios_base::app);
 #ifdef USE_MPI
