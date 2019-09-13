@@ -57,6 +57,10 @@ namespace gravity {
         double solver_time, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
         gapnl=(upper_bound.second-lower_bound)/(upper_bound.second)*100;
         shared_ptr<map<string,size_t>> p_map;
+        
+        solver<> SDPLB2(*this,solv_type);
+        SDPLB2.run(output = 5, tol, "ma27");
+        this->print();
         //Check if gap is already not zero at root node
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
             
@@ -277,6 +281,7 @@ namespace gravity {
                 //Check if OBBT has converged, can check every gap_count_int intervals
                 if(iter%gap_count_int==0)
                 {
+                    this->print();
                     this->reset_constrs();
                     solver<> SDPLB1(*this,solv_type);
                     SDPLB1.run(output = 5, tol, "ma27");
