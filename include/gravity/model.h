@@ -8815,25 +8815,25 @@ namespace gravity {
          @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
          Assuming model has no nonlinear equality constraints
          **/
-        Model<> build_model_interior()
+        shared_ptr<Model<>> build_model_interior()
         {
-            Model<> Interior(_name+"Interior");
+            auto Interior = make_shared<Model<>>(_name+"Interior");
             vector<double> xinterior(_nb_vars);
             
             
             for (auto &it: _vars)
             {
                 auto v = it.second;
-                if(!Interior.has_var(*v)){
-                    Interior.add_var(v);
+                if(!Interior->has_var(*v)){
+                    Interior->add_var(v);
                 }
             }
             var<> eta_int("eta_int", -1, 0);
             
-            Interior.add(eta_int.in(range(0,0)));
+            Interior->add(eta_int.in(range(0,0)));
             auto obj=eta_int;
             
-            Interior.min(obj);
+            Interior->min(obj);
             
             
             
@@ -8844,17 +8844,17 @@ namespace gravity {
                     if(con->_ctype==leq)
                     {
                         Inter_con -= eta_int;
-                        Interior.add(Inter_con<=0);
+                        Interior->add(Inter_con<=0);
                     }
                     else
                     {
                         Inter_con += eta_int;
-                        Interior.add(Inter_con>=0);
+                        Interior->add(Inter_con>=0);
                     }
                 }
                 else
                 {
-                    Interior.add(*con);
+                    Interior->add(*con);
                 }
             }
             

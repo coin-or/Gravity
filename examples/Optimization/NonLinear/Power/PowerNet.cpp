@@ -586,9 +586,10 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >> word;
         pg_max.add_val(name,atof(word.c_str())/bMVA);
         
-        
+        pg_max_sq.add_val(name,std::pow(atof(word.c_str())/bMVA, 2));
         file >> word;
         pg_min.add_val(name,atof(word.c_str())/bMVA);
+        pg_min_sq.add_val(name,std::pow(atof(word.c_str())/bMVA, 2));
         getline(file, word,'\n');
         //        gen_status.push_back(status==1);
         

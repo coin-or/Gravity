@@ -98,7 +98,7 @@ public:
     param<double> cb_f, cb_v;/**< Battery fixed nd variable costs */
     param<double> inverter_capcost, gen_capcost, expansion_capcost, pv_capcost, pv_varcost;/**< Inverter, Generators, Expansion and PV capital costs */
     
-    param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
+    param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s, pg_max_sq=param<>("pg_max_sq"), pg_min_sq=param<>("pg_min_sq"); /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<double> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
     param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */
     param<double> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
