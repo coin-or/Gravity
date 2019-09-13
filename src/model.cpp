@@ -44,7 +44,7 @@ namespace gravity {
         bool terminate=false;
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
         
-        const double rel_tol=1e-2, abs_tol=1e3, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
+        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         
         SolverType solv_type = ipopt;
@@ -280,7 +280,7 @@ namespace gravity {
                 
                 //Check if OBBT has converged, can check every gap_count_int intervals
                 if(iter%gap_count_int==0)
-                {
+                {    solver_time= get_wall_time()-solver_time_start;
                     this->print();
                     this->reset_constrs();
                     solver<> SDPLB1(*this,solv_type);
@@ -288,7 +288,7 @@ namespace gravity {
                     if(this->_status==0)
                     {
                         auto gap = 100*(upper_bound.second - (this->get_obj_val()))/upper_bound.second;
-                        DebugOn("Gap "<<gap<<endl);
+                        DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                     }
                     if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
                     {
