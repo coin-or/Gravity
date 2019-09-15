@@ -419,7 +419,7 @@ int main (int argc, char * argv[])
         
         
         
-        if (false){
+        if (true){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
@@ -435,13 +435,13 @@ int main (int argc, char * argv[])
 
             
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
-//            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
-//            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//            I_to_Pf_temp.in(arcs) >= 0;
-//
-//            //trial use SOC_partition
+            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            I_to_Pf_temp.in(arcs) >= 0;
+
+            //trial use SOC_partition
 //            SOCP.SOC_partition(I_to_Pf_temp,20,20,true);
-////            SOCP.SOC_partition(I_to_Pf_temp,12,12,false);
+            SOCP->SOC_partition(I_to_Pf_temp,12,12,false);
             
             
         }
