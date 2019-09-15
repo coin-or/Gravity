@@ -34,10 +34,10 @@ private:
 //    CplexCallback _cplex_callback; /** instantiating a callback object */
     
 public:
-    shared_ptr<Model<>> _model;
+    Model<>* _model;
     int _output;
     CplexProgram();
-    CplexProgram(const shared_ptr<Model<>>& m);    
+    CplexProgram(Model<>* m);    
     void update_model();
     void reset_model();
     
