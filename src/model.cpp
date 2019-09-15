@@ -57,7 +57,7 @@ namespace gravity {
         gapnl=(upper_bound.second-lower_bound)/(upper_bound.second)*100;
         shared_ptr<map<string,size_t>> p_map;
         
-        solver<> SDPLB2(shared_ptr<Model<>>(this),solv_type);
+        solver<> SDPLB2(*this,solv_type);
         SDPLB2.run(output = 5, tol, "ma27");
         this->print();
         //Check if gap is already not zero at root node
