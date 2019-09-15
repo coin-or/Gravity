@@ -313,7 +313,8 @@ namespace gravity {
                 merge_vars(_cons_vec.back());
                 _cons_vec.back()->uneval();
             }
-            set_objective(*m._obj, _objt);
+            if(m._obj)
+                set_objective(*m._obj, _objt);
             return *this;
         }
         
@@ -4695,7 +4696,8 @@ namespace gravity {
         
         template<typename T>
         void set_objective(const func<T>& f, ObjectiveType t) {
-            *_obj = f;
+            _obj = make_shared<func<T>>(f);
+            _obj->_val = f._val;
             _objt = t;
             _obj->_indices = nullptr;
             update_convexity(f);

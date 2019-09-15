@@ -72,7 +72,7 @@ namespace gravity {
     template<typename type = double>
     class solver {
     public:
-        shared_ptr<gravity::Model<type>>          _model = nullptr;
+        gravity::Model<type>*                     _model = nullptr;
         shared_ptr<Program<type>>                 _prog = nullptr;
         SolverType                                _stype;
         type                                      _tol = 1e-6; /*<< Solver tolerance. */
@@ -84,14 +84,14 @@ namespace gravity {
         
         solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
             _stype = stype;
-            _model = model;
+            _model = (Model<type>*)(&(*model));
             _model->_built = true;
             init();
         }
         
-        solver(gravity::Model<type>& model, SolverType stype){
+        solver(const Model<type>& model, SolverType stype){
             _stype = stype;
-            _model = make_shared<gravity::Model<type>>(model);
+            _model = (Model<type>*)&model;
             _model->_built = true;
             init();
         }

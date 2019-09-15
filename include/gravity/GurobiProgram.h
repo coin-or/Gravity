@@ -15,10 +15,10 @@ private:
     GRBEnv* grb_env;
     vector<GRBVar> _grb_vars; /** Mapping variables to Gurobi variables */
 public:
-    shared_ptr<Model<>>  _model;
-    int     _output;
+    Model<>*    _model;
+    int         _output;
     GurobiProgram();
-    GurobiProgram(const shared_ptr<Model<>>& m);
+    GurobiProgram(Model<>* m);
     ~GurobiProgram();
     void reset_model();
 

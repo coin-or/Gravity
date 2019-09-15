@@ -23,9 +23,9 @@ class IpoptProgram : public TNLP, public Program<type>{
 
     
 public:
-    shared_ptr<Model<type>> _model = nullptr;
+    Model<type>* _model = nullptr;
     
-    IpoptProgram(const shared_ptr<Model<type>>& m):_model(m){
+    IpoptProgram(Model<type>* m):_model(m){
     }
     
     
