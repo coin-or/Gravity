@@ -4694,8 +4694,8 @@ namespace gravity {
         }
         
         
-        template<typename T>
-        void set_objective(const func<T>& f, ObjectiveType t) {
+        template<typename T=type>
+        void set_objective(const func<type>& f, ObjectiveType t) {
             _obj = make_shared<func<T>>(f);
             _obj->_val = f._val;
             _objt = t;
