@@ -712,50 +712,7 @@ namespace gravity {
             return *this;
         }
         
-        void reset(){
-            _otype = id_;
-            this->_to_str = "noname";
-            this->_coef = 1.;
-            _lson = nullptr;
-            _rson = nullptr;
-        };
         
-        
-        shared_ptr<constant_> get_lson() const{
-            return _lson;
-        };
-        
-        shared_ptr<constant_> get_rson() const{
-            return _rson;
-        };
-        
-        void set_lson(shared_ptr<constant_> c){
-            _lson = c;
-        };
-        
-        void set_rson(shared_ptr<constant_> c){
-            _rson = c;
-        };
-        
-        OperatorType get_otype() const {
-            return _otype;
-        };
-        
-        shared_ptr<constant_> copy()const{return make_shared<bexpr>(*this);};
-        
-        
-        bool operator!=(const bexpr& c) const{
-            return !(*this==c);
-        };
-        
-        Sign get_all_sign() const{
-            return unknown_; // TO UPDATE
-        }
-        
-                
-        void print(size_t inst) {
-            cout << to_str(inst) << endl;
-        }
         
         
     };
