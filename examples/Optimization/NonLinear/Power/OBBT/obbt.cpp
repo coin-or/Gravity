@@ -163,7 +163,7 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 5, tol, "ma27");
+    OPFUB.run(output = 5, tol);
     OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     auto SDP= build_SDPOPF(grid, current, upper_bound);
@@ -172,7 +172,7 @@ int main (int argc, char * argv[]) {
     
     solver<> SDPLB(SDP,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
-    SDPLB.run(output = 5, tol, "ma27");
+    SDPLB.run(output = 5, tol);
     SDP->print();
     
     if(SDP->_status==0 || SDP->_status==1)
