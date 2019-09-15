@@ -260,54 +260,61 @@ namespace gravity {
         }
         
         shared_ptr<Model<type>> copy() const{
-            shared_ptr<Model<type>> cpy = make_shared<Model<type>>();
-            cpy->_name = _name;
-            for(auto &vp: _vars){
+            return make_shared<Model<>>(*this);
+        }
+        
+        Model(const Model& m){
+            *this = m;
+        }
+        
+        Model& operator=(const Model& m){
+            _name = m._name;
+            for(auto &vp: m._vars){
                 switch (vp.second->get_intype()) {
                     case binary_: {
                         auto vv = *static_pointer_cast<var<bool>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case short_: {
                         auto vv = *static_pointer_cast<var<short>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case integer_: {
                         auto vv = *static_pointer_cast<var<int>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case float_: {
                         auto vv = *static_pointer_cast<var<float>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case double_: {
                         auto vv = *static_pointer_cast<var<double>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case long_: {
                         auto vv = *static_pointer_cast<var<long double>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                     case complex_: {
                         auto vv = *static_pointer_cast<var<Cpx>>(vp.second);
-                        cpy->add(vv.deep_copy());
+                        add(vv.deep_copy());
                         break;
                     }
                 }
             }
-            for(auto &cp: _cons_name){
-                cpy->add(*cp.second);
-                cpy->merge_vars(cpy->_cons_vec.back());
-                cpy->_cons_vec.back()->uneval();
+            for(auto &cp: m._cons_name){
+                add(*cp.second);
+                merge_vars(_cons_vec.back());
+                _cons_vec.back()->uneval();
             }
-            cpy->set_objective(*_obj, _objt);
-            return cpy;
+            set_objective(*m._obj, _objt);
+            return *this;
         }
         
         //        Model& operator=(const Model& m){
