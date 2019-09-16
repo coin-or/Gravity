@@ -3,5 +3,3 @@
 //
 #include <gravity/IpoptProgram.h>
 
-using namespace std;
-

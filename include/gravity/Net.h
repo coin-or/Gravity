@@ -169,7 +169,7 @@ public:
     /** Combines the src node with the path p to form a cycle */
     void combine(Node* src, Path* p);
     
-    void Fast_Horton();
+    vector<Path*> get_cycle_basis();
     
     void Fast_Horton(Net *net);
 

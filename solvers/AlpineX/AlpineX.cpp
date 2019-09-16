@@ -432,6 +432,7 @@ int main (int argc, char * argv[])
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
             SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+            SOCP->add(I_to_Pf_EQ.in(arcs)==0, true, "on/off");
 
             
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
