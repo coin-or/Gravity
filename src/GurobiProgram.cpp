@@ -14,11 +14,20 @@ GurobiProgram::GurobiProgram(){
 }
 
 
+GurobiProgram::GurobiProgram(Model<>* m) {
+    grb_env = new GRBEnv();
+    grb_mod = new GRBModel(*grb_env);
+    //    grb_env->set(GRB_IntParam_OutputFlag,2);
+    _model = m;
+    m->fill_in_maps();
+    m->compute_funcs();
+}
+
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env = new GRBEnv();
     grb_mod = new GRBModel(*grb_env);
 //    grb_env->set(GRB_IntParam_OutputFlag,2);
-    _model = m;
+//    _model = m;
     m->fill_in_maps();
     m->compute_funcs();
 }
