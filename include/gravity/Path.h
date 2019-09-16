@@ -23,6 +23,21 @@ public:
     bool cycle();
     
     Path* clone();
+    
+    string to_str() const {
+        string str = "{ ";
+        for (auto n: nodes) {
+            str += n->_name;
+            str += " , ";
+        }
+        str = str.substr(0,str.size()-2);
+        str += "}";
+        return str;
+    }
+    
+    void print() const{
+        cout << to_str() << endl;
+    }
 };
 
 #endif
