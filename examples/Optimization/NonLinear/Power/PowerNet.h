@@ -268,6 +268,8 @@ public:
     
     gravity::indices arcs_inductive_only();
     
+     gravity::indices arcs_not_inductive_only();
+    
     gravity::indices arcs_line_charge();
     
     pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();

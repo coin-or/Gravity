@@ -174,6 +174,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 5, tol, "ma27");
     SDP->print();
+    SDP->print_solution();
     
     if(SDP->_status==0 || SDP->_status==1)
     {
