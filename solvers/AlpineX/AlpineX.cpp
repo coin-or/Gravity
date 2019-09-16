@@ -332,6 +332,7 @@ int main (int argc, char * argv[])
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
     /***************** ADDING SDP_3D cuts for OBBT *****************/
+    if(!grid._tree){
     auto bag_size = bags_3d.size();
     DebugOn("\nNum of bags = " << bag_size << endl);
     DebugOn("Adding 3d determinant polynomial cuts\n");
@@ -348,7 +349,7 @@ int main (int argc, char * argv[])
     SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
 
     SOCP->add(SDP3 >= 0);
-    
+    }
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
     double max_time = 100000;
     int max_iter = 5;
@@ -372,8 +373,10 @@ int main (int argc, char * argv[])
     nonzero_idx.print();
     
     /***************** REMOVING SDP_3D cuts *****************/
+    if(!grid._tree){
     SOCP->remove("SDP_3D");
     SOCP->reindex();
+    }
     
     if(current){
         
