@@ -1,6 +1,6 @@
 #include <gravity/CplexProgram.h>
 
-CplexProgram::CplexProgram(const shared_ptr<Model<>>& m) {
+CplexProgram::CplexProgram(Model<>* m) {
     _cplex_env = make_shared<IloEnv>();
     _cplex_model = make_shared<IloModel>(*_cplex_env);
     _model = m;

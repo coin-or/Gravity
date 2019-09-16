@@ -28,10 +28,10 @@ int main (int argc, char * argv[])
     string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
   //  string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
-    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
+//    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -419,7 +419,7 @@ int main (int argc, char * argv[])
         
         
         
-        if (false){
+        if (true){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
@@ -432,16 +432,17 @@ int main (int argc, char * argv[])
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
             SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+            SOCP->add(I_to_Pf_EQ.in(arcs)==0, true, "on/off");
 
             
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
-//            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
-//            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//            I_to_Pf_temp.in(arcs) >= 0;
-//
-//            //trial use SOC_partition
+            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            I_to_Pf_temp.in(arcs) >= 0;
+
+            //trial use SOC_partition
 //            SOCP.SOC_partition(I_to_Pf_temp,20,20,true);
-////            SOCP.SOC_partition(I_to_Pf_temp,12,12,false);
+            SOCP->SOC_partition(I_to_Pf_temp,12,12,false);
             
             
         }
@@ -480,11 +481,11 @@ int main (int argc, char * argv[])
 //    SOCPI->get_solution(xint);
     
     
-    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
-    SOCP->print();
+//    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
+//    SOCP->print();
     auto SOCPOA = SOCP->buildOA(10);
-    DebugOn("THIS IS THE OA FORMULATION" << endl);
-    SOCPOA->print();
+//    DebugOn("THIS IS THE OA FORMULATION" << endl);
+//    SOCPOA->print();
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/

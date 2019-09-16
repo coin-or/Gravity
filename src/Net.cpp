@@ -683,7 +683,7 @@ indices Net::get_bus_pairs(){
     return bus_pairs;
 }
 
-void Net::Fast_Horton(){
+vector<Path*> Net::get_cycle_basis(){
     
     Net* copy_net = clone();
     copy_net->horton_net = new Net();
@@ -691,6 +691,7 @@ void Net::Fast_Horton(){
     
     Fast_Horton(copy_net);
     delete(copy_net);
+    return this->cycle_basis;
 }
 
 /* Compare function for Dijkstra's pripority queue based on the distance from the source */
