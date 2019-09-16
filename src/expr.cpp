@@ -12,6 +12,10 @@
 using namespace std;
 string operator_str(gravity::OperatorType ot){
     switch (ot) {
+        case gravity::div_:
+            return "/";
+        case gravity::product_:
+            return "*";
         case gravity::log_:
             return "log";
         case gravity::exp_:
@@ -34,6 +38,10 @@ string operator_str(gravity::OperatorType ot){
             return "sqrt";
         case gravity::relu_:
             return "ReLU";
+        case gravity::abs_:
+            return "abs";
+        case gravity::df_abs_:
+            return "df_abs";
         case gravity::unit_step_:
             return "UnitStep";
         case gravity::min_:

@@ -128,7 +128,7 @@ string clean_print(bool pos, const string& v, bool brackets){
 //    }
 //    return pos;
 //}
-
+#ifdef USE_OPT_PARSER
 op::OptionParser readOptions(int argc, char * argv[]){
     string log_level ="0";
     op::OptionParser opt;
@@ -137,6 +137,7 @@ op::OptionParser readOptions(int argc, char * argv[]){
     
     return opt;
 }
+#endif
 
 bool operator <(const Cpx& lhs, const Cpx& rhs){
     return lhs.real()<rhs.real() && lhs.imag()<rhs.imag();

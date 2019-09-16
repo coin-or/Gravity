@@ -12,11 +12,9 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include <gravity/model.h>
-#include <gravity/solver.h>
-#include <gravity/constraint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <gravity/solver.h>
 #include <gravity/doctest.h>
 #include <PowerNet.h>
 //#include <variant>
@@ -29,18 +27,6 @@ using namespace gravity;
 auto err_init = MPI_Init(nullptr,nullptr);
 #endif
 
-TEST_CASE("testing numerical precision") {
-    int worker_id = 0;
-#ifdef USE_MPI
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-#endif
-    if(worker_id==0){
-        double bMVA = 100.0;
-        double smax = 996.0;
-        double smax2 = smax/bMVA;
-        CHECK(smax2==9.9600000000000008);
-    }
-}
 
 TEST_CASE("testing constants") {
     int worker_id = 0;
@@ -65,10 +51,10 @@ TEST_CASE("testing constants") {
         CHECK(cx2.is_complex());
         CHECK(cx2.is_negative());
         auto mag0 = sqrmag(cx2);
-        CHECK(abs(mag0.eval()-5)<1e-8);
+        CHECK(std::abs(mag0.eval()-5)<1e-8);
         auto ang0 = angle(cx2);
         ang0.println();
-        CHECK(abs(ang0.eval()-(-2.677945045))<1e-8);
+        CHECK(std::abs(ang0.eval()-(-2.677945045))<1e-8);
         auto cx3 = conj(cx1);
         CHECK(cx3.eval().real()==cx1.eval().real());
         CHECK(cx3.eval().imag()==-1*cx1.eval().imag());
@@ -195,13 +181,13 @@ TEST_CASE("testing matrix params") {
         tr_mat.print();
         CHECK(tr_mat.eval(2,1)==12);
         CHECK(tr_mat(2,1).eval()==12);
-        
+
         var<> v("v",0,1);
         v.in(R(4));
         Constraint<> Mv("Mv");
         Mv = product(mat,v);
         Mv.print();
-        
+
         /* Complex matrices */
         param<Cpx> Cmat("Cmat");
         Cmat.set_size(3,3);
@@ -726,7 +712,7 @@ TEST_CASE("testing quadratic function factorization"){
         solver<> s(test,ipopt);
         s.run(5, 1e-6);
         test->print_solution();
-        CHECK(abs(test->_obj->get_val()-58.3836718)<1e-6);
+        CHECK(std::abs(test->_obj->get_val()-58.3836718)<1e-6);
     }
 }
 
@@ -852,6 +838,22 @@ TEST_CASE("testing monomials"){
     }
 }
 
+TEST_CASE("testing monomials"){
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        auto v = build_compositions(4, 2);
+        for (auto i = 0; i< v.size(); i++) {
+            for (auto &row:v[i]) {
+                cout << row << " ";
+            }
+            cout << endl;
+        }
+    }
+}
+
 TEST_CASE("testing simple model"){
     int worker_id = 0;
 #ifdef USE_MPI
@@ -923,36 +925,36 @@ TEST_CASE("testing complex constraint expansion"){
         z.real_imag(x, y);
         w1.real_imag(u1, v1);
         w2.real_imag(u2, v2);
-        
+
         param<> pr1("pr1"), pi1("pi1"),pr2("pr2");
         pr1 = {1,2};pi1 = {0,-1};pr2 = {-2,2};
         param<Cpx> p1("p1");
         p1.real_imag(pr1, pi1);
-        
+
         Constraint<Cpx> C_lin1("C_lin1");
         C_lin1 = p1*z;
         M.add(C_lin1.in(ids)==0);
-        
+
         param<Cpx> p2("p2");
         p2.set_real(pr2);/* zero imaginary */
         Constraint<Cpx> C_lin2("C_lin2");
         C_lin2 = p2*z;
         M.add(C_lin2.in(ids)==0);
-        
+
         Constraint<Cpx> C_quad("C_quad");
         C_quad = z*w1;
         M.add(C_quad.in(ids)==0);
-        
+
         Constraint<Cpx> C_norm("C_norm");
         C_norm = z*conj(z);
         M.add(C_norm.in(ids)==0);
-        
+
         Constraint<Cpx> C_pol("C_pol");
         C_pol = z*w1*w2;
         M.add(C_pol.in(ids)==0);
         M.print();
-        
-        
+
+
     }
 }
 
@@ -974,8 +976,8 @@ TEST_CASE("testing multithread solve"){
         auto models = {ACOPF1, ACOPF2};
         /* run in parallel */
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
-        CHECK(abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
+        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
+        CHECK(std::abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();
@@ -1007,7 +1009,11 @@ TEST_CASE("testing socopf"){
         OPF.run(output=5, tol=1e-6);
         auto time_end = get_wall_time();
         DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
-        CHECK(abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
+        CHECK(std::abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
+        auto cycle_basis = grid.get_cycle_basis();/** Compute cycle basis */
+        for (auto cycle: cycle_basis) {
+            cycle->print();
+        }
     }
 }
 
@@ -1018,30 +1024,30 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
 #endif
     if(worker_id==0){
         /* This test identifies a bug in Cplex's MIQCP presolve. Turn Cplex = true and relax = false to get an infeasible status, with relax=true, Cplex returns feasible. Also turning off presolve returns feasible. */
-        
+
         /* Start indexing from 1 */
         indices R1 = range(1,1);
         indices R2 = range(1,2);
         indices R4 = range(1,4);
         indices R10 = range(1,10);
-        
+
         Model<> m;
-        
+
         /* Bounds */
         param<> x_lb("x_lb");
         param<> x_ub("x_ub");
         x_lb = {-2,-2,-1,35,-4,-3,0,0,-4,0};
         x_ub = {2,2,1,37,-2,5,25,4,4,4};
-        
+
         var<> x("x",x_lb,x_ub);
         var<int> A1("A1",0,1), A2("A2",0,1), A6("A6",0,1);
         m.add(A1.in(R1), A2.in(R1), A6.in(R1));
         var<> L7("L7",0,1), L8("L8",0,1), L9("L9",0,1), L10("L10",0,1);
         m.add(x.in(R10), L7.in(R2), L8.in(R2), L9.in(R4), L10.in(R2));
-        
-        
+
+
         m.min(x[3]+x[4]+x[5]);
-        
+
         Constraint<> c1("c1");
         c1 = x[3] - x[7];
         m.add(c1==0);
@@ -1157,7 +1163,7 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
             solver<> s(m,ipopt);
             s.run(5,1e-6);
         }
-        CHECK(abs(m.get_obj_val()-31.003139013)<1e-6);
+        CHECK(std::abs(m.get_obj_val()-31.003139013)<1e-6);
         m.print_solution();
     }
 }
@@ -1210,7 +1216,7 @@ TEST_CASE("Alpine issue") {
         m.add(c4==0);
         cout << "y4 lower bound = " << y4._range->first << endl;
         cout << "y4 upper bound = " << y4._range->second << endl;
-        
+
         auto obj = 30 + y3*y4 +30*y1*y2 + y1*y2*y3*y4;
         cout << "Objective lower bound = " << obj._range->first << endl;
         cout << "Objective upper bound = " << obj._range->second << endl;
@@ -1242,12 +1248,12 @@ TEST_CASE("Alpine issue") {
         relax.add(c1<=0);
         relax.add(c2<=0);
         relax.add(c3<=0);
-        
+
         Constraint<> obj_ub("obj_ub");
-        
+
         obj_ub = 30 + y34 +30*y12 + y1234;
         relax.add(obj_ub<=3);
-        
+
         Constraint<> c1_relax("c1_relax");
         c1_relax = x11 + 2*x12 + x22 + 2*x1 + 2*x2 - y1 + 1;
         relax.add(c1_relax==0);
@@ -1260,28 +1266,84 @@ TEST_CASE("Alpine issue") {
         Constraint<> c4_relax("c4_relax");
         c4_relax = 12*x11 -36*x12 + 27*x22 - 32*x1 + 48*x2 - y4 + 18;
         relax.add(c4_relax==0);
-        
+
         Constraint<> soc1("soc1");
         soc1 = x11 - pow(x1,2);
         relax.add(soc1 >= 0);
         Constraint<> soc2("soc2");
         soc2 = x22 - pow(x2,2);
         relax.add(soc2 >= 0);
-        
+
         Constraint<> rot_soc("rot_soc");
         rot_soc = x11*x22 - pow(x12,2);
         relax.add(rot_soc >= 0);
         CHECK(rot_soc.is_rotated_soc());
-        
+
         relax.add_McCormick("x12", x12, x1, x2);
         relax.add_McCormick("y12", y12, y1, y2);
         relax.add_McCormick("y34", y34, y3, y4);
         relax.add_McCormick("y1234", y1234, y12, y34);
-        
+
         relax.print_symbolic();
         solver<> s2(relax,ipopt);
         s2.run();
         relax.print_solution();
+    }
+}
+
+TEST_CASE("testing absolute value function") {
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        
+        
+        Model<> M("Test");
+        var<> x("x", -6, 2);
+        var<> y("y", -3, 2);
+        var<> obj("obj", pos_);
+        M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
+        
+        M.min(abs(2*x)*y + 36);
+        
+        M.print();
+        solver<> NLP(M,ipopt);
+        int output;
+        double tol;
+        string lin_solver;
+        NLP.run(output=5,tol=1e-6);
+        M.print_solution();
+        M.print_symbolic();
+        CHECK(M.get_obj_val()<=tol);
+    }
+}
+
+TEST_CASE("testing min/max functions") {
+    int worker_id = 0;
+#ifdef USE_MPI
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+#endif
+    if(worker_id==0){
+        
+        
+        Model<> M("Test");
+        var<> x("x", -6, 3);
+        var<> y("y", -3, 2);
+        var<> obj("obj", -10,10);
+        M.add(x.in(R(1)),y.in(R(1)),obj.in(R(1)));
+        
+        M.min(min(x,3*y) + 6 - max(2*x,y));
+        
+        M.print();
+        solver<> NLP(M,ipopt);
+        int output;
+        double tol;
+        string lin_solver;
+        NLP.run(output=5,tol=1e-6);
+        M.print_solution();
+        M.print_symbolic();
+        CHECK(std::abs(M.get_obj_val()-(-9))<tol);
     }
 }
 
@@ -1383,6 +1445,7 @@ TEST_CASE("testing from_ith() function") {
     CHECK(dp._range->first==-231.5);
     CHECK(dp._range->second==1.5);
     REQUIRE_THROWS_AS(dp("unexisting_key").eval(), invalid_argument);
+    ids.print();
     auto ndp = dp.from_ith(2,ids);
     ndp.print();
     CHECK(ndp.get_dim()==ids.size());
@@ -1427,7 +1490,6 @@ TEST_CASE("testing in_ignore_ith() function") {
 }
 
 TEST_CASE("testing get_matrix()") {
-    DebugOn("testing get_matrix() function in in_matrix(start,nb_entries)" << endl);
     auto ids = indices(range(1,3),range(8,12));
     var<> dv("dv");
     dv = dv.in(ids);
@@ -1441,7 +1503,7 @@ TEST_CASE("testing get_matrix()") {
     Constraint<> Sum2("Sum2");
     Sum2 = sum(dv.in_matrix(1,1));
     Sum2.print();
-    CHECK(Sum2.get_nb_instances() == 3); //you will see that in this case , it does not even does a sum!
+    CHECK(Sum2.get_nb_instances() == 3);
     
     auto ids1 = indices(range(1,3),range(4,7),range(8,12));
     var<> dv1("dv1");
@@ -1456,7 +1518,7 @@ TEST_CASE("testing get_matrix()") {
 }
 
 TEST_CASE("testing sum_ith()") {
-    indices ids1("index_set2");
+    indices ids1("index_set1");
     ids1.add("5,4,1", "5,2,1", "7,8,4", "5,5,1", "7,6,4", "7,9,4");
     var<>  v1("v1");
     v1.in(ids1);
@@ -1468,11 +1530,42 @@ TEST_CASE("testing sum_ith()") {
     cout.rdbuf(console);
     CHECK(buffer.str()==" Sum1 (Linear) : \nSum1[0]: v1[5,4,1] + v1[5,2,1] + v1[5,5,1] <= 0;\nSum1[1]: v1[7,8,4] + v1[7,6,4] + v1[7,9,4] <= 0;\n");
     CHECK(Sum1.get_nb_instances() == 2);
+    indices ids2("index_set2");
+    ids2.add("4,1", "2,1", "8,4");
+    indices ids3("index_set3");
+    ids3.add("4,1", "2,1");
+    param<>  p2("p2");
+    p2.in(ids2);
+    var<>  v2("p2");
+    v2.in(ids2);
+    p2("4,1") = -3.4;
+    p2("8,4") = 1.5;
+    p2("2,1") = -6;
+    Constraint<> Sum2("Sum2");
+    Sum2 = sum(v2,ids3) + sum(p2,ids3);
+    Sum2.print();
+}
+
+TEST_CASE("sum over outgoing") {
+    int precision = 4;
+    /** Define indices */
+    indices arcs("arcs");
+    arcs.add("a1,1,2", "a2,1,3", "a3,1,4", "a4,3,4", "a5,2,4", "a6,1,5", "a7,1,5");
+    indices nodes("nodes");
+    nodes.add("1", "2", "3", "4", "5");
+    /** Declare model,vars and constraints */
+    Model<> M("Test");
+    var<>  v1("flux", 0, 1);
+    M.add(v1.in(arcs));
+    Constraint<> Sum0("Sum0");
+    Sum0 = v1.sum_out(nodes) + v1.sum_in(nodes);
+    M.add(Sum0.in(nodes) == 0);
+//    M.print_symbolic();
+    M.print();
+    CHECK(Sum0.get_nb_instances() == nodes.size());
 }
 
 TEST_CASE("testing sum_ith() func<> version"){
-    DebugOn("testing sum_ith() func<> version" << endl);
-    
     indices ids1("index set1""");
     ids1 = indices(range(1,3),range(1,4),range(1,6));
     
@@ -1510,7 +1603,6 @@ TEST_CASE("testing sum_ith() func<> version"){
 }
 
 TEST_CASE("testing Outer Approximation") {
-    DebugOn("testing Outer Approximation");
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
     indices bus_pairs("bpairs");
@@ -1541,6 +1633,35 @@ TEST_CASE("testing Outer Approximation") {
     Mtest.print();
 }
 
+
+TEST_CASE("testing constraint delete") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices bus_pairs("bpairs");
+    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    Mtest.add(SOC.in(bus_pairs));
+    
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij - Im_Wij;
+    Mtest.add(PAD.in(bus_pairs)<=2);
+    
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 8);
+    Mtest.remove("SOC");
+    Mtest.print();
+    CHECK(Mtest.is_linear());
+    CHECK(Mtest.get_nb_cons() == 4);
+}
+
 #ifdef USE_MPI
 TEST_CASE("testing OpenMPI") {
     DebugOn("testing OpenMPI" << endl);
@@ -1561,7 +1682,7 @@ TEST_CASE("testing OpenMPI") {
     /* run in parallel */
     run_MPI(models, ipopt, tol=1e-6, nb_threads=2);
     if(worker_id==0){
-    	//CHECK(abs(ACOPF1->get_obj_val()-17551.890927)<tol);
+    	//CHECK(std::abs(ACOPF1->get_obj_val()-17551.890927)<tol);
     	//CHECK(ACOPF1->is_feasible(tol));
     	ACOPF1->print_solution();
     	ACOPF2->print_solution();

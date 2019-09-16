@@ -67,7 +67,7 @@ namespace gravity{
     typedef enum { const_, lin_, quad_, pol_, nlin_ } FType;  /* Function type in constraint: Constant, Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { lin_m, quad_m, pol_m, nlin_m } MType;  /* Model type: Linear, Quadratic, Polynomial or Nonlinear function */
     typedef enum { minimize, maximize } ObjectiveType;
-    typedef enum { id_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_, tan_, acos_, asin_, atan_, atan2_, relu_, unit_step_, min_, max_} OperatorType;  /* Operation type in the expression tree */
+    typedef enum { id_, plus_, minus_, product_, div_, power_, cos_, sin_, sqrt_, exp_, log_, tan_, acos_, asin_, atan_, atan2_, abs_, df_abs_, relu_, unit_step_, min_, max_} OperatorType;  /* Operation type in the expression tree */
     
     typedef enum { R_, R_p_, C_} SpaceType;  /* Real, Positive Reals, Complex */
     
@@ -310,6 +310,9 @@ namespace gravity{
         
         /** Returns the number of comma-separated fields in each key */
         unsigned get_nb_entries() const{
+            if(_keys->empty()){
+                return 0;
+            }
             return count(_keys->front().begin(), _keys->front().end(), ',') + 1;
         }
         
@@ -322,7 +325,35 @@ namespace gravity{
             string key;
             res._ids = make_shared<vector<vector<size_t>>>();
             res._ids->resize(1);
-            if(is_indexed()){/* If ids has key references, use those */
+            if(_type == matrix_){/* If ids is matrix indexed */
+                res._type = matrix_;
+                auto nb_rows = this->get_nb_rows();
+                res._ids->resize(nb_rows);
+                for (size_t i = 0; i<nb_rows; i++) {
+                    for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                        auto key_ref = _ids->at(i).at(j);
+                        key = _keys->at(key_ref);
+                        auto pos = nthOccurrence(key, ",", start_position);
+                        if(pos>0){
+                            key = key.substr(pos+1);
+                        }
+                        pos = nthOccurrence(key, ",", nb_entries);
+                        if(pos>0){
+                            key = key.substr(0,pos);
+                        }
+                        auto it = res._keys_map->find(key);
+                        if (it == res._keys_map->end()){
+                            res.insert(key);
+                            res._ids->at(i).push_back(res._keys->size()-1);
+                        }
+                        else{
+                            res._ids->at(i).push_back(it->second);
+                        }
+                    }
+                }
+                
+            }
+            else if(is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: _ids->at(0)){
                     key = _keys->at(key_ref);
                     auto pos = nthOccurrence(key, ",", start_position);
@@ -375,8 +406,42 @@ namespace gravity{
             string key;
             res._ids = make_shared<vector<vector<size_t>>>();
             res._ids->resize(1);
-            if(is_indexed()){/* If current index set has key references, use those */
-                string first_part, last_part;
+            string first_part, last_part;
+            if(_type == matrix_){/* If ids is matrix indexed */
+                res._type = matrix_;
+                auto nb_rows = this->get_nb_rows();
+                res._ids->resize(nb_rows);
+                for (size_t i = 0; i<nb_rows; i++) {
+                    for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                        auto key_ref = _ids->at(i).at(j);
+                        key = _keys->at(key_ref);
+                        auto pos = nthOccurrence(key, ",", start_position);
+                        first_part = key.substr(0,pos);
+                        if(pos>0){
+                            key = key.substr(pos+1);
+                        }
+                        pos = nthOccurrence(key, ",", nb_entries);
+                        if(pos>0){
+                            last_part = key.substr(pos+1);
+                        }
+                        if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                            key = first_part+","+last_part;
+                        }
+                        else {
+                            key = first_part+last_part;
+                        }
+                        auto it = res._keys_map->find(key);
+                        if (it == res._keys_map->end()){
+                            res.insert(key);
+                            res._ids->at(i).push_back(res._keys->size()-1);
+                        }
+                        else{
+                            res._ids->at(i).push_back(it->second);
+                        }
+                    }
+                }
+            }
+            else if(is_indexed()){/* If current index set has key references, use those */
                 for(auto &key_ref: _ids->at(0)){
                     key = _keys->at(key_ref);
                     auto pos = nthOccurrence(key, ",", start_position);
@@ -629,6 +694,26 @@ namespace gravity{
             _time_extended = cpy._time_extended;
             _time_pos = cpy._time_pos;
             return *this;
+        }
+        
+        indices deep_copy() const{
+            indices cpy;
+            cpy._name = _name;
+            cpy._type = _type;
+            cpy._dim = _dim;
+            cpy._excluded_keys = _excluded_keys;
+            if(_ids){
+                cpy._ids = make_shared<vector<vector<size_t>>>(*_ids);
+            }
+            if(_keys){
+                cpy._keys = make_shared<vector<string>>(*_keys);
+            }
+            if(_keys_map){
+                cpy._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+            }
+            cpy._time_extended = _time_extended;
+            cpy._time_pos = _time_pos;
+            return cpy;
         }
         
         indices& operator=(indices&& cpy){
@@ -1116,22 +1201,22 @@ namespace gravity{
         auto nb_keys = ids1.size();
         for (auto i = 0; i< nb_keys; i++) {
             string combined_key, key = "", prev_key = "";
-            bool same_key = true;
+//            bool same_key = true;
             for (auto &ids: all_ids) {
                 auto idx = ids.get_id_inst(i);
                 key = ids._keys->at(idx);
-                if(prev_key!="" && key!=prev_key){
-                    same_key = false;
-                }
-                prev_key = key;
+//                if(prev_key!="" && key!=prev_key){
+//                    same_key = false;
+//                }
+//                prev_key = key;
                 combined_key += key +",";
             }
-            if(same_key){
-                combined_key = key;
-            }
-            else {
+//            if(same_key){
+//                combined_key = key;
+//            }
+//            else {
                 combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
-            }
+//            }
             res.add(combined_key);
         }
         return res;
