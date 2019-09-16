@@ -26,11 +26,7 @@ src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~
 ### ** Contributors **
 Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
 
-Guanglei Wang, The Australian National University | guanglei.wang@anu.edu.au
-
-Ksenia Bestuzheva, The Australian National University | k_best_7@mail.ru
-
-Carleton Coffrin, Los Alamos National Laboratory| cjc@lanl.gov
+Guanglei Wang, Ksenia Bestuzheva, Carleton Coffrin, Smitha Gopinath, Mertcan Yetkin
 
 *****************************
 See [INSTALL.md](INSTALL.md) for instructions on compiling Gravity
