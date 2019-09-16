@@ -19,6 +19,7 @@ public:
     int         _output;
     GurobiProgram();
     GurobiProgram(Model<>* m);
+    GurobiProgram(const shared_ptr<Model<>>& m);
     ~GurobiProgram();
     void reset_model();
 
