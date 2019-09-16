@@ -65,6 +65,10 @@ int main (int argc, char * argv[])
     
     /* Grid Stats */
     auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    if (grid._tree) {
+        bus_pairs_chord = bus_pairs;
+    }
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -150,8 +154,8 @@ int main (int argc, char * argv[])
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP->add(Wii.in(nodes));
-    SOCP->add(R_Wij.in(bus_pairs));
-    SOCP->add(Im_Wij.in(bus_pairs));
+    SOCP->add(R_Wij.in(bus_pairs_chord));
+    SOCP->add(Im_Wij.in(bus_pairs_chord));
     //ACOPF.add(Wii.in(nodes));
     //ACOPF.add(R_Wij.in(bus_pairs));
     //ACOPF.add(Im_Wij.in(bus_pairs));
@@ -212,8 +216,8 @@ int main (int argc, char * argv[])
         
         /* Second-order cone */
         Constraint<> SOC("SOC");
-        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP->add(SOC.in(bus_pairs)<=0);
+        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+        SOCP->add(SOC.in(bus_pairs_chord)<=0);
 //        SOCP->get_constraint("SOC")->_relaxed = true;
         
     }
@@ -224,48 +228,33 @@ int main (int argc, char * argv[])
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,etag) + sum(c0);
     SOCP->min(obj);
-    //ACOPF.min(obj);
-    
-    /** Constraints */
-    
-    
-    /* Equality of Second-order cone (for upperbound) */
-    Constraint<> Equality_SOC("Equality_SOC");
-    Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    //ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
-    
+  
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SOCP->add(KCL_P.in(nodes) == 0);
-    //ACOPF.add(KCL_P.in(nodes) == 0);
     
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SOCP->add(KCL_Q.in(nodes) == 0);
-    //ACOPF.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_From.in(arcs) == 0);
-    //ACOPF.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_To.in(arcs) == 0);
-    //ACOPF.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SOCP->add(Flow_Q_From.in(arcs) == 0);
-    //ACOPF.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SOCP->add(Flow_Q_To.in(arcs) == 0);
-    //ACOPF.add(Flow_Q_To.in(arcs) == 0);
-
+    
     
     
     /* Phase Angle Bounds constraints */
@@ -273,14 +262,12 @@ int main (int argc, char * argv[])
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
     SOCP->add(PAD_UB.in(bus_pairs));
-    //ACOPF.add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SOCP->add(PAD_LB.in(bus_pairs));
-    //ACOPF.add(PAD_LB.in(bus_pairs));
-
+    
     
     
     /* Thermal Limit Constraints */
@@ -288,7 +275,6 @@ int main (int argc, char * argv[])
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     SOCP->add(Thermal_Limit_from.in(arcs));
-    //ACOPF.add(Thermal_Limit_from.in(arcs));
     
     
     
@@ -296,8 +282,6 @@ int main (int argc, char * argv[])
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
     SOCP->add(Thermal_Limit_to.in(arcs));
-    //ACOPF.add(Thermal_Limit_to.in(arcs));
-
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -315,7 +299,6 @@ int main (int argc, char * argv[])
     LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
                                                                                         sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
     SOCP->add(LNC1.in(bus_pairs) >= 0);
-    //ACOPF.add(LNC1.in(bus_pairs) >= 0);
     
     
     Constraint<> LNC2("LNC2");
@@ -325,31 +308,32 @@ int main (int argc, char * argv[])
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SOCP->add(LNC2.in(bus_pairs) >= 0);
-    //ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
-    /***************** ADDING SDP_3D cuts for OBBT *****************/
-    if(!grid._tree){
-    auto bag_size = bags_3d.size();
-    DebugOn("\nNum of bags = " << bag_size << endl);
-    DebugOn("Adding 3d determinant polynomial cuts\n");
-    auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
-    auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
-    auto Wii_ = Wii.in_bags(bags_3d, 3);
-    
-    Constraint<> SDP3("SDP_3D");
-    SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
-    SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
-    SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
-    SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
-    SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
-    SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
 
-    SOCP->add(SDP3 >= 0);
+    if(!grid._tree){
+        /***************** ADDING SDP_3D cuts for OBBT *****************/
+        auto bag_size = bags_3d.size();
+        DebugOn("\nNum of bags = " << bag_size << endl);
+        DebugOn("Adding 3d determinant polynomial cuts\n");
+        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
+        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = Wii.in_bags(bags_3d, 3);
+        
+        Constraint<> SDP3("SDP_3D");
+        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+
+        SOCP->add(SDP3 >= 0);
     }
+    
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
     double max_time = 100000;
     int max_iter = 5;
