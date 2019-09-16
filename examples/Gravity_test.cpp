@@ -1010,6 +1010,10 @@ TEST_CASE("testing socopf"){
         auto time_end = get_wall_time();
         DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
         CHECK(std::abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
+        auto cycle_basis = grid.get_cycle_basis();/** Compute cycle basis */
+        for (auto cycle: cycle_basis) {
+            cycle->print();
+        }
     }
 }
 
