@@ -43,15 +43,18 @@ option(Clp "Link to CLP libraries" OFF)
 # Find OpenMPI (optional)
 option(OpenMPI "Link to OpenMPI libraries" OFF)
 
+# Find OPT_PARSER (optional)
+option(OPT_PARSER "Link to OPT_PARSER libraries" ON)
+
 if (OpenMPI)
     SET(CMAKE_CXX_COMPILER mpicxx)
     SET(CMAKE_C_COMPILER mpicc)
     message("Compilers used: ${CMAKE_C_COMPILER} and ${CMAKE_CXX_COMPILER}")
     message(STATUS "Enable OpenMPI")
     add_definitions(-DUSE_MPI)
-    find_package(OpenMPI REQUIRED)
-    include_directories(${OpenMPI_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
+    #find_package(OpenMPI REQUIRED)
+    #include_directories(${OpenMPI_INCLUDE_DIRS})
+    #set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
 # Find Ipopt.
@@ -174,14 +177,17 @@ endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
 
 # cpp_option_parser
-set(OPT_PARSER_VERSION v1.0)
-include(ExternalOptParser)
-set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
-link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
-#link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
-include_directories(${OPT_PARSER_INCLUDE_DIR})
-include_directories(${THIRDPARTY_INSTALL_PATH}/include)
-
+if (OPT_PARSER)
+	set(OPT_PARSER_VERSION v1.0)
+	message(STATUS "Enable OPT_PARSER")
+	add_definitions(-DUSE_OPT_PARSER)
+	include(ExternalOptParser)
+	set(OPT_PARSER_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Source/opt_parser)
+	link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser)
+	link_directories(${THIRDPARTY_INSTALL_PATH}/Build/opt_parser/Debug)
+	include_directories(${OPT_PARSER_INCLUDE_DIR})
+	include_directories(${THIRDPARTY_INSTALL_PATH}/include)
+endif()
 
 
 
@@ -216,6 +222,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/Release)
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 
 set(CMAKE_BUILD_TYPE "Release")
 if (Debug)

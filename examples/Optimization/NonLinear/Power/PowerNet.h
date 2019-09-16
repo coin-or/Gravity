@@ -98,7 +98,7 @@ public:
     param<double> cb_f, cb_v;/**< Battery fixed nd variable costs */
     param<double> inverter_capcost, gen_capcost, expansion_capcost, pv_capcost, pv_varcost;/**< Inverter, Generators, Expansion and PV capital costs */
     
-    param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s; /**< Upper and lower bounds on generation along with nominal values (default set points)*/
+    param<double> pg_min, pg_max, qg_min, qg_max, pg_s, qg_s, pg_max_sq=param<>("pg_max_sq"), pg_min_sq=param<>("pg_min_sq"); /**< Upper and lower bounds on generation along with nominal values (default set points)*/
     param<double> pb_min, pb_max, qb_min, qb_max; /**< Upper and lower bounds on battery generation */
     param<double> pv_min, pv_max, qv_min, qv_max; /**< Upper and lower bounds on PV generation */
     param<double> pw_min, pw_max, qw_min, qw_max; /**< Upper and lower bounds on wind generation */
@@ -313,7 +313,8 @@ public:
 };
 
 shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, double upper_bound=1E8, bool interior=false);
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, double upper_bound=1E8);
 shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss_from=false, double upper_bound=1E8, double lower_bound=0);
+shared_ptr<Model<>> build_SDPOPF_linear(PowerNet& grid, double upper_bound=1E8);
 
 #endif

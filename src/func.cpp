@@ -3690,7 +3690,10 @@ namespace gravity{
 //        }
 //    };
 //
-    /* Build Compositions of positive integer n given k positive integers. All credits go to Dr. Martin von Gagern */
+    /* Build Compositions of positive integer n given k positive integers. All credits go to Dr. Martin von Gagern
+     @param[in] k: the sum
+     @param[in] n: the number of integers
+     */
     vector<vector<int>> build_compositions(int k, int n) {
         int pos = 0, last = n - 1;
         vector<vector<int>> res;

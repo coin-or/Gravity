@@ -553,6 +553,17 @@ namespace gravity {
                 str += clean_print(true,coef);
                 str+="(";
             }
+            if((_otype==min_ || _otype==max_)) {
+                str += operator_str(_otype)+"(";
+                str+= _lson->to_str(inst,prec);
+                str += ",";
+                str+= _rson->to_str(inst,prec);
+                str += ")";
+                if (this->_coef!=unit<type>().eval()) {
+                    str += ")";
+                }
+                return str;
+            }
             if((_otype==product_ || _otype==div_) && (_lson->get_type()==uexp_c || _lson->get_type()==bexp_c)) {
                 str += "(";
                 str+= _lson->to_str(inst,prec);
@@ -566,7 +577,7 @@ namespace gravity {
                     str+= " + ";
                 }
             }
-            if (_otype==minus_) {
+            else if (_otype==minus_) {
                 if (this->_coef==-1.) {
                     str += " + ";
                 }
@@ -575,14 +586,13 @@ namespace gravity {
                     str+= " - ";
                 }
             }
-            if (_otype==product_) {
+            else if (_otype==product_) {
                 str+= " * ";
             }
-            if (_otype==div_) {
+            else if (_otype==div_) {
                 str+= "/";
             }
-            
-            if (_otype==power_) {
+            else if (_otype==power_) {
                 str+= "^";
             }
             
@@ -702,50 +712,7 @@ namespace gravity {
             return *this;
         }
         
-        void reset(){
-            _otype = id_;
-            this->_to_str = "noname";
-            this->_coef = 1.;
-            _lson = nullptr;
-            _rson = nullptr;
-        };
         
-        
-        shared_ptr<constant_> get_lson() const{
-            return _lson;
-        };
-        
-        shared_ptr<constant_> get_rson() const{
-            return _rson;
-        };
-        
-        void set_lson(shared_ptr<constant_> c){
-            _lson = c;
-        };
-        
-        void set_rson(shared_ptr<constant_> c){
-            _rson = c;
-        };
-        
-        OperatorType get_otype() const {
-            return _otype;
-        };
-        
-        shared_ptr<constant_> copy()const{return make_shared<bexpr>(*this);};
-        
-        
-        bool operator!=(const bexpr& c) const{
-            return !(*this==c);
-        };
-        
-        Sign get_all_sign() const{
-            return unknown_; // TO UPDATE
-        }
-        
-                
-        void print(size_t inst) {
-            cout << to_str(inst) << endl;
-        }
         
         
     };
