@@ -481,11 +481,11 @@ int main (int argc, char * argv[])
 //    SOCPI->get_solution(xint);
     
     
-    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
-    SOCP->print();
+//    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
+//    SOCP->print();
     auto SOCPOA = SOCP->buildOA(10);
-    DebugOn("THIS IS THE OA FORMULATION" << endl);
-    SOCPOA->print();
+//    DebugOn("THIS IS THE OA FORMULATION" << endl);
+//    SOCPOA->print();
     
     /***************** OUTER APPROXIMATION DONE *****************/
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
