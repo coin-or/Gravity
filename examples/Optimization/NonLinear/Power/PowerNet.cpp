@@ -2157,6 +2157,28 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
+    //add_original=true;
+//    if(add_original)
+//    {
+//        var<>  R_Vi("R_Vi", -1*v_max, v_max);
+//        var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+//
+//
+//            SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+//            R_Vi.initialize_all(1);
+//
+//
+//
+//        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+//        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+//        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+//        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+//        
+//        Constraint<Cpx> Linking_Wij("Linking_Wij");
+//        Linking_Wij = Wij - Vi*conj(Vj);
+//        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+//    }
+//
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);

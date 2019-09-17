@@ -658,7 +658,5 @@ namespace gravity {
         run_MPI(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
     }
 #endif
-    
 }
-
 #endif /* defined(__Gravity____Solver__) */
