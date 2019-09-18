@@ -26,8 +26,9 @@ int main (int argc, char * argv[])
     
     //    Switch the data file to another instance
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
@@ -218,7 +219,7 @@ int main (int argc, char * argv[])
         /* Second-order cone */
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-        SOCP->add(SOC.in(bus_pairs_chord)==0, true);
+        SOCP->add(SOC.in(bus_pairs_chord)<=0);
 //        SOCP->get_constraint("SOC")->_relaxed = true;
         
     }
@@ -382,7 +383,7 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
-          //  SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
 
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
 //            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
