@@ -5008,9 +5008,12 @@ namespace gravity {
             }
         }
         
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb);
-        shared_ptr<Model<>> build_model_interior();
+        template<typename T=type>
+        shared_ptr<Model<type>> buildOA(int nb_discr, int nb_perturb);
+        template<typename T=type>
+        shared_ptr<Model<type>> build_model_interior();
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
+        //template<typename T=type>
         void add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior, vector<double> xinterior);
         
         
