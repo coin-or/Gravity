@@ -63,35 +63,14 @@ template<typename type>
 template<typename T>
 shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
 {
-    int output=5;
-    double tol=1e-6;
-    bool interior=false;
+  
     
+    this->print_solution();
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
+    vector<double> xcurrent;
     get_solution(xsolution);
-    
- 
 
-    auto Ointerior=build_model_interior();
-    
-    DebugOn("running interior model"<<endl);
-    solver<> modelI(Ointerior, ipopt);
-    modelI.run(output, tol);
-    
-    if(Ointerior->_status==0||Ointerior->_status==1)
-    {
-    interior=true;
-    Ointerior->get_solution(xinterior);
-        Ointerior->print_solution();
-        auto con=Ointerior->get_constraint("SOC_convex");
-        auto xi=con->get_x(0);
-        DebugOn(xi[0]);
-        
-    }
-    
-    DebugOn("Interior flag "<<interior<<endl);
-    set_solution(xsolution);
 
     auto OA=make_shared<Model<>>(_name+"-OA Model");
     for (auto &it: _vars)
@@ -120,19 +99,21 @@ shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
             }
             else
             {
+               
                 OA->add_outer_app_uniform(nb_discr, *con);
                 
+                 set_solution(xsolution);
             }
+            
         }
         else
         {
             OA->add(*con);
         }
     }
-    if(interior)
-    {
-        OA->add_outer_app_active(*this, nb_perturb, interior, xinterior);
-    }
+    
+        OA->add_outer_app_active(*this, nb_perturb);
+   
     set_solution(xsolution);
     return OA;
 }
@@ -144,12 +125,12 @@ shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
  **/
 template<typename type>
 template<typename T>
-shared_ptr<Model<type>> Model<type>::build_model_interior()
+shared_ptr<Model<type>> Model<type>::build_model_interior(Model<type> nonlin)
 {
-    auto Interior = make_shared<Model<>>(_name+"Interior");
+    auto Interior = make_shared<Model<>>(nonlin._name+"Interior");
 
 
-    for (auto &it: _vars)
+    for (auto &it: nonlin._vars)
     {
         auto v = it.second;
         if(!Interior->has_var(*v)){
@@ -165,9 +146,9 @@ shared_ptr<Model<type>> Model<type>::build_model_interior()
 
 
 
-    for (auto &con: _cons_vec)
+    for (auto &con: nonlin._cons_vec)
     {
-        if(!con->is_linear()) {
+        //if(!con->is_linear()) {
             Constraint<> Inter_con(*con);
             if(con->_ctype==leq)
             {
@@ -179,11 +160,12 @@ shared_ptr<Model<type>> Model<type>::build_model_interior()
                 Inter_con += eta_int;
                 Interior->add(Inter_con>=0);
             }
-        }
-        else
-        {
-            Interior->add(*con);
-        }
+//        }
+//        else
+//        {
+//            if(con->_ctype==leq||con->_ctype==geq)
+//            Interior->add(*con);
+//        }
     }
     Interior->print();
     return Interior;
@@ -239,15 +221,33 @@ void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
  Assumption: nonlinear constraint to be perturbed does not have any vector variables
  **/
 template<>
-void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior, vector<double> interior_sol)
+void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
 {
     const double active_tol=1e-6, perturb_dist=1e-3;
     vector<double> xsolution(_nb_vars);
     vector<double> xactive, xcurrent, xinterior;
+    bool interior=false;
     double fk;
     bool outer;
     int counter=0;
     size_t posv;
+    
+    int output=5;
+    double tol=1e-6;
+    
+    auto Ointerior=build_model_interior(nonlin);
+    
+    DebugOn("running interior model"<<endl);
+    solver<> modelI(Ointerior, ipopt);
+    modelI.run(output, tol);
+    
+    if((Ointerior->_status==0||Ointerior->_status==1) && Ointerior->get_obj_val() <0)
+    {
+        interior=true;
+        Ointerior->print_solution();
+    }
+    
+    
     for (auto &con: nonlin._cons_vec)
     {
         if(!con->is_linear()) {
@@ -286,9 +286,10 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior
                            DebugOn("active SOC found"<<endl);
                        }
                     if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                        set_solution(interior_sol);
-                        xinterior=con->get_x(i);
-                        set_solution(xsolution);
+                        auto cname=con->_name;
+                        auto con_interior=Ointerior->get_constraint(cname);
+                        xinterior=con_interior->get_x(i);
+                        xinterior.pop_back();
                         xcurrent=con->get_x(i);
                         if(std::abs(con->eval(i))<=active_tol)
                             xactive=xcurrent;
@@ -298,7 +299,7 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior
                             if(res.first){
                                 xactive=res.second;
                                 DebugOn("Found active point for "<< con->_name<<endl);
-                                
+                             
                             }
                             else{
                                 continue;
@@ -364,7 +365,7 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior
     }
 }
 template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
-template shared_ptr<Model<double>> Model<double>::build_model_interior();
+template shared_ptr<Model<double>> Model<double>::build_model_interior(Model<double>);
 
 
 

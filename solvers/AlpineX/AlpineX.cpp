@@ -17,6 +17,7 @@ int main (int argc, char * argv[])
 {
     int output = 0;
     double tol = 1e-6;
+    double gap;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
     
@@ -341,12 +342,12 @@ int main (int argc, char * argv[])
     SOCPOPF.run(output, tol = 1e-6);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
-    auto original_SOC = grid.build_SCOPF();
-    solver<> SOCOPF_ORIG(original_SOC, ipopt);
-    SOCOPF_ORIG.run(output, tol = 1e-6);
-    double original_LB = original_SOC->get_obj_val();
-    double gap = 100*(upperbound - original_LB)/upperbound;
-    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+//    auto original_SOC = grid.build_SCOPF();
+//    solver<> SOCOPF_ORIG(original_SOC, ipopt);
+//    SOCOPF_ORIG.run(output, tol = 1e-6);
+//    double original_LB = original_SOC->get_obj_val();
+//    double gap = 100*(upperbound - original_LB)/upperbound;
+    //DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     if(SOCP->_status==0||SOCP->_status==1)
     {
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
@@ -395,6 +396,7 @@ int main (int argc, char * argv[])
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
     auto SOCPOA = SOCP->buildOA(4,4);
+    
     /***************** OUTER APPROXIMATION DONE *****************/
      SOCPOA->print();
     
