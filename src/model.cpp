@@ -3670,6 +3670,8 @@ namespace gravity {
                     if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
                     {
                         this->print();
+                        this->print_solution();
+                         this->print_nonzero_constraints(tol);
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                         lower_bound=this->get_obj_val();
