@@ -206,18 +206,18 @@ int main (int argc, char * argv[])
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP->add(I_from_Pf.in(arcs)==0, true);
+        SOCP->add(I_from_Pf.in(arcs)<=0, true);
 //        SOCP->get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-        SOCP->add(I_to_Pf.in(arcs)>=0);
+        SOCP->add(I_to_Pf.in(arcs)<=0, true);
 //        SOCP->get_constraint("I_to_Pf")->_relaxed = true;
         
         /* Second-order cone */
         Constraint<> SOC("SOC");
         SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-        SOCP->add(SOC.in(bus_pairs_chord)<=0);
+        SOCP->add(SOC.in(bus_pairs_chord)==0, true);
 //        SOCP->get_constraint("SOC")->_relaxed = true;
         
     }
@@ -274,14 +274,14 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    SOCP->add(Thermal_Limit_from.in(arcs));
+    SOCP->add(Thermal_Limit_from.in(arcs), true);
     
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SOCP->add(Thermal_Limit_to.in(arcs));
+    SOCP->add(Thermal_Limit_to.in(arcs), true);
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -381,7 +381,7 @@ int main (int argc, char * argv[])
             Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
             I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
-            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+          //  SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
 
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
 //            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
@@ -398,9 +398,10 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-//    auto SOCPOA = SOCP->buildOA(10);
+
+    auto SOCPOA = SOCP->buildOA(4,4);
     /***************** OUTER APPROXIMATION DONE *****************/
-//    SOCPOA->print();
+     SOCPOA->print();
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
