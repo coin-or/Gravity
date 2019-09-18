@@ -407,10 +407,10 @@ int main (int argc, char * argv[])
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCP, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, ipopt);
     auto solver_time_start = get_wall_time();
     SOCOPF_CPX.run(output,tol = 1e-6);
-    gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
