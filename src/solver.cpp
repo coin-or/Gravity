@@ -236,8 +236,6 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
     double tol=1e-6;
     
     auto Ointerior=build_model_interior(nonlin);
-    
-    DebugOn("running interior model"<<endl);
     solver<> modelI(Ointerior, ipopt);
     modelI.run(output, tol);
     
@@ -269,22 +267,12 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
     }
     if(interior)
     {
-        DebugOn("Interior entered"<<endl);
         get_solution(xsolution);
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
                 for(auto i=0;i<con->get_nb_inst();i++){
                     con->uneval();
-                    if(con->is_rotated_soc())
-                    {
-                        DebugOn("rotated SOC found"<<endl);
-                    }
-                    
-                    if(std::abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc()))
-                       {
-                           DebugOn("active SOC found"<<endl);
-                       }
                     if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                         auto cname=con->_name;
                         auto con_interior=Ointerior->get_constraint(cname);
@@ -298,7 +286,6 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
                             auto res=con->get_any_active_point(i, con->_ctype);
                             if(res.first){
                                 xactive=res.second;
-                                DebugOn("Found active point for "<< con->_name<<endl);
                              
                             }
                             else{
@@ -328,7 +315,6 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
                                         v->set_double_val(posv, xactive[counter]*(1+k*j*perturb_dist));
                                         con->uneval();
                                         fk=con->eval(i);
-                                        DebugOn(fk<<" "<<con->_name<<endl);
                                         if((fk>=0 && con->_ctype==leq) || (fk<=0 && con->_ctype==geq)){
                                             outer=true;
                                             break;
@@ -336,7 +322,6 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
                                     }
                                     if(outer)
                                     {
-                                        DebugOn("Outer "<<con->_name<<endl);
                                         auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
                                         if(res_search){
                                             
