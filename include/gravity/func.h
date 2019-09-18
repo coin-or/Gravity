@@ -1027,7 +1027,7 @@ namespace gravity {
          @param[in] inst_i:
          @param[in] x:
          **/
-         void set_x(int inst_i, vector<double> x){
+         void set_x(int inst_i, const vector<double>& x){
             size_t posv;
             int counter=0;
             for(auto &it: *_vars)
@@ -1620,8 +1620,15 @@ namespace gravity {
             }
             return(res);
         }
-        
-        //Note modifies current point to xsolution
+        /** Newton Raphson to solve for xsolution such that f(xsolution)=0
+         @param[in] x: Current guess from which newton raphson is launched
+         @param[in] vname: Name of variable in which the algorithm moves to solve f(x)=0
+         @param[in] vpos: If variabel is vector type, vpos gives index of variable
+         @param[in] nb_inst: instance number
+         @param[in] ctype:
+         @return Pair.first True if line search successfully solved. Pair.secod xsolution
+         Note modifies current point to xsolution
+         **/
         pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
@@ -1707,7 +1714,12 @@ namespace gravity {
             counter=0;
             return res;
         }
-
+        /** Get any active point such that f(xsolution)=0
+         @param[in] nb_inst: instance number
+         @param[in] ctype:
+         @return Pair.first True if active point found. Pair.second
+         Note modifies current point to xsolution
+         **/
         pair<bool,vector<double>> get_any_active_point(size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
