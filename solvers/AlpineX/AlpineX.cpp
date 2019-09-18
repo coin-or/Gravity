@@ -25,8 +25,8 @@ int main (int argc, char * argv[])
     bool current = true;
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
@@ -314,8 +314,10 @@ int main (int argc, char * argv[])
     obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
-    if(!grid._tree){
-        /***************** ADDING SDP_3D cuts for OBBT *****************/
+
+   
+    /***************** ADDING SDP_3D cuts for OBBT *****************/
+     if(!grid._tree){
         auto bag_size = bags_3d.size();
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
@@ -357,8 +359,10 @@ int main (int argc, char * argv[])
     nonzero_idx.print();
     
     /***************** REMOVING SDP_3D cuts *****************/
+    if(!grid._tree){
     SOCP->remove("SDP_3D");
     SOCP->reindex();
+    }
     
     if(current){
         
@@ -395,6 +399,7 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
+
     auto SOCPOA = SOCP->buildOA(4,4);
     
     /***************** OUTER APPROXIMATION DONE *****************/
