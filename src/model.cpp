@@ -3437,7 +3437,7 @@ namespace gravity {
         
         solver<> SDPLB2(*this,solv_type);
         SDPLB2.run(output = 5, tol, "ma27");
-        this->print();
+        //this->print();
         //Check if gap is already not zero at root node
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
             
@@ -3658,7 +3658,7 @@ namespace gravity {
                 //Check if OBBT has converged, can check every gap_count_int intervals
                 if(iter%gap_count_int==0)
                 {    solver_time= get_wall_time()-solver_time_start;
-                    this->print();
+                    //this->print();
                     this->reset_constrs();
                     solver<> SDPLB1(*this,solv_type);
                     SDPLB1.run(output = 5, tol, "ma27");
@@ -3669,9 +3669,9 @@ namespace gravity {
                     }
                     if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
                     {
-                        this->print();
-                        this->print_solution();
-                         this->print_nonzero_constraints(tol);
+                        //this->print();
+                        //this->print_solution();
+                        // this->print_nonzero_constraints(tol);
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                         lower_bound=this->get_obj_val();
@@ -3740,9 +3740,9 @@ namespace gravity {
                 solver<> SDPLB1(*this,solv_type);
                 
                 SDPLB1.run(output = 5, tol, "ma27");
-                this->print_constraints_stats(tol);
+                //this->print_constraints_stats(tol);
                 bool print_only_relaxed;
-                this->print_nonzero_constraints(tol,print_only_relaxed=true);
+                //this->print_nonzero_constraints(tol,print_only_relaxed=true);
                 
                 //        SDP->print_solution();
                 
@@ -3753,9 +3753,9 @@ namespace gravity {
                     
                     DebugOn("\nResults: " << " " << to_string(this->get_obj_val()) << " " <<endl);
                     DebugOn("Solution Print"<<endl);
-                    this->print();
+                    //this->print();
                     //                SDP->print_solution();
-                    this->print_constraints_stats(tol);
+                    //this->print_constraints_stats(tol);
                     
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                     lower_bound=this->get_obj_val();
