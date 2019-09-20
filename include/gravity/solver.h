@@ -237,7 +237,7 @@ namespace gravity {
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
                         mu_init = std::exp(-1)/std::exp(2);
-                        DebugOn("Using Hot Start!\n");
+                        DebugOff("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
@@ -478,9 +478,9 @@ namespace gravity {
                 nb_it++;
             }
             if (nb_it>1) {
-                DebugOn(endl << "####################" << endl);
-                DebugOn("Solved in " << nb_it << " constraint generation iterations" << endl);
-                DebugOn("####################" << endl);
+                DebugOff(endl << "####################" << endl);
+                DebugOff("Solved in " << nb_it << " constraint generation iterations" << endl);
+                DebugOff("####################" << endl);
             }
             _model->_status = return_status;
             if(_model->_status == 0){
@@ -496,7 +496,7 @@ namespace gravity {
         int return_status = -1;
         for (auto i = start; i<end; i++) {
             return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver, max_iter);
-            DebugOn("Return status "<<return_status << endl);
+            DebugOff("Return status "<<return_status << endl);
             //            models.at(i)->print_solution(24);
         }
         return return_status;
@@ -513,13 +513,13 @@ namespace gravity {
         std::vector<thread> threads;
         std::vector<bool> feasible;
         if(models.size()==0){
-            DebugOn("in run_parallel(models...), models is empty, returning");
+            DebugOff("in run_parallel(models...), models is empty, returning");
             return;
         }
         /* Split models into nr_threads parts */
         auto nr_threads_ = std::min((size_t)nr_threads,models.size());
         std::vector<size_t> limits = bounds(nr_threads_, models.size());
-        DebugOn("Running on " << nr_threads_ << " threads." << endl);
+        DebugOff("Running on " << nr_threads_ << " threads." << endl);
         DebugOff("limits size = " << limits.size() << endl);
         for (size_t i = 0; i < limits.size(); ++i) {
             DebugOff("limits[" << i << "] = " << limits[i] << endl);
@@ -560,11 +560,11 @@ namespace gravity {
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
             auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
-            DebugOn("I have " << nb_workers_ << " workers" << endl);
-            DebugOn("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
+            DebugOff("I have " << nb_workers_ << " workers" << endl);
+            DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
             std::vector<size_t> limits = bounds(nb_workers_, models.size());
-            DebugOn("I will be splitting " << models.size() << " tasks ");
-            DebugOn("among " << nb_workers_ << " worker(s)" << endl);
+            DebugOff("I will be splitting " << models.size() << " tasks ");
+            DebugOff("among " << nb_workers_ << " worker(s)" << endl);
             DebugOff("limits size = " << limits.size() << endl);
             for (size_t i = 0; i < limits.size(); ++i) {
                 DebugOff("limits[" << i << "] = " << limits[i] << endl);
@@ -574,7 +574,7 @@ namespace gravity {
                 if(limits[worker_id] == limits[worker_id+1]){
                     throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
-                DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
                 auto vec = vector<shared_ptr<gravity::Model<type>>>();
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                     vec.push_back(models[i]);
@@ -582,7 +582,7 @@ namespace gravity {
                 run_parallel(vec,stype,tol,nr_threads,lin_solver);
                 if(!share_all){
                     if (worker_id == 0){
-                        DebugOn("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+                        DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
                         for (auto w_id = 1; w_id<nb_workers_; w_id++) {
                             for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                                 auto model = models[i];
@@ -597,7 +597,7 @@ namespace gravity {
                         }
                     }
                     else {
-                        DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+                        DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
                         for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                             auto model = models[i];
                             auto nb_vars = model->get_nb_vars();
@@ -611,7 +611,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    DebugOn("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
+                    DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
                     for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                         auto model = models[i];
                         auto nb_vars = model->get_nb_vars();
@@ -629,7 +629,7 @@ namespace gravity {
                         }
                     }
                     MPI_Barrier(MPI_COMM_WORLD);
-                    DebugOn("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
+                    DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
                     for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
                             continue;
