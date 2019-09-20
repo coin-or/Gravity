@@ -3409,7 +3409,7 @@ namespace gravity {
         vector<shared_ptr<Model<>>> batch_models;
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
-        string p, pk;
+        string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
         string vname;
         string mname, mkname, vkname, keyk, dirk;
         string dir_array[2]={"LB", "UB"};
@@ -3436,8 +3436,10 @@ namespace gravity {
         shared_ptr<map<string,size_t>> p_map;
         
         solver<> SDPLB2(*this,solv_type);
-        SDPLB2.run(output = 5, tol, "ma27");
-        //this->print();
+
+        SDPLB2.run(output = 0, tol, "ma27");
+//        this->print();
+
         //Check if gap is already not zero at root node
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
             
@@ -3451,27 +3453,32 @@ namespace gravity {
                 auto v_key_map=v.get_keys_map();
                 for(auto &key: *v_keys)
                 {
-                    p=vname+"|"+ key;
+                    var_key = vname+"|"+ key;
+                    key_lb= var_key +"|LB";
+                    key_ub= var_key +"|UB";
                     //Do not do OBBT on lifted variables
-                                if(v._lift){
-                        fixed_point[p]=true;
-                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    if(v._lift){
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
+                        DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                     }
                     else{
-                        fixed_point[p]=false;
+                        fixed_point[key_lb]=false;
+                        fixed_point[key_ub]=false;
                     }
                     auto key_pos=v_key_map->at(key);
                     
                     if(v._off[key_pos]==true)
                     {
-                        fixed_point[p]=true;
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
                         DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                     }
                     
-                    interval_original[p]=v.get_ub(key)-v.get_lb(key);
-                    ub_original[p]=v.get_ub(key);
-                    lb_original[p]=v.get_lb(key);
-                    interval_new[p]=v.get_ub(key)-v.get_lb(key);
+                    interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
+                    ub_original[var_key]=v.get_ub(key);
+                    lb_original[var_key]=v.get_lb(key);
+                    interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
                     
                 }
                 
@@ -3501,15 +3508,18 @@ namespace gravity {
                             time_limit = true;
                             break;
                         }
-                        p=vname+"|"+ key;
-                        interval_new[p]=v.get_ub(key)-v.get_lb(key);
+                        var_key=vname+"|"+ key;
+                        key_lb= var_key +"|LB";
+                        key_ub= var_key +"|UB";
+                        interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
                         if(std::abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
                         {
-                            fixed_point[p]=true;
+                            fixed_point[key_lb]=true;
+                            fixed_point[key_ub]=true;
                             
                         }
                         //Either if not fixed point, or if at the last key of the last variable
-                        if(fixed_point[p]==false || (next(it)==this->_vars_name.end() && next(it_key)==v.get_keys()->end()))
+                        if(fixed_point[key_lb]==false || fixed_point[key_ub]==false || (next(it)==this->_vars_name.end() && next(it_key)==v.get_keys()->end()))
                         {
                             //Loop on directions, upper bound and lower bound
                             for(auto &dir: dir_array)
@@ -3529,7 +3539,7 @@ namespace gravity {
                                     
                                 }
                                 
-                                if(fixed_point[p]==false){
+                                if(fixed_point[mname]==false){
                                     batch_models.push_back(modelk);
                                 }
                                 //When batch models has reached size of nb_threads or when at the last key of last avriable
@@ -3555,7 +3565,7 @@ namespace gravity {
                                         keyk.assign(mkname, 0, pos);
                                         dirk=mkname.substr(pos+1);
                                         vk=this->get_var<T>(vkname);
-                                        pk=vkname+"|"+keyk;
+                                        var_key_k=vkname+"|"+keyk;
                                         //Update bounds only of the model status is solved to optimal                                }
                                         if(model->_status==0)
                                         {
@@ -3576,7 +3586,7 @@ namespace gravity {
                                             if(std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
                                             {//do not close intervals to OBBT before finishing at least one full iteration over all variables
                                                 if(iter>1)
-                                                    fixed_point[pk]=true;
+                                                    fixed_point[model->get_name()]=true;
                                                 
                                             }
                                             else
@@ -3590,7 +3600,7 @@ namespace gravity {
                                                 //If crossover in bounds,just exchange them
                                                 if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                                 {
-                                                    fixed_point[pk]=true;
+                                                    fixed_point[model->get_name()]=true;
                                                     temp=vk.get_ub(keyk);
                                                     tempa=vk.get_lb(keyk);
                                                     vk.set_ub(keyk, tempa);
@@ -3598,7 +3608,7 @@ namespace gravity {
                                                     
                                                 }
                                                 else if(!vk._lift){
-                                                    fixed_point[pk]=false;
+                                                    fixed_point[model->get_name()]=false;
                                                     terminate=false;
                                                 }
                                                 
@@ -3607,7 +3617,7 @@ namespace gravity {
                                             if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                             {
                                                 //If original interval is itself smaller than range_tol, do not have to reset interval
-                                                if(interval_original[pk]>=range_tol)
+                                                if(interval_original[var_key_k]>=range_tol)
                                                 {
                                                     DebugOn("Entered reset");
                                                     //Mid is the midpoint of interval
@@ -3615,23 +3625,23 @@ namespace gravity {
                                                     left=mid-range_tol/2.0;
                                                     right=mid+range_tol/2.0;
                                                     //If resized interval does not cross original bounds, reset
-                                                    if(right<=ub_original[pk] && left>=lb_original[pk])
+                                                    if(right<=ub_original[var_key_k] && left>=lb_original[var_key_k])
                                                     {
                                                         vk.set_ub(keyk, right);
                                                         vk.set_lb(keyk, left);
                                                     }
                                                     //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
-                                                    else if(right>ub_original[pk])
+                                                    else if(right>ub_original[var_key_k])
                                                     {
                                                         
-                                                        vk.set_ub(keyk, ub_original[pk]);
-                                                        vk.set_lb(keyk, ub_original[pk]-range_tol);
+                                                        vk.set_ub(keyk, ub_original[var_key_k]);
+                                                        vk.set_lb(keyk, ub_original[var_key_k]-range_tol);
                                                     }
                                                     //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
-                                                    else if(left<lb_original[pk])
+                                                    else if(left<lb_original[var_key_k])
                                                     {
-                                                        vk.set_lb(keyk, lb_original[pk]);
-                                                        vk.set_ub(keyk, lb_original[pk]+range_tol);
+                                                        vk.set_lb(keyk, lb_original[var_key_k]);
+                                                        vk.set_ub(keyk, lb_original[var_key_k]+range_tol);
                                                         
                                                     }
                                                     //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
@@ -3658,10 +3668,12 @@ namespace gravity {
                 //Check if OBBT has converged, can check every gap_count_int intervals
                 if(iter%gap_count_int==0)
                 {    solver_time= get_wall_time()-solver_time_start;
-                    //this->print();
+
+//                    this->print();
+
                     this->reset_constrs();
                     solver<> SDPLB1(*this,solv_type);
-                    SDPLB1.run(output = 5, tol, "ma27");
+                    SDPLB1.run(output = 0, tol, "ma27");
                     if(this->_status==0)
                     {
                         auto gap = 100*(upper_bound.second - (this->get_obj_val()))/upper_bound.second;
@@ -3669,9 +3681,11 @@ namespace gravity {
                     }
                     if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
                     {
-                        //this->print();
-                        //this->print_solution();
-                        // this->print_nonzero_constraints(tol);
+
+//                        this->print();
+//                        this->print_solution();
+//                         this->print_nonzero_constraints(tol);
+
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                         lower_bound=this->get_obj_val();
@@ -3706,10 +3720,11 @@ namespace gravity {
                 auto v_keys=v.get_keys();
                 for(auto &key: *v_keys)
                 { num_var++;
-                    p=vname+"|"+ key;
-                    interval_gap.push_back((interval_original[p]-interval_new[p])/(interval_original[p]+zero_tol)*100.0);
+                    var_key=vname+"|"+ key;
+                    interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
                     sum+=interval_gap.back();
-                    DebugOn(p<<" " << interval_gap.back()<< " flag = " << fixed_point[p] << endl);
+                    DebugOn(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point[var_key+"|LB"] << endl);
+                    DebugOn(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point[var_key+"|UB"] << endl);
                 }
                 
             }
@@ -3723,7 +3738,7 @@ namespace gravity {
                 this->reset_constrs();
                 solver<> SDPLB1(*this,solv_type);
                 
-                SDPLB1.run(output = 5, tol, "ma27");
+                SDPLB1.run(output = 0, tol, "ma27");
             }
             
         }
@@ -3739,23 +3754,25 @@ namespace gravity {
                 this->reset_constrs();
                 solver<> SDPLB1(*this,solv_type);
                 
-                SDPLB1.run(output = 5, tol, "ma27");
-                //this->print_constraints_stats(tol);
-                bool print_only_relaxed;
-                //this->print_nonzero_constraints(tol,print_only_relaxed=true);
-                
+
+                SDPLB1.run(output = 0, tol, "ma27");
+//                this->print_constraints_stats(tol);
+//                bool print_only_relaxed;
+//                this->print_nonzero_constraints(tol,print_only_relaxed=true);
+
                 //        SDP->print_solution();
                 
                 //        SDP->print();
                 
                 if(this->_status==0)
                 {
-                    
-                    DebugOn("\nResults: " << " " << to_string(this->get_obj_val()) << " " <<endl);
-                    DebugOn("Solution Print"<<endl);
-                    //this->print();
+
+                    DebugOff("\nResults: " << " " << to_string(this->get_obj_val()) << " " <<endl);
+                    DebugOff("Solution Print"<<endl);
+//                    this->print();
                     //                SDP->print_solution();
-                    //this->print_constraints_stats(tol);
+//                    this->print_constraints_stats(tol);
+
                     
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                     lower_bound=this->get_obj_val();

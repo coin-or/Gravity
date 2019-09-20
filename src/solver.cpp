@@ -65,7 +65,7 @@ shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
 {
   
     
-    this->print_solution();
+//    this->print_solution();
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
     vector<double> xcurrent;
@@ -167,7 +167,7 @@ shared_ptr<Model<type>> Model<type>::build_model_interior(Model<type> nonlin)
 //            Interior->add(*con);
 //        }
     }
-    Interior->print();
+//    Interior->print();
     return Interior;
 }
 
@@ -242,7 +242,7 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
     if((Ointerior->_status==0||Ointerior->_status==1) && Ointerior->get_obj_val() <0)
     {
         interior=true;
-        Ointerior->print_solution();
+//        Ointerior->print_solution();
     }
     
     

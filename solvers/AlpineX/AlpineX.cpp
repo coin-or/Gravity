@@ -61,7 +61,7 @@ int main (int argc, char * argv[])
     grid.readgrid(fname);
     
     double upperbound = grid.solve_acopf(ACRECT);
-    
+    DebugOn("Upper bound = " << upperbound << endl);
     grid.get_tree_decomp_bags();
     auto bags_3d=grid.decompose_bags_3d();
     
@@ -362,8 +362,7 @@ int main (int argc, char * argv[])
     
     /***************** REMOVING SDP_3D cuts *****************/
     if(!grid._tree){
-    SOCP->remove("SDP_3D");
-    SOCP->reindex();
+        SOCP->remove("SDP_3D");
     }
     
     if(current){
@@ -392,7 +391,7 @@ int main (int argc, char * argv[])
             I_to_Pf_temp.in(arcs) >= 0;
 
             //trial use SOC_partition
-            SOCP->SOC_partition(I_to_Pf_temp,30,30,true);
+            SOCP->SOC_partition(I_to_Pf_temp,8,8,true);
             
             
         }
@@ -400,12 +399,12 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    auto SOCPOA = SOCP->buildOA(4,4);
+    auto SOCPOA = SOCP->buildOA(5,5);
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
     SOCOPF_CPX.run(output,tol = 1e-6);
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
@@ -431,6 +430,8 @@ int main (int argc, char * argv[])
     
     auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx2.print();
+    auto nonzero_idx3 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_from_Pf");
+    nonzero_idx3.print();
     
     
     return 0;

@@ -169,17 +169,17 @@ int main (int argc, char * argv[]) {
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
     OPFUB.run(output = 5, tol);
-    OPF->print_solution();
+//    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     auto SDP= build_SDPOPF(grid, current, upper_bound);
     
-    SDP->print();
+//    SDP->print();
    
     solver<> SDPLB(SDP,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 5, tol);
-    SDP->print();
-    SDP->print_solution();
+//    SDP->print();
+//    SDP->print_solution();
     
     if(SDP->_status==0 || SDP->_status==1)
     {
@@ -232,7 +232,9 @@ int main (int argc, char * argv[]) {
 //        Linking_Wi = Wi - Vi*conj(Vi);
 //        SDP->add(Linking_Wi.in(nodes)==0);
 //
-//        SDP->print();
+
+////        SDP->print();
+
 //        SDP->reindex();
 //        solver<> SDPUB(SDP,solv_type);
 //        DebugOn("Upper bounding ipopt"<<endl);
