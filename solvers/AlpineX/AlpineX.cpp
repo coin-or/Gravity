@@ -17,6 +17,7 @@ int main (int argc, char * argv[])
 {
     int output = 0;
     double tol = 1e-6;
+    double gap;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
     
@@ -24,9 +25,10 @@ int main (int argc, char * argv[])
     bool current = true;
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
@@ -206,7 +208,7 @@ int main (int argc, char * argv[])
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP->add(I_from_Pf.in(arcs)>=0);
+        SOCP->add(I_from_Pf.in(arcs)<=0, true);
 //        SOCP->get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
@@ -274,7 +276,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    SOCP->add(Thermal_Limit_from.in(arcs));
+    SOCP->add(Thermal_Limit_from.in(arcs), true);
     
     
     
@@ -313,8 +315,10 @@ int main (int argc, char * argv[])
     obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
-    if(!grid._tree){
-        /***************** ADDING SDP_3D cuts for OBBT *****************/
+
+   
+    /***************** ADDING SDP_3D cuts for OBBT *****************/
+     if(!grid._tree){
         auto bag_size = bags_3d.size();
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
@@ -341,52 +345,54 @@ int main (int argc, char * argv[])
     SOCPOPF.run(output, tol = 1e-6);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
-    auto original_SOC = grid.build_SCOPF();
-    solver<> SOCOPF_ORIG(original_SOC, ipopt);
-    SOCOPF_ORIG.run(output, tol = 1e-6);
-    double original_LB = original_SOC->get_obj_val();
-    double gap = 100*(upperbound - original_LB)/upperbound;
-    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+//    auto original_SOC = grid.build_SCOPF();
+//    solver<> SOCOPF_ORIG(original_SOC, ipopt);
+//    SOCOPF_ORIG.run(output, tol = 1e-6);
+//    double original_LB = original_SOC->get_obj_val();
+//    double gap = 100*(upperbound - original_LB)/upperbound;
+    //DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     if(SOCP->_status==0||SOCP->_status==1)
     {
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
     DebugOn("Gap after OBBT = " << to_string(gap) << "%."<<endl);
     }
-    auto nonzero_idx = SOCP->sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
+    auto tol_viol = 1e-5; //tolerance for violation
+    auto nonzero_idx = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx.print();
     
     /***************** REMOVING SDP_3D cuts *****************/
+    if(!grid._tree){
     SOCP->remove("SDP_3D");
     SOCP->reindex();
+    }
     
     if(current){
         
         indices nonzero_arcs("nonzero_arcs");
-        nonzero_arcs.add("40,25,37", "4,2,30" ,"13,6,31", "19,10,32", "36,22,35", "9,5,6", "28,16,24", "18,10,13", "38,23,36", "14,7,8", "1,1,39", "16,9,39", "17,10,11", "11,6,7", "29,17,18");
+        nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39");
 
         
         if (true){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
-            Wii._num_partns = 10;
-            lji._num_partns = 10;
-            
-            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
-            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
+//            Pf_to._num_partns = 20;
+//            Qf_to._num_partns = 20;
+//            Wii._num_partns = 10;
+//            lji._num_partns = 10;
+//
+//            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+//            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
+//            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
 
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
-//            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
-//            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-//            I_to_Pf_temp.in(arcs) >= 0;
+            Constraint<> I_to_Pf_temp("I_to_Pf_temp");
+            I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+            I_to_Pf_temp.in(arcs) >= 0;
 
             //trial use SOC_partition
-//            SOCP->SOC_partition(I_to_Pf_temp,20,20,true);
-//            SOCP->SOC_partition(I_to_Pf_temp,12,12,false);
+            SOCP->SOC_partition(I_to_Pf_temp,30,30,true);
             
             
         }
@@ -394,13 +400,12 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    auto SOCPOA = SOCP->buildOA(10);
+    auto SOCPOA = SOCP->buildOA(4,4);
     /***************** OUTER APPROXIMATION DONE *****************/
-//    SOCPOA->print();
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCP, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, cplex);
     auto solver_time_start = get_wall_time();
     SOCOPF_CPX.run(output,tol = 1e-6);
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
@@ -424,7 +429,7 @@ int main (int argc, char * argv[])
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
-    auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
+    auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx2.print();
     
     

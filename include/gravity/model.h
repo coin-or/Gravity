@@ -5067,10 +5067,13 @@ namespace gravity {
             }
         }
         
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb);
-        shared_ptr<Model<>> build_model_interior();
+        template<typename T=type>
+        shared_ptr<Model<type>> buildOA(int nb_discr, int nb_perturb);
+        template<typename T=type>
+        shared_ptr<Model<type>> build_model_interior(Model<type> nonlin);
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
-        void add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior, vector<double> xinterior);
+        //template<typename T=type>
+        void add_outer_app_active(Model<> nonlin, int nb_perturb);
         
         
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
