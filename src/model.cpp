@@ -3600,7 +3600,8 @@ namespace gravity {
                                                 //If crossover in bounds,just exchange them
                                                 if(vk.get_ub(keyk)<vk.get_lb(keyk))
                                                 {
-                                                    fixed_point[model->get_name()]=true;
+                                                    fixed_point[var_key_k+"|LB"]=true;
+                                                    fixed_point[var_key_k+"|UB"]=true;
                                                     temp=vk.get_ub(keyk);
                                                     tempa=vk.get_lb(keyk);
                                                     vk.set_ub(keyk, tempa);
