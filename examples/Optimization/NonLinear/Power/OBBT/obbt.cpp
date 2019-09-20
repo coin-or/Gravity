@@ -169,17 +169,17 @@ int main (int argc, char * argv[]) {
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
     OPFUB.run(output = 5, tol);
-    OPF->print_solution();
+//    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     auto SDP= build_SDPOPF(grid, current, upper_bound);
     
-    SDP->print();
+//    SDP->print();
    
     solver<> SDPLB(SDP,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 5, tol);
-    SDP->print();
-    SDP->print_solution();
+//    SDP->print();
+//    SDP->print_solution();
     
     if(SDP->_status==0 || SDP->_status==1)
     {
@@ -201,45 +201,45 @@ int main (int argc, char * argv[]) {
         solver_time=std::get<2>(res);
         
         
-                var<>  R_Vi("R_Vi", -1*v_max, v_max);
-                var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-        
-        
-                    SDP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
-        
-//        Im_Vi.set_lb((grid.ref_bus),0);
-//        Im_Vi.set_ub((grid.ref_bus),0);
-                    R_Vi.initialize_all(1);
-        
-       auto R_Wij=SDP->get_var<double>("R_Wij");
-       auto Im_Wij=SDP->get_var<double>("Im_Wij");
-       auto Wii=SDP->get_var<double>("Wii");
-        
-                var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
-                Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-                Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-                Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-                Wi.set_real(Wii);
-        
-        
-                Constraint<Cpx> Linking_Wij("Linking_Wij");
-                Linking_Wij = Wij - Vi*conj(Vj);
-                SDP->add(Linking_Wij.in(bus_pairs_chord)==0);
-        
-        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
-        
-        Constraint<Cpx> Linking_Wi("Linking_Wi");
-        Linking_Wi = Wi - Vi*conj(Vi);
-        SDP->add(Linking_Wi.in(nodes)==0);
-        
-        SDP->print();
-        SDP->reindex();
-        solver<> SDPUB(SDP,solv_type);
-        DebugOn("Upper bounding ipopt"<<endl);
-        SDPUB.run(output = 5, tol);
-        
-         DebugOn("Upper bound new= " << SDP->get_obj_val() <<endl);
-         DebugOn("Upper bound old= " << upper_bound <<endl);
+//                var<>  R_Vi("R_Vi", -1*v_max, v_max);
+//                var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+//
+//
+//                    SDP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+//
+////        Im_Vi.set_lb((grid.ref_bus),0);
+////        Im_Vi.set_ub((grid.ref_bus),0);
+//                    R_Vi.initialize_all(1);
+//
+//       auto R_Wij=SDP->get_var<double>("R_Wij");
+//       auto Im_Wij=SDP->get_var<double>("Im_Wij");
+//       auto Wii=SDP->get_var<double>("Wii");
+//
+//                var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
+//                Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+//                Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+//                Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+//                Wi.set_real(Wii);
+//
+//
+//                Constraint<Cpx> Linking_Wij("Linking_Wij");
+//                Linking_Wij = Wij - Vi*conj(Vj);
+//                SDP->add(Linking_Wij.in(bus_pairs_chord)==0);
+//
+//        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+//
+//        Constraint<Cpx> Linking_Wi("Linking_Wi");
+//        Linking_Wi = Wi - Vi*conj(Vi);
+//        SDP->add(Linking_Wi.in(nodes)==0);
+//
+////        SDP->print();
+//        SDP->reindex();
+//        solver<> SDPUB(SDP,solv_type);
+//        DebugOn("Upper bounding ipopt"<<endl);
+//        SDPUB.run(output = 5, tol);
+//
+//         DebugOn("Upper bound new= " << SDP->get_obj_val() <<endl);
+//         DebugOn("Upper bound old= " << upper_bound <<endl);
 
     
     }
