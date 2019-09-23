@@ -190,7 +190,7 @@ namespace gravity {
             return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
         }
         
-        int run(int output=5, type tol=1e-6 , int max_iter=10000){
+        int run(int output=5, type tol=1e-6 , int max_iter=1000){
             return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
         /* run model */
