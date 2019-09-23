@@ -620,7 +620,7 @@ namespace gravity {
                         vector<double> solution;
                         solution.resize(nb_vars);
                         model->get_solution(solution);
-                        for (auto w_id = 0; w_id<nb_workers_; w_id++) {
+                        for (auto w_id = 0; w_id<nb_workers; w_id++) {
                             if (worker_id == w_id){
                                 continue;
                             }
@@ -633,7 +633,7 @@ namespace gravity {
                 }
                 MPI_Barrier(MPI_COMM_WORLD);
                 DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
-                for (auto w_id = 0; w_id<nb_workers_; w_id++) {
+                for (auto w_id = 0; w_id<nb_workers; w_id++) {
                     if (worker_id == w_id){
                         continue;
                     }
