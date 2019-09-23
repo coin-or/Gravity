@@ -404,7 +404,7 @@ int main (int argc, char * argv[])
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCP, cplex);
+    solver<> SOCOPF_CPX(SOCP, ipopt);
     auto solver_time_start = get_wall_time();
     SOCOPF_CPX.run(output,tol = 1e-6);
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
