@@ -580,6 +580,7 @@ namespace gravity {
                     vec.push_back(models[i]);
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver);
+	   }
                 if(!share_all){
                     if (worker_id == 0){
                         DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
@@ -611,6 +612,7 @@ namespace gravity {
                     }
                 }
                 else {
+		if(worker_id+1<limits.size()){
                     DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
                     for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                         auto model = models[i];
@@ -628,12 +630,14 @@ namespace gravity {
                             DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
                         }
                     }
+		}
                     MPI_Barrier(MPI_COMM_WORLD);
                     DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
                     for (auto w_id = 0; w_id<nb_workers_; w_id++) {
                         if (worker_id == w_id){
                             continue;
                         }
+			if(worker_id+1<limits.size()){
                         for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                             auto model = models[i];
                             auto nb_vars = model->get_nb_vars();
@@ -645,10 +649,10 @@ namespace gravity {
                             model->set_solution(solution);
                             models[i]->_status=0;
                         }
+			}
                     }
                 }
             }
-        }
         MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);
     }

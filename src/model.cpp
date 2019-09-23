@@ -3724,14 +3724,14 @@ namespace gravity {
                     var_key=vname+"|"+ key;
                     interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
                     sum+=interval_gap.back();
-                    DebugOn(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
-                    DebugOn(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point.at(var_key+"|UB") << endl);
+                    DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
+                    DebugOff(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point.at(var_key+"|UB") << endl);
                 }
                 
             }
             avg=sum/num_var;
             
-            DebugOn("Average interval reduction\t"<<avg<<endl);
+            DebugOff("Average interval reduction\t"<<avg<<endl);
             
             if(!close)
             {
