@@ -172,9 +172,7 @@ shared_ptr<Model<type>> Model<type>::build_model_interior(Model<type> nonlin)
 }
 
 
-//
-//
-//
+namespace gravity {
 /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
  @param[in] nb_discr:
  @param[in] con:
@@ -351,7 +349,7 @@ void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
 }
 template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
 template shared_ptr<Model<double>> Model<double>::build_model_interior(Model<double>);
-
+}
 
 
 

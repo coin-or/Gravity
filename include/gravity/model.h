@@ -1405,6 +1405,7 @@ namespace gravity {
                 _type = nlin_m;
             }
             embed(_obj);
+            _obj->allocate_mem();
         }
         
         template<typename T1>
@@ -2940,12 +2941,10 @@ namespace gravity {
         }
         
         type get_obj_val() const{
-            _obj->allocate_mem();
-            return _obj->eval();
+            return _obj->_val->at(0);
         }
         
         void print_obj_val(int prec = 5) const{
-            _obj->allocate_mem();
             cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
