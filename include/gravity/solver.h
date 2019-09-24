@@ -546,6 +546,7 @@ namespace gravity {
      */
     template<typename type>
     int send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+        int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
@@ -587,6 +588,7 @@ namespace gravity {
      */
     template<typename type>
     int send_solution_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+        int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
@@ -640,6 +642,7 @@ namespace gravity {
      */
     template<typename type>
     int send_obj_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+        int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
