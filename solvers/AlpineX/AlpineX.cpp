@@ -32,12 +32,13 @@ int main (int argc, char * argv[])
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
-    string solver_str="ipopt";
-    
+    string solver_str="cplex";
+    SolverType solv_type = cplex;
     /** Create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("s", "solver", "solver type (def. cplex)", solver_str);
     opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -55,7 +56,16 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
-    
+    solver_str = opt["s"];
+    if (solver_str.compare("gurobi")==0) {
+        solv_type = gurobi;
+    }
+    else if(solver_str.compare("ipopt")==0) {
+        solv_type = ipopt;
+    }
+    else if(solver_str.compare("Mosek")==0) {
+        solv_type = _mosek;
+    }
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
@@ -341,7 +351,7 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP, ipopt);
+    solver<> SOCPOPF(SOCP, solv_type);
     SOCPOPF.run(output, tol = 1e-6);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
