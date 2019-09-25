@@ -712,6 +712,7 @@ namespace gravity {
                 /* We will send model status to all workers */
                 send_status(models,limits);
             }
+            MPI_Barrier(MPI_COMM_WORLD);
             if(!share_all && !share_all_obj){/* Only share solution with worker 0 */
                 if (worker_id == 0){
                     DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
