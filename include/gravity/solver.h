@@ -504,38 +504,13 @@ namespace gravity {
         return return_status;
     }
     
-    template<typename type>
-    void run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", unsigned max_iter = 1e6){
-        run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
-    }
+//    template<typename type>
+//    int run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", unsigned max_iter = 1e6){
+//        return run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
+//    }
     
     /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-    template<typename type>
-    void run_parallel(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6){
-        std::vector<thread> threads;
-        std::vector<bool> feasible;
-        if(models.size()==0){
-            DebugOff("in run_parallel(models...), models is empty, returning");
-            return;
-        }
-        /* Split models into nr_threads parts */
-        auto nr_threads_ = std::min((size_t)nr_threads,models.size());
-        std::vector<size_t> limits = bounds(nr_threads_, models.size());
-        DebugOff("Running on " << nr_threads_ << " threads." << endl);
-        DebugOff("limits size = " << limits.size() << endl);
-        for (size_t i = 0; i < limits.size(); ++i) {
-            DebugOff("limits[" << i << "] = " << limits[i] << endl);
-        }
-        /* Launch all threads in parallel */
-        auto vec = vector<shared_ptr<gravity::Model<type>>>(models);
-        for (size_t i = 0; i < nr_threads_; ++i) {
-            threads.push_back(thread(run_models<type>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter));
-        }
-        /* Join the threads with the main thread */
-        for(auto &t : threads){
-            t.join();
-        }
-    }
+    int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6);
     
     
 #ifdef USE_MPI
@@ -545,7 +520,7 @@ namespace gravity {
      @limits vector specifying which models are assigned to which workers
      */
     template<typename type>
-    int send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+    void send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -587,7 +562,7 @@ namespace gravity {
      @limits vector specifying which models are assigned to which workers
      */
     template<typename type>
-    int send_solution_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+    void send_solution_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -641,7 +616,7 @@ namespace gravity {
      @limits vector specifying which models are assigned to which workers
      */
     template<typename type>
-    int send_obj_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
+    void send_obj_all(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -695,7 +670,7 @@ namespace gravity {
      @share_all_obj propagate only objective values and model status to all workers
      */
     template<typename type>
-    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, int max_iter = 1e6, int max_batch_time = 1e6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", bool share_all = false, bool share_all_obj = false){
+    int run_MPI(const vector<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -725,15 +700,15 @@ namespace gravity {
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                     vec.push_back(models[i]);
                 }
-                auto handle_batch = async(launch::async,run_parallel,ref(vec),stype,tol,nr_threads,lin_solver);
-                auto batch_status = handle_batch.wait_for(std::chrono::seconds(max_time_per_batch));/* Wait for Model to converge */
+                future<int>  handle_batch = async(launch::async,run_parallel,ref(vec),stype,tol,nr_threads,lin_solver,max_iter);
+                auto batch_status = handle_batch.wait_for(std::chrono::seconds(max_batch_time));/* Wait for Model to converge */
                 if(batch_status == future_status::ready){
                     DebugOn("Solved batch models!" <<endl);
                 }
                 else {
-                    DebugOn("Batch models not solved to optimality within time limit of " << max_time_per_batch << " seconds." << endl);
+                    DebugOn("Batch models not solved to optimality within time limit of " << max_batch_time << " seconds." << endl);
                 }
-//                run_parallel(vec,stype,tol,nr_threads,lin_solver);
+//                run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
                 /* We will send model status to all workers */
                 send_status(models,limits);
             }
@@ -781,7 +756,7 @@ namespace gravity {
     }
     
     template<typename type>
-    void run_MPI(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver=""){
+    void run_MPI(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false){
         run_MPI(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver);
     }
 #endif

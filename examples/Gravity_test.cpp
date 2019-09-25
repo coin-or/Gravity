@@ -1663,8 +1663,8 @@ TEST_CASE("testing constraint delete") {
 }
 
 #ifdef USE_MPI
-TEST_CASE("testing OpenMPI") {
-    DebugOn("testing OpenMPI" << endl);
+TEST_CASE("testing MPI") {
+    DebugOn("testing MPI" << endl);
     int worker_id;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     unsigned nb_threads = 2;

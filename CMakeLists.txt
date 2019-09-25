@@ -52,9 +52,9 @@ if (OpenMPI)
     message("Compilers used: ${CMAKE_C_COMPILER} and ${CMAKE_CXX_COMPILER}")
     message(STATUS "Enable OpenMPI")
     add_definitions(-DUSE_MPI)
-    #find_package(OpenMPI REQUIRED)
-    #include_directories(${OpenMPI_INCLUDE_DIRS})
-    #set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
+    find_package(OpenMPI REQUIRED)
+    include_directories(${OpenMPI_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
 # Find Ipopt.

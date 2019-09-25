@@ -3547,7 +3547,7 @@ namespace gravity {
                                 {
                                     double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                    run_MPI(batch_models,ipopt,1e-6,500,500,nb_threads, "ma27",false,true);
+                                    run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",500,500, false,true);
 #else
                                     run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27");
                                     //run_parallel(batch_models,cplex,1e-7,nb_threads);
