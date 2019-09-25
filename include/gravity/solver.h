@@ -281,7 +281,7 @@ namespace gravity {
                     _model->fill_in_maps();
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
-                    return_status = iapp->OptimizeTNLP(tmp);
+                    status = iapp->OptimizeTNLP(tmp);
                     if (IsValid(iapp->Statistics())) {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();
@@ -291,7 +291,7 @@ namespace gravity {
                         _model->_obj->_val->at(0) *= -1;
                     }
                     DebugOn("Return status = " << status << endl);
-                    if (return_status == Solve_Succeeded) {
+                    if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
                         // Retrieve some statistics about the solve
@@ -300,7 +300,7 @@ namespace gravity {
                         //                return status;
                         //                    return_status = status;
                     }
-                    else if (return_status == Solved_To_Acceptable_Level) {
+                    else if (status == Solved_To_Acceptable_Level) {
                         //                return 150;
                         optimal = true;
                     }
