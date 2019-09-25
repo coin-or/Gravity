@@ -710,8 +710,8 @@ namespace gravity {
                 }
 //                run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
                 /* We will send model status to all workers */
-                send_status(models,limits);
             }
+            send_status(models,limits);
             MPI_Barrier(MPI_COMM_WORLD);
             if(!share_all && !share_all_obj){/* Only share solution with worker 0 */
                 if (worker_id == 0){
