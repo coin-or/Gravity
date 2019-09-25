@@ -198,7 +198,7 @@ namespace gravity {
         /* run model */
         int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
             int return_status = -1, dyn_max_iter = 20;
-            bool violated_constraints = true, optimal = false;
+            bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
                 if (_stype==ipopt) {
