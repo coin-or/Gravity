@@ -3547,7 +3547,7 @@ namespace gravity {
                                 {
                                     double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                    run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",500,500, false,true);
+                                    run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",300,300, false,true);
 #else
                                     run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27");
                                     //run_parallel(batch_models,cplex,1e-7,nb_threads);
@@ -3556,19 +3556,19 @@ namespace gravity {
                                     auto batch_time = batch_time_end - batch_time_start;
                                     DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                     for (auto model:batch_models)
-                                    {
-                                        mkname=model->get_name();
-                                        std::size_t pos = mkname.find("|");
-                                        vkname.assign(mkname, 0, pos);
-                                        mkname=mkname.substr(pos+1);
-                                        pos=mkname.find("|");
-                                        keyk.assign(mkname, 0, pos);
-                                        dirk=mkname.substr(pos+1);
-                                        vk=this->get_var<T>(vkname);
-                                        var_key_k=vkname+"|"+keyk;
+                                    {                                        
                                         //Update bounds only of the model status is solved to optimal                                }
                                         if(model->_status==0)
                                         {
+                                            mkname=model->get_name();
+                                            std::size_t pos = mkname.find("|");
+                                            vkname.assign(mkname, 0, pos);
+                                            mkname=mkname.substr(pos+1);
+                                            pos=mkname.find("|");
+                                            keyk.assign(mkname, 0, pos);
+                                            dirk=mkname.substr(pos+1);
+                                            vk=this->get_var<T>(vkname);
+                                            var_key_k=vkname+"|"+keyk;
                                             objk=model->get_obj_val();
                                             if(dirk=="LB")
                                             {

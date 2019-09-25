@@ -198,7 +198,7 @@ namespace gravity {
         /* run model */
         int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
             int return_status = -1, dyn_max_iter = 20;
-            bool violated_constraints = true, optimal = true;
+            bool violated_constraints = true, optimal = false;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
                 if (_stype==ipopt) {
@@ -281,7 +281,7 @@ namespace gravity {
                     _model->fill_in_maps();
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
-                    status = iapp->OptimizeTNLP(tmp);
+                    return_status = iapp->OptimizeTNLP(tmp);
                     if (IsValid(iapp->Statistics())) {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();
@@ -290,8 +290,8 @@ namespace gravity {
                         *_model->_obj *= -1;
                         _model->_obj->_val->at(0) *= -1;
                     }
-                    DebugOff("Return status = " << status << endl);
-                    if (status == Solve_Succeeded) {
+                    DebugOn("Return status = " << status << endl);
+                    if (return_status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
                         // Retrieve some statistics about the solve
@@ -300,7 +300,7 @@ namespace gravity {
                         //                return status;
                         //                    return_status = status;
                     }
-                    else if (status == Solved_To_Acceptable_Level) {
+                    else if (return_status == Solved_To_Acceptable_Level) {
                         //                return 150;
                         optimal = true;
                     }
