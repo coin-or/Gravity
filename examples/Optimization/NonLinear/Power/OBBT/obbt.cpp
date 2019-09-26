@@ -247,16 +247,19 @@ int main (int argc, char * argv[]) {
     }
 
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
-    ofstream fout(result_name.c_str());
 #ifdef USE_MPI
     if(worker_id==0){
+
+    	ofstream fout(result_name.c_str());
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
-        #endif
+        fout.close();
+     }
+    MPI_Finalize();
+#else
+	ofstream fout(result_name.c_str());
         fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
         fout.close();
-#ifdef USE_MPI
-    }
-    MPI_Finalize();
 #endif
     
     return 0;
