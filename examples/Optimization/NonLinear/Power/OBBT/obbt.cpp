@@ -253,6 +253,7 @@ int main (int argc, char * argv[]) {
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         #endif
         fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
+        fout.close();
 #ifdef USE_MPI
     }
     MPI_Finalize();
