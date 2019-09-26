@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
-    string threads_s="12";
+    string threads_s="24";
     
     string lazy_s = "no";
     string orig_s = "no";
@@ -247,11 +247,12 @@ int main (int argc, char * argv[]) {
     }
 
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
-    ofstream fout(result_name.c_str(), ios_base::app);
+    ofstream fout(result_name.c_str());
 #ifdef USE_MPI
     if(worker_id==0){
-#endif
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
+        DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
+        #endif
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
 #ifdef USE_MPI
     }
     MPI_Finalize();
