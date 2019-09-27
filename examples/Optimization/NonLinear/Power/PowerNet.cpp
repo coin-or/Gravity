@@ -2360,21 +2360,21 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         T.real_imag(cc.in(arcs), dd.in(arcs));
         Y.real_imag(g.in(arcs), b.in(arcs));
         Ych.set_imag(ch_half.in(arcs));
-        
-        
+
+
         L_from.set_real(lij.in(arcs));
         W.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
-   
-        
+
+
         Constraint<Cpx> I_from("I_from");
         I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
         SDPOPF->add_real(I_from.in(arcs)==0);
-        
-        
+
+
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         SDPOPF->add(I_from_Pf.in(arcs)<=0, true);
-        
+
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
 
@@ -2387,7 +2387,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
         //SDPOPF->add(I_to_Pf.in(arcs_I_to)<=0, true);
         SDPOPF->add(I_to_Pf.in(arcs)<=0, true);
-        
+
         
     }
     

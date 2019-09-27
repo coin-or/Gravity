@@ -1119,51 +1119,110 @@ namespace gravity {
             _has_callback = true;
         }
         
-        //        template<typename T>
-        //        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
-        //            for (auto &c_p: _cons_name) {
-        //                auto c = c_p.second;
-        //                if (!c->has_var(*v)) {
-        //                    continue;
-        //                }
-        //                c->replace(v, f);
-        //            }
-        //            _vars_name.erase(v->_name);
-        //            auto vid = *v->_vec_id;
-        //            delete _vars.at(vid);
-        //            _vars.erase(vid);
-        //            reindex_vars();
-        //        }
+        template<typename T>
+        void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
+            for (auto &c_p: _cons_name) {
+                auto c = c_p.second;
+                if (!c->has_var(*v)) {
+                    continue;
+                }
+                c->replace(v, f);
+            }
+            _vars_name.erase(v->_name);
+            auto vid = *v->_vec_id;
+            _vars.erase(vid);
+            reindex_vars();
+        }
         
         
-        //        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
-        //            for (auto& c_pair:_cons_name) {
-        //                if (!c_pair.second->is_ineq()) {
-        //                    auto &lterms = c_pair.second->get_lterms();
-        //                    if (!lterms.empty()) {
-        //                        auto first = lterms.begin();
-        //                        auto v = first->second._p;
-        //                        if (v->_is_vector) {
-        //                            continue;
-        //                        }
-        //                        auto f = *c_pair.second;
-        //                        if (first->second._sign) {
-        //                            //                    f -= *v;
-        //                            //                    f *= -1;
-        //                        }
-        //                        else {
-        //                            //                    f += *v;
-        //                        }
-        //                        DebugOff(f.to_str());
-        //                        _cons.erase(c_pair.second->_id);
-        //                        _cons_name.erase(c_pair.first);
-        //                        replace(v,f);
-        //                        //                project();
-        //                        return;
-        //                    }
-        //                }
-        //            }
-        //        }
+        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+            for (auto& c_pair:_cons_name) {
+                if (c_pair.second->is_eq()) {
+                    auto &lterms = c_pair.second->get_lterms();
+                    if (!lterms.empty()) {
+                        auto first = lterms.begin();
+                        auto v = first->second._p;
+                        auto f = *c_pair.second;
+                        switch (v->get_intype()) {
+                            case binary_: {
+                                auto vv = *static_pointer_cast<var<bool>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case short_: {
+                                auto vv = *static_pointer_cast<var<short>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case integer_: {
+                                auto vv = *static_pointer_cast<var<int>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case float_: {
+                                auto vv = *static_pointer_cast<var<float>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case double_: {
+                                auto vv = *static_pointer_cast<var<double>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case long_: {
+                                auto vv = *static_pointer_cast<var<long double>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case complex_: {
+                                auto vv = *static_pointer_cast<var<Cpx>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                        }
+                        DebugOff(f.to_str());
+                        remove(c_pair.first);
+                        replace(v,f);
+                        return;
+                    }
+                }
+            }
+        }
         
         
         /** Add constraint to model
@@ -1346,6 +1405,7 @@ namespace gravity {
                 _type = nlin_m;
             }
             embed(_obj);
+            _obj->allocate_mem();
         }
         
         template<typename T1>
@@ -2881,12 +2941,10 @@ namespace gravity {
         }
         
         type get_obj_val() const{
-            _obj->allocate_mem();
-            return _obj->eval();
+            return _obj->_val->at(0);
         }
         
         void print_obj_val(int prec = 5) const{
-            _obj->allocate_mem();
             cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
@@ -6069,7 +6127,7 @@ namespace gravity {
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double> run_obbt(double max_time = 1000, unsigned max_iter=1e4, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+        std::tuple<bool,int,double> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){

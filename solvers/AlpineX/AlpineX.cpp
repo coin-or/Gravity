@@ -32,12 +32,13 @@ int main (int argc, char * argv[])
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
-    string solver_str="ipopt";
-    
+    string solver_str="cplex";
+    SolverType solv_type = cplex;
     /** Create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("s", "solver", "solver type (def. cplex)", solver_str);
     opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -55,13 +56,22 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
-    
+    solver_str = opt["s"];
+    if (solver_str.compare("gurobi")==0) {
+        solv_type = gurobi;
+    }
+    else if(solver_str.compare("ipopt")==0) {
+        solv_type = ipopt;
+    }
+    else if(solver_str.compare("Mosek")==0) {
+        solv_type = _mosek;
+    }
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
     
     double upperbound = grid.solve_acopf(ACRECT);
-    
+    DebugOn("Upper bound = " << upperbound << endl);
     grid.get_tree_decomp_bags();
     auto bags_3d=grid.decompose_bags_3d();
     
@@ -341,7 +351,7 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP, ipopt);
+    solver<> SOCPOPF(SOCP, solv_type);
     SOCPOPF.run(output, tol = 1e-6);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
@@ -362,8 +372,7 @@ int main (int argc, char * argv[])
     
     /***************** REMOVING SDP_3D cuts *****************/
     if(!grid._tree){
-    SOCP->remove("SDP_3D");
-    SOCP->reindex();
+        SOCP->remove("SDP_3D");
     }
     
     if(current){
@@ -398,14 +407,12 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    DebugOn("HERE IS THE OBJ VAL BEFORE" << SOCP->get_obj_val());
-    auto SOCPOA = SOCP->buildOA(4,4);
-    DebugOn("HERE IS THE OBJ VAL AFTER" << SOCP->get_obj_val());
+    auto SOCPOA = SOCP->buildOA(5,5);
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    solver<> SOCOPF_CPX(SOCP, cplex);
     auto solver_time_start = get_wall_time();
     SOCOPF_CPX.run(output,tol = 1e-6);
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
@@ -431,6 +438,8 @@ int main (int argc, char * argv[])
     
     auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx2.print();
+    auto nonzero_idx3 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_from_Pf");
+    nonzero_idx3.print();
     
     
     return 0;
