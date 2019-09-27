@@ -27,8 +27,8 @@ int main (int argc, char * argv[])
     //    Switch the data file to another instance
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
 //    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     
     string path = argv[0];
@@ -369,9 +369,7 @@ int main (int argc, char * argv[])
     if(current){
         
         indices nonzero_arcs("nonzero_arcs");
-        nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39");
-
-        
+        nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39", "38,23,36", "5,3,4", "2,2,3", "39,25,26", "43,26,29", "0,1,2", "15,8,9", "42,26,28", "44,28,29", "21,12,13", "20,11,12", "25,16,17", "23,14,15", "27,16,21");
         if (true){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
@@ -392,7 +390,7 @@ int main (int argc, char * argv[])
             I_to_Pf_temp.in(arcs) >= 0;
 
             //trial use SOC_partition
-            SOCP->SOC_partition(I_to_Pf_temp,30,30,true);
+            SOCP->SOC_partition(I_to_Pf_temp,25,25,true);
             
             
         }
@@ -400,7 +398,9 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
+    DebugOn("HERE IS THE OBJ VAL BEFORE" << SOCP->get_obj_val());
     auto SOCPOA = SOCP->buildOA(4,4);
+    DebugOn("HERE IS THE OBJ VAL AFTER" << SOCP->get_obj_val());
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
