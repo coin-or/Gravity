@@ -2157,27 +2157,57 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
-    //add_original=true;
-//    if(add_original)
-//    {
-//        var<>  R_Vi("R_Vi", -1*v_max, v_max);
-//        var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-//
-//
-//            SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
-//            R_Vi.initialize_all(1);
-//
-//
-//
-//        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
-//        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-//        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-//        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-//        
-//        Constraint<Cpx> Linking_Wij("Linking_Wij");
-//        Linking_Wij = Wij - Vi*conj(Vj);
-//        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
-//    }
+    add_original=true;
+    if(add_original)
+    {
+        var<>  R_Vi("R_Vi", -1*v_max, v_max);
+        var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+
+
+            SDPOPF->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+            R_Vi.initialize_all(1);
+        Im_Vi.set_lb((grid.ref_bus),0);
+        Im_Vi.set_ub((grid.ref_bus),0);
+        
+        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+
+
+        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+        
+        Constraint<Cpx> Linking_Wij("Linking_Wij");
+        Linking_Wij = Wij - Vi*conj(Vj);
+        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        
+        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+        
+        Constraint<Cpx> Linking_Wi("Linking_Wi");
+        Linking_Wi = Wii - Vi*conj(Vi);
+        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
+        
+        if(!grid._tree)
+        {
+           
+            auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
+            auto Wii_ = Wii.in_bags(grid._bags, 3);
+            auto nb_bags3 = Wij_[0]._indices->size();
+         
+            Constraint<Cpx> Rank_type2a("RankType2a");
+            Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+            SDPOPF->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+            
+            Constraint<Cpx> Rank_type2b("RankType2b");
+            Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+            SDPOPF->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+            
+            Constraint<Cpx> Rank_type2c("RankType2c");
+            Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+            SDPOPF->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+        }
+    }
 //
     
     /* Initialize variables */
@@ -2330,30 +2360,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SDPOPF->add(LNC2.in(bus_pairs) >= 0);
-    //    if(add_original){
-    //        Im_Vi.set_lb((grid.ref_bus),0);
-    //        Im_Vi.set_ub((grid.ref_bus),0);
-    //
-    //        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-    //        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
-    //
-    //
-    //
-    //        var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
-    //        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-    //        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-    //        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-    //
-    //        Constraint<Cpx> Linking_Wij("Linking_Wij");
-    //        Linking_Wij = Wij - Vi*conj(Vj);
-    //        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
-    //
-    //        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
-    //
-    //        Constraint<Cpx> Linking_Wi("Linking_Wi");
-    //        Linking_Wi = Wii - Vi*conj(Vi);
-    //        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
-    //    }
+
     if(current){
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
         var<Cpx> L_from("L_from"), W("W"), Vi("Vi"), Vj("Vj"), I("I");

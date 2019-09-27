@@ -491,6 +491,23 @@ int main (int argc, char * argv[]) {
 //    else {
 //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
 //    }
+    vector<double> xcurrent;
+    auto con=SDP.get_constraint("SDP_3D");
+    
+          xcurrent=con->get_x(0);
+    for (auto i=0;i<xcurrent.size();i++)
+        DebugOn(xcurrent[i]<<endl);
+    double xval;
+    for(auto &it: *con->_vars)
+    {
+        auto v = it.second.first;
+    
+               auto posv=v->get_id_inst(0);
+                v->get_double_val(posv,xval);
+        DebugOn(v->_name<<"\t"<<xval);
+    }
+    SDP.print_solution();
+    con->print();
     return 0;
     
 }
