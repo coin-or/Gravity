@@ -360,17 +360,6 @@ namespace gravity {
                                                     xres=con->get_x(i);
                                                   
                                                     con->uneval();
-                                                    DebugOn(con->eval(i)<<endl);
-//                                                     DebugOn("xint"<<endl);
-//                                                    for(auto m=0;m<xres.size();m++)
-//                                                    {
-//                                                        DebugOn(xinterior[m]<<endl);
-//                                                    }
-//                                                     DebugOn("xres"<<endl);
-//                                                    for(auto m=0;m<xres.size();m++)
-//                                                    {
-//                                                        DebugOn(xres[m]<<endl);
-//                                                    }
                                                     con->uneval();
                                                     fk=con->eval(i);
                                                     a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];

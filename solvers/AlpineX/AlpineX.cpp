@@ -31,7 +31,8 @@ int main (int argc, char * argv[])
   //  string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
    //string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_bgm__nco.m";
       // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
-     string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case39_1_bgm__nco.m";
+    // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case39_1_bgm__nco.m";
+    string fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case3_lmbd__api.m";
     
     string path = argv[0];
     string solver_str="cplex";
@@ -357,6 +358,7 @@ int main (int argc, char * argv[])
     SOCPOPF.run(output, tol = 1e-6);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP->print();
 //    auto original_SOC = grid.build_SCOPF();
 //    solver<> SOCOPF_ORIG(original_SOC, ipopt);
 //    SOCOPF_ORIG.run(output, tol = 1e-6);

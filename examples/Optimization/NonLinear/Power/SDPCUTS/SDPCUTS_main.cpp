@@ -132,7 +132,7 @@ int main (int argc, char * argv[]) {
     
     cout << "\nnum bags = " << num_bags << endl;
     
-    double total_time_start = get_wall_time();
+   // double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
     grid.update_ref_bus();
@@ -251,7 +251,7 @@ int main (int argc, char * argv[]) {
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    bool current = true;
+    bool current = false;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
   
@@ -260,12 +260,14 @@ int main (int argc, char * argv[]) {
     }
 
     
-    SDP.min(eta(0));
+    
     //SDPOA.min(eta(0));
     
-    Constraint<> obj_UB("obj_UB");
-    obj_UB  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
-    SDP.add(obj_UB.in(range(0,0)) <= 0);
+//    Constraint<> obj_UB("obj_UB");
+//    obj_UB  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
+//    SDP.add(obj_UB.in(range(0,0)) <= 0);
+    auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+    SDP.min(obj);
 
 
     
@@ -357,7 +359,7 @@ int main (int argc, char * argv[]) {
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
     //SDP.add(Thermal_Limit_from.in(arcs));
-    SDP.add(Thermal_Limit_from.in(arcs), true);
+    SDP.add(Thermal_Limit_from.in(arcs));
     
     
     
@@ -365,7 +367,7 @@ int main (int argc, char * argv[]) {
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SDP.add(Thermal_Limit_to.in(arcs), true);
+    SDP.add(Thermal_Limit_to.in(arcs));
 
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -434,31 +436,39 @@ int main (int argc, char * argv[]) {
     }
     
 
-    double solver_time_start = get_wall_time();
+    double solver_time_start;
     
     solver<> SDPOPF(SDP,solv_type);
     solver_time_start = get_wall_time();
     
     SDPOPF.run(output = 5, tol = 1e-7);
+     double solver_time_end = get_wall_time();
+    double solver_time=solver_time_end-solver_time_start;
+    double gap=999, lower_bound=999;
    // SDP.print_solution();
-    SDP.print();
-    SDP.print_constraints_stats(tol);
-    SDP.print_nonzero_constraints(tol,true);
-    auto lower_bound = SDP.get_obj_val()*upper_bound;
-    
-    //SDP.print_solution();
-    
+   // SDP.print();
+   // SDP.print_constraints_stats(tol);
+   // SDP.print_nonzero_constraints(tol,true);
+    if(SDP._status==0)
+    {
+     lower_bound = SDP.get_obj_val();
 
-    double gap = 100*(upper_bound - lower_bound)/upper_bound;
-    double solver_time_end = get_wall_time();
-    double total_time_end = get_wall_time();
-    auto solve_time = solver_time_end - solver_time_start;
-    auto total_time = total_time_end - total_time_start;
-    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
-    DebugOn(out <<endl);
-    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    gap = 100*(upper_bound - lower_bound)/upper_bound;
+    }
+ 
+//    auto solve_time = solver_time_end - solver_time_start;
+//
+//    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+//    DebugOn(out <<endl);
+//    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+//    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+//    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    
+    string result_name=string(prj_dir)+"/results_SDP/"+grid._name+".txt";
+    
+    ofstream fout(result_name.c_str());
+    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<solver_time<<endl;
+    fout.close();
    
 //    SDP.run_obbt();
 //    SDP.reset_constrs();
@@ -491,23 +501,6 @@ int main (int argc, char * argv[]) {
 //    else {
 //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
 //    }
-    vector<double> xcurrent;
-    auto con=SDP.get_constraint("SDP_3D");
-    
-          xcurrent=con->get_x(0);
-    for (auto i=0;i<xcurrent.size();i++)
-        DebugOn(xcurrent[i]<<endl);
-    double xval;
-    for(auto &it: *con->_vars)
-    {
-        auto v = it.second.first;
-    
-               auto posv=v->get_id_inst(0);
-                v->get_double_val(posv,xval);
-        DebugOn(v->_name<<"\t"<<xval);
-    }
-    SDP.print_solution();
-    con->print();
-    return 0;
+
     
 }
