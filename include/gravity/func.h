@@ -1345,7 +1345,7 @@ namespace gravity {
          bool linesearchbinary(vector<double> x_start, size_t nb_inst, ConstraintType ctype)
          {
             bool success=false;
-            const double int_tol=1e-6, zero_tol=1e-6;
+            const double int_tol=1e-8, zero_tol=1e-8;
             const int max_iter=1000;
             vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
             double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
@@ -1400,15 +1400,15 @@ namespace gravity {
 //
 //                    }
 //
-                    if(f_mid>=zero_tol && f_mid<=f_t)
+                    if(f_mid>=zero_tol)
                     {
                         x_t=mid;
                     }
-                    else if(f_mid<=zero_tol*(-1) && f_mid>=f_f)
+                    else if(f_mid<=zero_tol*(-1))
                     {
                         x_f=mid;
                     }
-                    else
+                    else if(std::abs(f_mid)<=zero_tol)
                     {
                         //DebugOn("Reached answer"<<endl);
                         success=true;

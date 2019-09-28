@@ -2157,7 +2157,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
-    add_original=true;
+    add_original=false;
     if(add_original)
     {
         var<>  R_Vi("R_Vi", -1*v_max, v_max);
