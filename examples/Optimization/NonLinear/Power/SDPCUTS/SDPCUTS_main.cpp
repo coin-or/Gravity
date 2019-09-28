@@ -24,7 +24,7 @@ int main (int argc, char * argv[]) {
     int output = 0;
     bool sdp_cuts = true;
     
-    bool current_from = true, llnc=true, current_to=true, loss=true, loss_bounds=true;
+    bool current_from = true, llnc=true, current_to=true, loss=true, loss_bounds=true, current;
     
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -122,7 +122,7 @@ int main (int argc, char * argv[]) {
     else{
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }
-    current=true;
+
     
 
     
@@ -251,7 +251,7 @@ int main (int argc, char * argv[]) {
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.001);
     
-    bool current = false;
+    current = false;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
   
