@@ -138,7 +138,7 @@ namespace gravity {
                 Interior->add_var(v);
             }
         }
-        var<> eta_int("eta_int", -1, 0);
+        var<> eta_int("eta_int", -1, -0.000001);
         
         Interior->add(eta_int.in(range(0,0)));
         auto obj=eta_int;
@@ -149,7 +149,7 @@ namespace gravity {
         
         for (auto &con: nonlin._cons_vec)
         {
-            //if(!con->is_linear()) {
+            if(!con->is_linear()) {
             Constraint<> Inter_con(*con);
             if(con->_ctype==leq)
             {
@@ -161,7 +161,7 @@ namespace gravity {
                 Inter_con += eta_int;
                 Interior->add(Inter_con>=0);
             }
-            //        }
+                   }
             //        else
             //        {
             //            if(con->_ctype==leq||con->_ctype==geq)
@@ -251,9 +251,10 @@ namespace gravity {
     template<>
     void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
     {
-        const double active_tol=1e-6, perturb_dist=1e-3;
+        const double active_tol=1e-6, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
-        vector<double> xactive, xcurrent, xinterior;
+        vector<double> xactive, xcurrent, xinterior, xres;
+        double a,b,c;
         bool interior=false;
         double fk;
         bool outer;
@@ -262,7 +263,7 @@ namespace gravity {
         
         int output=5;
         double tol=1e-6;
-        
+        bool convex_fr=true;
         auto Ointerior=build_model_interior(nonlin);
         solver<> modelI(Ointerior, ipopt);
         modelI.run(output, tol);
@@ -328,6 +329,7 @@ namespace gravity {
                                 for(auto &it: *con->_vars)
                                 {
                                     auto v = it.second.first;
+                                    auto vname=v->_name;
                                     if(v->_is_vector)
                                     {
                                         DebugOn("Exception: Vector variables are not currently supported"<<endl);
@@ -343,7 +345,7 @@ namespace gravity {
                                             v->set_double_val(posv, xactive[counter]*(1+k*j*perturb_dist));
                                             con->uneval();
                                             fk=con->eval(i);
-                                            if((fk>=0 && con->_ctype==leq) || (fk<=0 && con->_ctype==geq)){
+                                            if((fk>=active_tol && con->_ctype==leq) || (fk<=(active_tol*(-1)) && con->_ctype==geq)){
                                                 outer=true;
                                                 break;
                                             }
@@ -352,6 +354,38 @@ namespace gravity {
                                         {
                                             auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
                                             if(res_search){
+                                                convex_fr=true;
+                                                if(!con->is_convex()) //assuming con is the SDP cut as it is the only nonconvex one
+                                                {
+                                                    xres=con->get_x(i);
+                                                  
+                                                    con->uneval();
+                                                    DebugOn(con->eval(i)<<endl);
+//                                                     DebugOn("xint"<<endl);
+//                                                    for(auto m=0;m<xres.size();m++)
+//                                                    {
+//                                                        DebugOn(xinterior[m]<<endl);
+//                                                    }
+//                                                     DebugOn("xres"<<endl);
+//                                                    for(auto m=0;m<xres.size();m++)
+//                                                    {
+//                                                        DebugOn(xres[m]<<endl);
+//                                                    }
+                                                    con->uneval();
+                                                    fk=con->eval(i);
+                                                    a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                                    b=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                                    c=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                                    if(a<=0 && b<=0 && c<=0){
+                                                        convex_fr=true;
+                                                    }
+                                                    else{
+                                                        convex_fr=false;
+                                                    }
+                                                   // convex_fr=false;
+                                                    }
+                                            
+                                                if(convex_fr){
                                                 
                                                 Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
                                                 OA_active=con->get_outer_app_insti(i);
@@ -360,6 +394,7 @@ namespace gravity {
                                                 }
                                                 else {
                                                     add(OA_active>=0);
+                                                }
                                                 }
                                                 
                                             }
@@ -371,6 +406,10 @@ namespace gravity {
                                 }
                             }
                             con->set_x(i, xcurrent);
+                            xcurrent.clear();
+                            xactive.clear();
+                            xinterior.clear();
+                            
                         }
                     }
                 }

@@ -25,11 +25,13 @@ int main (int argc, char * argv[])
     bool current = true;
     
     //    Switch the data file to another instance
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+    // string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+     // string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
-    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
-//    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
+  //  string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
+   //string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_bgm__nco.m";
+      // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
+     string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case39_1_bgm__nco.m";
     
     string path = argv[0];
     string solver_str="cplex";
@@ -238,7 +240,7 @@ int main (int argc, char * argv[])
     
     
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,etag) + sum(c0);
+    auto obj = (product(c1,Pg) + product(c2,etag) + sum(c0));
     SOCP->min(obj);
   
     /* Flow conservation */
@@ -363,6 +365,7 @@ int main (int argc, char * argv[])
     //DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     if(SOCP->_status==0||SOCP->_status==1)
     {
+        SOCP->print_solution();
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
     DebugOn("Gap after OBBT = " << to_string(gap) << "%."<<endl);
     }
@@ -371,11 +374,11 @@ int main (int argc, char * argv[])
     nonzero_idx.print();
     
     /***************** REMOVING SDP_3D cuts *****************/
-    if(!grid._tree){
-        SOCP->remove("SDP_3D");
-    }
+//    if(!grid._tree){
+//        SOCP->remove("SDP_3D");
+//    }
     
-    if(current){
+    if(!current){
         
         indices nonzero_arcs("nonzero_arcs");
         nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39", "38,23,36", "5,3,4", "2,2,3", "39,25,26", "43,26,29", "0,1,2", "15,8,9", "42,26,28", "44,28,29", "21,12,13", "20,11,12", "25,16,17", "23,14,15", "27,16,21");
@@ -408,14 +411,16 @@ int main (int argc, char * argv[])
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
     auto SOCPOA = SOCP->buildOA(5,5);
+    SOCPOA->print();
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCP, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, cplex);
     auto solver_time_start = get_wall_time();
-    SOCOPF_CPX.run(output,tol = 1e-6);
-    gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
+//    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
+    SOCOPF_CPX.run(output=5,tol = 1e-6);
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
