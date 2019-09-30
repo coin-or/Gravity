@@ -183,7 +183,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPLB(SDP,solv_type);
     DebugOn("Lower bounding ipopt"<<endl);
     SDPLB.run(output = 0, tol);
-    SDP->print();
+  //  SDP->print();
 //    SDP->print_solution();
     
     if(SDP->_status==0 || SDP->_status==1)
