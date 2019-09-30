@@ -238,7 +238,33 @@ int main (int argc, char * argv[])
     }
     
     
+    var<>  R_Vi("R_Vi", -1*v_max, v_max);
+    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+
+
+    SOCP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+    R_Vi.initialize_all(1);
+    Im_Vi.set_lb((grid.ref_bus),0);
+    Im_Vi.set_ub((grid.ref_bus),0);
     
+    R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+    R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+    
+
+    var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+    Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+    Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+    Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+    
+//    Constraint<Cpx> Linking_Wij("Linking_Wij");
+//    Linking_Wij = Wij - Vi*conj(Vj);
+//    SOCP->add(Linking_Wij.in(bus_pairs_chord)==0, true);
+    
+    Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+    
+    Constraint<Cpx> Linking_Wi("Linking_Wi");
+    Linking_Wi = Wii - Vi*conj(Vi);
+    SOCP->add(Linking_Wi.in(nodes)==0, true);
     
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,etag) + sum(c0));
@@ -411,14 +437,43 @@ int main (int argc, char * argv[])
     }
     
 //    SOCP->print();
+    
+    bool partition =  true;
+    if(partition){
+//        auto R_Vi = SOCPOA->get_var<double>("R_Vi");
+//        auto Im_Vi = SOCPOA->get_var<double>("Im_Vi");
+//        auto R_Wij = SOCPOA->get_var<double>("R_Wij");
+//        /* Imaginary part of Wij = ViVj */
+//        auto Im_Wij = SOCPOA->get_var<double>("Im_Wij");
+//        /* Magnitude of Wii = Vi^2 */
+//        auto Wii = SOCPOA->get_var<double>("Wii");
+        *R_Vi._num_partns = 3;
+        *Im_Vi._num_partns = 3;
+        
+        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+        
+        Constraint<Cpx> Linking_Wij_partition("Linking_Wij_partition");
+        Linking_Wij_partition = Wij - Vi*conj(Vj);
+        SOCP->add(Linking_Wij_partition.in(bus_pairs_chord)==0, true, "lambda_II");
+        
+        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+        
+        Constraint<Cpx> Linking_Wi_partition("Linking_Wi_partition");
+        Linking_Wi_partition = Wii - Vi*conj(Vi);
+        SOCP->add(Linking_Wi_partition.in(nodes)==0, true, "lambda_II");
+        
+    }
+    
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
     auto SOCPOA = SOCP->buildOA(5,5);
-    SOCPOA->print();
+//    SOCPOA->print();
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, ipopt);
+    solver<> SOCOPF_CPX(SOCPOA, cplex);
     auto solver_time_start = get_wall_time();
 //    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
     SOCOPF_CPX.run(output=5,tol = 1e-8);
@@ -429,18 +484,19 @@ int main (int argc, char * argv[])
     solve_time = solver_time_end - solver_time_start;
     total_time = total_time_end - total_time_start;
     
-    /* Solver selection */
-    //    solver<> //ACOPF_IPOPT(//ACOPF, ipopt);
-    //    //ACOPF_IPOPT.run(output, tol = 1e-6);
-    
-    
-    
+    if(partition){
+        /* Solver selection */
+        solver<> SDP_CPX(SOCPOA, cplex);
+        SDP_CPX.run(output,1e-6);
+        gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
+        DebugOn("Gap after partitionning = " << to_string(gap) << "%."<<endl);
+    }
     auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
     //    double gap = 100*(//ACOPF.get_obj_val() - SOCP.get_obj_val())///ACOPF.get_obj_val();
     
-    gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
     auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");

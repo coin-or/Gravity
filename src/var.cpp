@@ -42,6 +42,7 @@ var<type> var<type>::deep_copy() const{
     var<type> res;
     res.param<type>::operator=(this->param<type>::deep_copy());
     res.constant_::set_type(var_c);
+    res._num_partns = make_shared<int>(*_num_partns);
     res._lb = make_shared<func<type>>(*_lb);
     res._ub = make_shared<func<type>>(*_ub);
     return res;
