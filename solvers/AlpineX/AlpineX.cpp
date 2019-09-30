@@ -25,14 +25,14 @@ int main (int argc, char * argv[])
     bool current = true;
     
     //    Switch the data file to another instance
-    // string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
      // string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
   //  string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
    //string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_bgm__nco.m";
       // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
     // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case39_1_bgm__nco.m";
-    string fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case3_lmbd__api.m";
+    //string fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case3_lmbd__api.m";
     
     string path = argv[0];
     string solver_str="cplex";
@@ -354,8 +354,8 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP, solv_type);
-    SOCPOPF.run(output, tol = 1e-6);
+    solver<> SOCPOPF(SOCP,cplex);
+    SOCPOPF.run(output, tol = 1e-7);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
     SOCP->print();
@@ -418,10 +418,10 @@ int main (int argc, char * argv[])
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, ipopt);
     auto solver_time_start = get_wall_time();
 //    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
-    SOCOPF_CPX.run(output=5,tol = 1e-6);
+    SOCOPF_CPX.run(output=5,tol = 1e-8);
     gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
     solver_time_end = get_wall_time();
