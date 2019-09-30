@@ -355,7 +355,7 @@ int main (int argc, char * argv[])
     int max_iter = 5;
     int precision = 4;
     solver<> SOCPOPF(SOCP,cplex);
-    SOCPOPF.run(output, tol = 1e-7);
+    SOCPOPF.run(output, tol = 1e-8);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
     SOCP->print();
@@ -380,7 +380,7 @@ int main (int argc, char * argv[])
 //        SOCP->remove("SDP_3D");
 //    }
     
-    if(!current){
+    if(current){
         
         indices nonzero_arcs("nonzero_arcs");
         nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39", "38,23,36", "5,3,4", "2,2,3", "39,25,26", "43,26,29", "0,1,2", "15,8,9", "42,26,28", "44,28,29", "21,12,13", "20,11,12", "25,16,17", "23,14,15", "27,16,21");
@@ -412,13 +412,13 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    auto SOCPOA = SOCP->buildOA(5,5);
+    auto SOCPOA = SOCP->buildOA(5,6);
     SOCPOA->print();
     /***************** OUTER APPROXIMATION DONE *****************/
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, ipopt);
+    solver<> SOCOPF_CPX(SOCPOA, cplex);
     auto solver_time_start = get_wall_time();
 //    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
     SOCOPF_CPX.run(output=5,tol = 1e-8);

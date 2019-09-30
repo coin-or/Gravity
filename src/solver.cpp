@@ -251,7 +251,7 @@ namespace gravity {
     template<>
     void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
     {
-        const double active_tol=1e-6, perturb_dist=1e-1;
+        const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
         vector<double> xactive, xcurrent, xinterior, xres;
         double a,b,c;
@@ -281,7 +281,7 @@ namespace gravity {
                 
                 con->uneval();
                 for(auto i=0;i<con->get_nb_inst();i++){
-                    if(std::abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                    if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
                         Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
                         OA_sol=con->get_outer_app_insti(i);
                         if(con->_ctype==leq) {
