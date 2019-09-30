@@ -733,7 +733,7 @@ namespace gravity {
         //INPUT: a constraint, lifting option boolean, disjunctive union methods from ("on/off", "lambda_II", "lambda_III")
         //OUTPUT: addition of this constraint in the model, if lift is selected, the convex relaxation and the partitioning of the individual variables will be also included to the mathematical formulation
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(const Constraint<Cpx>& c, bool convexify = false, string method_type = "on/off"){
+        void add(const Constraint<Cpx>& c, bool convexify = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return;
             }
@@ -763,28 +763,28 @@ namespace gravity {
                 lifted_imag._dim[0] = c._dim[0];
                 add_constraint(lifted_real);
                 add_constraint(lifted_imag);
-                if(c_real.func<type>::is_convex() && c_real._ctype==eq){
+                if(c_real.func<type>::is_convex() && c_real._ctype==eq && split){
                     DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                     Constraint<type> c_real_cvx(c_real._name+"_convex");
                     c_real_cvx = c_real;
                     c_real_cvx._relaxed = true;
                     add_constraint(c_real_cvx <= 0);
                 }
-                if(c_real.func<type>::is_concave() && c_real._ctype==eq){
+                if(c_real.func<type>::is_concave() && c_real._ctype==eq && split){
                     DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                     Constraint<type> c_real_ccve(c_real._name+"_concave");
                     c_real_ccve = c_real;
                     c_real_ccve._relaxed = true;
                     add_constraint(c_real_ccve >= 0);
                 }
-                if(c_imag.func<type>::is_convex() && c_real._ctype==eq){
+                if(c_imag.func<type>::is_convex() && c_real._ctype==eq && split){
                     DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                     Constraint<type> c_imag_cvx(c_imag._name+"_convex");
                     c_imag_cvx = c_imag;
                     c_imag_cvx._relaxed = true;
                     add_constraint(c_imag_cvx <= 0);
                 }
-                if(c_imag.func<type>::is_concave() && c_real._ctype==eq){
+                if(c_imag.func<type>::is_concave() && c_real._ctype==eq && split){
                     DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                     Constraint<type> c_imag_ccve(c_imag._name+"_concave");
                     c_imag_ccve = c_imag;
@@ -1093,11 +1093,11 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
+        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c,convexify, method_type);
+            add_constraint(c,convexify, method_type, split);
         }
         
         
@@ -1231,7 +1231,7 @@ namespace gravity {
          @return a pointer to the added constraint
          @note If lift = true, this function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables. Note also that if this is an equation f(x) = 0 s.t. f(x)<=0 or f(x)>=0 is convex, will add the convex inequality to the model.
          **/
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off"){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -1269,14 +1269,14 @@ namespace gravity {
                 }
                 newc->update_str();
                 if(lift_flag){
-                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq && split){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
                         c_cvx._name = newc->_name+"_convex";
                         c_cvx._relaxed = true;
                         add_constraint(c_cvx <= 0);
                     }
-                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq && split){
                         DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                         Constraint<type> c_ccve(*newc);
                         c_ccve._name = newc->_name+"_concave";

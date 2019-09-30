@@ -2169,6 +2169,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         Im_Vi.set_lb((grid.ref_bus),0);
         Im_Vi.set_ub((grid.ref_bus),0);
         
+        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+        
 
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
         Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
@@ -2184,26 +2187,26 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
         SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
-        
-        if(!grid._tree)
-        {
-
-            auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
-            auto Wii_ = Wii.in_bags(grid._bags, 3);
-            auto nb_bags3 = Wij_[0]._indices->size();
-
-            Constraint<Cpx> Rank_type2a("RankType2a");
-            Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-            SDPOPF->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-
-            Constraint<Cpx> Rank_type2b("RankType2b");
-            Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
-            SDPOPF->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-
-            Constraint<Cpx> Rank_type2c("RankType2c");
-            Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
-            SDPOPF->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
-        }
+//        
+//        if(!grid._tree)
+//        {
+//
+//            auto Wij_ = Wij.in(bus_pairs_chord).pairs_in_bags(grid._bags, 3);
+//            auto Wii_ = Wii.in_bags(grid._bags, 3);
+//            auto nb_bags3 = Wij_[0]._indices->size();
+//
+//            Constraint<Cpx> Rank_type2a("RankType2a");
+//            Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//            SDPOPF->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+//
+//            Constraint<Cpx> Rank_type2b("RankType2b");
+//            Rank_type2b=Wij_[2]*conj(Wij_[1])-Wii_[2]*Wij_[0];
+//            SDPOPF->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+//
+//            Constraint<Cpx> Rank_type2c("RankType2c");
+//            Rank_type2c=Wij_[2]*conj(Wij_[0])-Wii_[0]*Wij_[1];
+//            SDPOPF->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+//        }
     }
 //
     
@@ -2377,7 +2380,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SDPOPF->add(I_from_Pf.in(arcs)<=0, true);
+        SDPOPF->add(I_from_Pf.in(arcs)==0, true, "on/off", false);
 
         var<Cpx> L_to("L_to");
         L_to.set_real(lji.in(arcs));
@@ -2390,7 +2393,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
         //SDPOPF->add(I_to_Pf.in(arcs_I_to)<=0, true);
-        SDPOPF->add(I_to_Pf.in(arcs)<=0, true);
+        SDPOPF->add(I_to_Pf.in(arcs)==0, true, "on/off", false);
 
         
     }
