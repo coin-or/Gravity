@@ -916,7 +916,7 @@ namespace gravity {
                         //define variables
                         var<type> y1(aux1_name, lb1, ub1);
                         add(y1.in(unique_ids));
-                        y1._num_partns = v1._num_partns + v2._num_partns;
+                        *y1._num_partns = *v1._num_partns + *v2._num_partns;
                         lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
                         var<type> y2(aux2_name, lb2, ub2);
                         add(y2.in(unique_ids));
@@ -934,7 +934,7 @@ namespace gravity {
                         //get variables
                         auto y1 = static_pointer_cast<var<type>>(it1->second);
                         auto added1 = y1->add_bounds(lb1,ub1);
-                        y1->_num_partns = v1._num_partns + v2._num_partns;
+                        *y1->_num_partns = *v1._num_partns + *v2._num_partns;
                         lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
                         if(!added1.empty()){
                             assert(v1._indices->size()==v2._indices->size());
@@ -4795,8 +4795,8 @@ namespace gravity {
             }
             
             //collect the number of partitions for each variable
-            int num_partns1 = v1._num_partns;
-            int num_partns2 = v2._num_partns;
+            int num_partns1 = *v1._num_partns;
+            int num_partns2 = *v2._num_partns;
             
             //collect the base name of each variable
             auto name1 = v1.get_name(true,true);
