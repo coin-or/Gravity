@@ -266,6 +266,7 @@ int main (int argc, char * argv[])
     Linking_Wi = Wii - Vi*conj(Vi);
     SOCP->add(Linking_Wi.in(nodes)==0, true);
     
+    SOCP->print();
     /**  Objective */
     auto obj = (product(c1,Pg) + product(c2,etag) + sum(c0));
     SOCP->min(obj);
@@ -380,8 +381,8 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP,cplex);
-    SOCPOPF.run(output, tol = 1e-7);
+    solver<> SOCPOPF(SOCP,ipopt);
+    SOCPOPF.run(output, tol = 1e-8);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
     SOCP->print();
@@ -438,15 +439,8 @@ int main (int argc, char * argv[])
     
 //    SOCP->print();
     
-    bool partition =  true;
+    bool partition =  false;
     if(partition){
-//        auto R_Vi = SOCPOA->get_var<double>("R_Vi");
-//        auto Im_Vi = SOCPOA->get_var<double>("Im_Vi");
-//        auto R_Wij = SOCPOA->get_var<double>("R_Wij");
-//        /* Imaginary part of Wij = ViVj */
-//        auto Im_Wij = SOCPOA->get_var<double>("Im_Wij");
-//        /* Magnitude of Wii = Vi^2 */
-//        auto Wii = SOCPOA->get_var<double>("Wii");
         *R_Vi._num_partns = 3;
         *Im_Vi._num_partns = 3;
         
