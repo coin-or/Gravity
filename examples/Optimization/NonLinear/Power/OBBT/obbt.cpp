@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
-    string threads_s="24";
+    string threads_s="12";
     
     string lazy_s = "no";
     string orig_s = "no";
@@ -188,7 +188,7 @@ int main (int argc, char * argv[]) {
     
     if(SDP->_status==0 || SDP->_status==1)
     {
-    lower_bound=SDP->get_obj_val();
+    lower_bound=SDP->get_obj_val()*upper_bound;
     
      gapnl = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
@@ -198,7 +198,7 @@ int main (int argc, char * argv[]) {
         ub.second=upper_bound;
     
        auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
-        lower_bound=SDP->get_obj_val();
+        lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         
         terminate=std::get<0>(res);
