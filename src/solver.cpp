@@ -150,7 +150,9 @@ namespace gravity {
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
+                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
             Constraint<> Inter_con(*con);
+                
             if(con->_ctype==leq)
             {
                 Inter_con -= eta_int;
@@ -162,6 +164,7 @@ namespace gravity {
                 Interior->add(Inter_con>=0);
             }
                    }
+            }
             //        else
             //        {
             //            if(con->_ctype==leq||con->_ctype==geq)
