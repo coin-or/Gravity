@@ -3821,7 +3821,7 @@ namespace gravity {
         const double tol = 1e-6;
           int output = 0;
         
-        double lower_bound=this->get_obj_val();
+        double lower_bound=this->get_obj_val()*upper_bound.second;
 
         
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
@@ -4070,10 +4070,10 @@ namespace gravity {
                     SDPLB1.run(output = 0, tol, "ma27");
                     if(this->_status==0)
                     {
-                        auto gap = 100*(upper_bound.second - (this->get_obj_val()))/upper_bound.second;
+                        auto gap = 100*(upper_bound.second - (this->get_obj_val())*upper_bound.second)/upper_bound.second;
                         DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                     }
-                    if (upper_bound.second-this->get_obj_val()<=abs_tol && (upper_bound.second-this->get_obj_val())/(upper_bound.second+zero_tol)<=rel_tol)
+                    if (upper_bound.second-this->get_obj_val()*upper_bound.second<=abs_tol && (upper_bound.second-this->get_obj_val()*upper_bound.second)/(upper_bound.second+zero_tol)<=rel_tol)
                     {
 
 //                        this->print();
@@ -4082,7 +4082,7 @@ namespace gravity {
 
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                        lower_bound=this->get_obj_val();
+                        lower_bound=this->get_obj_val()*upper_bound.second;
                         gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                         DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                         DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);
@@ -4161,7 +4161,7 @@ namespace gravity {
                 if(this->_status==0)
                 {
 
-                    DebugOff("\nResults: " << " " << to_string(this->get_obj_val()) << " " <<endl);
+                    DebugOff("\nResults: " << " " << to_string(this->get_obj_val()*upper_bound.second) << " " <<endl);
                     DebugOff("Solution Print"<<endl);
 //                    this->print();
                     //                SDP->print_solution();
@@ -4169,7 +4169,7 @@ namespace gravity {
 
                     
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                    lower_bound=this->get_obj_val();
+                    lower_bound=this->get_obj_val()*upper_bound.second;
                     gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);

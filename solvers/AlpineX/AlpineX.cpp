@@ -473,6 +473,8 @@ int main (int argc, char * argv[])
     SOCOPF_CPX.run(output=5,tol = 1e-8);
     gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upperbound) << "%."<<endl);
+    
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
