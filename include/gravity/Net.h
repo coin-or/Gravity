@@ -44,7 +44,7 @@ public:
     gravity::node_pairs _bus_pairs_chord;
 
     /** Mapping the directed arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
-    std::map<std::string, std::set<Arc*>*> arcID;
+    std::map<std::string, std::map<string,Arc*>*> arcID;
 
     /** Mapping the line name to the line pointer */
     std::map<std::string, Arc*> arcMap;

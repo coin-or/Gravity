@@ -146,11 +146,11 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
-            return a;
+            return a.second;
             // }
         }
     }
@@ -158,7 +158,7 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
-            return a;
+            return a.second;
             // }
         }
     }
@@ -177,17 +177,17 @@ Arc* Net::get_arc(std::string src, std::string dest) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
     
     it = arcID.find(inv_key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
     
@@ -200,10 +200,10 @@ Arc* Net::get_directed_arc(std::string src, std::string dest) {
     key.append(src);
     key.append(",");
     key.append(dest);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
 
@@ -212,7 +212,7 @@ Arc* Net::get_directed_arc(std::string src, std::string dest) {
 
 bool Net::add_arc(Arc* a) {
     bool parallel = false;
-    set<Arc*>* s = NULL;
+    map<string,Arc*>* s = NULL;
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
@@ -228,14 +228,14 @@ bool Net::add_arc(Arc* a) {
     key.append(dest);
     
     if(arcID.find(key)==arcID.end()) {
-        s = new set<Arc*>;
-        s->insert(a);
-        arcID.insert(pair<string, set<Arc*>*>(key,s));
+        s = new map<string,Arc*>();
+        (*s)[a->_name] = a;
+        arcID.insert(pair<string, map<string,Arc*>*>(key,s));
     }
     else {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
-        s->insert(a);
+        (*s)[a->_name] = a;
         Warning("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
@@ -247,7 +247,7 @@ bool Net::add_arc(Arc* a) {
 // undirected
 void Net::add_undirected_arc(Arc* a) {
 //    bool parallel = false;
-    set<Arc*>* s = NULL;
+    map<string,Arc*>* s = NULL;
     string src, dest, key, key_inv;
     src = a->_src->_name;
     dest = a->_dest->_name;
@@ -268,9 +268,9 @@ void Net::add_undirected_arc(Arc* a) {
     key_inv.append(src);
     
     if(arcID.find(key)==arcID.end()&& arcID.find(key_inv)==arcID.end()) {
-        s = new set<Arc*>;
-        s->insert(a);
-        arcID.insert(pair<string, set<Arc*>*>(key,s));
+        s = new map<string,Arc*>();
+        (*s)[a->_name] = a;
+        arcID.insert(pair<string, map<string,Arc*>*>(key,s));
         arcs.push_back(a);
     }
 }
@@ -535,10 +535,10 @@ void Net::get_tree_decomp_bags() {
         vector<Node*> bag;
         DebugOff("new bag = { ");
         for (auto nn: n->get_neighbours()) {
-            if(!nn->_active) continue;
-            bag_copy.push_back(nn);
-            bag.push_back(get_node(nn->_name)); // Note it takes original node.
-            DebugOff(nn->_name << ", ");
+            if(!nn.second->_active) continue;
+            bag_copy.push_back(nn.second);
+            bag.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            DebugOff(nn.second->_name << ", ");
         }
         DebugOff(n->_name << "}\n");
         graph_clone->remove_end_node();
@@ -1054,7 +1054,7 @@ Net::~Net() {
     }
     if (horton_net!=NULL)
         delete horton_net;
-    for (pair<string,set<Arc*>*> it:arcID) {
+    for (pair<string,map<string,Arc*>*> it:arcID) {
         delete it.second;
     }
 }
