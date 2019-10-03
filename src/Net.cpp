@@ -513,7 +513,7 @@ void Net::get_tree_decomp_bags() {
     Node* u = nullptr;
     Node* nn = nullptr;
     Arc* arc = nullptr;
-    set<vector<Node*>> unique_bags;
+    map<string,vector<Node*>> unique_bags;
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
@@ -531,27 +531,31 @@ void Net::get_tree_decomp_bags() {
         }
         Debug(n->_name << endl);
         Debug(graph_clone->nodes.size() << endl);
-        vector<Node*> bag_copy;
-        vector<Node*> bag;
+        pair<string,vector<Node*>> bag_copy;
+        pair<string,vector<Node*>> bag;
         DebugOff("new bag = { ");
         for (auto nn: n->get_neighbours()) {
             if(!nn.second->_active) continue;
-            bag_copy.push_back(nn.second);
-            bag.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            bag_copy.second.push_back(nn.second);
+            bag_copy.first += "," +nn.first;
+            bag.second.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            bag.first += "," +nn.first;
             DebugOff(nn.second->_name << ", ");
         }
         DebugOff(n->_name << "}\n");
         graph_clone->remove_end_node();
-        bag_copy.push_back(n);
-        bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        bag_copy.second.push_back(n);
+        bag_copy.first += "," +n->_name;
+        bag.second.push_back(get_node(n->_name)); // node in this graph
+        bag.first += "," +n->_name;
+        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         
         // update clone_graph and construct chordal extension.
-        for (int i = 0; i < bag_copy.size(); i++) {
-            u = bag_copy.at(i);
-            for (int j = i+1; j<bag_copy.size(); j++) {
-                nn = bag_copy.at(j);
+        for (int i = 0; i < bag_copy.second.size(); i++) {
+            u = bag_copy.second.at(i);
+            for (int j = i+1; j<bag_copy.second.size(); j++) {
+                nn = bag_copy.second.at(j);
                 if (u->is_connected(nn)) {
                     if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
                         Arc* off_arc = get_arc(u,nn);
@@ -572,15 +576,15 @@ void Net::get_tree_decomp_bags() {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-        if(unique_bags.insert(bag).second){
-            _bags.push_back(bag); // bag original
-            if (bag_copy.size()==3) {
+        if(unique_bags.count(bag.first)==0){
+            _bags.push_back(bag.second); // bag original
+            if (bag_copy.second.size()==3) {
                 nb++;
             }
         }
         
-        if (bag_copy.size()>max_size) {
-            max_size = bag_copy.size();
+        if (bag_copy.second.size()>max_size) {
+            max_size = bag_copy.second.size();
         }
         delete n;
     }

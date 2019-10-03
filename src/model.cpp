@@ -3878,7 +3878,6 @@ namespace gravity {
             }
             
             solver_time= get_wall_time()-solver_time_start;
-            auto v_in_cons=this->_v_in_cons;
             while(solver_time<=max_time && !terminate && iter<=max_iter)
             {
                 iter++;
