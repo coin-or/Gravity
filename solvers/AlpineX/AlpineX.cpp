@@ -467,7 +467,7 @@ int main (int argc, char * argv[])
     
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, cplex);
+    solver<> SOCOPF_CPX(SOCPOA, solv_type);
     auto solver_time_start = get_wall_time();
 //    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
     SOCOPF_CPX.run(output=5,tol = 1e-8);
@@ -482,7 +482,7 @@ int main (int argc, char * argv[])
     
     if(partition){
         /* Solver selection */
-        solver<> SDP_CPX(SOCPOA, cplex);
+        solver<> SDP_CPX(SOCPOA, solv_type);
         SDP_CPX.run(output,1e-6);
         gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
         DebugOn("Gap after partitionning = " << to_string(gap) << "%."<<endl);
