@@ -578,7 +578,7 @@ void Net::get_tree_decomp_bags() {
         }
         if(unique_bags.insert(bag).second==true){
             _bags.push_back(bag); // bag original
-            if (bag_copy.second.size()==3) {
+            if (bag.second.size()==3) {
                 nb++;
             }
         }
