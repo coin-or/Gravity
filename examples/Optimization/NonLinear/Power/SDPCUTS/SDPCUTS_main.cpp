@@ -461,7 +461,7 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     solver_time_start = get_wall_time();
     
-    SDPOPF.run(output = 0, tol = 1e-6);
+    SDPOPF.run(output = 5, tol = 1e-6);
      double solver_time_end = get_wall_time();
     double solver_time=solver_time_end-solver_time_start;
     double gap=999, lower_bound=999;
