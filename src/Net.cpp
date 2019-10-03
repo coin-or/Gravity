@@ -116,6 +116,9 @@ const bool bag_compare(const vector<Node*> & a,const vector<Node*>& b) {
 
 
 const bool node_compare(const Node* n1, const Node* n2) {
+    if(n1->fill_in == n2->fill_in){
+        return n1->_id < n2->_id;
+    }
     return n1->fill_in > n2->fill_in;
 }
 
