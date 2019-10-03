@@ -139,14 +139,14 @@ vector<var<type>> var<type>::in_bags(const vector<pair<string,vector<Node*>>>& b
     vector<indices> ids_vec;
     res.resize(bag_size);
     ids_vec.resize(bag_size);
-    set<vector<Node*>> unique_bags;
+    map<string,vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
         ids_vec[i].set_name("nodes_"+to_string(i));
     }
     for (auto &bag: bags) {
         /* Make sure it's a new bag with size=bag_size */
-        if (bag.second.size() == bag_size && unique_bags.insert(bag.second).second) {
+        if (bag.second.size() == bag_size && unique_bags.insert(bag).second) {
             for (size_t i = 0; i< bag_size; i++) {
                 ids_vec[i].add_ref(bag.second[i]->_name);
             }
