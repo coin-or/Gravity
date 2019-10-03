@@ -867,16 +867,16 @@ void PowerNet::update_net(){
     Arc *new_arc;
     int fixed = 1, id_sorted = 0; //id of the current bag in bags_sorted
     Arc *a12, *a13, *a32;
-    std::vector<std::vector<Node*>> bags_sorted;
+    std::vector<pair<string,std::vector<Node*>>> bags_sorted;
     
     // bags are cliques in the chordal completion graph
     for(auto& b: _bags){
-        for(int i = 0; i < b.size()-1; i++) {
-            for(int j = i+1; j < b.size(); j++) {
-                Arc* a = get_arc(b[i]->_name,b[j]->_name);
+        for(int i = 0; i < b.second.size()-1; i++) {
+            for(int j = i+1; j < b.second.size(); j++) {
+                Arc* a = get_arc(b.second[i]->_name,b.second[j]->_name);
                 if (a==nullptr) {
-                    src = get_node(b[i]->_name);
-                    dest = get_node(b[j]->_name);
+                    src = get_node(b.second[i]->_name);
+                    dest = get_node(b.second[j]->_name);
                     new_arc = new Line(to_string((int) arcs.size() + 1));
                     new_arc->_id = arcs.size();
                     new_arc->_src = src;
@@ -895,12 +895,12 @@ void PowerNet::update_net(){
         fixed = 0;
         DebugOff("\nNew iteration");
         for(auto b_it = _bags.begin(); b_it != _bags.end();) {
-            std::vector<Node*> b = *b_it;
-            if(b.size() == 3) {
-                DebugOff("\nBag: " << b[0]->_name << ", " << b[1]->_name << ", " << b[2]->_name);
-                a12 = get_arc(b[0], b[1]);
-                a13 = get_arc(b[0], b[2]);
-                a32 = get_arc(b[2], b[1]);
+            auto b = *(b_it);
+            if(b.second.size() == 3) {
+                DebugOff("\nBag: " << b.second[0]->_name << ", " << b.second[1]->_name << ", " << b.second[2]->_name);
+                a12 = get_arc(b.second[0], b.second[1]);
+                a13 = get_arc(b.second[0], b.second[2]);
+                a32 = get_arc(b.second[2], b.second[1]);
                 if ((a12->_free && a13->_free) || (a12->_free && a32->_free) || (a13->_free && a32->_free) ||
                     (!a12->_free && !a13->_free && !a32->_free)) { // at least two missing lines or all lines real
                     ++b_it;
@@ -928,13 +928,13 @@ void PowerNet::update_net(){
             else{ // Bags with size > 3; todo: leave only this as the general case?
                 DebugOff("\nBag with size > 3");
                 
-                for(int i = 0; i < b.size()-1; i++) {
-                    for (int j = i + 1; j < b.size(); j++) {
-                        Arc* a = get_arc(b[i]->_name, b[j]->_name);
+                for(int i = 0; i < b.second.size()-1; i++) {
+                    for (int j = i + 1; j < b.second.size(); j++) {
+                        Arc* a = get_arc(b.second[i]->_name, b.second[j]->_name);
                         if (!a->_free) continue;
                         n = a->_src;
                         //by now, all arcs in bags should be created
-                        for (auto n1: b) {
+                        for (auto n1: b.second) {
                             if(n==n1) continue;
                             Arc* a2 = get_arc(n->_name, n1->_name);
                             if (a2->_free) continue;
@@ -942,15 +942,16 @@ void PowerNet::update_net(){
                             if (!a1->_free) {
                                 a->_free = false;
                                 
-                                vector<Node *> bag;
-                                bag.push_back(get_node(n->_name));
-                                bag.push_back(get_node(a->_dest->_name));
-                                bag.push_back(get_node(n1->_name));
+                                pair<string,vector<Node*>> bag;
+                                bag.second.push_back(get_node(n->_name));
+                                bag.second.push_back(get_node(a->_dest->_name));
+                                bag.second.push_back(get_node(n1->_name));
+                                bag.first =n->_name+","+a->_dest->_name+","+n1->_name;
                                 //                                sort(bag.begin(), bag.end(),
                                 //                                     [](const Node *a, const Node *b) -> bool { return a->_id < b->_id; });
                                 
                                 fixed++;
-                                sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+                                sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
                                 bags_sorted.push_back(bag);
                                 id_sorted++;
                                 DebugOff("\nFixing arc in a larger bag (" << a->_src->_name << ", " << a->_dest->_name << ")");
@@ -967,8 +968,8 @@ void PowerNet::update_net(){
     
     //add all remaining bags to bags_sorted
     for(auto b_it = _bags.begin(); b_it != _bags.end();) {
-        std::vector<Node*> b = *b_it;
-        if(b.size() >= 2) bags_sorted.push_back(b);
+        auto b = *b_it;
+        if(b.second.size() >= 2) bags_sorted.push_back(b);
         _bags.erase(b_it);
         //            id_sorted++;
     }
@@ -1032,14 +1033,14 @@ void PowerNet::update_net(){
     DebugOff("\nBags sorted: " << endl);
     for(auto& b: _bags) {
         DebugOff("bag = {");
-        for (int i = 0; i < b.size(); i++) {
+        for (int i = 0; i < b.second.size(); i++) {
             DebugOff(b.at(i)->_name << " ");
         }
         DebugOff("}" << endl);
-        if(add_3d_nlin && b.size()==3){
+        if(add_3d_nlin && b.second.size()==3){
             for(int i = 0; i < 2; i++) {
                 for(int j = i+1; j < 3; j++) {
-                    Arc* aij = get_arc(b[i],b[j]);
+                    Arc* aij = get_arc(b.second[i],b.second[j]);
                     aij->_free = false;
                 }
             }
@@ -2880,7 +2881,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 //}
 //
 /** Return the vector of arcs of the chordal completion ignoring parallel lines **/
-indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
+indices PowerNet::get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
     if(!this->bus_pairs_chord.empty()){
         return this->bus_pairs_chord;
     }
@@ -2912,10 +2913,10 @@ indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
         sin_min_ = sin(m_theta_lb);
     }
     for (auto &bag: bags) {
-        for (size_t i = 0; i< bag.size()-1; i++) {
-            if (unique_pairs.insert({bag[i],bag[i+1]}).second) {
-                auto bus_s = (Bus*)bag[i];
-                auto bus_d = (Bus*)bag[i+1];
+        for (size_t i = 0; i< bag.second.size()-1; i++) {
+            if (unique_pairs.insert({bag.second[i],bag.second[i+1]}).second) {
+                auto bus_s = (Bus*)bag.second[i];
+                auto bus_d = (Bus*)bag.second[i+1];
                 w_max_ = bus_s->vbound.max*bus_d->vbound.max;
                 w_min_ = bus_s->vbound.min*bus_d->vbound.min;
                 wr_max_ = cos_max_*w_max_;
@@ -2925,7 +2926,7 @@ indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
                 else wi_max_ = sin_max_*w_min_;
                 if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
                 else wi_min_ = sin_min_*w_max_;
-                auto name = bag[i]->_name + "," + bag[i+1]->_name;
+                auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
                 wr_max.add_val(name,wr_max_);
                 wr_min.add_val(name,wr_min_);
                 wi_max.add_val(name,wi_max_);
@@ -2934,10 +2935,10 @@ indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
             }
         }
         /* Loop back pair */
-        if (unique_pairs.insert({bag[0],bag[bag.size()-1]}).second) {
-            auto name = bag[0]->_name + "," + bag[bag.size()-1]->_name;
-            auto bus_s = (Bus*)bag[0];
-            auto bus_d = (Bus*)bag[bag.size()-1];
+        if (unique_pairs.insert({bag.second[0],bag.second[bag.second.size()-1]}).second) {
+            auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+            auto bus_s = (Bus*)bag.second[0];
+            auto bus_d = (Bus*)bag.second[bag.second.size()-1];
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
             wr_max_ = cos_max_*w_max_;
@@ -2957,7 +2958,7 @@ indices PowerNet::get_bus_pairs_chord(const vector<std::vector<Node*>>& bags){
     return bus_pairs_chord;
 }
 
-indices PowerNet::get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags){
+indices PowerNet::get_bus_pairs_chord_bags(std::vector<pair<string,vector<Node*>>> bags){
     if(!this->bus_pairs_chord.empty()){
         return this->bus_pairs_chord;
     }
@@ -2989,10 +2990,10 @@ indices PowerNet::get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags)
         sin_min_ = sin(m_theta_lb);
     }
     for (auto &bag: bags) {
-        for (size_t i = 0; i< bag.size()-1; i++) {
-            if (unique_pairs.insert({bag[i],bag[i+1]}).second) {
-                auto bus_s = (Bus*)bag[i];
-                auto bus_d = (Bus*)bag[i+1];
+        for (size_t i = 0; i< bag.second.size()-1; i++) {
+            if (unique_pairs.insert({bag.second[i],bag.second[i+1]}).second) {
+                auto bus_s = (Bus*)bag.second[i];
+                auto bus_d = (Bus*)bag.second[i+1];
                 w_max_ = bus_s->vbound.max*bus_d->vbound.max;
                 w_min_ = bus_s->vbound.min*bus_d->vbound.min;
                 wr_max_ = cos_max_*w_max_;
@@ -3002,7 +3003,7 @@ indices PowerNet::get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags)
                 else wi_max_ = sin_max_*w_min_;
                 if(sin_min_ > 0) wi_min_ = sin_min_*w_min_;
                 else wi_min_ = sin_min_*w_max_;
-                auto name = bag[i]->_name + "," + bag[i+1]->_name;
+                auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
                 wr_max.add_val(name,wr_max_);
                 wr_min.add_val(name,wr_min_);
                 wi_max.add_val(name,wi_max_);
@@ -3011,10 +3012,10 @@ indices PowerNet::get_bus_pairs_chord_bags(std::vector<std::vector<Node*>> bags)
             }
         }
         /* Loop back pair */
-        if (unique_pairs.insert({bag[0],bag[bag.size()-1]}).second) {
-            auto name = bag[0]->_name + "," + bag[bag.size()-1]->_name;
-            auto bus_s = (Bus*)bag[0];
-            auto bus_d = (Bus*)bag[bag.size()-1];
+        if (unique_pairs.insert({bag.second[0],bag.second[bag.second.size()-1]}).second) {
+            auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+            auto bus_s = (Bus*)bag.second[0];
+            auto bus_d = (Bus*)bag.second[bag.second.size()-1];
             w_max_ = bus_s->vbound.max*bus_d->vbound.max;
             w_min_ = bus_s->vbound.min*bus_d->vbound.min;
             wr_max_ = cos_max_*w_max_;

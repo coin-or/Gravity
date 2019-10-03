@@ -67,8 +67,8 @@ public:
     bool duplicate(std::string name1, std::string name2, int id1);
 
     // bags are sorted in an ascending order of ids.
-    std::vector<std::vector<Node*>> _bags; // each node is from this nodes.
-    std::vector<std::vector<Node*>> _bags_copy; // each node is a copy of the original node (not by reference).
+    std::vector<pair<string,std::vector<Node*>>> _bags; // each node is from this nodes.
+    std::vector<pair<string,std::vector<Node*>>> _bags_copy; // each node is a copy of the original node (not by reference).
 
     /** Clone the graph exactly **/
     Net* clone();
@@ -134,7 +134,7 @@ public:
     void get_tree_decomp_bags();
     
     std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
-    std::vector<std::vector<Node*>> decompose_bags_3d(bool print_bags=false);
+    std::vector<pair<string,vector<Node*>>> decompose_bags_3d(bool print_bags=false);
 
     
     /** Sort nodes in decreasing degree */

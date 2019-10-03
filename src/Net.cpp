@@ -576,8 +576,8 @@ void Net::get_tree_decomp_bags() {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-        if(unique_bags.count(bag.first)==0){
-            _bags.push_back(bag.second); // bag original
+        if(unique_bags.insert(bag).second==true){
+            _bags.push_back(bag); // bag original
             if (bag_copy.second.size()==3) {
                 nb++;
             }
@@ -600,25 +600,30 @@ void Net::get_tree_decomp_bags() {
     
 }
 
-std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
-    set<vector<Node*>> unique_bags;
-    vector<std::vector<Node*>> res;
+std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
+    map<string,vector<Node*>> unique_bags;
+    vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
-        if(bag_copy.size()==3){
+        if(bag_copy.second.size()==3){
             if(unique_bags.insert(bag_copy).second){
                 res.push_back(bag_copy);
             }
         }
-        else if(bag_copy.size()>3){
+        else if(bag_copy.second.size()>3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
-            for (auto i = 0; i<bag_copy.size()-2; i++) {
-                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-                    for (auto k = j+1; k<bag_copy.size(); k++) {
-                        vector<Node*> new_bag;
-                        new_bag.push_back(bag_copy[i]);
-                        new_bag.push_back(bag_copy[j]);
-                        new_bag.push_back(bag_copy[k]);
+            for (auto i = 0; i<bag_copy.second.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        string key;
+                        new_bag.second.push_back(bag_copy.second[i]);
+                        key += bag_copy.second[i]->_name + ",";
+                        new_bag.second.push_back(bag_copy.second[j]);
+                        key += bag_copy.second[j]->_name + ",";
+                        new_bag.second.push_back(bag_copy.second[k]);
+                        key += bag_copy.second[k]->_name;
+                        new_bag.first = key;
                         DebugOff("new bag = {");
                         //                        for (int i=0; i<new_bag.size();     i++) {
                         //                            cout << new_bag.at(i)->_name << " ";
@@ -635,44 +640,44 @@ std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
     return res;
 }
 
-std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
-{
-    set<vector<Node*>> unique_bags;
-    vector<std::vector<Node*>> res;
-    for (auto &bag_copy:_bags) {
-        if(bag_copy.size()==4){
-            if(unique_bags.insert(bag_copy).second){
-                res.push_back(bag_copy);
-            }
-        }
-        else if(bag_copy.size()>4){
-            DebugOff("Decomposing bigger bag into 4d bags\n");
-            
-            for (auto i = 0; i<bag_copy.size()-3; i++) {
-                for (auto j = i+1; j<bag_copy.size()-2; j++) {
-                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
-                        for (auto l = k+1; l<bag_copy.size(); l++) {
-                            vector<Node*> new_bag;
-                            new_bag.push_back(bag_copy[i]);
-                            new_bag.push_back(bag_copy[j]);
-                            new_bag.push_back(bag_copy[k]);
-                            new_bag.push_back(bag_copy[l]);
-                            DebugOff("new bag = {");
-                            //                        for (int i=0; i<new_bag.size();     i++) {
-                            //                            cout << new_bag.at(i)->_name << " ";
-                            //                        }
-                            DebugOff("}" << endl);
-                            if(unique_bags.insert(new_bag).second){
-                                res.push_back(new_bag);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return res;
-}
+//std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
+//{
+//    set<vector<Node*>> unique_bags;
+//    vector<std::vector<Node*>> res;
+//    for (auto &bag_copy:_bags) {
+//        if(bag_copy.size()==4){
+//            if(unique_bags.insert(bag_copy).second){
+//                res.push_back(bag_copy);
+//            }
+//        }
+//        else if(bag_copy.size()>4){
+//            DebugOff("Decomposing bigger bag into 4d bags\n");
+//
+//            for (auto i = 0; i<bag_copy.size()-3; i++) {
+//                for (auto j = i+1; j<bag_copy.size()-2; j++) {
+//                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
+//                        for (auto l = k+1; l<bag_copy.size(); l++) {
+//                            vector<Node*> new_bag;
+//                            new_bag.push_back(bag_copy[i]);
+//                            new_bag.push_back(bag_copy[j]);
+//                            new_bag.push_back(bag_copy[k]);
+//                            new_bag.push_back(bag_copy[l]);
+//                            DebugOff("new bag = {");
+//                            //                        for (int i=0; i<new_bag.size();     i++) {
+//                            //                            cout << new_bag.at(i)->_name << " ";
+//                            //                        }
+//                            DebugOff("}" << endl);
+//                            if(unique_bags.insert(new_bag).second){
+//                                res.push_back(new_bag);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    return res;
+//}
 
 /** Return the vector of arcs ignoring parallel lines **/
 indices Net::get_bus_pairs(){
