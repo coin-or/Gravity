@@ -2213,7 +2213,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
-    Wii.initialize_all(1.001);
+    Wii.initialize_all(1.0);
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
