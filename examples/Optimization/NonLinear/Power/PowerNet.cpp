@@ -2261,11 +2261,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         if (lazy_bool) {
-            SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
+                SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
             
         }
         else {
-                SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
+            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
             DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         }
         }

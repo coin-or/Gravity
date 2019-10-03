@@ -171,18 +171,20 @@ int main (int argc, char * argv[]) {
     OPFUB.run(output = 0, tol);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
-    double solver_time_start=get_wall_time();
+   
     auto SDP= build_SDPOPF(grid, current, upper_bound);
-    double solver_time_end=get_wall_time();
-    double solver_time_lb=solver_time_end-solver_time_start;
+
     
     
     
 //    SDP->print();
-   
+
     solver<> SDPLB(SDP,solv_type);
-    DebugOn("Lower bounding ipopt"<<endl);
+    //DebugOn("Lower bounding ipopt"<<endl);
+    double solver_time_start=get_wall_time();
     SDPLB.run(output = 0, tol);
+    double solver_time_end=get_wall_time();
+    double solver_time_lb=solver_time_end-solver_time_start;
   //  SDP->print();
 //    SDP->print_solution();
     
