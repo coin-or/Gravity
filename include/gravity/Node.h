@@ -83,7 +83,7 @@ public:
     
 
     /* return its neighbours */
-    std::set<Node*> get_neighbours() const;
+    map<string,Node*> get_neighbours() const;
     
     std::vector<Node*> get_neighbours_vec() const;
     
