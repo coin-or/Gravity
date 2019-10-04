@@ -2213,7 +2213,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
-    Wii.initialize_all(1.001);
+    Wii.initialize_all(1.0);
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
@@ -2885,10 +2885,10 @@ indices PowerNet::get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& 
     if(!this->bus_pairs_chord.empty()){
         return this->bus_pairs_chord;
     }
-    set<pair<Node*,Node*>> unique_pairs;
+    map<string,pair<Node*,Node*>> unique_pairs;
     for (auto a: arcs) {
         if (!a->_parallel) {
-            unique_pairs.insert({a->_src,a->_dest});
+            unique_pairs[a->_src->_name+","+a->_dest->_name] = {a->_src,a->_dest};
             bus_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
         }
     }
@@ -2914,7 +2914,7 @@ indices PowerNet::get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& 
     }
     for (auto &bag: bags) {
         for (size_t i = 0; i< bag.second.size()-1; i++) {
-            if (unique_pairs.insert({bag.second[i],bag.second[i+1]}).second) {
+            if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
                 auto bus_s = (Bus*)bag.second[i];
                 auto bus_d = (Bus*)bag.second[i+1];
                 w_max_ = bus_s->vbound.max*bus_d->vbound.max;
@@ -2935,7 +2935,7 @@ indices PowerNet::get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& 
             }
         }
         /* Loop back pair */
-        if (unique_pairs.insert({bag.second[0],bag.second[bag.second.size()-1]}).second) {
+        if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
             auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
             auto bus_s = (Bus*)bag.second[0];
             auto bus_d = (Bus*)bag.second[bag.second.size()-1];

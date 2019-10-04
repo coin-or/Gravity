@@ -5808,6 +5808,7 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",300,300, false,true);
+
 #else
                                 run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27");
                                 //run_parallel(batch_models,cplex,1e-7,nb_threads);

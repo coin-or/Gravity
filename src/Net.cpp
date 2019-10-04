@@ -116,6 +116,9 @@ const bool bag_compare(const vector<Node*> & a,const vector<Node*>& b) {
 
 
 const bool node_compare(const Node* n1, const Node* n2) {
+    if(n1->fill_in == n2->fill_in){
+        return n1->_id < n2->_id;
+    }
     return n1->fill_in > n2->fill_in;
 }
 
@@ -578,7 +581,7 @@ void Net::get_tree_decomp_bags() {
         }
         if(unique_bags.insert(bag).second==true){
             _bags.push_back(bag); // bag original
-            if (bag_copy.second.size()==3) {
+            if (bag.second.size()==3) {
                 nb++;
             }
         }

@@ -252,7 +252,7 @@ int main (int argc, char * argv[]) {
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
-    Wii.initialize_all(1.001);
+    Wii.initialize_all(1.00);
     
     current = false;
     var<> lij("lij", lij_min,lij_max);
