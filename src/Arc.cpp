@@ -46,6 +46,7 @@ Arc* Arc::clone() {
     copy->_dest = _dest;
     copy->_weight = _weight;
     copy->_id = _id;
+    copy->_active = _active;
     return copy;
 }
 
