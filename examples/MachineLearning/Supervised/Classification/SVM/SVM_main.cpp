@@ -144,14 +144,23 @@ unique_ptr<Model<>> build_lazy_svm(const DataSet<>& training_set, int nb_c, doub
 
 int main (int argc, char * argv[])
 {
-    double tol = 1e-3, r = 0, gamma = 0;
+    double tol = 1e-3, r = 0, gamma = 0, mu;
     unsigned d = 3;
+    int nbc, output = 5;
+    bool dual = false;
     auto total_time_start = get_wall_time();
     string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5", kernel = "linear";
     std::cout << "WELCOME, THIS IS AN IMPLEMENTATION OF A SUPPORT VECTOR MACHINE IN GRAVITY\n";
     
     string fname = string(prj_dir)+"/data_sets/Classification/Archive/svmguide1";
-    
+    /* Reading input data */
+    DataSet<> training_set;
+    training_set.parse(fname);
+    training_set.print_stats();
+    auto nf = training_set._nb_features;
+    gamma = 1./nf;
+    SolverType solv_type = ipopt;
+#ifdef USE_OPT_PARSER
     /* Create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help",
@@ -178,7 +187,6 @@ int main (int argc, char * argv[])
         exit(0);
     }
     solver_str = opt["s"];
-    SolverType solv_type = ipopt;
     if (solver_str.compare("Gurobi")==0) {
         solv_type = gurobi;
     }
@@ -193,25 +201,18 @@ int main (int argc, char * argv[])
         lazy = true;
     }
     dual_str = opt["d"];
-    bool dual = false;
     if (dual_str.compare("yes")==0) {
         dual = true;
     }
     mu_str = opt["mu"];
-    double mu = op::str2double(mu_str);
+    mu = op::str2double(mu_str);
     
     nb_c_str = opt["nb"];
-    int nb_c = op::str2int(nb_c_str);
+    nb_c = op::str2int(nb_c_str);
     
     output_str = opt["o"];
-    int output = op::str2int(output_str);
+    output = op::str2int(output_str);
     
-    /* Reading input data */
-    DataSet<> training_set;
-    training_set.parse(fname);
-    training_set.print_stats();
-    auto nf = training_set._nb_features;
-    gamma = 1./nf;
     unique_ptr<Model<>> SVM;
     if(dual){
         kernel = opt["k"];
@@ -225,6 +226,9 @@ int main (int argc, char * argv[])
             SVM = build_svm(training_set, mu);
         }
     }
+#else
+    auto SVM = build_svm(training_set, mu);
+#endif
     SVM->print_symbolic();
 //    SVM->print();
     /* Start Timers */
