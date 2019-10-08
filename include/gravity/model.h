@@ -186,7 +186,7 @@ namespace gravity {
         vector<shared_ptr<Constraint<type>>>                _cons_vec; /**< vector pointing to all constraints contained in this model. */
         map<size_t, shared_ptr<Constraint<type>>>           _cons; /**< Sorted map (increasing index) pointing to all constraints contained in this model. */
         map<string, shared_ptr<Constraint<type>>>           _cons_name; /**< Sorted map (by name) pointing to all constraints contained in this model. */
-        map<string, set<shared_ptr<Constraint<type>>>>   _v_in_cons; /**< Set of constraints where each variable appears. */
+        map<string, set<shared_ptr<Constraint<type>>>>      _v_in_cons; /**< Set of constraints where each variable appears. */
         shared_ptr<func<type>>                              _obj = nullptr; /**< Pointer to objective function */
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
@@ -733,7 +733,7 @@ namespace gravity {
         //INPUT: a constraint, lifting option boolean, disjunctive union methods from ("on/off", "lambda_II", "lambda_III")
         //OUTPUT: addition of this constraint in the model, if lift is selected, the convex relaxation and the partitioning of the individual variables will be also included to the mathematical formulation
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void add(const Constraint<Cpx>& c, bool convexify = false, string method_type = "on/off"){
+        void add(const Constraint<Cpx>& c, bool convexify = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return;
             }
@@ -763,28 +763,28 @@ namespace gravity {
                 lifted_imag._dim[0] = c._dim[0];
                 add_constraint(lifted_real);
                 add_constraint(lifted_imag);
-                if(c_real.func<type>::is_convex() && c_real._ctype==eq){
+                if(c_real.func<type>::is_convex() && c_real._ctype==eq && split){
                     DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                     Constraint<type> c_real_cvx(c_real._name+"_convex");
                     c_real_cvx = c_real;
                     c_real_cvx._relaxed = true;
                     add_constraint(c_real_cvx <= 0);
                 }
-                if(c_real.func<type>::is_concave() && c_real._ctype==eq){
+                if(c_real.func<type>::is_concave() && c_real._ctype==eq && split){
                     DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                     Constraint<type> c_real_ccve(c_real._name+"_concave");
                     c_real_ccve = c_real;
                     c_real_ccve._relaxed = true;
                     add_constraint(c_real_ccve >= 0);
                 }
-                if(c_imag.func<type>::is_convex() && c_real._ctype==eq){
+                if(c_imag.func<type>::is_convex() && c_real._ctype==eq && split){
                     DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                     Constraint<type> c_imag_cvx(c_imag._name+"_convex");
                     c_imag_cvx = c_imag;
                     c_imag_cvx._relaxed = true;
                     add_constraint(c_imag_cvx <= 0);
                 }
-                if(c_imag.func<type>::is_concave() && c_real._ctype==eq){
+                if(c_imag.func<type>::is_concave() && c_real._ctype==eq && split){
                     DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                     Constraint<type> c_imag_ccve(c_imag._name+"_concave");
                     c_imag_ccve = c_imag;
@@ -916,7 +916,7 @@ namespace gravity {
                         //define variables
                         var<type> y1(aux1_name, lb1, ub1);
                         add(y1.in(unique_ids));
-                        y1._num_partns = v1._num_partns + v2._num_partns;
+                        *y1._num_partns = *v1._num_partns + *v2._num_partns;
                         lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
                         var<type> y2(aux2_name, lb2, ub2);
                         add(y2.in(unique_ids));
@@ -934,7 +934,7 @@ namespace gravity {
                         //get variables
                         auto y1 = static_pointer_cast<var<type>>(it1->second);
                         auto added1 = y1->add_bounds(lb1,ub1);
-                        y1->_num_partns = v1._num_partns + v2._num_partns;
+                        *y1->_num_partns = *v1._num_partns + *v2._num_partns;
                         lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
                         if(!added1.empty()){
                             assert(v1._indices->size()==v2._indices->size());
@@ -1093,11 +1093,11 @@ namespace gravity {
         
         
         
-        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off"){
+        void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return;
             }
-            add_constraint(c,convexify, method_type);
+            add_constraint(c,convexify, method_type, split);
         }
         
         
@@ -1119,51 +1119,110 @@ namespace gravity {
             _has_callback = true;
         }
         
-        //        template<typename T>
-        //        void replace(const shared_ptr<param_>& v, func<T>& f){/**<  Replace v with function f everywhere it appears */
-        //            for (auto &c_p: _cons_name) {
-        //                auto c = c_p.second;
-        //                if (!c->has_var(*v)) {
-        //                    continue;
-        //                }
-        //                c->replace(v, f);
-        //            }
-        //            _vars_name.erase(v->_name);
-        //            auto vid = *v->_vec_id;
-        //            delete _vars.at(vid);
-        //            _vars.erase(vid);
-        //            reindex_vars();
-        //        }
+        template<typename T>
+        void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
+            for (auto &c_p: _cons_name) {
+                auto c = c_p.second;
+                if (!c->has_var(*v)) {
+                    continue;
+                }
+                c->replace(v, f);
+            }
+            _vars_name.erase(v->_name);
+            auto vid = *v->_vec_id;
+            _vars.erase(vid);
+            reindex_vars();
+        }
         
         
-        //        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
-        //            for (auto& c_pair:_cons_name) {
-        //                if (!c_pair.second->is_ineq()) {
-        //                    auto &lterms = c_pair.second->get_lterms();
-        //                    if (!lterms.empty()) {
-        //                        auto first = lterms.begin();
-        //                        auto v = first->second._p;
-        //                        if (v->_is_vector) {
-        //                            continue;
-        //                        }
-        //                        auto f = *c_pair.second;
-        //                        if (first->second._sign) {
-        //                            //                    f -= *v;
-        //                            //                    f *= -1;
-        //                        }
-        //                        else {
-        //                            //                    f += *v;
-        //                        }
-        //                        DebugOff(f.to_str());
-        //                        _cons.erase(c_pair.second->_id);
-        //                        _cons_name.erase(c_pair.first);
-        //                        replace(v,f);
-        //                        //                project();
-        //                        return;
-        //                    }
-        //                }
-        //            }
-        //        }
+        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+            for (auto& c_pair:_cons_name) {
+                if (c_pair.second->is_eq()) {
+                    auto &lterms = c_pair.second->get_lterms();
+                    if (!lterms.empty()) {
+                        auto first = lterms.begin();
+                        auto v = first->second._p;
+                        auto f = *c_pair.second;
+                        switch (v->get_intype()) {
+                            case binary_: {
+                                auto vv = *static_pointer_cast<var<bool>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case short_: {
+                                auto vv = *static_pointer_cast<var<short>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case integer_: {
+                                auto vv = *static_pointer_cast<var<int>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case float_: {
+                                auto vv = *static_pointer_cast<var<float>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case double_: {
+                                auto vv = *static_pointer_cast<var<double>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case long_: {
+                                auto vv = *static_pointer_cast<var<long double>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                            case complex_: {
+                                auto vv = *static_pointer_cast<var<Cpx>>(v);
+                                if (first->second._sign) {
+                                    f -= vv;
+                                }
+                                else {
+                                    f += vv;
+                                }
+                                break;
+                            }
+                        }
+                        DebugOff(f.to_str());
+                        remove(c_pair.first);
+                        replace(v,f);
+                        return;
+                    }
+                }
+            }
+        }
         
         
         /** Add constraint to model
@@ -1172,7 +1231,7 @@ namespace gravity {
          @return a pointer to the added constraint
          @note If lift = true, this function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables. Note also that if this is an equation f(x) = 0 s.t. f(x)<=0 or f(x)>=0 is convex, will add the convex inequality to the model.
          **/
-        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off"){
+        shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return nullptr;
             }
@@ -1210,14 +1269,14 @@ namespace gravity {
                 }
                 newc->update_str();
                 if(lift_flag){
-                    if(newc->func<type>::is_convex() && newc->_ctype==eq){
+                    if(newc->func<type>::is_convex() && newc->_ctype==eq && split){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
                         c_cvx._name = newc->_name+"_convex";
                         c_cvx._relaxed = true;
                         add_constraint(c_cvx <= 0);
                     }
-                    if(newc->func<type>::is_concave() && newc->_ctype==eq){
+                    if(newc->func<type>::is_concave() && newc->_ctype==eq && split){
                         DebugOn("Concave left hand side of equation detected, splitting constraint into >= and ==" << endl);
                         Constraint<type> c_ccve(*newc);
                         c_ccve._name = newc->_name+"_concave";
@@ -1346,6 +1405,7 @@ namespace gravity {
                 _type = nlin_m;
             }
             embed(_obj);
+            _obj->allocate_mem();
         }
         
         template<typename T1>
@@ -2881,12 +2941,10 @@ namespace gravity {
         }
         
         type get_obj_val() const{
-            _obj->allocate_mem();
-            return _obj->eval();
+            return _obj->_val->at(0);
         }
         
         void print_obj_val(int prec = 5) const{
-            _obj->allocate_mem();
             cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
         
@@ -4737,8 +4795,8 @@ namespace gravity {
             }
             
             //collect the number of partitions for each variable
-            int num_partns1 = v1._num_partns;
-            int num_partns2 = v2._num_partns;
+            int num_partns1 = *v1._num_partns;
+            int num_partns2 = *v2._num_partns;
             
             //collect the base name of each variable
             auto name1 = v1.get_name(true,true);
@@ -5008,171 +5066,15 @@ namespace gravity {
             }
         }
         
-        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
-         @param[in] nb_discr: number of OA cuts per nonlinear constraint
-         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
-         **/
-        shared_ptr<Model<>> buildOA(int nb_discr)
-        {
-            auto OA=make_shared<Model<>>(_name+"-OA Model");
-            for (auto &it: _vars)
-            {
-                auto v = it.second;
-                if(!OA->has_var(*v)){
-                    OA->add_var(v);
-                }
-            }
-            auto obj=*_obj;
-            if(_objt==minimize){
-                OA->min(obj);
-            }
-            else {
-                OA->max(obj);
-            }
-            string cname;
-            for (auto &con: _cons_vec)
-            {
-                if(!con->is_linear()) {
-                    if(con->_ctype==eq)
-                    {
-                        DebugOn("Exception: Equality constraint is not currently supported"<<endl);
-                        DebugOn("Throw exception" <<endl);
-                        
-                    }
-                    else
-                    {
-                        OA->add_outer_app_uniform(nb_discr, *con);
-                    }
-                }
-                else
-                {
-                    OA->add(*con);
-                }
-            }
-            return OA;
-        }
+        template<typename T=type>
+        shared_ptr<Model<type>> buildOA(int nb_discr, int nb_perturb);
+        template<typename T=type>
+        shared_ptr<Model<type>> build_model_interior(Model<type> nonlin);
+        void add_outer_app_uniform(int nb_discr, Constraint<> con);
+        //template<typename T=type>
+        void add_outer_app_active(Model<> nonlin, int nb_perturb);
         
         
-        /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
-         @param[in] nb_discr:
-         @param[in] nb_perturb:
-         @param[in] xinterior:
-         @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr) and at the solution and by perturbing the solution
-         **/
-        shared_ptr<Model<>> buildOA(int nb_discr, int nb_perturb, bool interior, vector<double> xinterior)
-        {
-            auto OA= buildOA(nb_discr);
-            vector<double> xsolution(_nb_vars);
-            set_solution(xsolution);
-            OA->add_outer_app_active(*this, nb_perturb, interior, xinterior);
-            set_solution(xsolution);
-            return OA;
-        }
-        
-        /** Outer approximation of active (nonlinear) constraints of the model
-         @param[in] nonlin: original nonlinear model at whose solution (at the active point) OA cuts are added:
-         @param[in] nb_perturb:
-         @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
-         Assumption: nonlinear constraint to be perturbed does not have any vector variables
-         **/
-        void add_outer_app_active(Model<> nonlin, int nb_perturb, bool interior, vector<double> xinterior)
-        {
-            const double active_tol=1e-6, perturb_dist=1e-3;
-            vector<double> xsolution(_nb_vars);
-            vector<double> xactive, xcurrent;
-            double fk;
-            bool outer;
-            int counter=0;
-            size_t posv;
-            for (auto &con: nonlin._cons_vec)
-            {
-                if(!con->is_linear() && con->_name!="obj_UB") {
-                    
-                    con->uneval();
-                    for(auto i=0;i<con->get_nb_inst();i++){
-                        if(std::abs(con->eval(i))<=active_tol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                            Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
-                            OA_sol=con->get_outer_app_insti(i);
-                            if(con->_ctype==leq) {
-                                add(OA_sol<=0);
-                            }
-                            else {
-                                add(OA_sol>=0);
-                            }
-                        }
-                    }
-                }
-                else if(con->_name=="obj_UB"){
-                    add(*con);
-                }
-            }
-            if(interior)
-            {
-                get_solution(xsolution);
-                for (auto &con: nonlin._cons_vec)
-                {
-                    if(!con->is_linear()) {
-                        for(auto i=0;i<con->get_nb_inst();i++){
-                            con->uneval();
-                            if(std::abs(con->eval(i))<=active_tol && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())){
-                                set_solution(xinterior);
-                                xinterior=con->get_x(i);
-                                set_solution(xsolution);
-                                xcurrent=con->get_x(i);
-                                for(auto j=1;j<=nb_perturb;j++)
-                                {
-                                    counter=0;
-                                    for(auto &it: *con->_vars)
-                                    {
-                                        auto v = it.second.first;
-                                        if(v->_is_vector)
-                                        {
-                                            DebugOn("Exception: Vector variables are not currently supported"<<endl);
-                                            DebugOn("Throw exception" <<endl);
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            outer=false;
-                                            for(auto k=-1;k<=1;k+=2)
-                                            {
-                                                posv=v->get_id_inst(i);
-                                                v->set_double_val(posv, xcurrent[counter]*(1+k*j*perturb_dist));
-                                                con->uneval();
-                                                fk=con->eval(i);
-                                                if((fk>active_tol && con->_ctype==leq) || (fk<(active_tol*(-1)) && con->_ctype==geq)){
-                                                    outer=true;
-                                                    break;
-                                                }
-                                            }
-                                            if(outer)
-                                            {
-                                                auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
-                                                if(res_search){
-                                                    Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
-                                                    OA_active=con->get_outer_app_insti(i);
-                                                    if(con->_ctype==leq) {
-                                                        add(OA_active<=0);
-                                                    }
-                                                    else {
-                                                        add(OA_active>=0);
-                                                    }
-                                                    
-                                                }
-                                                
-                                            }
-                                        }
-                                        con->set_x(i, xcurrent);
-                                        counter++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
         //INPUT: an SOC constraint to satisfy at equality, number of desired partitions, another number of partitions if the original SOC constraint involves more than 3 variables (we need to seperate that into different SOC constraints), use_lambda option for using the lambda formulation to activate the hyperplanes where the default is the on/off formulation
         template<typename T=type>
@@ -5460,95 +5362,7 @@ namespace gravity {
             }
         }
 
-        /** Returns an interior point of a model
-         @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
-         Assuming model has no nonlinear equality constraints
-         **/
-        shared_ptr<Model<>> build_model_interior()
-        {
-            auto Interior = make_shared<Model<>>(_name+"Interior");
-            vector<double> xinterior(_nb_vars);
-            
-            
-            for (auto &it: _vars)
-            {
-                auto v = it.second;
-                if(!Interior->has_var(*v)){
-                    Interior->add_var(v);
-                }
-            }
-            var<> eta_int("eta_int", -1, 0);
-            
-            Interior->add(eta_int.in(range(0,0)));
-            auto obj=eta_int;
-            
-            Interior->min(obj);
-            
-            
-            
-            for (auto &con: _cons_vec)
-            {
-                if(!con->is_linear()) {
-                    Constraint<> Inter_con(*con);
-                    if(con->_ctype==leq)
-                    {
-                        Inter_con -= eta_int;
-                        Interior->add(Inter_con<=0);
-                    }
-                    else
-                    {
-                        Inter_con += eta_int;
-                        Interior->add(Inter_con>=0);
-                    }
-                }
-                else
-                {
-                    Interior->add(*con);
-                }
-            }
-            
-            return Interior;
-        }
-        
-        
-        
-        /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
-         @param[in] nb_discr:
-         @param[in] con:
-         @return void. OA cuts are added to the model that calls the function (for all func instances)
-         **/
-        void add_outer_app_uniform(int nb_discr, Constraint<> con)
-        {
-            
-            func<> res;
-            double lb,ub;
-            size_t posv;
-            if(con.is_quadratic() && con._lterms->size()==1 && con._qterms->size()==1 && con._qterms->begin()->second._p->first==con._qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- x^2 or x^2-ay
-            {
-                
-                auto x=con._qterms->begin()->second._p->first;
-                
-                for(auto d=0;d<nb_discr;d++)
-                {
-                    for(auto i=0;i<con.get_nb_inst();i++)
-                    {
-                        posv=x->get_id_inst(i);
-                        lb=x->get_double_lb(posv);
-                        ub=x->get_double_ub(posv);
-                        x->set_double_val(posv, lb+d*(ub-lb)/nb_discr);
-                    }
-                    Constraint<> OA_uniform("OA_cuts_uniform "+con._name+to_string(d));
-                    OA_uniform=con.get_outer_app_squared();
-                    if(con._ctype==leq) {
-                        add(OA_uniform<=0);
-                    }
-                    else {
-                        add(OA_uniform>=0);
-                    }
-                    
-                }
-            }/*TODO Else (discretization for general constraint)*/
-        }
+
 
         // INPUT: an SOC type constraint, and total number of binary variables
         // OUTPUT: disjunctive union of hyperplanes as an inner approximation to the SOC, where the disjunctive union is made by lambda formulation
@@ -6313,7 +6127,7 @@ namespace gravity {
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double> run_obbt(double max_time = 1000, unsigned max_iter=1e4, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+        std::tuple<bool,int,double> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){

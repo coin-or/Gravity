@@ -42,6 +42,7 @@ var<type> var<type>::deep_copy() const{
     var<type> res;
     res.param<type>::operator=(this->param<type>::deep_copy());
     res.constant_::set_type(var_c);
+    res._num_partns = make_shared<int>(*_num_partns);
     res._lb = make_shared<func<type>>(*_lb);
     res._ub = make_shared<func<type>>(*_ub);
     return res;
@@ -79,7 +80,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     
     /* Create a vector of variables indexed as pair of nodes from bags of size bag_size (WARNING assumes bags are unique in bags)*/
     template<typename type>
-    vector<var<type>> var<type>::pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size){
+    vector<var<type>> var<type>::pairs_in_bags(const vector<pair<string,vector<Node*>>>& bags, size_t bag_size){
     vector<var<type>> res;
     vector<indices> ids_vec;
     string key;
@@ -96,13 +97,13 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     for (auto &bag: bags) {
         /* Make sure it's a bag with size=bag_size */
 //        if (bag.size() == bag_size && unique_bags.insert(bag).second) {
-        if (bag.size() == bag_size) {
+        if (bag.second.size() == bag_size) {
             for (size_t i = 0; i< bag_size-1; i++) {
-                key = bag[i]->_name + "," + bag[i+1]->_name;
+                key = bag.second[i]->_name + "," + bag.second[i+1]->_name;
                 ids_vec[i].add_ref(key);
             }
             /* Loop back pair */
-            key = bag[0]->_name + "," + bag[bag_size-1]->_name;
+            key = bag.second[0]->_name + "," + bag.second[bag_size-1]->_name;
             ids_vec[bag_size-1].add_ref(key);
         }
     }
@@ -133,21 +134,21 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     
 /* Create a vector of variables indexed based on nodes from bags of size bag_size */
 template<typename type>
-vector<var<type>> var<type>::in_bags(const vector<vector<Node*>>& bags, size_t bag_size){
+vector<var<type>> var<type>::in_bags(const vector<pair<string,vector<Node*>>>& bags, size_t bag_size){
     vector<var> res;
     vector<indices> ids_vec;
     res.resize(bag_size);
     ids_vec.resize(bag_size);
-    set<vector<Node*>> unique_bags;
+    map<string,vector<Node*>> unique_bags;
     for (auto i = 0; i<bag_size; i++) {
         ids_vec[i] = *param_::_indices;
         ids_vec[i].set_name("nodes_"+to_string(i));
     }
     for (auto &bag: bags) {
         /* Make sure it's a new bag with size=bag_size */
-        if (bag.size() == bag_size && unique_bags.insert(bag).second) {
+        if (bag.second.size() == bag_size && unique_bags.insert(bag).second) {
             for (size_t i = 0; i< bag_size; i++) {
-                ids_vec[i].add_ref(bag[i]->_name);
+                ids_vec[i].add_ref(bag.second[i]->_name);
             }
         }
     }

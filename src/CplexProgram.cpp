@@ -64,16 +64,18 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::PreInd, 0);
 
 //        cplex.setParam(IloCplex::RootAlg, 1);
+        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, mipgap);
+        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, mipgap);
         cplex.setParam(IloCplex::EpGap, 0.002); //stopping criterion MIPgap
         cplex.setParam(IloCplex::PreInd, 1);
         cplex.setParam(IloCplex::MIPDisplay, 2);
         
-//        cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, 50); //relaxation induced neighbourhood search frequency
-//        cplex.setParam(IloCplex::Param::Emphasis::MIP, 4); //mip emphasis on finding feasible(hidden) solutions first ******* USE 0 or 4 as the setting ********
-//        cplex.setParam(IloCplex::Param::MIP::Strategy::Probe, 3); // probe very aggresively
-//        cplex.setParam(IloCplex::Param::MIP::Strategy::Dive, 2); //dive for probing only
-//        cplex.setParam(IloCplex::Param::MIP::Strategy::VariableSelect, 4); //calculate reduced pseudocosts for branching
-//        cplex.setParam(IloCplex::Param::MIP::Limits::CutPasses, 10); //number of passes to generate cuts in the root node
+        cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, 50); //relaxation induced neighbourhood search frequency
+        cplex.setParam(IloCplex::Param::Emphasis::MIP, 4); //mip emphasis on finding feasible(hidden) solutions first ******* USE 0 or 4 as the setting ********
+        cplex.setParam(IloCplex::Param::MIP::Strategy::Probe, 3); // probe very aggresively
+        cplex.setParam(IloCplex::Param::MIP::Strategy::Dive, 2); //dive for probing only
+        cplex.setParam(IloCplex::Param::MIP::Strategy::VariableSelect, 4); //calculate reduced pseudocosts for branching
+        cplex.setParam(IloCplex::Param::MIP::Limits::CutPasses, 10); //number of passes to generate cuts in the root node
 
 ////        cplex.setParam(IloCplex::Param::MIP::Limits::CutsFactor, 1.5); //proportion(-1) of total cuts added to the total number of rows
 
