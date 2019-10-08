@@ -175,37 +175,42 @@ int main (int argc, char * argv[]) {
     auto SDP= build_SDPOPF(grid, current, upper_bound);
 
     
-    
+    double lower_bound_init;
     
 //    SDP->print();
 
     solver<> SDPLB(SDP,solv_type);
     //DebugOn("Lower bounding ipopt"<<endl);
-    double solver_time_start=get_wall_time();
-    SDPLB.run(output = 0, tol);
-    double solver_time_end=get_wall_time();
-    double solver_time_lb=solver_time_end-solver_time_start;
+   // double solver_time_start=get_wall_time();
+   //SDPLB.run(output = 0, tol);
+   // double solver_time_end=get_wall_time();
+    //double solver_time_lb=solver_time_end-solver_time_start;
   //  SDP->print();
 //    SDP->print_solution();
     
-    if(SDP->_status==0 || SDP->_status==1)
-    {
-    lower_bound=SDP->get_obj_val()*upper_bound;
-    
-     gapnl = 100*(upper_bound - lower_bound)/upper_bound;
-    DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+  
     
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
     
        auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
+    
+    if(SDP->_status==0)
+    {
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         
         terminate=std::get<0>(res);
         iter=std::get<1>(res);
         solver_time=std::get<2>(res);
+        lower_bound_init=std::get<3>(res);
+        
+        
+        gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
+        DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+    }
+        
         
         
 //                var<>  R_Vi("R_Vi", -1*v_max, v_max);
@@ -251,21 +256,21 @@ int main (int argc, char * argv[]) {
 //         DebugOn("Upper bound old= " << upper_bound <<endl);
 
     
-    }
+    
 
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 #ifdef USE_MPI
     if(worker_id==0){
 
     	ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
      }
     MPI_Finalize();
 #else
 	ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<endl;
         fout.close();
 #endif
     

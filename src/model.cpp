@@ -3787,8 +3787,8 @@ namespace gravity {
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-        std::tuple<bool,int,double> res;
+    std::tuple<bool,int,double,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
+        std::tuple<bool,int,double, double> res;
 #ifdef USE_MPI
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -3821,19 +3821,25 @@ namespace gravity {
         const double tol = 1e-6;
           int output = 0;
         
-        double lower_bound=this->get_obj_val()*upper_bound.second;
-
+        
         
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
-        gapnl=(upper_bound.second-lower_bound)/(upper_bound.second)*100;
+       
         shared_ptr<map<string,size_t>> p_map;
         
         solver<> SDPLB2(*this,solv_type);
 
         SDPLB2.run(output = 0, tol, "ma27");
+        double lower_bound_init=-999;
+
 //        this->print();
 
         //Check if gap is already not zero at root node
+        if(this->_status==0)
+        {
+            lower_bound_init=this->get_obj_val()*upper_bound.second;
+            gapnl=(upper_bound.second-lower_bound_init)/(upper_bound.second)*100;
+            double lower_bound=lower_bound_init;
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
             
         {
@@ -4196,9 +4202,15 @@ namespace gravity {
             }
 #endif
         }
+    }
+        else
+        {
+         DebugOn("Lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
+        }
          std::get<0>(res) = terminate;
          std::get<1>(res) = iter;
          std::get<2>(res) = solver_time;
+         std::get<3>(res) = lower_bound_init;
         return res;
     }
     
@@ -4216,7 +4228,7 @@ namespace gravity {
 //
     
     
-    template std::tuple<bool,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
+    template std::tuple<bool,int,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
 //    template class Model<double>;

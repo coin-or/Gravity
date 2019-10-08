@@ -402,10 +402,10 @@ int main (int argc, char * argv[])
     auto nonzero_idx = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx.print();
     
-    /***************** REMOVING SDP_3D cuts *****************/
-//    if(!grid._tree){
-//        SOCP->remove("SDP_3D");
-//    }
+  //  **************** REMOVING SDP_3D cuts ****************
+    if(!grid._tree){
+        SOCP->remove("SDP_3D");
+    }
     
     if(!current){
         
