@@ -218,6 +218,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             
             if((num_partns1 > 1) || (num_partns2 > 1)) {
+#ifdef PARTITION
                 if (o1 == o2) //if the variables are same add 1d partition
                 {
                     
@@ -2673,6 +2674,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                         }
                     }
                 }
+#endif
             }
             else {
                 add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
@@ -2715,7 +2717,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                     vlift->_lift_lb = true;
                 }
                 if((num_partns1 > 1) || (num_partns2 > 1)) {
-                    
+#ifdef PARTITION
                     auto binvar_ptr1 = _vars_name.find(name1+"_binary");
                     auto binvar_ptr2 = _vars_name.find(name2+"_binary");
                     auto binvar_ptr3 = _vars_name.find(name1+name2+"_binary");
@@ -5579,6 +5581,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             }
                         }
                     }
+#endif
                 }
                 else {
                     add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
