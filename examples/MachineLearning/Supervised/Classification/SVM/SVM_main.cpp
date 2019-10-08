@@ -146,7 +146,7 @@ int main (int argc, char * argv[])
 {
     double tol = 1e-3, r = 0, gamma = 0, mu;
     unsigned d = 3;
-    int nbc, output = 5;
+    int nb_c, output = 5;
     bool dual = false;
     auto total_time_start = get_wall_time();
     string solver_str ="ipopt", dual_str = "no", lazy_str = "no", mu_str = "1e+6", nb_c_str = "200", output_str = "5", kernel = "linear";
