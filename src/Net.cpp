@@ -116,6 +116,9 @@ const bool bag_compare(const vector<Node*> & a,const vector<Node*>& b) {
 
 
 const bool node_compare(const Node* n1, const Node* n2) {
+    if(n1->fill_in == n2->fill_in){
+        return n1->_id < n2->_id;
+    }
     return n1->fill_in > n2->fill_in;
 }
 
@@ -146,11 +149,11 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
-            return a;
+            return a.second;
             // }
         }
     }
@@ -158,7 +161,7 @@ Arc* Net::get_arc(Node* n1, Node* n2) {
     if (it != arcID.end()) {
         for (auto a: *it->second) {
             //   if (!a->parallel) {
-            return a;
+            return a.second;
             // }
         }
     }
@@ -177,17 +180,17 @@ Arc* Net::get_arc(std::string src, std::string dest) {
     inv_key.append(",");
     key.append(dest);
     inv_key.append(src);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
     
     it = arcID.find(inv_key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
     
@@ -200,10 +203,10 @@ Arc* Net::get_directed_arc(std::string src, std::string dest) {
     key.append(src);
     key.append(",");
     key.append(dest);
-    map<string, set<Arc*>*>::iterator it= arcID.find(key);
+    auto it= arcID.find(key);
     if (it != arcID.end()) {
         for (auto a: *it->second) {
-            return a;
+            return a.second;
         }
     }
 
@@ -212,7 +215,7 @@ Arc* Net::get_directed_arc(std::string src, std::string dest) {
 
 bool Net::add_arc(Arc* a) {
     bool parallel = false;
-    set<Arc*>* s = NULL;
+    map<string,Arc*>* s = NULL;
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
@@ -228,14 +231,14 @@ bool Net::add_arc(Arc* a) {
     key.append(dest);
     
     if(arcID.find(key)==arcID.end()) {
-        s = new set<Arc*>;
-        s->insert(a);
-        arcID.insert(pair<string, set<Arc*>*>(key,s));
+        s = new map<string,Arc*>();
+        (*s)[a->_name] = a;
+        arcID.insert(pair<string, map<string,Arc*>*>(key,s));
     }
     else {
         if(arcID.find(key)!=arcID.end())
             s = arcID[key];
-        s->insert(a);
+        (*s)[a->_name] = a;
         Warning("\nWARNING: adding another Directed line between same nodes! \n Node ID: " << src << " and Node ID: " << dest << endl);
         a->_parallel = true;
         parallel = true;
@@ -247,7 +250,7 @@ bool Net::add_arc(Arc* a) {
 // undirected
 void Net::add_undirected_arc(Arc* a) {
 //    bool parallel = false;
-    set<Arc*>* s = NULL;
+    map<string,Arc*>* s = NULL;
     string src, dest, key, key_inv;
     src = a->_src->_name;
     dest = a->_dest->_name;
@@ -268,9 +271,9 @@ void Net::add_undirected_arc(Arc* a) {
     key_inv.append(src);
     
     if(arcID.find(key)==arcID.end()&& arcID.find(key_inv)==arcID.end()) {
-        s = new set<Arc*>;
-        s->insert(a);
-        arcID.insert(pair<string, set<Arc*>*>(key,s));
+        s = new map<string,Arc*>();
+        (*s)[a->_name] = a;
+        arcID.insert(pair<string, map<string,Arc*>*>(key,s));
         arcs.push_back(a);
     }
 }
@@ -513,7 +516,7 @@ void Net::get_tree_decomp_bags() {
     Node* u = nullptr;
     Node* nn = nullptr;
     Arc* arc = nullptr;
-    set<vector<Node*>> unique_bags;
+    map<string,vector<Node*>> unique_bags;
     string name="";
     Net* graph_clone = clone_undirected(); //
     int nb = 0;
@@ -531,27 +534,31 @@ void Net::get_tree_decomp_bags() {
         }
         Debug(n->_name << endl);
         Debug(graph_clone->nodes.size() << endl);
-        vector<Node*> bag_copy;
-        vector<Node*> bag;
+        pair<string,vector<Node*>> bag_copy;
+        pair<string,vector<Node*>> bag;
         DebugOff("new bag = { ");
         for (auto nn: n->get_neighbours()) {
-            if(!nn->_active) continue;
-            bag_copy.push_back(nn);
-            bag.push_back(get_node(nn->_name)); // Note it takes original node.
-            DebugOff(nn->_name << ", ");
+            if(!nn.second->_active) continue;
+            bag_copy.second.push_back(nn.second);
+            bag_copy.first += "," +nn.first;
+            bag.second.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            bag.first += "," +nn.first;
+            DebugOff(nn.second->_name << ", ");
         }
         DebugOff(n->_name << "}\n");
         graph_clone->remove_end_node();
-        bag_copy.push_back(n);
-        bag.push_back(get_node(n->_name)); // node in this graph
-        sort(bag_copy.begin(), bag_copy.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.begin(), bag.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        bag_copy.second.push_back(n);
+        bag_copy.first += "," +n->_name;
+        bag.second.push_back(get_node(n->_name)); // node in this graph
+        bag.first += "," +n->_name;
+        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         
         // update clone_graph and construct chordal extension.
-        for (int i = 0; i < bag_copy.size(); i++) {
-            u = bag_copy.at(i);
-            for (int j = i+1; j<bag_copy.size(); j++) {
-                nn = bag_copy.at(j);
+        for (int i = 0; i < bag_copy.second.size(); i++) {
+            u = bag_copy.second.at(i);
+            for (int j = i+1; j<bag_copy.second.size(); j++) {
+                nn = bag_copy.second.at(j);
                 if (u->is_connected(nn)) {
                     if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
                         Arc* off_arc = get_arc(u,nn);
@@ -572,15 +579,15 @@ void Net::get_tree_decomp_bags() {
                 graph_clone->add_undirected_arc(arc);
             }
         }
-        if(unique_bags.insert(bag).second){
+        if(unique_bags.insert(bag).second==true){
             _bags.push_back(bag); // bag original
-            if (bag_copy.size()==3) {
+            if (bag.second.size()==3) {
                 nb++;
             }
         }
         
-        if (bag_copy.size()>max_size) {
-            max_size = bag_copy.size();
+        if (bag_copy.second.size()>max_size) {
+            max_size = bag_copy.second.size();
         }
         delete n;
     }
@@ -596,25 +603,30 @@ void Net::get_tree_decomp_bags() {
     
 }
 
-std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
-    set<vector<Node*>> unique_bags;
-    vector<std::vector<Node*>> res;
+std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
+    map<string,vector<Node*>> unique_bags;
+    vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
-        if(bag_copy.size()==3){
+        if(bag_copy.second.size()==3){
             if(unique_bags.insert(bag_copy).second){
                 res.push_back(bag_copy);
             }
         }
-        else if(bag_copy.size()>3){
+        else if(bag_copy.second.size()>3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
-            for (auto i = 0; i<bag_copy.size()-2; i++) {
-                for (auto j = i+1; j<bag_copy.size()-1; j++) {
-                    for (auto k = j+1; k<bag_copy.size(); k++) {
-                        vector<Node*> new_bag;
-                        new_bag.push_back(bag_copy[i]);
-                        new_bag.push_back(bag_copy[j]);
-                        new_bag.push_back(bag_copy[k]);
+            for (auto i = 0; i<bag_copy.second.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        string key;
+                        new_bag.second.push_back(bag_copy.second[i]);
+                        key += bag_copy.second[i]->_name + ",";
+                        new_bag.second.push_back(bag_copy.second[j]);
+                        key += bag_copy.second[j]->_name + ",";
+                        new_bag.second.push_back(bag_copy.second[k]);
+                        key += bag_copy.second[k]->_name;
+                        new_bag.first = key;
                         DebugOff("new bag = {");
                         //                        for (int i=0; i<new_bag.size();     i++) {
                         //                            cout << new_bag.at(i)->_name << " ";
@@ -631,44 +643,44 @@ std::vector<std::vector<Node*>> Net::decompose_bags_3d(bool print_bags){
     return res;
 }
 
-std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
-{
-    set<vector<Node*>> unique_bags;
-    vector<std::vector<Node*>> res;
-    for (auto &bag_copy:_bags) {
-        if(bag_copy.size()==4){
-            if(unique_bags.insert(bag_copy).second){
-                res.push_back(bag_copy);
-            }
-        }
-        else if(bag_copy.size()>4){
-            DebugOff("Decomposing bigger bag into 4d bags\n");
-            
-            for (auto i = 0; i<bag_copy.size()-3; i++) {
-                for (auto j = i+1; j<bag_copy.size()-2; j++) {
-                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
-                        for (auto l = k+1; l<bag_copy.size(); l++) {
-                            vector<Node*> new_bag;
-                            new_bag.push_back(bag_copy[i]);
-                            new_bag.push_back(bag_copy[j]);
-                            new_bag.push_back(bag_copy[k]);
-                            new_bag.push_back(bag_copy[l]);
-                            DebugOff("new bag = {");
-                            //                        for (int i=0; i<new_bag.size();     i++) {
-                            //                            cout << new_bag.at(i)->_name << " ";
-                            //                        }
-                            DebugOff("}" << endl);
-                            if(unique_bags.insert(new_bag).second){
-                                res.push_back(new_bag);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return res;
-}
+//std::vector<std::vector<Node*>> Net::decompose_bags_4d(bool print_bags)
+//{
+//    set<vector<Node*>> unique_bags;
+//    vector<std::vector<Node*>> res;
+//    for (auto &bag_copy:_bags) {
+//        if(bag_copy.size()==4){
+//            if(unique_bags.insert(bag_copy).second){
+//                res.push_back(bag_copy);
+//            }
+//        }
+//        else if(bag_copy.size()>4){
+//            DebugOff("Decomposing bigger bag into 4d bags\n");
+//
+//            for (auto i = 0; i<bag_copy.size()-3; i++) {
+//                for (auto j = i+1; j<bag_copy.size()-2; j++) {
+//                    for (auto k = j+1; k<bag_copy.size()-1; k++) {
+//                        for (auto l = k+1; l<bag_copy.size(); l++) {
+//                            vector<Node*> new_bag;
+//                            new_bag.push_back(bag_copy[i]);
+//                            new_bag.push_back(bag_copy[j]);
+//                            new_bag.push_back(bag_copy[k]);
+//                            new_bag.push_back(bag_copy[l]);
+//                            DebugOff("new bag = {");
+//                            //                        for (int i=0; i<new_bag.size();     i++) {
+//                            //                            cout << new_bag.at(i)->_name << " ";
+//                            //                        }
+//                            DebugOff("}" << endl);
+//                            if(unique_bags.insert(new_bag).second){
+//                                res.push_back(new_bag);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    return res;
+//}
 
 /** Return the vector of arcs ignoring parallel lines **/
 indices Net::get_bus_pairs(){
@@ -1054,7 +1066,7 @@ Net::~Net() {
     }
     if (horton_net!=NULL)
         delete horton_net;
-    for (pair<string,set<Arc*>*> it:arcID) {
+    for (pair<string,map<string,Arc*>*> it:arcID) {
         delete it.second;
     }
 }

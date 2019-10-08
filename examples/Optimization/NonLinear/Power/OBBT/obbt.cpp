@@ -132,13 +132,18 @@ int main (int argc, char * argv[]) {
     PowerNet grid;
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
-   
     
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto v_max = grid.v_max.in(nodes);
+    auto bags_3d=grid.decompose_bags_3d();
+    auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
     
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
-    auto arcs = indices(grid.arcs);
+    
  
 
     
@@ -163,21 +168,29 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 5, tol);
-    OPF->print_solution();
+    OPFUB.run(output = 0, tol);
+//    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
+   
     auto SDP= build_SDPOPF(grid, current, upper_bound);
+
     
-    SDP->print();
     
+    
+//    SDP->print();
+
     solver<> SDPLB(SDP,solv_type);
-    DebugOn("Lower bounding ipopt"<<endl);
-    SDPLB.run(output = 5, tol);
-    SDP->print();
+    //DebugOn("Lower bounding ipopt"<<endl);
+    double solver_time_start=get_wall_time();
+    SDPLB.run(output = 0, tol);
+    double solver_time_end=get_wall_time();
+    double solver_time_lb=solver_time_end-solver_time_start;
+  //  SDP->print();
+//    SDP->print_solution();
     
     if(SDP->_status==0 || SDP->_status==1)
     {
-    lower_bound=SDP->get_obj_val();
+    lower_bound=SDP->get_obj_val()*upper_bound;
     
      gapnl = 100*(upper_bound - lower_bound)/upper_bound;
     DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
@@ -186,26 +199,74 @@ int main (int argc, char * argv[]) {
         ub.first=true;
         ub.second=upper_bound;
     
-        auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
-        lower_bound=SDP->get_obj_val();
+       auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
+        lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         
         terminate=std::get<0>(res);
         iter=std::get<1>(res);
         solver_time=std::get<2>(res);
         
+        
+//                var<>  R_Vi("R_Vi", -1*v_max, v_max);
+//                var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+//
+//
+//                    SDP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+//
+////        Im_Vi.set_lb((grid.ref_bus),0);
+////        Im_Vi.set_ub((grid.ref_bus),0);
+//                    R_Vi.initialize_all(1);
+//
+//       auto R_Wij=SDP->get_var<double>("R_Wij");
+//       auto Im_Wij=SDP->get_var<double>("Im_Wij");
+//       auto Wii=SDP->get_var<double>("Wii");
+//
+//                var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
+//                Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+//                Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+//                Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+//                Wi.set_real(Wii);
+//
+//
+//                Constraint<Cpx> Linking_Wij("Linking_Wij");
+//                Linking_Wij = Wij - Vi*conj(Vj);
+//                SDP->add(Linking_Wij.in(bus_pairs_chord)==0);
+//
+//        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+//
+//        Constraint<Cpx> Linking_Wi("Linking_Wi");
+//        Linking_Wi = Wi - Vi*conj(Vi);
+//        SDP->add(Linking_Wi.in(nodes)==0);
+//
+
+////        SDP->print();
+
+//        SDP->reindex();
+//        solver<> SDPUB(SDP,solv_type);
+//        DebugOn("Upper bounding ipopt"<<endl);
+//        SDPUB.run(output = 5, tol);
+//
+//         DebugOn("Upper bound new= " << SDP->get_obj_val() <<endl);
+//         DebugOn("Upper bound old= " << upper_bound <<endl);
+
     
     }
 
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
-    ofstream fout(result_name.c_str(), ios_base::app);
 #ifdef USE_MPI
     if(worker_id==0){
-#endif
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<endl;
-#ifdef USE_MPI
-    }
+
+    	ofstream fout(result_name.c_str());
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
+        DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
+        fout.close();
+     }
     MPI_Finalize();
+#else
+	ofstream fout(result_name.c_str());
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
+        fout.close();
 #endif
     
     return 0;

@@ -1027,7 +1027,7 @@ namespace gravity {
          @param[in] inst_i:
          @param[in] x:
          **/
-         void set_x(int inst_i, vector<double> x){
+         void set_x(int inst_i, const vector<double>& x){
             size_t posv;
             int counter=0;
             for(auto &it: *_vars)
@@ -1345,7 +1345,7 @@ namespace gravity {
          bool linesearchbinary(vector<double> x_start, size_t nb_inst, ConstraintType ctype)
          {
             bool success=false;
-            const double int_tol=1e-6, zero_tol=1e-6;
+            const double int_tol=1e-8, zero_tol=1e-8;
             const int max_iter=1000;
             vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
             double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
@@ -1400,15 +1400,15 @@ namespace gravity {
 //
 //                    }
 //
-                    if(f_mid>=zero_tol && f_mid<=f_t)
+                    if(f_mid>=zero_tol)
                     {
                         x_t=mid;
                     }
-                    else if(f_mid<=zero_tol*(-1) && f_mid>=f_f)
+                    else if(f_mid<=zero_tol*(-1))
                     {
                         x_f=mid;
                     }
-                    else
+                    else if(std::abs(f_mid)<=zero_tol)
                     {
                         //DebugOn("Reached answer"<<endl);
                         success=true;
@@ -1451,13 +1451,7 @@ namespace gravity {
             int count=0, iter, sign, iter_dir;
             bool perturb=true, dir;
             f_start=eval(nb_inst);
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                size_t posv=v->get_id_inst(nb_inst);
-                v->get_double_val(posv, xv);
-                xcurrent.push_back(xv);
-            }
+            xcurrent=get_x(nb_inst);
             int res_count=0;
             
             
@@ -1615,14 +1609,6 @@ namespace gravity {
                         for(auto i=count+1;i<_nb_vars;i++)
                             res[res_count].push_back(xcurrent[i]);
                         res_count++;
-                        
-                        for(auto &it: *_vars)
-                        {
-                            auto v = it.second.first;
-                            size_t posv=v->get_id_inst(nb_inst);
-                            v->get_double_val(posv, xv);
-                            //DebugOn("Xvalues of Outer point\t"<<xv<<endl);
-                        }
                         uneval();
                         //DebugOn("fvalue at pos "<<nb_inst<<" at the outer point\t"<<eval(nb_inst)<<endl);
                         
@@ -1634,45 +1620,30 @@ namespace gravity {
             }
             return(res);
         }
-        
-     
+        /** Newton Raphson to solve for xsolution such that f(xsolution)=0
+         @param[in] x: Current guess from which newton raphson is launched
+         @param[in] vname: Name of variable in which the algorithm moves to solve f(x)=0
+         @param[in] vpos: If variabel is vector type, vpos gives index of variable
+         @param[in] nb_inst: instance number
+         @param[in] ctype:
+         @return Pair.first True if line search successfully solved. Pair.secod xsolution
+         Note modifies current point to xsolution
+         **/
         pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
-            vector<double> xcurrent, xk, xsolution;
-            double xvk, xvk1, fk, dfdvk, xv,ub,lb;
+            vector<double> xk, xsolution;
+            double xvk, xvk1, fk, dfdvk, ub,lb;
             const int max_iter=10000;
-            const double active_tol=1e-5,zero_tol=1e-8;
-            size_t posv, posvk;
+            const double active_tol=1e-6,zero_tol=1e-8;
+            size_t posvk;
 
             int counter=0,iter=0;
             bool solution=false;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->get_double_val(posv, xv);
-                        xcurrent.push_back(xv);
-                        v->set_double_val(posv, x[counter++]);
-                    }
-                    
-                }
-                else
-                {
-                posv=v->get_id_inst(nb_inst);
-                v->get_double_val(posv, xv);
-                xcurrent.push_back(xv);
-                v->set_double_val(posv, x[counter++]);
-                }
-                
-            }
+   
+            set_x(nb_inst, x);
             xk=x;
-            
-            
+            xsolution=x;
             fk=eval(nb_inst);
             auto vk=_vars->at(vname).first;
             
@@ -1732,96 +1703,30 @@ namespace gravity {
                            iter++;
             
         }
-            
+            if(solution)
+            {
+                xsolution=get_x(nb_inst);
+            }
    
 
-            for(auto &it: *_vars)
-            {
-  
-                
-                auto v = it.second.first;
-                
-                
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->get_double_val(posv, xv);
-                        xsolution.push_back(xv);
-    
-                    }
-                    
-                }
-                else
-                {
-                
-                posv=v->get_id_inst(nb_inst);
-                
-                v->get_double_val(posv, xv);
-                
-                // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
-                xsolution.push_back(xv);
-                
-                //Reset xcurrent
-                
-            }
-            }
             res.first=solution;
             res.second=xsolution;
             counter=0;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->set_double_val(posv, xcurrent[counter++]);
-                        
-                    }
-                    
-                }
-                else
-                {
-                posv=v->get_id_inst(nb_inst);
-                v->set_double_val(posv, xcurrent[counter++]);
-                }
-                
-            }
             return res;
         }
-
-        vector<vector<double> > get_active_point(size_t nb_inst, ConstraintType ctype)
+        /** Get any active point such that f(xsolution)=0
+         @param[in] nb_inst: instance number
+         @param[in] ctype:
+         @return Pair.first True if active point found. Pair.second
+         Note modifies current point to xsolution
+         **/
+        pair<bool,vector<double>> get_any_active_point(size_t nb_inst, ConstraintType ctype)
         {
-            vector<vector<double> > res(_nb_vars);
+            pair<bool, vector<double>> res;
             vector<double> xcurrent;
-            int res_count=0;
-            double xv;
             size_t posv;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        posv=i;
-                        v->get_double_val(posv, xv);
-                        xcurrent.push_back(xv);
-                    }
-                    
-                }
-                else
-                {
-                posv=v->get_id_inst(nb_inst);
-                v->get_double_val(posv, xv);
-                // DebugOn("Name\t"<<name<<"Posv\t"<<posv<<"XV\t"<<xv<<endl);
-                xcurrent.push_back(xv);
-                
-            }
-            }
+            xcurrent=get_x(nb_inst);
+            res.first=false;
             for(auto &it: *_vars)
             {
                 auto vname=it.first;
@@ -1837,9 +1742,9 @@ namespace gravity {
                         if(res_nr.first==true)
                         {
                             
-                            for(auto i=0;i<xcurrent.size();i++)
-                                res[res_count].push_back(res_nr.second[i]);
-                            res_count++;
+                            res.first=true;
+                            res.second=res_nr.second;
+                            break;
                         }
                         
                     }
@@ -1853,12 +1758,13 @@ namespace gravity {
                 
                 if(res_nr.first==true)
                 {
-                    
-                    for(auto i=0;i<xcurrent.size();i++)
-                        res[res_count].push_back(res_nr.second[i]);
-                res_count++;
+                    res.first=true;
+                    res.second=res_nr.second;
+                    break;
                 }
                 }
+                if(res.first==true)
+                    break;
             
         }
             return res;

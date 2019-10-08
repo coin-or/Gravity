@@ -45,7 +45,7 @@ namespace gravity {
         bool _in_SOC_partn = false;/*flag to show if variable appers in a SOC partition*/
         
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
-        int _num_partns = 1;/*number of partitons*/
+        shared_ptr<int> _num_partns;/*number of partitons*/
         int _cur_partn = 1;/*current partition we are focused on*/
         
         
@@ -59,6 +59,7 @@ namespace gravity {
         var(const string& name){
             constant_::set_type(var_c);
             this->_name = name;
+            _num_partns = make_shared<int>(1);
             _lb = make_shared<func<type>>(constant<type>(numeric_limits<type>::lowest()));
             _ub = make_shared<func<type>>(constant<type>(numeric_limits<type>::max()));
             this->_range->first = _lb->_range->first;
@@ -69,6 +70,7 @@ namespace gravity {
         var(const string& name){
             constant_::set_type(var_c);
             this->_name = name;
+            _num_partns = make_shared<int>(1);
             _lb = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::lowest(), numeric_limits<double>::lowest())));
             _ub = make_shared<func<type>>(constant<type>(Cpx(numeric_limits<double>::max(), numeric_limits<double>::max())));
             this->_range->first = _lb->_range->first;
@@ -108,6 +110,7 @@ namespace gravity {
         var(const string& name, const func<type>& lb, const func<type>& ub){
             this->_name = name;
             constant_::set_type(var_c);
+            _num_partns = make_shared<int>(1);
             _lb = make_shared<func<type>>(lb);
             _ub = make_shared<func<type>>(ub);
             if(_lb->get_dim()==0 ||_ub->get_dim()==0)
@@ -125,6 +128,7 @@ namespace gravity {
         var(const string& name, func<type>&& lb, func<type>&& ub){
             this->_name = name;
             constant_::set_type(var_c);
+            _num_partns = make_shared<int>(1);
             _lb = make_shared<func<type>>(move(lb));
             _ub = make_shared<func<type>>(move(ub));
             if(_lb->get_dim()==0 ||_ub->get_dim()==0)
@@ -527,12 +531,12 @@ namespace gravity {
         /* Create a vector of variables indexed based on nodes from bags of size bag_size
          e.g., given bag { 1, 5, 7 } index the first variable (1), the second (5) and the last (7)
          */
-        vector<var> in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
+        vector<var> in_bags(const vector<pair<string,vector<Node*>>>& bags, size_t bag_size);
         
         /* Create a vector of variables indexed as pair of nodes from bags of size bag_size
          e.g., given bag { 1, 5, 7 } index the first variable (1,5), the second (5,7) and the last (1,7)
          */
-        vector<var<type>> pairs_in_bags(const vector<vector<Node*>>& bags, size_t bag_size);
+        vector<var<type>> pairs_in_bags(const vector<pair<string,vector<Node*>>>& bags, size_t bag_size);
         
         /* Querries */
         
@@ -992,7 +996,7 @@ namespace gravity {
         
         // should fix this by considering get_id_inst(i), but in that case _num_partns should be at least a param object
         
-        int get_num_partns() const{ return _num_partns;};
+        int get_num_partns() const{ return *_num_partns;};
         int get_cur_partn() const{ return _cur_partn;};
         
         bool get_lift() const{return _lift;};

@@ -46,6 +46,7 @@ Node* Node::clone(){
     copy->_id = _id;
     copy->_name = _name;
     copy->fill_in = 0; // fill_in is associated with the topology. so it should be 0.
+    copy->_active = _active;
     return copy;
 };
 
@@ -131,18 +132,18 @@ std::vector<Arc*> Node::get_in(){
     return res;
 }
 
-std::set<Node*> Node::get_neighbours() const{
-    set<Node*> res;
+map<string,Node*> Node::get_neighbours() const{
+    map<string,Node*> res;
     for (auto a:branches) {
         //if(a->_dest->_id=_id && std::find(res.begin(),res.end(), a->_src)== res.end()){
        if(a->_dest->_id== _id){
-            res.insert(a->_src);
+           res[a->_src->_name] = a->_src;
         }
         
         //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
         //if(a->_src->_id==_id && std::find(res.begin(),res.end(), a->_dest)== res.end() ){
             if(a->_src->_id==_id ){
-            res.insert(a->_dest);
+            res[a->_dest->_name] = a->_dest;
         }
     }
     // uniqueness.
@@ -158,7 +159,7 @@ std::vector<Node*> Node::get_neighbours_vec() const{
     auto n_set = get_neighbours();
     vector<Node*> res;
     for (auto n:n_set) {
-        res.push_back(n);
+        res.push_back(n.second);
     }
     return res;
 }

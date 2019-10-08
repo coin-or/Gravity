@@ -17,29 +17,31 @@ int main (int argc, char * argv[])
 {
     int output = 0;
     double tol = 1e-6;
+    double gap;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
     
     // Specify the additional constraints
     bool current = true;
-    bool current_partition_on_off_automated = true;
-    
-    //    Specify the use of partitioning scheme without current
-    string model_type = "Model_II"; //the default relaxation model is Model_II
     
     //    Switch the data file to another instance
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-  //  string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
+     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+     // string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco_tree.m";
 //    string fname = string(prj_dir)+"/data_sets/Power/nesta_case39_1_bgm__nco.m";
-//    string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
+  //  string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case89_pegase__api.m";
+   //string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_bgm__nco.m";
+      // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case9_tree.m";
+    // string fname="/Users/smitha/Desktop/nesta-0.7.0/opf/nco/nesta_case39_1_bgm__nco.m";
+    //string fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case3_lmbd__api.m";
     
     string path = argv[0];
-    string solver_str="ipopt";
-    
+    string solver_str="cplex";
+    SolverType solv_type = cplex;
     /** Create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name", fname);
+    opt.add_option("s", "solver", "solver type (def. cplex)", solver_str);
     opt.add_option("l", "log", "Log level (def. 0)", log_level );
     
     /** Parse the options and verify that all went well. If not, errors and help will be shown */
@@ -57,17 +59,31 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
-    
+    solver_str = opt["s"];
+    if (solver_str.compare("gurobi")==0) {
+        solv_type = gurobi;
+    }
+    else if(solver_str.compare("ipopt")==0) {
+        solv_type = ipopt;
+    }
+    else if(solver_str.compare("Mosek")==0) {
+        solv_type = _mosek;
+    }
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
     
     double upperbound = grid.solve_acopf(ACRECT);
-    
+    DebugOn("Upper bound = " << upperbound << endl);
     grid.get_tree_decomp_bags();
+    auto bags_3d=grid.decompose_bags_3d();
     
     /* Grid Stats */
     auto bus_pairs = grid.get_bus_pairs();
+    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    if (grid._tree) {
+        bus_pairs_chord = bus_pairs;
+    }
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -153,8 +169,8 @@ int main (int argc, char * argv[])
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP->add(Wii.in(nodes));
-    SOCP->add(R_Wij.in(bus_pairs));
-    SOCP->add(Im_Wij.in(bus_pairs));
+    SOCP->add(R_Wij.in(bus_pairs_chord));
+    SOCP->add(Im_Wij.in(bus_pairs_chord));
     //ACOPF.add(Wii.in(nodes));
     //ACOPF.add(R_Wij.in(bus_pairs));
     //ACOPF.add(Im_Wij.in(bus_pairs));
@@ -202,106 +218,112 @@ int main (int argc, char * argv[])
         Constraint<Cpx> I_to("I_to");
         I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
         SOCP->add_real(I_to.in(arcs)==0);
-//
+        
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        SOCP->add(I_from_Pf.in(arcs)==0, true);
-       
-            //   SOCP->get_constraint("I_from_Pf")->_relaxed = true;
+        SOCP->add(I_from_Pf.in(arcs)<=0, true);
+//        SOCP->get_constraint("I_from_Pf")->_relaxed = true;
         
         Constraint<> I_to_Pf("I_to_Pf");
         I_to_Pf=lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
         SOCP->add(I_to_Pf.in(arcs)>=0);
-    //    SOCP->get_constraint("I_to_Pf")->_relaxed = true;
+//        SOCP->get_constraint("I_to_Pf")->_relaxed = true;
         
         /* Second-order cone */
         Constraint<> SOC("SOC");
-        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-        SOCP->add(SOC.in(bus_pairs) == 0, true);
+        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
+        SOCP->add(SOC.in(bus_pairs_chord)<=0);
+//        SOCP->get_constraint("SOC")->_relaxed = true;
         
     }
     
     
+    var<>  R_Vi("R_Vi", -1*v_max, v_max);
+    var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
+
+
+    SOCP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
+    R_Vi.initialize_all(1);
+    Im_Vi.set_lb((grid.ref_bus),0);
+    Im_Vi.set_ub((grid.ref_bus),0);
     
+    R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+    R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
     
+
+    var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
+    Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+    Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+    Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+    
+//    Constraint<Cpx> Linking_Wij("Linking_Wij");
+//    Linking_Wij = Wij - Vi*conj(Vj);
+//    SOCP->add(Linking_Wij.in(bus_pairs_chord)==0, true);
+    
+    Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+    
+    Constraint<Cpx> Linking_Wi("Linking_Wi");
+    Linking_Wi = Wii - Vi*conj(Vi);
+    SOCP->add(Linking_Wi.in(nodes)==0, true);
+    
+    SOCP->print();
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,etag) + sum(c0);
+    auto obj = (product(c1,Pg) + product(c2,etag) + sum(c0));
     SOCP->min(obj);
-    //ACOPF.min(obj);
-    
-    /** Constraints */
-    
-    
-    /* Equality of Second-order cone (for upperbound) */
-    Constraint<> Equality_SOC("Equality_SOC");
-    Equality_SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    ////ACOPF.add(Equality_SOC.in(bus_pairs) == 0);
-    
+  
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
     KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
     SOCP->add(KCL_P.in(nodes) == 0);
-    //ACOPF.add(KCL_P.in(nodes) == 0);
     
     Constraint<> KCL_Q("KCL_Q");
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SOCP->add(KCL_Q.in(nodes) == 0);
-    //ACOPF.add(KCL_Q.in(nodes) == 0);
     
     /* AC Power Flow */
     Constraint<> Flow_P_From("Flow_P_From");
     Flow_P_From = Pf_from - (g_ff*Wii.from(arcs) + g_ft*R_Wij.in_pairs(arcs) + b_ft*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_From.in(arcs) == 0);
-    //ACOPF.add(Flow_P_From.in(arcs) == 0);
     
     Constraint<> Flow_P_To("Flow_P_To");
     Flow_P_To = Pf_to - (g_tt*Wii.to(arcs) + g_tf*R_Wij.in_pairs(arcs) - b_tf*Im_Wij.in_pairs(arcs));
     SOCP->add(Flow_P_To.in(arcs) == 0);
-    //ACOPF.add(Flow_P_To.in(arcs) == 0);
     
     Constraint<> Flow_Q_From("Flow_Q_From");
     Flow_Q_From = Qf_from - (g_ft*Im_Wij.in_pairs(arcs) - b_ff*Wii.from(arcs) - b_ft*R_Wij.in_pairs(arcs));
     SOCP->add(Flow_Q_From.in(arcs) == 0);
-    //ACOPF.add(Flow_Q_From.in(arcs) == 0);
     
     Constraint<> Flow_Q_To("Flow_Q_To");
     Flow_Q_To = Qf_to + b_tt*Wii.to(arcs) + b_tf*R_Wij.in_pairs(arcs) + g_tf*Im_Wij.in_pairs(arcs);
     SOCP->add(Flow_Q_To.in(arcs) == 0);
-    //ACOPF.add(Flow_Q_To.in(arcs) == 0);
-
+    
     
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(bus_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-        SOCP->add(PAD_UB.in(bus_pairs));
-        //ACOPF.add(PAD_UB.in(bus_pairs));
+    SOCP->add(PAD_UB.in(bus_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(bus_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
     SOCP->add(PAD_LB.in(bus_pairs));
-    //ACOPF.add(PAD_LB.in(bus_pairs));
-
+    
     
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    //SDP.add(Thermal_Limit_from.in(arcs));
     SOCP->add(Thermal_Limit_from.in(arcs), true);
-    //ACOPF.add(Thermal_Limit_from.in(arcs));
     
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    SOCP->add(Thermal_Limit_to.in(arcs), true);
-    //ACOPF.add(Thermal_Limit_to.in(arcs));
-
+    SOCP->add(Thermal_Limit_to.in(arcs));
     
     func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
     func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
@@ -319,7 +341,6 @@ int main (int argc, char * argv[])
     LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
                                                                                         sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
     SOCP->add(LNC1.in(bus_pairs) >= 0);
-    //ACOPF.add(LNC1.in(bus_pairs) >= 0);
     
     
     Constraint<> LNC2("LNC2");
@@ -329,196 +350,155 @@ int main (int argc, char * argv[])
     LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
                                                                                                        sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
     SOCP->add(LNC2.in(bus_pairs) >= 0);
-    //ACOPF.add(LNC2.in(bus_pairs) >= 0);
     
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
     SOCP->add(obj_UB.in(range(0,0))<=0);
     
+
+   
+    /***************** ADDING SDP_3D cuts for OBBT *****************/
+     if(!grid._tree){
+        auto bag_size = bags_3d.size();
+        DebugOn("\nNum of bags = " << bag_size << endl);
+        DebugOn("Adding 3d determinant polynomial cuts\n");
+        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
+        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = Wii.in_bags(bags_3d, 3);
+        
+        Constraint<> SDP3("SDP_3D");
+        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+
+        SOCP->add(SDP3 >= 0);
+    }
+    
     /***************** CALLING OBBT BEFORE CALLING RUN **********************/
-    //    SOCP.reset_constrs();
-//    SOCP->print();
-//    solver<> SOCOPF(SOCP, ipopt);
-//    SOCOPF.run(output=5, tol = 1e-6);
-    
-  
-    
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP, ipopt);
-    SOCPOPF.run(output, tol = 1e-6);
+    solver<> SOCPOPF(SOCP,ipopt);
+    SOCPOPF.run(output, tol = 1e-8);
     
     SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
-    auto original_SOC = grid.build_SCOPF();
-    solver<> SOCOPF_ORIG(original_SOC, ipopt);
-    SOCOPF_ORIG.run(output, tol = 1e-6);
-    double original_LB = original_SOC->get_obj_val();
-    double gap = 100*(upperbound - original_LB)/upperbound;
-    DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
+    SOCP->print();
+//    auto original_SOC = grid.build_SCOPF();
+//    solver<> SOCOPF_ORIG(original_SOC, ipopt);
+//    SOCOPF_ORIG.run(output, tol = 1e-6);
+//    double original_LB = original_SOC->get_obj_val();
+//    double gap = 100*(upperbound - original_LB)/upperbound;
+    //DebugOn("Initial Gap = " << to_string(gap) << "%."<<endl);
     if(SOCP->_status==0||SOCP->_status==1)
     {
+        SOCP->print_solution();
     gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
     DebugOn("Gap after OBBT = " << to_string(gap) << "%."<<endl);
     }
-    auto nonzero_idx = SOCP->sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
+    auto tol_viol = 1e-5; //tolerance for violation
+    auto nonzero_idx = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx.print();
     
-    if(current){
-        //THESE ARE ALREADY INCLUDED BEFORE OBBT
-        
-        //        param<Cpx> T("T"), Y("Y"), Ych("Ych");
-        //        var<Cpx> L_from("L_from"), Wij("Wij");
-        //        T.real_imag(cc.in(arcs), dd.in(arcs));
-        //        Y.real_imag(g.in(arcs), b.in(arcs));
-        //        Ych.set_imag(ch_half.in(arcs));
-        //
-        //
-        //        L_from.set_real(lij.in(arcs));
-        //        Wij.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
-        //        var<Cpx> Sij("Sij"), Sji("Sji");
-        //        Sij.real_imag(Pf_from.in(arcs), Qf_from.in(arcs));
-        //        Sji.real_imag(Pf_to.in(arcs), Qf_to.in(arcs));
-        //
-        //
-        //        Constraint<Cpx> I_from("I_from");
-        //        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(Wij)-conj(T)*conj(Y)*(Y+Ych)*Wij+pow(tr,2)*Y*conj(Y)*Wii.to(arcs);
-        //        SOCP.add_real(I_from.in(arcs)==pow(tr,2)*L_from);
-        //
-        //        var<Cpx> L_to("L_to");
-        //        L_to.set_real(lji.in(arcs));
-        //
-        //        Constraint<Cpx> I_to("I_to");
-        //        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*Wij-T*conj(Y)*(Y+Ych)*conj(Wij)+Y*conj(Y)*Wii.from(arcs);
-        //        SOCP.add_real(I_to.in(arcs)==pow(tr,2)*L_to);
-        //
-        //        Constraint<> I_from_Pf("I_from_Pf");
-        //        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
-        //        SOCP.add(I_from_Pf.in(arcs)>=0);
-        //        SOCP.get_constraint("I_from_Pf")->_relaxed = true;
-        
+    /***************** REMOVING SDP_3D cuts *****************/
+//    if(!grid._tree){
+//        SOCP->remove("SDP_3D");
+//    }
+    
+    if(!current){
         
         indices nonzero_arcs("nonzero_arcs");
-        nonzero_arcs.add("40,25,37", "4,2,30" ,"13,6,31", "19,10,32", "36,22,35", "9,5,6", "28,16,24", "18,10,13", "38,23,36", "14,7,8", "1,1,39", "16,9,39", "17,10,11", "11,6,7", "29,17,18");
-        
-        
-        indices arcs1("arcs1");
-        arcs1.add("0,1,4", "3,3,6");
-        
-        indices arcs2("arcs2");
-        arcs2.add("2,5,6");
-        
-        indices arcs3("arcs3");
-        arcs3.add("5,7,8", "6,2,8", "7,8,9");
-        
-        indices bus_pairs1("bus_pairs1");
-        bus_pairs1.add("1,4", "4,5", "5,6");
-        
-        indices bus_pairs2("bus_pairs2");
-        bus_pairs2.add("8,9", "5,6","3,6"); //"5,6", "3,6", "6,7", "7,8", "2,8"
-        
-        
-        
+        nonzero_arcs.add("16,9,39", "45,29,38" ,"19,10,32", "36,22,35", "40,25,37", "4,2,30", "13,6,31", "1,1,39", "38,23,36", "5,3,4", "2,2,3", "39,25,26", "43,26,29", "0,1,2", "15,8,9", "42,26,28", "44,28,29", "21,12,13", "20,11,12", "25,16,17", "23,14,15", "27,16,21");
         if (true){
             
             // ********************* THIS PART IS FOR LIFT & PARTITION *********************
             /* Set the number of partitions (default is 1)*/
-            Pf_to._num_partns = 20;
-            Qf_to._num_partns = 20;
-            Wii._num_partns = 10;
-            lji._num_partns = 10;
-            
-            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
-            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
-            auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
-            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
-            SOCP->add(I_to_Pf_EQ.in(arcs)==0, true, "on/off");
+//            Pf_to._num_partns = 20;
+//            Qf_to._num_partns = 20;
+//            Wii._num_partns = 10;
+//            lji._num_partns = 10;
+//
+//            Constraint<> I_to_Pf_EQ("I_to_Pf_EQ");
+//            I_to_Pf_EQ = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
+//            auto I_to_Pf_EQ_Standard = SOCP->get_standard_SOC(I_to_Pf_EQ);
+//            SOCP->add(I_to_Pf_EQ_Standard.in(arcs)==0, true, "lambda_II");
 
-            
             // ********************* THIS PART IS FOR SOC_PARTITION FUNCTION *********************
             Constraint<> I_to_Pf_temp("I_to_Pf_temp");
             I_to_Pf_temp = lji.in(arcs)*Wii.to(arcs)-(pow(Pf_to.in(arcs),2) + pow(Qf_to.in(arcs), 2));
             I_to_Pf_temp.in(arcs) >= 0;
 
             //trial use SOC_partition
-//            SOCP.SOC_partition(I_to_Pf_temp,20,20,true);
-            SOCP->SOC_partition(I_to_Pf_temp,12,12,false);
+            SOCP->SOC_partition(I_to_Pf_temp,25,25,true);
             
             
         }
     }
     
+//    SOCP->print();
     
-    
-//    solver<> SOCPOPF(SOCP,ipopt);
-//    double solver_time_start = get_wall_time();
-//
-//    SOCPOPF.run(output = 5, tol = 1e-7, "ma27");
-//    SOCP.print_solution();
-//    SOCP.print_constraints_stats(tol);
-//    SOCP.print_nonzero_constraints(tol,true);
-//    auto lower_bound = SOCP.get_obj_val()*upperbound;
-//
-//    gap = 100*(upperbound - lower_bound)/upperbound;
-//    solver_time_end = get_wall_time();
-//    total_time_end = get_wall_time();
-//    solve_time = solver_time_end - solver_time_start;
-//    total_time = total_time_end - total_time_start;
-//    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
-//    DebugOn(out <<endl);
-//    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-//    DebugOn("Upper bound = " << to_string(upperbound) << "."<<endl);
-//    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    bool partition =  false;
+    if(partition){
+        *R_Vi._num_partns = 3;
+        *Im_Vi._num_partns = 3;
+        
+        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
+        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
+        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+        
+        Constraint<Cpx> Linking_Wij_partition("Linking_Wij_partition");
+        Linking_Wij_partition = Wij - Vi*conj(Vj);
+        SOCP->add(Linking_Wij_partition.in(bus_pairs_chord)==0, true, "lambda_II");
+        
+        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
+        
+        Constraint<Cpx> Linking_Wi_partition("Linking_Wi_partition");
+        Linking_Wi_partition = Wii - Vi*conj(Vi);
+        SOCP->add(Linking_Wi_partition.in(nodes)==0, true, "lambda_II");
+        
+    }
     
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-//    auto SOCPI=SOCP->build_model_interior();
-//    SOCPI->print();
-//    solver<> SOCPINT(SOCPI,ipopt);
-//    SOCPINT.run(output = 5, tol = 1e-7, "ma27");
-//
-//    vector<double> xint(SOCPI->_nb_vars);
-//
-//    SOCPI->get_solution(xint);
-    
-    
-//    DebugOn("THIS IS THE ORIGINAL FORMULATION" << endl);
-//    SOCP->print();
-    auto SOCPOA = SOCP->buildOA(10);
-//    DebugOn("THIS IS THE OA FORMULATION" << endl);
+    auto SOCPOA = SOCP->buildOA(5,5);
 //    SOCPOA->print();
-    
     /***************** OUTER APPROXIMATION DONE *****************/
+    
     /***************** IF YOU WANT TO OMIT OUTER APPROXIMATION CHANGE THE MODEL IN THE SOLVER TO SOCP *****************/
     /* Solver selection */
-    solver<> SOCOPF_CPX(SOCPOA, ipopt);
+    solver<> SOCOPF_CPX(SOCPOA, solv_type);
     auto solver_time_start = get_wall_time();
-    
-    /** use the following line if you want to relax the integer variables **/
-    //        SOCOPF_CPX.run(true);
-    SOCOPF_CPX.run(output,tol = 1e-6);
+//    SOCOPF_CPX.run(output=5,tol = 1e-6, "ma57",max_iter=3000);
+    SOCOPF_CPX.run(output=5,tol = 1e-8);
     gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Gap after OA = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upperbound) << "%."<<endl);
+    
     solver_time_end = get_wall_time();
     total_time_end = get_wall_time();
     solve_time = solver_time_end - solver_time_start;
     total_time = total_time_end - total_time_start;
     
-    /* Solver selection */
-    //    solver<> //ACOPF_IPOPT(//ACOPF, ipopt);
-    //    //ACOPF_IPOPT.run(output, tol = 1e-6);
-    
-    
-    
+    if(partition){
+        /* Solver selection */
+        solver<> SDP_CPX(SOCPOA, solv_type);
+        SDP_CPX.run(output,1e-6);
+        gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
+        DebugOn("Gap after partitionning = " << to_string(gap) << "%."<<endl);
+    }
     auto out = "DATA_OPF, " + grid._name + ", # of Buses:" + to_string(nb_buses) + ", # of Lines:" + to_string(nb_lines) +", Objective:" + to_string_with_precision(SOCP->get_obj_val(),10) + ", Upper bound:" + to_string(upperbound) + ", Solve time:" + to_string(solve_time) + ", Total time: " + to_string(total_time);
     DebugOn(out <<endl);
     
     //    double gap = 100*(//ACOPF.get_obj_val() - SOCP.get_obj_val())///ACOPF.get_obj_val();
     
-    gap = 100*(upperbound - SOCP->get_obj_val())/upperbound;
+    gap = 100*(upperbound - SOCPOA->get_obj_val())/upperbound;
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     
-    auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol, true, "I_to_Pf");
+    auto nonzero_idx2 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_to_Pf");
     nonzero_idx2.print();
+    auto nonzero_idx3 = SOCP->sorted_nonzero_constraint_indices(tol_viol, true, "I_from_Pf");
+    nonzero_idx3.print();
     
     
     return 0;
