@@ -5898,7 +5898,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
 
 
-                                                       var<> var_vp=model->get_var<T>(vp.second->_name);
+                                                       var<> var_vp=this->get_var<T>(vp.second->_name);
 
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
@@ -5908,16 +5908,13 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                    
                                                    
                                                   
-                                                        if(lb_vp_new>lb_vp){
-                                                                 DebugOn("Lower Bound update"<<endl);
-                                                            DebugOn("Ith variable "<<vk._name<<endl);
-                                                            DebugOn("Ith variable index "<<keyk<<endl);
-                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
-                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
-                                                            DebugOn(lb_vp<<"\t"<< lb_vp_new<<endl);
-
-
-                                                       
+                                                        if((lb_vp_new-lb_vp)>=range_tol){
+                                                           DebugOn("Lower Bound update"<<endl);
+//                                                            DebugOn("Ith variable "<<vk._name<<endl);
+//                                                            DebugOn("Ith variable index "<<keyk<<endl);
+//                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+//                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+//                                                            DebugOn(lb_vp<<"\t"<< lb_vp_new<<endl);
                                                         var_vp.set_lb((*vpkeys)[vpiter], lb_vp_new);
                                                         }
 
@@ -5926,15 +5923,15 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
                                                         ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
-                                                        var<> var_vp=model->get_var<T>(vp.second->_name);
-                                                        if(ub_vp_new<ub_vp){
-                                                            DebugOn("Upper Bound update"<<endl);
+                                                        var<> var_vp=this->get_var<T>(vp.second->_name);
+                                                        if((ub_vp-ub_vp_new)>=range_tol){
+                                                           DebugOn("Upper Bound update"<<endl);
+//                                                            DebugOn("Ith variable "<<vk._name<<endl);
+//                                                            DebugOn("Ith variable index "<<keyk<<endl);
+//                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+//                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+//                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
                                                             var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
-                                                            DebugOn("Ith variable "<<vk._name<<endl);
-                                                            DebugOn("Ith variable index "<<keyk<<endl);
-                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
-                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
-                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
                                                         }
 
                                                         
