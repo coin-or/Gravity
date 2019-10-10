@@ -254,7 +254,7 @@ int main (int argc, char * argv[]) {
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.00);
     
-    current = false;
+    current = true;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
   
@@ -461,14 +461,14 @@ int main (int argc, char * argv[]) {
     solver<> SDPOPF(SDP,solv_type);
     solver_time_start = get_wall_time();
     
-    SDPOPF.run(output = 0, tol = 1e-6);
+    SDPOPF.run(output = 5, tol = 1e-6);
      double solver_time_end = get_wall_time();
     double solver_time=solver_time_end-solver_time_start;
     double gap=999, lower_bound=999;
    // SDP.print_solution();
    // SDP.print();
-   // SDP.print_constraints_stats(tol);
-   // SDP.print_nonzero_constraints(tol,true);
+    SDP.print_constraints_stats(tol);
+    SDP.print_nonzero_constraints(tol,true);
     if(SDP._status==0)
     {
      lower_bound = SDP.get_obj_val()*upper_bound;
@@ -522,5 +522,23 @@ int main (int argc, char * argv[]) {
 //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
 //    }
 
+    auto con=SDP.get_constraint("SDP_3D");
+    auto d=con->_dual;
+    for(auto i=0;i<con->get_nb_instances();i++)
+        DebugOn(d[i]<<endl);
+
     
+    
+    for (auto &vp: SDP._vars) {
+        auto nb_inst = vp.second->get_dim();
+       auto ldv= vp.second->_l_dual;
+            auto udv=vp.second->_u_dual;
+        DebugOn(vp.second->_name<<endl);
+    for(auto i=0;i<ldv.size();i++)
+        DebugOn(ldv[i]<<"\t"<<udv[i]<<endl);
+
+    }
+            SDP.print_solution();
+    SDP.print();
 }
+

@@ -5690,7 +5690,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
         int gap_count_int=1, iter=0;
-        
+        double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
         const double tol = 1e-6;
           int output = 0;
@@ -5716,6 +5716,45 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             double lower_bound=lower_bound_init;
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
         {
+            terminate=false;
+            for(auto &it:this->_vars_name)
+            {
+                string vname=it.first;
+                v=this->get_var<double>(vname);
+                auto v_keys=v.get_keys();
+                auto v_key_map=v.get_keys_map();
+                for(auto &key: *v_keys)
+                {
+                    var_key = vname+"|"+ key;
+                    key_lb= var_key +"|LB";
+                    key_ub= var_key +"|UB";
+                    //Do not do OBBT on lifted variables
+                    if(v._lift){
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
+                        DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    }
+                    else{
+                        fixed_point[key_lb]=false;
+                        fixed_point[key_ub]=false;
+                    }
+                    auto key_pos=v_key_map->at(key);
+                    
+                    if(v._off[key_pos]==true)
+                    {
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
+                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    }
+                    
+                    interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
+                    ub_original[var_key]=v.get_ub(key);
+                    lb_original[var_key]=v.get_lb(key);
+                    interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
+                    
+                }
+                
+            }
         solver_time= get_wall_time()-solver_time_start;
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
@@ -5802,6 +5841,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                         vk=this->get_var<T>(vkname);
                                         var_key_k=vkname+"|"+keyk;
                                         objk=model->get_obj_val();
+                                    
                                         if(dirk=="LB")
                                         {
                                             boundk1=vk.get_lb(keyk);
@@ -5844,6 +5884,44 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 fixed_point[model->get_name()]=false;
                                                 terminate=false;
                                             }
+//                                            for (auto &vp: model->_vars) {
+//                                                auto nb_inst = vp.second->get_dim();
+//                                                auto ldv= vp.second->_l_dual;
+//                                                auto udv=vp.second->_u_dual;
+//                                                auto vpkeys=vp.second->get_keys();
+//                                                for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+//                                                {
+//                                                    if(udv[vpiter] >= 1E-3 && dirk=="LB")
+//                                                    {
+//                                                        DebugOn("Ith variable "<<vk._name<<endl);
+//                                                        DebugOn("Ith variable index "<<keyk<<endl);
+//                                                        
+//                                                    
+//                                                        
+//                                                       var<> var_vp=model->get_var<T>(vp.second->_name);
+//                                                        
+//                                                        DebugOn("Jth variable "<<vp.second->_name<<endl);
+//                                                        DebugOn("Jth variable index "<<vpiter<<endl);
+//                                                        
+//                                                        DebugOn("Jth variable "<<var_vp._name<<endl);
+//                                                        DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+//                                                        
+//                                                        ub_vp=vp.second->get_double_ub(vpiter);
+//                                                        
+//                                                        ub_vp_new=ub_vp-(vk.get_ub(keyk)-objk)/udv[vpiter];
+//                                                        
+//                                                        //xj≥xUj−(xBi−x∗i)/λ1
+//                                                        DebugOn("Entered Lagrange multiplier"<<udv[vpiter]<<"\t"<<var_vp.eval((*vpkeys)[vpiter])<<endl);
+//                                                        
+//                                                        DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
+//                                                        
+//                                                        DebugOn(var_vp._dim);
+//                                                       // var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
+//                                                        
+//                                                    }
+//                                                    
+//                                                }
+//                                            }
                                             
                                         }
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
@@ -6046,6 +6124,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
          std::get<1>(res) = iter;
          std::get<2>(res) = solver_time;
          std::get<3>(res) = lower_bound_init;
+        this->print();
         return res;
 }
 
