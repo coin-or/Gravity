@@ -5659,7 +5659,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    std::tuple<bool,int,double,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
+    std::tuple<bool,int,double,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model) {
         std::tuple<bool,int,double, double> res;
 
 #ifdef USE_MPI
@@ -5672,7 +5672,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
-
+        
         vector<shared_ptr<Model<>>> batch_models;
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
@@ -5680,9 +5680,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         string vname;
         string mname, mkname, vkname, keyk, dirk;
         string dir_array[2]={"LB", "UB"};
-        var<> vark, vk, v;
+        var<> vark, vk, v, var_ub;
         
-        double boundk1, objk, left, right, mid, temp, tempa;
+        double boundk1, objk, left, right, mid, temp, tempa, vk_ub, vk_lb, vk_xb;
         
         bool infeasible=false;
         bool terminate=false;
@@ -5889,6 +5889,13 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 auto ldv= vp.second->_l_dual;
                                                 auto udv=vp.second->_u_dual;
                                                 auto vpkeys=vp.second->get_keys();
+                                                bool in_orig_model=false;
+                                                if(ub_model._vars_name.find(vk._name)!=ub_model._vars_name.end())
+                                                {
+                                                     var_ub=ub_model.get_var<T>(vk._name);
+                                                    in_orig_model=true;
+                                                }
+                                                    
                                                 for(auto vpiter=0;vpiter<nb_inst;vpiter++)
                                                 {
                                                     if(udv[vpiter] >= 1E-3)
@@ -5902,14 +5909,28 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
+                                                        
+                                                        vk_ub=vk.get_ub(keyk);
+                                                        vk_lb=vk.get_lb(keyk);
+                                                        if(in_orig_model)
+                                                        {
+                                                            vk_xb=var_ub.eval(keyk);
+                                                            if(dirk=="UB"){
+                                                                vk_lb=vk_xb;
+                                                            }
+                                                            if(dirk=="LB"){
+                                                                vk_ub=vk_xb;
+                                                            }
+                                                                
+                                                        }
                                                        
-                                                        lb_vp_new=ub_vp-(vk.get_ub(keyk)-vk.get_lb(keyk))/udv[vpiter];
+                                                        lb_vp_new=ub_vp-(vk_ub-vk_lb)/udv[vpiter];
                                                      
                                                    
                                                    
                                                   
                                                         if((lb_vp_new-lb_vp)>=range_tol){
-                                                           DebugOn("Lower Bound update"<<endl);
+                                                           //DebugOn("Lower Bound update"<<endl);
 //                                                            DebugOn("Ith variable "<<vk._name<<endl);
 //                                                            DebugOn("Ith variable index "<<keyk<<endl);
 //                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
@@ -5922,10 +5943,25 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                     if(ldv[vpiter] >= 1E-3){
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
+                                                        
+                                                        vk_ub=vk.get_ub(keyk);
+                                                        vk_lb=vk.get_lb(keyk);
+                                                        if(in_orig_model)
+                                                        {
+                                                            vk_xb=var_ub.eval(keyk);
+                                                            if(dirk=="UB"){
+                                                                vk_lb=vk_xb;
+                                                            }
+                                                            if(dirk=="LB"){
+                                                                vk_ub=vk_xb;
+                                                            }
+                                                            
+                                                        }
+                                                        
                                                         ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
                                                         var<> var_vp=this->get_var<T>(vp.second->_name);
                                                         if((ub_vp-ub_vp_new)>=range_tol){
-                                                           DebugOn("Upper Bound update"<<endl);
+                                                          // DebugOn("Upper Bound update"<<endl);
 //                                                            DebugOn("Ith variable "<<vk._name<<endl);
 //                                                            DebugOn("Ith variable index "<<keyk<<endl);
 //                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
@@ -6162,7 +6198,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
     
     
-    template std::tuple<bool,int,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
+    template std::tuple<bool,int,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double> ub_model);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;

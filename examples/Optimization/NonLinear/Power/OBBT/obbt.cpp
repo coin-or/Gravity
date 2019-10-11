@@ -194,7 +194,7 @@ int main (int argc, char * argv[]) {
         ub.first=true;
         ub.second=upper_bound;
     
-       auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
+       auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF);
     
     if(SDP->_status==0)
     {
