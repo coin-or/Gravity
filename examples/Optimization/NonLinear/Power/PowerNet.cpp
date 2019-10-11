@@ -2217,8 +2217,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
-//    var<> eta("eta", 0, 1);
-//    SDPOPF->add(eta.in(range(0,0)));
+    var<> eta("eta", 0, 1);
+    SDPOPF->add(eta.in(range(0,0)));
 
     
     if(current){
@@ -2231,15 +2231,15 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 //    func<> obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
 //    SDPOPF->min(obj);
    
-    func<> obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
-    SDPOPF->min(obj);
+    //func<> obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
+    SDPOPF->min(eta);
    
     /**  Objective */
   
     
     
     Constraint<> obj_UB("obj_UB");
-    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-1.0;
+    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
     SDPOPF->add(obj_UB.in(range(0,0))<=0);
     
     

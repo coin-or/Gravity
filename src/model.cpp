@@ -5659,8 +5659,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    std::tuple<bool,int,double,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model) {
-        std::tuple<bool,int,double, double> res;
+    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model) {
+        std::tuple<bool,int,double, double, double, bool> res;
 
 #ifdef USE_MPI
     int worker_id, nb_workers;
@@ -5687,7 +5687,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         bool infeasible=false;
         bool terminate=false;
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
-        
+        bool xb_true=true;
+        double sum=0, avg=0, num_var=0.0;
         const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
@@ -5714,6 +5715,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             lower_bound_init=this->get_obj_val()*upper_bound.second;
             gapnl=(upper_bound.second-lower_bound_init)/(upper_bound.second)*100;
             double lower_bound=lower_bound_init;
+            
+            auto veta=this->get_var<T>("eta");
+            veta.set_lb("0", this->get_obj_val());
+            
         if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
         {
             terminate=false;
@@ -6077,18 +6082,32 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             solver_time= get_wall_time()-solver_time_start;
             DebugOn("Solved Fixed Point iteration " << iter << endl);
         }
+          
         vector<double> interval_gap;
-        double sum=0, avg, num_var=0.0;
+        
         for(auto &it:this->_vars_name)
         {
             string vname=it.first;
             v=this->get_var<double>(vname);
             auto v_keys=v.get_keys();
+            bool in_orig_model=false;
+            if(ub_model._vars_name.find(vname)!=ub_model._vars_name.end())
+            {
+                var_ub=ub_model.get_var<T>(vname);
+                in_orig_model=true;
+            }
+            
             for(auto &key: *v_keys)
             { num_var++;
                 var_key=vname+"|"+ key;
                 interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
                 sum+=interval_gap.back();
+                if( in_orig_model)
+                {
+                    if((var_ub.eval(key)-v.get_lb(key)) <0.000 || (var_ub.eval(key)-v.get_ub(key))>0.000){
+                        xb_true=false;
+                    }
+                }
                 DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
                 DebugOff(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point.at(var_key+"|UB") << endl);
             }
@@ -6179,6 +6198,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
          std::get<1>(res) = iter;
          std::get<2>(res) = solver_time;
          std::get<3>(res) = lower_bound_init;
+         std::get<4>(res) = avg;
+         std::get<5>(res) = xb_true;
         this->print();
         return res;
 }
@@ -6198,7 +6219,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
     
     
-    template std::tuple<bool,int,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double> ub_model);
+    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double> ub_model);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
