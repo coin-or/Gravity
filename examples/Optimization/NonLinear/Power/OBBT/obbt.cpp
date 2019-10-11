@@ -158,13 +158,13 @@ int main (int argc, char * argv[]) {
 
     
     double gap=999, gapnl=999;
-    double lower_bound=-99999;
+    double lower_bound=-99999, avg=0;
     double solver_time =0;
     int iter=0;
     unsigned max_iter=1000;
     unsigned precision=0;
     
-    bool terminate=false;
+    bool terminate=false, xb_true=false;
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
@@ -205,6 +205,8 @@ int main (int argc, char * argv[]) {
         iter=std::get<1>(res);
         solver_time=std::get<2>(res);
         lower_bound_init=std::get<3>(res);
+        avg=std::get<4>(res);
+        xb_true=std::get<5>(res);
         
         
         gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
