@@ -5679,6 +5679,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
         string vname;
         string mname, mkname, vkname, keyk, dirk;
+        string var_vp_key, vp_key_lb, vp_key_ub;
         string dir_array[2]={"LB", "UB"};
         var<> vark, vk, v, var_ub;
         
@@ -5903,6 +5904,12 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                     
                                                 for(auto vpiter=0;vpiter<nb_inst;vpiter++)
                                                 {
+                                                    var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
+                                                    vp_key_lb= var_vp_key +"|LB";
+                                                    vp_key_ub= var_vp_key +"|UB";
+                                                    
+                                                    if(fixed_point[vp_key_lb]==false || fixed_point[vp_key_ub]==false){
+                                                    
                                                     if(udv[vpiter] >= 1E-3)
                                                     {
                                                         //DebugOn("Ith variable "<<vk._name<<endl);
@@ -5974,7 +5981,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
                                                             var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
                                                         }
-
+                                                    }
                                                         
 
                                                         
