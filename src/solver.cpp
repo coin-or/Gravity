@@ -285,7 +285,7 @@ namespace gravity {
                 con->uneval();
                 for(auto i=0;i<con->get_nb_inst();i++){
                     if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                        Constraint<> OA_sol("OA_cuts_solution "+con->_name+to_string(i));
+                        Constraint<> OA_sol("OA_cuts_solution_"+con->_name+"_"+to_string(i));
                         OA_sol=con->get_outer_app_insti(i);
                         if(con->_ctype==leq) {
                             add(OA_sol<=0);
@@ -358,7 +358,7 @@ namespace gravity {
                                             auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
                                             if(res_search){
                                                 convex_fr=true;
-                                                if(!con->is_convex()) //assuming con is the SDP cut as it is the only nonconvex one
+                                                if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
                                                 {
                                                     xres=con->get_x(i);
                                                   
@@ -379,7 +379,7 @@ namespace gravity {
                                             
                                                 if(convex_fr){
                                                 
-                                                Constraint<> OA_active("OA_active "+con->_name+to_string(i)+to_string(j)+v->_name);
+                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
                                                 OA_active=con->get_outer_app_insti(i);
                                                 if(con->_ctype==leq) {
                                                     add(OA_active<=0);

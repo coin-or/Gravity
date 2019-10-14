@@ -6046,18 +6046,21 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             //Check if OBBT has converged, can check every gap_count_int intervals
             if(iter%gap_count_int==0)
             {    solver_time= get_wall_time()-solver_time_start;
-                
+
                 //                    this->print();
-                
+
                 this->reset_constrs();
                 solver<> SDPLB1(*this,solv_type);
                 SDPLB1.run(output = 0, tol, "ma27");
                 if(this->_status==0)
                 {
-                    auto gap = 100*(upper_bound.second - (this->get_obj_val())*upper_bound.second)/upper_bound.second;
+                    lower_bound=this->get_obj_val()*upper_bound.second;
+                    auto gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                     DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                 }
-                if (upper_bound.second-this->get_obj_val()*upper_bound.second<=abs_tol && (upper_bound.second-this->get_obj_val()*upper_bound.second)/(upper_bound.second+zero_tol)<=rel_tol)
+                
+              
+                if (upper_bound.second- lower_bound<=abs_tol && (upper_bound.second- lower_bound)/(upper_bound.second+zero_tol)<=rel_tol)
                 {
                     
                     //                        this->print();
@@ -6066,7 +6069,6 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                     
                     DebugOn("Gap closed at iter "<< iter<<endl);
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                    lower_bound=this->get_obj_val()*upper_bound.second;
                     gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);

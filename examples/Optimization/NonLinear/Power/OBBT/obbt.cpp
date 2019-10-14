@@ -44,6 +44,8 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     
+    bool nonlin=true;
+    
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
 
@@ -151,6 +153,7 @@ int main (int argc, char * argv[]) {
     
 
    // int nb_threads = thread::hardware_concurrency();
+    nb_threads=12;
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
@@ -173,7 +176,7 @@ int main (int argc, char * argv[]) {
     double upper_bound=OPF->get_obj_val();
    
     auto SDP= build_SDPOPF(grid, current, upper_bound);
-
+    shared_ptr<Model<double>> SDPO;
     
     double lower_bound_init;
     
@@ -193,25 +196,53 @@ int main (int argc, char * argv[]) {
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
-    
-       auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF);
-    
-    if(SDP->_status==0)
-    {
-        lower_bound=SDP->get_obj_val()*upper_bound;
-        gap=100*(upper_bound - lower_bound)/upper_bound;
+    nonlin=false;
+    if(nonlin){
+        //SDPO=SDP->copy();
         
-        terminate=std::get<0>(res);
-        iter=std::get<1>(res);
-        solver_time=std::get<2>(res);
-        lower_bound_init=std::get<3>(res);
-        avg=std::get<4>(res);
-        xb_true=std::get<5>(res);
-        
-        
-        gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-        DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF);
+        if(SDP->_status==0)
+        {
+            lower_bound=SDP->get_obj_val()*upper_bound;
+            gap=100*(upper_bound - lower_bound)/upper_bound;
+            
+            terminate=std::get<0>(res);
+            iter=std::get<1>(res);
+            solver_time=std::get<2>(res);
+            lower_bound_init=std::get<3>(res);
+            avg=std::get<4>(res);
+            xb_true=std::get<5>(res);
+            
+            
+            gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
+            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+        }
     }
+    else{
+        SDPLB.run(output = 0, tol);
+         SDPO=SDP->buildOA(15, 15);
+        auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF);
+        if(SDPO->_status==0)
+        {
+            lower_bound=SDPO->get_obj_val()*upper_bound;
+            gap=100*(upper_bound - lower_bound)/upper_bound;
+            
+            terminate=std::get<0>(res);
+            iter=std::get<1>(res);
+            solver_time=std::get<2>(res);
+            lower_bound_init=std::get<3>(res);
+            avg=std::get<4>(res);
+            xb_true=std::get<5>(res);
+            
+            
+            gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
+            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+        }
+        
+        
+    }
+    
+
         
         
         
