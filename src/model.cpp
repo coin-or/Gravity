@@ -6207,7 +6207,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
          std::get<3>(res) = lower_bound_init;
          std::get<4>(res) = avg;
          std::get<5>(res) = xb_true;
-        this->print();
+        //this->print();
         return res;
 }
 
