@@ -5659,7 +5659,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model) {
+    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model, Model<type> nonlin_model, bool nonlin) {
         std::tuple<bool,int,double, double, double, bool> res;
 
 #ifdef USE_MPI
@@ -5690,7 +5690,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
-        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
+        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
@@ -5715,6 +5715,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         {
             lower_bound_init=this->get_obj_val()*upper_bound.second;
             gapnl=(upper_bound.second-lower_bound_init)/(upper_bound.second)*100;
+            DebugOn("Initial gap "<<gapnl<<endl);
             double lower_bound=lower_bound_init;
             
             auto veta=this->get_var<T>("eta");
@@ -5805,6 +5806,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             modelk->set_name(mname);
                             
                             vark=modelk->template get_var<T>(vname);
+                            vark.initialize_av();
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));
@@ -5823,11 +5825,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",300,300, false,true);
+                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",800,800, false,true);
 
 #else
-                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27");
-                                //run_parallel(batch_models,cplex,1e-7,nb_threads);
+                               run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
+                                //run_parallel(batch_models,cplex,1e-6,1);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -5907,9 +5909,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                     var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
                                                     vp_key_lb= var_vp_key +"|LB";
                                                     vp_key_ub= var_vp_key +"|UB";
-                                                    
+
                                                     if(fixed_point[vp_key_lb]==false || fixed_point[vp_key_ub]==false){
-                                                    
+
                                                     if(udv[vpiter] >= 1E-3)
                                                     {
                                                         //DebugOn("Ith variable "<<vk._name<<endl);
@@ -5921,7 +5923,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
-                                                        
+
                                                         vk_ub=vk.get_ub(keyk);
                                                         vk_lb=vk.get_lb(keyk);
                                                         if(in_orig_model)
@@ -5933,14 +5935,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                             if(dirk=="LB"){
                                                                 vk_ub=vk_xb;
                                                             }
-                                                                
+
                                                         }
-                                                       
+
                                                         lb_vp_new=ub_vp-(vk_ub-vk_lb)/udv[vpiter];
-                                                     
-                                                   
-                                                   
-                                                  
+
+
+
+
                                                         if((lb_vp_new-lb_vp)>=range_tol){
                                                            //DebugOn("Lower Bound update"<<endl);
 //                                                            DebugOn("Ith variable "<<vk._name<<endl);
@@ -5955,7 +5957,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                     if(ldv[vpiter] >= 1E-3){
                                                         lb_vp=vp.second->get_double_lb(vpiter);
                                                         ub_vp=vp.second->get_double_ub(vpiter);
-                                                        
+
                                                         vk_ub=vk.get_ub(keyk);
                                                         vk_lb=vk.get_lb(keyk);
                                                         if(in_orig_model)
@@ -5967,9 +5969,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                             if(dirk=="LB"){
                                                                 vk_ub=vk_xb;
                                                             }
-                                                            
+
                                                         }
-                                                        
+
                                                         ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
                                                         var<> var_vp=this->get_var<T>(vp.second->_name);
                                                         if((ub_vp-ub_vp_new)>=range_tol){
@@ -5979,12 +5981,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
 //                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
 //                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
-                                                            var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
+                                                           var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
                                                         }
                                                     }
-                                                        
 
-                                                        
                                                     }
 
                                                 }
@@ -6030,8 +6030,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     }
                                     else
                                     {
+                                               //   model->print();
+//                                        solver<> SDPLB_model(*model,solv_type);
+//                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                        //                                            model->print();
+                                        
                                         
                                         //                                        fixed_point[pk]=true;
                                     }
@@ -6051,7 +6054,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
                 this->reset_constrs();
                 solver<> SDPLB1(*this,solv_type);
-                SDPLB1.run(output = 0, tol, "ma27");
+                SDPLB1.run(output = 5, tol, "ma27");
                 if(this->_status==0)
                 {
                     lower_bound=this->get_obj_val()*upper_bound.second;
@@ -6079,6 +6082,13 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                     
                     
                 }
+//                else
+//                {
+//                    if(!nonlin) //If linearized model is used for obbt
+//                    {
+//                        
+//                    }
+//                }
             }
             
             if(break_flag==true)
@@ -6228,7 +6238,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
     
     
-    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double> ub_model);
+    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double>, Model<double>, bool);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;

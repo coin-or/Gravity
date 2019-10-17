@@ -243,6 +243,32 @@ namespace gravity {
                 
             }
         }/*TODO Else (discretization for general constraint)*/
+//        else
+//        {
+//            int N_coordinates=con._nb_vars;
+//            int N_dim=N_coordinates-1;
+//
+//            vector<double> xn(N_dim);
+//
+//            int c;
+//
+//            for(auto a=0;a<std::pow(nb_discr,N_dim);a++)
+//            {
+//                c=a;
+//                std::fill (xn.begin(),xn.end(),0);
+//                int pos=N_dim-1;
+//                while(c>0)
+//                {
+//                    xn[pos--]=c%nb_discr;
+//                    c/=nb_discr;
+//                }
+//                for (auto &i:xn)
+//                    DebugOn(i<<"\t");
+//                DebugOn(endl);
+//            }
+//
+//
+//        }
     }
     //
     /** Outer approximation of active (nonlinear) constraints of the model
@@ -264,8 +290,8 @@ namespace gravity {
         int counter=0;
         size_t posv;
         
-        int output=5;
-        double tol=1e-6;
+        int output=0;
+        double tol=1e-8;
         bool convex_fr=true;
         auto Ointerior=build_model_interior(nonlin);
         solver<> modelI(Ointerior, ipopt);
@@ -311,7 +337,7 @@ namespace gravity {
                             xinterior=con_interior->get_x(i);
                             xinterior.pop_back();
                             xcurrent=con->get_x(i);
-                            if(std::abs(con->eval(i))<=active_tol)
+                            if(std::abs(con->eval(i))<=active_tol_sol)
                                 xactive=xcurrent;
                             else
                             {

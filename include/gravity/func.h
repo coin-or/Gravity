@@ -1200,7 +1200,7 @@ namespace gravity {
         
         func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            
+            const double active_tol=1e-8;
             double f_xstar, xv, dfv;
             vector<double> xcurrent, dfvector;
             int counter;
@@ -1291,7 +1291,7 @@ namespace gravity {
 
             }
             
-            
+            if(f_xstar>=active_tol)
             res += f_xstar;
  
             
@@ -1635,7 +1635,7 @@ namespace gravity {
             vector<double> xk, xsolution;
             double xvk, xvk1, fk, dfdvk, ub,lb;
             const int max_iter=10000;
-            const double active_tol=1e-6,zero_tol=1e-8;
+            const double active_tol=1e-8,zero_tol=1e-8;
             size_t posvk;
 
             int counter=0,iter=0;

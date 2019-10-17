@@ -2036,7 +2036,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_bound)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_bound, bool nonlin_obj)
 {
     bool relax, sdp_cuts = true,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
     size_t num_bags = 0;
@@ -2079,6 +2079,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     auto pg_max = grid.pg_max.in(gens);
     auto qg_min = grid.qg_min.in(gens);
     auto qg_max = grid.qg_max.in(gens);
+    auto pg_max_sq = grid.pg_max_sq.in(gens);
+    auto pg_min_sq = grid.pg_min_sq.in(gens);
     auto pf_from_min=grid.pf_from_min.in(arcs);
     auto pf_from_max=grid.pf_from_max.in(arcs);
     auto qf_from_min=grid.qf_from_min.in(arcs);
@@ -2148,7 +2150,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    Pf_to._off=pf_to_min._off;
+    //Pf_to._off=pf_to_min._off;
     
     /* Real part of Wij = ViVj */
     var<>  R_Wij("R_Wij", wr_min, wr_max);
@@ -2219,6 +2221,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<> lji("lji", lji_min,lji_max);
     var<> eta("eta", 0, 1);
     SDPOPF->add(eta.in(range(0,0)));
+    
+    var<> etag("etag", pg_min_sq, pg_max_sq);
+    if(!nonlin_obj){
+    SDPOPF->add(etag.in(gens));
+    }
 
     
     if(current){
@@ -2237,11 +2244,23 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     /**  Objective */
   
     
-    
+    if(nonlin_obj)
+    {
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
     SDPOPF->add(obj_UB.in(range(0,0))<=0);
-    
+    }
+    else
+    {
+        Constraint<> obj_cost("obj_cost");
+        obj_cost=etag-pow(Pg,2);
+        SDPOPF->add(obj_cost.in(gens)==0, true);
+        
+        Constraint<> obj_UB("obj_UB");
+        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound-eta;
+        SDPOPF->add(obj_UB.in(range(0,0))==0);
+        
+    }
     
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
