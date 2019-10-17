@@ -174,8 +174,10 @@ int main (int argc, char * argv[]) {
     OPFUB.run(output = 0, tol);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
+    
+    bool nonlin_obj=false;
    
-    auto SDP= build_SDPOPF(grid, current, upper_bound);
+    auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
     shared_ptr<Model<double>> SDPO;
     
     double lower_bound_init;
@@ -196,11 +198,19 @@ int main (int argc, char * argv[]) {
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
-    nonlin=false;
+    nonlin=true;
     if(nonlin){
         //SDPO=SDP->copy();
         
-         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF);
+        nonlin_obj=false;
+        
+        //auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+        
+        auto SDPA= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+        
+        SDP=SDPA->copy();
+        
+        auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
         if(SDP->_status==0)
         {
             lower_bound=SDP->get_obj_val()*upper_bound;
@@ -216,12 +226,36 @@ int main (int argc, char * argv[]) {
             
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
             DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+            
+            auto SDPOA=SDP->buildOA(6, 10);
+              solver<> SDPLB(SDPOA,solv_type);
+              SDPLB.run(output = 0, tol);
+            
+            
+            auto gapl = 100*(upper_bound - SDPOA->get_obj_val()*upper_bound)/upper_bound;
+            DebugOn("Gap linear at solution of OBBT model = " << to_string(gapl) << "%."<<endl);
+            
+
+            
         }
     }
     else{
-        SDPLB.run(output = 0, tol);
-         SDPO=SDP->buildOA(15, 15);
-        auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF);
+        
+        nonlin_obj=false;
+        
+        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+        SDPLB.run(output = 5, tol);
+        SDP->print();
+        
+        lower_bound=SDP->get_obj_val()*upper_bound;
+        gap=100*(upper_bound - lower_bound)/upper_bound;
+        DebugOn("Gap "<<gap);
+        
+         SDPO=SDP->buildOA(6, 10);
+        
+        SDPO->print();
+        
+        auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
         if(SDPO->_status==0)
         {
             lower_bound=SDPO->get_obj_val()*upper_bound;

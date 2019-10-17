@@ -523,22 +523,50 @@ int main (int argc, char * argv[]) {
 //    }
 
     auto con=SDP.get_constraint("SDP_3D");
-    auto d=con->_dual;
-    for(auto i=0;i<con->get_nb_instances();i++)
-        DebugOn(d[i]<<endl);
-
     
     
-    for (auto &vp: SDP._vars) {
-        auto nb_inst = vp.second->get_dim();
-       auto ldv= vp.second->_l_dual;
-            auto udv=vp.second->_u_dual;
-        DebugOn(vp.second->_name<<endl);
-    for(auto i=0;i<ldv.size();i++)
-        DebugOn(ldv[i]<<"\t"<<udv[i]<<endl);
 
-    }
-            SDP.print_solution();
-    SDP.print();
+    for(auto i=0;i<con->_nb_vars;i++)
+        
+        DebugOn(i<<endl);
+    
+    int nb_discr=4;
+    int N_dim=con->_nb_vars;
+    
+    N_dim=3;
+      vector<double> xn(N_dim);
+    
+    int c;
+    
+    for(auto a=0;a<std::pow(nb_discr,N_dim);a++)
+      {
+          c=a;
+          std::fill (xn.begin(),xn.end(),0);
+          int pos=N_dim-1;
+          while(c>0)
+          {
+              xn[pos--]=c%nb_discr;
+              c/=nb_discr;
+          }
+          for (auto &i:xn)
+              DebugOn(i<<"\t");
+          DebugOn(endl);
+      }
+    
+
+
+    
+//
+//    for (auto &vp: SDP._vars) {
+//        auto nb_inst = vp.second->get_dim();
+//       auto ldv= vp.second->_l_dual;
+//            auto udv=vp.second->_u_dual;
+//        DebugOn(vp.second->_name<<endl);
+//    for(auto i=0;i<ldv.size();i++)
+//        DebugOn(ldv[i]<<"\t"<<udv[i]<<endl);
+//
+//    }
+//            SDP.print_solution();
+//    SDP.print();
 }
 
