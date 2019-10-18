@@ -337,8 +337,9 @@ namespace gravity {
                             xinterior=con_interior->get_x(i);
                             xinterior.pop_back();
                             xcurrent=con->get_x(i);
-                            if(std::abs(con->eval(i))<=active_tol_sol)
+                            if(std::abs(con->eval(i))<=active_tol_sol){
                                 xactive=xcurrent;
+                            }
                             else
                             {
                                 auto res=con->get_any_active_point(i, con->_ctype);
@@ -387,8 +388,6 @@ namespace gravity {
                                                 if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
                                                 {
                                                     xres=con->get_x(i);
-                                                  
-                                                    con->uneval();
                                                     con->uneval();
                                                     fk=con->eval(i);
                                                     a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
@@ -400,8 +399,7 @@ namespace gravity {
                                                     else{
                                                         convex_fr=false;
                                                     }
-                                                   // convex_fr=false;
-                                                    }
+                                                   }
                                             
                                                 if(convex_fr){
                                                 

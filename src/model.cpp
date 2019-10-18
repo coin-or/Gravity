@@ -5829,7 +5829,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
 #else
                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
-                                //run_parallel(batch_models,cplex,1e-6,1);
+                                //run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -5903,7 +5903,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                      var_ub=ub_model.get_var<T>(vk._name);
                                                     in_orig_model=true;
                                                 }
-                                                    
+                                                
                                                 for(auto vpiter=0;vpiter<nb_inst;vpiter++)
                                                 {
                                                     var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
