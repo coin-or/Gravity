@@ -293,6 +293,7 @@ namespace gravity {
         int output=0;
         double tol=1e-8;
         bool convex_fr=true;
+        bool scale=false;
         auto Ointerior=build_model_interior(nonlin);
         solver<> modelI(Ointerior, ipopt);
         modelI.run(output, tol);
@@ -312,12 +313,20 @@ namespace gravity {
                 for(auto i=0;i<con->get_nb_inst();i++){
                     if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
                         Constraint<> OA_sol("OA_cuts_solution_"+con->_name+"_"+to_string(i));
-                        OA_sol=con->get_outer_app_insti(i);
+                        if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()){ //assuming con is the SDP cut as it is the only nonconvex one
+                            scale=true;
+                        }
+                        else
+                        {
+                            scale =false;
+                        }
+                        OA_sol=con->get_outer_app_insti(i, scale);
                         if(con->_ctype==leq) {
                             add(OA_sol<=0);
                         }
                         else {
-                            add(OA_sol>=0);
+                            
+                            add((OA_sol)>=0);
                         }
                     }
                 }
@@ -404,7 +413,7 @@ namespace gravity {
                                                 if(convex_fr){
                                                 
                                                 Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-                                                OA_active=con->get_outer_app_insti(i);
+                                                OA_active=con->get_outer_app_insti(i, false);
                                                 if(con->_ctype==leq) {
                                                     add(OA_active<=0);
                                                 }
@@ -432,8 +441,97 @@ namespace gravity {
             }
         }
     }
+    
+    /** Returns an interior point of a model
+     @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
+     Assuming model has no nonlinear equality constraints
+     **/
+    template<typename type>
+    template<typename T>
+    shared_ptr<Model<type>> Model<type>::build_model_IIS()
+    {
+        auto IIS = make_shared<Model<>>(_name+"IIS");
+        int i, cs;
+        
+        for (auto &it: _vars)
+        {
+            auto v = it.second;
+            if(!IIS->has_var(*v)){
+                IIS->add_var(v);
+            }
+        }
+        var<> eta_int("eta_int", -100, 100);
+        
+        IIS->add(eta_int.in(range(0,0)));
+        auto obj=eta_int;
+        
+        IIS->min(obj);
+        
+        int n=0;
+        for (auto &con: _cons_vec)
+        {
+            n+=con->get_nb_instances();
+        }
+        
+        
+       
+        DebugOn("N"<<n<<endl);
+       // param<> eta_length("eta_length");
+      //  eta_length.set_val(n);
+        
+        
+        var<> eta_i("eta_i", 0, 1);
+        IIS->add(eta_i.in(range(0,n-1)));
+        
+        Constraint<> sum_eta("sum_eta");
+        sum_eta=eta_int-sum(eta_i);
+        IIS->add(sum_eta==0);
+        
+        
+        
+        int counter=0;
+        
+        for (auto &con: _cons_vec)
+        {
+            cs=con->get_nb_instances();
+//            for(i=0;i<cs;i++)
+//            {
+
+                     DebugOn(cs<<endl);
+                    Constraint<> Inter_con(con->_name);
+                   Inter_con=*con;
+                    
+                    if(con->_ctype==leq)
+                    {
+                     //  Inter_con -= eta_i.in(range(counter, counter));
+                        //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))<=eta_i.in(range(counter, counter)));
+                         IIS->add(Inter_con<= eta_i.in(range(counter, counter)));
+                    }
+                    else  if(con->_ctype==geq)
+                    {
+                       // Inter_con += eta_i.in(range(counter, counter));
+                      //  IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
+                      //   Inter_con=(*con)+eta_i.in(range(counter, counter));
+                        IIS->add(Inter_con>=0);
+                         //IIS->add(Inter_con.in(range(i,i))>=0);
+                    }
+                    else  if(con->_ctype==eq)
+                    {
+                      // IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))==0);
+                        Inter_con=(*con);
+                         IIS->add(Inter_con==0);
+                    }
+                 counter++;
+            //eta_i.in(range(counter, counter))}
+            
+           
+            }
+        
+        return IIS;
+    }
     template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
     template shared_ptr<Model<double>> Model<double>::build_model_interior(Model<double>);
+    template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 }
 
 

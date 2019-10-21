@@ -5828,8 +5828,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",800,800, false,true);
 
 #else
-                               run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
-                                //run_parallel(batch_models,cplex,1e-6,nb_threads);
+                           //   run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
+                                run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -5892,104 +5892,104 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 fixed_point[model->get_name()]=false;
                                                 terminate=false;
                                             }
-                                            for (auto &vp: model->_vars) {
-                                                auto nb_inst = vp.second->get_dim();
-                                                auto ldv= vp.second->_l_dual;
-                                                auto udv=vp.second->_u_dual;
-                                                auto vpkeys=vp.second->get_keys();
-                                                bool in_orig_model=false;
-                                                if(ub_model._vars_name.find(vk._name)!=ub_model._vars_name.end())
-                                                {
-                                                     var_ub=ub_model.get_var<T>(vk._name);
-                                                    in_orig_model=true;
-                                                }
-                                                
-                                                for(auto vpiter=0;vpiter<nb_inst;vpiter++)
-                                                {
-                                                    var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
-                                                    vp_key_lb= var_vp_key +"|LB";
-                                                    vp_key_ub= var_vp_key +"|UB";
+//                                            for (auto &vp: model->_vars) {
+//                                                auto nb_inst = vp.second->get_dim();
+//                                                auto ldv= vp.second->_l_dual;
+//                                                auto udv=vp.second->_u_dual;
+//                                                auto vpkeys=vp.second->get_keys();
+//                                                bool in_orig_model=false;
+//                                                if(ub_model._vars_name.find(vk._name)!=ub_model._vars_name.end())
+//                                                {
+//                                                     var_ub=ub_model.get_var<T>(vk._name);
+//                                                    in_orig_model=true;
+//                                                }
+//
+//                                                for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+//                                                {
+//                                                    var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
+//                                                    vp_key_lb= var_vp_key +"|LB";
+//                                                    vp_key_ub= var_vp_key +"|UB";
+//
+//                                                    if(fixed_point[vp_key_lb]==false || fixed_point[vp_key_ub]==false){
+//
+//                                                    if(udv[vpiter] >= 1E-3)
+//                                                    {
+//                                                        //DebugOn("Ith variable "<<vk._name<<endl);
+//                                                        //DebugOn("Ith variable index "<<keyk<<endl);
+//
+//
+//
+//                                                       var<> var_vp=this->get_var<T>(vp.second->_name);
+//
+//                                                        lb_vp=vp.second->get_double_lb(vpiter);
+//                                                        ub_vp=vp.second->get_double_ub(vpiter);
+//
+//                                                        vk_ub=vk.get_ub(keyk);
+//                                                        vk_lb=vk.get_lb(keyk);
+//                                                        if(in_orig_model)
+//                                                        {
+//                                                            vk_xb=var_ub.eval(keyk);
+//                                                            if(dirk=="UB"){
+//                                                                vk_lb=vk_xb;
+//                                                            }
+//                                                            if(dirk=="LB"){
+//                                                                vk_ub=vk_xb;
+//                                                            }
+//
+//                                                        }
+//
+//                                                        lb_vp_new=ub_vp-(vk_ub-vk_lb)/udv[vpiter];
+//
+//
+//
+//
+//                                                        if((lb_vp_new-lb_vp)>=range_tol){
+//                                                           //DebugOn("Lower Bound update"<<endl);
+////                                                            DebugOn("Ith variable "<<vk._name<<endl);
+////                                                            DebugOn("Ith variable index "<<keyk<<endl);
+////                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+////                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+////                                                            DebugOn(lb_vp<<"\t"<< lb_vp_new<<endl);
+//                                                        var_vp.set_lb((*vpkeys)[vpiter], lb_vp_new);
+//                                                        }
+//
+//                                                    }
+//                                                    if(ldv[vpiter] >= 1E-3){
+//                                                        lb_vp=vp.second->get_double_lb(vpiter);
+//                                                        ub_vp=vp.second->get_double_ub(vpiter);
+//
+//                                                        vk_ub=vk.get_ub(keyk);
+//                                                        vk_lb=vk.get_lb(keyk);
+//                                                        if(in_orig_model)
+//                                                        {
+//                                                            vk_xb=var_ub.eval(keyk);
+//                                                            if(dirk=="UB"){
+//                                                                vk_lb=vk_xb;
+//                                                            }
+//                                                            if(dirk=="LB"){
+//                                                                vk_ub=vk_xb;
+//                                                            }
+//
+//                                                        }
+//
+//                                                        ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
+//                                                        var<> var_vp=this->get_var<T>(vp.second->_name);
+//                                                        if((ub_vp-ub_vp_new)>=range_tol){
+//                                                          // DebugOn("Upper Bound update"<<endl);
+////                                                            DebugOn("Ith variable "<<vk._name<<endl);
+////                                                            DebugOn("Ith variable index "<<keyk<<endl);
+////                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+////                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+////                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
+//                                                           var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
+//                                                        }
+//                                                    }
+//
+//                                                    }
+//
+//                                                }
+//                                            }
 
-                                                    if(fixed_point[vp_key_lb]==false || fixed_point[vp_key_ub]==false){
-
-                                                    if(udv[vpiter] >= 1E-3)
-                                                    {
-                                                        //DebugOn("Ith variable "<<vk._name<<endl);
-                                                        //DebugOn("Ith variable index "<<keyk<<endl);
-
-
-
-                                                       var<> var_vp=this->get_var<T>(vp.second->_name);
-
-                                                        lb_vp=vp.second->get_double_lb(vpiter);
-                                                        ub_vp=vp.second->get_double_ub(vpiter);
-
-                                                        vk_ub=vk.get_ub(keyk);
-                                                        vk_lb=vk.get_lb(keyk);
-                                                        if(in_orig_model)
-                                                        {
-                                                            vk_xb=var_ub.eval(keyk);
-                                                            if(dirk=="UB"){
-                                                                vk_lb=vk_xb;
-                                                            }
-                                                            if(dirk=="LB"){
-                                                                vk_ub=vk_xb;
-                                                            }
-
-                                                        }
-
-                                                        lb_vp_new=ub_vp-(vk_ub-vk_lb)/udv[vpiter];
-
-
-
-
-                                                        if((lb_vp_new-lb_vp)>=range_tol){
-                                                           //DebugOn("Lower Bound update"<<endl);
-//                                                            DebugOn("Ith variable "<<vk._name<<endl);
-//                                                            DebugOn("Ith variable index "<<keyk<<endl);
-//                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
-//                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
-//                                                            DebugOn(lb_vp<<"\t"<< lb_vp_new<<endl);
-                                                        var_vp.set_lb((*vpkeys)[vpiter], lb_vp_new);
-                                                        }
-
-                                                    }
-                                                    if(ldv[vpiter] >= 1E-3){
-                                                        lb_vp=vp.second->get_double_lb(vpiter);
-                                                        ub_vp=vp.second->get_double_ub(vpiter);
-
-                                                        vk_ub=vk.get_ub(keyk);
-                                                        vk_lb=vk.get_lb(keyk);
-                                                        if(in_orig_model)
-                                                        {
-                                                            vk_xb=var_ub.eval(keyk);
-                                                            if(dirk=="UB"){
-                                                                vk_lb=vk_xb;
-                                                            }
-                                                            if(dirk=="LB"){
-                                                                vk_ub=vk_xb;
-                                                            }
-
-                                                        }
-
-                                                        ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
-                                                        var<> var_vp=this->get_var<T>(vp.second->_name);
-                                                        if((ub_vp-ub_vp_new)>=range_tol){
-                                                          // DebugOn("Upper Bound update"<<endl);
-//                                                            DebugOn("Ith variable "<<vk._name<<endl);
-//                                                            DebugOn("Ith variable index "<<keyk<<endl);
-//                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
-//                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
-//                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
-                                                           var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
-                                                        }
-                                                    }
-
-                                                    }
-
-                                                }
-                                            }
-                                            
                                         }
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
@@ -6053,8 +6053,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 //                    this->print();
 
                 this->reset_constrs();
-                solver<> SDPLB1(*this,solv_type);
-                SDPLB1.run(output = 5, tol, "ma27");
+                solver<> SDPLB1(*this,ipopt);
+                SDPLB1.run(output = 5, tol, "ma57");
+               // SDPLB1.run(output = 5, tol);
                 if(this->_status==0)
                 {
                     lower_bound=this->get_obj_val()*upper_bound.second;
@@ -6140,6 +6141,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         {
             
             this->reset_constrs();
+            
+            auto SDPinf=this->copy();
+            
+            
             solver<> SDPLB1(*this,solv_type);
             
             SDPLB1.run(output = 0, tol, "ma27");

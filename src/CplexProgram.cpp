@@ -65,8 +65,8 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 
 //        cplex.setParam(IloCplex::RootAlg, 1);
         cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, mipgap);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, mipgap);
-        cplex.setParam(IloCplex::EpGap, 0.002); //stopping criterion MIPgap
+        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 0.000001);
+        cplex.setParam(IloCplex::EpGap, 0.000001 ); //stopping criterion MIPgap
         cplex.setParam(IloCplex::PreInd, 1);
         cplex.setParam(IloCplex::MIPDisplay, 2);
         

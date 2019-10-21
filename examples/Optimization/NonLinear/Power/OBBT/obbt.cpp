@@ -254,11 +254,38 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(7, 10);
+         SDPO=SDP->buildOA(3, 3);
         
-        SDPO->print();
+        auto SDPO_IIS=SDP->build_model_IIS();
+        solver<> IIS_test(SDPO_IIS,cplex);
+        IIS_test.run(output = 5, tol);
+        SDPO_IIS->print();
+        SDPO_IIS->print_solution();
+        
+       
         
         auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
+        
+        auto SDPO_IIS1=SDPO->build_model_IIS();
+        solver<> IIS_test1(SDPO_IIS1,cplex);
+        IIS_test1.run(output = 5, tol);
+        SDPO_IIS1->print();
+        
+        SDPO_IIS1->print_solution();
+        
+        
+        
+        solver<> test2(SDPO, cplex);
+        test2.run(output = 5, tol);
+        SDPO->print();
+        
+        for (auto &c:SDPO->_cons_vec)
+        {
+            DebugOn(c->_name<<endl);
+            
+        }
+        
+        
         if(SDPO->_status==0)
         {
             lower_bound=SDPO->get_obj_val()*upper_bound;
