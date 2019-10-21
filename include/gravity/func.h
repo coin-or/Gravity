@@ -1198,7 +1198,7 @@ namespace gravity {
             return res;
         }
         
-        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        func<type> get_outer_app_insti(size_t nb_inst, bool scale){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             const double active_tol=1e-8;
             double f_xstar, xv, dfv;
@@ -1234,7 +1234,13 @@ namespace gravity {
                     dfv=df.eval(i);
                            ids.add((*key)[posv]);
                           dfvector.push_back(dfv);
-                           res -= dfv*xv;
+                         if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                         {
+                                res -= dfv*xv*1E3;
+                         }
+                         else{
+                          res -= dfv*xv;
+                         }
                 }
                 }
                 else if(!(v->_is_vector))
@@ -1246,7 +1252,13 @@ namespace gravity {
                     df.uneval();
                     dfv=df.eval(nb_inst);
                       dfvector.push_back(dfv);
+                    if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                    {
+                        res -= dfv*xv*1E3;
+                    }
+                    else{
                        res -= dfv*xv;
+                    }
                 }
                 
                 param<type> df_xstar("df_xstar"+v->_name);
@@ -1254,8 +1266,13 @@ namespace gravity {
             
                 for(auto i=0;i<dfvector.size();i++)
                 {
-
+                    if(!is_convex() && !is_rotated_soc() && !check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                    {
+                        df_xstar.set_double_val(i, dfvector[i]*1E3);
+                    }
+                    else{
                     df_xstar.set_double_val(i, dfvector[i]);
+                    }
                 }
 
                 
@@ -1291,8 +1308,14 @@ namespace gravity {
 
             }
             
-            if(f_xstar>=active_tol)
+            //if(f_xstar>=active_tol)
+            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+            {
+                 res += f_xstar*1E3;
+            }
+            else{
             res += f_xstar;
+            }
  
             
             
