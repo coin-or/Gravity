@@ -5828,8 +5828,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                 run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",800,800, false,true);
 
 #else
-                           //   run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
-                                run_parallel(batch_models,cplex,1e-6,nb_threads);
+                              run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
+                              //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -6053,9 +6053,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 //                    this->print();
 
                 this->reset_constrs();
-                solver<> SDPLB1(*this,cplex);
+                solver<> SDPLB1(*this,ipopt);
                // SDPLB1.run(output = 5, tol, "ma57");
-                SDPLB1.run(output = 5, tol);
+                SDPLB1.run(output = 0, tol);
                 if(this->_status==0)
                 {
                     lower_bound=this->get_obj_val()*upper_bound.second;
@@ -6161,7 +6161,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         if(worker_id==0){
 #endif
             this->reset_constrs();
-            solver<> SDPLB1(*this,cplex);
+            solver<> SDPLB1(*this,ipopt);
             
             
             SDPLB1.run(output = 0, tol);
@@ -6176,7 +6176,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(this->_status==0)
             {
                 
-                DebugOff("\nResults: " << " " << to_string(this->get_obj_val()*upper_bound.second) << " " <<endl);
+                DebugOff("\nResults: " << " " << to_string(this->get_obj_val()*upper_bound.second) << " " <<endl);  
                 DebugOff("Solution Print"<<endl);
                 //                    this->print();
                 //                SDP->print_solution();
