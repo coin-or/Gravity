@@ -586,10 +586,12 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >> word;
         pg_max.add_val(name,atof(word.c_str())/bMVA);
         
-        pg_max_sq.add_val(name,std::pow(atof(word.c_str())/bMVA, 2));
+        
         file >> word;
         pg_min.add_val(name,atof(word.c_str())/bMVA);
-        pg_min_sq.add_val(name,std::pow(atof(word.c_str())/bMVA, 2));
+        pg_min_sq.add_val(name, std::min(std::pow(pg_min.eval(),2), std::pow(pg_max.eval(),2)) );
+        pg_max_sq.add_val(name, std::max(std::pow(pg_min.eval(),2), std::pow(pg_max.eval(),2)) );
+        
         getline(file, word,'\n');
         //        gen_status.push_back(status==1);
         
@@ -2254,7 +2256,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     {
         Constraint<> obj_cost("obj_cost");
         obj_cost=etag-pow(Pg,2);
-        SDPOPF->add(obj_cost.in(gens)==0, true,  "on/off", false);
+        SDPOPF->add(obj_cost.in(gens)==0, true);
         
         Constraint<> obj_UB("obj_UB");
         obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound-eta;
