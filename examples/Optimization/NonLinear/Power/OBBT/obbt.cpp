@@ -210,7 +210,7 @@ int main (int argc, char * argv[]) {
 //
 //        SDP=SDPA->copy();
         
-        SDP->print();
+       // SDP->print();
         
         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
         if(SDP->_status==0)
@@ -246,9 +246,9 @@ int main (int argc, char * argv[]) {
         nonlin_obj=false;
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
-         solver<> SDPLB(SDP,solv_type);
+         solver<> SDPLB(SDP, ipopt);
         SDPLB.run(output = 0, tol);
-        SDP->print();
+      //  SDP->print();
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
