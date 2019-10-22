@@ -6053,9 +6053,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 //                    this->print();
 
                 this->reset_constrs();
-                solver<> SDPLB1(*this,ipopt);
-                SDPLB1.run(output = 5, tol, "ma57");
-               // SDPLB1.run(output = 5, tol);
+                solver<> SDPLB1(*this,cplex);
+               // SDPLB1.run(output = 5, tol, "ma57");
+                SDPLB1.run(output = 5, tol);
                 if(this->_status==0)
                 {
                     lower_bound=this->get_obj_val()*upper_bound.second;
@@ -6161,10 +6161,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         if(worker_id==0){
 #endif
             this->reset_constrs();
-            solver<> SDPLB1(*this,solv_type);
+            solver<> SDPLB1(*this,cplex);
             
             
-            SDPLB1.run(output = 0, tol, "ma27");
+            SDPLB1.run(output = 0, tol);
             //                this->print_constraints_stats(tol);
             //                bool print_only_relaxed;
             //                this->print_nonzero_constraints(tol,print_only_relaxed=true);

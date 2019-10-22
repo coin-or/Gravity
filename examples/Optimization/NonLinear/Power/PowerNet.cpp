@@ -2160,7 +2160,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
-    add_original=true;
+    add_original=false;
     if(add_original)
     {
         var<>  R_Vi("R_Vi", -1*v_max, v_max);
@@ -2171,9 +2171,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
             R_Vi.initialize_all(1);
         Im_Vi.set_lb((grid.ref_bus),0);
         Im_Vi.set_ub((grid.ref_bus),0);
-        
-        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+//        
+//        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+//        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
         
 
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
@@ -2183,13 +2183,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify);
+        SDPOPF->add(Linking_Wij.in(bus_pairs_chord)==0, convexify, "on/off", false);
         
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
-        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
+        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify,  "on/off", false);
 
 //        if(!grid._tree)
 //        {
@@ -2254,7 +2254,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     {
         Constraint<> obj_cost("obj_cost");
         obj_cost=etag-pow(Pg,2);
-        SDPOPF->add(obj_cost.in(gens)==0, true);
+        SDPOPF->add(obj_cost.in(gens)==0, true,  "on/off", false);
         
         Constraint<> obj_UB("obj_UB");
         obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound-eta;
