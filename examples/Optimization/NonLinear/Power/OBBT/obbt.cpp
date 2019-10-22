@@ -229,7 +229,7 @@ int main (int argc, char * argv[]) {
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
             DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
             
-            auto SDPOA=SDP->buildOA(10, 10);
+            auto SDPOA=SDP->buildOA(15, 10);
               solver<> SDPLB(SDPOA,solv_type);
               SDPLB.run(output = 0, tol);
             
@@ -247,44 +247,38 @@ int main (int argc, char * argv[]) {
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
          solver<> SDPLB(SDP,solv_type);
-        SDPLB.run(output = 5, tol);
+        SDPLB.run(output = 0, tol);
         SDP->print();
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(3, 3);
+         SDPO=SDP->buildOA(15, 10);
         
-        auto SDPO_IIS=SDP->build_model_IIS();
-        solver<> IIS_test(SDPO_IIS,cplex);
-        IIS_test.run(output = 5, tol);
-        SDPO_IIS->print();
-        SDPO_IIS->print_solution();
-        
+//        auto SDPO_IIS=SDPO->build_model_IIS();
+//        solver<> IIS_test(SDPO_IIS,cplex);
+//        IIS_test.run(output = 5, tol);
+//        SDPO_IIS->print();
+//        SDPO_IIS->print_solution();
+//
        
         
         auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
         
-        auto SDPO_IIS1=SDPO->build_model_IIS();
-        solver<> IIS_test1(SDPO_IIS1,cplex);
-        IIS_test1.run(output = 5, tol);
-        SDPO_IIS1->print();
+//        auto SDPO_IIS1=SDPO->build_model_IIS();
+//        solver<> IIS_test1(SDPO_IIS1,cplex);
+//        IIS_test1.run(output = 0, tol);
+     //   SDPO_IIS1->print();
         
-        SDPO_IIS1->print_solution();
+     //   SDPO_IIS1->print_solution();
         
         
         
-        solver<> test2(SDPO, cplex);
-        test2.run(output = 5, tol);
-        SDPO->print();
-        
-        for (auto &c:SDPO->_cons_vec)
-        {
-            DebugOn(c->_name<<endl);
-            
-        }
-        
+//        solver<> test2(SDPO, cplex);
+//        test2.run(output = 5, tol);
+//        SDPO->print();
+ 
         
         if(SDPO->_status==0)
         {

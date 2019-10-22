@@ -497,7 +497,7 @@ namespace gravity {
 //            for(i=0;i<cs;i++)
 //            {
 
-                     DebugOn(cs<<endl);
+                    // DebugOn(cs<<endl);
                     Constraint<> Inter_con(con->_name);
                    Inter_con=*con;
                     
@@ -505,12 +505,12 @@ namespace gravity {
                     {
                      //  Inter_con -= eta_i.in(range(counter, counter));
                         //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))<=eta_i.in(range(counter, counter)));
-                         IIS->add(Inter_con<= eta_i.in(range(counter, counter)));
+                         IIS->add(Inter_con<= eta_i.in(range(counter, counter+con->get_nb_instances()-1)));
                     }
                     else  if(con->_ctype==geq)
                     {
-                       // Inter_con += eta_i.in(range(counter, counter));
-                      //  IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
+                        Inter_con += eta_i.in(range(counter, counter+con->get_nb_instances()-1));
+                       //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
                       //   Inter_con=(*con)+eta_i.in(range(counter, counter));
                         IIS->add(Inter_con>=0);
                          //IIS->add(Inter_con.in(range(i,i))>=0);
@@ -521,12 +521,12 @@ namespace gravity {
                         Inter_con=(*con);
                          IIS->add(Inter_con==0);
                     }
-                 counter++;
+                 counter+=con->get_nb_instances();
             //eta_i.in(range(counter, counter))}
             
            
             }
-        
+        IIS->print();
         return IIS;
     }
     template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
