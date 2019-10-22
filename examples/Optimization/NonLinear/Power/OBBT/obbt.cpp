@@ -245,7 +245,7 @@ int main (int argc, char * argv[]) {
         
         nonlin_obj=false;
         
-        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+        auto SDP= build_SDPOPF(grid, current, upper_bound, false);
          solver<> SDPLB(SDP, ipopt);
         SDPLB.run(output = 0, tol);
       //  SDP->print();
