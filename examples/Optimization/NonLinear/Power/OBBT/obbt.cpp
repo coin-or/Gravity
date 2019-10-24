@@ -247,8 +247,8 @@ int main (int argc, char * argv[]) {
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, false);
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, tol, "ma27");
-        SDP->print();
+        SDPLB.run(output = 0    , tol, "ma27");
+       // SDP->print();
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
