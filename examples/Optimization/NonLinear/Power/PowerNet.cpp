@@ -2166,7 +2166,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(bus_pairs_chord),Im_Wij.in(bus_pairs_chord));
     
-    add_original=true;
+    add_original=false;
     if(add_original)
     {
         var<>  R_Vi("R_Vi", -1*v_max, v_max);
@@ -2260,16 +2260,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     {
         Constraint<> obj_cost("obj_cost");
         obj_cost=etag-pow(Pg,2);
-        SDPOPF->add(obj_cost.in(gens)==0, true, "on/off", false);
+        SDPOPF->add(obj_cost.in(gens)>=0);
         
-        obj_cost.print();
-
+   
         Constraint<> obj_UB("obj_UB");
         obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound-eta;
         SDPOPF->add(obj_UB.in(range(0,0))<=0);
         
-        obj_UB.print();
-    }
+            }
         
 //        Constraint<> obj_UB("obj_UB");
 //        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
