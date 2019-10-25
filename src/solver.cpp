@@ -320,14 +320,14 @@ namespace gravity {
                         {
                             scale =false;
                         }
-                        OA_sol=con->get_outer_app_insti(i, scale);
-                        if(con->_ctype==leq) {
-                            add(OA_sol<=0);
-                        }
-                        else {
-                            
-                            add((OA_sol)>=0);
-                        }
+//                        OA_sol=con->get_outer_app_insti(i, scale);
+//                        if(con->_ctype==leq) {
+//                            add(OA_sol<=0);
+//                        }
+//                        else {
+//
+//                            add((OA_sol)>=0);
+//                        }
                     }
                 }
             }
@@ -412,14 +412,14 @@ namespace gravity {
                                             
                                                 if(convex_fr){
                                                 
-                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-                                                OA_active=con->get_outer_app_insti(i, false);
-                                                if(con->_ctype==leq) {
-                                                    add(OA_active<=0);
-                                                }
-                                                else {
-                                                    add(OA_active>=0);
-                                                }
+//                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
+//                                                OA_active=con->get_outer_app_insti(i, false);
+//                                                if(con->_ctype==leq) {
+//                                                    add(OA_active<=0);
+//                                                }
+//                                                else {
+//                                                    add(OA_active>=0);
+//                                                }
                                                 }
                                                 
                                             }
