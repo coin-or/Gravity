@@ -785,6 +785,9 @@ namespace gravity {
                 if (uexp->_son->is_function()) {
                     auto f = static_pointer_cast<func>(uexp->_son);
                     son = (*f);
+                    if(!son.has_var(v)){
+                        return func();
+                    }
                 }
                 else if(uexp->_son->is_var()) {
                     auto vv = static_pointer_cast<param_>(uexp->_son);
@@ -873,6 +876,9 @@ namespace gravity {
                     }
                 }
                 else {
+                    return func();
+                }
+                if(!lson.has_var(v) && !rson.has_var(v)){
                     return func();
                 }
                 switch (bexp->_otype) {
