@@ -254,7 +254,11 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(15, 10);
+         SDPO=SDP->buildOA(3, 3);
+        SDPO->print();
+        
+        solver<> SDPLB1(SDPO, ipopt);
+        SDPLB1.run(output = 0    , tol, "ma27");
         
 //        auto SDPO_IIS=SDPO->build_model_IIS();
 //        solver<> IIS_test(SDPO_IIS,cplex);

@@ -521,41 +521,38 @@ int main (int argc, char * argv[]) {
 //    else {
 //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
 //    }
+    const double active_tol_sol=1e-6;
+    bool scale=false;
+   
+   auto SDP1=SDP.copy();
+    for (auto &con: SDP._cons_vec)
+    {
+        if(!con->is_linear()) {
+            
+            con->uneval();
+             Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+             indices active("active_"+con->_name);
+            for(auto i=0;i<con->get_nb_inst();i++){
+                if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                    auto keys=con->_indices->_keys;
+                    active.add((*keys)[i]);
+                }
+            }
+                                    OA_sol=con->get_outer_app();
+                                    if(con->_ctype==leq) {
+                                        SDP1->add(OA_sol.in(active)<=0);
+                                    }
+                                    else {
+            
+                                        SDP1->add(OA_sol.in(active)>=0);
+                                    }
+        }
+    }
+    
+    SDP1->print();
 
-    auto con=SDP.get_constraint("SDP_3D");
-    
-    
-
-    for(auto i=0;i<con->_nb_vars;i++)
-        
-        DebugOn(i<<endl);
-    
-    int nb_discr=4;
-    int N_dim=con->_nb_vars;
-    
-    N_dim=3;
-      vector<double> xn(N_dim);
-    
-    int c;
-    
-    for(auto a=0;a<std::pow(nb_discr,N_dim);a++)
-      {
-          c=a;
-          std::fill (xn.begin(),xn.end(),0);
-          int pos=N_dim-1;
-          while(c>0)
-          {
-              xn[pos--]=c%nb_discr;
-              c/=nb_discr;
-          }
-          for (auto &i:xn)
-              DebugOn(i<<"\t");
-          DebugOn(endl);
-      }
-    
-
-
-    
+    solver<> SDPLB(SDP1, ipopt);
+    SDPLB.run(output = 5    , tol, "ma27");
 //
 //    for (auto &vp: SDP._vars) {
 //        auto nb_inst = vp.second->get_dim();
