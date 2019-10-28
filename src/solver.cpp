@@ -304,34 +304,29 @@ namespace gravity {
             //        Ointerior->print_solution();
         }
         
-        
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
                 
                 con->uneval();
+                Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                indices activeset("active_"+con->_name);
                 for(auto i=0;i<con->get_nb_inst();i++){
                     if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                        Constraint<> OA_sol("OA_cuts_solution_"+con->_name+"_"+to_string(i));
-                        if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()){ //assuming con is the SDP cut as it is the only nonconvex one
-                            scale=true;
-                        }
-                        else
-                        {
-                            scale =false;
-                        }
-//                        OA_sol=con->get_outer_app_insti(i, scale);
-//                        if(con->_ctype==leq) {
-//                            add(OA_sol<=0);
-//                        }
-//                        else {
-//
-//                            add((OA_sol)>=0);
-//                        }
+                        auto keys=con->_indices->_keys;
+                        activeset.add((*keys)[i]);
                     }
                 }
+                OA_sol=con->get_outer_app();
+//                if(con->_ctype==leq) {
+//                    add(OA_sol.in(activeset)<=0);
+//                }
+//                else {
+//                    add(OA_sol.in(activeset)>=0);
+//                }
             }
         }
+       
         if(interior)
         {
             get_solution(xsolution);

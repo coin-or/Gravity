@@ -1198,6 +1198,24 @@ namespace gravity {
             return res;
         }
         
+        func<type> get_outer_app_symbolic(std::vector<param<double>> c_val){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            int j=0;
+           // param<double> co("co");
+         //   co._indices = make_shared<indices>(ids);
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+               
+//                for(auto &i:*(ids._keys))
+//                    c1.set_val(i, c_val[j][k]);
+                res.insert(true, c_val[j++], *v);
+                }
+           // res += co;
+           // res._indices = ids;
+            merge_vars(res);
+            return res;
+        }
+        
         func<type> get_outer_app_insti(size_t nb_inst, bool scale){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             const double active_tol=1e-8;
