@@ -521,38 +521,164 @@ int main (int argc, char * argv[]) {
 //    else {
 //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
 //    }
-    const double active_tol_sol=1e-6;
+    
+    auto SDP1= build_SDPOPF(grid, current, upper_bound, false);
+    SDP1->print();
+    
+        solver<> SDPLB(SDP1, ipopt);
+        SDPLB.run(output = 5    , tol, "ma27");
+    
+    const double active_tol_sol=1e-6,active_tol=1e-6;
+            vector<double> xsolution(SDP1->_nb_vars);
     bool scale=false;
-   
-   auto SDP1=SDP.copy();
-    for (auto &con: SDP._cons_vec)
+    int nb_perturb=3, count;
+    double perturb_dist=0.1;
+    size_t posv;
+    auto SDP2=SDP1->copy();
+    auto Ointerior=SDP1->build_model_interior(*SDP1);
+    solver<> modelI(Ointerior, ipopt);
+    modelI.run(output, tol);
+    bool interior=false, outer=false, convex_fr;
+    
+    double fk,a,ba,c;
+    vector<double> xactive, xcurrent, xinterior,xres;
+    
+    indices Pert("Pert");
+    for(auto j=1;j<=nb_perturb;j++)
     {
-        if(!con->is_linear()) {
-            
-            con->uneval();
-             Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
-             indices active("active_"+con->_name);
-            for(auto i=0;i<con->get_nb_inst();i++){
-                if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                    auto keys=con->_indices->_keys;
-                    active.add((*keys)[i]);
-                }
-            }
-                                    OA_sol=con->get_outer_app();
-                                    if(con->_ctype==leq) {
-                                        SDP1->add(OA_sol.in(active)<=0);
-                                    }
-                                    else {
-            
-                                        SDP1->add(OA_sol.in(active)>=0);
-                                    }
-        }
+        Pert.add("P"+to_string(j));
     }
     
-    SDP1->print();
+    Pert.print();
+    
+    if((Ointerior->_status==0||Ointerior->_status==1) && Ointerior->get_obj_val() <0)
+    {
+        interior=true;
+        //        Ointerior->print_solution();
+    }
+    if(interior)
+    {
+        
+        for (auto &con: SDP1->_cons_vec)
+        {
+          
+            if(!con->is_linear()) {
+                for(auto i=0;i<con->get_nb_inst();i++){
+                    con->uneval();
+                    if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                        auto cname=con->_name;
+                        auto con_interior=Ointerior->get_constraint(cname);
+                        xinterior=con_interior->get_x(i);
+                        xinterior.pop_back();
+                        xcurrent=con->get_x(i);
+                        if(std::abs(con->eval(i))<=active_tol_sol){
+                            xactive=xcurrent;
+                        }
+                        else
+                        {
+                            auto res=con->get_any_active_point(i, con->_ctype);
+                            if(res.first){
+                                xactive=res.second;
+                                
+                            }
+                            else{
+                                continue;
+                            }
+                        }
+                        con->set_x(i, xactive);
+                        
+                         count=0;
+                            for(auto &it: *(con->_vars))
+                            {
+                                auto v = it.second.first;
+                                indices Pertv(Pert, v->_indices->get_unique_keys());
+//                                for (auto l=0;l<v->_indices->get_unique_keys().size();l++){
+//                                *(Pertv._ids)[0][l]=
+//                                }
+                                  Pertv.print();
+                                
+                                auto vname=v->_name;
+                                if(v->_is_vector)
+                                {
+                                    DebugOn("Exception: Vector variables are not currently supported"<<endl);
+                                    DebugOn("Throw exception" <<endl);
+                                    break;
+                                }
+                                else
+                                {
+                                    for(auto j=1;j<=nb_perturb;j++)
+                                    {
+                                    outer=false;
+                                    for(auto k=-1;k<=1;k+=2)
+                                    {
+                                        posv=v->get_id_inst(i);
+                                        v->set_double_val(posv, xactive[count]*(1+k*j*perturb_dist));
+                                        con->uneval();
+                                        fk=con->eval(i);
+                                        if((fk>=active_tol && con->_ctype==leq) || (fk<=(active_tol*(-1)) && con->_ctype==geq)){
+                                            outer=true;
+                                            break;
+                                        }
+                                    }
+                                    if(outer)
+                                    {
+                                        auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
+                                        if(res_search){
+                                            convex_fr=true;
+                                            if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                                            {
+                                                xres=con->get_x(i);
+                                                con->uneval();
+                                                fk=con->eval(i);
+                                                a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                                ba=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                                c=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                                if(a<=0 && ba<=0 && c<=0){
+                                                    convex_fr=true;
+                                                }
+                                                else{
+                                                    convex_fr=false;
+                                                }
+                                            }
+                                            
+                                            if(convex_fr){
+                                                
+                                                                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
+                                                                                                OA_active=con->get_outer_app_insti(i, false);
+                                                                                                if(con->_ctype==leq) {
+                                                                                                    SDP2->add(OA_active<=0);
+                                                                                                }
+                                                                                                else {
+                                                                                                    SDP2->add(OA_active>=0);
+                                                                                                }
+                                            }
+                                            
+                                        }
+                                        
+                                    }
+                                }
+                                con->set_x(i, xactive);
+                                
+                            }
+                                count++;
+                        }
+                        con->set_x(i, xcurrent);
+                        xcurrent.clear();
+                        xactive.clear();
+                        xinterior.clear();
+                        
+                    }
+                }
+            }
+        }
+    
+     SDP2->print();
+    }
+    
 
-    solver<> SDPLB(SDP1, ipopt);
-    SDPLB.run(output = 5    , tol, "ma27");
+//
+//    solver<> SDPLB(SDP1, ipopt);
+//    SDPLB.run(output = 5    , tol, "ma27");
 //
 //    for (auto &vp: SDP._vars) {
 //        auto nb_inst = vp.second->get_dim();
@@ -565,5 +691,5 @@ int main (int argc, char * argv[]) {
 //    }
 //            SDP.print_solution();
 //    SDP.print();
-}
 
+}

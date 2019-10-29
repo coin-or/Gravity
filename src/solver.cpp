@@ -306,7 +306,8 @@ namespace gravity {
         
         for (auto &con: nonlin._cons_vec)
         {
-            if(!con->is_linear()) {
+            //if(!con->is_linear() && !con->is_convex()) {
+                 if(!con->is_linear()) {
                 
                 con->uneval();
                 Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
@@ -318,12 +319,12 @@ namespace gravity {
                     }
                 }
                 OA_sol=con->get_outer_app();
-//                if(con->_ctype==leq) {
-//                    add(OA_sol.in(activeset)<=0);
-//                }
-//                else {
-//                    add(OA_sol.in(activeset)>=0);
-//                }
+                if(con->_ctype==leq) {
+                    add(OA_sol.in(activeset)<=0);
+                }
+                else {
+                    add(OA_sol.in(activeset)>=0);
+                }
             }
         }
        
@@ -360,7 +361,7 @@ namespace gravity {
                             for(auto j=1;j<=nb_perturb;j++)
                             {
                                 counter=0;
-                                for(auto &it: *con->_vars)
+                                for(auto &it: *(con->_vars))
                                 {
                                     auto v = it.second.first;
                                     auto vname=v->_name;
@@ -407,14 +408,14 @@ namespace gravity {
                                             
                                                 if(convex_fr){
                                                 
-//                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-//                                                OA_active=con->get_outer_app_insti(i, false);
-//                                                if(con->_ctype==leq) {
-//                                                    add(OA_active<=0);
-//                                                }
-//                                                else {
-//                                                    add(OA_active>=0);
-//                                                }
+                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
+                                                OA_active=con->get_outer_app_insti(i, false);
+                                                if(con->_ctype==leq) {
+                                                    add(OA_active<=0);
+                                                }
+                                                else {
+                                                    add(OA_active>=0);
+                                                }
                                                 }
                                                 
                                             }
