@@ -1189,7 +1189,34 @@ namespace gravity {
                 df_xstar = df;
                 auto ids = v->_indices->get_unique_keys();
                 df_xstar._indices = make_shared<indices>(ids);
-                res.insert(true, df_xstar, *v);
+                switch (v->get_intype()) {
+                    case binary_:
+                        res += df_xstar*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        break;
+                    case short_:
+                        res += df_xstar*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        break;
+                    case integer_:
+                        res += df_xstar*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        break;
+                    case float_:
+                        res += df_xstar*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        break;
+                        break;
+                    case double_:
+                       // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        break;
+//                    case long_:
+//                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
+//                        break;
+//                    case complex_:
+//                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
+//                        break;
+                    default:
+                        break;
+                }
+                
                 res -= df_xstar*xstar;
             }
             res += f_xstar;
