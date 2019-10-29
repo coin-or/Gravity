@@ -1201,6 +1201,25 @@ namespace gravity {
         func<type> get_outer_app_symbolic(std::vector<param<double>> c_val){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             int j=0;
+            
+            
+//            for(auto &it: *(con->_vars))
+//            {
+//                auto v = it.second.first;
+//                indices Pertv(Pert, Inst);
+//                auto keys_map=v->_indices->_keys_map;
+//                Pertv._ids = make_shared<vector<vector<size_t>>>();
+//                Pertv._ids->resize(1);
+//                for (auto l=0;l<con->get_nb_instances();l++){
+//                    if(v->_indices->_ids->size()>=1){
+//                        posv=(v->_indices->_ids->at(0))[l];
+//                    }
+//                    else{
+//                        posv=v->get_id_inst(i);
+//                    }
+//                    Pertv._ids->at(0).push_back(posv);
+//                }
+//            }
            // param<double> co("co");
          //   co._indices = make_shared<indices>(ids);
             for(auto &it: *_vars){
@@ -1284,7 +1303,7 @@ namespace gravity {
             
                 for(auto i=0;i<dfvector.size();i++)
                 {
-                    if(!is_convex() && !is_rotated_soc() && !check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                    if(scale) //assuming con is the SDP cut as it is the only nonconvex one
                     {
                         df_xstar.set_double_val(i, dfvector[i]*1E3);
                     }
@@ -1350,6 +1369,153 @@ namespace gravity {
            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
            
+            
+            
+            //res.print();
+            //            DebugOn("Xcurrent from get_outer_app_insti"<<endl);
+            //            for(auto i=0;i<xcurrent.size();i++)
+            //                DebugOn(xcurrent[i]<<"\t");
+            //            DebugOn(endl);
+            //            DebugOn("DF at Xcurrent from get_outer_app_insti"<<endl);
+            //            for(auto i=0;i<xcurrent.size();i++)
+            //                DebugOn(dfvector[i]<<"\t");
+            //            DebugOn(endl);
+            return res;
+        }
+        
+        func<type> get_outer_app_insti_coeff(size_t nb_inst, vector<double>& c, double& c0){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            const double active_tol=1e-8;
+            double f_xstar, xv, dfv;
+            vector<double> xcurrent, dfvector;
+            int counter;
+            counter=0;
+            
+            uneval();
+            f_xstar=eval(nb_inst);
+            //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            size_t posv;
+            
+            
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                indices ids("ids");
+                auto key=v->_indices->_keys;
+                
+                dfvector.clear();
+                auto df = *compute_derivative(*v);
+                df.eval_all();
+                if(v->_is_vector)
+                {
+                    
+                    
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        xcurrent.push_back(xv);
+                        
+                        df.uneval();
+                        dfv=df.eval(i);
+                        ids.add((*key)[posv]);
+                        dfvector.push_back(dfv);
+//                        if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+//                        {
+//                            res -= dfv*xv*1E3;
+//                        }
+//                        else{
+//                            res -= dfv*xv;
+//                        }
+                    }
+                }
+                else if(!(v->_is_vector))
+                {
+                    posv=v->get_id_inst(nb_inst);
+                    v->get_double_val(posv, xv);
+                    xcurrent.push_back(xv);
+                    ids.add((*key)[posv]);
+                    df.uneval();
+                    dfv=df.eval(nb_inst);
+                    dfvector.push_back(dfv);
+//                    if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+//                    {
+//                        res -= dfv*xv*1E3;
+//                    }
+//                    else{
+//                        res -= dfv*xv;
+//                    }
+                }
+                
+                param<type> df_xstar("df_xstar"+v->_name);
+                df_xstar.in(ids);
+                
+                for(auto i=0;i<dfvector.size();i++)
+                {
+                    if(!is_convex() && !is_rotated_soc() && !check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                    {
+                        df_xstar.set_double_val(i, dfvector[i]*1E3);
+                    }
+                    else{
+                        df_xstar.set_double_val(i, dfvector[i]);
+                    }
+                }
+                
+                
+                switch (v->get_intype()) {
+                    case binary_:
+                        res += df_xstar.tr()*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        break;
+                    case short_:
+                        res += df_xstar.tr()*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        break;
+                    case integer_:
+                        res += df_xstar.tr()*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        break;
+                    case float_:
+                        res += df_xstar.tr()*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        break;
+                        break;
+                    case double_:
+                        // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        break;
+                        //                    case long_:
+                        //                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
+                        //                        break;
+                        //                    case complex_:
+                        //                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
+                        //                        break;
+                    default:
+                        break;
+                }
+                
+                
+                
+            }
+            
+            //if(f_xstar>=active_tol)
+            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+            {
+                res += f_xstar*1E3;
+            }
+            else{
+                res += f_xstar;
+            }
+            
+            
+            
+            
+            indices res_ind("res_ind");
+            res_ind.add(to_string(nb_inst));
+            res._indices=make_shared<gravity::indices>(res_ind);
+            
+            res.eval_all();
+            res.uneval();
+            //            DebugOn("printin res in func.h"<<endl);
+            //            res.print();
+            //            res.merge_vars(*this);
+            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
+            
+            
             
             
             //res.print();
