@@ -318,13 +318,19 @@ namespace gravity {
                         activeset.add((*keys)[i]);
                     }
                 }
-                OA_sol=con->get_outer_app();
-                if(con->_ctype==leq) {
-                    add(OA_sol.in(activeset)<=0);
-                }
-                else {
-                    add(OA_sol.in(activeset)>=0);
-                }
+ //                 OA_sol=con->get_outer_app();
+//                if(con->_ctype==leq) {
+//                    add(OA_sol.in(activeset)<=0);
+//                }
+//                else {
+//                    add(OA_sol.in(activeset)>=0);
+//                }
+//                     if(con->_ctype==leq) {
+//                                             add(OA_sol<=0);
+//                                         }
+//                                         else {
+//                                             add(OA_sol>=0);
+//                                         }
             }
         }
        

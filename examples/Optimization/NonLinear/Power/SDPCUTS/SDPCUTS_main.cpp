@@ -548,8 +548,9 @@ int main (int argc, char * argv[]) {
     indices Pert("Pert");
     //indices Inst("Inst");
     vector<indices> vec_Pert;
-    vector<param<double>> vec_c;
-    
+    vector<param<double>> oa_vec_c;
+    param<double> oa_c0;
+ 
     for(auto j=1;j<=nb_perturb;j++)
     {
         Pert.add("P"+to_string(j));
@@ -567,15 +568,24 @@ int main (int argc, char * argv[]) {
         
         for (auto &con: SDP1->_cons_vec)
         {
-            
+            oa_vec_c.clear();
             if(!con->is_linear()) {
+                 if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                   indices Inst("Inst");
                  for(auto i=0;i<con->get_nb_inst();i++){
                      Inst.add("I"+to_string(i));
                  }
+                  indices PertI(Pert, Inst);
+                   for(auto i=0;i<con->_nb_vars;i++){
+                    param<double> ci("Param"+con->_name+"v"+to_string(i));
+                    ci.in(PertI);
+                    oa_vec_c.push_back(ci);
+                }
+                param<double> oa_c0;
+                oa_c0.in(PertI);
                 for(auto i=0;i<con->get_nb_inst();i++){
                     con->uneval();
-                    if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                   
                         auto cname=con->_name;
                         auto con_interior=Ointerior->get_constraint(cname);
                         xinterior=con_interior->get_x(i);
@@ -601,8 +611,6 @@ int main (int argc, char * argv[]) {
                         for(auto &it: *(con->_vars))
                         {
                             auto v = it.second.first;
-                            indices Pertv(Pert, Inst);
-                            Pertv.print();
                             
                             auto vname=v->_name;
                             if(v->_is_vector)
@@ -654,18 +662,20 @@ int main (int argc, char * argv[]) {
                                             if(convex_fr){
                                                 
                                                 Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-                                                con->get_outer_app_insti_coeff(c_val, c0_val);
-                                                if(con->_ctype==leq) {
-                                                    SDP2->add(OA_active<=0);
+                                                con->get_outer_app_insti_coeff(i, c_val, c0_val);
+                                                for(auto l=0;l<c_val.size();l++)
+                                                DebugOn(c_val[l]<<"\t");
+                                                DebugOn(c0_val<<endl);
                                                 }
-                                                else {
-                                                    SDP2->add(OA_active>=0);
-                                                }
-                                            }
                                             
                                         }
                                         
                                     }
+                                    for(auto l=0;l<con->_nb_vars;l++)
+                                    {
+                                        oa_vec_c[l].set_val("P"+to_string(j)+","+"I"+to_string(i), c_val[l]);
+                                    }
+                                    oa_c0.set_val("P"+to_string(j)+","+"I"+to_string(i), c0_val);
                                 }
                                 con->set_x(i, xactive);
                                 
@@ -678,14 +688,22 @@ int main (int argc, char * argv[]) {
                         xinterior.clear();
                         
                     }
+                     Constraint<> OA_iter("OA_iter"+con->_name);
+                     
+                     OA_iter=con->get_outer_app_symbolic(oa_vec_c, oa_c0, PertI);
+                     SDP2->add(OA_iter);
                 }
+               
             }
+            
+//            OA_iter;
+//            OA_iter.add;
         }
         
-        SDP2->print();
+       
     }
     
-    
+     SDP2->print();
     //
     //    solver<> SDPLB(SDP1, ipopt);
     //    SDPLB.run(output = 5    , tol, "ma27");
