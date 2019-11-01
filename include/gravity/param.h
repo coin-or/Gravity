@@ -98,6 +98,10 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
+        
+//        virtual
+//        void index_in(const indices& ids) {};
+        
         virtual void reset_range(){};
         
         /** let p share the values and indices of current var */
@@ -1713,11 +1717,15 @@ namespace gravity {
             res.reset_range();
             return res;
         }
-
+        
         template<typename... Args>
         void index_in(const indices& ids1, Args&&... args) {
             *this = this->in(ids1,args...);
         }
+        
+//        void index_in(const indices& ids) {
+//            *this = this->in(ids);
+//        }
 
         param in_pairs(const indices& ids) {
             param res(*this);

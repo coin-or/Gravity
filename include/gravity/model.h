@@ -5068,13 +5068,17 @@ namespace gravity {
         
         template<typename T=type>
         shared_ptr<Model<type>> buildOA(int nb_discr, int nb_perturb);
+        
+        /** Returns a model such that when optimized will return an iterior point to the current model**/
         template<typename T=type>
-        shared_ptr<Model<type>> build_model_interior(Model<type> nonlin);
+        Model<type> build_model_interior() const;
+        
         template<typename T=type>
         shared_ptr<Model<type>> build_model_IIS();
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
         //template<typename T=type>
-        void add_outer_app_active(Model<> nonlin, int nb_perturb);
+        /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
+        void add_outer_app_active(const Model<>& nonlin, int nb_perturb);
         
         
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)

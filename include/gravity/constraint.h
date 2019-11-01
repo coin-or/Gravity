@@ -104,6 +104,18 @@ namespace gravity {
             return *this;
         }
         
+        Constraint& operator==(const var<type>& rhs) {
+            _ctype = eq;
+            *this -= rhs;
+            return *this;
+        }
+        
+        Constraint& operator>=(const var<type>& rhs) {
+            _ctype = geq;
+            *this -= rhs;
+            return *this;
+        }
+        
         Constraint& operator <=(const func<type>& f){
             _ctype = leq;
             (*this) -= f;
