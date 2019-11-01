@@ -690,34 +690,27 @@ namespace gravity {
          @return current function
          */
         func& in(const indices& ids){//TODO assert each var and param that is not transposed has same dim as ids
-            //            index_in(ids);
-            //            _nb_vars = 0;
-            //            string key;
-            //            auto iter = _vars->begin();
-            //            while (iter!=_vars->end()) {
-            //                auto pair = (*iter++);
-            //                auto v = pair.second.first;
-            //                if(!v->is_indexed()){
-            //                    v->index_in(ids);
-            //                }
-            //                if (!v->_is_vector) {// i.e., it is not transposed
-            //                    _nb_vars++;
-            //                }
-            //                else {
-            //                    _nb_vars += v->get_dim();
-            //                }
-            //            }
-            //            iter = _params->begin();
-            //            while (iter!=_params->end()) {
-            //                auto pair = (*iter++);
-            //                auto p = pair.second.first;
-            //                if(!p->is_indexed()){
-            //                    p->index_in(ids);
-            //                }
-            //            }
+//            _nb_vars = 0;
+//            string key;
+//            auto iter = _vars->begin();
+//            while (iter!=_vars->end()) {
+//                auto pair = (*iter++);
+//                auto v = pair.second.first;
+//                if (!v->is_indexed() && !v->_is_vector) {// i.e., it is not transposed
+//                    v->index_in(ids);
+//                }
+//            }
+//            iter = _params->begin();
+//            while (iter!=_params->end()) {
+//                auto pair = (*iter++);
+//                auto p = pair.second.first;
+//                if (!p->is_indexed() && !p->_is_transposed) {// i.e., it is not transposed
+//                    p->index_in(ids);
+//                }
+//            }
             _indices = make_shared<indices>(ids);
             _dim[0] = ids.size();
-            //            if(_expr){
+            //            if(_expr){// TODO take care of nonlinear part
             //                _expr->in(ids);
             //            }
             return *this;
@@ -1172,53 +1165,52 @@ namespace gravity {
         
    
 
-        
-        func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
-            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            param<type> f_xstar("f_xstar");
-            f_xstar = *this;
-            for(auto &it: *_vars){
+        /** Returns an outer-approximation of the function using the current value of the variables and index it using the specified index set
+         @param[in] idx: index set for indexing the symbolic OA cut
+         **/
+        func<type> get_outer_app(const indices& idx){
+            auto cpy = *this;
+            auto keep = this->_indices->get_common_refs(idx);
+            
+            for(auto &it: *cpy._vars){
                 auto v = it.second.first;
-                auto vname=v->_name;
-                DebugOn(vname<<endl);
+                if(!v->_is_vector){
+                    v->_indices->filter_refs(keep);
+                }
             }
             
-            for(auto &it: *_vars){
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar");
+            f_xstar = cpy;
+
+            for(auto &it: *cpy._vars){
                 auto v = it.second.first;
                 param<type> xstar("xstar_"+v->_name);
                 xstar.in(*v->_indices);
                 xstar.copy_vals(v);
                 param<type> df_xstar("df_xstar"+v->_name);
                 auto df = *compute_derivative(*v);
-                //df.uneval();
+                df.uneval();
                 df.eval_all();
-                df_xstar = df;
-                auto ids = v->_indices->get_unique_keys();
-                df_xstar._indices = make_shared<indices>(ids);
+                df_xstar.copy_vals(df);
+                df_xstar.in(*cpy._indices);
                 switch (v->get_intype()) {
                     case binary_:
-                        res += df_xstar*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<bool>>(v));
                         break;
                     case short_:
-                        res += df_xstar*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<short>>(v));
                         break;
                     case integer_:
-                        res += df_xstar*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<int>>(v));
                         break;
                     case float_:
-                        res += df_xstar*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<float>>(v));
                         break;
                         break;
                     case double_:
-                       // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
-                        res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar*(*static_pointer_cast<param<double>>(v));
                         break;
-//                    case long_:
-//                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
-//                        break;
-//                    case complex_:
-//                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
-//                        break;
                     default:
                         break;
                 }
@@ -1226,14 +1218,14 @@ namespace gravity {
                 res -= df_xstar*xstar;
             }
             res += f_xstar;
-            res._indices = this->_indices;
-            merge_vars(res);
+            res.index_in(*cpy._indices);
+//            merge_vars(res);
             
-            for(auto &it: *_vars){
-                auto v = it.second.first;
-                auto vname=v->_name;
-                DebugOn(vname<<endl);
-            }
+//            for(auto &it: *_vars){
+//                auto v = it.second.first;
+//                auto vname=v->_name;
+//                DebugOn(vname<<endl);
+//            }
             return res;
         }
         
