@@ -249,6 +249,7 @@ int main (int argc, char * argv[]) {
          solver<> SDPLB(SDP, ipopt);
         SDPLB.run(output = 0    , tol, "ma27");
         SDP->print();
+        SDP->print_solution();
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
@@ -259,6 +260,7 @@ int main (int argc, char * argv[]) {
         
         solver<> SDPLB1(SDPO, ipopt);
         SDPLB1.run(output = 0    , tol, "ma27");
+        SDPO->print_solution();
         
 //        auto SDPO_IIS=SDPO->build_model_IIS();
 //        solver<> IIS_test(SDPO_IIS,cplex);
