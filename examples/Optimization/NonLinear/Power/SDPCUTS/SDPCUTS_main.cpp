@@ -535,10 +535,10 @@ int main (int argc, char * argv[]) {
     double perturb_dist=0.1;
     size_t posv;
     auto SDP2=SDP1->copy();
-    auto Ointerior=SDP1->build_model_interior(*SDP1);
+    auto Ointerior=SDP1->build_model_interior();
     solver<> modelI(Ointerior, ipopt);
     modelI.run(output, tol);
-    bool interior=false, outer=false, convex_fr;
+    bool interior=false, outer=false, convex_region;
     
     double fk,a,ba,c, c0_val;
     vector<double> xactive, xcurrent, xinterior,xres;
@@ -556,9 +556,9 @@ int main (int argc, char * argv[]) {
         Pert.add("P"+to_string(j));
     }
     
-    Pert.print();
+//    Pert.print();
     
-    if((Ointerior->_status==0||Ointerior->_status==1) && Ointerior->get_obj_val() <0)
+    if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
     {
         interior=true;
         //        Ointerior->print_solution();
@@ -568,38 +568,36 @@ int main (int argc, char * argv[]) {
         
         for (auto &con: SDP1->_cons_vec)
         {
-            oa_vec_c.clear();
+            oa_vec_c.clear();/** vector of parameters corresponding to coeficients apearing in the OA cut for each symbolic constraint, the vectore entries are ordered according to the smae order they appear in _vars */
             if(!con->is_linear()) {
-                 if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                  indices Inst("Inst");
-                 for(auto i=0;i<con->get_nb_inst();i++){
-                     Inst.add("I"+to_string(i));
-                 }
-                  indices PertI(Pert, Inst);
-                   for(auto i=0;i<con->_nb_vars;i++){
-                    param<double> ci("Param"+con->_name+"v"+to_string(i));
-                    ci.in(PertI);
-                    oa_vec_c.push_back(ci);
-                }
-                param<double> oa_c0;
-                oa_c0.in(PertI);
-                for(auto i=0;i<con->get_nb_inst();i++){
-                    con->uneval();
-                   
+                if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    indices Inst("Inst");
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        Inst.add("I"+to_string(i));
+                    }
+                    indices PertI(Pert, Inst);
+                    for(auto i=0;i<con->_nb_vars;i++){
+                        param<double> ci("Param"+con->_name+"v"+to_string(i));
+                        ci.in(PertI);
+                        oa_vec_c.push_back(ci);
+                    }
+                    param<double> oa_c0;
+                    oa_c0.in(PertI);
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        con->uneval();
+                        
                         auto cname=con->_name;
-                        auto con_interior=Ointerior->get_constraint(cname);
-                        xinterior=con_interior->get_x(i);
-                        xinterior.pop_back();
+                        auto con_interior=Ointerior.get_constraint(cname);
+                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                         xcurrent=con->get_x(i);
-                        if(std::abs(con->eval(i))<=active_tol_sol){
+                        if(con->is_active(i,active_tol_sol)){
                             xactive=xcurrent;
                         }
-                        else
+                        else/* TODO: lazy version for non-active constraints */
                         {
-                            auto res=con->get_any_active_point(i, con->_ctype);
+                            auto res=con->get_any_active_point(i, con->_ctype); /** Newton-Raphson to get an active point */
                             if(res.first){
                                 xactive=res.second;
-                                
                             }
                             else{
                                 continue;
@@ -627,46 +625,47 @@ int main (int argc, char * argv[]) {
                                     c0_val=0;
                                     c_val.resize(con->_nb_vars);
                                     std::fill(c_val.begin(), c_val.end(), 0);
-                                    for(auto k=-1;k<=1;k+=2)
-                                    {
-                                        posv=v->get_id_inst(i);
-                                        v->set_double_val(posv, xactive[count]*(1+k*j*perturb_dist));
+                                    posv=v->get_id_inst(i);
+                                    v->set_double_val(posv, xactive[count]*(1 - j*perturb_dist)); /** Perturbed point with negative epsilon */
+                                    con->uneval();
+                                    fk=con->eval(i);
+                                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                                        outer=true;
+                                    }
+                                    if(!outer){
+                                        v->set_double_val(posv, xactive[count]*(1 + j*perturb_dist)); /** Perturbed point with positive epsilon */
                                         con->uneval();
                                         fk=con->eval(i);
-                                        if((fk>=active_tol && con->_ctype==leq) || (fk<=(active_tol*(-1)) && con->_ctype==geq)){
+                                        if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                                             outer=true;
-                                            break;
                                         }
                                     }
                                     if(outer)
                                     {
-                                        auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
+                                        auto res_search=con->binary_line_search(xinterior, i);
                                         if(res_search){
-                                            convex_fr=true;
-                                            if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                                            convex_region=true;
+                                            if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                             {
                                                 xres=con->get_x(i);
                                                 con->uneval();
                                                 fk=con->eval(i);
-                                                a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                                ba=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                                c=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                                if(a<=0 && ba<=0 && c<=0){
-                                                    convex_fr=true;
+                                                auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                                auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                                auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                                if(soc1<=0 && soc2<=0 && soc3<=0){
+                                                    convex_region=true;
                                                 }
                                                 else{
-                                                    convex_fr=false;
+                                                    convex_region=false;
                                                 }
                                             }
-                                            
-                                            if(convex_fr){
-                                                
-                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-                                                con->get_outer_app_insti_coeff(i, c_val, c0_val);
-                                                for(auto l=0;l<c_val.size();l++)
-                                                DebugOn(c_val[l]<<"\t");
-                                                DebugOn(c0_val<<endl);
-                                                }
+                                            if(convex_region){
+                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
+//                                                for(auto l=0;l<c_val.size();l++)
+//                                                    DebugOn(c_val[l]<<"\t");
+//                                                DebugOn(c0_val<<endl);
+                                            }
                                             
                                         }
                                         
@@ -688,19 +687,22 @@ int main (int argc, char * argv[]) {
                         xinterior.clear();
                         
                     }
-                     Constraint<> OA_iter("OA_iter"+con->_name);
-                     
-                     OA_iter=con->get_outer_app_symbolic(oa_vec_c, oa_c0, PertI);
-                     SDP2->add(OA_iter);
+                    Constraint<> OA_iter("OA_iter"+con->_name);
+                    OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, Pert);
+                    if(con->_ctype==leq)
+                        SDP2->add(OA_iter <= 0);
+                    else
+                        SDP2->add(OA_iter >= 0);
+                    OA_iter.print();
                 }
-               
+                
             }
             
-//            OA_iter;
-//            OA_iter.add;
+            //            OA_iter;
+            //            OA_iter.add;
         }
         
-       
+        
     }
     
      SDP2->print();

@@ -131,7 +131,7 @@ Model<type> Model<type>::build_model_interior() const
         auto v = it.second;
         Interior.add_var(v);
     }
-    var<> eta_int("eta_int", -1, 0);
+    var<> eta_int("eta_interior", -1, 0);
     Interior.add(eta_int);
     
     /* Objective */
