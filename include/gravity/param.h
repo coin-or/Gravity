@@ -2288,14 +2288,22 @@ namespace gravity {
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
         void copy_vals(const func<T>& f){
-            _dim[0] = f._dim[0];
-            _dim[1] = f._dim[1];
-            auto dim = get_dim();
-            _val->resize(dim);
-            for (size_t i = 0; i < dim; i++) {
-                _val->at(i) = f._val->at(i);
+            if(f.func_is_number()){
+                for (size_t i = 0; i < _val->size(); i++) {
+                    _val->at(i) = f._val->at(0);
+                }
+                set_range(f._val->at(0));
             }
-            reset_range();
+            else {
+                _dim[0] = f._dim[0];
+                _dim[1] = f._dim[1];
+                auto dim = get_dim();
+                _val->resize(dim);
+                for (size_t i = 0; i < dim; i++) {
+                    _val->at(i) = f._val->at(i);
+                }
+                reset_range();
+            }
         }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
