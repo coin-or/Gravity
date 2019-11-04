@@ -1192,8 +1192,8 @@ namespace gravity {
                 auto df = *compute_derivative(*v);
                 df.uneval();
                 df.eval_all();
-                df_xstar.copy_vals(df);
                 df_xstar.in(*cpy._indices);
+                df_xstar.copy_vals(df);
                 switch (v->get_intype()) {
                     case binary_:
                         res += df_xstar*(*static_pointer_cast<param<bool>>(v));
