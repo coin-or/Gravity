@@ -102,17 +102,14 @@ namespace gravity {
                 {
                     
                     OA->add_outer_app_uniform(nb_discr, *con);
-                    
-                    set_solution(xsolution);
                 }
-                
             }
             else
             {
                 OA->add(*con);
             }
         }
-        
+        set_solution(xsolution);
         OA->add_outer_app_active(*this, nb_perturb);
         
         set_solution(xsolution);
@@ -120,59 +117,47 @@ namespace gravity {
     }
     
     
-    /** Returns an interior point of a model
-     @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
-     Assuming model has no nonlinear equality constraints
+    /** Returns a model that can compute an interior point to the current model
      **/
     template<typename type>
     template<typename T>
-    shared_ptr<Model<type>> Model<type>::build_model_interior(Model<type> nonlin)
+    Model<type> Model<type>::build_model_interior() const
     {
-        auto Interior = make_shared<Model<>>(nonlin._name+"Interior");
+        Model<type> Interior(_name+"Interior");
         
-        
-        for (auto &it: nonlin._vars)
+        /* Variables */
+        for (auto &it: _vars)
         {
             auto v = it.second;
-            if(!Interior->has_var(*v)){
-                Interior->add_var(v);
-            }
+            Interior.add_var(v);
         }
-        var<> eta_int("eta_int", -1, -0.000001);
+        var<> eta_int("eta_interior", -1, 0);
+        Interior.add(eta_int);
         
-        Interior->add(eta_int.in(range(0,0)));
-        auto obj=eta_int;
+        /* Objective */
+        Interior.min(eta_int);
         
-        Interior->min(obj);
+        /* Constraints */
         
-        
-        
-        for (auto &con: nonlin._cons_vec)
+        for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
-                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-            Constraint<> Inter_con(*con);
-                
-            if(con->_ctype==leq)
-            {
-                Inter_con -= eta_int;
-                Interior->add(Inter_con<=0);
+                /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    Constraint<> Inter_con(*con);
+                    
+                    if(con->_ctype==leq)
+                    {
+                        Interior.add(Inter_con<=eta_int);
+                    }
+                    else  if(con->_ctype==geq)
+                    {
+                        Interior.add(Inter_con>=-1*eta_int);
+                    }
+                }
             }
-            else  if(con->_ctype==geq)
-            {
-                Inter_con += eta_int;
-                Interior->add(Inter_con>=0);
-            }
-                   }
-            }
-            //        else
-            //        {
-            //            if(con->_ctype==leq||con->_ctype==geq)
-            //            Interior->add(*con);
-            //        }
         }
-        //    Interior->print();
-        return Interior;
+        return *Interior.copy();
     }
     
     
@@ -240,35 +225,35 @@ namespace gravity {
                 else {
                     add(OA_uniform>=0);
                 }
-                
+                OA_uniform.print();
             }
         }/*TODO Else (discretization for general constraint)*/
-//        else
-//        {
-//            int N_coordinates=con._nb_vars;
-//            int N_dim=N_coordinates-1;
-//
-//            vector<double> xn(N_dim);
-//
-//            int c;
-//
-//            for(auto a=0;a<std::pow(nb_discr,N_dim);a++)
-//            {
-//                c=a;
-//                std::fill (xn.begin(),xn.end(),0);
-//                int pos=N_dim-1;
-//                while(c>0)
-//                {
-//                    xn[pos--]=c%nb_discr;
-//                    c/=nb_discr;
-//                }
-//                for (auto &i:xn)
-//                    DebugOn(i<<"\t");
-//                DebugOn(endl);
-//            }
-//
-//
-//        }
+        //        else
+        //        {
+        //            int N_coordinates=con._nb_vars;
+        //            int N_dim=N_coordinates-1;
+        //
+        //            vector<double> xn(N_dim);
+        //
+        //            int c;
+        //
+        //            for(auto a=0;a<std::pow(nb_discr,N_dim);a++)
+        //            {
+        //                c=a;
+        //                std::fill (xn.begin(),xn.end(),0);
+        //                int pos=N_dim-1;
+        //                while(c>0)
+        //                {
+        //                    xn[pos--]=c%nb_discr;
+        //                    c/=nb_discr;
+        //                }
+        //                for (auto &i:xn)
+        //                    DebugOn(i<<"\t");
+        //                DebugOn(endl);
+        //            }
+        //
+        //
+        //        }
     }
     //
     /** Outer approximation of active (nonlinear) constraints of the model
@@ -278,7 +263,7 @@ namespace gravity {
      Assumption: nonlinear constraint to be perturbed does not have any vector variables
      **/
     template<>
-    void Model<>::add_outer_app_active(Model<> nonlin, int nb_perturb)
+    void Model<>::add_outer_app_active(const Model<>& nonlin, int nb_perturb)
     {
         const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
@@ -294,163 +279,146 @@ namespace gravity {
         double tol=1e-8;
         bool convex_fr=true;
         bool scale=false;
-        auto Ointerior=build_model_interior(nonlin);
+        auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
         modelI.run(output=5, tol);
-        Ointerior->print();
+        //    Ointerior.print();
         
-        if((Ointerior->_status==0||Ointerior->_status==1) && Ointerior->get_obj_val() <0)
+        if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
         {
             interior=true;
-            //        Ointerior->print_solution();
+            //        Ointerior.print_solution();
         }
-        
         for (auto &con: nonlin._cons_vec)
         {
-            //if(!con->is_linear() && !con->is_convex()) {
-                 if(!con->is_linear()) {
-                       con->uneval();
-              
-               // indices activeset("active_"+con->_name);
+            if(!con->is_linear()) {
+                Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                indices activeset("active_"+con->_name);
                 for(auto i=0;i<con->get_nb_inst();i++){
-             
-                    Constraint<> OA_sol("OA_cuts_solution_"+con->_name+to_string(i));
-                    if(std::abs(con->eval(i))<=active_tol_sol || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-//                        auto keys=con->_indices->_keys;
-//                        activeset.add((*keys)[i]);
-                          OA_sol=con->get_outer_app_insti(i, false);
-                        if(con->_ctype==leq) {
-                                                                         add(OA_sol<=0);
-                                                                     }
-                                                                     else {
-                                                                         add(OA_sol>=0);
-                                                                     }
+                    /** Generate an OA cut if constraint is active or if it has a convex representation */
+                    if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                        auto keys=con->_indices->_keys;
+                        activeset.add((*keys)[i]);
                     }
                 }
- //
-//                if(con->_ctype==leq) {
-//                    add(OA_sol.in(activeset)<=0);
-//                }
-//                else {
-//                    add(OA_sol.in(activeset)>=0);
-//                }
-//                     if(con->_ctype==leq) {
-//                                             add(OA_sol<=0);
-//                                         }
-//                                         else {
-//                                             add(OA_sol>=0);
-//                                         }
+                OA_sol=con->get_outer_app(activeset);
+                if(con->_ctype==leq) {
+                    add(OA_sol.in(activeset)<=0);
+                }
+                else {
+                    add(OA_sol.in(activeset)>=0);
+                }
             }
         }
-       
-//        if(interior)
-//        {
-//            get_solution(xsolution);
-//            for (auto &con: nonlin._cons_vec)
-//            {
-//                if(!con->is_linear()) {
-//                    for(auto i=0;i<con->get_nb_inst();i++){
-//                        con->uneval();
-//                        if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-//                            auto cname=con->_name;
-//                            auto con_interior=Ointerior->get_constraint(cname);
-//                            xinterior=con_interior->get_x(i);
-//                            xinterior.pop_back();
-//                            xcurrent=con->get_x(i);
-//                            if(std::abs(con->eval(i))<=active_tol_sol){
-//                                xactive=xcurrent;
-//                            }
-//                            else
-//                            {
-//                                auto res=con->get_any_active_point(i, con->_ctype);
-//                                if(res.first){
-//                                    xactive=res.second;
-//
-//                                }
-//                                else{
-//                                    continue;
-//                                }
-//                            }
-//                            con->set_x(i, xactive);
-//
-//                            for(auto j=1;j<=nb_perturb;j++)
-//                            {
-//                                counter=0;
-//                                for(auto &it: *(con->_vars))
-//                                {
-//                                    auto v = it.second.first;
-//                                    auto vname=v->_name;
-//                                    if(v->_is_vector)
-//                                    {
-//                                        DebugOn("Exception: Vector variables are not currently supported"<<endl);
-//                                        DebugOn("Throw exception" <<endl);
-//                                        break;
-//                                    }
-//                                    else
-//                                    {
-//                                        outer=false;
-//                                        for(auto k=-1;k<=1;k+=2)
-//                                        {
-//                                            posv=v->get_id_inst(i);
-//                                            v->set_double_val(posv, xactive[counter]*(1+k*j*perturb_dist));
-//                                            con->uneval();
-//                                            fk=con->eval(i);
-//                                            if((fk>=active_tol && con->_ctype==leq) || (fk<=(active_tol*(-1)) && con->_ctype==geq)){
-//                                                outer=true;
-//                                                break;
-//                                            }
-//                                        }
-//                                        if(outer)
-//                                        {
-//                                            auto res_search=con->linesearchbinary(xinterior, i, con->_ctype);
-//                                            if(res_search){
-//                                                convex_fr=true;
-//                                                if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
-//                                                {
-//                                                    xres=con->get_x(i);
-//                                                    con->uneval();
-//                                                    fk=con->eval(i);
-//                                                    a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-//                                                    b=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-//                                                    c=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-//                                                    if(a<=0 && b<=0 && c<=0){
-//                                                        convex_fr=true;
-//                                                    }
-//                                                    else{
-//                                                        convex_fr=false;
-//                                                    }
-//                                                   }
-//
-//                                                if(convex_fr){
-//
-//                                                Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
-//                                                OA_active=con->get_outer_app_insti(i, false);
-//                                                if(con->_ctype==leq) {
-//                                                    add(OA_active<=0);
-//                                                }
-//                                                else {
-//                                                    add(OA_active>=0);
-//                                                }
-//                                                }
-//
-//                                            }
-//
-//                                        }
-//                                    }
-//                                    con->set_x(i, xactive);
-//                                    counter++;
-//                                }
-//                            }
-//                            con->set_x(i, xcurrent);
-//                            xcurrent.clear();
-//                            xactive.clear();
-//                            xinterior.clear();
-//
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        
+            if(interior)
+            {
+                get_solution(xsolution);
+                for (auto &con: nonlin._cons_vec)
+                {
+                    if(!con->is_linear()) {
+                        for(auto i=0;i<con->get_nb_inst();i++){
+                            con->uneval();
+                            if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                                auto cname=con->_name;
+                                auto con_interior=Ointerior.get_constraint(cname);
+                                xinterior=con_interior->get_x(i);
+                                xinterior.pop_back();
+                                xcurrent=con->get_x(i);
+                                if(std::abs(con->eval(i))<=active_tol_sol){
+                                    xactive=xcurrent;
+                                }
+                                else
+                                {
+                                    auto res=con->get_any_active_point(i, con->_ctype);
+                                    if(res.first){
+                                        xactive=res.second;
+        
+                                    }
+                                    else{
+                                        continue;
+                                    }
+                                }
+                                con->set_x(i, xactive);
+        
+                                for(auto j=1;j<=nb_perturb;j++)
+                                {
+                                    counter=0;
+                                    for(auto &it: *(con->_vars))
+                                    {
+                                        auto v = it.second.first;
+                                        auto vname=v->_name;
+                                        if(v->_is_vector)
+                                        {
+                                            DebugOn("Exception: Vector variables are not currently supported"<<endl);
+                                            DebugOn("Throw exception" <<endl);
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            outer=false;
+                                            for(auto k=-1;k<=1;k+=2)
+                                            {
+                                                posv=v->get_id_inst(i);
+                                                v->set_double_val(posv, xactive[counter]*(1+k*j*perturb_dist));
+                                                con->uneval();
+                                                fk=con->eval(i);
+                                                if((fk>=active_tol && con->_ctype==leq) || (fk<=(active_tol*(-1)) && con->_ctype==geq)){
+                                                    outer=true;
+                                                    break;
+                                                }
+                                            }
+                                            if(outer)
+                                            {
+                                                auto res_search=con->binary_line_search(xinterior, i);
+                                                if(res_search){
+                                                    convex_fr=true;
+                                                    if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //assuming con is the SDP cut as it is the only nonconvex one
+                                                    {
+                                                        xres=con->get_x(i);
+                                                        con->uneval();
+                                                        fk=con->eval(i);
+                                                        a=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                                        b=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                                        c=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                                        if(a<=0 && b<=0 && c<=0){
+                                                            convex_fr=true;
+                                                        }
+                                                        else{
+                                                            convex_fr=false;
+                                                        }
+                                                    }
+        
+                                                    if(convex_fr){
+        
+                                                        Constraint<> OA_active("OA_active_"+con->_name+"_"+to_string(i)+"_"+to_string(j)+"_"+v->_name);
+                                                        OA_active=con->get_outer_app_insti(i, false);
+                                                        if(con->_ctype==leq) {
+                                                            add(OA_active<=0);
+                                                        }
+                                                        else {
+                                                            add(OA_active>=0);
+                                                        }
+                                                    }
+        
+                                                }
+        
+                                            }
+                                        }
+                                        con->set_x(i, xactive);
+                                        counter++;
+                                    }
+                                }
+                                con->set_x(i, xcurrent);
+                                xcurrent.clear();
+                                xactive.clear();
+                                xinterior.clear();
+        
+                            }
+                        }
+                    }
+                }
+            }
     }
     
     /** Returns an interior point of a model
@@ -485,10 +453,10 @@ namespace gravity {
         }
         
         
-       
+        
         DebugOn("N"<<n<<endl);
-       // param<> eta_length("eta_length");
-      //  eta_length.set_val(n);
+        // param<> eta_length("eta_length");
+        //  eta_length.set_val(n);
         
         
         var<> eta_i("eta_i", 0, 1);
@@ -505,46 +473,42 @@ namespace gravity {
         for (auto &con: _cons_vec)
         {
             cs=con->get_nb_instances();
-//            for(i=0;i<cs;i++)
-//            {
-
-                    // DebugOn(cs<<endl);
-                    Constraint<> Inter_con(con->_name);
-                   Inter_con=*con;
-                    
-                    if(con->_ctype==leq)
-                    {
-                     //  Inter_con -= eta_i.in(range(counter, counter));
-                        //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))<=eta_i.in(range(counter, counter)));
-                         IIS->add(Inter_con<= eta_i.in(range(counter, counter+con->get_nb_instances()-1)));
-                    }
-                    else  if(con->_ctype==geq)
-                    {
-                        Inter_con += eta_i.in(range(counter, counter+con->get_nb_instances()-1));
-                       //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
-                      //   Inter_con=(*con)+eta_i.in(range(counter, counter));
-                        IIS->add(Inter_con>=0);
-                         //IIS->add(Inter_con.in(range(i,i))>=0);
-                    }
-                    else  if(con->_ctype==eq)
-                    {
-                      // IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))==0);
-                        Inter_con=(*con);
-                         IIS->add(Inter_con==0);
-                    }
-                 counter+=con->get_nb_instances();
+            //            for(i=0;i<cs;i++)
+            //            {
+            
+            // DebugOn(cs<<endl);
+            Constraint<> Inter_con(con->_name);
+            Inter_con=*con;
+            
+            if(con->_ctype==leq)
+            {
+                //  Inter_con -= eta_i.in(range(counter, counter));
+                //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))<=eta_i.in(range(counter, counter)));
+                IIS->add(Inter_con<= eta_i.in(range(counter, counter+con->get_nb_instances()-1)));
+            }
+            else  if(con->_ctype==geq)
+            {
+                Inter_con += eta_i.in(range(counter, counter+con->get_nb_instances()-1));
+                //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
+                //   Inter_con=(*con)+eta_i.in(range(counter, counter));
+                IIS->add(Inter_con>=0);
+                //IIS->add(Inter_con.in(range(i,i))>=0);
+            }
+            else  if(con->_ctype==eq)
+            {
+                // IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))==0);
+                Inter_con=(*con);
+                IIS->add(Inter_con==0);
+            }
+            counter+=con->get_nb_instances();
             //eta_i.in(range(counter, counter))}
             
-           
-            }
+            
+        }
         IIS->print();
         return IIS;
     }
     template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
-    template shared_ptr<Model<double>> Model<double>::build_model_interior(Model<double>);
+    template Model<double> Model<double>::build_model_interior() const;
     template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 }
-
-
-
-
