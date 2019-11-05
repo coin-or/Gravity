@@ -323,6 +323,7 @@ namespace gravity {
                 oa_vec_c.clear();/** vector of parameters corresponding to coeficients apearing in the OA cut for each symbolic constraint, the vectore entries are ordered according to the smae order they appear in _vars */
                 if(!con->is_linear()) {
                     if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                        con->print();
                         indices Inst("Inst");
                         for(auto i=0;i<con->get_nb_inst();i++){
                             Inst.add("I"+to_string(i));
@@ -382,21 +383,24 @@ namespace gravity {
                                 }
                                 else
                                 {
+                                    posv=v->get_id_inst(i);
+                                    auto ub_v=v->get_double_ub(posv);
+                                    auto lb_v=v->get_double_lb(posv);
+                                    
                                     for(auto j=1;j<=nb_perturb;j++)
                                     {
                                         outer=false;
                                         c0_val=0;
                                         c_val.resize(con->_nb_vars);
                                         std::fill(c_val.begin(), c_val.end(), 0);
-                                        posv=v->get_id_inst(i);
-                                        v->set_double_val(posv, xactive[count]*(1 - j*perturb_dist)); /** Perturbed point with negative epsilon */
+                                        v->set_double_val(posv, std::max(xactive[count]*(1 - j*perturb_dist), lb_v)); /** Perturbed point with negative epsilon */
                                         con->uneval();
                                         fk=con->eval(i);
                                         if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                                             outer=true;
                                         }
                                         if(!outer){
-                                            v->set_double_val(posv, xactive[count]*(1 + j*perturb_dist)); /** Perturbed point with positive epsilon */
+                                            v->set_double_val(posv, std::min(xactive[count]*(1 + j*perturb_dist),ub_v)); /** Perturbed point with positive epsilon */
                                             con->uneval();
                                             fk=con->eval(i);
                                             if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
