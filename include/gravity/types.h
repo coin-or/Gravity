@@ -515,15 +515,16 @@ namespace gravity{
             }
             return *this;
         }
+       
         
-        /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
-        vector<bool> diff_refs(const indices& ids) const{
+        /** Returns a vector of bools indicating if the ith reference is in ids and in this. The function iterates over key references in _ids. */
+        vector<bool> get_common_refs(const indices& ids) const{
             vector<bool> res;
             assert(_ids);
             set<size_t> unique_ids;
             if(is_indexed()){/* If ids has key references, use those */
                 for (auto &idx:_ids->at(0)) {
-                    if(ids._keys_map->count(_keys->at(idx))){
+                    if(ids._keys_map->count(_keys->at(idx))!=0){
                         res.push_back(true);
                     }
                     else {
@@ -533,7 +534,35 @@ namespace gravity{
             }
             else {
                 for (auto &key:*_keys) {
-                    if(ids._keys_map->count(key)){
+                    if(ids._keys_map->count(key)!=0){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }
+            return res;
+        }
+        
+        /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
+        vector<bool> diff_refs(const indices& ids) const{
+            vector<bool> res;
+            assert(_ids);
+            set<size_t> unique_ids;
+            if(is_indexed()){/* If ids has key references, use those */
+                for (auto &idx:_ids->at(0)) {
+                    if(ids._keys_map->count(_keys->at(idx))==0){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }
+            else {
+                for (auto &key:*_keys) {
+                    if(ids._keys_map->count(key)==0){
                         res.push_back(true);
                     }
                     else {
