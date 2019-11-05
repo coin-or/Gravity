@@ -255,7 +255,7 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(3, 3);
+         SDPO=SDP->buildOA(15, 10);
         SDPO->print();
         
         solver<> SDPLB1(SDPO, ipopt);
