@@ -528,10 +528,9 @@ int main (int argc, char * argv[]) {
     solver<> SDPLB(SDP1, ipopt);
     SDPLB.run(output = 5    , tol, "ma27");
     
-    const double active_tol_sol=1e-6,active_tol=1e-6;
-    vector<double> xsolution(SDP1->_nb_vars);
+    const double active_tol_sol=1e-8,active_tol=1e-6;
     bool scale=false;
-    int nb_perturb=3, count;
+    int nb_perturb=2, count;
     double perturb_dist=0.1;
     size_t posv;
     auto SDP2=SDP1->copy();
@@ -541,7 +540,7 @@ int main (int argc, char * argv[]) {
     bool interior=false, outer=false, convex_region;
     
     double fk,a,ba,c, c0_val;
-    vector<double> xactive, xcurrent, xinterior,xres;
+    vector<double> xactive, xcurrent, xinterior,xres,xtest;
     
     vector<double> c_val ;
     
@@ -677,10 +676,14 @@ int main (int argc, char * argv[]) {
                                                 }
                                             }
                                             if(convex_region){
-                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
+//                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
 //                                                for(auto l=0;l<c_val.size();l++)
 //                                                    DebugOn(c_val[l]<<"\t");
 //                                                DebugOn(c0_val<<endl);
+                                                
+                                    
+                                                con->get_outer_coef(i, c_val, c0_val);
+//
                                             }
                                             
                                         }
@@ -691,8 +694,9 @@ int main (int argc, char * argv[]) {
                                         oa_vec_c[l].set_val("P"+to_string((j-1)*con->_nb_vars+count)+","+"I"+to_string(i), c_val[l]);
                                     }
                                     oa_c0.set_val("P"+to_string((j-1)*con->_nb_vars+count)+","+"I"+to_string(i), c0_val);
+                                    con->set_x(i, xactive);
                                 }
-                                con->set_x(i, xactive);
+                                
                                 
                             }
                             count++;
