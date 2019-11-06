@@ -1197,11 +1197,6 @@ namespace gravity {
             
         }
         
-
-        
-        
-   
-
         /** Returns an outer-approximation of the function using the current value of the variables and index it using the specified index set
          @param[in] idx: index set for indexing the symbolic OA cut
          **/
@@ -1219,7 +1214,7 @@ namespace gravity {
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             param<type> f_xstar("f_xstar");
             f_xstar = cpy;
-
+            
             for(auto &it: *cpy._vars){
                 auto v = it.second.first;
                 param<type> xstar("xstar_"+v->_name);
@@ -1233,20 +1228,21 @@ namespace gravity {
                 df_xstar.copy_vals(df);
                 switch (v->get_intype()) {
                     case binary_:
-                        res += df_xstar*(*static_pointer_cast<param<bool>>(v));
+                        
+                       res += df_xstar*(*static_pointer_cast<var<bool>>(v));
                         break;
                     case short_:
-                        res += df_xstar*(*static_pointer_cast<param<short>>(v));
+                        res += df_xstar*(*static_pointer_cast<var<short>>(v));
                         break;
                     case integer_:
-                        res += df_xstar*(*static_pointer_cast<param<int>>(v));
+                        res += df_xstar*(*static_pointer_cast<var<int>>(v));
                         break;
                     case float_:
-                        res += df_xstar*(*static_pointer_cast<param<float>>(v));
+                        res += df_xstar*(*static_pointer_cast<var<float>>(v));
                         break;
                         break;
                     case double_:
-                        res += df_xstar*(*static_pointer_cast<param<double>>(v));
+                        res += df_xstar*(*static_pointer_cast<var<double>>(v));
                         break;
                     default:
                         break;
@@ -1256,15 +1252,20 @@ namespace gravity {
             }
             res += f_xstar;
             res.index_in(*cpy._indices);
-//            merge_vars(res);
+            //            merge_vars(res);
             
-//            for(auto &it: *_vars){
-//                auto v = it.second.first;
-//                auto vname=v->_name;
-//                DebugOn(vname<<endl);
-//            }
+            //            for(auto &it: *_vars){
+            //                auto v = it.second.first;
+            //                auto vname=v->_name;
+            //                DebugOn(vname<<endl);
+            //            }
             return res;
         }
+        
+        
+   
+
+
         
         
         
@@ -1348,21 +1349,21 @@ namespace gravity {
                 
                 switch (v->get_intype()) {
                     case binary_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<bool>>(v)).in(ids);
                         break;
                     case short_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<short>>(v)).in(ids);
                         break;
                     case integer_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<int>>(v)).in(ids);
                         break;
                     case float_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<float>>(v)).in(ids);
                         break;
                         break;
                     case double_:
                        // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
-                        res += df_xstar.tr()*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<double>>(v)).in(ids);
                         break;
 //                    case long_:
 //                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
@@ -1710,8 +1711,10 @@ namespace gravity {
                                solution=true;
                            break;
                        }
+                          
                                                auto df = *compute_derivative(*vk);
-                                               df.uneval();
+                            df.uneval();
+                           
                            if(vk->_is_vector)
                            {
                                 dfdvk=df.eval(posvk);
