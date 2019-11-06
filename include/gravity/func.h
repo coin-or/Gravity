@@ -1266,41 +1266,7 @@ namespace gravity {
             return res;
         }
         
-        func<type> get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert){ /**< Returns an outer-approximation of the function using the current value of the variables **/
-            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            int j=0;
-            res=0;
-            for(auto &it: *_vars)
-            {
-                auto v = it.second.first;
-                auto v_ids = indices(Pert,*v->_indices);
-                switch (v->get_intype()) {
-                    case binary_:
-                        res += c[j]*(*static_pointer_cast<param<bool>>(v)).from_ith(1,v_ids);
-                        break;
-                    case short_:
-                        res += c[j]*(*static_pointer_cast<param<short>>(v)).from_ith(1,v_ids);
-                        break;
-                    case integer_:
-                        res += c[j]*(*static_pointer_cast<param<int>>(v)).from_ith(1,v_ids);
-                        break;
-                    case float_:
-                        res += c[j]*(*static_pointer_cast<param<float>>(v)).from_ith(1,v_ids);
-                        break;
-                        break;
-                    case double_:
-                        res += c[j]*(*static_pointer_cast<param<double>>(v)).from_ith(1,v_ids);
-                        break;
-                    default:
-                        break;
-                }
-                j++;
-            }
-            res += c0;
-            res.in(indices(Pert,*this->_indices));
-            merge_vars(res);
-            return res;
-        }
+        
         
         func<type> get_outer_app_insti(size_t nb_inst, bool scale){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
@@ -7297,6 +7263,7 @@ namespace gravity {
         
         bool insert(const pterm& term){return insert(term._sign, *term._coef, *term._l);};
         
+        func<type> get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert);
         
     };
     
