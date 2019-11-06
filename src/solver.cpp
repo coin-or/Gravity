@@ -225,7 +225,7 @@ namespace gravity {
                 else {
                     add(OA_uniform>=0);
                 }
-                OA_uniform.print();
+               // OA_uniform.print();
             }
         }/*TODO Else (discretization for general constraint)*/
         //        else
@@ -323,7 +323,7 @@ namespace gravity {
                 oa_vec_c.clear();/** vector of parameters corresponding to coeficients apearing in the OA cut for each symbolic constraint, the vectore entries are ordered according to the smae order they appear in _vars */
                 if(!con->is_linear()) {
                     if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                        con->print();
+                       // con->print();
                         indices Inst("Inst");
                         for(auto i=0;i<con->get_nb_inst();i++){
                             Inst.add("I"+to_string(i));
@@ -462,11 +462,16 @@ namespace gravity {
                         
                         Constraint<> OA_iter("OA_iter"+con->_name);
                         OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, Pert);
-                        if(con->_ctype==leq)
+                        if(con->_ctype==leq){
                             add(OA_iter <= 0);
-                        else
+                             OA_iter.print();
+                        }
+                        else{
+                           
                             add(OA_iter >= 0);
-                        OA_iter.print();
+                            OA_iter.print();
+                        }
+                        //OA_iter.print();
                     }
                     
                 }

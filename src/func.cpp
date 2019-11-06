@@ -4619,6 +4619,8 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
     merge_vars(res);
     return res;
 }
+    
+    
 //    template<>
 //    double func<double>::eval_double(size_t i) {
 ////        if(is_zero()){
