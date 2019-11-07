@@ -316,6 +316,11 @@ namespace gravity {
                 }
             }
         }
+        indices Pert("Pert");
+            for(auto j=1;j<=nb_perturb;j++){
+                Pert.add("P"+to_string(j));
+            }
+        
         if(interior)
         {
             
@@ -329,25 +334,21 @@ namespace gravity {
                         for(auto i=0;i<con->get_nb_inst();i++){
                             Inst.add("I"+to_string(i));
                         }
-                        indices Pert("Pert");
-                        int pert_var=0;
-                        for(auto j=1;j<=nb_perturb;j++){
-                            for(auto i=0;i<con->_nb_vars;i++){
-                                Pert.add("P"+to_string(pert_var));
-                                pert_var++;
-                                
-                            }
+                        indices V("V");
+                        for(auto i=0;i<con->_nb_vars;i++){
+                                V.add("V"+to_string(i));
                         }
                         
-                        indices PertI(Pert, Inst);
+                        indices PertV(Pert, V);
+                        indices PertVI(PertV, Inst);
                   
                         for(auto i=0;i<con->_nb_vars;i++){
                             param<double> ci("Param"+con->_name+"v"+to_string(i));
-                            ci.in(PertI);
+                            ci.in(PertVI);
                             oa_vec_c.push_back(ci);
                         }
                         param<double> oa_c0;
-                        oa_c0.in(PertI);
+                        oa_c0.in(PertVI);
                         for(auto i=0;i<con->get_nb_inst();i++){
                             con->uneval();
                             
@@ -444,9 +445,9 @@ namespace gravity {
                                         }
                                         for(auto l=0;l<con->_nb_vars;l++)
                                         {
-                                            oa_vec_c[l].set_val("P"+to_string((j-1)*con->_nb_vars+count)+","+"I"+to_string(i), c_val[l]);
+                                            oa_vec_c[l].set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c_val[l]);
                                         }
-                                        oa_c0.set_val("P"+to_string((j-1)*con->_nb_vars+count)+","+"I"+to_string(i), c0_val);
+                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
                                         con->set_x(i, xactive);
                                     }
                                     
@@ -462,7 +463,7 @@ namespace gravity {
                         }
                         
                         Constraint<> OA_iter("OA_iter"+con->_name);
-                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, Pert);
+                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
                         if(con->_ctype==leq){
                             add(OA_iter <= 0);
                              OA_iter.print();
