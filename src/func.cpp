@@ -4594,20 +4594,20 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
         auto v_ids = indices(Pert,*v->_indices);
         switch (v->get_intype()) {
             case binary_:
-                res += c[j]*(static_pointer_cast<var<bool>>(v)->from_ith(1,v_ids));
+                res += c[j]*(static_pointer_cast<var<bool>>(v)->from_ith(2,v_ids));
                 break;
             case short_:
-                res += c[j]*(static_pointer_cast<var<short>>(v)->from_ith(1,v_ids));
+                res += c[j]*(static_pointer_cast<var<short>>(v)->from_ith(2,v_ids));
                 break;
             case integer_:
-                res += c[j]*(static_pointer_cast<var<int>>(v)->from_ith(1,v_ids));
+                res += c[j]*(static_pointer_cast<var<int>>(v)->from_ith(2,v_ids));
                 break;
             case float_:
-                res += c[j]*(static_pointer_cast<var<float>>(v)->from_ith(1,v_ids));
+                res += c[j]*(static_pointer_cast<var<float>>(v)->from_ith(2,v_ids));
                 break;
                 break;
             case double_:
-                res += c[j]*(static_pointer_cast<var<double>>(v)->from_ith(1,v_ids));
+                res += c[j]*(static_pointer_cast<var<double>>(v)->from_ith(2,v_ids));
                 break;
             default:
                 break;
