@@ -1632,9 +1632,9 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             diff = std::abs(c->eval(inst));
                             if(diff > tol) {
-                                DebugOff("Violated equation: ");
+                                DebugOn("Violated equation: " << c->to_str(inst,3));
                                 //                        c->print(inst);
-                                DebugOff(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
@@ -1659,7 +1659,7 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff > tol) {
-                                DebugOn("Violated inequality: ");
+                                DebugOn("Violated inequality: " << c->to_str(inst,3));
                                 //                                c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
@@ -1691,7 +1691,7 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOn("Violated inequality: ");
+                                DebugOn("Violated inequality: " << c->to_str(inst,3));
                                 //                        c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
@@ -1804,6 +1804,7 @@ namespace gravity {
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+//                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
@@ -1836,6 +1837,7 @@ namespace gravity {
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+//                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }

@@ -246,16 +246,23 @@ int main (int argc, char * argv[]) {
         nonlin_obj=false;
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, false);
+       // SDP->print();
+        vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5    , tol, "ma27");
+        SDPLB.run(output = 5    , 1e-10, "ma27");
+        SDP->print_constraints_stats(1e-6);
+        SDP->get_solution(x_sol);
       //  SDP->print();
-       // SDP->print_solution();
+        SDP->print_solution();
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
          SDPO=SDP->buildOA(15, 1);
+        SDPO->set_solution(x_sol);
+        SDPO->print();
+        SDPO->print_constraints_stats(1e-6);
        // SDPO->print();
         
       

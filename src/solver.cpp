@@ -65,7 +65,8 @@ namespace gravity {
     shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
     {
         
-        
+        auto cpy = this->copy();
+//        cpy->initialize_all(1);
         //    this->print_solution();
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
@@ -74,14 +75,14 @@ namespace gravity {
         
         
         auto OA=make_shared<Model<>>(_name+"-OA Model");
-        for (auto &it: _vars)
+        for (auto &it: cpy->_vars)
         {
             auto v = it.second;
             if(!OA->has_var(*v)){
                 OA->add_var(v);
             }
         }
-        auto obj=*_obj;
+        auto obj=*cpy->_obj;
         if(_objt==minimize){
             OA->min(obj);
         }
@@ -89,7 +90,7 @@ namespace gravity {
             OA->max(obj);
         }
         string cname;
-        for (auto &con: _cons_vec)
+        for (auto &con: cpy->_cons_vec)
         {
             if(!con->is_linear()) {
                 if(con->_ctype==eq)

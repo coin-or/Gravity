@@ -1423,7 +1423,7 @@ namespace gravity {
             uneval();
             f_xstar=eval(nb_inst);
             c.clear();
-            c0=f_xstar;
+//            c0=f_xstar;
             //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
             size_t posv;
             
