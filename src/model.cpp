@@ -5694,7 +5694,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
-        const double tol = 1e-8;
+        const double tol = 1e-5;
           int output = 0;
         
         
@@ -5720,7 +5720,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
 
             
-        if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
+          if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
         {
             terminate=false;
             for(auto &it:this->_vars_name)

@@ -218,17 +218,18 @@ namespace gravity {
                     //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
+                    iapp->Options()->SetStringValue("honor_original_bounds", "no");
                     
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
                     //            iapp->Options()->SetNumericValue("gamma_phi", 1e-8);
                     //            iapp->Options()->SetNumericValue("gamma_theta", 1e-4);
-                    //            iapp->Options()->SetNumericValue("bound_push", 1e-12);
-                    //            iapp->Options()->SetNumericValue("bound_frac", 1e-12);
+                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
+                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
                     //            iapp->Options()->SetNumericValue("slack_bound_frac", 1e-12);
                     //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
-                    //            iapp->Options()->SetNumericValue("constr_viol_tol", 1e-8);
+                                iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
