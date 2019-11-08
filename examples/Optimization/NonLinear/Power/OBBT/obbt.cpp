@@ -171,7 +171,7 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 0, tol);
+    OPFUB.run(output = 5, 1e-6);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     
@@ -230,7 +230,7 @@ int main (int argc, char * argv[]) {
             DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
             
             auto SDPOA=SDP->buildOA(15, 10);
-              solver<> SDPLB(SDPOA,solv_type);
+              solver<> SDPLB(SDPOA,ipopt);
               SDPLB.run(output = 0, tol);
             
             
@@ -249,7 +249,7 @@ int main (int argc, char * argv[]) {
        // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5    , 1e-10, "ma27");
+        SDPLB.run(output = 5    , 1e-9, "ma27");
         SDP->print_constraints_stats(1e-6);
         SDP->get_solution(x_sol);
       //  SDP->print();
@@ -259,18 +259,21 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(15, 1);
+         SDPO=SDP->buildOA(1, 1);
         SDPO->set_solution(x_sol);
         SDPO->print();
         SDPO->print_constraints_stats(1e-6);
        // SDPO->print();
+          solver<> SDPLin(SDPO, gurobi);
+        SDPLin.run(output = 5);
+        DebugOn("N vars "<<SDPO->_nb_vars<<endl);
+        DebugOn("N cons "<<SDPO->_nb_cons<<endl);
         
-      
       //  SDPO->print_solution();
         
        
         
-        auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
+     //   auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
         
 //        auto SDPO_IIS1=SDPO->build_model_IIS();
 //        solver<> IIS_test1(SDPO_IIS1,cplex);
@@ -291,16 +294,16 @@ int main (int argc, char * argv[]) {
             lower_bound=SDPO->get_obj_val()*upper_bound;
             gap=100*(upper_bound - lower_bound)/upper_bound;
             
-            terminate=std::get<0>(res);
-            iter=std::get<1>(res);
-            solver_time=std::get<2>(res);
-            lower_bound_init=std::get<3>(res);
-            avg=std::get<4>(res);
-            xb_true=std::get<5>(res);
+//            terminate=std::get<0>(res);
+//            iter=std::get<1>(res);
+//            solver_time=std::get<2>(res);
+//            lower_bound_init=std::get<3>(res);
+//            avg=std::get<4>(res);
+//            xb_true=std::get<5>(res);
+//
             
-            
-            gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+         //   gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
+         //   DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
         }
         
         

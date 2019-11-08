@@ -8,7 +8,10 @@ GurobiProgram::GurobiProgram(){
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
 //    grb_env->set(GRB_IntParam_Threads,1);
-//    grb_env->set(GRB_IntParam_OutputFlag,0);
+       grb_env->set(GRB_IntParam_Presolve,0);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-5);
+     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-5);
+    grb_env->set(GRB_IntParam_OutputFlag,0);
 //    grb_mod = new GRBModel(*grb_env);
     grb_mod = NULL;
 }

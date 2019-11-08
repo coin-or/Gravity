@@ -55,15 +55,18 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
 
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
-//        cplex.setParam(IloCplex::Param::Threads, 1);
+        cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 2);
 //        cplex.setParam(IloCplex::AdvInd, 1);
 
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
 //        cplex.setParam(IloCplex::SimDisplay, 2);
-//        cplex.setParam(IloCplex::PreInd, 0);
+        cplex.setParam(IloCplex::PreInd, 0);
+        cplex.setParam(IloCplex::Reduce, 0);
+        cplex.setParam(IloCplex::RelaxPreInd,0);
+        cplex.setParam(IloCplex::PreslvNd,-1);
 
-        cplex.setParam(IloCplex::Param::RootAlgorithm,1);
+        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
         cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-5);
         cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-5);
         cplex.setParam(IloCplex::EpGap, 1e-5 ); //stopping criterion MIPgap
