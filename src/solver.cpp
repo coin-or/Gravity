@@ -72,8 +72,8 @@ namespace gravity {
         vector<double> xinterior(_nb_vars);
         vector<double> xcurrent;
         get_solution(xsolution);
-        
-        
+
+
         auto OA=make_shared<Model<>>(_name+"-OA Model");
         for (auto &it: cpy->_vars)
         {
@@ -97,11 +97,11 @@ namespace gravity {
                 {
                     DebugOn("Exception: Equality constraint is not currently supported"<<endl);
                     DebugOn("Throw exception" <<endl);
-                    
+
                 }
                 else
                 {
-                    
+
                     OA->add_outer_app_uniform(nb_discr, *con);
                 }
             }
@@ -112,11 +112,66 @@ namespace gravity {
         }
         set_solution(xsolution);
         OA->add_outer_app_active(*this, nb_perturb);
-        
+
         set_solution(xsolution);
         return OA;
     }
-    
+//    template<typename type>
+//    template<typename T>
+//    shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
+//    {
+//
+//
+//        //    this->print_solution();
+//        vector<double> xsolution(_nb_vars);
+//        vector<double> xinterior(_nb_vars);
+//        vector<double> xcurrent;
+//        get_solution(xsolution);
+//
+//
+//        auto OA=make_shared<Model<>>(_name+"-OA Model");
+//        for (auto &it: _vars)
+//        {
+//            auto v = it.second;
+//            if(!OA->has_var(*v)){
+//                OA->add_var(v);
+//            }
+//        }
+//        auto obj=*_obj;
+//        if(_objt==minimize){
+//            OA->min(obj);
+//        }
+//        else {
+//            OA->max(obj);
+//        }
+//        string cname;
+//        for (auto &con: _cons_vec)
+//        {
+//            if(!con->is_linear()) {
+//                if(con->_ctype==eq)
+//                {
+//                    DebugOn("Exception: Equality constraint is not currently supported"<<endl);
+//                    DebugOn("Throw exception" <<endl);
+//
+//                }
+//                else
+//                {
+//
+//                    OA->add_outer_app_uniform(nb_discr, *con);
+//                }
+//            }
+//            else
+//            {
+//                OA->add(*con);
+//            }
+//        }
+//        set_solution(xsolution);
+//        OA->add_outer_app_active(*this, nb_perturb);
+//
+//        set_solution(xsolution);
+//        return OA;
+//    }
+
     
     /** Returns a model that can compute an interior point to the current model
      **/
@@ -269,7 +324,6 @@ namespace gravity {
         const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
-        double a,b,c;
         bool interior=false;
         double fk;
         bool outer;
@@ -301,6 +355,7 @@ namespace gravity {
                 Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
                 indices activeset("active_"+con->_name);
                 for(auto i=0;i<con->get_nb_inst();i++){
+//                    con->uneval();
                     /** Generate an OA cut if constraint is active or if it has a convex representation */
                     if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
                         auto keys=con->_indices->_keys;
@@ -350,12 +405,17 @@ namespace gravity {
                         param<double> oa_c0;
                         oa_c0.in(PertVI);
                         for(auto i=0;i<con->get_nb_inst();i++){
-                            con->uneval();
+                         con->uneval();
                             
                             auto cname=con->_name;
+                            if(cname=="SOC_convex")
+                            {
+                                DebugOn("enter breakpoint"<<endl);
+                            }
                             auto con_interior=Ointerior.get_constraint(cname);
                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                             xcurrent=con->get_x(i);
+                            
                             if(con->is_active(i,active_tol_sol)){
                                 xactive=xcurrent;
                             }
@@ -392,6 +452,8 @@ namespace gravity {
                                     for(auto j=1;j<=nb_perturb;j++)
                                     {
                                         outer=false;
+//                                        convex_region=false;
+//                                        res_search=false;
                                         c0_val=0;
                                         c_val.resize(con->_nb_vars);
                                         std::fill(c_val.begin(), c_val.end(), 0);
@@ -414,6 +476,9 @@ namespace gravity {
                                             auto res_search=con->binary_line_search(xinterior, i);
                                             if(res_search){
                                                 convex_region=true;
+//                                                xres=con->get_x(i);
+//                                                con->uneval();
+//                                                fk=con->eval(i);
                                                 if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                                 {
                                                     xres=con->get_x(i);
@@ -447,12 +512,30 @@ namespace gravity {
                                         {
                                             oa_vec_c[l].set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c_val[l]);
                                         }
+//                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
                                         oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
+                                        if(j==1 && count==0 && i==0 ){
+                                            xtest=con->get_x(i);
+                                            DebugOn("xvalues");
+                                            for (auto &l:xtest)
+                                                DebugOn(l<<"\t");
+                                            DebugOn(endl);
+                                            DebugOn("cvalues");
+                                            for (auto &l:c_val)
+                                                DebugOn(l<<"\t");
+                                            DebugOn(endl);
+                                            DebugOn("c0value");
+                                            DebugOn(c0_val<<endl);
+                                            
+                                        }
                                         con->set_x(i, xactive);
+                                        
                                     }
                                     
                                     
                                 }
+                               
+                                    
                                 count++;
                             }
                             con->set_x(i, xcurrent);
@@ -466,12 +549,12 @@ namespace gravity {
                         OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
                         if(con->_ctype==leq){
                             add(OA_iter <= 0);
-                             OA_iter.print();
+//                             OA_iter.print();
                         }
                         else{
                            
-                            add(OA_iter >= 0);
-                            OA_iter.print();
+//                            add(OA_iter >= 0);
+//                            OA_iter.print();
                         }
                         //OA_iter.print();
                     }
