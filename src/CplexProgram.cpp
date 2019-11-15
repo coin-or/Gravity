@@ -406,7 +406,7 @@ void CplexProgram::prepare_model() {
     create_callback();
     set_cplex_objective();
     IloCplex cplex(*_cplex_model);
-//    cplex.exportModel("lpex.lp");
+   cplex.exportModel("lpex.lp");
 
     //    print_constraints();
 }

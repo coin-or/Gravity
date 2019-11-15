@@ -92,7 +92,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-//    print_constraints();
+    grb_mod->write("gurobiprint.lp");
 }
 void GurobiProgram::update_model(){
     _model->fill_in_maps();
@@ -195,7 +195,8 @@ void GurobiProgram::fill_in_grb_vmap(){
             }
             default:
                 break;
-        }    
+        }
+        
     }
 //    for(auto& v_p: _model->_vars)
 //    {
