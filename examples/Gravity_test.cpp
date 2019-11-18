@@ -1615,7 +1615,7 @@ TEST_CASE("testing Outer Approximation") {
     var<>  Wii("Wii", 0.8, 1.21);
     Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOC.in(bus_pairs);
     SOC.print();
     R_Wij.gravity::param<double>::set_val("1,2",0.5);
@@ -1627,7 +1627,8 @@ TEST_CASE("testing Outer Approximation") {
     SOC.eval_all();
     SOC.compute_derivatives();
     Constraint<> OA ("OA");
-    OA = SOC.get_outer_app();
+    auto SOC_ind=SOC._indices;
+    OA = SOC.get_outer_app(*SOC_ind);
     Mtest.add(OA<=0);
     OA.print();
     Mtest.print();
