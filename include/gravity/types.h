@@ -520,7 +520,7 @@ namespace gravity{
         /** Returns a vector of bools indicating if the ith reference is in ids and in this. The function iterates over key references in _ids. */
         vector<bool> get_common_refs(const indices& ids) const{
             vector<bool> res;
-            assert(_ids);
+           // assert(_ids);
             set<size_t> unique_ids;
             if(is_indexed()){/* If ids has key references, use those */
                 for (auto &idx:_ids->at(0)) {
