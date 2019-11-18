@@ -1214,7 +1214,7 @@ namespace gravity {
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             param<type> f_xstar("f_xstar");
             f_xstar = cpy;
-            
+            f_xstar._indices->filter_refs(keep);
             for(auto &it: *cpy._vars){
                 auto v = it.second.first;
                 param<type> xstar("xstar_"+v->_name);
@@ -1226,6 +1226,7 @@ namespace gravity {
                 df.eval_all();
                 df_xstar.in(*cpy._indices);
                 df_xstar.copy_vals(df);
+                df_xstar._indices->filter_refs(keep);
                 switch (v->get_intype()) {
                     case binary_:
                         
@@ -1251,7 +1252,7 @@ namespace gravity {
                 res -= df_xstar*xstar;
             }
             res += f_xstar;
-            res.index_in(*cpy._indices);
+            res.index_in(idx);
             //            merge_vars(res);
             
             //            for(auto &it: *_vars){
