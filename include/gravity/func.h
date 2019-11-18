@@ -1218,13 +1218,13 @@ namespace gravity {
             for(auto &it: *cpy._vars){
                 auto v = it.second.first;
                 param<type> xstar("xstar_"+v->_name);
-                xstar.in(*v->_indices);
-                xstar.copy_vals(v);
+                    xstar.in(*v->_indices);
+                    xstar.copy_vals(v);
                 param<type> df_xstar("df_xstar"+v->_name);
                 auto df = *compute_derivative(*v);
                 df.uneval();
                 df.eval_all();
-                df_xstar.in(*cpy._indices);
+                df_xstar.in(idx);
                 df_xstar.copy_vals(df);
                 switch (v->get_intype()) {
                     case binary_:
@@ -1250,8 +1250,8 @@ namespace gravity {
                 
                 res -= df_xstar*xstar;
             }
-            res += f_xstar;
-            res.index_in(*cpy._indices);
+            res += f_xstar.in(idx);
+            res.index_in(idx);
             //            merge_vars(res);
             
             //            for(auto &it: *_vars){

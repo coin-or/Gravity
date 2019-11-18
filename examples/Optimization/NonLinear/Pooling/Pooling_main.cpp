@@ -34,6 +34,7 @@ int main (int argc, char * argv[]) {
     indices Inputs=pool.Inputs;
     indices Pools=pool.Pools;
     indices Outputs=pool.Outputs;
+    indices Nodes=pool.nodes;
     
     indices inputs_pools=pool.inputs_pools;
     indices pools_outputs=pool.pools_outputs;
@@ -42,7 +43,7 @@ int main (int argc, char * argv[]) {
     
     auto out_arcs_ip=pool.out_arcs_per_node(inputs_pools);
     auto out_arcs_io=pool.out_arcs_per_node(inputs_outputs);
-    auto in_arcs=pool.in_arcs_per_node();
+    auto in_arcs_ip=pool.in_arcs_per_node(inputs_pools);
     
     auto x_min=pool.x_min.in(inputs_pools);
     auto x_max=pool.x_max.in(inputs_pools);
@@ -87,9 +88,10 @@ int main (int argc, char * argv[]) {
     avail_lb=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
     
-//    Constraint<> pool_capacity("pool_capacity");
-//    pool_capacity=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_min;
-//    SPP.add(avail_lb.in(Inputs)>=0);
+    Constraint<> pool_capacity("pool_capacity");
+    pool_capacity=sum(x, in_arcs_ip)-pool_cap;
+    SPP.add(pool_capacity.in(Nodes)<=0);
+  //  SPP.add(pool_capacity.in(*(Pools._keys))<=0);
 
     SPP.print();
     
