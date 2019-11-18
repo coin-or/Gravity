@@ -5659,7 +5659,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<type,double>::value>::type*>
-    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, Model<type> ub_model, Model<type> nonlin_model, bool nonlin) {
+    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, shared_ptr<Model<type>> ub_model, shared_ptr<Model<type>> nonlin_model, bool nonlin) {
         std::tuple<bool,int,double, double, double, bool> res;
 
 #ifdef USE_MPI
@@ -5897,9 +5897,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //                                                auto udv=vp.second->_u_dual;
 //                                                auto vpkeys=vp.second->get_keys();
 //                                                bool in_orig_model=false;
-//                                                if(ub_model._vars_name.find(vk._name)!=ub_model._vars_name.end())
+//                                                if(ub_model->_vars_name.find(vk._name)!=ub_model->_vars_name.end())
 //                                                {
-//                                                     var_ub=ub_model.get_var<T>(vk._name);
+//                                                     var_ub=ub_model->get_var<T>(vk._name);
 //                                                    in_orig_model=true;
 //                                                }
 //
@@ -6110,9 +6110,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             v=this->get_var<double>(vname);
             auto v_keys=v.get_keys();
             bool in_orig_model=false;
-            if(ub_model._vars_name.find(vname)!=ub_model._vars_name.end())
+            if(ub_model->_vars_name.find(vname)!=ub_model->_vars_name.end())
             {
-                var_ub=ub_model.get_var<T>(vname);
+                var_ub=ub_model->template get_var<T>(vname);
                 in_orig_model=true;
             }
             
@@ -6242,7 +6242,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
     
     
-    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, Model<double>, Model<double>, bool);
+    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, shared_ptr<Model<double>>, shared_ptr<Model<double>>, bool);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
