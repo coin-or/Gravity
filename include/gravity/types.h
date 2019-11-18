@@ -588,11 +588,14 @@ namespace gravity{
                     }
                 }
             }
+            else{
+                res.resize(_keys->size(),false);
+            }
             return res;
         }
         
         /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
-        void filter_refs(const vector<bool>& keep) const{
+        void filter_refs(const vector<bool>& keep){
             if(_ids){
                 if(keep.size()!=_ids->at(0).size()){
                     throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
@@ -605,6 +608,19 @@ namespace gravity{
                     }
                 }
                 *_ids = new_ids;
+            }
+            else {
+                if(keep.size()!=_keys->size()){
+                    throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+                }
+                shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+                new_ids->resize(1);
+                for (auto idx = 0; idx<keep.size();idx++) {
+                    if(keep[idx]){
+                        new_ids->at(0).push_back(idx);
+                    }
+                }
+                _ids = new_ids;
             }
         }
         
