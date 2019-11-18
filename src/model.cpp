@@ -5703,7 +5703,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
        
         shared_ptr<map<string,size_t>> p_map;
         
-        solver<> SDPLB2(*this,solv_type=gurobi);
+        solver<> SDPLB2(*this,solv_type);
 
         SDPLB2.run(output = 5, tol, "ma27");
         double lower_bound_init=-999, lower_bound;
