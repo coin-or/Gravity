@@ -74,6 +74,7 @@ public:
     indices in_arcs_per_node() const;
   
     indices out_arcs_per_node(indices arcs) const;
+    indices in_arcs_per_node(indices arcs) const;
     
     void fill_wbnds();
 };

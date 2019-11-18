@@ -100,21 +100,40 @@ indices PoolNet::out_arcs_per_node(indices arcset) const{
     size_t inst = 0;
     for (auto n: nodes) {
         for (auto a:*(arcset._keys)) {
-            
-            
-            if(arcMap.find(a)!=arcMap.end()){
+                if(arcMap.find(a)!=arcMap.end()){
                 auto arca= arcMap.find(a)->second;
                 if(arca->_src->_name==n->_name){
                     ids._ids->at(inst).push_back(arca->_id);
                 }
             }
-            
         }
         inst++;
-        
     }
     return ids;
 }
+
+indices PoolNet::in_arcs_per_node(indices arcset) const{
+    auto ids = indices(arcs);
+    ids._type = matrix_;
+    ids.set_name("in_arcs_per_node_in_"+arcset.get_name());
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(nodes.size());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        for (auto a:*(arcset._keys)) {
+             if(arcMap.find(a)!=arcMap.end()){
+                auto arca= arcMap.find(a)->second;
+                if(arca->_dest->_name==n->_name){
+                    ids._ids->at(inst).push_back(arca->_id);
+                }
+            }
+        }
+        inst++;
+    }
+    return ids;
+}
+
 
 
 indices PoolNet::in_arcs_per_node() const{
