@@ -512,8 +512,8 @@ namespace gravity {
                                         {
                                             oa_vec_c[l].set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c_val[l]);
                                         }
-//                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
-                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
+                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
+                                        //oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
                                         if(j==1 && count==0 && i==0 ){
                                             xtest=con->get_x(i);
                                             DebugOn("xvalues");
