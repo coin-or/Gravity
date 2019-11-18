@@ -253,7 +253,7 @@ int main (int argc, char * argv[]) {
         SDP->print_constraints_stats(1e-6);
         SDP->get_solution(x_sol);
       //  SDP->print();
-        SDP->print_solution();
+        SDP->print_solution(10);
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
@@ -264,7 +264,7 @@ int main (int argc, char * argv[]) {
         SDPO->print();
         SDPO->print_constraints_stats(1e-6);
        // SDPO->print();
-          solver<> SDPLin(SDPO, gurobi);
+          solver<> SDPLin(SDPO, ipopt);
         SDPLin.run(output = 5);
         DebugOn("N vars "<<SDPO->_nb_vars<<endl);
         DebugOn("N cons "<<SDPO->_nb_cons<<endl);
