@@ -212,7 +212,7 @@ int main (int argc, char * argv[]) {
         
        // SDP->print();
         
-        auto res=SDP->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
+        auto res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
         if(SDP->_status==0)
         {
             lower_bound=SDP->get_obj_val()*upper_bound;
