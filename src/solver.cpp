@@ -352,13 +352,17 @@ namespace gravity {
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
+                {
                 Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
                 indices activeset("active_"+con->_name);
+                      auto keys=con->_indices->_keys;
                 for(auto i=0;i<con->get_nb_inst();i++){
 //                    con->uneval();
                     /** Generate an OA cut if constraint is active or if it has a convex representation */
-                    if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                        auto keys=con->_indices->_keys;
+                    //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                    if(con->is_active(i,active_tol_sol)){
+                      
                         activeset.add((*keys)[i]);
                     }
                 }
@@ -370,6 +374,23 @@ namespace gravity {
                     add(OA_sol.in(activeset)>=0);
                 }
             }
+                else
+                    if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
+                    {
+                        
+                        for(auto i=0;i<con->get_nb_inst();i++){
+                            Constraint<> OA_sol("OA_cuts_solution_"+con->_name+to_string(i));
+                              OA_sol=con->get_outer_app_insti(i, false);
+                            if(con->_ctype==leq) {
+                                add(OA_sol<=0);
+                            }
+                            else {
+                                add(OA_sol>=0);
+                            }
+                        }
+                    }
+            
+        }
         }
         indices Pert("Pert");
             for(auto j=1;j<=nb_perturb;j++){
@@ -408,10 +429,10 @@ namespace gravity {
                          con->uneval();
                             
                             auto cname=con->_name;
-                            if(cname=="SOC_convex")
-                            {
-                                DebugOn("enter breakpoint"<<endl);
-                            }
+//                            if(cname=="SOC_convex")
+//                            {
+//                                DebugOn("enter breakpoint"<<endl);
+//                            }
                             auto con_interior=Ointerior.get_constraint(cname);
                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                             xcurrent=con->get_x(i);
@@ -516,17 +537,6 @@ namespace gravity {
                                         //oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
                                         if(j==1 && count==0 && i==0 ){
                                             xtest=con->get_x(i);
-                                            DebugOn("xvalues");
-                                            for (auto &l:xtest)
-                                                DebugOn(l<<"\t");
-                                            DebugOn(endl);
-                                            DebugOn("cvalues");
-                                            for (auto &l:c_val)
-                                                DebugOn(l<<"\t");
-                                            DebugOn(endl);
-                                            DebugOn("c0value");
-                                            DebugOn(c0_val<<endl);
-                                            
                                         }
                                         con->set_x(i, xactive);
                                         

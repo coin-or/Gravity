@@ -2252,9 +2252,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     if(nonlin_obj)
     {
-    Constraint<> obj_UB("obj_UB");
-    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
-    SDPOPF->add(obj_UB.in(range(0,0))<=0);
+//    Constraint<> obj_UB("obj_UB");
+//    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta*upper_bound;
+//    SDPOPF->add(obj_UB.in(range(0,0))<=0);
+        
+        
+        auto obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
+        SDPOPF->min(obj_UB);
     }
     else
     {
@@ -2263,11 +2267,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDPOPF->add(obj_cost.in(gens)>=0);
         
    
-        Constraint<> obj_UB("obj_UB");
-        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound-eta;
-        SDPOPF->add(obj_UB.in(range(0,0))<=0);
+        auto obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound;
+        SDPOPF->min(obj_UB);
+    }
         
-            }
+//        Constraint<> obj_UB("obj_UB");
+//        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-eta*upper_bound;
+//        SDPOPF->add(obj_UB.in(range(0,0))<=0);
+//}
+    
+         
         
 //        Constraint<> obj_UB("obj_UB");
 //        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
