@@ -225,8 +225,8 @@ namespace gravity {
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
                     //            iapp->Options()->SetNumericValue("gamma_phi", 1e-8);
                     //            iapp->Options()->SetNumericValue("gamma_theta", 1e-4);
-                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
-                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
+//                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
+//                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
 //                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
                     //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
                                 iapp->Options()->SetNumericValue("constr_viol_tol", tol);

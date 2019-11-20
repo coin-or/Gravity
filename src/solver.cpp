@@ -326,6 +326,7 @@ namespace gravity {
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
         double fk;
+        double rhs_tol = 0;
         bool outer;
         int count=0;
         size_t posv;
@@ -368,10 +369,10 @@ namespace gravity {
                 }
                 OA_sol=con->get_outer_app(activeset);
                 if(con->_ctype==leq) {
-                    add(OA_sol.in(activeset)<=0);
+                    add(OA_sol.in(activeset)<=rhs_tol);
                 }
                 else {
-                    add(OA_sol.in(activeset)>=0);
+                    add(OA_sol.in(activeset)>=-rhs_tol);
                 }
             }
                 else
@@ -533,8 +534,8 @@ namespace gravity {
                                         {
                                             oa_vec_c[l].set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c_val[l]);
                                         }
-                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
-                                        //oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
+//                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
+                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
                                         if(j==1 && count==0 && i==0 ){
                                             xtest=con->get_x(i);
                                         }
@@ -558,12 +559,12 @@ namespace gravity {
                         Constraint<> OA_iter("OA_iter"+con->_name);
                         OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
                         if(con->_ctype==leq){
-                            add(OA_iter <= 0);
+                            add(OA_iter <= rhs_tol);
 //                             OA_iter.print();
                         }
                         else{
                            
-//                            add(OA_iter >= 0);
+                            add(OA_iter >= -rhs_tol);
 //                            OA_iter.print();
                         }
                         //OA_iter.print();
