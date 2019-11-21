@@ -249,10 +249,10 @@ int main (int argc, char * argv[]) {
        // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, 1e-10, "ma27");
+        SDPLB.run(output = 5, 1e-12, "ma27");
         SDP->print_constraints_stats(1e-8);
         SDP->get_solution(x_sol);
-     //  SDP->print();
+        SDP->print();
         SDP->print_solution(10);
         
         lower_bound=SDP->get_obj_val()*upper_bound;
@@ -265,10 +265,10 @@ int main (int argc, char * argv[]) {
         SDPO->print_constraints_stats(1e-8);
        // SDPO->print();
           solver<> SDPLin(SDPO, ipopt);
-        SDPLin.run(output = 5, 1e-8);
+        SDPLin.run(output = 5, 1e-10);
         DebugOn("N vars "<<SDPO->_nb_vars<<endl);
         DebugOn("N cons "<<SDPO->_nb_cons<<endl);
-        
+        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
         double gap_lin=100*(upper_bound - SDPO->get_obj_val()*upper_bound)/upper_bound;
         DebugOn("Gap Linear"<<gap_lin);
         
