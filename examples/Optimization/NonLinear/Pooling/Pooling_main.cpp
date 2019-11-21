@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
     indices Inputs=pool.Inputs;
     indices Pools=pool.Pools;
     indices Outputs=pool.Outputs;
-    indices Nodes=pool.nodes;
+    //indices Nodes=pool.nodes;
     
     indices inputs_pools=pool.inputs_pools;
     indices pools_outputs=pool.pools_outputs;
@@ -44,6 +44,8 @@ int main (int argc, char * argv[]) {
     auto out_arcs_ip=pool.out_arcs_per_node(inputs_pools);
     auto out_arcs_io=pool.out_arcs_per_node(inputs_outputs);
     auto in_arcs_ip=pool.in_arcs_per_node(inputs_pools);
+    auto in_arcs_po=pool.in_arcs_per_node(pools_outputs);
+    auto in_arcs_io=pool.in_arcs_per_node(inputs_outputs);
     
     auto x_min=pool.x_min.in(inputs_pools);
     auto x_max=pool.x_max.in(inputs_pools);
@@ -79,19 +81,30 @@ int main (int argc, char * argv[]) {
     
 //    Constraint<> mass_balance("mass_balance");
 //    mass_balance=
-
-    Constraint<> avail_ub("avail_ub");
-    avail_ub=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_max;
-    SPP.add(avail_ub.in(Inputs)<=0);
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
     
+
+    Constraint<> avail_ub("avail_ub");
+    avail_ub=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_max;
+    SPP.add(avail_ub.in(Inputs)<=0);
+    
+ 
     Constraint<> pool_capacity("pool_capacity");
     pool_capacity=sum(x, in_arcs_ip)-pool_cap;
-    SPP.add(pool_capacity.in(Nodes)<=0);
+    SPP.add(pool_capacity.in(Pools)<=0);
   //  SPP.add(pool_capacity.in(*(Pools._keys))<=0);
+    
+    Constraint<> demand_lb("demand_lb");
+    demand_lb=sum(y, in_arcs_po)+sum(z,in_arcs_io)-dem_min;
+    SPP.add(demand_lb.in(Outputs)>=0);
+    
+    Constraint<> demand_ub("demand_ub");
+    demand_ub=sum(y, in_arcs_po)+sum(z,in_arcs_io)-dem_max;
+    SPP.add(demand_ub.in(Outputs)<=0);
+    
 
     SPP.print();
     

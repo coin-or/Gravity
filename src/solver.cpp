@@ -362,10 +362,30 @@ namespace gravity {
 //                    con->uneval();
                     /** Generate an OA cut if constraint is active or if it has a convex representation */
                     //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                    convex_region=true;
+                                            if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+                                         {
+                   
+                                                  xres=con->get_x(i);
+                                                  con->uneval();
+                                                auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                                auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                               auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                                if(soc1<=0 && soc2<=0 && soc3<=0){
+                                                   convex_region=true;
+                                                }
+                                             else{
+                                                   convex_region=false;
+                                                }
+                                            }
+                   
+                                           if(true){
+                    
                     if(con->is_active(i,active_tol_sol)){
                       
                         activeset.add((*keys)[i]);
                     }
+                                           }
                 }
                 OA_sol=con->get_outer_app(activeset);
                 if(con->_ctype==leq) {

@@ -179,6 +179,7 @@ void PoolNet::readgrid() {
     Inputs=indices("Inputs");
     Outputs=indices("Outputs");
     Pools=indices("Pools");
+
     
     for (auto i=0;i<N_input;i++)
     {
