@@ -992,6 +992,26 @@ namespace gravity{
         void insert(const vector<string>& all_keys) {
             add(all_keys);
         }
+        
+        /** Add a key in the specified row (for sparse matrix indexing)*/
+        void add_in_row(size_t row_nb, const string& key) {
+            _type = matrix_;
+            if (!_ids) {
+                _ids = make_shared<vector<vector<size_t>>>();
+            }
+            _ids->resize(row_nb+1);
+            auto ref_it = _keys_map->find(key);
+            if(ref_it==_keys_map->end()){
+                auto idx = _keys->size();
+                _keys_map->insert(make_pair<>(key,idx));
+                _keys->push_back(key);
+                _ids->at(row_nb).push_back(idx);
+            }
+            else{
+                _ids->at(row_nb).push_back(ref_it->second);
+            }
+        }
+
             
         template<typename... Args>
         void add(const string& s1, Args&&... args) {

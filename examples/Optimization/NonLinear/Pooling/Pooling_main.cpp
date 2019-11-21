@@ -30,7 +30,7 @@ int main (int argc, char * argv[]) {
 
     
     
-    Model<double> SPP("Std-Pooling-Prob-P");
+    Model<> SPP("Std-Pooling-Prob-P");
     indices Inputs=pool.Inputs;
     indices Pools=pool.Pools;
     indices Outputs=pool.Outputs;
@@ -40,13 +40,13 @@ int main (int argc, char * argv[]) {
     indices pools_outputs=pool.pools_outputs;
     indices inputs_outputs=pool.inputs_outputs;
     
-    
-    auto out_arcs_ip=pool.out_arcs_per_node(inputs_pools);
-    auto out_arcs_io=pool.out_arcs_per_node(inputs_outputs);
-    auto in_arcs_ip=pool.in_arcs_per_node(inputs_pools);
-    auto in_arcs_po=pool.in_arcs_per_node(pools_outputs);
-    auto in_arcs_io=pool.in_arcs_per_node(inputs_outputs);
-    
+    auto out_arcs_to_pool_per_input = pool.out_arcs_to_pool_per_input();
+    auto out_arcs_to_output_per_input = pool.out_arcs_to_output_per_input();
+    auto in_arcs_per_pool = pool.in_arcs_per_pool();
+    auto out_arcs_per_pool = pool.out_arcs_per_pool();
+    auto in_arcs_from_pool_per_output = pool.in_arcs_from_pool_per_output();
+    auto in_arcs_from_input_per_output = pool.in_arcs_from_input_per_output();
+
     auto x_min=pool.x_min.in(inputs_pools);
     auto x_max=pool.x_max.in(inputs_pools);
     auto inqual=pool.inqual.in(inputs_pools);
@@ -83,26 +83,26 @@ int main (int argc, char * argv[]) {
 //    mass_balance=
     
     Constraint<> avail_lb("avail_lb");
-    avail_lb=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_min;
+    avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
     
 
     Constraint<> avail_ub("avail_ub");
-    avail_ub=sum(x, out_arcs_ip)+sum(z, out_arcs_io)-avail_max;
+    avail_ub=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_max;
     SPP.add(avail_ub.in(Inputs)<=0);
     
  
     Constraint<> pool_capacity("pool_capacity");
-    pool_capacity=sum(x, in_arcs_ip)-pool_cap;
+    pool_capacity=sum(x, in_arcs_per_pool)-pool_cap;
     SPP.add(pool_capacity.in(Pools)<=0);
   //  SPP.add(pool_capacity.in(*(Pools._keys))<=0);
     
     Constraint<> demand_lb("demand_lb");
-    demand_lb=sum(y, in_arcs_po)+sum(z,in_arcs_io)-dem_min;
+    demand_lb=sum(y, in_arcs_from_pool_per_output)+sum(z,in_arcs_from_input_per_output)-dem_min;
     SPP.add(demand_lb.in(Outputs)>=0);
     
     Constraint<> demand_ub("demand_ub");
-    demand_ub=sum(y, in_arcs_po)+sum(z,in_arcs_io)-dem_max;
+    demand_ub=sum(y, in_arcs_from_pool_per_output)+sum(z,in_arcs_from_input_per_output)-dem_max;
     SPP.add(demand_ub.in(Outputs)<=0);
     
 

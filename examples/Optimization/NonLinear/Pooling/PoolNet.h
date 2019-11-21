@@ -69,6 +69,17 @@ public:
     
     /** Power Model<>s */
    
+    indices out_arcs_to_pool_per_input() const;
+
+    indices out_arcs_to_output_per_input() const;
+
+    indices in_arcs_per_pool() const;
+
+    indices out_arcs_per_pool() const;
+
+    indices in_arcs_from_pool_per_output() const;
+
+    indices in_arcs_from_input_per_output() const;
     
     indices out_arcs_per_node() const;
     indices in_arcs_per_node() const;
