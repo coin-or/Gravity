@@ -90,24 +90,85 @@ indices PoolNet::out_arcs_per_node() const{
     return ids;
 }
 
-indices PoolNet::out_arcs_per_node(indices arcset) const{
-    auto ids = indices(arcs);
-    ids._type = matrix_;
-    ids.set_name("out_arcs_per_node_in_"+arcset.get_name());
-    ids._ids = make_shared<vector<vector<size_t>>>();
-    ids._ids->resize(nodes.size());
-    string key;
-    size_t inst = 0;
-    for (auto n: nodes) {
-        for (auto a:*(arcset._keys)) {
-                if(arcMap.find(a)!=arcMap.end()){
-                auto arca= arcMap.find(a)->second;
-                if(arca->_src->_name==n->_name){
-                    ids._ids->at(inst).push_back(arca->_id);
-                }
-            }
+indices PoolNet::out_arcs_to_pool_per_input() const{
+    indices ids = indices("out_arcs_to_pool_per_input");
+    int row_id = 0;
+    for(const string& in_pool_id: *this->Inputs._keys){
+        auto in_pool = nodeID.at(in_pool_id);
+        for (const Arc* out: in_pool->get_out()) {
+            if(!out->_free)
+                ids.add_in_row(row_id, out->_name);
         }
-        inst++;
+        row_id++;
+    }
+    return ids;
+}
+
+indices PoolNet::out_arcs_to_output_per_input() const{
+    indices ids = indices("out_arcs_to_output_per_input");
+    int row_id = 0;
+    for(const string& in_pool_id: *this->Inputs._keys){
+        auto in_pool = nodeID.at(in_pool_id);
+        for (const Arc* out: in_pool->get_out()) {
+            if(out->_free)
+                ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+
+indices PoolNet::in_arcs_per_pool() const{
+    indices ids = indices("in_arcs_per_pool");
+    int row_id = 0;
+    for(const string& pool_id: *this->Pools._keys){
+        auto pool = nodeID.at(pool_id);
+        for (const Arc* out: pool->get_in()) {
+            ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+indices PoolNet::out_arcs_per_pool() const{
+    indices ids = indices("out_arcs_per_pool");
+    int row_id = 0;
+    for(const string& pool_id: *this->Pools._keys){
+        auto pool = nodeID.at(pool_id);
+        for (const Arc* out: pool->get_out()) {
+            ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+indices PoolNet::in_arcs_from_pool_per_output() const{
+    indices ids = indices("in_arcs_from_pool_per_output");
+    int row_id = 0;
+    for(const string& pool_id: *this->Outputs._keys){
+        auto pool = nodeID.at(pool_id);
+        for (const Arc* out: pool->get_in()) {
+            if(!out->_free)
+                ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+indices PoolNet::in_arcs_from_input_per_output() const{
+    indices ids = indices("in_arcs_from_input_per_output");
+    int row_id = 0;
+    for(const string& pool_id: *this->Outputs._keys){
+        auto pool = nodeID.at(pool_id);
+        for (const Arc* out: pool->get_in()) {
+            if(out->_free)
+                ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
     }
     return ids;
 }
@@ -267,6 +328,7 @@ void PoolNet::readgrid() {
             arc->_dest= get_node(to_string(j));
             this->add_arc(arc);
             arc->connect();
+            arc->_free = true;
             inputs_outputs.add(to_string(i) + "," + to_string(j));
         }
         
