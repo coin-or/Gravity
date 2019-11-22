@@ -80,9 +80,6 @@ int main (int argc, char * argv[]) {
     SPP.add(z.in(inputs_outputs));
     SPP.add(p_pool.in(Pools));
     
-        var<> p_out("p_out", 0, 1);
-        SPP.add(p_out.in(Outputs));
-    
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
@@ -151,9 +148,13 @@ int main (int argc, char * argv[]) {
     
     
     
-    Constraint<> product_quality("product_quality");//TODO debug transpose version and propagate matrix indexing to function
-    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_min.in(outinput_matrix)).in(outinput_matrix) - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
-    SPP.add(product_quality.in(Outputs)==0);
+    Constraint<> product_quality_lb("product_quality_lb");//TODO debug transpose version and propagate matrix indexing to function
+    product_quality_lb=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_min.in(outinput_matrix)).in(outinput_matrix) - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    SPP.add(product_quality_lb.in(Outputs)>=0);
+    
+    Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
+    product_quality_ub=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_max.in(outinput_matrix)).in(outinput_matrix) - p_out_max.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    SPP.add(product_quality_ub.in(Outputs)<=0);
     
 
 

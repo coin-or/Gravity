@@ -360,13 +360,14 @@ void PoolNet::readgrid() {
         inqual.add_val(key, (i++)*0.1);
         
     }
-    
+  i=0;
     for(auto key: *(Outputs._keys)){
         rev.add_val(key, 10);
         dem_min.add_val(key, 1);
         dem_max.add_val(key, 100);
-        outqual_min.add_val(key, 0.3);
-        outqual_max.add_val(key, 0.7);
+        outqual_min.add_val(key, 0.3-i*0.1);
+        outqual_max.add_val(key, 0.7+i*0.1);
+        i++;
     }
     for(auto key: *(Pools._keys)){
         pool_cap.add_val(key, 50);
