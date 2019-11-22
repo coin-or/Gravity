@@ -151,8 +151,8 @@ int main (int argc, char * argv[]) {
     
     
     
-    Constraint<> product_quality("product_quality");//TODO debug transpose version
-    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*p_in - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output)-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    Constraint<> product_quality("product_quality");//TODO debug transpose version and propagate matrix indexing to function
+    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_min.in(outinput_matrix)).in(outinput_matrix) - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
     SPP.add(product_quality.in(Outputs)==0);
     
 
