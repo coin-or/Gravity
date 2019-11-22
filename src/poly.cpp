@@ -425,7 +425,7 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (c_new->_is_transposed || c_new->is_matrix_indexed()) {
+        if (c_new->_is_transposed || c_new->is_matrix_indexed() || p_new1->is_matrix_indexed()) {
             str += print_transposed(ind,prec);
         }
         else{
@@ -542,7 +542,13 @@ namespace gravity{
             return print_transposed(prec);
         }
         string str;
-        auto dim = _coef->get_dim(inst);
+        size_t dim = 0;
+        if(_coef->_is_transposed){
+            dim = _coef->get_dim(inst);
+        }
+        else{
+            dim = _p->first->get_dim(inst);
+        }
         if(dim==0){
             return str;
         }

@@ -3900,7 +3900,7 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._p->second->is_matrix_indexed()){
+                    if(pair.second._p->second->is_matrix_indexed()){// TODO: this assumes element wise product, implement matrix product
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {

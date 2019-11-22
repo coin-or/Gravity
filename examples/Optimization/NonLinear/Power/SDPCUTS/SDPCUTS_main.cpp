@@ -480,10 +480,10 @@ int main (int argc, char * argv[]) {
     //
     //    string out = "\nDATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(lower_bound) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     //    DebugOn(out <<endl);
-    //   DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-    //    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-    //   DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    //    SDP.print();
+    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+    SDP.print();
     string result_name=string(prj_dir)+"/results_SDP/"+grid._name+".txt";
     
     ofstream fout(result_name.c_str());
