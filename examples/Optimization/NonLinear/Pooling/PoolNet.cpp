@@ -31,7 +31,6 @@ PoolNet::PoolNet() {
     //in inputs_pools
     x_min.set_name("x_min");
     x_max.set_name("x_max");
-    inqual.set_name("inqual");
     //in pools_outputs
     y_min.set_name("y_min");
     y_max.set_name("y_max");
@@ -42,6 +41,7 @@ PoolNet::PoolNet() {
     cost.set_name("cost");
     avail_min.set_name("avail_min");
     avail_max.set_name("avail_max");
+    inqual.set_name("inqual");
     //in outputs
     rev.set_name("rev");
     dem_min.set_name("dem_min");
