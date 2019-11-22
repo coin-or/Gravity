@@ -109,13 +109,22 @@ int main (int argc, char * argv[]) {
     mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
     SPP.add(mass_balance.in(Pools)==0);
     
-    Constraint<> quality_balance("quality_balance");
-    quality_balance=sum(C_in*x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
+    int row_id = 0;
+    indices pool_matrix = indices("pool_matrix");
+    for (const string& pool_key:*Pools._keys) {
+        for (auto i = 0; i<Outputs.size(); i++) {
+            pool_matrix.add_in_row(row_id, pool_key);
+        }
+        row_id++;
+    }
+
+    Constraint<> quality_balance("quality_balance");//TODO debug transpose version
+    quality_balance=x.in(in_arcs_per_pool)*p_in - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool);
     SPP.add(quality_balance.in(Pools)==0);
     
-    Constraint<> quality_balance("mass_balance");
-    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
-    SPP.add(mass_balance.in(Pools)==0);
+//    Constraint<> quality_balance("mass_balance");
+//    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
+//    SPP.add(mass_balance.in(Pools)==0);
     
 
     SPP.print();
