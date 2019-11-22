@@ -352,12 +352,12 @@ void PoolNet::readgrid() {
     }
     
 
-    
+   auto i=0;
     for(auto key: *(Inputs._keys)){
         cost.add_val(key, 10);
         avail_min.add_val(key, 0);
         avail_max.add_val(key, 10);
-        inqual.add_val(key, 0.5);
+        inqual.add_val(key, (i++)*0.1);
         
     }
     

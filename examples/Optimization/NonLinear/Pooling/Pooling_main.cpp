@@ -65,8 +65,8 @@ int main (int argc, char * argv[]) {
     auto rev=poolnet.rev.in(Outputs);
     auto dem_min=poolnet.dem_min.in(Outputs);
     auto dem_max=poolnet.dem_max.in(Outputs);
-    auto outqual_min=poolnet.outqual_min.in(Outputs);
-    auto outqual_max=poolnet.outqual_max.in(Outputs);
+    auto p_out_min=poolnet.outqual_min.in(Outputs);
+    auto p_out_max=poolnet.outqual_max.in(Outputs);
     
     auto pool_cap=poolnet.pool_cap.in(Pools);
     
@@ -75,12 +75,13 @@ int main (int argc, char * argv[]) {
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 1);
-    var<> p_out("p_out", 0, 1);
     SPP.add(x.in(inputs_pools));
     SPP.add(y.in(pools_outputs));
     SPP.add(z.in(inputs_outputs));
     SPP.add(p_pool.in(Pools));
-    SPP.add(p_out.in(Outputs));
+    
+        var<> p_out("p_out", 0, 1);
+        SPP.add(p_out.in(Outputs));
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
@@ -109,23 +110,53 @@ int main (int argc, char * argv[]) {
     mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
     SPP.add(mass_balance.in(Pools)==0);
     
-    int row_id = 0;
-    indices pool_matrix = indices("pool_matrix");
-    for (const string& pool_key:*Pools._keys) {
-        for (auto i = 0; i<Outputs.size(); i++) {
-            pool_matrix.add_in_row(row_id, pool_key);
+        int row_id = 0;
+        indices pool_matrix = indices("pool_matrix");
+        for (const string& pool_key:*Pools._keys) {
+            for (auto i = 0; i<Outputs.size(); i++) {
+                pool_matrix.add_in_row(row_id, pool_key);
+            }
+            row_id++;
+        }
+
+        Constraint<> quality_balance("quality_balance");//TODO debug transpose version
+        quality_balance=x.in(in_arcs_per_pool)*p_in - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
+        SPP.add(quality_balance.in(Pools)==0);
+    
+    row_id = 0;
+    indices outpool_matrix = indices("outpool_matrix");
+    for (const string& out_key:*Outputs._keys) {
+        for (auto i = 0; i<Pools.size(); i++) {
+            outpool_matrix.add_in_row(row_id, out_key);
         }
         row_id++;
     }
+    
+    row_id = 0;
+    indices outinput_matrix = indices("outinput_matrix");
+    for (const string& out_key:*Outputs._keys) {
+        for (auto i = 0; i<Inputs.size(); i++) {
+            outinput_matrix.add_in_row(row_id, out_key);
+        }
+        row_id++;
+    }
+    
+//    Constraint<> product_quality("product_quality");//TODO debug transpose version
+//    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*p_in - p_out.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output)-p_out.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+//    SPP.add(product_quality.in(Outputs)==0);
+//
+//    Constraint<> product_quality_min("product_quality_min");
+//    product_quality_min=p_out-p_out_min;
+//    SPP.add(product_quality_min.in(Outputs)>=0);
+    
+    
+    
+    Constraint<> product_quality("product_quality");//TODO debug transpose version
+    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*p_in - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output)-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    SPP.add(product_quality.in(Outputs)==0);
+    
 
-    Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-    quality_balance=x.in(in_arcs_per_pool)*p_in - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool);
-    SPP.add(quality_balance.in(Pools)==0);
-    
-//    Constraint<> quality_balance("mass_balance");
-//    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
-//    SPP.add(mass_balance.in(Pools)==0);
-    
+
 
     SPP.print();
     
