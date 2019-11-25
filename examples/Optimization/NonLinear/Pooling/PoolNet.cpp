@@ -229,7 +229,7 @@ indices PoolNet::in_arcs_per_node() const{
 
 
 
-void PoolNet::readgrid() {
+void PoolNet::readgrid1() {
     
     string name;
     
@@ -374,7 +374,272 @@ void PoolNet::readgrid() {
     }
     
 }
+void PoolNet::readgrid() {
+    
+    string fname="/Users/smitha/Desktop/Adhya1_gms.txt";
+    string word="", tempwrd, numwrd;
+    
+    int flag;
+    double val;
+    
+    int N_node,N_input,N_output,N_pool, N_attr;
+    
+    ifstream file(fname.c_str(), std::ifstream::in);
+    
+    if(!file.is_open()) {
+        throw invalid_argument("Could not open file " + fname);
+    }
+    
+    
+    while(word.find("Declare")==string::npos){
+    getline(file, word);
+    }
 
+    getline(file, word);
+    
+    tempwrd=word.substr(word.find_first_of("*")+1);
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+
+   
+    N_node = atoi(numwrd.c_str());
+    
+    getline(file, word);
+    
+    tempwrd=word.substr(word.find_first_of("*")+1);
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+    
+    
+    N_input = atoi(numwrd.c_str());
+
+    getline(file, word);
+    
+    tempwrd=word.substr(word.find_first_of("/")+2);
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of("*"));
+    
+    
+    N_output = N_node+1-atoi(numwrd.c_str());
+    
+    
+    getline(file, word);
+    
+    tempwrd=word.substr(word.find_first_of("*")+1);
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+    
+    
+    N_attr = atoi(numwrd.c_str());
+
+    while(word.find("table c(i,j)")==string::npos){
+        getline(file, word);
+    }
+
+
+    Inputs=indices("Inputs");
+    Outputs=indices("Outputs");
+    Pools=indices("Pools");
+    Attr=indices("Attr");
+    
+    N_pool=N_node-N_input-N_output;
+    for (auto i=1;i<=N_input;i++)
+    {
+        Node* node = NULL;
+        node = new Node(to_string(i));
+        add_node(node);
+        Inputs.add(to_string(i));
+    }
+    
+    
+    
+    
+    for (auto i=N_input+1;i<=N_input+N_pool;i++)
+    {
+        Node* node = NULL;
+        node = new Node(to_string(i));
+        add_node(node);
+        Pools.add(to_string(i));
+    }
+    
+    for (auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++)
+    {
+        Node* node = NULL;
+        node = new Node(to_string(i));
+        add_node(node);
+        Outputs.add(to_string(i));
+    }
+    
+    unsigned index = 0;
+    string src, dest;
+    
+    while(word.find("table a(i,j)")==string::npos){
+        getline(file, word);
+    }
+     getline(file, word);
+    
+    inputs_pools=indices("inputs_pools");
+    inputs_outputs=indices("inputs_outputs");
+    pools_outputs=indices("pools_outputs");
+    
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+        for(auto j=N_input+1;j<=N_input+N_pool;j++){
+            file>>flag;
+            if(flag==1){
+                Arc* arc = NULL;
+                
+                auto src = get_node(to_string(i));
+                auto dest= get_node(to_string(j));
+                
+                arc = new Arc(to_string(i) + "," + to_string(j));
+                arc->_id = index++;
+                arc->_src = src;
+                arc->_dest= dest;
+                this->add_arc(arc);
+                arc->connect();
+                inputs_pools.add(to_string(i) + "," + to_string(j));
+            }
+        }
+        
+        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+            file>>flag;
+            if(flag==1){
+                Arc* arc = NULL;
+                
+                auto src = get_node(to_string(i));
+                auto dest= get_node(to_string(j));
+                
+                arc = new Arc(to_string(i) + "," + to_string(j));
+                arc->_id = index++;
+                arc->_src = src;
+                arc->_dest= dest;
+                this->add_arc(arc);
+                arc->connect();
+                inputs_outputs.add(to_string(i) + "," + to_string(j));
+                
+            }
+        }
+    }
+    
+    for(auto i=N_input+1;i<=N_input+N_pool;i++){
+        file>>flag;
+        for(auto j=1;j<=N_pool;j++){
+            file>>flag;
+                    }
+        
+        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+            file>>flag;
+            if(flag==1){
+                Arc* arc = NULL;
+                
+                auto src = get_node(to_string(i));
+                auto dest= get_node(to_string(j));
+                
+                arc = new Arc(to_string(i) + "," + to_string(j));
+                arc->_id = index++;
+                arc->_src = src;
+                arc->_dest= dest;
+                this->add_arc(arc);
+                arc->connect();
+                pools_outputs.add(to_string(i) + "," + to_string(j));
+                
+            }
+        }
+    }
+    
+    while(word.find("table q(i,k)")==string::npos){
+        getline(file, word);
+    }
+    getline(file, word);
+ 
+    indices inputs_attr=indices("inputs_attr");
+    indices outputs_attr=indices("outputs_attr");
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+        for(auto j=1;j<=N_attr;j++){
+            file>>val;
+            inqual.add_val(to_string(i)+","+to_string(j), val);
+            inputs_attr.add(to_string(i) + "," + to_string(j));
+        }
+    }
+    for(auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++){
+        file>>flag;
+        for(auto j=1;j<=N_attr;j++){
+            file>>val;
+            outqual_max.add_val(to_string(i)+","+to_string(j), val);
+            outqual_min.add_val(to_string(i)+","+to_string(j), 0);
+            outputs_attr.add(to_string(i) + "," + to_string(j));
+        }
+    }
+    
+ 
+    while(word.find("capacity lower bound")==string::npos){
+        getline(file, word);
+    }
+    file>>word;
+      file>>word;
+      file>>word;
+    
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+       
+            file>>val;
+            avail_min.add_val(to_string(i), val);
+       
+    }
+    
+    for(auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++){
+        file>>flag;
+        file>>val;
+        dem_min.add_val(to_string(i), val);
+    }
+    while(word.find("capacity upper bound")==string::npos){
+        getline(file, word);
+    }
+    file>>word;
+    file>>word;
+    file>>word;
+    
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+        
+        file>>val;
+        avail_max.add_val(to_string(i), val);
+        
+    }
+    for(auto i=N_input+1;i<=N_input+N_pool;i++){
+        file>>flag;
+        file>>val;
+        pool_cap.add_val(to_string(i), val);
+    }
+    for(auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++){
+        file>>flag;
+        file>>val;
+        dem_max.add_val(to_string(i), val);
+    }
+    
+    for(auto key: *(inputs_pools._keys)){
+        x_min.add_val(key, 0);
+        x_max.add_val(key, 100);
+     
+        
+    }
+    for(auto key: *(pools_outputs._keys)){
+        y_min.add_val(key, 0);
+        y_max.add_val(key, 100);
+        
+    }
+    for(auto key: *(inputs_outputs._keys)){
+        z_min.add_val(key, 0);
+        z_max.add_val(key, 100);
+        
+    }
+    
+    
+    
+    for(auto key: *(Outputs._keys)){
+        rev.add_val(key, 0);
+        
+    }
+    
+}
 
 
 

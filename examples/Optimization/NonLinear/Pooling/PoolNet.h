@@ -43,11 +43,17 @@ public:
     
      indices Outputs;
     
+    indices Attr;                         
+    
     indices inputs_pools;
     
     indices pools_outputs;
     
     indices inputs_outputs;
+    
+    indices inputs_attr;
+    
+    indices outputs_attr;
 
     /** Constructors */
     PoolNet();
@@ -55,6 +61,8 @@ public:
     
     /** Power grid data parser from Matpower*/
     void readgrid();
+    
+        void readgrid1();
     
      /** Accessors */
     
