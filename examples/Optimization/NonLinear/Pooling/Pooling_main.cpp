@@ -34,11 +34,15 @@ int main (int argc, char * argv[]) {
     indices Inputs=poolnet.Inputs;
     indices Pools=poolnet.Pools;
     indices Outputs=poolnet.Outputs;
+    indices Attr=poolnet.Attr;
     //indices Nodes=pool.nodes;
     
     indices inputs_pools=poolnet.inputs_pools;
     indices pools_outputs=poolnet.pools_outputs;
     indices inputs_outputs=poolnet.inputs_outputs;
+    indices inputs_attr=poolnet.inputs_attr;
+    indices outputs_attr=poolnet.outputs_attr;
+    
     
     auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
     auto out_arcs_to_output_per_input = poolnet.out_arcs_to_output_per_input();
@@ -60,13 +64,13 @@ int main (int argc, char * argv[]) {
     auto cost=poolnet.cost.in(Inputs);
     auto avail_min=poolnet.avail_min.in(Inputs);
     auto avail_max=poolnet.avail_max.in(Inputs);
-    auto p_in=poolnet.inqual.in(Inputs);
+    auto p_in=poolnet.inqual.in(inputs_attr);
     
     auto rev=poolnet.rev.in(Outputs);
     auto dem_min=poolnet.dem_min.in(Outputs);
     auto dem_max=poolnet.dem_max.in(Outputs);
-    auto p_out_min=poolnet.outqual_min.in(Outputs);
-    auto p_out_max=poolnet.outqual_max.in(Outputs);
+    auto p_out_min=poolnet.outqual_min.in(outputs_attr);
+    auto p_out_max=poolnet.outqual_max.in(outputs_attr);
     
     auto pool_cap=poolnet.pool_cap.in(Pools);
     
@@ -138,14 +142,7 @@ int main (int argc, char * argv[]) {
         row_id++;
     }
     
-//    Constraint<> product_quality("product_quality");//TODO debug transpose version
-//    product_quality=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*p_in - p_out.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output)-p_out.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
-//    SPP.add(product_quality.in(Outputs)==0);
-//
-//    Constraint<> product_quality_min("product_quality_min");
-//    product_quality_min=p_out-p_out_min;
-//    SPP.add(product_quality_min.in(Outputs)>=0);
-    
+
     
     
     Constraint<> product_quality_lb("product_quality_lb");//TODO debug transpose version and propagate matrix indexing to function
