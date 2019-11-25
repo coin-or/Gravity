@@ -35,6 +35,7 @@ int main (int argc, char * argv[]) {
     indices Pools=poolnet.Pools;
     indices Outputs=poolnet.Outputs;
     indices Attr=poolnet.Attr;
+    
     //indices Nodes=pool.nodes;
     
     indices inputs_pools=poolnet.inputs_pools;
@@ -42,7 +43,7 @@ int main (int argc, char * argv[]) {
     indices inputs_outputs=poolnet.inputs_outputs;
     indices inputs_attr=poolnet.inputs_attr;
     indices outputs_attr=poolnet.outputs_attr;
-    
+    indices pool_attr = indices(Pools,Attr);
     
     auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
     auto out_arcs_to_output_per_input = poolnet.out_arcs_to_output_per_input();
@@ -82,7 +83,7 @@ int main (int argc, char * argv[]) {
     SPP.add(x.in(inputs_pools));
     SPP.add(y.in(pools_outputs));
     SPP.add(z.in(inputs_outputs));
-    SPP.add(p_pool.in(Pools));
+    SPP.add(p_pool.in(pool_attr));
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
@@ -113,7 +114,7 @@ int main (int argc, char * argv[]) {
     
         int row_id = 0;
         indices pool_matrix = indices("pool_matrix");
-        for (const string& pool_key:*Pools._keys) {
+        for (const string& pool_key:*pool_attr._keys) {
             for (auto i = 0; i<Outputs.size(); i++) {
                 pool_matrix.add_in_row(row_id, pool_key);
             }
@@ -122,8 +123,8 @@ int main (int argc, char * argv[]) {
 
         Constraint<> quality_balance("quality_balance");//TODO debug transpose version
         quality_balance=x.in(in_arcs_per_pool)*p_in - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
-        SPP.add(quality_balance.in(Pools)==0);
-    
+        SPP.add(quality_balance.in(pool_attr)==0);
+    SPP.print();
     row_id = 0;
     indices outpool_matrix = indices("outpool_matrix");
     for (const string& out_key:*Outputs._keys) {
