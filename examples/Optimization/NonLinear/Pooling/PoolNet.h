@@ -49,6 +49,8 @@ public:
     
     indices pools_outputs;
     
+    indices pools_attr;
+    
     indices inputs_outputs;
     
     indices inputs_attr;

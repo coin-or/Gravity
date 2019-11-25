@@ -135,7 +135,9 @@ indices PoolNet::in_arcs_per_pool() const{
 indices PoolNet::out_arcs_per_pool() const{
     indices ids = indices("out_arcs_per_pool");
     int row_id = 0;
-    for(const string& pool_id: *this->Pools._keys){
+    for(const string& key_id: *this->pools_attr._keys){
+        auto pos = nthOccurrence(key_id, ",", 1);
+        auto pool_id = key_id.substr(0,pos);
         auto pool = nodeID.at(pool_id);
         for (const Arc* out: pool->get_out()) {
             ids.add_in_row(row_id, out->_name);
@@ -376,7 +378,7 @@ void PoolNet::readgrid1() {
 }
 void PoolNet::readgrid() {
     
-    string fname="/Users/smitha/Desktop/Adhya1_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
     string word="", tempwrd, numwrd;
     
     int flag;
@@ -427,7 +429,8 @@ void PoolNet::readgrid() {
     
     
     N_attr = atoi(numwrd.c_str());
-
+    Attr=indices("Attr");
+    Attr = range(1,N_attr);
     while(word.find("table c(i,j)")==string::npos){
         getline(file, word);
     }
@@ -436,7 +439,7 @@ void PoolNet::readgrid() {
     Inputs=indices("Inputs");
     Outputs=indices("Outputs");
     Pools=indices("Pools");
-    Attr=indices("Attr");
+    
     
     N_pool=N_node-N_input-N_output;
     for (auto i=1;i<=N_input;i++)
@@ -457,6 +460,8 @@ void PoolNet::readgrid() {
         add_node(node);
         Pools.add(to_string(i));
     }
+    
+    pools_attr = indices(Pools,Attr);
     
     for (auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++)
     {
