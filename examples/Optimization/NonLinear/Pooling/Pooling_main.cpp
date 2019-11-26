@@ -120,9 +120,19 @@ int main (int argc, char * argv[]) {
             }
             row_id++;
         }
-
+    
+    row_id = 0;
+    indices input_attr_matrix = indices("input_attr_matrix");
+    for (auto j=1;j<=Pools.size();j++){
+    for (const string& inputs_key:*Inputs._keys) {
+        for (auto i = 1; i<=Attr.size(); i++) {
+            input_attr_matrix.add_in_row(row_id, inputs_key+","+to_string(i));
+        }
+        row_id++;
+    }
+    }
         Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-        quality_balance=x.in(in_arcs_per_pool)*p_in - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
+        quality_balance=p_in.in(input_attr_matrix)*x - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
         SPP.add(quality_balance.in(pool_attr)==0);
     SPP.print();
     row_id = 0;
