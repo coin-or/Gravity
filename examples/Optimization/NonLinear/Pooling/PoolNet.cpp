@@ -119,13 +119,27 @@ indices PoolNet::out_arcs_to_output_per_input() const{
 }
 
 
-indices PoolNet::in_arcs_per_pool() const{
-    indices ids = indices("in_arcs_per_pool");
+indices PoolNet::in_arcs_per_pool_attr() const{
+    indices ids = indices("in_arcs_per_pool_attrs");
     int row_id = 0;
     for(const string& key_id: *this->pools_attr._keys){
         auto pos = nthOccurrence(key_id, ",", 1);
         auto pool_id = key_id.substr(0,pos);
         auto pool = nodeID.at(pool_id);
+        for (const Arc* out: pool->get_in()) {
+            ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+
+indices PoolNet::in_arcs_per_pool() const{
+    indices ids = indices("in_arcs_per_pool");
+    int row_id = 0;
+    for(const string& key_id: *this->Pools._keys){
+        auto pool = nodeID.at(key_id);
         for (const Arc* out: pool->get_in()) {
             ids.add_in_row(row_id, out->_name);
         }
@@ -152,8 +166,8 @@ indices PoolNet::in_arcs_attr_per_pool() const{
 }
 
 
-indices PoolNet::out_arcs_per_pool() const{
-    indices ids = indices("out_arcs_per_pool");
+indices PoolNet::out_arcs_per_pool_attr() const{
+    indices ids = indices("out_arcs_per_pool_attr");
     int row_id = 0;
     for(const string& key_id: *this->pools_attr._keys){
         auto pos = nthOccurrence(key_id, ",", 1);
@@ -167,12 +181,43 @@ indices PoolNet::out_arcs_per_pool() const{
     return ids;
 }
 
+
+indices PoolNet::out_arcs_per_pool() const{
+    indices ids = indices("out_arcs_per_pool");
+    int row_id = 0;
+    for(const string& key_id: *this->Pools._keys){
+        auto pool = nodeID.at(key_id);
+        for (const Arc* out: pool->get_out()) {
+            ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+
+indices PoolNet::in_arcs_from_pool_per_output_attr() const{
+    indices ids = indices("in_arcs_from_pool_per_output");
+    int row_id = 0;
+    for(const string& key_id: *this->outputs_attr._keys){
+        auto pos = nthOccurrence(key_id, ",", 1);
+        auto output_id = key_id.substr(0,pos);
+        auto output = nodeID.at(output_id);
+        for (const Arc* out: output->get_in()) {
+            if(!out->_free)
+                ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
 indices PoolNet::in_arcs_from_pool_per_output() const{
     indices ids = indices("in_arcs_from_pool_per_output");
     int row_id = 0;
-    for(const string& pool_id: *this->Outputs._keys){
-        auto pool = nodeID.at(pool_id);
-        for (const Arc* out: pool->get_in()) {
+    for(const string& key_id: *this->Outputs._keys){
+        auto output = nodeID.at(key_id);
+        for (const Arc* out: output->get_in()) {
             if(!out->_free)
                 ids.add_in_row(row_id, out->_name);
         }
