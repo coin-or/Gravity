@@ -48,6 +48,7 @@ int main (int argc, char * argv[]) {
     auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
     auto out_arcs_to_output_per_input = poolnet.out_arcs_to_output_per_input();
     auto in_arcs_per_pool = poolnet.in_arcs_per_pool();
+    auto in_arcs_attr_per_pool = poolnet.in_arcs_attr_per_pool();
     auto out_arcs_per_pool = poolnet.out_arcs_per_pool();
     auto in_arcs_from_pool_per_output = poolnet.in_arcs_from_pool_per_output();
     auto in_arcs_from_input_per_output = poolnet.in_arcs_from_input_per_output();
@@ -132,7 +133,7 @@ int main (int argc, char * argv[]) {
     }
     }
         Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-        quality_balance=p_in.in(input_attr_matrix)*x - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
+        quality_balance=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
         SPP.add(quality_balance.in(pool_attr)==0);
     SPP.print();
     row_id = 0;

@@ -83,6 +83,8 @@ public:
 
     indices out_arcs_to_output_per_input() const;
 
+    indices in_arcs_attr_per_pool() const;
+    
     indices in_arcs_per_pool() const;
 
     indices out_arcs_per_pool() const;
