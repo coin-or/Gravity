@@ -48,8 +48,10 @@ int main (int argc, char * argv[]) {
     auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
     auto out_arcs_to_output_per_input = poolnet.out_arcs_to_output_per_input();
     auto in_arcs_per_pool = poolnet.in_arcs_per_pool();
+    auto in_arcs_per_pool_attr = poolnet.in_arcs_per_pool_attr();
     auto in_arcs_attr_per_pool = poolnet.in_arcs_attr_per_pool();
     auto out_arcs_per_pool = poolnet.out_arcs_per_pool();
+    auto out_arcs_per_pool_attr = poolnet.out_arcs_per_pool_attr();
     auto in_arcs_from_pool_per_output = poolnet.in_arcs_from_pool_per_output();
     auto in_arcs_from_input_per_output = poolnet.in_arcs_from_input_per_output();
 
@@ -116,26 +118,25 @@ int main (int argc, char * argv[]) {
         int row_id = 0;
         indices pool_matrix = indices("pool_matrix");
         for (const string& pool_key:*pool_attr._keys) {
-            for (auto i = 0; i<Outputs.size(); i++) {
+            auto pos = nthOccurrence(pool_key, ",", 1);
+            auto pool = pool_key.substr(0,pos);
+            for (auto &out:*Outputs._keys) {
+                auto po_out=pool+","+out;
+                if(pools_outputs._keys_map->find(po_out) !=pools_outputs._keys_map->end()){
                 pool_matrix.add_in_row(row_id, pool_key);
+                }
             }
             row_id++;
         }
     
-    row_id = 0;
-    indices input_attr_matrix = indices("input_attr_matrix");
-    for (auto j=1;j<=Pools.size();j++){
-    for (const string& inputs_key:*Inputs._keys) {
-        for (auto i = 1; i<=Attr.size(); i++) {
-            input_attr_matrix.add_in_row(row_id, inputs_key+","+to_string(i));
-        }
-        row_id++;
-    }
-    }
+ 
         Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-        quality_balance=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool);// - p_pool* sum(y, out_arcs_per_pool)
-        SPP.add(quality_balance.in(pool_attr)==0);
+        quality_balance=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+      SPP.add(quality_balance.in(pool_attr)==0);
     SPP.print();
+    
+
+    
     row_id = 0;
     indices outpool_matrix = indices("outpool_matrix");
     for (const string& out_key:*Outputs._keys) {
@@ -154,18 +155,33 @@ int main (int argc, char * argv[]) {
         row_id++;
     }
     
+    
+    row_id = 0;
+    indices output_attr_matrix = indices("output_attr_matrix");
+    for (const string& out_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(out_key, ",", 1);
+        auto attr = out_key.substr(pos+1);
+        for (auto &pool:*Pools._keys) {
+            auto key=pool+","+attr;
+            output_attr_matrix.add_in_row(row_id, key);
+        }
+        row_id++;
+    }
 
     
-    
-    Constraint<> product_quality_lb("product_quality_lb");//TODO debug transpose version and propagate matrix indexing to function
-    product_quality_lb=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_min.in(outinput_matrix)).in(outinput_matrix) - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
-    SPP.add(product_quality_lb.in(Outputs)>=0);
-    
-    Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
-    product_quality_ub=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_max.in(outinput_matrix)).in(outinput_matrix) - p_out_max.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
-    SPP.add(product_quality_ub.in(Outputs)<=0);
+//
+//    Constraint<> product_quality_lb("product_quality_lb");//TODO debug transpose version and propagate matrix indexing to function
+//    product_quality_lb=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_min.in(outinput_matrix)).in(outinput_matrix) - p_out_min.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+//    SPP.add(product_quality_lb.in(Outputs)>=0);
+//
+//    Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
+//    product_quality_ub=y.in(in_arcs_from_pool_per_output)*p_pool+z.in(in_arcs_from_input_per_output)*(p_in-p_out_max.in(outinput_matrix)).in(outinput_matrix) - p_out_max.in(outpool_matrix)*y.in(in_arcs_from_pool_per_output);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+//    SPP.add(product_quality_ub.in(Outputs)<=0);
     
 
+        Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
+    product_quality_ub=y.in(in_arcs_from_pool_per_output)*p_pool.in(output_attr_matrix);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+        SPP.add(product_quality_ub.in(outputs_attr)<=0);
 
 
     SPP.print();
