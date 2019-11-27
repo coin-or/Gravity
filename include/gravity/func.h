@@ -2232,7 +2232,9 @@ namespace gravity {
                     break;
                 }
             }
-            
+            if(v.is_matrix_indexed()){
+                res._indices = v._indices;
+            }
             res.update_double_index();
             return res;
         }

@@ -276,6 +276,7 @@ namespace gravity{
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
+            _dim->resize(2,0);
         }
       
       indices(int name){
@@ -283,12 +284,14 @@ namespace gravity{
         _keys_map = make_shared<map<string,size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
+          _dim->resize(2,0);
       }
       
         indices(){
             _keys_map = make_shared<map<string,size_t>>();
             _keys = make_shared<vector<string>>();
             _dim = make_shared<vector<size_t>>();
+            _dim->resize(2,0);
         }
         
         indices(const ordered_pairs& pairs){

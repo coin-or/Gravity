@@ -1608,14 +1608,14 @@ namespace gravity {
                 auto dim = _indices->size();
                 _val->resize(dim);
                 if(ids._type==matrix_){
-                    if(_is_transposed){
-                        _dim[0] = ids._dim->at(1);
-                        _dim[1] = ids._dim->at(0);
-                    }
-                    else {
-                        _dim[1] = ids._dim->at(0);
-                        _dim[0] = ids._dim->at(1);
-                    }
+                        if(_is_transposed){
+                            _dim[0] = ids._dim->at(1);
+                            _dim[1] = ids._dim->at(0);
+                        }
+                        else {
+                            _dim[1] = ids._dim->at(0);
+                            _dim[0] = ids._dim->at(1);
+                        }
                 }
                 else {
                     if(_is_transposed){
