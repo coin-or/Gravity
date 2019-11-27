@@ -87,11 +87,14 @@ int main (int argc, char * argv[]) {
     var<> x("x", x_min, x_max);
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
-    var<> p_pool("p_pool", 0, 1);
+    var<> p_pool("p_pool", 0, 5);
     SPP.add(x.in(inputs_pools));
     SPP.add(y.in(pools_outputs));
     SPP.add(z.in(inputs_outputs));
     SPP.add(p_pool.in(pool_attr));
+    
+    x.initialize_all(2.0);
+    y.initialize_all(1.0);
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
@@ -228,6 +231,9 @@ int main (int argc, char * argv[]) {
     product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
     SPP.add(product_quality_ub.in(outputs_attr)<=0);
     
+    Constraint<> sumy("sumy");
+    sumy=sum(y);
+    //SPP.add(sumy>=1);
     
     auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
     SPP.min(obj);
@@ -235,7 +241,7 @@ int main (int argc, char * argv[]) {
     SPP.print();
     
     solver<> SPP_solv(SPP,ipopt);
-    SPP_solv.run(output = 5, 1e-6);
+    SPP_solv.run(output = 5, 1e-7);
     
     
     
