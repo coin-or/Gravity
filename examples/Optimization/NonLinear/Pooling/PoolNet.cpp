@@ -95,6 +95,7 @@ indices PoolNet::out_arcs_to_pool_per_input() const{
     int row_id = 0;
     for(const string& in_pool_id: *this->Inputs._keys){
         auto in_pool = nodeID.at(in_pool_id);
+        ids.add_empty_row();
         for (const Arc* out: in_pool->get_out()) {
             if(!out->_free)
                 ids.add_in_row(row_id, out->_name);
@@ -106,11 +107,10 @@ indices PoolNet::out_arcs_to_pool_per_input() const{
 
 indices PoolNet::out_arcs_to_output_per_input() const{
     indices ids = indices("out_arcs_to_output_per_input");
-    ids._ids = make_shared<vector<vector<size_t>>>();
-    ids._ids->resize(5);
     int row_id = 0;
     for(const string& in_pool_id: *this->Inputs._keys){
         auto in_pool = nodeID.at(in_pool_id);
+        ids.add_empty_row();
         for (const Arc* out: in_pool->get_out()) {
             if(out->_free)
                 ids.add_in_row(row_id, out->_name);
@@ -125,6 +125,7 @@ indices PoolNet::in_arcs_per_pool_attr() const{
     indices ids = indices("in_arcs_per_pool_attrs");
     int row_id = 0;
     for(const string& key_id: *this->pools_attr._keys){
+        ids.add_empty_row();
         auto pos = nthOccurrence(key_id, ",", 1);
         auto pool_id = key_id.substr(0,pos);
         auto pool = nodeID.at(pool_id);
@@ -142,6 +143,7 @@ indices PoolNet::in_arcs_per_pool() const{
     int row_id = 0;
     for(const string& key_id: *this->Pools._keys){
         auto pool = nodeID.at(key_id);
+        ids.add_empty_row();
         for (const Arc* out: pool->get_in()) {
             ids.add_in_row(row_id, out->_name);
         }
@@ -158,6 +160,7 @@ indices PoolNet::in_arcs_attr_per_pool() const{
         auto attr = key_id.substr(pos+1);
         auto pool_id = key_id.substr(0,pos);
         auto pool = nodeID.at(pool_id);
+        ids.add_empty_row();
         for (const Arc* out: pool->get_in()) {
             auto input_id = out->_src->_name;
             ids.add_in_row(row_id, input_id+","+attr);
@@ -175,6 +178,7 @@ indices PoolNet::out_arcs_per_pool_attr() const{
         auto pos = nthOccurrence(key_id, ",", 1);
         auto pool_id = key_id.substr(0,pos);
         auto pool = nodeID.at(pool_id);
+        ids.add_empty_row();
         for (const Arc* out: pool->get_out()) {
             ids.add_in_row(row_id, out->_name);
         }
@@ -189,6 +193,7 @@ indices PoolNet::out_arcs_per_pool() const{
     int row_id = 0;
     for(const string& key_id: *this->Pools._keys){
         auto pool = nodeID.at(key_id);
+        ids.add_empty_row();
         for (const Arc* out: pool->get_out()) {
             ids.add_in_row(row_id, out->_name);
         }
@@ -205,6 +210,7 @@ indices PoolNet::in_arcs_from_pool_per_output_attr() const{
         auto pos = nthOccurrence(key_id, ",", 1);
         auto output_id = key_id.substr(0,pos);
         auto output = nodeID.at(output_id);
+        ids.add_empty_row();
         for (const Arc* out: output->get_in()) {
             if(!out->_free)
                 ids.add_in_row(row_id, out->_name);
@@ -219,6 +225,7 @@ indices PoolNet::in_arcs_from_pool_per_output() const{
     int row_id = 0;
     for(const string& key_id: *this->Outputs._keys){
         auto output = nodeID.at(key_id);
+        ids.add_empty_row();
         for (const Arc* out: output->get_in()) {
             if(!out->_free)
                 ids.add_in_row(row_id, out->_name);
@@ -233,6 +240,7 @@ indices PoolNet::in_arcs_from_input_per_output() const{
     int row_id = 0;
     for(const string& out_id: *this->Outputs._keys){
         auto out_node = nodeID.at(out_id);
+        ids.add_empty_row();
         for (const Arc* out: out_node->get_in()) {
             if(out->_free)
                 ids.add_in_row(row_id, out->_name);
@@ -249,6 +257,7 @@ indices PoolNet::in_arcs_from_input_per_output_attr() const{
         auto pos = nthOccurrence(outat_id, ",", 1);
         auto output_id = outat_id.substr(0,pos);
         auto out_node = nodeID.at(output_id);
+        ids.add_empty_row();
         for (const Arc* out: out_node->get_in()) {
             if(out->_free)
                 ids.add_in_row(row_id, out->_name);

@@ -993,6 +993,14 @@ namespace gravity{
             add(all_keys);
         }
         
+        void add_empty_row() {
+            _type = matrix_;
+            if (!_ids) {
+                _ids = make_shared<vector<vector<size_t>>>();
+            }
+            _ids->resize(_ids->size()+1);
+        }
+        
         /** Add a key in the specified row (for sparse matrix indexing)*/
         void add_in_row(size_t row_nb, const string& key) {
             _type = matrix_;
