@@ -67,7 +67,7 @@ int main (int argc, char * argv[]) {
     auto z_min=poolnet.z_min.in(inputs_outputs);
     auto z_max=poolnet.z_max.in(inputs_outputs);
     
-    auto cost=poolnet.cost.in(Inputs);
+   // auto cost=poolnet.cost.in(Inputs);
     auto avail_min=poolnet.avail_min.in(Inputs);
     auto avail_max=poolnet.avail_max.in(Inputs);
     auto p_in=poolnet.inqual.in(inputs_attr);
@@ -80,6 +80,9 @@ int main (int argc, char * argv[]) {
     
     auto pool_cap=poolnet.pool_cap.in(Pools);
     
+    auto cost_ip=poolnet.cost_ip.in(inputs_pools);
+    auto cost_io=poolnet.cost_io.in(inputs_outputs);
+    auto cost_po=poolnet.cost_po.in(pools_outputs);
     
     var<> x("x", x_min, x_max);
     
@@ -141,24 +144,7 @@ int main (int argc, char * argv[]) {
     
 
     
-    row_id = 0;
-    indices outpool_matrix = indices("outpool_matrix");
-    for (const string& out_key:*Outputs._keys) {
-        for (auto i = 0; i<Pools.size(); i++) {
-            outpool_matrix.add_in_row(row_id, out_key);
-        }
-        row_id++;
-    }
-    
-    row_id = 0;
-    indices outinput_matrix = indices("outinput_matrix");
-    for (const string& out_key:*Outputs._keys) {
-        for (auto i = 0; i<Inputs.size(); i++) {
-            outinput_matrix.add_in_row(row_id, out_key);
-        }
-        row_id++;
-    }
-    
+
     
     row_id = 0;
     indices pool_attr_per_output_attr_matrix = indices("pool_attr_per_output_attr_matrix");
@@ -235,6 +221,14 @@ int main (int argc, char * argv[]) {
     product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
         SPP.add(product_quality_ub.in(outputs_attr)<=0);
 
+    
+    auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
+    SPP.min(obj);
+    
+    
+    solver<> SPP_solv(SPP,ipopt);
+    SPP_solv.run(output = 5, 1e-6);
+    
 
     SPP.print();
     

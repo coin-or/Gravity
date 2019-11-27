@@ -31,9 +31,10 @@ public:
     param<double> x_min, x_max, inqual;//in inputs_pools
     param<double> y_min, y_max;//in pools_outputs
     param<double> z_min, z_max,outqual_min, outqual_max;//in inputs_outputs
-    param<double> cost, avail_max, avail_min; //in inputs
+    param<double>  avail_max, avail_min; //in inputs
     param<double> rev, dem_max, dem_min; //in outputs
     param<double> pool_cap; //in pools
+    param<double> cost_ip,cost_io, cost_po;
 
     
     /** Set of all diesel generators */
