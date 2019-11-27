@@ -53,7 +53,9 @@ int main (int argc, char * argv[]) {
     auto out_arcs_per_pool = poolnet.out_arcs_per_pool();
     auto out_arcs_per_pool_attr = poolnet.out_arcs_per_pool_attr();
     auto in_arcs_from_pool_per_output = poolnet.in_arcs_from_pool_per_output();
+    auto in_arcs_from_pool_per_output_attr=poolnet.in_arcs_from_pool_per_output_attr();
     auto in_arcs_from_input_per_output = poolnet.in_arcs_from_input_per_output();
+    auto in_arcs_from_input_per_output_attr = poolnet.in_arcs_from_input_per_output_attr();
 
     auto x_min=poolnet.x_min.in(inputs_pools);
     auto x_max=poolnet.x_max.in(inputs_pools);
@@ -90,6 +92,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
+    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
     
 
@@ -157,17 +160,65 @@ int main (int argc, char * argv[]) {
     
     
     row_id = 0;
-    indices output_attr_matrix = indices("output_attr_matrix");
-    for (const string& out_key:*outputs_attr._keys) {
-        auto pos = nthOccurrence(out_key, ",", 1);
-        auto attr = out_key.substr(pos+1);
+    indices pool_attr_per_output_attr_matrix = indices("pool_attr_per_output_attr_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(outat_key, ",", 1);
+        auto out=outat_key.substr(0, pos);
+        auto attr = outat_key.substr(pos+1);
         for (auto &pool:*Pools._keys) {
+            auto po_out= pool+","+out;
+              if(pools_outputs._keys_map->find(po_out) !=pools_outputs._keys_map->end()){
             auto key=pool+","+attr;
-            output_attr_matrix.add_in_row(row_id, key);
+            pool_attr_per_output_attr_matrix.add_in_row(row_id, key);
+        }
+        }
+        row_id++;
+    }
+    
+    row_id = 0;
+    indices input_attr_per_output_attr_matrix = indices("input_attr_per_output_attr_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(outat_key, ",", 1);
+        auto out=outat_key.substr(0, pos);
+        auto attr = outat_key.substr(pos+1);
+        for (auto &input:*Inputs._keys) {
+            auto io_out= input+","+out;
+            if(inputs_outputs._keys_map->find(io_out) !=inputs_outputs._keys_map->end()){
+                auto key=input+","+attr;
+                input_attr_per_output_attr_matrix.add_in_row(row_id, key);
+            }
         }
         row_id++;
     }
 
+   row_id = 0;
+    indices output_attr_per_ypo_matrix = indices("output_attr_per_ypo_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(outat_key, ",", 1);
+        auto out = outat_key.substr(0,pos);
+        for (auto &pool:*Pools._keys) {
+            auto po_out=pool+","+out;
+            if(pools_outputs._keys_map->find(po_out) !=pools_outputs._keys_map->end()){
+                output_attr_per_ypo_matrix.add_in_row(row_id, outat_key);
+            }
+        }
+        row_id++;
+    }
+    
+    row_id = 0;
+    indices output_attr_per_zio_matrix = indices("output_attr_per_zio_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(outat_key, ",", 1);
+        auto out = outat_key.substr(0,pos);
+        for (auto &input:*Inputs._keys) {
+            auto io_out=input+","+out;
+            if(inputs_outputs._keys_map->find(io_out) !=inputs_outputs._keys_map->end()){
+                output_attr_per_zio_matrix.add_in_row(row_id, outat_key);
+            }
+        }
+        row_id++;
+    }
+    
     
 //
 //    Constraint<> product_quality_lb("product_quality_lb");//TODO debug transpose version and propagate matrix indexing to function
@@ -180,7 +231,7 @@ int main (int argc, char * argv[]) {
     
 
         Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
-    product_quality_ub=y.in(in_arcs_from_pool_per_output)*p_pool.in(output_attr_matrix);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
         SPP.add(product_quality_ub.in(outputs_attr)<=0);
 
 

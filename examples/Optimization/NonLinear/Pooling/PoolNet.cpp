@@ -106,6 +106,8 @@ indices PoolNet::out_arcs_to_pool_per_input() const{
 
 indices PoolNet::out_arcs_to_output_per_input() const{
     indices ids = indices("out_arcs_to_output_per_input");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(5);
     int row_id = 0;
     for(const string& in_pool_id: *this->Inputs._keys){
         auto in_pool = nodeID.at(in_pool_id);
@@ -229,9 +231,25 @@ indices PoolNet::in_arcs_from_pool_per_output() const{
 indices PoolNet::in_arcs_from_input_per_output() const{
     indices ids = indices("in_arcs_from_input_per_output");
     int row_id = 0;
-    for(const string& pool_id: *this->Outputs._keys){
-        auto pool = nodeID.at(pool_id);
-        for (const Arc* out: pool->get_in()) {
+    for(const string& out_id: *this->Outputs._keys){
+        auto out_node = nodeID.at(out_id);
+        for (const Arc* out: out_node->get_in()) {
+            if(out->_free)
+                ids.add_in_row(row_id, out->_name);
+        }
+        row_id++;
+    }
+    return ids;
+}
+
+indices PoolNet::in_arcs_from_input_per_output_attr() const{
+    indices ids = indices("in_arcs_from_input_per_output");
+    int row_id = 0;
+    for(const string& outat_id: *this->outputs_attr._keys){
+        auto pos = nthOccurrence(outat_id, ",", 1);
+        auto output_id = outat_id.substr(0,pos);
+        auto out_node = nodeID.at(output_id);
+        for (const Arc* out: out_node->get_in()) {
             if(out->_free)
                 ids.add_in_row(row_id, out->_name);
         }
@@ -431,6 +449,7 @@ void PoolNet::readgrid() {
                 arc->_id = index++;
                 arc->_src = src;
                 arc->_dest= dest;
+                arc->_free=true;
                 this->add_arc(arc);
                 arc->connect();
                 inputs_outputs.add(to_string(i) + "," + to_string(j));
@@ -559,6 +578,66 @@ void PoolNet::readgrid() {
         rev.add_val(key, 0);
         
     }
+    //file.clear();
+    //file.seekg(0, ios::beg);
+//    while(word.find("table c(i,j)")==string::npos){
+//        getline(file, word);
+//    }
+//    getline(file, word);
+//    for(auto i=1;i<=N_input;i++){
+//        file>>flag;
+//        for(auto j=N_input+1;j<=N_input+N_pool;j++){
+//            file>>val;
+//
+//        }
+//
+//        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+//            file>>flag;
+//            if(flag==1){
+//                Arc* arc = NULL;
+//
+//                auto src = get_node(to_string(i));
+//                auto dest= get_node(to_string(j));
+//
+//                arc = new Arc(to_string(i) + "," + to_string(j));
+//                arc->_id = index++;
+//                arc->_src = src;
+//                arc->_dest= dest;
+//                arc->_free=true;
+//                this->add_arc(arc);
+//                arc->connect();
+//                inputs_outputs.add(to_string(i) + "," + to_string(j));
+//
+//            }
+//        }
+//    }
+//
+//    for(auto i=N_input+1;i<=N_input+N_pool;i++){
+//        file>>flag;
+//        for(auto j=1;j<=N_pool;j++){
+//            file>>flag;
+//        }
+//
+//        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+//            file>>flag;
+//            if(flag==1){
+//                Arc* arc = NULL;
+//
+//                auto src = get_node(to_string(i));
+//                auto dest= get_node(to_string(j));
+//
+//                arc = new Arc(to_string(i) + "," + to_string(j));
+//                arc->_id = index++;
+//                arc->_src = src;
+//                arc->_dest= dest;
+//                this->add_arc(arc);
+//                arc->connect();
+//                pools_outputs.add(to_string(i) + "," + to_string(j));
+//
+//            }
+//        }
+//    }
+//
     
 }
 

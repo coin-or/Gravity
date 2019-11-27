@@ -100,6 +100,8 @@ public:
 
     indices in_arcs_from_input_per_output() const;
     
+     indices in_arcs_from_input_per_output_attr() const;
+    
     indices out_arcs_per_node() const;
     indices in_arcs_per_node() const;
   
