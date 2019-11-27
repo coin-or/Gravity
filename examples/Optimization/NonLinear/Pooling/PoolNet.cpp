@@ -568,13 +568,13 @@ void PoolNet::readgrid() {
     
     for(auto key: *(inputs_pools._keys)){
         x_min.add_val(key, 0);
-        x_max.add_val(key, 100);
+        x_max.add_val(key, 75);
      
         
     }
     for(auto key: *(pools_outputs._keys)){
         y_min.add_val(key, 0);
-        y_max.add_val(key, 100);
+        y_max.add_val(key, 30);
         
     }
     for(auto key: *(inputs_outputs._keys)){
