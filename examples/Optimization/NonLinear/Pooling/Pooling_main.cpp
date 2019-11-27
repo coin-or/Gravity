@@ -233,7 +233,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> sumy("sumy");
     sumy=sum(y);
-    //SPP.add(sumy>=1);
+    SPP.add_lazy(sumy>=11);
     
     auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
     SPP.min(obj);
@@ -243,6 +243,8 @@ int main (int argc, char * argv[]) {
     solver<> SPP_solv(SPP,ipopt);
     SPP_solv.run(output = 5, 1e-7);
     
+    SPP.print_solution();
+    SPP.print_constraints_stats(1e-7);
     
     
     
