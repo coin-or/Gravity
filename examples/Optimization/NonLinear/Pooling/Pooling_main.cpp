@@ -92,8 +92,9 @@ int main (int argc, char * argv[]) {
     
     Constraint<> avail_lb("avail_lb");
     avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
-    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
+//    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
     SPP.add(avail_lb.in(Inputs)>=0);
+    SPP.print();
     
 
     Constraint<> avail_ub("avail_ub");
@@ -231,7 +232,7 @@ int main (int argc, char * argv[]) {
     
 
         Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
-    product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);//-p_out_min.in(outinput_matrix)*z.in(in_arcs_from_input_per_output);
+    product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
         SPP.add(product_quality_ub.in(outputs_attr)<=0);
 
 
