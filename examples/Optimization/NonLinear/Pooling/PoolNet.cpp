@@ -38,7 +38,9 @@ PoolNet::PoolNet() {
     z_min.set_name("z_min");
     z_max.set_name("z_max");
     //in inputs
-    cost.set_name("cost");
+    cost_ip.set_name("cost_ip");
+    cost_io.set_name("cost_io");
+    cost_po.set_name("cost_po");
     avail_min.set_name("avail_min");
     avail_max.set_name("avail_max");
     inqual.set_name("inqual");
@@ -204,7 +206,7 @@ indices PoolNet::out_arcs_per_pool() const{
 
 
 indices PoolNet::in_arcs_from_pool_per_output_attr() const{
-    indices ids = indices("in_arcs_from_pool_per_output");
+    indices ids = indices("in_arcs_from_pool_per_output_attr");
     int row_id = 0;
     for(const string& key_id: *this->outputs_attr._keys){
         auto pos = nthOccurrence(key_id, ",", 1);
@@ -251,7 +253,7 @@ indices PoolNet::in_arcs_from_input_per_output() const{
 }
 
 indices PoolNet::in_arcs_from_input_per_output_attr() const{
-    indices ids = indices("in_arcs_from_input_per_output");
+    indices ids = indices("in_arcs_from_input_per_output_attr");
     int row_id = 0;
     for(const string& outat_id: *this->outputs_attr._keys){
         auto pos = nthOccurrence(outat_id, ",", 1);
@@ -587,66 +589,38 @@ void PoolNet::readgrid() {
         rev.add_val(key, 0);
         
     }
-    //file.clear();
-    //file.seekg(0, ios::beg);
-//    while(word.find("table c(i,j)")==string::npos){
-//        getline(file, word);
-//    }
-//    getline(file, word);
-//    for(auto i=1;i<=N_input;i++){
-//        file>>flag;
-//        for(auto j=N_input+1;j<=N_input+N_pool;j++){
-//            file>>val;
-//
-//        }
-//
-//        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
-//            file>>flag;
-//            if(flag==1){
-//                Arc* arc = NULL;
-//
-//                auto src = get_node(to_string(i));
-//                auto dest= get_node(to_string(j));
-//
-//                arc = new Arc(to_string(i) + "," + to_string(j));
-//                arc->_id = index++;
-//                arc->_src = src;
-//                arc->_dest= dest;
-//                arc->_free=true;
-//                this->add_arc(arc);
-//                arc->connect();
-//                inputs_outputs.add(to_string(i) + "," + to_string(j));
-//
-//            }
-//        }
-//    }
-//
-//    for(auto i=N_input+1;i<=N_input+N_pool;i++){
-//        file>>flag;
-//        for(auto j=1;j<=N_pool;j++){
-//            file>>flag;
-//        }
-//
-//        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
-//            file>>flag;
-//            if(flag==1){
-//                Arc* arc = NULL;
-//
-//                auto src = get_node(to_string(i));
-//                auto dest= get_node(to_string(j));
-//
-//                arc = new Arc(to_string(i) + "," + to_string(j));
-//                arc->_id = index++;
-//                arc->_src = src;
-//                arc->_dest= dest;
-//                this->add_arc(arc);
-//                arc->connect();
-//                pools_outputs.add(to_string(i) + "," + to_string(j));
-//
-//            }
-//        }
-//    }
-//
+    file.clear();
+    file.seekg(0, ios::beg);
+    while(word.find("table c(i,j)")==string::npos){
+        getline(file, word);
+    }
+    getline(file, word);
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+        for(auto j=N_input+1;j<=N_input+N_pool;j++){
+            file>>val;
+    auto key=to_string(i)+","+to_string(j);
+            cost_ip.add_val(key, val);
+      }
+
+        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+           file>>val;
+            auto key=to_string(i)+","+to_string(j);
+            cost_io.add_val(key, val);
+        }
+    }
+    for(auto i=N_input+1;i<=N_input+N_pool;i++){
+        file>>flag;
+        for(auto j=1;j<=N_pool;j++){
+            file>>val;
+        }
+                for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+               file>>val;
+        auto key=to_string(i)+","+to_string(j);
+        cost_po.add_val(key, val);
+    }
+    }
+    file.close();
     
 }
 
