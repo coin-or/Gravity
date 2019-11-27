@@ -27,7 +27,7 @@ table c(i,j)
 # The adjacency matrix (the arcs set A)
 table a(i,j)
       6   7   8   9  10  11
-  1   1   0   0   0   0   0
+  1   1   0   1   0   0   0
   2   1   0   0   0   0   0
   3   0   1   0   0   0   0
   4   0   1   0   0   0   0
