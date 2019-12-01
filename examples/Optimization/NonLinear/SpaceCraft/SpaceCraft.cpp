@@ -40,7 +40,7 @@ int main (int argc, char * argv[])
     }
     /* Read ne0 file */
     rapidcsv::Document  in_ne0(fname_ne0, rapidcsv::LabelParams(-1, -1));
-    assert(in_ne0.getColCount()==1);
+    assert(in_ne0.GetColCount()==1);
     if(n!=in_ne0.GetRowCount()){
         throw invalid_argument("ne0 and phi_obs dimension mismatch, check input files");
     }
