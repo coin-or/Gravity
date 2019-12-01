@@ -248,7 +248,7 @@ namespace gravity {
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
                     //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
-                    //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
+//                    iapp->Options()->SetStringValue("derivative_test", "only-second-order");
                     //                iapp->Options()->SetNumericValue("ma57_pre_alloc", 10);
                     //            iapp->Options()->SetIntegerValue("ma57_small_pivot_flag", 1);
                     //            iapp->Options()->SetNumericValue("ma27_liw_init_factor", 20);
@@ -259,7 +259,7 @@ namespace gravity {
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
-                    //                                                iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     
                     
                     
