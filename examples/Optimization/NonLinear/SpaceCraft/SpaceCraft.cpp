@@ -34,13 +34,11 @@ int main (int argc, char * argv[])
     /* Read Phi observation file */
     rapidcsv::Document  in_phi(fname_phi, rapidcsv::LabelParams(-1, -1));
     int n = in_phi.GetRowCount();
-    assert(in_phi.GetColumnCount()==1);
     for (int i = 0; i< n; i++) { // Input iterator
         Phi_obs.add_val(in_phi.GetCell<double>(0, i));
     }
     /* Read ne0 file */
     rapidcsv::Document  in_ne0(fname_ne0, rapidcsv::LabelParams(-1, -1));
-    assert(in_ne0.GetColumnCount()==1);
     if(n!=in_ne0.GetRowCount()){
         throw invalid_argument("ne0 and phi_obs dimension mismatch, check input files");
     }
