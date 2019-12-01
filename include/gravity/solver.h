@@ -218,7 +218,7 @@ namespace gravity {
                     //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
-                    
+                    iapp->Options()->SetStringValue("honor_original_bounds", "no");
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
@@ -228,7 +228,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("bound_frac", 1e-12);
                     //            iapp->Options()->SetNumericValue("slack_bound_frac", 1e-12);
                     //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
-                    //            iapp->Options()->SetNumericValue("constr_viol_tol", 1e-8);
+                    iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
@@ -248,7 +248,7 @@ namespace gravity {
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
                     //                        iapp->Options()->SetStringValue("hessian_constant", "yes");
-//                    iapp->Options()->SetStringValue("derivative_test", "only-second-order");
+                    //                        iapp->Options()->SetStringValue("derivative_test", "only-second-order");
                     //                iapp->Options()->SetNumericValue("ma57_pre_alloc", 10);
                     //            iapp->Options()->SetIntegerValue("ma57_small_pivot_flag", 1);
                     //            iapp->Options()->SetNumericValue("ma27_liw_init_factor", 20);
@@ -259,7 +259,7 @@ namespace gravity {
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
-                    iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     
                     
                     
