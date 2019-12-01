@@ -3660,6 +3660,16 @@ namespace gravity {
             }
         }
         
+        /** Initialize all variables using midpoint in bounds
+        */
+        void initialize_midpoint(){
+            for (auto &vp: _vars) {
+                vp.second->initialize_midpoint();
+            }
+        };
+        
+        /** Initialize all variables using random value in bounds drawn from a uniform distribution
+        */
         void initialize_uniform(){
             for (auto &vp: _vars) {
                 vp.second->initialize_uniform();

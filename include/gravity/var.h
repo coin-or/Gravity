@@ -812,12 +812,16 @@ namespace gravity {
             }
         };
         
-        void initialize_av(){
+        /** Initialize variable using midpoint in bounds
+        */
+        void initialize_midpoint(){
             for (int i = 0; i<param<type>::_val->size(); i++) {
                 param<type>::_val->at(i) = (get_lb(i) + get_ub(i))/2.;
             }
         };
         
+        /** Initialize variable using random value in bounds drawn from a uniform distribution
+        */
         void initialize_uniform(type lb, type ub){initialize_uniform_(lb,ub);};
         
         template<typename T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> void initialize_uniform_(type lb, type ub) {
