@@ -30,6 +30,7 @@ before_install:
 script:
 - make
 - ../bin/Debug/gravity_test
+- ../bin/Debug/space_craft
 - ../bin/Debug/acopf
 - ../bin/Debug/dcopf
 - ../bin/Debug/socopf
