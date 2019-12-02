@@ -255,7 +255,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("ma27_la_init_factor", 20);
                     //            iapp->Options()->SetNumericValue("ma27_meminc_factor", 3);
                     //            iapp->Options()->SetStringValue("ma57_automatic_scaling", "yes");
-                    //                            iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
