@@ -1990,9 +1990,7 @@ namespace gravity {
             if(!has_var(v)){
                 return res;
             }
-            if(v._is_vector){
-                res._is_vector=true;
-            }
+            
             auto name = v.get_name(false,false);
             for (auto &lt: *_qterms) {
                 if (lt.second._p->first->get_name(false,false) == name) {
@@ -2190,7 +2188,14 @@ namespace gravity {
                     break;
                 }
             }
-            
+            if(v._is_vector){
+                res._is_vector=true;
+                res._dim[0] = v._dim[0];
+                res._dim[1] = v._dim[1];
+            }
+            if(v.is_matrix_indexed()){
+                res._indices = v._indices;
+            }
             res.update_double_index();
             return res;
         }
@@ -3858,7 +3863,7 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._p->second->is_matrix_indexed()){
+                    if(pair.second._coef->_is_transposed || pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -9439,15 +9444,50 @@ namespace gravity {
     }
     
     template<typename type>
-    func<type> sum(const func<type>& p){
+    func<type> norm2(const func<type>& f){
+        return sum(pow(f,2));
+    }
+
+    template<typename type>
+    func<type> sum(const func<type>& f){
         func<type> res;
-        if (p.get_dim()==0) {
+        if (f.get_dim()==0) {
             return res;
         }
-        if(p.is_matrix_indexed()){
-            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        if(f.is_matrix_indexed()){
+            return (unit<type>().tr()*f.vec()).in(range(0,f._indices->size()-1));
         }
-        return unit<type>().tr()*p.vec();
+        if(f.is_nonlinear()){
+            return unit<type>().tr()*f.vec();
+        }
+        res = f;
+        for (auto &pair: *res._lterms) {
+            pair.second._coef->transpose();
+            pair.second._p->vectorize();
+        }
+        for (auto &pair: *res._qterms) {
+            pair.second._coef->transpose();
+            pair.second._p->first->vectorize();
+            pair.second._p->second->vectorize();
+        }
+        for (auto &pair: *res._pterms) {
+            pair.second._coef->transpose();            
+        }
+        if (res._cst->is_function()) {
+            auto f_cst = *static_pointer_cast<func<type>>(res._cst);
+            res._cst = make_shared<func<type>>(sum(f_cst));
+        }
+        else if(res._cst->is_param()) {
+            auto p_cst = *static_pointer_cast<param<type>>(res._cst);
+            res._cst = make_shared<func<type>>(sum(p_cst));
+        }
+        else if(res._cst->is_number()) {
+            auto p_cst = *static_pointer_cast<constant<type>>(res._cst);
+            res._cst = make_shared<func<type>>(func<type>(f.get_nb_inst()*p_cst));
+        }
+        res._dim[0] = 1;
+        res._dim[1] = 1;
+        return res;
     }
     
     template<typename type>

@@ -844,6 +844,24 @@ namespace gravity {
             }
         }
         
+        void vectorize() {
+            if(!this->_is_vector){
+                this->_name = "["+this->_name+"]";
+            }
+            this->_is_vector = true;
+        }
+        
+        void transpose() {
+            if(!this->_is_vector){
+                this->_name = "["+this->_name+"]";
+            }
+            this->_is_transposed = !this->_is_transposed;
+            this->_is_vector = true;
+            auto temp = this->_dim[0];
+            this->_dim[0] = this->_dim[1];
+            this->_dim[1] = temp;
+        }
+        
         var tr() const {
             auto v = var(*this);
             if(!this->_is_vector){

@@ -13,6 +13,7 @@
 using namespace std;
 using namespace gravity;
 
+
 int main (int argc, char * argv[])
 {
     int output = 0;
@@ -62,7 +63,7 @@ int main (int argc, char * argv[])
     double me = 9.1e-31, e = 1.6e-19, rsc = 1., A = 0.3;
     
     /* Declaring Variables */
-    auto Te = var<>("Te", 1/std::sqrt(10), 1/std::sqrt(0.1)); auto Tph = var<>("Tph",1/5,1/0.5); auto Jph = var<>("Jph",6.4e-6,1.6e-4);
+    auto Te = var<>("Te", 1./std::sqrt(10), 1./std::sqrt(0.1)); auto Tph = var<>("Tph",1./5.,1./5.); auto Jph = var<>("Jph",6.4e-6,1.6e-4);
     auto Phi = var<>("ϕ",10,20);
     double scale = 1e4;
     
@@ -86,12 +87,7 @@ int main (int argc, char * argv[])
 
     
 /* Declaring Objective */
-    func<> objective;
-    for (int i = 0; i<n; i++) {
-        objective += pow(Phi_obs(i) - Phi(i),2);
-    }
-    M.min(objective);
-//    M.min(norm2(Phi_obs-Phi));
+    M.min(norm2(Phi_obs-Phi));
     
     /* Uncomment next line to print expanded model */
     M.print();
