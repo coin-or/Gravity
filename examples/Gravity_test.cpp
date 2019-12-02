@@ -1368,7 +1368,8 @@ TEST_CASE("testing normal distributions") {
         var<> s("slack");
         M.add(s.in(R(n)));
         
-        M.min(sum(Xp) + 1e3*product(1,pow(s,2)));
+//        M.min(sum(Xp) + 1e3*product(1,pow(s,2)));
+        M.min(sum(Xp) + 1e3*norm2(s));
         
         Constraint<> Abs_p("x_abs_p");
         Abs_p = X - Xp;
@@ -1379,8 +1380,9 @@ TEST_CASE("testing normal distributions") {
         M.add(Abs_n >= 0);
         
         Constraint<> Norm2("norm2");
-        Norm2 = product(1,pow(X,2));
-        M.add(Norm2==1);
+//        Norm2 = product(1,pow(X,2));
+        Norm2 = norm2(X);
+//        M.add(Norm2==1);
         
         Constraint<> Lin("lin");
         Lin = product(A,X);

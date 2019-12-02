@@ -2190,8 +2190,10 @@ namespace gravity {
             }
             if(v._is_vector){
                 res._is_vector=true;
-                res._dim[0] = v._dim[0];
-                res._dim[1] = v._dim[1];
+                if(res.func_is_number()){
+                    res._dim[0] = v._dim[0];
+                    res._dim[1] = v._dim[1];
+                }
             }
             if(v.is_matrix_indexed()){
                 res._indices = v._indices;
@@ -9446,6 +9448,16 @@ namespace gravity {
     template<typename type>
     func<type> norm2(const func<type>& f){
         return sum(pow(f,2));
+    }
+
+    template<typename type>
+    func<type> norm2(const var<type>& v){
+        return sum(pow(v,2));
+    }
+
+    template<typename type>
+    func<type> norm2(const param<type>& p){
+        return sum(pow(p,2));
     }
 
     template<typename type>
