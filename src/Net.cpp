@@ -607,33 +607,37 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
     map<string,vector<Node*>> unique_bags;
     vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
-        if(bag_copy.second.size()==3){
-            if(unique_bags.insert(bag_copy).second){
-                res.push_back(bag_copy);
-            }
-        }
-        else if(bag_copy.second.size()>3){
+        if(bag_copy.second.size()>=3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
             for (auto i = 0; i<bag_copy.second.size()-2; i++) {
                 for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
                     for (auto k = j+1; k<bag_copy.second.size(); k++) {
                         pair<string,vector<Node*>> new_bag;
+                        map<int, Node*> ordered_names;
+                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
                         string key;
-                        new_bag.second.push_back(bag_copy.second[i]);
-                        key += bag_copy.second[i]->_name + ",";
-                        new_bag.second.push_back(bag_copy.second[j]);
-                        key += bag_copy.second[j]->_name + ",";
-                        new_bag.second.push_back(bag_copy.second[k]);
-                        key += bag_copy.second[k]->_name;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
                         new_bag.first = key;
                         DebugOff("new bag = {");
-                        //                        for (int i=0; i<new_bag.size();     i++) {
-                        //                            cout << new_bag.at(i)->_name << " ";
-                        //                        }
+//                        for (int i=0; i<new_bag.second.size();     i++) {
+//                            cout << new_bag.second.at(i)->_name << " ";
+//                        }
                         DebugOff("}" << endl);
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
+                            DebugOff("Bag added!" << endl);
+                        }
+                        else{
+                            DebugOff("Bag discarded!" << endl);
                         }
                     }
                 }
