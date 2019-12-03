@@ -321,7 +321,7 @@ namespace gravity {
     template<>
     void Model<>::add_outer_app_active(const Model<>& nonlin, int nb_perturb)
     {
-        const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
+        const double active_tol=1e-6,active_tol_sol=1e-10, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
@@ -379,7 +379,7 @@ namespace gravity {
                                                 }
                                             }
                    
-                                           if(true){
+                                           if(convex_region){
                     
                     if(con->is_active(i,active_tol_sol)){
                       
@@ -523,6 +523,7 @@ namespace gravity {
 //                                                fk=con->eval(i);
                                                 if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                                 {
+                                                    
                                                     xres=con->get_x(i);
                                                     con->uneval();
                                                     fk=con->eval(i);
@@ -543,8 +544,14 @@ namespace gravity {
                                                     //                                                DebugOn(c0_val<<endl);
                                                     
                                                     
-                                                    con->get_outer_coef(i, c_val, c0_val);
+                                                    //con->get_outer_coef(i, c_val, c0_val);
                                                     //
+                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
+                                                    con_oa=con->get_outer_app_insti(i, false);
+                                                    if(con->_ctype==geq)
+                                                        add(con_oa>=0);
+                                                    else
+                                                        add(con_oa<=0);
                                                 }
                                                 
                                             }
@@ -556,9 +563,9 @@ namespace gravity {
                                         }
 //                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
                                         oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
-                                        if(j==1 && count==0 && i==0 ){
-                                            xtest=con->get_x(i);
-                                        }
+//                                        if(j==1 && count==0 && i==0 ){
+//                                            xtest=con->get_x(i);
+//                                        }
                                         con->set_x(i, xactive);
                                         
                                     }
@@ -576,17 +583,17 @@ namespace gravity {
                             
                         }
                         
-                        Constraint<> OA_iter("OA_iter"+con->_name);
-                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
-                        if(con->_ctype==leq){
-                            add(OA_iter <= rhs_tol);
-//                             OA_iter.print();
-                        }
-                        else{
-                           
-                            add(OA_iter >= -rhs_tol);
-//                            OA_iter.print();
-                        }
+//                        Constraint<> OA_iter("OA_iter"+con->_name);
+//                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
+//                        if(con->_ctype==leq){
+//                            add(OA_iter <= rhs_tol);
+////                             OA_iter.print();
+//                        }
+//                        else{
+//                           
+//                            add(OA_iter >= -rhs_tol);
+////                            OA_iter.print();
+//                        }
                         //OA_iter.print();
                     }
                     

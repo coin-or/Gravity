@@ -1691,8 +1691,8 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOn("Violated inequality: " << c->to_str(inst,3));
-                                //                        c->print(inst);
+                                DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
+                                //                   c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
@@ -1729,7 +1729,7 @@ namespace gravity {
                     DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
             auto nb_ineq = get_nb_ineq();
