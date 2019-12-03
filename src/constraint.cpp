@@ -101,15 +101,15 @@ bool Constraint<type>::binary_line_search(vector<double> x_start, size_t nb_inst
             //
             //                    }
             //
-            if(f_mid>=zero_tol)
+            if(f_mid>zero_tol)
             {
                 x_t=mid;
             }
-            else if(f_mid<=zero_tol*(-1))
+            else if(f_mid<zero_tol*(-1.))
             {
                 x_f=mid;
             }
-            else if(std::abs(f_mid)<=zero_tol)
+            else
             {
                 //DebugOn("Reached answer"<<endl);
                 success=true;
