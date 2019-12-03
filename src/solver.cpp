@@ -497,8 +497,7 @@ namespace gravity {
 //                                        convex_region=false;
 //                                        res_search=false;
                                         c0_val=0;
-                                        c_val.resize(con->_nb_vars);
-                                        std::fill(c_val.begin(), c_val.end(), 0);
+                                        c_val.resize(con->_nb_vars,0);
                                         v->set_double_val(posv, std::max(xactive[count]*(1 - j*perturb_dist), lb_v)); /** Perturbed point with negative epsilon */
                                         con->uneval();
                                         fk=con->eval(i);
@@ -544,14 +543,14 @@ namespace gravity {
                                                     //                                                DebugOn(c0_val<<endl);
                                                     
                                                     
-                                                    //con->get_outer_coef(i, c_val, c0_val);
+                                                    con->get_outer_coef(i, c_val, c0_val);
                                                     //
-                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
-                                                    con_oa=con->get_outer_app_insti(i, false);
-                                                    if(con->_ctype==geq)
-                                                        add(con_oa>=0);
-                                                    else
-                                                        add(con_oa<=0);
+//                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
+//                                                    con_oa=con->get_outer_app_insti(i, false);
+//                                                    if(con->_ctype==geq)
+//                                                        add(con_oa>=0);
+//                                                    else
+//                                                        add(con_oa<=0);
                                                 }
                                                 
                                             }
@@ -583,17 +582,17 @@ namespace gravity {
                             
                         }
                         
-//                        Constraint<> OA_iter("OA_iter"+con->_name);
-//                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
-//                        if(con->_ctype==leq){
-//                            add(OA_iter <= rhs_tol);
-////                             OA_iter.print();
-//                        }
-//                        else{
-//                           
-//                            add(OA_iter >= -rhs_tol);
-////                            OA_iter.print();
-//                        }
+                        Constraint<> OA_iter("OA_iter"+con->_name);
+                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
+                        if(con->_ctype==leq){
+                            add(OA_iter <= rhs_tol);
+//                             OA_iter.print();
+                        }
+                        else{
+                           
+                            add(OA_iter >= -rhs_tol);
+//                            OA_iter.print();
+                        }
                         //OA_iter.print();
                     }
                     

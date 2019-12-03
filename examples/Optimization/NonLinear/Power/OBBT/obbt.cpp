@@ -250,6 +250,7 @@ int main (int argc, char * argv[]) {
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
         SDPLB.run(output = 5, 1e-10, "ma27");
+        DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         SDP->print_constraints_stats(1e-10);
         SDP->get_solution(x_sol);
         SDP->print();
@@ -260,7 +261,7 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(1, 1);
+         SDPO=SDP->buildOA(10, 10);
         SDPO->set_solution(x_sol);
         SDPO->print();
                 DebugOn("stats OA-LB"<<endl);
