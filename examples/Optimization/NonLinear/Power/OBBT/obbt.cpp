@@ -21,7 +21,7 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     auto err_init = MPI_Init(nullptr,nullptr);
-    int worker_id, nb_workers;
+    int worker_id, nb_workers;  
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
@@ -249,21 +249,23 @@ int main (int argc, char * argv[]) {
        // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, 1e-12, "ma27");
-        SDP->print_constraints_stats(1e-8);
+        SDPLB.run(output = 5, 1e-10, "ma27");
+        SDP->print_constraints_stats(1e-10);
         SDP->get_solution(x_sol);
         SDP->print();
+        DebugOn("solution of LB"<<endl);
         SDP->print_solution(10);
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(10, 10);
+         SDPO=SDP->buildOA(1, 1);
         SDPO->set_solution(x_sol);
         SDPO->print();
-        SDPO->print_constraints_stats(1e-8);
-       // SDPO->print();
+                DebugOn("stats OA-LB"<<endl);
+        SDPO->print_constraints_stats(1e-10);
+      //  SDPO->print();
           solver<> SDPLin(SDPO, ipopt);
         SDPLin.run(output = 5, 1e-10);
         DebugOn("N vars "<<SDPO->_nb_vars<<endl);

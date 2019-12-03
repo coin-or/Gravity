@@ -1279,7 +1279,7 @@ namespace gravity {
         
         
         
-        func<type> get_outer_app_insti(size_t nb_inst, bool scale){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        func<type> get_outer_app_insti(size_t nb_inst, bool scale=false){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             const double active_tol=1e-8;
             double f_xstar, xv, dfv;
@@ -1462,7 +1462,7 @@ namespace gravity {
                     c0-=dfv*xv;
                 }
             }
-            
+            c0+=f_xstar;
             //if(f_xstar>=active_tol)
             //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
             //            {
@@ -1681,7 +1681,7 @@ namespace gravity {
             vector<double> xk, xsolution;
             double xvk, xvk1, fk, dfdvk, ub,lb;
             const int max_iter=10000;
-            const double active_tol=1e-8,zero_tol=1e-8;
+            const double active_tol=1e-12,zero_tol=1e-12;
             size_t posvk;
             
             int counter=0,iter=0;
