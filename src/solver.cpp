@@ -468,6 +468,7 @@ namespace gravity {
                                     xactive=res.second;
                                 }
                                 else{
+                                con->set_x(i, xcurrent);
                                     continue;
                                 }
                             }

@@ -249,7 +249,7 @@ int main (int argc, char * argv[]) {
        // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, 1e-10, "ma27");
+        SDPLB.run(output = 5, 1e-7, "ma27");
         DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         SDP->print_constraints_stats(1e-10);
         SDP->get_solution(x_sol);
