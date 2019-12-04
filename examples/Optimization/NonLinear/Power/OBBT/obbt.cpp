@@ -249,7 +249,7 @@ int main (int argc, char * argv[]) {
        // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, 1e-7, "ma27");
+        SDPLB.run(output = 5, 1e-8, "ma27");
         DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         SDP->print_constraints_stats(1e-10);
         SDP->get_solution(x_sol);
@@ -280,7 +280,7 @@ int main (int argc, char * argv[]) {
         
        
         
-     //   auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, *OPF, *SDP, nonlin);
+        auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
         
 //        auto SDPO_IIS1=SDPO->build_model_IIS();
 //        solver<> IIS_test1(SDPO_IIS1,cplex);
@@ -301,16 +301,16 @@ int main (int argc, char * argv[]) {
             lower_bound=SDPO->get_obj_val()*upper_bound;
             gap=100*(upper_bound - lower_bound)/upper_bound;
             
-//            terminate=std::get<0>(res);
-//            iter=std::get<1>(res);
-//            solver_time=std::get<2>(res);
-//            lower_bound_init=std::get<3>(res);
-//            avg=std::get<4>(res);
-//            xb_true=std::get<5>(res);
-//
+            terminate=std::get<0>(res);
+            iter=std::get<1>(res);
+            solver_time=std::get<2>(res);
+            lower_bound_init=std::get<3>(res);
+            avg=std::get<4>(res);
+            xb_true=std::get<5>(res);
+
             
-         //   gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-         //   DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+            gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
+            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
         }
         
         

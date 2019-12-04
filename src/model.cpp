@@ -5694,7 +5694,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
-        const double tol = 1e-5;
+        const double tol = 1e-10;
           int output = 0;
         
         
@@ -5824,10 +5824,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",800,800, false,true);
+                                run_MPI(batch_models,ipopt,tol,nb_threads,"ma27",800,800, false,true);
 
 #else
-                              run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
+                              run_parallel(batch_models,ipopt,tol,nb_threads, "ma27", 2000);
                               //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
