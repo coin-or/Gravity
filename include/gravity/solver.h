@@ -229,11 +229,11 @@ namespace gravity {
 //                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
 //                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
                     //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
-                                iapp->Options()->SetNumericValue("constr_viol_tol", tol);
+                                iapp->Options()->SetNumericValue("constr_viol_tol", 1e-12);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
 //                                iapp->Options()->SetNumericValue("compl_inf_tol", tol);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
-                                iapp->Options()->SetNumericValue("bound_relax_factor", tol-1e-1*tol);
+                                iapp->Options()->SetNumericValue("bound_relax_factor", 1e-11);
                     //                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
