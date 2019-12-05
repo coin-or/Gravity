@@ -314,9 +314,10 @@ namespace gravity {
                
                // OA_uniform.print();
             
-            
+            auto x_ids = indices(D,*x->_indices);
+            auto y_ids = indices(D,*y->_indices);
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
-            OA_uniform=cy*(y->from_ith(1,UniDI))+cx*(x->from_ith(1,UniDI))+c0;
+            OA_uniform=cy*(y->from_ith(1,y_ids))+cx*(x->from_ith(1,x_ids))+c0;
             if(con._ctype==leq){
                 add(OA_uniform.in(UniDI)<=0);
             }
