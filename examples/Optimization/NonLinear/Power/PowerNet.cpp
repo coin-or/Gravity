@@ -2258,8 +2258,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 //    SDPOPF->add(obj_UB.in(range(0,0))<=0);
         
         
-        auto obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
-        SDPOPF->min(obj_UB);
+        auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
+        SDPOPF->min(obj);
+        
+        Constraint<> obj_UB("obj_UB");
+        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
+        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
     }
     else
     {
