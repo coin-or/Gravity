@@ -312,7 +312,7 @@ namespace gravity {
                 }
                 }
                
-               // OA_uniform.print();
+             
             
             auto x_ids = indices(D,*x->_indices);
             auto y_ids = indices(D,*y->_indices);
@@ -324,7 +324,7 @@ namespace gravity {
             else{
                 add(OA_uniform.in(UniDI)>=0);
             }
-            OA_uniform.print();
+          //  OA_uniform.print();
         }
         /*TODO Else (discretization for general constraint)*/
         //        else
