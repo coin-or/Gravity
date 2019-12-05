@@ -5702,7 +5702,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
        
         shared_ptr<map<string,size_t>> p_map;
-        
+        this->reindex();
         solver<> SDPLB2(*this,solv_type);
 
         SDPLB2.run(output = 0, tol, "ma27");
@@ -6052,6 +6052,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 //                    this->print();
 
                 this->reset_constrs();
+                this->reindex();
                 solver<> SDPLB1(*this,ipopt);
                // SDPLB1.run(output = 5, tol, "ma57");
                 SDPLB1.run(output = 5, tol);

@@ -198,23 +198,25 @@ int main (int argc, char * argv[]) {
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
-    nonlin=false;
+    nonlin=true;
     if(nonlin){
         //SDPO=SDP->copy();
         
         nonlin_obj=false;
         
-        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+      //  auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
         
-//        auto SDPA= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
-//
-//        SDP=SDPA->copy();
+        auto SDPA= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+
+        auto SDP=SDPA->copy();
         
-       // SDP->print();
+        SDP->print();
         
         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
         if(SDP->_status==0)
         {
+            SDP->print();
+            
             lower_bound=SDP->get_obj_val()*upper_bound;
             gap=100*(upper_bound - lower_bound)/upper_bound;
             
@@ -299,6 +301,7 @@ int main (int argc, char * argv[]) {
         if(SDPO->_status==0)
         {
             auto SO=SDPO->copy();
+            SO->reindex();
             solver<> SDPLin2(SO, ipopt);
             SDPLin2.run(output = 5, 1e-8);
             SO->print_solution();
