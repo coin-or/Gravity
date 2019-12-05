@@ -247,6 +247,7 @@ int main (int argc, char * argv[]) {
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, false);
         vector<double> x_sol(SDP->get_nb_vars());
+        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
         SDP->print();
         SDPLB.run(output = 0, 1e-8, "ma27");
@@ -259,7 +260,7 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(10, 30);
+         SDPO=SDP->buildOA(10, 10);
        // SDPO->set_solution(x_sol);
      //   SDPO->print();
        //         DebugOn("stats OA-LB"<<endl);
@@ -310,6 +311,10 @@ int main (int argc, char * argv[]) {
             
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
            // DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
+             SDPO->set_solution(x_sol);
+               SDPO->print();
+                     DebugOn("stats OA-LB"<<endl);
+              SDPO->print_constraints_stats(1e-10);
         }
         
         
