@@ -316,7 +316,14 @@ namespace gravity {
             
             
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
-            OA_uniform=cy*(*y)+cx*(*x)+c0;
+            OA_uniform=cy*(y->from_ith(1,UniDI))+cx*(x->from_ith(1,UniDI))+c0;
+            if(con._ctype==leq){
+                add(OA_uniform.in(UniDI)<=0);
+            }
+            else{
+                add(OA_uniform.in(UniDI)>=0);
+            }
+            OA_uniform.print();
         }
         /*TODO Else (discretization for general constraint)*/
         //        else

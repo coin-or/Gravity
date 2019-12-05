@@ -33,7 +33,7 @@ int main (int argc, char * argv[]) {
     string sdp_cuts_s = "yes";
     
     string current_s = "yes";
-    string time_s = "1000";
+    string time_s = "100000";
     string threads_s="12";
     
     string lazy_s = "no";
@@ -248,7 +248,9 @@ int main (int argc, char * argv[]) {
         auto SDP= build_SDPOPF(grid, current, upper_bound, false);
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
+        SDP->print();
         SDPLB.run(output = 0, 1e-8, "ma27");
+        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
         
@@ -257,7 +259,7 @@ int main (int argc, char * argv[]) {
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(10, 10);
+         SDPO=SDP->buildOA(10, 30);
        // SDPO->set_solution(x_sol);
      //   SDPO->print();
        //         DebugOn("stats OA-LB"<<endl);
@@ -294,6 +296,7 @@ int main (int argc, char * argv[]) {
         
         if(SDPO->_status==0)
         {
+            SDPO->print();
             lower_bound=SDPO->get_obj_val()*upper_bound;
             gap=100*(upper_bound - lower_bound)/upper_bound;
             
@@ -306,7 +309,7 @@ int main (int argc, char * argv[]) {
 
             
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-            DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
+           // DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
         }
         
         
@@ -320,6 +323,9 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     if(worker_id==0){
 
+        
+       
+        
     	ofstream fout(result_name.c_str());
         fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
@@ -327,6 +333,9 @@ int main (int argc, char * argv[]) {
      }
     MPI_Finalize();
 #else
+    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl);
+
+    
 	ofstream fout(result_name.c_str());
         fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
         fout.close();

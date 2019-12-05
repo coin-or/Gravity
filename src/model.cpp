@@ -6141,9 +6141,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             this->reset_constrs();
             
-            auto SDPinf=this->copy();
-            
-            
+                      
             solver<> SDPLB1(*this,solv_type);
             
             SDPLB1.run(output = 0, tol, "ma27");
