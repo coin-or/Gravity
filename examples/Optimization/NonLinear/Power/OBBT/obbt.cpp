@@ -198,7 +198,7 @@ int main (int argc, char * argv[]) {
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
-    nonlin=true;
+    nonlin=false;
     if(nonlin){
         //SDPO=SDP->copy();
         
