@@ -259,31 +259,66 @@ namespace gravity {
         func<> res;
         double lb,ub;
         size_t posv;
-        if(con.is_quadratic() && con._lterms->size()==1 && con._qterms->size()==1 && con._qterms->begin()->second._p->first==con._qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- x^2 or x^2-ay
+        bool sign_x, sign_y;
+        double coef_x, coef_y, xval;
+        if(con.is_quadratic() && con._lterms->size()==1 && con._qterms->size()==1 && con._qterms->begin()->second._p->first==con._qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
         {
             
-            auto x=con._qterms->begin()->second._p->first;
-            
-            for(auto d=0;d<nb_discr;d++)
-            {
-                for(auto i=0;i<con.get_nb_inst();i++)
+            auto x=static_pointer_cast<var<double>>(con._qterms->begin()->second._p->first);
+            auto y=static_pointer_cast<var<double>>(con._lterms->begin()->second._p);
+            indices D("D");
+            for(auto d=0;d<nb_discr;d++){
+                D.add("D"+to_string(d));
+            }
+                indices I("I");
+            for(auto i=0;i<con.get_nb_inst();i++){
+                I.add("I"+to_string(i));
+        }
+      
+            indices UniDI(D, I);
+           param<double> cx("Paramcx"+con._name);
+            cx.in(UniDI);
+            param<double> cy("Paramcy"+con._name);
+            cy.in(UniDI);
+            param<double> c0("Paramc0"+con._name);
+            c0.in(UniDI);
+            sign_x=con._qterms->begin()->second._sign;
+            sign_y=con._lterms->begin()->second._sign;
+           for(auto i=0;i<con.get_nb_inst();i++)
                 {
                     posv=x->get_id_inst(i);
                     lb=x->get_double_lb(posv);
                     ub=x->get_double_ub(posv);
-                    x->set_double_val(posv, lb+d*(ub-lb)/nb_discr);
+                    coef_x=con.eval_coef(con._qterms->begin()->second._coef, i);
+                    coef_y=con.eval_coef(con._lterms->begin()->second._coef, i);
+                    for(auto d=0;d<nb_discr;d++)
+                    {
+                    xval= lb+d*(ub-lb)/nb_discr;
+                        if(sign_y){
+                            cy.set_val("D"+to_string(d)+",I"+to_string(i), coef_y);
+                        }
+                        else{
+                            cy.set_val("D"+to_string(d)+",I"+to_string(i), coef_y*(-1));
+                        }
+                        if(sign_x){
+                            cx.set_val("D"+to_string(d)+",I"+to_string(i), 2*coef_x*xval);
+                            c0.set_val("D"+to_string(d)+",I"+to_string(i), coef_x*(-1)*xval*xval);
+                        }
+                        else{
+                            cx.set_val("D"+to_string(d)+",I"+to_string(i), (-2)*coef_x*xval);
+                            c0.set_val("D"+to_string(d)+",I"+to_string(i), coef_x*xval*xval);
+                        }
+                            
                 }
-                Constraint<> OA_uniform("OA_cuts_uniform "+con._name+to_string(d));
-                OA_uniform=con.get_outer_app_squared();
-                if(con._ctype==leq) {
-                    add(OA_uniform<=0);
                 }
-                else {
-                    add(OA_uniform>=0);
-                }
+               
                // OA_uniform.print();
-            }
-        }/*TODO Else (discretization for general constraint)*/
+            
+            
+            Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
+            OA_uniform=cy*(*y)+cx*(*x)+c0;
+        }
+        /*TODO Else (discretization for general constraint)*/
         //        else
         //        {
         //            int N_coordinates=con._nb_vars;
@@ -321,7 +356,7 @@ namespace gravity {
     template<>
     void Model<>::add_outer_app_active(const Model<>& nonlin, int nb_perturb)
     {
-        const double active_tol=1e-6,active_tol_sol=1e-10, perturb_dist=1e-1;
+        const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
@@ -342,7 +377,7 @@ namespace gravity {
         bool scale=false;
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
-        modelI.run(output=5, tol);
+        modelI.run(output=0, tol);
         //    Ointerior.print();
         
         if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
@@ -389,28 +424,31 @@ namespace gravity {
                 }
                 OA_sol=con->get_outer_app(activeset);
                 if(con->_ctype==leq) {
-                    add(OA_sol.in(activeset)<=rhs_tol);
+                    add(OA_sol.in(activeset)<=0);
                 }
                 else {
-                    add(OA_sol.in(activeset)>=-rhs_tol);
+                    add(OA_sol.in(activeset)>=0);
                 }
             }
                 else
                     if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                     {
-                        
+                        Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                        indices allset("active_"+con->_name);
+                        auto keys=con->_indices->_keys;
                         for(auto i=0;i<con->get_nb_inst();i++){
-                            Constraint<> OA_sol("OA_cuts_solution_"+con->_name+to_string(i));
-                              OA_sol=con->get_outer_app_insti(i, false);
-                            if(con->_ctype==leq) {
-                                add(OA_sol<=0);
-                            }
-                            else {
-                                add(OA_sol>=0);
-                            }
+                            
+                                allset.add((*keys)[i]);
+                            
+                                        }
+                             OA_sol=con->get_outer_app(allset);
+                        if(con->_ctype==leq) {
+                            add(OA_sol<=0);
                         }
-                    }
-            
+                        else {
+                            add(OA_sol>=0);
+                        }
+        }
         }
         }
         indices Pert("Pert");
@@ -586,12 +624,12 @@ namespace gravity {
                         Constraint<> OA_iter("OA_iter"+con->_name);
                         OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
                         if(con->_ctype==leq){
-                            add(OA_iter <= rhs_tol);
+                            add(OA_iter <= 0);
 //                             OA_iter.print();
                         }
                         else{
                            
-                            add(OA_iter >= -rhs_tol);
+                            add(OA_iter >= 0);
 //                            OA_iter.print();
                         }
                         //OA_iter.print();

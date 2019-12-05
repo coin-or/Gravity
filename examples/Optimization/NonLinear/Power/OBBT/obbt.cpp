@@ -171,7 +171,7 @@ int main (int argc, char * argv[]) {
     
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 5, 1e-6);
+    OPFUB.run(output = 0, 1e-6);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     
@@ -246,37 +246,33 @@ int main (int argc, char * argv[]) {
         nonlin_obj=false;
         
         auto SDP= build_SDPOPF(grid, current, upper_bound, false);
-       // SDP->print();
         vector<double> x_sol(SDP->get_nb_vars());
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.run(output = 5, 1e-8, "ma27");
-        DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
-        SDP->print_constraints_stats(1e-10);
-        SDP->get_solution(x_sol);
-        SDP->print();
+        SDPLB.run(output = 0, 1e-8, "ma27");
+      //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
-        SDP->print_solution(10);
+        
         
         lower_bound=SDP->get_obj_val()*upper_bound;
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
          SDPO=SDP->buildOA(10, 10);
-        SDPO->set_solution(x_sol);
-        SDPO->print();
-                DebugOn("stats OA-LB"<<endl);
-        SDPO->print_constraints_stats(1e-10);
+       // SDPO->set_solution(x_sol);
+     //   SDPO->print();
+       //         DebugOn("stats OA-LB"<<endl);
+      //  SDPO->print_constraints_stats(1e-10);
       //  SDPO->print();
           solver<> SDPLin(SDPO, ipopt);
-        SDPLin.run(output = 5, 1e-10);
-        DebugOn("N vars "<<SDPO->_nb_vars<<endl);
-        DebugOn("N cons "<<SDPO->_nb_cons<<endl);
-        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
+        SDPLin.run(output = 0, 1e-8);
+//        DebugOn("N vars "<<SDPO->_nb_vars<<endl);
+//        DebugOn("N cons "<<SDPO->_nb_cons<<endl);
+//        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
         double gap_lin=100*(upper_bound - SDPO->get_obj_val()*upper_bound)/upper_bound;
         DebugOn("Gap Linear"<<gap_lin);
         
         
-      //  SDPO->print_solution();
+     
         
        
         
@@ -310,7 +306,7 @@ int main (int argc, char * argv[]) {
 
             
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
+            DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
         }
         
         
