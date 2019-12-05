@@ -1157,6 +1157,7 @@ namespace gravity {
         /** Returns a set of OA cuts at the current model variables for a _squared constraint. This if is specific to constraints of the form ay- bx^2 or bx^2-ay
          @param[in] nb_discr:
          @return func of OA cuts ( for all func instance, symbolic)
+         Note:: assumes coef_x is same for all function instances
          **/
         func<> get_outer_app_squared()
         {

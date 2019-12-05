@@ -5694,7 +5694,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
-        const double tol = 1e-10;
+        const double tol = 1e-8;
           int output = 0;
         
         
@@ -5705,7 +5705,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         solver<> SDPLB2(*this,solv_type);
 
-        SDPLB2.run(output = 5, tol, "ma27");
+        SDPLB2.run(output = 0, tol, "ma27");
         double lower_bound_init=-999, lower_bound;
 
 //        this->print();
