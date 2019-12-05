@@ -245,29 +245,30 @@ int main (int argc, char * argv[]) {
         
         nonlin_obj=false;
         
-        auto SDP= build_SDPOPF(grid, current, upper_bound, false);
+        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
         vector<double> x_sol(SDP->get_nb_vars());
         SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
         SDP->print();
-        SDPLB.run(output = 0, 1e-8, "ma27");
+        SDPLB.run(output = 5, 1e-8, "ma27");
         SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
         
         
         lower_bound=SDP->get_obj_val()*upper_bound;
+        
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
         
-         SDPO=SDP->buildOA(10, 10);
+         SDPO=SDP->buildOA(30, 10);
        // SDPO->set_solution(x_sol);
      //   SDPO->print();
        //         DebugOn("stats OA-LB"<<endl);
       //  SDPO->print_constraints_stats(1e-10);
       //  SDPO->print();
           solver<> SDPLin(SDPO, ipopt);
-        SDPLin.run(output = 0, 1e-8);
+        SDPLin.run(output = 5, 1e-8);
 //        DebugOn("N vars "<<SDPO->_nb_vars<<endl);
 //        DebugOn("N cons "<<SDPO->_nb_cons<<endl);
 //        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
@@ -297,6 +298,12 @@ int main (int argc, char * argv[]) {
         
         if(SDPO->_status==0)
         {
+            auto SO=SDPO->copy();
+            solver<> SDPLin2(SO, ipopt);
+            SDPLin2.run(output = 5, 1e-8);
+            SO->print_solution();
+            
+            
             SDPO->print();
             lower_bound=SDPO->get_obj_val()*upper_bound;
             gap=100*(upper_bound - lower_bound)/upper_bound;
@@ -312,7 +319,7 @@ int main (int argc, char * argv[]) {
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
            // DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
              SDPO->set_solution(x_sol);
-               SDPO->print();
+            
                      DebugOn("stats OA-LB"<<endl);
               SDPO->print_constraints_stats(1e-10);
         }
