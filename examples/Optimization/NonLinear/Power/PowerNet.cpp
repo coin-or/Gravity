@@ -2269,7 +2269,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     {
         Constraint<> obj_cost("obj_cost");
         obj_cost=etag-pow(Pg,2);
-        SDPOPF->add(obj_cost.in(gens)==0, convexify);
+        SDPOPF->add(obj_cost.in(gens)>=0);
         
    
         auto obj=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound;

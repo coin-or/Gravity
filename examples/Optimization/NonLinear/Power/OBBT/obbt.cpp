@@ -159,7 +159,7 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
 
-    
+    bool lb_solv;
     double gap=999, gapnl=999;
     double lower_bound=-99999, avg=0;
     double solver_time =0;
@@ -252,12 +252,13 @@ int main (int argc, char * argv[]) {
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
 //        SDP->print();
-        SDPLB.run(output = 0, 1e-8, "ma27");
+        SDPLB.run(output = 0, 1e-6, "ma27");
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
-        
-        
+        lb_solv=false;
+        if(SDP->_status==0){
+            lb_solv=true;
         lower_bound=SDP->get_obj_val()*upper_bound;
         
         gap=100*(upper_bound - lower_bound)/upper_bound;
@@ -323,7 +324,7 @@ int main (int argc, char * argv[]) {
         
     }
     
-
+    }
     
     
 
@@ -335,7 +336,7 @@ int main (int argc, char * argv[]) {
        
         
     	ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<"\t"<<lb_solv<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
      }
