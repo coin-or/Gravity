@@ -297,14 +297,17 @@ namespace gravity {
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
             OA_uniform=(y->from_ith(1,y_ids))-2*(x->from_ith(1,x_ids))*(x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr) +pow((x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr),2);
             if(con._ctype==leq){
+
                   OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr) -pow((x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr),2)-y->from_ith(1,y_ids));
                 add(OA_uniform.in(UniDI)<=0);
             }
             else{
                                   OA_uniform=(y->from_ith(1,y_ids))-2*(x->from_ith(1,x_ids))*(x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr) +pow((x->get_lb()+dc.from_ith(0,UniDI)*(x->get_ub()-x->get_lb())/nb_discr),2);
                 add(OA_uniform.in(UniDI)>=0);
+
             }
-          //  OA_uniform.print();
+           
+            OA_uniform.print();
         }
         /*TODO Else (discretization for general constraint)*/
         //        else

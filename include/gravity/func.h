@@ -1441,15 +1441,14 @@ namespace gravity {
             
             for(auto &it: *_vars){
                 auto v = it.second.first;
-                auto df = *compute_derivative(*v);
-                df.eval_all();
+                auto df = compute_derivative(*v);
                 if(v->_is_vector)
                 {
                     for (auto i=0;i<v->_dim[0];i++)
                     {
                         v->get_double_val(i, xv);
-                        df.uneval();
-                        dfv=df.eval(i);
+                        df->uneval();
+                        dfv=df->eval(i);
                         c.push_back(dfv);
                         c0-=dfv*xv;
                     }
@@ -1457,8 +1456,8 @@ namespace gravity {
                 else {
                     posv=v->get_id_inst(nb_inst);
                     v->get_double_val(posv, xv);
-                    df.uneval();
-                    dfv=df.eval(nb_inst);
+                    df->uneval();
+                    dfv=df->eval(nb_inst);
                     c.push_back(dfv);
                     c0-=dfv*xv;
                 }
@@ -1676,7 +1675,7 @@ namespace gravity {
          @return Pair.first True if line search successfully solved. Pair.secod xsolution
          Note modifies current point to xsolution
          **/
-        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
+        pair<bool, vector<double>> newton_raphson(const vector<double>& x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
             vector<double> xk, xsolution;
@@ -3559,7 +3558,7 @@ namespace gravity {
         }
         
         /* Modifiers */
-        void    set_size(vector<size_t> dims){
+        void    set_size(const vector<size_t>& dims){
             if (dims.size()==1) {
                 set_size(dims[0]);
             }
