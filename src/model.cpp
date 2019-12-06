@@ -5824,10 +5824,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,tol,nb_threads,"ma27",800,800, false,true);
+                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",800,800, false,true);
 
 #else
-                              run_parallel(batch_models,ipopt,tol,nb_threads, "ma27", 2000);
+                              run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
                               //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
@@ -6053,7 +6053,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
                 this->reset_constrs();
                 this->reindex();
-                solver<> SDPLB1(*this,ipopt);
+                solver<> SDPLB1(*this,solv_type);
                // SDPLB1.run(output = 5, tol, "ma57");
                 SDPLB1.run(output = 0, tol);
                 if(this->_status==0)
@@ -6159,7 +6159,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         if(worker_id==0){
 #endif
             this->reset_constrs();
-            solver<> SDPLB1(*this,ipopt);
+            solver<> SDPLB1(*this,solv_type);
             
             
             SDPLB1.run(output = 0, tol);
