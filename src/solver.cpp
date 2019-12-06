@@ -319,10 +319,10 @@ namespace gravity {
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
             OA_uniform=cy*(y->from_ith(1,y_ids))+cx*(x->from_ith(1,x_ids))+c0;
             if(con._ctype==leq){
-                add(OA_uniform.in(UniDI)<=0);
+                add_lazy(OA_uniform.in(UniDI)<=0);
             }
             else{
-                add(OA_uniform.in(UniDI)>=0);
+                add_lazy(OA_uniform.in(UniDI)>=0);
             }
           //  OA_uniform.print();
         }
@@ -632,12 +632,12 @@ namespace gravity {
                         Constraint<> OA_iter("OA_iter"+con->_name);
                         OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
                         if(con->_ctype==leq){
-                            add(OA_iter <= 0);
+                            add_lazy(OA_iter <= 0);
 //                             OA_iter.print();
                         }
                         else{
                            
-                            add(OA_iter >= 0);
+                            add_lazy(OA_iter >= 0);
 //                            OA_iter.print();
                         }
                         //OA_iter.print();

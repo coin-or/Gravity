@@ -5800,7 +5800,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                         //Loop on directions, upper bound and lower bound
                         for(auto &dir: dir_array)
                         {
+                             auto    solver_time1= get_wall_time();
                             auto modelk = this->copy();
+                             auto    solver_time2= get_wall_time();
+                            auto copy_time=solver_time2-solver_time1;
+                            DebugOn("copy time "<<copy_time<<endl);
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             

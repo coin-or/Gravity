@@ -263,8 +263,19 @@ int main (int argc, char * argv[]) {
         
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
-        
+            auto solver_time1= get_wall_time();
          SDPO=SDP->buildOA(10, 10);
+            DebugOn(grid._name<<endl);
+            DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
+             DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
+             DebugOn("Number of symbolic constraints orginal lower bound "<< SDP->_cons_name.size()<<endl );
+                DebugOn("Number of variables linear problem "<< SDPO->_nb_vars<<endl);
+                     DebugOn("Number of constraints linear problem "<< SDPO->_nb_cons<<endl);
+                DebugOn("Number of symbolic constraints linear problem "<< SDPO->_cons_name.size()<<endl );
+            
+                    auto    solver_time2= get_wall_time();
+            auto buildtime=solver_time2-solver_time1;
+            DebugOn("build time "<<buildtime<<endl);
        // SDPO->set_solution(x_sol);
      //   SDPO->print();
        //         DebugOn("stats OA-LB"<<endl);
