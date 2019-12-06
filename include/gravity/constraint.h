@@ -192,7 +192,7 @@ public:
      The function assumes that the current value stored in vars is the outer point.
      Interior and outer point classification depends on constraint type (\geq 0 or \leq 0) as input by ctype
      **/
-    bool binary_line_search(vector<double> x_start, size_t nb_inst);
+    bool binary_line_search(const vector<double>& x_start, size_t nb_inst);
     
     Constraint& operator=(const func<type>& c){
         this->func<type>::operator=(c);
