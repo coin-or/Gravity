@@ -203,6 +203,18 @@ namespace gravity {
             while(violated_constraints && optimal){
                 if (_stype==ipopt) {
 #ifdef USE_IPOPT
+                    auto nb_eq = _model->get_nb_eq();
+                    auto nb_vars = _model->get_nb_vars();
+                    if(nb_vars<nb_eq){
+                        auto nb_aux = nb_eq-nb_vars+1;
+                        auto aux = var<>("aux_var");
+                        try{
+                            _model->add(aux.in(R(nb_aux)));
+                        }
+                        catch(invalid_argument){
+                            throw invalid_argument("aux_var is a reserved variable name, please rename your variable");
+                        }
+                    }
                     double mu_init = std::exp(5)/std::exp(1);
                     SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                     iapp->RethrowNonIpoptException(true);
@@ -231,7 +243,7 @@ namespace gravity {
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-                    //            iapp->Options()->SetNumericValue("bound_relax_factor", 1e-9);
+                                iapp->Options()->SetNumericValue("bound_relax_factor", 1e-12);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
                     //                                iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
