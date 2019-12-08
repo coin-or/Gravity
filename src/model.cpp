@@ -5809,7 +5809,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             modelk->set_name(mname);
                             
                             vark=modelk->template get_var<T>(vname);
-                            vark.initialize_av();
+                            vark.initialize_midpoint();
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));

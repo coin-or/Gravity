@@ -264,17 +264,7 @@ public:
         else if(_type==to_){
             name = "to("+name+")";
         }
-
-      indices(string name){
-            _name = name;
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(2,0);
-        }
-      
-    void set_name(const string& name){
-        _name = name;
+        return name;
     }
     
     indices(string name){
@@ -285,36 +275,16 @@ public:
         _dim->resize(2,0);
     }
     
+    void set_name(const string& name){
+        _name = name;
+    }
+    
+    
     indices(int name){
-      _name = to_string(name);
+        _name = to_string(name);
         _keys_map = make_shared<map<string,size_t>>();
         _keys = make_shared<vector<string>>();
         _dim = make_shared<vector<size_t>>();
-          _dim->resize(2,0);
-      }
-      
-        indices(){
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(2,0);
-        }
-        
-        indices(const ordered_pairs& pairs){
-            auto n = pairs._keys.size();
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _dim = make_shared<vector<size_t>>();
-            _keys->resize(n);
-            size_t index = 0;
-            string key;
-            for (int i = 0; i < n; i++){
-                key = pairs._keys.at(index)->_name;
-                (*_keys_map)[key]= index;
-                (*_keys)[index++] = key;
-            }
-            _dim->resize(1);
-            _dim->at(0) = n;
         _dim->resize(2,0);
     }
     
@@ -340,7 +310,9 @@ public:
         }
         _dim->resize(1);
         _dim->at(0) = n;
+        _dim->resize(2,0);
     }
+    
     
     /** Returns the number of comma-separated fields in each key */
     unsigned get_nb_entries() const{
@@ -385,7 +357,6 @@ public:
                     }
                 }
             }
-            
         }
         else if(is_indexed()){/* If ids has key references, use those */
             for(auto &key_ref: _ids->at(0)){
@@ -504,71 +475,47 @@ public:
             }
             
         }
-       
-        
-        /** Returns a vector of bools indicating if the ith reference is in ids and in this. The function iterates over key references in _ids. */
-        vector<bool> get_common_refs(const indices& ids) const{
-            vector<bool> res;
-           // assert(_ids);
-            set<size_t> unique_ids;
-            if(is_indexed()){/* If ids has key references, use those */
-                for (auto &idx:_ids->at(0)) {
-                    if(ids._keys_map->count(_keys->at(idx))!=0){
-                        res.push_back(true);
-                    }
-                    else {
-                        res.push_back(false);
-                    }
+        else {
+            string first_part, last_part;
+            for(auto key: *_keys){
+                auto pos = nthOccurrence(key, ",", start_position);
+                first_part = key.substr(0,pos);
+                if(pos>0){
+                    key = key.substr(pos+1);
+                }
+                pos = nthOccurrence(key, ",", nb_entries);
+                if(pos>0){
+                    last_part = key.substr(pos+1);
+                }
+                if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+                    key = first_part+","+last_part;
+                }
+                else {
+                    key = first_part+last_part;
+                }
+                auto it = res._keys_map->find(key);
+                if (it == res._keys_map->end()){
+                    res.insert(key);
+                    res._ids->at(0).push_back(res._keys->size()-1);
+                }
+                else{
+                    res._ids->at(0).push_back(it->second);
                 }
             }
-            else {
-                for (auto &key:*_keys) {
-                    if(ids._keys_map->count(key)!=0){
-                        res.push_back(true);
-                    }
-                    else {
-                        res.push_back(false);
-                    }
-                }
-            }
-            return res;
         }
-        
-        /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
-        vector<bool> diff_refs(const indices& ids) const{
-            vector<bool> res;
-            assert(_ids);
-            set<size_t> unique_ids;
-            if(is_indexed()){/* If ids has key references, use those */
-                for (auto &idx:_ids->at(0)) {
-                    if(ids._keys_map->count(_keys->at(idx))==0){
-                        res.push_back(true);
-                    }
-                    else {
-                        res.push_back(false);
-                    }
-                }
-            }
-            else {
-                for (auto &key:*_keys) {
-                    if(ids._keys_map->count(key)==0){
-                        res.push_back(true);
-                    }
-                    else {
-                        res.push_back(false);
-                    }
-                }
-            }
-            return res;
-        }
+        return res;
+    }
+
     
-    /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
-    indices get_unique_keys() const{
+    
+    /** Returns a vector of bools indicating if the ith reference is in ids and in this. The function iterates over key references in _ids. */
+    vector<bool> get_common_refs(const indices& ids) const{
         vector<bool> res;
+        // assert(_ids);
         set<size_t> unique_ids;
-        if(_ids){
+        if(is_indexed()){/* If ids has key references, use those */
             for (auto &idx:_ids->at(0)) {
-                if(unique_ids.insert(idx).second){
+                if(ids._keys_map->count(_keys->at(idx))!=0){
                     res.push_back(true);
                 }
                 else {
@@ -576,8 +523,15 @@ public:
                 }
             }
         }
-        else{
-            res.resize(_keys->size(),false);
+        else {
+            for (auto &key:*_keys) {
+                if(ids._keys_map->count(key)!=0){
+                    res.push_back(true);
+                }
+                else {
+                    res.push_back(false);
+                }
+            }
         }
         return res;
     }
@@ -609,36 +563,51 @@ public:
         }
         return res;
     }
-        
-        /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
-        void filter_refs(const vector<bool>& keep){
-            if(_ids){
-                if(keep.size()!=_ids->at(0).size()){
-                    throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+    
+    /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
+    indices get_unique_keys() const{
+        indices res(_name);
+        set<size_t> unique_ids;
+        if(_ids){
+            for (auto &idx:_ids->at(0)) {
+                if(unique_ids.insert(idx).second){
+                    res.add(_keys->at(idx));
                 }
-                vector<vector<size_t>> new_ids;
-                new_ids.resize(1);
-                for (auto idx = 0; idx<keep.size();idx++) {
-                    if(keep[idx]){
-                        new_ids.at(0).push_back(_ids->at(0).at(idx));
-                    }
-                }
-                *_ids = new_ids;
             }
-            else {
-                if(keep.size()!=_keys->size()){
-                    throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
-                }
-                shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
-                new_ids->resize(1);
-                for (auto idx = 0; idx<keep.size();idx++) {
-                    if(keep[idx]){
-                        new_ids->at(0).push_back(idx);
-                    }
-                }
-                _ids = new_ids;
-            }
+            return res;
         }
+        return *this;
+    }
+    
+    /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
+    void filter_refs(const vector<bool>& keep){
+        if(_ids){
+            if(keep.size()!=_ids->at(0).size()){
+                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+            }
+            vector<vector<size_t>> new_ids;
+            new_ids.resize(1);
+            for (auto idx = 0; idx<keep.size();idx++) {
+                if(keep[idx]){
+                    new_ids.at(0).push_back(_ids->at(0).at(idx));
+                }
+            }
+            *_ids = new_ids;
+        }
+        else {
+            if(keep.size()!=_keys->size()){
+                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+            }
+            shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+            new_ids->resize(1);
+            for (auto idx = 0; idx<keep.size();idx++) {
+                if(keep[idx]){
+                    new_ids->at(0).push_back(idx);
+                }
+            }
+            _ids = new_ids;
+        }
+    }
     
     
     /** Returns a vector of bools indicating if a reference is unique so far. The function iterates over key references in _ids. */
@@ -934,120 +903,120 @@ public:
     }
     
     indices(const list<indices>& vecs) {
-//            if (vecs.size()==2) {
-//                _type = matrix_;
-//            }
-            _keys_map = make_shared<map<string,size_t>>();
-            _keys = make_shared<vector<string>>();
-            _dim = make_shared<vector<size_t>>();
-            _dim->resize(vecs.size());
-            size_t dim = 1;
-            size_t time_pos= 0, nb_ids = 0, idx = 0;
-            vector<size_t> dims;
-            for(auto &vec: vecs){
-                if(vec.empty()){
-                    WarningOff("\n\nWARNING: Defining indices with an empty vector!\n\n");
-                    //                    exit(-1);
-                }
-                if(vec._time_extended){
-                    _time_extended = true;
-                    time_pos = vec._time_pos;
-                }
-                else{
-                    nb_ids++;
-                }
-                dim *= vec.size();
-                dims.push_back(vec.size());
-                _name += vec._name+",";
-                _dim->at(idx++) = vec.size();
+        //            if (vecs.size()==2) {
+        //                _type = matrix_;
+        //            }
+        _keys_map = make_shared<map<string,size_t>>();
+        _keys = make_shared<vector<string>>();
+        _dim = make_shared<vector<size_t>>();
+        _dim->resize(vecs.size());
+        size_t dim = 1;
+        size_t time_pos= 0, nb_ids = 0, idx = 0;
+        vector<size_t> dims;
+        for(auto &vec: vecs){
+            if(vec.empty()){
+                WarningOff("\n\nWARNING: Defining indices with an empty vector!\n\n");
+                //                    exit(-1);
             }
-            auto vec1 = vecs.front();
-            _name = _name.substr(0,_name.size()-1); /* remove last comma */
-            if(_time_extended && !vec1._time_extended){
-                if(time_pos==0 && !vec1.empty()) {//TODO CHECK
-                    _time_pos = std::count(vec1._keys->front().begin(), vec1._keys->front().end(), ',')+1;
-                }
-                else {
-                    _time_pos = time_pos+nb_ids;
-                }
-            }
-            _keys->resize(dim);
-            size_t den = 1;
-            size_t real_idx = 0;
-            bool excluded = false;
-            for(size_t idx = 0; idx < dim ; idx++){
-                string key;
-                den = dim;
-                excluded = false;
-                for(auto it = vecs.begin(); it!= vecs.end(); it++) {
-                    auto vec = &(*it);
-                    den /= vec->size();
-                    real_idx = (idx/den)%vec->size();
-                    if (vec->_excluded_keys.count(real_idx)==1) {
-                        excluded = true;
-                    }
-                    if(vec->is_indexed()){
-                        real_idx = vec->_ids->at(0).at(real_idx);
-                    }
-                    key += vec->_keys->at(real_idx);
-                    if(next(it)!=vecs.end()){
-                        key += ",";
-                    }
-                }
-                (*_keys)[idx] = key;
-                (*_keys_map)[key] = idx;
-                if (excluded) {
-                    _excluded_keys.insert(idx);
-                }
-            }
-        }
-        
-        
-        
-        
-        
-        
-        template<typename... Args>
-        void insert(const string& s1, Args&&... args) {
-            add(s1,args...);
-        }
-        
-        void insert(const vector<string>& all_keys) {
-            add(all_keys);
-        }
-        
-        void add_empty_row() {
-            _type = matrix_;
-            if (!_ids) {
-                _ids = make_shared<vector<vector<size_t>>>();
-            }
-            _ids->resize(_ids->size()+1);
-        }
-        
-        /** Add a key in the specified row (for sparse matrix indexing)*/
-        void add_in_row(size_t row_nb, const string& key) {
-            _type = matrix_;
-            if (!_ids) {
-                _ids = make_shared<vector<vector<size_t>>>();
-            }
-            _ids->resize(row_nb+1);
-            auto ref_it = _keys_map->find(key);
-            if(ref_it==_keys_map->end()){
-                auto idx = _keys->size();
-                _keys_map->insert(make_pair<>(key,idx));
-                _keys->push_back(key);
-                _ids->at(row_nb).push_back(idx);
+            if(vec._time_extended){
+                _time_extended = true;
+                time_pos = vec._time_pos;
             }
             else{
-                _ids->at(row_nb).push_back(ref_it->second);
+                nb_ids++;
+            }
+            dim *= vec.size();
+            dims.push_back(vec.size());
+            _name += vec._name+",";
+            _dim->at(idx++) = vec.size();
+        }
+        auto vec1 = vecs.front();
+        _name = _name.substr(0,_name.size()-1); /* remove last comma */
+        if(_time_extended && !vec1._time_extended){
+            if(time_pos==0 && !vec1.empty()) {//TODO CHECK
+                _time_pos = std::count(vec1._keys->front().begin(), vec1._keys->front().end(), ',')+1;
+            }
+            else {
+                _time_pos = time_pos+nb_ids;
             }
         }
-            
-        template<typename... Args>
-        void add(const string& s1, Args&&... args) {
-            add(vector<string>({s1,args...}));
-        }            
-      
+        _keys->resize(dim);
+        size_t den = 1;
+        size_t real_idx = 0;
+        bool excluded = false;
+        for(size_t idx = 0; idx < dim ; idx++){
+            string key;
+            den = dim;
+            excluded = false;
+            for(auto it = vecs.begin(); it!= vecs.end(); it++) {
+                auto vec = &(*it);
+                den /= vec->size();
+                real_idx = (idx/den)%vec->size();
+                if (vec->_excluded_keys.count(real_idx)==1) {
+                    excluded = true;
+                }
+                if(vec->is_indexed()){
+                    real_idx = vec->_ids->at(0).at(real_idx);
+                }
+                key += vec->_keys->at(real_idx);
+                if(next(it)!=vecs.end()){
+                    key += ",";
+                }
+            }
+            (*_keys)[idx] = key;
+            (*_keys_map)[key] = idx;
+            if (excluded) {
+                _excluded_keys.insert(idx);
+            }
+        }
+    }
+    
+    
+    
+    
+    
+    
+    template<typename... Args>
+    void insert(const string& s1, Args&&... args) {
+        add(s1,args...);
+    }
+    
+    void insert(const vector<string>& all_keys) {
+        add(all_keys);
+    }
+    
+    void add_empty_row() {
+        _type = matrix_;
+        if (!_ids) {
+            _ids = make_shared<vector<vector<size_t>>>();
+        }
+        _ids->resize(_ids->size()+1);
+    }
+    
+    /** Add a key in the specified row (for sparse matrix indexing)*/
+    void add_in_row(size_t row_nb, const string& key) {
+        _type = matrix_;
+        if (!_ids) {
+            _ids = make_shared<vector<vector<size_t>>>();
+        }
+        _ids->resize(row_nb+1);
+        auto ref_it = _keys_map->find(key);
+        if(ref_it==_keys_map->end()){
+            auto idx = _keys->size();
+            _keys_map->insert(make_pair<>(key,idx));
+            _keys->push_back(key);
+            _ids->at(row_nb).push_back(idx);
+        }
+        else{
+            _ids->at(row_nb).push_back(ref_it->second);
+        }
+    }
+    
+    template<typename... Args>
+    void add(const string& s1, Args&&... args) {
+        add(vector<string>({s1,args...}));
+    }
+    
     
     template<typename... Args>
     indices(const indices& vec1, Args&&... args) {
@@ -1080,19 +1049,7 @@ public:
     
     
     
-    template<typename... Args>
-    void insert(const string& s1, Args&&... args) {
-        add(s1,args...);
-    }
     
-    void insert(const vector<string>& all_keys) {
-        add(all_keys);
-    }
-    
-    template<typename... Args>
-    void add(const string& s1, Args&&... args) {
-        add(vector<string>({s1,args...}));
-    }
     /** Adds a reference to the key specified as argument, i.e., adds the corresponding index in _ids
      @throw invalid_argument if key is not part of _keys_map
      */
