@@ -197,6 +197,9 @@ namespace gravity {
             return dim;
         }
         
+        virtual void vectorize(){
+            _is_vector = true;
+        }
         
         void vec(){
             _is_vector = true;

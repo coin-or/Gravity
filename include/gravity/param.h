@@ -107,6 +107,7 @@ namespace gravity {
         /** let p share the values and indices of current var */
         virtual void share_vals(const shared_ptr<param_>& p){};
         virtual void initialize_uniform(){};
+        virtual void initialize_midpoint(){};
         virtual void initialize_zero(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         
@@ -1567,6 +1568,60 @@ namespace gravity {
         
         indices get_matrix_ids(unsigned start_pos) const{
             return get_matrix_ids(start_pos,1);
+        }
+        
+        /* Return an index set repeating the key at position pos n times
+         @param[in] n, number of time repeating the same key
+         @param[in] pos, position of correponsing key
+         */
+        indices repeat_id(int n, int pos=0) const{
+            if(!_indices){
+                throw invalid_argument("cannot call repeat_id(int n, int pos=0) on non-indexed parameter/variable");
+            }
+            auto key_id = get_id_inst(pos);
+            indices res(*_indices);
+            res.set_name(res.get_name() + "repeat_id(" + to_string(n)+ "," + to_string(pos) + ")");
+            res._ids = make_shared<vector<vector<size_t>>>();
+            res._ids->resize(1);
+            res._ids->at(0).resize(n);
+            for(int i = 0; i< n; i++){
+                res._ids->at(0).at(i) = key_id;
+            }
+            return res;
+        }
+        
+        /* Return a subset of the current parameter index set corresponding to ids with negative values */
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        indices get_negative_ids() const{
+            if(!_indices){
+                throw invalid_argument("cannot call get_negative_ids() on non-indexed parameter/variable");
+            }
+            indices res(_indices->get_name()+"_neg_ids");
+            int idx = 0;
+            for(const double& val: *_val){
+                if(val<0){
+                    auto key_id = get_id_inst(idx++);
+                    res.add(_indices->_keys->at(key_id));
+                }
+            }
+            return res;
+        }
+        
+        /* Return a subset of the current parameter index set corresponding to ids with non-negative values */
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        indices get_non_negative_ids() const{
+            if(!_indices){
+                throw invalid_argument("cannot call get_negative_ids() on non-indexed parameter/variable");
+            }
+            indices res(_indices->get_name()+"_nonneg_ids");
+            int idx = 0;
+            for(const double& val: *_val){
+                if(val>=0){
+                    auto key_id = get_id_inst(idx++);
+                    res.add(_indices->_keys->at(key_id));
+                }
+            }
+            return res;
         }
         
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
