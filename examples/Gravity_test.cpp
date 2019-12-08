@@ -28,6 +28,106 @@ auto err_init = MPI_Init(nullptr,nullptr);
 #endif
 
 
+TEST_CASE("Few Degrees Of Freedom") {
+    auto m = Model<>("test");
+    /* ----- Indices ----- */
+    auto pair_ids = indices("pair_ids");
+    pair_ids.add("40,44", "41,44", "40,45", "41,45", "42,46", "43,46", "42,47", "43,47", "40,50", "41,50", "42,51", "43,51", "14,44", "14,45", "15,46", "15,47", "14,50", "15,51");
+    auto rhs_ids = indices("rhs_ids");
+    rhs_ids = union_ids(range(16,23),range(28,31),range(1,4),range(7,8));
+    
+    pair_ids.print();
+    rhs_ids.print();
+    
+    /* ----- Variables ----- */
+    auto x = var<>("x");
+    m.add(x.in(range(1,55)));
+    auto obj = var<>("obj");
+    
+    m.min(obj);
+
+    auto Bilinear = Constraint<>("Bilinear");
+    Bilinear = x.from(pair_ids)*x.to(pair_ids) - x.in(rhs_ids);
+    m.add(Bilinear==0);
+    Bilinear.print();
+    
+
+    vector<Constraint<>> e;
+    e.resize(67);
+    for (auto i = 1; i<=66; i++) {
+        e[i]._name= "e"+to_string(i);
+    }
+    
+    e[1] = -1*x[14]-x[15]+obj;
+    e[2] = -1*x[5]-x[9]-x[10]+40.0;
+    e[3] = -1*x[6]-x[11]-x[12]+40.0;
+    e[4] = -1*x[1]-x[3]-x[9]-x[11]+x[14];
+    e[5] = -1*x[2]-x[4]-x[10]-x[12]+x[15];
+    e[6] = -1*x[1]-x[2]-x[7]+x[14];
+    e[7] = -1*x[3]-x[4]-x[8]+x[15];
+    e[8] = -1*x[5]-x[6]-x[7]-x[8]+x[13];
+    e[9] = -1*x[24]-x[32]-x[34]+4000.0;
+    e[10] = -1*x[25]-x[33]-x[35]+800.0;
+    e[11] = -1*x[26]-x[36]-x[38]+600.0;
+    e[12] = -1*x[27]-x[37]-x[39]+8000.0;
+    e[13] = -1*x[32]+4000*x[52];
+    e[14] = -1*x[33]+800*x[52];
+    e[15] = -1*x[34]+4000*x[53];
+    e[16] = -1*x[35]+800*x[53];
+    e[17] = -1*x[36]+600*x[54];
+    e[18] = -1*x[37]+8000*x[54];
+    e[19] = -1*x[38]+600*x[55];
+    e[20] = -1*x[39]+8000*x[55];
+    e[21] = -1*x[24]+4000*x[48];
+    e[22] = -1*x[25]+800*x[48];
+    e[23] = -1*x[26]+600*x[49];
+    e[24] = -1*x[27]+8000*x[49];
+    e[25] = -1*x[9]+40*x[52];
+    e[26] = -1*x[10]+40*x[53];
+    e[27] = -1*x[11]+40*x[54];
+    e[28] = -1*x[12]+40*x[55];
+    e[29] = -1*x[5]+40*x[48];
+    e[30] = -1*x[6]+40*x[49];
+    e[31] = x[48]+x[52]+x[53]-1.0;
+    e[32] = x[49]+x[54]+x[55]-1.0;
+    e[33] = -200*x[14]+x[16]+x[20]+x[32]+x[36];
+    e[34] = -200*x[14]+x[17]+x[21]+x[33]+x[37];
+    e[35] = -200*x[15]+x[18]+x[22]+x[34]+x[38];
+    e[36] = -200*x[15]+x[19]+x[23]+x[35]+x[39];
+    e[37] = 0.05*x[16]+0.05*x[20]+0.05*x[32]+0.05*x[36]-x[40];
+    e[38] = x[17]+x[21]+x[33]+x[37]-x[41];
+    e[39] = x[18]+x[22]+x[34]+x[38]-x[42];
+    e[40] = 0.024*x[19]+0.024*x[23]+0.024*x[35]+0.024*x[39]-x[43];
+    e[41] = -1*x[16]-x[18]-x[28]+x[40];
+    e[42] = -1*x[17]-x[19]-x[29]+x[41];
+    e[43] = -1*x[20]-x[22]-x[30]+x[42];
+    e[44] = -1*x[21]-x[23]-x[31]+x[43];
+    e[63] = x[44]+x[45]+x[50]-1.0;
+    e[64] = x[46]+x[47]+x[51]-1.0;
+    e[65] = -10*x[13]+x[24]+x[26]+x[28]+x[30];
+    e[66] = -10*x[13]+x[25]+x[27]+x[29]+x[31];
+    
+    for (auto i = 1; i<=32; i++) {
+        m.add(e[i]==0);
+    }
+    
+    for (auto i = 33; i<=36; i++) {
+        m.add(e[i]<=0);
+    }
+    
+    for (auto i = 37; i<=64; i++) {
+        m.add(e[i]==0);
+    }
+    
+    for (auto i = 65; i<=66; i++) {
+        m.add(e[i]<=0);
+    }
+    
+    m.print();
+    auto s = solver<>(m,ipopt);
+    s.run();
+}
+
 TEST_CASE("testing constants") {
     int worker_id = 0;
 #ifdef USE_MPI
@@ -1382,7 +1482,7 @@ TEST_CASE("testing normal distributions") {
         Constraint<> Norm2("norm2");
 //        Norm2 = product(1,pow(X,2));
         Norm2 = norm2(X);
-//        M.add(Norm2==1);
+        M.add(Norm2==1);
         
         Constraint<> Lin("lin");
         Lin = product(A,X);
@@ -1663,6 +1763,9 @@ TEST_CASE("testing constraint delete") {
     CHECK(Mtest.is_linear());
     CHECK(Mtest.get_nb_cons() == 4);
 }
+
+
+
 
 #ifdef USE_MPI
 TEST_CASE("testing MPI") {
