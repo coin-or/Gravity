@@ -63,7 +63,7 @@ int main (int argc, char * argv[])
     double me = 9.1e-31, e = 1.6e-19, rsc = 1., A = 0.3;
     
     /* Declaring Variables */
-    auto Te = var<>("Te", 1./std::sqrt(10), 1./std::sqrt(0.1)); auto Tph = var<>("Tph",1./5.,1./5.); auto Jph = var<>("Jph",6.4e-6,1.6e-4);
+    auto Te = var<>("Te", 1./std::sqrt(10), 1./std::sqrt(0.1)); auto Tph = var<>("Tph",1./4.,1./4.); auto Jph = var<>("Jph",6.4e-6,1.6e-4);
     auto Phi = var<>("ϕ",10,20);
     double scale = 1e4;
     
