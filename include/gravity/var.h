@@ -359,6 +359,10 @@ namespace gravity {
 //            param<type>::reset_range();
 //        }
 
+//        void index_in(const indices& ids) {
+//            *this = this->in(ids);
+//        }
+        
         template<typename... Args>
         var in(const indices& vec1, Args&&... args) {
 //            bool indexed = param<type>::_indices!=nullptr;

@@ -185,14 +185,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         if(it==_vars_name.end()){
             
-            // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
-            auto o1_ids_uq = o1_ids;
-            auto o2_ids_uq = o2_ids;
-            auto keep_refs1 = o1_ids_uq.get_unique_refs();
-            auto keep_refs2 = o2_ids_uq.get_unique_refs();
-            o1_ids_uq.filter_refs(keep_refs1);
-            o2_ids_uq.filter_refs(keep_refs2);
-            reindex_vars();
+            
             
             //create the lifted variable with proper lower and upper bounds
             var<type> vlift(name, lb, ub);
@@ -219,6 +212,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             if((num_partns1 > 1) || (num_partns2 > 1)) {
 #ifdef PARTITION
+                // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
+                auto o1_ids_uq = o1_ids;
+                auto o2_ids_uq = o2_ids;
+                auto keep_refs1 = o1_ids_uq.get_unique_refs();
+                auto keep_refs2 = o2_ids_uq.get_unique_refs();
+                o1_ids_uq.filter_refs(keep_refs1);
+                o2_ids_uq.filter_refs(keep_refs2);
+                reindex_vars();
                 if (o1 == o2) //if the variables are same add 1d partition
                 {
                     
@@ -5642,6 +5643,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         }
         lifted.insert(lt);
     }
+
     lifted._range = c._range;
     lifted._all_convexity = linear_;
     lifted._all_sign = c._all_sign;
@@ -5655,11 +5657,12 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 
 
 
-template <typename type>
-template<typename T,
-typename std::enable_if<is_same<type,double>::value>::type*>
-std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision) {
-    std::tuple<bool,int,double> res;
+    template <typename type>
+    template<typename T,
+    typename std::enable_if<is_same<type,double>::value>::type*>
+    std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, shared_ptr<Model<type>> ub_model, shared_ptr<Model<type>> nonlin_model, bool nonlin) {
+        std::tuple<bool,int,double, double, double, bool> res;
+
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -5670,84 +5673,95 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
-    vector<shared_ptr<Model<>>> batch_models;
-    map<string, bool> fixed_point;
-    map<string, double> interval_original, interval_new, ub_original, lb_original;
-    string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
-    string vname;
-    string mname, mkname, vkname, keyk, dirk;
-    string dir_array[2]={"LB", "UB"};
-    var<> vark, vk, v;
-    
-    double boundk1, objk, left, right, mid, temp, tempa;
-    
-    bool infeasible=false;
-    bool terminate=false;
-    bool break_flag=false, time_limit = false, lifted_var=false, close=false;
-    
-    const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
-    int gap_count_int=1, iter=0;
-    
-    SolverType solv_type = ipopt;
-    const double tol = 1e-6;
-    int output = 0;
-    
-    double lower_bound=this->get_obj_val()*upper_bound.second;
-    
-    
-    double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
-    gapnl=(upper_bound.second-lower_bound)/(upper_bound.second)*100;
-    shared_ptr<map<string,size_t>> p_map;
-    
-    solver<> SDPLB2(*this,solv_type);
-    
-    SDPLB2.run(output = 0, tol, "ma27");
-    //        this->print();
-    
-    //Check if gap is already not zero at root node
-    if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
         
-    {
-        terminate=false;
-        for(auto &it:this->_vars_name)
+        vector<shared_ptr<Model<>>> batch_models;
+        map<string, bool> fixed_point;
+        map<string, double> interval_original, interval_new, ub_original, lb_original;
+        string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
+        string vname;
+        string mname, mkname, vkname, keyk, dirk;
+        string var_vp_key, vp_key_lb, vp_key_ub;
+        string dir_array[2]={"LB", "UB"};
+        var<> vark, vk, v, var_ub;
+        
+        double boundk1, objk, left, right, mid, temp, tempa, vk_ub, vk_lb, vk_xb;
+        
+        bool infeasible=false;
+        bool terminate=false;
+        bool break_flag=false, time_limit = false, lifted_var=false, close=false;
+        bool xb_true=true;
+        double sum=0, avg=0, num_var=0.0;
+        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
+        int gap_count_int=1, iter=0;
+        double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
+        SolverType solv_type = ipopt;
+        const double tol = 1e-8;
+          int output = 0;
+        
+        
+        
+        double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
+       
+        shared_ptr<map<string,size_t>> p_map;
+        this->reindex();
+        solver<> SDPLB2(*this,solv_type);
+
+        SDPLB2.run(output = 0, tol, "ma27");
+        double lower_bound_init=-999, lower_bound;
+
+//        this->print();
+
+        //Check if gap is already not zero at root node
+        if(this->_status==0)
         {
-            string vname=it.first;
-            v=this->get_var<double>(vname);
-            auto v_keys=v.get_keys();
-            auto v_key_map=v.get_keys_map();
-            for(auto &key: *v_keys)
+            lower_bound_init=this->get_obj_val()*upper_bound.second;
+            gapnl=(upper_bound.second-lower_bound_init)/(upper_bound.second)*100;
+            DebugOn("Initial gap "<<gapnl<<endl);
+            double lower_bound=lower_bound_init;
+            
+
+            
+          if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
+        {
+            terminate=false;
+            for(auto &it:this->_vars_name)
             {
-                var_key = vname+"|"+ key;
-                key_lb= var_key +"|LB";
-                key_ub= var_key +"|UB";
-                //Do not do OBBT on lifted variables
-                if(v._lift){
-                    fixed_point[key_lb]=true;
-                    fixed_point[key_ub]=true;
-                    DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
-                }
-                else{
-                    fixed_point[key_lb]=false;
-                    fixed_point[key_ub]=false;
-                }
-                auto key_pos=v_key_map->at(key);
-                
-                if(v._off[key_pos]==true)
+                string vname=it.first;
+                v=this->get_var<double>(vname);
+                auto v_keys=v.get_keys();
+                auto v_key_map=v.get_keys_map();
+                for(auto &key: *v_keys)
                 {
-                    fixed_point[key_lb]=true;
-                    fixed_point[key_ub]=true;
-                    DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    var_key = vname+"|"+ key;
+                    key_lb= var_key +"|LB";
+                    key_ub= var_key +"|UB";
+                    //Do not do OBBT on lifted variables
+                    if(v._lift){
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
+                        DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    }
+                    else{
+                        fixed_point[key_lb]=false;
+                        fixed_point[key_ub]=false;
+                    }
+                    auto key_pos=v_key_map->at(key);
+                    
+                    if(v._off[key_pos]==true)
+                    {
+                        fixed_point[key_lb]=true;
+                        fixed_point[key_ub]=true;
+                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                    }
+                    
+                    interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
+                    ub_original[var_key]=v.get_ub(key);
+                    lb_original[var_key]=v.get_lb(key);
+                    interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
+                    
                 }
-                
-                interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
-                ub_original[var_key]=v.get_ub(key);
-                lb_original[var_key]=v.get_lb(key);
-                interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
                 
             }
-            
-        }
-        
         solver_time= get_wall_time()-solver_time_start;
         while(solver_time<=max_time && !terminate && iter<=max_iter)
         {
@@ -5787,11 +5801,16 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                         //Loop on directions, upper bound and lower bound
                         for(auto &dir: dir_array)
                         {
+                             auto    solver_time1= get_wall_time();
                             auto modelk = this->copy();
+                             auto    solver_time2= get_wall_time();
+                            auto copy_time=solver_time2-solver_time1;
+                            DebugOn("copy time "<<copy_time<<endl);
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
                             vark=modelk->template get_var<T>(vname);
+                            vark.initialize_midpoint();
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));
@@ -5810,11 +5829,11 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",300,300, false,true);
+                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",800,800, false,true);
 
 #else
-                                run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27");
-                                //run_parallel(batch_models,cplex,1e-7,nb_threads);
+                              run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
+                              //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
                                 auto batch_time = batch_time_end - batch_time_start;
@@ -5834,6 +5853,7 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                                         vk=this->get_var<T>(vkname);
                                         var_key_k=vkname+"|"+keyk;
                                         objk=model->get_obj_val();
+                                    
                                         if(dirk=="LB")
                                         {
                                             boundk1=vk.get_lb(keyk);
@@ -5876,7 +5896,104 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                                                 fixed_point[model->get_name()]=false;
                                                 terminate=false;
                                             }
-                                            
+//                                            for (auto &vp: model->_vars) {
+//                                                auto nb_inst = vp.second->get_dim();
+//                                                auto ldv= vp.second->_l_dual;
+//                                                auto udv=vp.second->_u_dual;
+//                                                auto vpkeys=vp.second->get_keys();
+//                                                bool in_orig_model=false;
+//                                                if(ub_model->_vars_name.find(vk._name)!=ub_model->_vars_name.end())
+//                                                {
+//                                                     var_ub=ub_model->get_var<T>(vk._name);
+//                                                    in_orig_model=true;
+//                                                }
+//
+//                                                for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+//                                                {
+//                                                    var_vp_key = vp.second->_name+"|"+ (*vpkeys)[vpiter];
+//                                                    vp_key_lb= var_vp_key +"|LB";
+//                                                    vp_key_ub= var_vp_key +"|UB";
+//
+//                                                    if(fixed_point[vp_key_lb]==false || fixed_point[vp_key_ub]==false){
+//
+//                                                    if(udv[vpiter] >= 1E-3)
+//                                                    {
+//                                                        //DebugOn("Ith variable "<<vk._name<<endl);
+//                                                        //DebugOn("Ith variable index "<<keyk<<endl);
+//
+//
+//
+//                                                       var<> var_vp=this->get_var<T>(vp.second->_name);
+//
+//                                                        lb_vp=vp.second->get_double_lb(vpiter);
+//                                                        ub_vp=vp.second->get_double_ub(vpiter);
+//
+//                                                        vk_ub=vk.get_ub(keyk);
+//                                                        vk_lb=vk.get_lb(keyk);
+//                                                        if(in_orig_model)
+//                                                        {
+//                                                            vk_xb=var_ub.eval(keyk);
+//                                                            if(dirk=="UB"){
+//                                                                vk_lb=vk_xb;
+//                                                            }
+//                                                            if(dirk=="LB"){
+//                                                                vk_ub=vk_xb;
+//                                                            }
+//
+//                                                        }
+//
+//                                                        lb_vp_new=ub_vp-(vk_ub-vk_lb)/udv[vpiter];
+//
+//
+//
+//
+//                                                        if((lb_vp_new-lb_vp)>=range_tol){
+//                                                           //DebugOn("Lower Bound update"<<endl);
+////                                                            DebugOn("Ith variable "<<vk._name<<endl);
+////                                                            DebugOn("Ith variable index "<<keyk<<endl);
+////                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+////                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+////                                                            DebugOn(lb_vp<<"\t"<< lb_vp_new<<endl);
+//                                                        var_vp.set_lb((*vpkeys)[vpiter], lb_vp_new);
+//                                                        }
+//
+//                                                    }
+//                                                    if(ldv[vpiter] >= 1E-3){
+//                                                        lb_vp=vp.second->get_double_lb(vpiter);
+//                                                        ub_vp=vp.second->get_double_ub(vpiter);
+//
+//                                                        vk_ub=vk.get_ub(keyk);
+//                                                        vk_lb=vk.get_lb(keyk);
+//                                                        if(in_orig_model)
+//                                                        {
+//                                                            vk_xb=var_ub.eval(keyk);
+//                                                            if(dirk=="UB"){
+//                                                                vk_lb=vk_xb;
+//                                                            }
+//                                                            if(dirk=="LB"){
+//                                                                vk_ub=vk_xb;
+//                                                            }
+//
+//                                                        }
+//
+//                                                        ub_vp_new=lb_vp+(vk.get_ub(keyk)-vk.get_lb(keyk))/ldv[vpiter];
+//                                                        var<> var_vp=this->get_var<T>(vp.second->_name);
+//                                                        if((ub_vp-ub_vp_new)>=range_tol){
+//                                                          // DebugOn("Upper Bound update"<<endl);
+////                                                            DebugOn("Ith variable "<<vk._name<<endl);
+////                                                            DebugOn("Ith variable index "<<keyk<<endl);
+////                                                            DebugOn("Jth variable "<<var_vp._name<<endl);
+////                                                            DebugOn("Jth variable index "<<(*vpkeys)[vpiter]<<endl);
+////                                                             DebugOn(ub_vp<<"\t"<< ub_vp_new<<endl);
+//                                                           var_vp.set_ub((*vpkeys)[vpiter], ub_vp_new);
+//                                                        }
+//                                                    }
+//
+//                                                    }
+//
+//                                                }
+//                                            }
+
                                         }
                                         //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                         if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
@@ -5917,8 +6034,11 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                                     }
                                     else
                                     {
+                                               //   model->print();
+//                                        solver<> SDPLB_model(*model,solv_type);
+//                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                        //                                            model->print();
+                                        
                                         
                                         //                                        fixed_point[pk]=true;
                                     }
@@ -5933,18 +6053,23 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
             //Check if OBBT has converged, can check every gap_count_int intervals
             if(iter%gap_count_int==0)
             {    solver_time= get_wall_time()-solver_time_start;
-                
+
                 //                    this->print();
-                
+
                 this->reset_constrs();
+                this->reindex();
                 solver<> SDPLB1(*this,solv_type);
-                SDPLB1.run(output = 0, tol, "ma27");
+               // SDPLB1.run(output = 5, tol, "ma57");
+                SDPLB1.run(output = 0, tol);
                 if(this->_status==0)
                 {
-                    auto gap = 100*(upper_bound.second - (this->get_obj_val())*upper_bound.second)/upper_bound.second;
+                    lower_bound=this->get_obj_val()*upper_bound.second;
+                    auto gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                     DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                 }
-                if (upper_bound.second-this->get_obj_val()*upper_bound.second<=abs_tol && (upper_bound.second-this->get_obj_val()*upper_bound.second)/(upper_bound.second+zero_tol)<=rel_tol)
+                
+              
+                if (upper_bound.second- lower_bound<=abs_tol && (upper_bound.second- lower_bound)/(upper_bound.second+zero_tol)<=rel_tol)
                 {
                     
                     //                        this->print();
@@ -5953,7 +6078,6 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                     
                     DebugOn("Gap closed at iter "<< iter<<endl);
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                    lower_bound=this->get_obj_val()*upper_bound.second;
                     gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);
@@ -5964,6 +6088,13 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
                     
                     
                 }
+//                else
+//                {
+//                    if(!nonlin) //If linearized model is used for obbt
+//                    {
+//                        
+//                    }
+//                }
             }
             
             if(break_flag==true)
@@ -5976,18 +6107,32 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
             solver_time= get_wall_time()-solver_time_start;
             DebugOn("Solved Fixed Point iteration " << iter << endl);
         }
+          
         vector<double> interval_gap;
-        double sum=0, avg, num_var=0.0;
+        
         for(auto &it:this->_vars_name)
         {
             string vname=it.first;
             v=this->get_var<double>(vname);
             auto v_keys=v.get_keys();
+            bool in_orig_model=false;
+            if(ub_model->_vars_name.find(vname)!=ub_model->_vars_name.end())
+            {
+                var_ub=ub_model->template get_var<T>(vname);
+                in_orig_model=true;
+            }
+            
             for(auto &key: *v_keys)
             { num_var++;
                 var_key=vname+"|"+ key;
                 interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
                 sum+=interval_gap.back();
+                if( in_orig_model)
+                {
+                    if((var_ub.eval(key)-v.get_lb(key)) <0.000 || (var_ub.eval(key)-v.get_ub(key))>0.000){
+                        xb_true=false;
+                    }
+                }
                 DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
                 DebugOff(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point.at(var_key+"|UB") << endl);
             }
@@ -6001,6 +6146,8 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
         {
             
             this->reset_constrs();
+            
+                      
             solver<> SDPLB1(*this,solv_type);
             
             SDPLB1.run(output = 0, tol, "ma27");
@@ -6020,7 +6167,7 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
             solver<> SDPLB1(*this,solv_type);
             
             
-            SDPLB1.run(output = 0, tol, "ma27");
+            SDPLB1.run(output = 0, tol);
             //                this->print_constraints_stats(tol);
             //                bool print_only_relaxed;
             //                this->print_nonzero_constraints(tol,print_only_relaxed=true);
@@ -6032,7 +6179,7 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
             if(this->_status==0)
             {
                 
-                DebugOff("\nResults: " << " " << to_string(this->get_obj_val()*upper_bound.second) << " " <<endl);
+                DebugOff("\nResults: " << " " << to_string(this->get_obj_val()*upper_bound.second) << " " <<endl);  
                 DebugOff("Solution Print"<<endl);
                 //                    this->print();
                 //                SDP->print_solution();
@@ -6066,12 +6213,22 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
             DebugOn("Iterations\t"<<iter<<endl);
 #ifdef USE_MPI
         }
-#endif
+        #endif
+
     }
-    std::get<0>(res) = terminate;
-    std::get<1>(res) = iter;
-    std::get<2>(res) = solver_time;
-    return res;
+        }
+        else
+        {
+         DebugOn("Lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
+        }
+         std::get<0>(res) = terminate;
+         std::get<1>(res) = iter;
+         std::get<2>(res) = solver_time;
+         std::get<3>(res) = lower_bound_init;
+         std::get<4>(res) = avg;
+         std::get<5>(res) = xb_true;
+        //this->print();
+        return res;
 }
 
 
@@ -6087,8 +6244,10 @@ std::tuple<bool,int,double> Model<type>::run_obbt(double max_time, unsigned max_
 //#endif
 //
 
+    
+    
+    template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, shared_ptr<Model<double>>, shared_ptr<Model<double>>, bool);
 
-template std::tuple<bool,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int);
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
 //    template class Model<double>;

@@ -98,6 +98,10 @@ namespace gravity {
             _dim[1] = p._dim[1];
         }
 
+        
+//        virtual
+//        void index_in(const indices& ids) {};
+        
         virtual void reset_range(){};
         
         /** let p share the values and indices of current var */
@@ -1659,14 +1663,14 @@ namespace gravity {
                 auto dim = _indices->size();
                 _val->resize(dim);
                 if(ids._type==matrix_){
-                    if(_is_transposed){
-                        _dim[0] = ids._dim->at(1);
-                        _dim[1] = ids._dim->at(0);
-                    }
-                    else {
-                        _dim[1] = ids._dim->at(0);
-                        _dim[0] = ids._dim->at(1);
-                    }
+                        if(_is_transposed){
+                            _dim[0] = ids._dim->at(1);
+                            _dim[1] = ids._dim->at(0);
+                        }
+                        else {
+                            _dim[1] = ids._dim->at(0);
+                            _dim[0] = ids._dim->at(1);
+                        }
                 }
                 else {
                     if(_is_transposed){
@@ -1768,11 +1772,15 @@ namespace gravity {
             res.reset_range();
             return res;
         }
-
+        
         template<typename... Args>
         void index_in(const indices& ids1, Args&&... args) {
             *this = this->in(ids1,args...);
         }
+        
+//        void index_in(const indices& ids) {
+//            *this = this->in(ids);
+//        }
 
         param in_pairs(const indices& ids) {
             param res(*this);
@@ -2335,14 +2343,22 @@ namespace gravity {
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
         void copy_vals(const func<T>& f){
-            _dim[0] = f._dim[0];
-            _dim[1] = f._dim[1];
-            auto dim = get_dim();
-            _val->resize(dim);
-            for (size_t i = 0; i < dim; i++) {
-                _val->at(i) = f._val->at(i);
+            if(f.func_is_number()){
+                for (size_t i = 0; i < _val->size(); i++) {
+                    _val->at(i) = f._val->at(0);
+                }
+                set_range(f._val->at(0));
             }
-            reset_range();
+            else {
+                _dim[0] = f._dim[0];
+                _dim[1] = f._dim[1];
+                auto dim = get_dim();
+                _val->resize(dim);
+                for (size_t i = 0; i < dim; i++) {
+                    _val->at(i) = f._val->at(i);
+                }
+                reset_range();
+            }
         }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>

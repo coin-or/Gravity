@@ -1632,9 +1632,9 @@ namespace gravity {
                         for (size_t inst=0; inst<nb_inst; inst++) {
                             diff = std::abs(c->eval(inst));
                             if(diff > tol) {
-                                DebugOff("Violated equation: ");
+                                DebugOn("Violated equation: " << c->to_str(inst,3));
                                 //                        c->print(inst);
-                                DebugOff(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
@@ -1659,7 +1659,7 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff > tol) {
-                                DebugOn("Violated inequality: ");
+                                DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
                                 //                                c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
@@ -1688,11 +1688,11 @@ namespace gravity {
                         break;
                     case geq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            c->_violated[inst] = false;
+                            c->_violated[inst] = false;                            
                             diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOn("Violated inequality: ");
-                                //                        c->print(inst);
+                                DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
+                                //                   c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
@@ -1726,10 +1726,10 @@ namespace gravity {
                 nb_viol_all += nb_viol;
                 nb_active_all += nb_active;
                 if (nb_viol>0 && c->get_ctype()!=eq) {
-                    DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                    DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
             auto nb_ineq = get_nb_ineq();
@@ -1804,6 +1804,7 @@ namespace gravity {
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+//                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
@@ -1836,6 +1837,7 @@ namespace gravity {
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+//                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                             }
@@ -3847,6 +3849,57 @@ namespace gravity {
             }
         }
         
+        /* Build interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or in the objective */
+        Net build_interaction_graph() const{
+            Net g;
+            Node* n1 = nullptr;
+            Node* n2 = nullptr;
+            Arc* a = nullptr;
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                for(auto it = c._vars->begin(); it != c._vars->end(); it++) {
+                    n1 = g.get_node(it->first);
+                    if(n1==nullptr){
+                        n1 = new Node(it->first);
+                        g.add_node(n1);
+                    }
+                    auto it2 = next(it);
+                    if(it2 != c._vars->end()){
+                        n2 = g.get_node(it2->first);
+                        if(n2==nullptr){
+                            n2 = new Node(it2->first);
+                            g.add_node(n2);
+                        }
+                        a = new Arc(n1,n2);
+                    }                    
+                }
+            }
+            return g;
+        }
+        
+        Net build_full_interaction_graph() const{
+            Net g;
+            for(auto &v_p: _vars) {
+                for (size_t i = 0; i < v_p.second->get_dim(); i++) {
+                    auto n = new Node(v_p.second->get_name(i));
+                     g.add_node(n);
+                }
+            }
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                auto nb_ins = c->get_nb_inst();
+                for (size_t i = 0; i< nb_ins; i++){
+                    for(auto &it: *c._vars)
+                    {
+                        auto v = it.second.first;
+                        if(v->_is_vector) {
+                        }
+                    }
+                }
+            }
+            return g;
+        }
+        
         void reset_constrs() {
             for(auto& c_p :_cons)
             {
@@ -5078,11 +5131,17 @@ namespace gravity {
         
         template<typename T=type>
         shared_ptr<Model<type>> buildOA(int nb_discr, int nb_perturb);
+        
+        /** Returns a model such that when optimized will return an iterior point to the current model**/
         template<typename T=type>
-        shared_ptr<Model<type>> build_model_interior(Model<type> nonlin);
+        Model<type> build_model_interior() const;
+        
+        template<typename T=type>
+        shared_ptr<Model<type>> build_model_IIS();
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
         //template<typename T=type>
-        void add_outer_app_active(Model<> nonlin, int nb_perturb);
+        /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
+        void add_outer_app_active(const Model<>& nonlin, int nb_perturb);
         
         
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
@@ -6137,7 +6196,7 @@ namespace gravity {
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
         template<typename T=type,
         typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6);
+        std::tuple<bool,int,double,double,double,bool> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6, shared_ptr<Model<type>> ub_model= nullptr, shared_ptr<Model<type>> nonlin_model= nullptr, bool nonlin=true);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){
