@@ -5693,7 +5693,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
-        SolverType solv_type = ipopt;
+        SolverType solv_type = cplex;
         const double tol = 1e-8;
           int output = 0;
         
@@ -5800,11 +5800,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                         //Loop on directions, upper bound and lower bound
                         for(auto &dir: dir_array)
                         {
-                             auto    solver_time1= get_wall_time();
+                           
                             auto modelk = this->copy();
-                             auto    solver_time2= get_wall_time();
-                            auto copy_time=solver_time2-solver_time1;
-                            DebugOn("copy time "<<copy_time<<endl);
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
@@ -6033,7 +6030,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     }
                                     else
                                     {
-                                               //   model->print();
+                                                  model->print();
 //                                        solver<> SDPLB_model(*model,solv_type);
 //                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
