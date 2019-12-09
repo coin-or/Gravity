@@ -279,8 +279,7 @@ namespace gravity {
             param<double> dc("d"+con._name);
             dc.in(UniDI);
             
-            param<double> epsc("epsc"+con._name);
-            epsc.in(UniDI);
+            double epsc=1E-5;
             
            
            for(auto i=0;i<con.get_nb_inst();i++)
@@ -288,7 +287,6 @@ namespace gravity {
                     for(auto d=0;d<nb_discr;d++)
                     {
                         dc.set_val("D"+to_string(d)+",I"+to_string(i),d);
-                        epsc.set_val("D"+to_string(d)+",I"+to_string(i),0.1);
                     }
                 }
             
@@ -302,11 +300,11 @@ namespace gravity {
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
             if(con._ctype==leq){
 
-                  OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr+0.1) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr+0.1),2)-y->from_ith(1,y_ids));
+                  OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr),2)-y->from_ith(1,y_ids));
                 add(OA_uniform.in(UniDI)<=0);
             }
             else{
-                                  OA_uniform=(y->from_ith(1,y_ids))-2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr+epsc) +pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr+epsc),2);
+                                  OA_uniform=(y->from_ith(1,y_ids))-2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr) +pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr),2);
                 add(OA_uniform.in(UniDI)>=0);
 
             }
