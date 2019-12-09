@@ -9,8 +9,9 @@ include_directories(${PROJECT_INCLUDE_DIR})
 
 # the RPATH to be used when installing, but only if it's not a system directory
 #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
-file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.h)
+file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.h )
 
+file(GLOB LASSERRE_SOURCES ${PROJECT_SOURCE_DIR}/examples/Lasserre/*.cpp)
 file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/ModelLearning/Ising/*.cpp)
 file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/MinKPart/*.cpp)
 file(GLOB STABLE_S_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/StableSet/*.cpp)
@@ -33,6 +34,7 @@ add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Grav
 #add_executable(ising ${ISING_SOURCES})
 #add_executable(quantum ${QUANTUM_SOURCES})
 add_executable(stable_set ${STABLE_S_SOURCES})
+add_executable(lasserre ${LASSERRE_SOURCES})
 add_executable(acopf ${ACOPF_SOURCES} ${Power_SOURCES})
 #add_executable(acopfcpx ${ACOPFCPX_SOURCES} ${Power_SOURCES})
 add_executable(cpxopf ${CPXOPF_SOURCES} ${Power_SOURCES})
