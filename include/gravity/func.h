@@ -2295,7 +2295,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    auto p_exist = get_var(pname);
+                    auto p_exist = get_param(pname);
                     if (!p_exist) {
                         add_param(p_new);
                     }
