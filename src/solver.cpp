@@ -252,10 +252,85 @@ namespace gravity {
      @param[in] con:
      @return void. OA cuts are added to the model that calls the function (for all func instances)
      **/
+//     template<>
+//    void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
+//    {
+//
+//        func<> res;
+//        double lb,ub;
+//        size_t posv;
+//        bool sign_x, sign_y;
+//        double coef_x, coef_y, xval;
+//        if(con.is_quadratic() && con._lterms->size()==1 && con._qterms->size()==1 && con._qterms->begin()->second._p->first==con._qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
+//        {
+//
+//            auto x=static_pointer_cast<var<double>>(con._qterms->begin()->second._p->first);
+//            auto y=static_pointer_cast<var<double>>(con._lterms->begin()->second._p);
+//            indices D("D");
+//            for(auto d=0;d<nb_discr;d++){
+//                D.add("D"+to_string(d));
+//            }
+//            indices I("I");
+//            for(auto i=0;i<con.get_nb_inst();i++){
+//                I.add("I"+to_string(i));
+//            }
+//
+//            indices UniDI(D, I);
+//            param<double> cx("Paramcx"+con._name);
+//            cx.in(UniDI);
+//            param<double> cy("Paramcy"+con._name);
+//            cy.in(UniDI);
+//            param<double> c0("Paramc0"+con._name);
+//            c0.in(UniDI);
+//            sign_x=con._qterms->begin()->second._sign;
+//            sign_y=con._lterms->begin()->second._sign;
+//            for(auto i=0;i<con.get_nb_inst();i++)
+//            {
+//                posv=x->get_id_inst(i);
+//                lb=x->get_double_lb(posv);
+//                ub=x->get_double_ub(posv);
+//                coef_x=con.eval_coef(con._qterms->begin()->second._coef, i);
+//                coef_y=con.eval_coef(con._lterms->begin()->second._coef, i);
+//                for(auto d=0;d<nb_discr;d++)
+//                {
+//                    xval= lb+d*(ub-lb)/nb_discr;
+//                    if(sign_y){
+//                        cy.set_val("D"+to_string(d)+",I"+to_string(i), coef_y);
+//                    }
+//                    else{
+//                        cy.set_val("D"+to_string(d)+",I"+to_string(i), coef_y*(-1));
+//                    }
+//                    if(sign_x){
+//                        cx.set_val("D"+to_string(d)+",I"+to_string(i), 2*coef_x*xval);
+//                        c0.set_val("D"+to_string(d)+",I"+to_string(i), coef_x*(-1)*xval*xval);
+//                    }
+//                    else{
+//                        cx.set_val("D"+to_string(d)+",I"+to_string(i), (-2)*coef_x*xval);
+//                        c0.set_val("D"+to_string(d)+",I"+to_string(i), coef_x*xval*xval);
+//                    }
+//
+//                }
+//            }
+//
+//
+//
+//            auto x_ids = indices(D,*x->_indices);
+//            auto y_ids = indices(D,*y->_indices);
+//            Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
+//            OA_uniform=cy*(y->from_ith(1,y_ids))+cx*(x->from_ith(1,x_ids))+c0;
+//            if(con._ctype==leq){
+//                add(OA_uniform.in(UniDI)<=0);
+//            }
+//            else{
+//                add(OA_uniform.in(UniDI)>=0);
+//            }
+//              OA_uniform.print();
+//        }
+//    }
     template<>
     void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
     {
-        
+
         func<> res;
         double lb,ub;
         size_t posv;
@@ -263,7 +338,7 @@ namespace gravity {
         double coef_x, coef_y, xval;
         if(con.is_quadratic() && con._lterms->size()==1 && con._qterms->size()==1 && con._qterms->begin()->second._p->first==con._qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
         {
-            
+
             auto x=static_pointer_cast<var<double>>(con._qterms->begin()->second._p->first);
             auto y=static_pointer_cast<var<double>>(con._lterms->begin()->second._p);
             indices D("D");
@@ -274,42 +349,41 @@ namespace gravity {
             for(auto i=0;i<con.get_nb_inst();i++){
                 I.add("I"+to_string(i));
         }
-      
+
             indices UniDI(D, I);
-            param<double> dc("d"+con._name);
+            param<double> dc("d_"+con._name);
             dc.in(UniDI);
-            
-            double epsc=1E-5;
-            
-           
+
+            double epsc=0;
+
+
            for(auto i=0;i<con.get_nb_inst();i++)
                 {
                     for(auto d=0;d<nb_discr;d++)
                     {
                         dc.set_val("D"+to_string(d)+",I"+to_string(i),d);
+                       // dc.set_val("D"+to_string(d)+",I"+to_string(i),d*1./nb_discr);
+                    
                     }
                 }
-            
-            
-                        
-            
-            
+
+
+
+
+
             auto x_ids = indices(D,*x->_indices);
             auto y_ids = indices(D,*y->_indices);
 
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
-            if(con._ctype==leq){
 
-                  OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr),2)-y->from_ith(1,y_ids));
-                add(OA_uniform.in(UniDI)<=0);
-            }
-            else{
-                                  OA_uniform=(y->from_ith(1,y_ids))-2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr) +pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)/nb_discr),2);
-                add(OA_uniform.in(UniDI)>=0);
+//                  OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)),2)-y->from_ith(1,y_ids));
+//                add(OA_uniform.in(UniDI)<=0);
+            OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr),2)-y->from_ith(1,y_ids));
+            add(OA_uniform.in(UniDI)<=0);
+          
 
-            }
-           
-           // OA_uniform.print();
+//          OA_uniform.print();
+//            OA_uniform.print_symbolic();
         }
         /*TODO Else (discretization for general constraint)*/
         //        else
