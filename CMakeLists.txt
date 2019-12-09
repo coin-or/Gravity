@@ -44,7 +44,7 @@ option(Clp "Link to CLP libraries" OFF)
 option(OpenMPI "Link to OpenMPI libraries" OFF)
 
 # Find OPT_PARSER (optional)
-option(OPT_PARSER "Link to OPT_PARSER libraries" ON)
+option(OPT_PARSER "Link to OPT_PARSER libraries" OFF)
 
 if (OpenMPI)
     SET(CMAKE_CXX_COMPILER mpicxx)

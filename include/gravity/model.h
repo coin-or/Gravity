@@ -3662,6 +3662,16 @@ namespace gravity {
             }
         }
         
+        /** Initialize all variables using midpoint in bounds
+        */
+        void initialize_midpoint(){
+            for (auto &vp: _vars) {
+                vp.second->initialize_midpoint();
+            }
+        };
+        
+        /** Initialize all variables using random value in bounds drawn from a uniform distribution
+        */
         void initialize_uniform(){
             for (auto &vp: _vars) {
                 vp.second->initialize_uniform();
@@ -3837,6 +3847,57 @@ namespace gravity {
             {
                 v_p.second->reset_bounds();
             }
+        }
+        
+        /* Build interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or in the objective */
+        Net build_interaction_graph() const{
+            Net g;
+            Node* n1 = nullptr;
+            Node* n2 = nullptr;
+            Arc* a = nullptr;
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                for(auto it = c._vars->begin(); it != c._vars->end(); it++) {
+                    n1 = g.get_node(it->first);
+                    if(n1==nullptr){
+                        n1 = new Node(it->first);
+                        g.add_node(n1);
+                    }
+                    auto it2 = next(it);
+                    if(it2 != c._vars->end()){
+                        n2 = g.get_node(it2->first);
+                        if(n2==nullptr){
+                            n2 = new Node(it2->first);
+                            g.add_node(n2);
+                        }
+                        a = new Arc(n1,n2);
+                    }                    
+                }
+            }
+            return g;
+        }
+        
+        Net build_full_interaction_graph() const{
+            Net g;
+            for(auto &v_p: _vars) {
+                for (size_t i = 0; i < v_p.second->get_dim(); i++) {
+                    auto n = new Node(v_p.second->get_name(i));
+                     g.add_node(n);
+                }
+            }
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                auto nb_ins = c->get_nb_inst();
+                for (size_t i = 0; i< nb_ins; i++){
+                    for(auto &it: *c._vars)
+                    {
+                        auto v = it.second.first;
+                        if(v->_is_vector) {
+                        }
+                    }
+                }
+            }
+            return g;
         }
         
         void reset_constrs() {

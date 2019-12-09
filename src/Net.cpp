@@ -133,7 +133,10 @@ void Net::add_node(Node* node) {
 }
 
 Node* Net::get_node(string name) const{
-    return nodeID.find(name)->second;
+    auto it = nodeID.find(name);
+    if(it==nodeID.end())
+        return nullptr;
+    return it->second;
 }
 
 /* returns the undirected arc formed by node n1 and n2 */
