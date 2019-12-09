@@ -6031,7 +6031,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     }
                                     else
                                     {
-                                                  model->print();
+                                            //      model->print();
 //                                        solver<> SDPLB_model(*model,solv_type);
 //                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
@@ -6051,7 +6051,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(iter%gap_count_int==0)
             {    solver_time= get_wall_time()-solver_time_start;
 
-                //                    this->print();
+                                   //this->print();
 
                 this->reset_constrs();
                 this->reindex();

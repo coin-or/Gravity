@@ -41,7 +41,7 @@ int main (int argc, char * argv[]) {
     bool lazy_bool = false;
     bool add_original=false;
     SolverType solv_type = ipopt;
-    const double tol = 1e-6;
+    const double tol = 1e-8;
     string mehrotra = "no";
     
     bool nonlin=true;
@@ -252,7 +252,7 @@ int main (int argc, char * argv[]) {
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
 //        SDP->print();
-        SDPLB.run(output = 0, 1e-6, "ma27");
+        SDPLB.run(output = 0, tol, "ma27");
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
