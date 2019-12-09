@@ -4583,6 +4583,44 @@ namespace gravity{
         _params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p, nb)));
     }
     
+template<>
+func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+    func<double> res; // res = gradf(x*)*(x-x*) + f(x*)
+    int j=0;
+    res=0;
+    for(auto &it: *_vars)
+    {
+        auto v = it.second.first;
+        auto v_ids = indices(Pert,*v->_indices);
+        switch (v->get_intype()) {
+            case binary_:
+                res += c[j]*(static_pointer_cast<var<bool>>(v)->from_ith(2,v_ids));
+                break;
+            case short_:
+                res += c[j]*(static_pointer_cast<var<short>>(v)->from_ith(2,v_ids));
+                break;
+            case integer_:
+                res += c[j]*(static_pointer_cast<var<int>>(v)->from_ith(2,v_ids));
+                break;
+            case float_:
+                res += c[j]*(static_pointer_cast<var<float>>(v)->from_ith(2,v_ids));
+                break;
+                break;
+            case double_:
+                res += c[j]*(static_pointer_cast<var<double>>(v)->from_ith(2,v_ids));
+                break;
+            default:
+                break;
+        }
+        j++;
+    }
+    res += c0;
+    res.in(indices(Pert,*this->_indices));
+    merge_vars(res);
+    return res;
+}
+    
+    
 //    template<>
 //    double func<double>::eval_double(size_t i) {
 ////        if(is_zero()){

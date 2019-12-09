@@ -1109,7 +1109,7 @@ TEST_CASE("testing socopf"){
         OPF.run(output=5, tol=1e-6);
         auto time_end = get_wall_time();
         DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
-        CHECK(std::abs(SOCOPF->_obj->get_val()-14999.715)<1e-3);
+        CHECK(std::abs(SOCOPF->_obj->get_val()-14999.715)<1e-2);
         auto cycle_basis = grid.get_cycle_basis();/** Compute cycle basis */
         for (auto cycle: cycle_basis) {
             cycle->print();
@@ -1717,7 +1717,7 @@ TEST_CASE("testing Outer Approximation") {
     var<>  Wii("Wii", 0.8, 1.21);
     Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
     SOC.in(bus_pairs);
     SOC.print();
     R_Wij.gravity::param<double>::set_val("1,2",0.5);
@@ -1729,7 +1729,8 @@ TEST_CASE("testing Outer Approximation") {
     SOC.eval_all();
     SOC.compute_derivatives();
     Constraint<> OA ("OA");
-    OA = SOC.get_outer_app();
+    auto SOC_ind=SOC._indices;
+    OA = SOC.get_outer_app(*SOC_ind);
     Mtest.add(OA<=0);
     OA.print();
     Mtest.print();

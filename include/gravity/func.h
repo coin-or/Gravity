@@ -690,34 +690,27 @@ namespace gravity {
          @return current function
          */
         func& in(const indices& ids){//TODO assert each var and param that is not transposed has same dim as ids
-            //            index_in(ids);
             //            _nb_vars = 0;
             //            string key;
             //            auto iter = _vars->begin();
             //            while (iter!=_vars->end()) {
             //                auto pair = (*iter++);
             //                auto v = pair.second.first;
-            //                if(!v->is_indexed()){
+            //                if (!v->is_indexed() && !v->_is_vector) {// i.e., it is not transposed
             //                    v->index_in(ids);
-            //                }
-            //                if (!v->_is_vector) {// i.e., it is not transposed
-            //                    _nb_vars++;
-            //                }
-            //                else {
-            //                    _nb_vars += v->get_dim();
             //                }
             //            }
             //            iter = _params->begin();
             //            while (iter!=_params->end()) {
             //                auto pair = (*iter++);
             //                auto p = pair.second.first;
-            //                if(!p->is_indexed()){
+            //                if (!p->is_indexed() && !p->_is_transposed) {// i.e., it is not transposed
             //                    p->index_in(ids);
             //                }
             //            }
             _indices = make_shared<indices>(ids);
             _dim[0] = ids.size();
-            //            if(_expr){
+            //            if(_expr){// TODO take care of nonlinear part
             //                _expr->in(ids);
             //            }
             return *this;
@@ -999,6 +992,43 @@ namespace gravity {
                 }
             }
         }
+        
+        
+        /** Return a vector of the current model variables in instance inst_i of func
+         @param[in] inst_i: function instance
+         @param[in] var_name: ignore var with var_name
+         **/
+        vector<double> get_x_ignore(int inst_i, string var_name){
+            vector<double> res;
+            size_t posv;
+            double xv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_name==var_name){
+                    continue;
+                }
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        res.push_back(xv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    v->get_double_val(posv, xv);
+                    res.push_back(xv);
+                    
+                }
+            }
+            return res;
+        }
+        
         /** Return a vector of the current model variables in instance inst_i of func
          @param[in] inst_i:
          **/
@@ -1006,34 +1036,34 @@ namespace gravity {
             vector<double> res;
             size_t posv;
             double xv;
-        for(auto &it: *_vars)
-        {
-            auto v = it.second.first;
-            if(v->_is_vector)
+            for(auto &it: *_vars)
             {
-                for (auto i=0;i<v->_dim[0];i++)
+                auto v = it.second.first;
+                if(v->_is_vector)
                 {
-                    posv=i;
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        v->get_double_val(posv, xv);
+                        res.push_back(xv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
                     v->get_double_val(posv, xv);
                     res.push_back(xv);
+                    
                 }
-                
             }
-            else
-            {
-                posv=v->get_id_inst(inst_i);
-                v->get_double_val(posv, xv);
-                res.push_back(xv);
-                
-            }
-        }
             return res;
         }
         /** sets model variables in instance inst_i of func to x
          @param[in] inst_i:
          @param[in] x:
          **/
-         void set_x(int inst_i, const vector<double>& x){
+        void set_x(int inst_i, const vector<double>& x){
             size_t posv;
             int counter=0;
             for(auto &it: *_vars)
@@ -1066,9 +1096,9 @@ namespace gravity {
          To generalize to any convex function, use newton raphson and loop over all varaibles twice (fix different variabels to discretized values each time)
          If looping over all variables twice, have to check for feasibility of an assignment
          **/
-         bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){
+        bool get_grid_discretize(int nb_discr, int nb_inst, vector<double> d){
             // res = gradf(x*)*(x-x*) + f(x*)
-         
+            
             size_t posv;
             double lb, ub, xv;
             vector<double> xgrid;
@@ -1083,29 +1113,29 @@ namespace gravity {
                 posv=v->get_id_inst(nb_inst);
                 if(next(it) != _vars->end())
                 {
-             
-                ub=v->get_double_ub(posv);
-                lb=v->get_double_lb(posv);
-                xv=lb+d[counter++]*(ub-lb)/nb_discr;
-                v->set_double_val(posv, xv);
-                xgrid.push_back(xv);
+                    
+                    ub=v->get_double_ub(posv);
+                    lb=v->get_double_lb(posv);
+                    xv=lb+d[counter++]*(ub-lb)/nb_discr;
+                    v->set_double_val(posv, xv);
+                    xgrid.push_back(xv);
                 }
                 else
                 {
-                 if(check_soc())
-                 {
-                     xv=sqrt(pow(xgrid[0],2)+pow(xgrid[1],2));
-                     v->set_double_val(posv, xv);
-                      xgrid.push_back(xv);
-                     
-                 }
+                    if(check_soc())
+                    {
+                        xv=sqrt(pow(xgrid[0],2)+pow(xgrid[1],2));
+                        v->set_double_val(posv, xv);
+                        xgrid.push_back(xv);
+                        
+                    }
                     if(check_rotated_soc())
                     {
                         if(std::abs(xgrid[2])>=zero_tol)
                         {
-                        xv=(pow(xgrid[0],2)+pow(xgrid[1],2))/(xgrid[2]);
-                        v->set_double_val(posv, xv);
-                        xgrid.push_back(xv);
+                            xv=(pow(xgrid[0],2)+pow(xgrid[1],2))/(xgrid[2]);
+                            v->set_double_val(posv, xv);
+                            xgrid.push_back(xv);
                         }
                         else
                         {
@@ -1121,27 +1151,28 @@ namespace gravity {
                     }
                 }
             }
-//            for(auto i=0;i<xgrid.size();i++)
-//            {
-//                DebugOn(xgrid[i]<<"\t");
-//                
-//            }
-//            DebugOn(endl);
-                return solution;
+            //            for(auto i=0;i<xgrid.size();i++)
+            //            {
+            //                DebugOn(xgrid[i]<<"\t");
+            //
+            //            }
+            //            DebugOn(endl);
+            return solution;
         }
         
         /** Returns a set of OA cuts at the current model variables for a _squared constraint. This if is specific to constraints of the form ay- bx^2 or bx^2-ay
          @param[in] nb_discr:
          @return func of OA cuts ( for all func instance, symbolic)
+         Note:: assumes coef_x is same for all function instances
          **/
         func<> get_outer_app_squared()
         {
             func<> res;
             vector<double> lb,ub;
             double coef_x, coef_x_times2;
-            if(is_quadratic() && _lterms->size()==1 && _qterms->size()==1 && _qterms->begin()->second._p->first==_qterms->begin()->second._p->second) 
+            if(is_quadratic() && _lterms->size()==1 && _qterms->size()==1 && _qterms->begin()->second._p->first==_qterms->begin()->second._p->second)
             {
-               
+                
                 auto y=_lterms->begin()->second;
                 res.insert(y);
                 auto x=_qterms->begin()->second._p->first;
@@ -1152,154 +1183,228 @@ namespace gravity {
                 xstar.in(*x->_indices);
                 xstar.copy_vals(x);
                 if(_qterms->begin()->second._sign){
-                res-=coef_x*xstar*xstar;
+                    res-=coef_x*xstar*xstar;
                 }
                 else{
-                res+=coef_x*xstar*xstar;
+                    res+=coef_x*xstar*xstar;
                 }
-               
                 
-
+                
+                
                 res.insert(_qterms->begin()->second._sign, coef_x_times2*xstar, *x);
-            //    res.print();
+                //    res.print();
                 
-//                DebugOn("Sign x2 "<<_qterms->begin()->second._sign<<endl);
-//                DebugOn("Coefficient x2 "<<coef_x<<endl);
-//                DebugOn("Coefficient x2 times 2 "<<coef_x_times2<<endl);
+                //                DebugOn("Sign x2 "<<_qterms->begin()->second._sign<<endl);
+                //                DebugOn("Coefficient x2 "<<coef_x<<endl);
+                //                DebugOn("Coefficient x2 times 2 "<<coef_x_times2<<endl);
                 
             }
             
-         return res;
+            return res;
             
         }
         
-
-        
-        
-   
-
-        
-        func<type> get_outer_app(){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        /** Returns an outer-approximation of the function using the current value of the variables and index it using the specified index set
+         @param[in] idx: index set for indexing the symbolic OA cut
+         **/
+        func<type> get_outer_app(const indices& idx, bool scale=false){
+            const double zero_tol=1e-8;
+            double t, scale_fact=1;
+            if(scale)
+                scale_fact=1E3;
+            auto cpy = *this;
+            auto keep = this->_indices->get_common_refs(idx);
+            
+            for(auto &it: *cpy._vars){
+                auto v = it.second.first;
+                if(!v->_is_vector){
+                    v->_indices->filter_refs(keep);
+                }
+            }
+            
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             param<type> f_xstar("f_xstar");
-            f_xstar = *this;
-            for(auto &it: *_vars){
+            f_xstar = cpy;
+            f_xstar._indices->filter_refs(keep);
+            for(auto &it: *cpy._vars){
                 auto v = it.second.first;
                 param<type> xstar("xstar_"+v->_name);
                 xstar.in(*v->_indices);
                 xstar.copy_vals(v);
                 param<type> df_xstar("df_xstar"+v->_name);
                 auto df = *compute_derivative(*v);
-                //df.uneval();
+                df.uneval();
                 df.eval_all();
-                df_xstar = df;
-                auto ids = v->_indices->get_unique_keys();
-                df_xstar._indices = make_shared<indices>(ids);
-                res.insert(true, df_xstar, *v);
-                res -= df_xstar*xstar;
+                df_xstar.in(*cpy._indices);
+                df_xstar.copy_vals(df);
+                df_xstar._indices->filter_refs(keep);
+                for(auto key:*(df_xstar._indices->_keys)){
+                    t=(df_xstar.eval(key))*scale_fact;
+                        df_xstar.set_val(key, t);
+                    
+                }
+                switch (v->get_intype()) {
+                    case binary_:
+                        
+                        res += df_xstar*(*static_pointer_cast<var<bool>>(v));
+                        break;
+                    case short_:
+                        res += df_xstar*(*static_pointer_cast<var<short>>(v));
+                        break;
+                    case integer_:
+                        res += df_xstar*(*static_pointer_cast<var<int>>(v));
+                        break;
+                    case float_:
+                        res += df_xstar*(*static_pointer_cast<var<float>>(v));
+                        break;
+                        break;
+                    case double_:
+                        res += df_xstar*(*static_pointer_cast<var<double>>(v));
+                        break;
+                    default:
+                        break;
+                }
+                
+              res -= df_xstar*xstar;
             }
-            res += f_xstar;
-            res._indices = this->_indices;
-            merge_vars(res);
+            res += f_xstar*scale_fact;
+            res.index_in(idx);
+            //            merge_vars(res);
+            
+            //            for(auto &it: *_vars){
+            //                auto v = it.second.first;
+            //                auto vname=v->_name;
+            //                DebugOn(vname<<endl);
+            //            }
             return res;
         }
         
-        func<type> get_outer_app_insti(size_t nb_inst){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        
+        
+        
+        
+        
+        
+        
+        func<type> get_outer_app_insti(size_t nb_inst, bool scale=false){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            
+            const double active_tol=1e-8;
             double f_xstar, xv, dfv;
             vector<double> xcurrent, dfvector;
             int counter;
             counter=0;
-         
+            
             uneval();
             f_xstar=eval(nb_inst);
             //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
             size_t posv;
             
-        
+            
             for(auto &it: *_vars){
                 auto v = it.second.first;
                 indices ids("ids");
                 auto key=v->_indices->_keys;
-            
+                
                 dfvector.clear();
                 auto df = *compute_derivative(*v);
                 df.eval_all();
                 if(v->_is_vector)
                 {
                     
-                  
+                    
                     for (auto i=0;i<v->_dim[0];i++)
                     {
                         posv=i;
                         v->get_double_val(posv, xv);
                         xcurrent.push_back(xv);
-              
-                    df.uneval();
-                    dfv=df.eval(i);
-                           ids.add((*key)[posv]);
-                          dfvector.push_back(dfv);
-                           res -= dfv*xv;
-                }
+                        
+                        df.uneval();
+                        dfv=df.eval(i);
+                        ids.add((*key)[posv]);
+                        dfvector.push_back(dfv);
+                        if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                        {
+                            res -= dfv*xv*1E3;
+                        }
+                        else{
+                            res -= dfv*xv;
+                        }
+                    }
                 }
                 else if(!(v->_is_vector))
                 {
-                posv=v->get_id_inst(nb_inst);
-                v->get_double_val(posv, xv);
-                xcurrent.push_back(xv);
+                    posv=v->get_id_inst(nb_inst);
+                    v->get_double_val(posv, xv);
+                    xcurrent.push_back(xv);
                     ids.add((*key)[posv]);
                     df.uneval();
                     dfv=df.eval(nb_inst);
-                      dfvector.push_back(dfv);
-                       res -= dfv*xv;
+                    dfvector.push_back(dfv);
+                    if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                    {
+                        res -= dfv*xv*1E3;
+                    }
+                    else{
+                        res -= dfv*xv;
+                    }
                 }
                 
                 param<type> df_xstar("df_xstar"+v->_name);
                 df_xstar.in(ids);
-            
+                
                 for(auto i=0;i<dfvector.size();i++)
                 {
-
-                    df_xstar.set_double_val(i, dfvector[i]);
+                    if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                    {
+                        df_xstar.set_double_val(i, dfvector[i]*1E3);
+                    }
+                    else{
+                        df_xstar.set_double_val(i, dfvector[i]);
+                    }
                 }
-
+                
                 
                 switch (v->get_intype()) {
                     case binary_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<bool>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<bool>>(v)).in(ids);
                         break;
                     case short_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<short>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<short>>(v)).in(ids);
                         break;
                     case integer_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<int>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<int>>(v)).in(ids);
                         break;
                     case float_:
-                        res += df_xstar.tr()*(*static_pointer_cast<param<float>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<float>>(v)).in(ids);
                         break;
                         break;
                     case double_:
-                       // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
-                        res += df_xstar.tr()*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        // res += df_xstar*(*static_pointer_cast<param<double>>(v)).in(ids);
+                        res += df_xstar.tr()*(*static_pointer_cast<var<double>>(v)).in(ids);
                         break;
-//                    case long_:
-//                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
-//                        break;
-//                    case complex_:
-//                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
-//                        break;
+                        //                    case long_:
+                        //                        res += df_xstar*(*static_pointer_cast<param<long double>>(v)).in(ids);
+                        //                        break;
+                        //                    case complex_:
+                        //                        res += df_xstar*(*static_pointer_cast<param<Cpx>>(v)).in(ids);
+                        //                        break;
                     default:
                         break;
                 }
                 
                 
-
+                
             }
             
+            //if(f_xstar>=active_tol)
+            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+            {
+                res += f_xstar*1E3;
+            }
+            else{
+                res += f_xstar;
+            }
             
-            res += f_xstar;
- 
             
             
             
@@ -1309,12 +1414,12 @@ namespace gravity {
             
             res.eval_all();
             res.uneval();
-//            DebugOn("printin res in func.h"<<endl);
-//            res.print();
-//            res.merge_vars(*this);
-           // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
+            //            DebugOn("printin res in func.h"<<endl);
+            //            res.print();
+            //            res.merge_vars(*this);
+            // DebugOn("Eval of OA_cut in get_outer_app_insti\t"<<res.eval(0)<<endl);
             
-           
+            
             
             
             //res.print();
@@ -1329,114 +1434,55 @@ namespace gravity {
             return res;
         }
         
-
-        double l2norm(vector<double> x)
-        {
-            double res=0;
-            for(auto i=0;i<x.size();i++)
-            {
-                res+=x[i]*x[i];
-            }
-            res=sqrt(res);
-            return(res);
-        }
-        /** Set variables of instance nb_inst of func to the solution of the line search (that is to the active point)
-         @param[in] x_start: interior point
-         @param[in] nb_inst: instance number
-         @param[in] ctype:
-         @return True if line search successfully solved
-         x_start is an interior point and x_end is an outer point.
-         Interior and outer point clasification depends on constraint type (\geq 0 or \leq 0) as input by ctype
-         **/
-         bool linesearchbinary(vector<double> x_start, size_t nb_inst, ConstraintType ctype)
-         {
-            bool success=false;
-            const double int_tol=1e-8, zero_tol=1e-8;
-            const int max_iter=1000;
-            vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
-            double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
-            int iter=0;
-            x_end=get_x(nb_inst);
+        /** Fill the coefficients corresponding to the OA cuts of a symbolic constraints */
+        void get_outer_coef(size_t nb_inst, vector<double>& c, double& c0){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+            double f_xstar, xv, dfv;
             uneval();
-            f_b=eval(nb_inst);
+            f_xstar=eval(nb_inst);
+            c.clear();
+            //            c0=f_xstar;
+            //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+            size_t posv;
             
-            set_x(nb_inst, x_start);
-            uneval();
-            f_a=eval(nb_inst);
-     
-            if(ctype==leq)
-            {
-                f_f=f_a;
-                f_t=f_b;
-                x_f=x_start;
-                x_t=x_end;
-            }
-            else
-            {
-                f_f=f_b;
-                f_t=f_a;
-                x_f=x_end;
-                x_t=x_start;
-            }
-             
-             for(auto i=0;i<x_start.size();i++)
-             {
-                 interval.push_back(x_t[i]-x_f[i]);
-                 mid.push_back((x_end[i]+x_start[i])*0.5);
-             }
-             
-            interval_norm=l2norm(interval);
             
-            if(f_f<=0 && f_t>=0 )
-            {
-                while(interval_norm>int_tol && iter<=max_iter)
+            for(auto &it: *_vars){
+                auto v = it.second.first;
+                auto df = compute_derivative(*v);
+                if(v->_is_vector)
                 {
-                    for(auto i=0;i<x_start.size();i++)
+                    for (auto i=0;i<v->_dim[0];i++)
                     {
-                        mid[i]=(x_f[i]+x_t[i])*0.5;
+                        v->get_double_val(i, xv);
+                        df->uneval();
+                        dfv=df->eval(i);
+                        c.push_back(dfv);
+                        c0-=dfv*xv;
                     }
-                    set_x(nb_inst, mid);
-                    uneval();
-                    f_mid=eval(nb_inst);
-                    // DebugOn("F_mid "<< f_mid<<endl);
-                    //DebugOn("xf\t xt\t xmid"<<endl);
-//                    for(auto i=0;i<x_start.size();i++)
-//                    {
-//                        //  DebugOn(x_f[i]<<"\t"<<x_t[i]<<"\t"<<mid[i]<<endl);
-//
-//                    }
-//
-                    if(f_mid>=zero_tol)
-                    {
-                        x_t=mid;
-                    }
-                    else if(f_mid<=zero_tol*(-1))
-                    {
-                        x_f=mid;
-                    }
-                    else if(std::abs(f_mid)<=zero_tol)
-                    {
-                        //DebugOn("Reached answer"<<endl);
-                        success=true;
-                        break;
-                    }
-                    for(auto i=0;i<x_start.size();i++)
-                    {
-                        interval[i]=x_t[i]-x_f[i];
-                    }
-                    
-                    interval_norm=l2norm(interval);
-                    iter++;
                 }
-                //
-                //            DebugOn("F_mid "<<f_mid<<endl);
-                //            DebugOn("Interval_Norm "<<interval_norm<<endl);
-                //            DebugOn("Iter "<<iter<<endl);
+                else {
+                    posv=v->get_id_inst(nb_inst);
+                    v->get_double_val(posv, xv);
+                    df->uneval();
+                    dfv=df->eval(nb_inst);
+                    c.push_back(dfv);
+                    c0-=dfv*xv;
+                }
             }
-            
-     
-            return success;
+            c0+=f_xstar;
+            //if(f_xstar>=active_tol)
+            //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+            //            {
+            //                res += f_xstar*1E3;
+            //            }
+            //            else{
+            //                res += f_xstar;
+            //            }
+            //
         }
+        
+        
+        
+        
         
         
         
@@ -1635,18 +1681,18 @@ namespace gravity {
          @return Pair.first True if line search successfully solved. Pair.secod xsolution
          Note modifies current point to xsolution
          **/
-        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
+        pair<bool, vector<double>> newton_raphson(const vector<double>& x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
             vector<double> xk, xsolution;
             double xvk, xvk1, fk, dfdvk, ub,lb;
             const int max_iter=10000;
-            const double active_tol=1e-6,zero_tol=1e-8;
+            const double active_tol=1e-12,zero_tol=1e-12;
             size_t posvk;
-
+            
             int counter=0,iter=0;
             bool solution=false;
-   
+            
             set_x(nb_inst, x);
             xk=x;
             xsolution=x;
@@ -1662,59 +1708,61 @@ namespace gravity {
             }
             else
             {
-            posvk=vk->get_id_inst(nb_inst);
-            df.uneval();
-            dfdvk=df.eval(nb_inst);
+                posvk=vk->get_id_inst(nb_inst);
+                df.uneval();
+                dfdvk=df.eval(nb_inst);
             }
             vk->get_double_val(posvk, xvk);
             ub=vk->get_double_ub(posvk);
             lb=vk->get_double_lb(posvk);
             
             
-             while(iter<=max_iter && !solution)
-                       {
-            vk->set_double_val(posvk, xvk);
-                           uneval();
-                           fk=eval(nb_inst);
-                           if(std::abs(fk)<=active_tol)
-                           {
-                               solution=true;
-                           break;
-                       }
-                                               auto df = *compute_derivative(*vk);
-                                               df.uneval();
-                           if(vk->_is_vector)
-                           {
-                                dfdvk=df.eval(posvk);
-                           }
-                           else
-                           {
-                                dfdvk=df.eval(nb_inst);
-                           }
-                           if(std::abs(dfdvk)>=zero_tol)
-                           xvk1=xvk-fk/dfdvk;
-                           else
-                               break;
-                        
-                           if(std::abs(xvk1-xvk)<=zero_tol)
-                               break;
-                           if(xvk1>=ub)
-                               xvk=ub;
-                           else if (xvk1<=lb)
-                               xvk=lb;
-                           else
-                               xvk=xvk1;
-                       
-                           
-                           iter++;
-            
-        }
+            while(iter<=max_iter && !solution)
+            {
+                vk->set_double_val(posvk, xvk);
+                uneval();
+                fk=eval(nb_inst);
+                if(std::abs(fk)<=active_tol)
+                {
+                    solution=true;
+                    break;
+                }
+                
+                auto df = *compute_derivative(*vk);
+                df.uneval();
+                
+                if(vk->_is_vector)
+                {
+                    dfdvk=df.eval(posvk);
+                }
+                else
+                {
+                    dfdvk=df.eval(nb_inst);
+                }
+                if(std::abs(dfdvk)>=zero_tol)
+                    xvk1=xvk-fk/dfdvk;
+                else
+                    break;
+                
+                if(std::abs(xvk1-xvk)<=zero_tol)
+                    break;
+                if(xvk1>=ub)
+                    xvk=ub;
+                else if (xvk1<=lb)
+                    xvk=lb;
+                else
+                    xvk=xvk1;
+                
+                
+                iter++;
+                
+            }
             if(solution)
             {
                 xsolution=get_x(nb_inst);
             }
-   
-
+            
+            
             res.first=solution;
             res.second=xsolution;
             counter=0;
@@ -1759,20 +1807,20 @@ namespace gravity {
                 else
                 {
                     posv=0;
-                
-                auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
-                
-                if(res_nr.first==true)
-                {
-                    res.first=true;
-                    res.second=res_nr.second;
-                    break;
-                }
+                    
+                    auto res_nr=newton_raphson(xcurrent, vname, posv, nb_inst, ctype);
+                    
+                    if(res_nr.first==true)
+                    {
+                        res.first=true;
+                        res.second=res_nr.second;
+                        break;
+                    }
                 }
                 if(res.first==true)
                     break;
-            
-        }
+                
+            }
             return res;
         }
         
@@ -3521,7 +3569,7 @@ namespace gravity {
         }
         
         /* Modifiers */
-        void    set_size(vector<size_t> dims){
+        void    set_size(const vector<size_t>& dims){
             if (dims.size()==1) {
                 set_size(dims[0]);
             }
@@ -7241,6 +7289,7 @@ namespace gravity {
         
         bool insert(const pterm& term){return insert(term._sign, *term._coef, *term._l);};
         
+        func<type> get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert);
         
     };
     
@@ -9923,4 +9972,5 @@ namespace gravity {
     
     
 #endif /* func_h */
-    
+
+
