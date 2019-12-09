@@ -8,8 +8,9 @@
 #include <stdio.h>
 #include <PowerNet.h>
 #include <gravity/solver.h>
+#ifdef USE_OPT_PARSER
 #include <optionParser.hpp>
-
+#endif
 using namespace std;
 using namespace gravity;
 
@@ -26,6 +27,7 @@ int main (int argc, char * argv[])
     string solver_str="ipopt";
     string proj_str="0";
     
+#ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     auto options = readOptions(argc, argv);
     options.add_option("f", "file", "Input file name", fname);
@@ -58,6 +60,7 @@ int main (int argc, char * argv[])
     if (solver_str.compare("1")==0) {
         projected = true;
     }
+#endif
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname,false);

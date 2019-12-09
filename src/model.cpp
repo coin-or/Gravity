@@ -185,14 +185,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         if(it==_vars_name.end()){
             
-            // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
-            auto o1_ids_uq = o1_ids;
-            auto o2_ids_uq = o2_ids;
-            auto keep_refs1 = o1_ids_uq.get_unique_refs();
-            auto keep_refs2 = o2_ids_uq.get_unique_refs();
-            o1_ids_uq.filter_refs(keep_refs1);
-            o2_ids_uq.filter_refs(keep_refs2);
-            reindex_vars();
+            
             
             //create the lifted variable with proper lower and upper bounds
             var<type> vlift(name, lb, ub);
@@ -219,6 +212,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             if((num_partns1 > 1) || (num_partns2 > 1)) {
 #ifdef PARTITION
+                // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
+                auto o1_ids_uq = o1_ids;
+                auto o2_ids_uq = o2_ids;
+                auto keep_refs1 = o1_ids_uq.get_unique_refs();
+                auto keep_refs2 = o2_ids_uq.get_unique_refs();
+                o1_ids_uq.filter_refs(keep_refs1);
+                o2_ids_uq.filter_refs(keep_refs2);
+                reindex_vars();
                 if (o1 == o2) //if the variables are same add 1d partition
                 {
                     
@@ -5806,7 +5807,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             modelk->set_name(mname);
                             
                             vark=modelk->template get_var<T>(vname);
-                            vark.initialize_av();
+                            vark.initialize_midpoint();
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));

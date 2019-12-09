@@ -20,10 +20,10 @@ using namespace gravity;
 
 class MosekProgram: public Program<double>{
 public:
-    shared_ptr<Model<double>> _model = nullptr;
+    Model<>* _model = nullptr;
     int _output;
     MosekProgram();
-    MosekProgram(const shared_ptr<Model<double>>& m):_model(m){};
+    MosekProgram(Model<double>* m):_model(m){};
     ~MosekProgram();
     //void reset_model();
     

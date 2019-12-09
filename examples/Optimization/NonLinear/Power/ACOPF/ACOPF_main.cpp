@@ -8,8 +8,9 @@
 #include <stdio.h>
 #include <PowerNet.h>
 #include <gravity/solver.h>
+#ifdef USE_OPT_PARSER
 #include <optionParser.hpp>
-
+#endif
 
 using namespace std;
 using namespace gravity;
@@ -22,7 +23,7 @@ int main (int argc, char * argv[])
     int output = 0;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
-    
+#ifdef USE_OPT_PARSER
     /** create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
@@ -47,7 +48,7 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
-    
+#endif
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);

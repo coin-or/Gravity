@@ -30,8 +30,10 @@ file(GLOB SVM_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/
 file(GLOB QUANTUM_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MINLP/Quantum/*.cpp)
 file(GLOB NEURALNET_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/Classification/NeuralNet/*.cpp)
 file(GLOB POOLING_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Pooling/*.cpp)
+file(GLOB SPACE_CRAFT_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/SpaceCraft/*.cpp)
 
 add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
+add_executable(space_craft ${SPACE_CRAFT_SOURCES})
 #add_executable(ising ${ISING_SOURCES})
 #add_executable(quantum ${QUANTUM_SOURCES})
 add_executable(stable_set ${STABLE_S_SOURCES})
@@ -52,6 +54,7 @@ add_executable(svm ${ML_SOURCES} ${SVM_SOURCES})
 #add_executable(min_k_part ${MINK_SOURCES})
 add_executable(pooling ${POOLING_SOURCES} ${HEADERS} ${POOLHEADERS} ${Power_SOURCES})
 
+target_link_libraries(space_craft gravity)
 #target_link_libraries(ising gravity)
 #target_link_libraries(quantum gravity)
 target_link_libraries(stable_set gravity)
