@@ -5694,7 +5694,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
-        SolverType solv_type = cplex;
+        SolverType solv_type = ipopt;
         const double tol = 1e-8;
           int output = 0;
         
