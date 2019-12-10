@@ -295,6 +295,7 @@ int main (int argc, char * argv[]) {
        
         
         auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
+            SDPO->print();
         
 //        auto SDPO_IIS1=SDPO->build_model_IIS();
 //        solver<> IIS_test1(SDPO_IIS1,cplex);
