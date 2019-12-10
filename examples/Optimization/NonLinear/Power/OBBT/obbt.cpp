@@ -251,7 +251,7 @@ int main (int argc, char * argv[]) {
 //        vector<double> x_sol(SDP->get_nb_vars());
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
-       SDP->print();
+       //SDP->print();
         SDPLB.run(output = 0, 1e-8, "ma27");
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
