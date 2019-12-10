@@ -6031,6 +6031,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 
                                             }
                                         }
+                                        auto lift_name="Lift("+vkname+"^2)";
+                                        if(this->_vars_name.find(lift_name)!=this->_vars_name.end()){
+                                            auto liftv=this->get_var<T>(lift_name);
+                                            auto lbvk=vk.get_lb(keyk);
+                                            auto ubvk=vk.get_ub(keyk);
+                                            auto temp_a=std::max(std::max(0.0, lbvk), ubvk*(-1));
+                                            auto lift_lb=std::min(temp_a*temp_a, ubvk*ubvk);
+                                            liftv.set_lb(keyk, lift_lb);
+                                            liftv.set_ub(keyk, std::max(lbvk*lbvk, ubvk*ubvk));
+                                            
+                                        }
                                     }
                                     else
                                     {
