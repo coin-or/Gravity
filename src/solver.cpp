@@ -324,7 +324,7 @@ namespace gravity {
 //            else{
 //                add(OA_uniform.in(UniDI)>=0);
 //            }
-//              OA_uniform.print();
+//             // OA_uniform.print();
 //        }
 //    }
     template<>
@@ -354,16 +354,16 @@ namespace gravity {
             param<double> dc("d_"+con._name);
             dc.in(UniDI);
 
-            double epsc=0;
+            double epsc=1e-6;
 
 
            for(auto i=0;i<con.get_nb_inst();i++)
                 {
                     for(auto d=0;d<nb_discr;d++)
                     {
-                        dc.set_val("D"+to_string(d)+",I"+to_string(i),d);
-                       // dc.set_val("D"+to_string(d)+",I"+to_string(i),d*1./nb_discr);
-                    
+                      //  dc.set_val("D"+to_string(d)+",I"+to_string(i),d);
+                       dc.set_val("D"+to_string(d)+",I"+to_string(i),d*1./nb_discr);
+
                     }
                 }
 
@@ -375,12 +375,13 @@ namespace gravity {
             auto y_ids = indices(D,*y->_indices);
 
             Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
+            func<> xval =x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids));
 
-//                  OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids)+epsc)),2)-y->from_ith(1,y_ids));
-//                add(OA_uniform.in(UniDI)<=0);
-            OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr),2)-y->from_ith(1,y_ids));
-            add(OA_uniform.in(UniDI)<=0);
-          
+                  OA_uniform=(2*x->from_ith(1,x_ids)*xval -xval*xval-y->from_ith(1,y_ids));
+                add(OA_uniform.in(UniDI)<=0);
+//            OA_uniform=(2*(x->from_ith(1,x_ids))*(x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr) -pow((x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids))/nb_discr),2)-y->from_ith(1,y_ids));
+//            add(OA_uniform.in(UniDI)<=0);
+
 
 //          OA_uniform.print();
 //            OA_uniform.print_symbolic();
