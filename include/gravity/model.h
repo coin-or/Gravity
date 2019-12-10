@@ -309,9 +309,17 @@ namespace gravity {
                 }
             }
             for(auto &cp: m._cons_name){
-                add(*cp.second);
-                merge_vars(_cons_vec.back());
-                _cons_vec.back()->uneval();
+                if(*cp.second->_all_lazy){
+                    add_lazy(*cp.second);
+                    auto c = _cons_name[cp.first];
+                    merge_vars(c);
+                    c->uneval();
+                }
+                else{
+                    add(*cp.second);
+                    merge_vars(_cons_vec.back());
+                    _cons_vec.back()->uneval();
+                }
             }
             if(m._obj)
                 set_objective(*m._obj, _objt);
