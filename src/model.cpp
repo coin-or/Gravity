@@ -147,6 +147,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
                 auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
                 
+                
+                
                 lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
                 ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
             }
@@ -5826,7 +5828,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",800,800, false,true);
+                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",2000,2000, false,true);
 
 #else
                               run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
@@ -6031,9 +6033,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     }
                                     else
                                     {
-                                            //      model->print();
-//                                        solver<> SDPLB_model(*model,solv_type);
-//                                        SDPLB_model.run(output = 5, tol, "ma27");
+                                              //    model->print();
+                                        solver<> SDPLB_model(*model,solv_type);
+                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         
                                         

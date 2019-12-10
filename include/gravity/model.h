@@ -2740,8 +2740,6 @@ namespace gravity {
                 
                 if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
-                if(var_equal)
-                {
                     MC5 += vlift;
                     
                     MC5 -= v1*v1;
@@ -2750,10 +2748,11 @@ namespace gravity {
                     MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
                 }
+                
                 }
             }
             //    MC4.print();
-        }
+        
         
         //        template<typename T1>
         //        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
