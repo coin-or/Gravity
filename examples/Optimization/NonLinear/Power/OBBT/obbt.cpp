@@ -41,7 +41,7 @@ int main (int argc, char * argv[]) {
     bool lazy_bool = false;
     bool add_original=false;
     SolverType solv_type = ipopt;
-    const double tol = 1e-8;
+    const double tol = 1e-6;
     string mehrotra = "no";
     
     bool nonlin=true;
@@ -231,7 +231,7 @@ int main (int argc, char * argv[]) {
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
             DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
             
-            auto SDPOA=SDP->buildOA(15, 10);
+            auto SDPOA=SDP->buildOA(5, 5);
               solver<> SDPLB(SDPOA,ipopt);
               SDPLB.run(output = 0, tol);
             
