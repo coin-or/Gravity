@@ -492,9 +492,9 @@ namespace gravity {
                 nb_it++;
             }
             if (nb_it>1) {
-                DebugOff(endl << "####################" << endl);
-                DebugOff("Solved in " << nb_it << " constraint generation iterations" << endl);
-                DebugOff("####################" << endl);
+                DebugOn(endl << "####################" << endl);
+                DebugOn("Solved in " << nb_it << " constraint generation iterations" << endl);
+                DebugOn("####################" << endl);
             }
             _model->_status = return_status;
             if(_model->_status == 0){
