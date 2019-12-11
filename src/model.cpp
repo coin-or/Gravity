@@ -147,6 +147,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
                 auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
                 
+                
+                
                 lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
                 ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
             }
@@ -185,14 +187,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         if(it==_vars_name.end()){
             
-            // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
-            auto o1_ids_uq = o1_ids;
-            auto o2_ids_uq = o2_ids;
-            auto keep_refs1 = o1_ids_uq.get_unique_refs();
-            auto keep_refs2 = o2_ids_uq.get_unique_refs();
-            o1_ids_uq.filter_refs(keep_refs1);
-            o2_ids_uq.filter_refs(keep_refs2);
-            reindex_vars();
+            
             
             //create the lifted variable with proper lower and upper bounds
             var<type> vlift(name, lb, ub);
@@ -219,6 +214,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             if((num_partns1 > 1) || (num_partns2 > 1)) {
 #ifdef PARTITION
+                // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
+                auto o1_ids_uq = o1_ids;
+                auto o2_ids_uq = o2_ids;
+                auto keep_refs1 = o1_ids_uq.get_unique_refs();
+                auto keep_refs2 = o2_ids_uq.get_unique_refs();
+                o1_ids_uq.filter_refs(keep_refs1);
+                o2_ids_uq.filter_refs(keep_refs2);
+                reindex_vars();
                 if (o1 == o2) //if the variables are same add 1d partition
                 {
                     
@@ -5694,7 +5697,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
-        const double tol = 1e-5;
+        const double tol = 1e-8;
           int output = 0;
         
         
@@ -5702,10 +5705,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
        
         shared_ptr<map<string,size_t>> p_map;
-        
+//        this->reindex();
         solver<> SDPLB2(*this,solv_type);
 
-        SDPLB2.run(output = 5, tol, "ma27");
+        SDPLB2.run(output = 0, tol, "ma27");
         double lower_bound_init=-999, lower_bound;
 
 //        this->print();
@@ -5800,12 +5803,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                         //Loop on directions, upper bound and lower bound
                         for(auto &dir: dir_array)
                         {
+                           
                             auto modelk = this->copy();
+                            
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
                             vark=modelk->template get_var<T>(vname);
-                            vark.initialize_av();
+                            vark.initialize_midpoint();
                             if(dir=="LB")
                             {
                                 modelk->min(vark(key));
@@ -5815,7 +5820,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                 modelk->max(vark(key));
                                 
                             }
-                            
+                            modelk->reindex();
                             if(fixed_point[mname]==false){
                                 batch_models.push_back(modelk);
                             }
@@ -5824,10 +5829,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,ipopt,1e-6,nb_threads,"ma27",800,800, false,true);
+                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",2000,2000, false,true);
 
 #else
-                              run_parallel(batch_models,ipopt,1e-6,nb_threads, "ma27", 2000);
+                              run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
                               //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
@@ -6026,12 +6031,23 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 
                                             }
                                         }
+                                        auto lift_name="Lift("+vkname+"^2)";
+                                        if(this->_vars_name.find(lift_name)!=this->_vars_name.end()){
+                                            auto liftv=this->get_var<T>(lift_name);
+                                            auto lbvk=vk.get_lb(keyk);
+                                            auto ubvk=vk.get_ub(keyk);
+                                            auto temp_a=std::max(std::max(0.0, lbvk), ubvk*(-1));
+                                            auto lift_lb=std::min(temp_a*temp_a, ubvk*ubvk);
+                                            liftv.set_lb(keyk, lift_lb);
+                                            liftv.set_ub(keyk, std::max(lbvk*lbvk, ubvk*ubvk));
+                                            
+                                        }
                                     }
                                     else
                                     {
-                                               //   model->print();
-//                                        solver<> SDPLB_model(*model,solv_type);
-//                                        SDPLB_model.run(output = 5, tol, "ma27");
+                                              //    model->print();
+                                        solver<> SDPLB_model(*model,solv_type);
+                                        SDPLB_model.run(output = 5, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         
                                         
@@ -6049,10 +6065,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(iter%gap_count_int==0)
             {    solver_time= get_wall_time()-solver_time_start;
 
-                //                    this->print();
+                                   //this->print();
 
                 this->reset_constrs();
-                solver<> SDPLB1(*this,ipopt);
+                this->reindex();
+                solver<> SDPLB1(*this,solv_type);
                // SDPLB1.run(output = 5, tol, "ma57");
                 SDPLB1.run(output = 0, tol);
                 if(this->_status==0)
@@ -6141,9 +6158,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             
             this->reset_constrs();
             
-            auto SDPinf=this->copy();
-            
-            
+                      
             solver<> SDPLB1(*this,solv_type);
             
             SDPLB1.run(output = 0, tol, "ma27");
@@ -6160,7 +6175,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         if(worker_id==0){
 #endif
             this->reset_constrs();
-            solver<> SDPLB1(*this,ipopt);
+            solver<> SDPLB1(*this,solv_type);
             
             
             SDPLB1.run(output = 0, tol);

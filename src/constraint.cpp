@@ -30,7 +30,7 @@ double l2norm(const vector<double>& x)
     {
         res+=x[i]*x[i];
     }
-    res=sqrt(res);
+    res=std::sqrt(res);
     return(res);
 }
 
@@ -43,10 +43,10 @@ double l2norm(const vector<double>& x)
  Interior and outer point classification depends on constraint type (\geq 0 or \leq 0) as input by ctype
  **/
 template<typename type>
-bool Constraint<type>::binary_line_search(vector<double> x_start, size_t nb_inst)
+bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t nb_inst)
 {
     bool success=false;
-    const double int_tol=1e-8, zero_tol=1e-8;
+    const double int_tol=1e-12, zero_tol=1e-12;
     const int max_iter=1000;
     vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
     double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
@@ -101,15 +101,15 @@ bool Constraint<type>::binary_line_search(vector<double> x_start, size_t nb_inst
             //
             //                    }
             //
-            if(f_mid>=zero_tol)
+            if(f_mid>zero_tol)
             {
                 x_t=mid;
             }
-            else if(f_mid<=zero_tol*(-1))
+            else if(f_mid<zero_tol*(-1.))
             {
                 x_f=mid;
             }
-            else if(std::abs(f_mid)<=zero_tol)
+            else
             {
                 //DebugOn("Reached answer"<<endl);
                 success=true;
@@ -133,7 +133,7 @@ bool Constraint<type>::binary_line_search(vector<double> x_start, size_t nb_inst
     return success;
 }
 
-template bool Constraint<double>::binary_line_search(vector<double> x_start, size_t nb_inst);
+template bool Constraint<double>::binary_line_search(const vector<double>& x_start, size_t nb_inst);
 /* Operators */
 
 

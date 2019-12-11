@@ -309,9 +309,17 @@ namespace gravity {
                 }
             }
             for(auto &cp: m._cons_name){
-                add(*cp.second);
-                merge_vars(_cons_vec.back());
-                _cons_vec.back()->uneval();
+                if(*cp.second->_all_lazy){
+                    add_lazy(*cp.second);
+                    auto c = _cons_name[cp.first];
+                    merge_vars(c);
+                    c->uneval();
+                }
+                else{
+                    add(*cp.second);
+                    merge_vars(_cons_vec.back());
+                    _cons_vec.back()->uneval();
+                }
             }
             if(m._obj)
                 set_objective(*m._obj, _objt);
@@ -1659,7 +1667,7 @@ namespace gravity {
                             c->_violated[inst] = false;
                             diff = c->eval(inst);
                             if(diff > tol) {
-                                DebugOn("Violated inequality: " << c->to_str(inst,3));
+                                DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
                                 //                                c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
@@ -1688,11 +1696,11 @@ namespace gravity {
                         break;
                     case geq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
-                            c->_violated[inst] = false;
+                            c->_violated[inst] = false;                            
                             diff = c->eval(inst);
                             if(diff < -tol) {
-                                DebugOn("Violated inequality: " << c->to_str(inst,3));
-                                //                        c->print(inst);
+                                DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
+                                //                   c->print(inst);
                                 DebugOn(", violation = "<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
@@ -1726,10 +1734,10 @@ namespace gravity {
                 nb_viol_all += nb_viol;
                 nb_active_all += nb_active;
                 if (nb_viol>0 && c->get_ctype()!=eq) {
-                    DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                    DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
             auto nb_ineq = get_nb_ineq();
@@ -2740,8 +2748,6 @@ namespace gravity {
                 
                 if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
-                if(var_equal)
-                {
                     MC5 += vlift;
                     
                     MC5 -= v1*v1;
@@ -2750,10 +2756,11 @@ namespace gravity {
                     MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
                 }
+                
                 }
             }
             //    MC4.print();
-        }
+        
         
         //        template<typename T1>
         //        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
@@ -3662,6 +3669,16 @@ namespace gravity {
             }
         }
         
+        /** Initialize all variables using midpoint in bounds
+        */
+        void initialize_midpoint(){
+            for (auto &vp: _vars) {
+                vp.second->initialize_midpoint();
+            }
+        };
+        
+        /** Initialize all variables using random value in bounds drawn from a uniform distribution
+        */
         void initialize_uniform(){
             for (auto &vp: _vars) {
                 vp.second->initialize_uniform();
@@ -3837,6 +3854,57 @@ namespace gravity {
             {
                 v_p.second->reset_bounds();
             }
+        }
+        
+        /* Build interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or in the objective */
+        Net build_interaction_graph() const{
+            Net g;
+            Node* n1 = nullptr;
+            Node* n2 = nullptr;
+            Arc* a = nullptr;
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                for(auto it = c._vars->begin(); it != c._vars->end(); it++) {
+                    n1 = g.get_node(it->first);
+                    if(n1==nullptr){
+                        n1 = new Node(it->first);
+                        g.add_node(n1);
+                    }
+                    auto it2 = next(it);
+                    if(it2 != c._vars->end()){
+                        n2 = g.get_node(it2->first);
+                        if(n2==nullptr){
+                            n2 = new Node(it2->first);
+                            g.add_node(n2);
+                        }
+                        a = new Arc(n1,n2);
+                    }                    
+                }
+            }
+            return g;
+        }
+        
+        Net build_full_interaction_graph() const{
+            Net g;
+            for(auto &v_p: _vars) {
+                for (size_t i = 0; i < v_p.second->get_dim(); i++) {
+                    auto n = new Node(v_p.second->get_name(i));
+                     g.add_node(n);
+                }
+            }
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                auto nb_ins = c->get_nb_inst();
+                for (size_t i = 0; i< nb_ins; i++){
+                    for(auto &it: *c._vars)
+                    {
+                        auto v = it.second.first;
+                        if(v->_is_vector) {
+                        }
+                    }
+                }
+            }
+            return g;
         }
         
         void reset_constrs() {

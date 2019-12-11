@@ -2225,6 +2225,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
+//    
+//    var<> eta("eta", 0, 1);
+//    SDPOPF->add(eta.in(range(0,0)));
       
     var<> etag("etag", pg_min_sq, pg_max_sq);
     if(!nonlin_obj){
@@ -2255,8 +2258,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 //    SDPOPF->add(obj_UB.in(range(0,0))<=0);
         
         
-        auto obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
-        SDPOPF->min(obj_UB);
+        auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
+        SDPOPF->min(obj);
+        
+        Constraint<> obj_UB("obj_UB");
+        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
+        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
     }
     else
     {
@@ -2265,14 +2272,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDPOPF->add(obj_cost.in(gens)>=0);
         
    
-        auto obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound;
-        SDPOPF->min(obj_UB);
-    }
+        auto obj=(product(c1,Pg) + product(c2,etag) + sum(c0))/upper_bound;
+        SDPOPF->min(obj);
+    
         
-//        Constraint<> obj_UB("obj_UB");
-//        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-eta*upper_bound;
-//        SDPOPF->add(obj_UB.in(range(0,0))<=0);
-//}
+        Constraint<> obj_UB("obj_UB");
+        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
+        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+
     
          
         
@@ -2281,6 +2288,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
 //        SDPOPF->add(obj_UB.in(range(0,0))==0, convexify, "on/off", false);
 //        
 //    }
+    }
     
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
@@ -2406,7 +2414,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
     SDPOPF->add(LNC2.in(bus_pairs) >= 0);
     }
 
-    if(current){
+    if(false){
         param<Cpx> T("T"), Y("Y"), Ych("Ych");
         var<Cpx> L_from("L_from"), W("W"), Vi("Vi"), Vj("Vj"), I("I");
         T.real_imag(cc.in(arcs), dd.in(arcs));
