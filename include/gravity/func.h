@@ -778,6 +778,9 @@ namespace gravity {
                 if (uexp->_son->is_function()) {
                     auto f = static_pointer_cast<func>(uexp->_son);
                     son = (*f);
+                    if(!son.has_var(v)){
+                        return func();
+                    }
                 }
                 else if(uexp->_son->is_var()) {
                     auto vv = static_pointer_cast<param_>(uexp->_son);
@@ -866,6 +869,9 @@ namespace gravity {
                     }
                 }
                 else {
+                    return func();
+                }
+                if(!lson.has_var(v) && !rson.has_var(v)){
                     return func();
                 }
                 switch (bexp->_otype) {
@@ -1157,6 +1163,7 @@ namespace gravity {
         /** Returns a set of OA cuts at the current model variables for a _squared constraint. This if is specific to constraints of the form ay- bx^2 or bx^2-ay
          @param[in] nb_discr:
          @return func of OA cuts ( for all func instance, symbolic)
+         Note:: assumes coef_x is same for all function instances
          **/
         func<> get_outer_app_squared()
         {
@@ -1279,7 +1286,7 @@ namespace gravity {
         
         
         
-        func<type> get_outer_app_insti(size_t nb_inst, bool scale){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+        func<type> get_outer_app_insti(size_t nb_inst, bool scale=false){ /**< Returns an outer-approximation of the function using the current value of the variables **/
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
             const double active_tol=1e-8;
             double f_xstar, xv, dfv;
@@ -1440,15 +1447,14 @@ namespace gravity {
             
             for(auto &it: *_vars){
                 auto v = it.second.first;
-                auto df = *compute_derivative(*v);
-                df.eval_all();
+                auto df = compute_derivative(*v);
                 if(v->_is_vector)
                 {
                     for (auto i=0;i<v->_dim[0];i++)
                     {
                         v->get_double_val(i, xv);
-                        df.uneval();
-                        dfv=df.eval(i);
+                        df->uneval();
+                        dfv=df->eval(i);
                         c.push_back(dfv);
                         c0-=dfv*xv;
                     }
@@ -1456,13 +1462,13 @@ namespace gravity {
                 else {
                     posv=v->get_id_inst(nb_inst);
                     v->get_double_val(posv, xv);
-                    df.uneval();
-                    dfv=df.eval(nb_inst);
+                    df->uneval();
+                    dfv=df->eval(nb_inst);
                     c.push_back(dfv);
                     c0-=dfv*xv;
                 }
             }
-            
+            c0+=f_xstar;
             //if(f_xstar>=active_tol)
             //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
             //            {
@@ -1675,13 +1681,13 @@ namespace gravity {
          @return Pair.first True if line search successfully solved. Pair.secod xsolution
          Note modifies current point to xsolution
          **/
-        pair<bool, vector<double>> newton_raphson(vector<double> x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
+        pair<bool, vector<double>> newton_raphson(const vector<double>& x, string vname, size_t vpos, size_t nb_inst, ConstraintType ctype)
         {
             pair<bool, vector<double>> res;
             vector<double> xk, xsolution;
             double xvk, xvk1, fk, dfdvk, ub,lb;
             const int max_iter=10000;
-            const double active_tol=1e-8,zero_tol=1e-8;
+            const double active_tol=1e-12,zero_tol=1e-12;
             size_t posvk;
             
             int counter=0,iter=0;
@@ -2032,9 +2038,7 @@ namespace gravity {
             if(!has_var(v)){
                 return res;
             }
-            if(v._is_vector){
-                res._is_vector=true;
-            }
+            
             auto name = v.get_name(false,false);
             for (auto &lt: *_qterms) {
                 if (lt.second._p->first->get_name(false,false) == name) {
@@ -2232,6 +2236,13 @@ namespace gravity {
                     break;
                 }
             }
+            if(v._is_vector){
+                res._is_vector=true;
+                if(res.func_is_number()){
+                    res._dim[0] = v._dim[0];
+                    res._dim[1] = v._dim[1];
+                }
+            }
             if(v.is_matrix_indexed()){
                 res._indices = v._indices;
             }
@@ -2284,7 +2295,7 @@ namespace gravity {
                     }
                 }
                 else {
-                    auto p_exist = get_var(pname);
+                    auto p_exist = get_param(pname);
                     if (!p_exist) {
                         add_param(p_new);
                     }
@@ -3558,7 +3569,7 @@ namespace gravity {
         }
         
         /* Modifiers */
-        void    set_size(vector<size_t> dims){
+        void    set_size(const vector<size_t>& dims){
             if (dims.size()==1) {
                 set_size(dims[0]);
             }
@@ -3902,7 +3913,7 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._p->second->is_matrix_indexed()){// TODO: this assumes element wise product, implement matrix product
+                    if(pair.second._coef->_is_transposed || pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -9484,15 +9495,60 @@ namespace gravity {
     }
     
     template<typename type>
-    func<type> sum(const func<type>& p){
+    func<type> norm2(const func<type>& f){
+        return sum(pow(f,2));
+    }
+
+    template<typename type>
+    func<type> norm2(const var<type>& v){
+        return sum(pow(v,2));
+    }
+
+    template<typename type>
+    func<type> norm2(const param<type>& p){
+        return sum(pow(p,2));
+    }
+
+    template<typename type>
+    func<type> sum(const func<type>& f){
         func<type> res;
-        if (p.get_dim()==0) {
+        if (f.get_dim()==0) {
             return res;
         }
-        if(p.is_matrix_indexed()){
-            return (unit<type>().tr()*p.vec()).in(range(0,p._indices->size()-1));
+        if(f.is_matrix_indexed()){
+            return (unit<type>().tr()*f.vec()).in(range(0,f._indices->size()-1));
         }
-        return unit<type>().tr()*p.vec();
+        if(f.is_nonlinear()){
+            return unit<type>().tr()*f.vec();
+        }
+        res = f;
+        for (auto &pair: *res._lterms) {
+            pair.second._coef->transpose();
+            pair.second._p->vectorize();
+        }
+        for (auto &pair: *res._qterms) {
+            pair.second._coef->transpose();
+            pair.second._p->first->vectorize();
+            pair.second._p->second->vectorize();
+        }
+        for (auto &pair: *res._pterms) {
+            pair.second._coef->transpose();            
+        }
+        if (res._cst->is_function()) {
+            auto f_cst = *static_pointer_cast<func<type>>(res._cst);
+            res._cst = make_shared<func<type>>(sum(f_cst));
+        }
+        else if(res._cst->is_param()) {
+            auto p_cst = *static_pointer_cast<param<type>>(res._cst);
+            res._cst = make_shared<func<type>>(sum(p_cst));
+        }
+        else if(res._cst->is_number()) {
+            auto p_cst = *static_pointer_cast<constant<type>>(res._cst);
+            res._cst = make_shared<func<type>>(func<type>(f.get_nb_inst()*p_cst));
+        }
+        res._dim[0] = 1;
+        res._dim[1] = 1;
+        return res;
     }
     
     template<typename type>

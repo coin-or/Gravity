@@ -93,13 +93,7 @@ int main (int argc, char * argv[]) {
     SPP.add(p_pool.in(pool_attr));
     
     q.initialize_all(0.5);
-   // y.initialize_all(1.0);
-    
-//    Constraint<> avail_lb("avail_lb");
-//    avail_lb=product(q.in(out_arcs_to_pool_per_input),sum(y, out_arcs_per_pool))+sum(z, out_arcs_to_output_per_input)-avail_min;
-//    //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
-//    SPP.add(avail_lb.in(Inputs)>=0);
-//    SPP.print();
+
     
     int row_id = 0;
     indices ypo_per_input_matrix = indices("ypo_per_input_matrix");
@@ -134,7 +128,6 @@ int main (int argc, char * argv[]) {
     
         Constraint<> avail_lb("avail_lb");
         avail_lb=q.in(q_per_ypo_per_input_matrix)*y.in(ypo_per_input_matrix)+sum(z, out_arcs_to_output_per_input)-avail_min;
-        //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
         SPP.add(avail_lb.in(Inputs)>=0);
        // SPP.print();
     
@@ -142,7 +135,6 @@ int main (int argc, char * argv[]) {
     
     Constraint<> avail_ub("avail_ub");
     avail_ub=q.in(q_per_ypo_per_input_matrix)*y.in(ypo_per_input_matrix)+sum(z, out_arcs_to_output_per_input)-avail_max;
-    //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
     SPP.add(avail_ub.in(Inputs)<=0);
     //SPP.print();
     
@@ -151,7 +143,7 @@ int main (int argc, char * argv[]) {
     Constraint<> pool_capacity("pool_capacity");
     pool_capacity=sum(y, out_arcs_per_pool)-pool_cap;
     SPP.add(pool_capacity.in(Pools)<=0);
-    SPP.print();
+  
     
     
     Constraint<> demand_lb("demand_lb");
@@ -166,7 +158,7 @@ int main (int argc, char * argv[]) {
     mass_balance=sum(q, in_arcs_per_pool)-1;
     SPP.add(mass_balance.in(Pools)==0);
     
-    SPP.print();
+ 
     
     row_id = 0;
     indices pool_matrix = indices("pool_matrix");
@@ -184,12 +176,30 @@ int main (int argc, char * argv[]) {
     }
     
     
+
+    
+    
     Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-    quality_balance=p_in.in(in_arcs_attr_per_pool)*q.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+    quality_balance=p_in.in(in_arcs_attr_per_pool)*q.in(in_arcs_per_pool_attr) - p_pool;// - p_pool* sum(y, out_arcs_per_pool)
     SPP.add(quality_balance.in(pool_attr)==0);
-    SPP.print();
+
     
     
+    row_id = 0;
+    indices input_attr_per_output_attr_matrix = indices("input_attr_per_output_attr_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        auto pos = nthOccurrence(outat_key, ",", 1);
+        auto out=outat_key.substr(0, pos);
+        auto attr = outat_key.substr(pos+1);
+        input_attr_per_output_attr_matrix.add_empty_row();
+        for (auto &input:*Inputs._keys) {
+            
+            auto key=input+","+attr;
+            input_attr_per_output_attr_matrix.add_in_row(row_id, key);
+            
+        }
+        row_id++;
+    }
     
     
     
@@ -210,22 +220,7 @@ int main (int argc, char * argv[]) {
         row_id++;
     }
     
-    row_id = 0;
-    indices input_attr_per_output_attr_matrix = indices("input_attr_per_output_attr_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
-        auto pos = nthOccurrence(outat_key, ",", 1);
-        auto out=outat_key.substr(0, pos);
-        auto attr = outat_key.substr(pos+1);
-        input_attr_per_output_attr_matrix.add_empty_row();
-        for (auto &input:*Inputs._keys) {
-            auto io_out= input+","+out;
-            if(inputs_outputs._keys_map->find(io_out) !=inputs_outputs._keys_map->end()){
-                auto key=input+","+attr;
-                input_attr_per_output_attr_matrix.add_in_row(row_id, key);
-            }
-        }
-        row_id++;
-    }
+
     
     row_id = 0;
     indices output_attr_per_ypo_matrix = indices("output_attr_per_ypo_matrix");
@@ -268,26 +263,33 @@ int main (int argc, char * argv[]) {
     //    SPP.add(product_quality_ub.in(Outputs)<=0);
     
     
-    Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
-   
-//    product_quality_ub = z.in(in_arcs_from_input_per_output_attr);
+    Constraint<> product_quality_ub("product_quality_ub");
     product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
     SPP.add(product_quality_ub.in(outputs_attr)<=0);
     
+    
+    
+
+
+    
+    
+
+
+    
     Constraint<> sumy("sumy");
     sumy=sum(y);
-    SPP.add_lazy(sumy>=11);
+   // SPP.add_lazy(sumy>=11);
 //
-    auto obj= product(cost_ip, q)+product(cost_io, z)+product(cost_po, y);
-    SPP.min(obj);
+ //   auto obj= product(cost_ip, q)+product(cost_io, z)+product(cost_po, y);
+ //   SPP.min(obj);
     
-    SPP.print();
-    
-    solver<> SPP_solv(SPP,ipopt);
-    SPP_solv.run(output = 5, 1e-7);
-    
-    SPP.print_solution();
-    SPP.print_constraints_stats(1e-7);
+  SPP.print();
+//
+//    solver<> SPP_solv(SPP,ipopt);
+//    SPP_solv.run(output = 5, 1e-7);
+//
+//    SPP.print_solution();
+   // SPP.print_constraints_stats(1e-7);
     
     
     
