@@ -26,11 +26,11 @@ int main (int argc, char * argv[]) {
     poolnet.readgrid();
     
     //do bounds on x,y,z using preprocessign in paper!
-    //This is p-formulaiton of pooling problem, yet to explore, p-q and q!
+    //This is p-q-formulaiton of pooling problem!
     
     
     
-    Model<> SPP("Std-Pooling-Prob-P");
+    Model<> SPP("Std-Pooling-Prob-PQ");
     indices Inputs=poolnet.Inputs;
     indices Pools=poolnet.Pools;
     indices Outputs=poolnet.Outputs;
@@ -57,8 +57,7 @@ int main (int argc, char * argv[]) {
     auto in_arcs_from_input_per_output = poolnet.in_arcs_from_input_per_output();
     auto in_arcs_from_input_per_output_attr = poolnet.in_arcs_from_input_per_output_attr();
     
-    auto x_min=poolnet.x_min.in(inputs_pools);
-    auto x_max=poolnet.x_max.in(inputs_pools);
+  
     
     
     auto y_min=poolnet.y_min.in(pools_outputs);
@@ -84,33 +83,75 @@ int main (int argc, char * argv[]) {
     auto cost_io=poolnet.cost_io.in(inputs_outputs);
     auto cost_po=poolnet.cost_po.in(pools_outputs);
     
-    var<> x("x", x_min, x_max);
+    var<> q("q", 0, 1);
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 5);
-    SPP.add(x.in(inputs_pools));
+    SPP.add(q.in(inputs_pools));
     SPP.add(y.in(pools_outputs));
     SPP.add(z.in(inputs_outputs));
     SPP.add(p_pool.in(pool_attr));
     
-    x.initialize_all(2.0);
-    y.initialize_all(1.0);
+    q.initialize_all(0.5);
+   // y.initialize_all(1.0);
     
-    Constraint<> avail_lb("avail_lb");
-    avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
-    //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
-    SPP.add(avail_lb.in(Inputs)>=0);
-    SPP.print();
+//    Constraint<> avail_lb("avail_lb");
+//    avail_lb=product(q.in(out_arcs_to_pool_per_input),sum(y, out_arcs_per_pool))+sum(z, out_arcs_to_output_per_input)-avail_min;
+//    //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
+//    SPP.add(avail_lb.in(Inputs)>=0);
+//    SPP.print();
+    
+    int row_id = 0;
+    indices ypo_per_input_matrix = indices("ypo_per_input_matrix");
+    for (const string& input_key:*Inputs._keys) {
+        ypo_per_input_matrix.add_empty_row();
+        for (auto &po:*pools_outputs._keys) {
+            auto pos = nthOccurrence(po, ",", 1);
+            auto pool = po.substr(0,pos);
+            auto in_po=input_key+","+pool;
+            if(inputs_pools._keys_map->find(in_po) !=inputs_pools._keys_map->end()){
+                ypo_per_input_matrix.add_in_row(row_id, po);
+            }
+        }
+        row_id++;
+    }
+    
+    row_id = 0;
+    indices q_per_ypo_per_input_matrix = indices("q_per_ypo_per_input_matrix");
+    for (const string& input_key:*Inputs._keys) {
+        q_per_ypo_per_input_matrix.add_empty_row();
+        for (auto &po:*pools_outputs._keys) {
+            auto pos = nthOccurrence(po, ",", 1);
+            auto pool = po.substr(0,pos);
+            auto in_po=input_key+","+pool;
+            if(inputs_pools._keys_map->find(in_po) !=inputs_pools._keys_map->end()){
+                q_per_ypo_per_input_matrix.add_in_row(row_id, in_po);
+            }
+        }
+        row_id++;
+    }
+    
+    
+        Constraint<> avail_lb("avail_lb");
+        avail_lb=q.in(q_per_ypo_per_input_matrix)*y.in(ypo_per_input_matrix)+sum(z, out_arcs_to_output_per_input)-avail_min;
+        //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
+        SPP.add(avail_lb.in(Inputs)>=0);
+       // SPP.print();
+    
     
     
     Constraint<> avail_ub("avail_ub");
-    avail_ub=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_max;
+    avail_ub=q.in(q_per_ypo_per_input_matrix)*y.in(ypo_per_input_matrix)+sum(z, out_arcs_to_output_per_input)-avail_max;
+    //    avail_lb=sum(x, out_arcs_to_pool_per_input)-avail_min;
     SPP.add(avail_ub.in(Inputs)<=0);
+    //SPP.print();
+    
     
     
     Constraint<> pool_capacity("pool_capacity");
-    pool_capacity=sum(x, in_arcs_per_pool)-pool_cap;
+    pool_capacity=sum(y, out_arcs_per_pool)-pool_cap;
     SPP.add(pool_capacity.in(Pools)<=0);
+    SPP.print();
     
     
     Constraint<> demand_lb("demand_lb");
@@ -122,10 +163,12 @@ int main (int argc, char * argv[]) {
     SPP.add(demand_ub.in(Outputs)<=0);
     
     Constraint<> mass_balance("mass_balance");
-    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
+    mass_balance=sum(q, in_arcs_per_pool)-1;
     SPP.add(mass_balance.in(Pools)==0);
     
-    int row_id = 0;
+    SPP.print();
+    
+    row_id = 0;
     indices pool_matrix = indices("pool_matrix");
     for (const string& pool_key:*pool_attr._keys) {
         auto pos = nthOccurrence(pool_key, ",", 1);
@@ -142,7 +185,7 @@ int main (int argc, char * argv[]) {
     
     
     Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-    quality_balance=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+    quality_balance=p_in.in(in_arcs_attr_per_pool)*q.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
     SPP.add(quality_balance.in(pool_attr)==0);
     SPP.print();
     
@@ -234,8 +277,8 @@ int main (int argc, char * argv[]) {
     Constraint<> sumy("sumy");
     sumy=sum(y);
     SPP.add_lazy(sumy>=11);
-    
-    auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
+//
+    auto obj= product(cost_ip, q)+product(cost_io, z)+product(cost_po, y);
     SPP.min(obj);
     
     SPP.print();
