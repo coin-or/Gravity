@@ -5708,7 +5708,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //        this->reindex();
         solver<> SDPLB2(*this,solv_type);
 
-        SDPLB2.run(output = 0, tol, "ma27");
+        SDPLB2.run(output = 0, 1e-9, "ma27");
         double lower_bound_init=-999, lower_bound;
 
 //        this->print();
@@ -6047,7 +6047,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     {
                                               //    model->print();
                                         solver<> SDPLB_model(*model,solv_type);
-                                        SDPLB_model.run(output = 5, tol, "ma27");
+                                        SDPLB_model.run(output = 0, tol, "ma27");
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         
                                         
@@ -6140,8 +6140,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 sum+=interval_gap.back();
                 if( in_orig_model)
                 {
+                    var_ub.uneval();
                     if((var_ub.eval(key)-v.get_lb(key)) <0.000 || (var_ub.eval(key)-v.get_ub(key))>0.000){
                         xb_true=false;
+                         DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
                     }
                 }
                 DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
