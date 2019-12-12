@@ -28,7 +28,7 @@ class PoolNet: public Net {
     
 public:
     
-    param<double> q_min, q_max, inqual;//in inputs_pools
+    param<double> q_min, q_max, inqual,x_min,x_max;//in inputs_pools
     param<double> y_min, y_max;//in pools_outputs
     param<double> z_min, z_max,outqual_min, outqual_max;//in inputs_outputs
     param<double>  avail_max, avail_min; //in inputs
@@ -111,5 +111,7 @@ public:
     
     void fill_wbnds();
 };
+shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet);
+shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet);
 
 #endif
