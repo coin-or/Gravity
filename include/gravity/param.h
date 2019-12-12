@@ -140,7 +140,7 @@ namespace gravity {
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
-                    DebugOn(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
+                    DebugOff(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
                     throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
