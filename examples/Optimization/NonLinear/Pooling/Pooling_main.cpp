@@ -84,6 +84,7 @@ int main (int argc, char * argv[]) {
     auto cost_po=poolnet.cost_po.in(pools_outputs);
     
     var<> q("q", 0, 1);
+    var<> cq("cq", 0, 100);
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 5);
@@ -91,6 +92,7 @@ int main (int argc, char * argv[]) {
     SPP.add(y.in(pools_outputs));
     SPP.add(z.in(inputs_outputs));
     SPP.add(p_pool.in(pool_attr));
+    SPP.add(cq.in(range(0,1)));
     
     q.initialize_all(0.5);
 
@@ -291,17 +293,19 @@ int main (int argc, char * argv[]) {
         row_id++;
     }
     
-   
+    Constraint<> costq("costq");
+    costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
+     SPP.add(costq==0);
+    costq.print();
     
     //auto obj=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
      auto obj1=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
      obj1.print();
-    func<> a=(product(y.in(pool_per_output), obj1));
-    a.print();
+//    func<> a=(product(y.in(pool_per_output), obj1));
+//    a.print();
    
-    auto obj= y.in(pool_per_output)*(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
+    auto obj= y.in(pool_per_output)*(cq);
    // obj1.eval_all();
-  obj1.print();
     obj.print();
 //
  //   auto obj= product(cost_ip, )+product(cost_io, z)+product(cost_po, y);
