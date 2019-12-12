@@ -833,6 +833,7 @@ namespace gravity {
             return _val->back();
         }
 
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline type eval(size_t i) const {
             if(is_matrix()){
                 throw invalid_argument("eval() should be called with double index here\n");
@@ -850,6 +851,37 @@ namespace gravity {
 //            if (_val->size()<=idx){
 //                throw invalid_argument("Param eval out of range");
 //            }
+            return _val->at(idx);
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        inline type eval(size_t i) const {
+            if(is_matrix()){
+                throw invalid_argument("eval() should be called with double index here\n");
+            }
+            auto idx = get_id_inst(i);
+            //            if (is_indexed()) {
+            //                if (_indices->_ids->size()>1) {
+            //                    throw invalid_argument("eval() should be called with double index here\n");
+            //                }
+            //                if (_val->size()<=idx){
+            //                    throw invalid_argument("Param eval out of range");
+            //                }
+            //                return _val->at(idx);
+            //            }
+            //            if (_val->size()<=idx){
+            //                throw invalid_argument("Param eval out of range");
+            //            }
+            if(_is_conjugate)
+                return conj(_val->at(idx));
+            if(_is_angle)
+                return Cpx(arg(_val->at(idx)),0);
+            if(_is_sqrmag)
+                return Cpx(std::pow(std::abs(_val->at(idx)),2),0);
+            if(_is_imag)
+                return Cpx(0,imag(_val->at(idx)));
+            if(_is_real)
+                return Cpx(real(_val->at(idx)),0);
             return _val->at(idx);
         }
 
