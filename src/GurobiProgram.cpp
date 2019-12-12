@@ -243,7 +243,7 @@ void GurobiProgram::create_grb_constraints(){
             default:
                 break;
         }
-        nb_inst = c->get_nb_instances();
+        nb_inst = c->get_nb_inst();
         inst = 0;
         if (c->is_linear()) {
             for (size_t i = 0; i< nb_inst; i++){
@@ -283,8 +283,8 @@ void GurobiProgram::create_grb_constraints(){
                     quadlhs = 0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
-                        if (it1.second._p->_is_vector || it1.second._p->is_matrix_indexed() || it1.second._coef->is_matrix()) {
-                            auto dim =it1.second._p->get_dim(i);
+                        if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix() || it1.second._p->is_matrix_indexed()) {
+                            auto dim = it1.second._p->get_dim(i);
                             for (size_t j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
                                 gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
