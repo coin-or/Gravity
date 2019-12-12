@@ -304,7 +304,7 @@ void GurobiProgram::create_grb_constraints(){
                     for (auto& it1: c->get_qterms()) {
                         gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
                         gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
-                        if (it1.second._p->first->_is_vector) {
+                        if (it1.second._coef->_is_transposed || it1.second._p->second->is_matrix_indexed()) {
                             auto dim =it1.second._p->first->get_dim(i);
                             for (int j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
