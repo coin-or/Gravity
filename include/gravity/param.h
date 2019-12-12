@@ -140,6 +140,7 @@ namespace gravity {
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
+                    DebugOn(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size" << _indices->_ids->at(0).size());
                     throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
@@ -154,7 +155,7 @@ namespace gravity {
             return inst;
         };
 
-        size_t get_id_inst(size_t i, size_t j) const {            
+        size_t get_id_inst(size_t i, size_t j) const {
             if (is_indexed() && _indices->_ids->size()>1) {
                 if (_indices->_ids->size() <= i) {
                     throw invalid_argument("get_id_inst(i,j): i out of range");
@@ -165,6 +166,7 @@ namespace gravity {
                 return _indices->_ids->at(i).at(j);
             }
             if (!is_matrix()) {
+                DebugOn(_name << ": calling get_id_inst("<< i<<","<<j<<")" << "will call get_id_inst(j)" << endl);
                 return get_id_inst(j);
             }
             if (_is_transposed) {
