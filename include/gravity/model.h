@@ -6304,7 +6304,7 @@ namespace gravity {
         
         //optimality based bound tightening procedure for a given mathematical formulation
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
-        template<typename T,
+        template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         std::tuple<bool,int,double,double,double,bool> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6, shared_ptr<Model<type>> ub_model= nullptr, shared_ptr<Model<type>> nonlin_model= nullptr, bool nonlin=true);
         
