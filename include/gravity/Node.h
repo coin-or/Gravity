@@ -53,6 +53,7 @@ public:
      */
     void addArc(Arc* a);
 
+    void print() const;
      /*
      @brief Find and remove incident arc from list of branches
      @return 0 if a was found and removed, -1 otherwise

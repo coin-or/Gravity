@@ -136,6 +136,7 @@ public:
     std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
     std::vector<pair<string,vector<Node*>>> decompose_bags_3d(bool print_bags=false);
 
+    void print() const;
     
     /** Sort nodes in decreasing degree */
     void orderNodes(Net* net);

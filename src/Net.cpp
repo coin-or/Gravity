@@ -222,10 +222,10 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
-    if (src == dest){
-        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-        
-    }
+//    if (src == dest){
+//        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+//        
+//    }
     
     
     key.clear();
@@ -1075,6 +1075,12 @@ Net::~Net() {
         delete horton_net;
     for (pair<string,map<string,Arc*>*> it:arcID) {
         delete it.second;
+    }
+}
+
+void Net::print() const{
+    for(const Node* n:nodes){
+        n->print();
     }
 }
 
