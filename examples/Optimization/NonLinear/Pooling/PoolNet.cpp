@@ -29,9 +29,6 @@ using namespace std;
 
 PoolNet::PoolNet() {
     //in inputs_pools
-    x_min.set_name("x_min");
-    x_max.set_name("x_max");
-    //in pools_outputs
     y_min.set_name("y_min");
     y_max.set_name("y_max");
     //in inputs_outputs
@@ -45,7 +42,6 @@ PoolNet::PoolNet() {
     avail_max.set_name("avail_max");
     inqual.set_name("inqual");
     //in outputs
-    rev.set_name("rev");
     dem_min.set_name("dem_min");
     dem_max.set_name("dem_max");
     outqual_min.set_name("outqual_min");
@@ -566,12 +562,7 @@ void PoolNet::readgrid() {
         dem_max.add_val(to_string(i), val);
     }
     
-    for(auto key: *(inputs_pools._keys)){
-        x_min.add_val(key, 0);
-        x_max.add_val(key, 75);
-     
-        
-    }
+
     for(auto key: *(pools_outputs._keys)){
         y_min.add_val(key, 0);
         y_max.add_val(key, 30);
@@ -622,7 +613,28 @@ void PoolNet::readgrid() {
     }
     file.close();
     
+//    for(auto &ip:*inputs_pools._keys){
+//        
+//        auto pos = nthOccurrence(ip, ",", 1);
+//        auto inputkey= ip.substr(0,pos);
+//        auto poolkey = ip.substr(pos+1);
+//        auto au=avail_max.eval(inputkey);
+//        auto cap=pool_cap.eval(poolkey);
+//        auto sum_dem=0.0;
+//        for(auto &op:*pools_outputs._keys){
+//        
+//            auto pos = nthOccurrence(op, ",", 1);
+//            auto pool=op.substr(0,pos);
+//            auto out=op.substr(pos+1);
+//            if(pool.compare(poolkey)){
+//                sum_dem+=dem_max.eval(out);
+//        }
+//        
+//        
+//    }
+//        x_min.add_val(ip, 0.0);
+//        x_max.add_val(ip, std::min(std::min(au,cap),sum_dem));
+//}
+
 }
-
-
 

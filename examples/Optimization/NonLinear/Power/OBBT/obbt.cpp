@@ -251,6 +251,10 @@ int main (int argc, char * argv[]) {
 //        vector<double> x_sol(SDP->get_nb_vars());
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
+
+        //SDP->print_solution(10);
+        
+
        //SDP->print();
         SDPLB.run(output = 0, 1e-8, "ma27");
 //        SDP->print_solution();
@@ -259,10 +263,12 @@ int main (int argc, char * argv[]) {
         lb_solv=false;
         if(SDP->_status==0){
             lb_solv=true;
+
         lower_bound=SDP->get_obj_val()*upper_bound;
         
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
+
             auto solver_time1= get_wall_time();
          SDPO=SDP->buildOA(5, 5);
             DebugOn(grid._name<<endl);
@@ -288,6 +294,8 @@ int main (int argc, char * argv[]) {
 ////        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
 //        double gap_lin=100*(upper_bound - SDPO->get_obj_val()*upper_bound)/upper_bound;
 //        DebugOn("Gap Linear"<<gap_lin);
+
+            
         
         
      

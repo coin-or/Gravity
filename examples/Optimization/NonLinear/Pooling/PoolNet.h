@@ -28,7 +28,7 @@ class PoolNet: public Net {
     
 public:
     
-    param<double> x_min, x_max, inqual;//in inputs_pools
+    param<double> q_min, q_max, inqual;//in inputs_pools
     param<double> y_min, y_max;//in pools_outputs
     param<double> z_min, z_max,outqual_min, outqual_max;//in inputs_outputs
     param<double>  avail_max, avail_min; //in inputs
