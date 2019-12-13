@@ -83,6 +83,8 @@ public:
 
     /** Modifiers */
     void add_node(Node* n);
+    /* Add node at specified position in nodes */
+    void add_node(Node* n, size_t pos);
     bool add_arc(Arc* a);
     void add_undirected_arc(Arc* a);
 

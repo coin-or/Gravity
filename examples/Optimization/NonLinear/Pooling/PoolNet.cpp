@@ -875,32 +875,32 @@ SPP->add(product_quality_ub.in(outputs_attr)<=0);
 
 
 
-Constraint<> sumy("sumy");
-sumy=sum(y);
+//Constraint<> sumy("sumy");
+//sumy=sum(y);
 // SPP->add_lazy(sumy>=11);
 
-row_id = 0;
-indices pool_per_output = indices("pool_per_output");
-for (auto &out:*Outputs._keys) {
-    pool_per_output.add_empty_row();
-    for (const string& pool_out:*pools_outputs._keys) {
-        auto pos = nthOccurrence(pool_out, ",", 1);
-        auto out1 = pool_out.substr(pos+1);
-        
-        if(out1==out){
-            pool_per_output.add_in_row(row_id, pool_out);
-        }
-    }
-    row_id++;
-}
+//row_id = 0;
+//indices pool_per_output = indices("pool_per_output");
+//for (auto &out:*Outputs._keys) {
+//    pool_per_output.add_empty_row();
+//    for (const string& pool_out:*pools_outputs._keys) {
+//        auto pos = nthOccurrence(pool_out, ",", 1);
+//        auto out1 = pool_out.substr(pos+1);
+//
+//        if(out1==out){
+//            pool_per_output.add_in_row(row_id, pool_out);
+//        }
+//    }
+//    row_id++;
+//}
 
-Constraint<> costq("costq");
-costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
-SPP->add(costq==0);
+//Constraint<> costq("costq");
+//costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
+//SPP->add(costq==0);
 
-
+SPP->min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
 //auto obj=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
-auto obj1=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
+//auto obj1=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
 
 //    func<> a=(product(y.in(pool_per_output), obj1));
 //    a.print();
