@@ -24,23 +24,33 @@ int main (int argc, char * argv[]) {
 
     PoolNet poolnet;
     poolnet.readgrid();
-    SolverType solv_type = gurobi;
+    SolverType solv_type = ipopt;
     
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
     
-  //  auto SPP=build_pool_qform(poolnet);
+//    auto SPP=build_pool_qform(poolnet);
      auto SPP=build_pool_pform(poolnet);
     
    
     
     SPP->print();
+    auto g = SPP->get_interaction_graph();
+    g.print();
+    if(g._tree){
+        DebugOn("Interaction graph is a tree!" << endl);
+    }
+    else {
+        g.get_tree_decomp_bags();
+        auto bags_3d=g.decompose_bags_3d();
+        
+    }
 
     solver<> SPP_solv(SPP,solv_type);
     SPP_solv.run(5, 1e-7);
 
 
-//    SPP.min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
+
     
     SPP->print_solution();
     SPP->print_constraints_stats(1e-7);

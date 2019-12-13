@@ -166,7 +166,7 @@ namespace gravity {
                 return _indices->_ids->at(i).at(j);
             }
             if (!is_matrix()) {
-                DebugOn(_name << ": calling get_id_inst("<< i<<","<<j<<")" << "will call get_id_inst(j)" << endl);
+                DebugOff(_name << ": calling get_id_inst("<< i<<","<<j<<")" << "will call get_id_inst(j)" << endl);
                 return get_id_inst(j);
             }
             if (_is_transposed) {

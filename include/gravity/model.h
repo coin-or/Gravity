@@ -3864,7 +3864,7 @@ namespace gravity {
          */
         Net get_symbolic_interaction_graph(int degree=2) const{
             if(this->_type==nlin_m){
-                throw invalid_argument("build_interaction_graph currently only supports polynomial, quadratic and linear models");
+                throw invalid_argument("get_symbolic_interaction_graph currently only supports polynomial, quadratic and linear models");
             }
             Net g;
             Node* n1 = nullptr;
@@ -3893,19 +3893,6 @@ namespace gravity {
                             g.add_arc(a);
                             a->connect();
                             
-                        }
-                        assert(p1->_is_vector == p2->_is_vector); /* They're both vectors or they're both not */
-                        if(p1->_is_vector){
-                            if(g.get_arc(n1, n1)==nullptr){
-                                auto a = new Arc(n1,n1);
-                                g.add_arc(a);
-                                a->connect();
-                            }
-                            if(g.get_arc(n2, n2)==nullptr){
-                                auto a = new Arc(n2,n2);
-                                g.add_arc(a);
-                                a->connect();
-                            }
                         }
                     }
                 }
@@ -4005,8 +3992,212 @@ namespace gravity {
            @param[degree] degree of the relaxation, if degree = 2 and the model is quadratic, do not account for linear relationships.
         */
         Net get_interaction_graph(int degree=2) const{
-            Net symbolic_graph = get_symbolic_interaction_graph(degree);
-            Net g; /* TODO */
+            if(this->_type==nlin_m){
+                throw invalid_argument("get_interaction_graph currently only supports polynomial, quadratic and linear models");
+            }
+            Net g;
+            Node* n1 = nullptr;
+            Node* n2 = nullptr;
+            for(auto& c_p :_cons) {
+                auto c = c_p.second;
+                if(this->_type==quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
+                    auto nb_inst = c->get_nb_inst();
+                    for(int inst = 0; inst<nb_inst; inst++){
+                        for (auto &pair:*c->_qterms) {
+                            auto coef = pair.second._coef;
+                            auto p1 = pair.second._p->first;
+                            auto p2 = pair.second._p->second;
+                            if(p1->is_matrix_indexed()){
+                                auto dim = p1->get_dim(inst);
+                                for (size_t j = 0; j<dim; j++) {
+                                    auto p1_name = p1->get_name(inst,j);
+                                    auto p2_name = p2->get_name(inst,j);
+                                    n1 = g.get_node(p1_name);
+                                    if(n1==nullptr){
+                                        n1 = new Node(p1_name);
+                                        g.add_node(n1);
+                                    }
+                                    n2 = g.get_node(p2_name);
+                                    if(n2==nullptr){
+                                        n2 = new Node(p2_name);
+                                        g.add_node(n2);
+                                    }
+                                    if(g.get_arc(n1, n2)==nullptr){
+                                        auto a = new Arc(n1,n2);
+                                        g.add_arc(a);
+                                        a->connect();
+                                    }
+                                }
+                            }
+                            else {
+                                auto p1_name = p1->get_name(inst);
+                                auto p2_name = p2->get_name(inst);
+                                n1 = g.get_node(p1_name);
+                                if(n1==nullptr){
+                                    n1 = new Node(p1_name);
+                                    g.add_node(n1);
+                                }
+                                n2 = g.get_node(p2_name);
+                                if(n2==nullptr){
+                                    n2 = new Node(p2_name);
+                                    g.add_node(n2);
+                                }
+                                if(g.get_arc(n1, n2)==nullptr){
+                                    auto a = new Arc(n1,n2);
+                                    g.add_arc(a);
+                                    a->connect();
+                                }
+                            }
+                        }
+                    }
+                }
+                else { /* All variables appearing in the constraint are linked in the interaction graph */
+                    auto nb_inst = c->get_nb_inst();
+                    for(int inst = 0; inst<nb_inst; inst++){
+                        for(auto it = c->_vars->begin(); it != c->_vars->end(); it++) {
+                            auto p1 = it->second.first;
+                            for(auto it2 = next(it); it2 != c->_vars->end(); it2++) {
+                                auto p2 = it2->second.first;
+                                if(p1->is_matrix_indexed()){
+                                    auto dim = p1->get_dim(inst);
+                                    for (size_t j = 0; j<dim; j++) {
+                                        auto p1_name = p1->get_name(inst,j);
+                                        auto p2_name = p2->get_name(inst,j);
+                                        n1 = g.get_node(p1_name);
+                                        if(n1==nullptr){
+                                            n1 = new Node(p1_name);
+                                            g.add_node(n1);
+                                        }
+                                        n2 = g.get_node(p2_name);
+                                        if(n2==nullptr){
+                                            n2 = new Node(p2_name);
+                                            g.add_node(n2);
+                                        }
+                                        if(g.get_arc(n1, n2)==nullptr){
+                                            auto a = new Arc(n1,n2);
+                                            g.add_arc(a);
+                                            a->connect();
+                                        }
+                                    }
+                                }
+                                else {
+                                    auto p1_name = p1->get_name(inst);
+                                    auto p2_name = p2->get_name(inst);
+                                    n1 = g.get_node(p1_name);
+                                    if(n1==nullptr){
+                                        n1 = new Node(p1_name);
+                                        g.add_node(n1);
+                                    }
+                                    n2 = g.get_node(p2_name);
+                                    if(n2==nullptr){
+                                        n2 = new Node(p2_name);
+                                        g.add_node(n2);
+                                    }
+                                    if(g.get_arc(n1, n2)==nullptr){
+                                        auto a = new Arc(n1,n2);
+                                        g.add_arc(a);
+                                        a->connect();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if(!_obj->is_constant()){
+                for (auto &pair:*_obj->_qterms) {
+                    auto coef = pair.second._coef;
+                    auto p1 = pair.second._p->first;
+                    auto p2 = pair.second._p->second;
+                    if(p1->is_matrix_indexed()){
+                        for (size_t inst = 0; inst<p1->get_dim(0); inst++) {
+                            auto dim = p1->get_dim(inst);
+                            for (size_t j = 0; j<dim; j++) {
+                                auto p1_name = p1->get_name(inst,j);
+                                auto p2_name = p2->get_name(inst,j);
+                                n1 = g.get_node(p1_name);
+                                if(n1==nullptr){
+                                    n1 = new Node(p1_name);
+                                    g.add_node(n1);
+                                }
+                                n2 = g.get_node(p2_name);
+                                if(n2==nullptr){
+                                    n2 = new Node(p2_name);
+                                    g.add_node(n2);
+                                }
+                                if(g.get_arc(n1, n2)==nullptr){
+                                    auto a = new Arc(n1,n2);
+                                    g.add_arc(a);
+                                    a->connect();
+                                }
+                            }
+                        }
+                    }
+                    else if(p1->_is_vector){
+                        for (size_t inst = 0; inst<p1->get_dim(0); inst++) {
+                            auto p1_name = p1->get_name(inst);
+                            auto p2_name = p2->get_name(inst);
+                            n1 = g.get_node(p1_name);
+                            if(n1==nullptr){
+                                n1 = new Node(p1_name);
+                                g.add_node(n1);
+                            }
+                            n2 = g.get_node(p2_name);
+                            if(n2==nullptr){
+                                n2 = new Node(p2_name);
+                                g.add_node(n2);
+                            }
+                            if(g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                    }
+                    else {
+                        auto p1_name = p1->get_name(false,false);
+                        auto p2_name = p2->get_name(false,false);
+                        n1 = g.get_node(p1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(p1_name);
+                            g.add_node(n1);
+                        }
+                        n2 = g.get_node(p2_name);
+                        if(n2==nullptr){
+                            n2 = new Node(p2_name);
+                            g.add_node(n2);
+                        }
+                        if(g.get_arc(n1, n2)==nullptr){
+                            auto a = new Arc(n1,n2);
+                            g.add_arc(a);
+                            a->connect();
+                        }
+                    }
+                }
+                for (auto &pair:*_obj->_pterms) {
+                    for(auto it = pair.second._l->begin(); it != pair.second._l->end(); it++) {
+                        auto n1_name = it->first->get_name(false,false);
+                        n1 = g.get_node(n1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(n1_name);
+                            g.add_node(n1);
+                        }
+                        for(auto it2 = next(it); it2 != pair.second._l->end(); it2++) {
+                            auto n2_name = it2->first->get_name(false,false);
+                            n2 = g.get_node(n2_name);
+                            if(n2==nullptr){
+                                n2 = new Node(n2_name);
+                                g.add_node(n2);
+                            }
+                            if(g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                    }
+                }
+            }
             return g;
         }
         
