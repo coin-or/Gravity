@@ -640,11 +640,11 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                         new_bag.first = key;
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
-                            DebugOn("new bag = { ");
+                            DebugOff("new bag = { ");
                             for (int i=0; i<new_bag.second.size();     i++) {
-                                cout << new_bag.second.at(i)->_name << " ";
+                                DebugOff(new_bag.second.at(i)->_name << " ");
                             }
-                            DebugOn("}" << endl);
+                            DebugOff("}" << endl);
 
                         }
                     }

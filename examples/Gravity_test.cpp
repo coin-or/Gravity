@@ -523,6 +523,7 @@ TEST_CASE("2d Polynomial") {
         M.initialize_uniform();
         M.min(pow(x1,2) - 2*pow(x1,4) + x1*x2 - 4*pow(x2,2) + 4*pow(x2,8));
         solver<> s(M,ipopt);
+        s.set_option("max_iter", 2);
         s.run(5,1e-6);
         M.print();
         M.print_solution();
@@ -1263,7 +1264,7 @@ TEST_CASE("Bug in Cplex MIQCP presolve"){
             solver<> s(m,ipopt);
             s.run(5,1e-6);
         }
-        CHECK(std::abs(m.get_obj_val()-31.003139013)<1e-6);
+        CHECK(std::abs(m.get_obj_val()-31.00313)<1e-3);
         m.print_solution();
     }
 }
@@ -1440,6 +1441,7 @@ TEST_CASE("testing min/max functions") {
         int output;
         double tol;
         string lin_solver;
+        NLP.set_option("bound_relax_factor", 1e-10);
         NLP.run(output=5,tol=1e-6);
         M.print_solution();
         M.print_symbolic();
