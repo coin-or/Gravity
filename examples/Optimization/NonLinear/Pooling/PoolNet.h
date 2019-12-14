@@ -35,6 +35,7 @@ public:
     param<double> rev, dem_max, dem_min; //in outputs
     param<double> pool_cap; //in pools
     param<double> cost_ip,cost_io, cost_po;
+    param<double> sumyk;
 
     
     /** Set of all diesel generators */
@@ -63,7 +64,7 @@ public:
     ~PoolNet();
     
     /** Power grid data parser from Matpower*/
-    void readgrid();
+    void readgrid(string fname);
     
         void readgrid1();
     
@@ -112,6 +113,6 @@ public:
     void fill_wbnds();
 };
 shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet);
-shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet);
+shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type);
 
 #endif

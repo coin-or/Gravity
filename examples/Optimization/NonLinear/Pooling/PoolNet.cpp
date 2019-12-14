@@ -51,6 +51,10 @@ PoolNet::PoolNet() {
     outqual_max.set_name("outqual_max");
     //in pools
     pool_cap.set_name("pool_cap");
+    sumyk.set_name("sumyk");
+    sumyk.in(range(0,0));
+    sumyk.set_val(0);
+    
  
 }
 
@@ -320,9 +324,9 @@ indices PoolNet::in_arcs_per_node() const{
 }
 
 
-void PoolNet::readgrid() {
+void PoolNet::readgrid(string fname) {
     
-    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+   // string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
     string word="", tempwrd, numwrd;
     
     int flag;
@@ -915,7 +919,7 @@ SPP->min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
     return SPP;
 
 }
-shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
+shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type)
 {
     //This is p-formulaiton of pooling problem, yet to explore, p-q and q!
     
@@ -974,9 +978,11 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     auto cost_ip=poolnet.cost_ip.in(inputs_pools);
     auto cost_io=poolnet.cost_io.in(inputs_outputs);
     auto cost_po=poolnet.cost_po.in(pools_outputs);
+    auto sumyk=poolnet.sumyk;
     
     var<> x("x", x_min, x_max);
-    var<> sumyk("sumyk");
+
+    
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 5);
@@ -984,8 +990,8 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     SPP->add(y.in(pools_outputs));
     SPP->add(z.in(inputs_outputs));
     SPP->add(p_pool.in(pool_attr));
-    SPP->add(sumyk);
-    sumyk.set_lb(0);
+//    SPP->add(sumyk);
+//    sumyk.set_lb(0);
     x.initialize_all(2.0);
     y.initialize_all(2.0);
     
@@ -1130,8 +1136,8 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     SPP->add(product_quality_ub.in(outputs_attr)<=0);
     
     Constraint<> sumy_con("sumy_con");
-    sumy_con=sum(y);
-    SPP->add_lazy(sumy_con>=sumyk);
+    sumy_con=sum(y)-sumyk;
+    SPP->add(sumy_con.in(range(0,0))>=0);
     
     auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
     SPP->min(obj);
