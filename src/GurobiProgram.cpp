@@ -10,8 +10,10 @@ GurobiProgram::GurobiProgram(){
 //    grb_env->set(GRB_IntParam_Threads,1);
        grb_env->set(GRB_IntParam_Presolve,0);
       grb_env->set(GRB_IntParam_NumericFocus,3);
+     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
     grb_env->set(GRB_IntParam_OutputFlag,1);
 //    grb_mod = new GRBModel(*grb_env);
     grb_mod = NULL;
@@ -20,6 +22,18 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env = new GRBEnv();
+    grb_env->set(GRB_IntParam_Presolve,0);
+    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+    //    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Presolve,0);
+    grb_env->set(GRB_IntParam_NumericFocus,3);
+    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
@@ -29,6 +43,18 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env = new GRBEnv();
+    grb_env->set(GRB_IntParam_Presolve,0);
+    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+    //    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Presolve,0);
+    grb_env->set(GRB_IntParam_NumericFocus,3);
+    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
 //    grb_env->set(GRB_IntParam_OutputFlag,2);
 //    _model = m;
