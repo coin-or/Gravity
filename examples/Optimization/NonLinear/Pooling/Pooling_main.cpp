@@ -23,14 +23,15 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
 
     PoolNet poolnet;
-    poolnet.readgrid();
+     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
     
 //    auto SPP=build_pool_qform(poolnet);
-     auto SPP=build_pool_pform(poolnet);
+     auto SPP=build_pool_pform(poolnet, solv_type);
     
 
     
@@ -51,20 +52,22 @@ int main (int argc, char * argv[]) {
             auto fk_old=SPP->get_obj_val();
     while (SPP->_status==0) {
 
-        auto sumyk=SPP->get_var<double>("sumyk");
-        auto sumyk_val=sumyk.eval(0);
+        auto sumyk=poolnet.sumyk;
+    
         auto con=SPP->get_constraint("sumy_con");
+            con->uneval();
         auto con_val=con->eval(0);
-        auto syk=con_val-sumyk_val;
-            sumyk.set_lb(syk+0.1);
-        SPP->reindex();
+
+            sumyk.set_val(0, con_val+0.1);
         SPP->reset_constrs();
-       
+        SPP->print();
     SPP_solv.run(5, 1e-7);
+    
         if(SPP->_status==0){
             auto fk_new=SPP->get_obj_val();
         if(fk_new>=fk_old)
         {
+            DebugOn("Reached same objective value again");
             break;
         }
         fk_old=fk_new;
