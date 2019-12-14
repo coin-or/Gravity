@@ -24,6 +24,7 @@ int main (int argc, char * argv[]) {
 
     PoolNet poolnet;
      string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    //string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3.gms.txt";
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
@@ -53,16 +54,17 @@ int main (int argc, char * argv[]) {
     while (SPP->_status==0) {
 
         auto sumyk=poolnet.sumyk;
+        auto sumyk_val=sumyk.eval(0);
     
         auto con=SPP->get_constraint("sumy_con");
             con->uneval();
         auto con_val=con->eval(0);
 
-            sumyk.set_val(0, con_val+0.1);
-        SPP->reset_constrs();
+            sumyk.set_val(0, (con_val+0.1+sumyk_val));
+        //SPP->reset_constrs();
         SPP->print();
     SPP_solv.run(5, 1e-7);
-    
+      SPP->print_solution();
         if(SPP->_status==0){
             auto fk_new=SPP->get_obj_val();
         if(fk_new>=fk_old)
