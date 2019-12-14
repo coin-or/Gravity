@@ -58,7 +58,7 @@ int main (int argc, char * argv[]) {
         auto con_val=con->get_val();
         
         sumyk.set_val(con_val+0.1);
-        con_val->uneval();
+        con->uneval();
 //        SPP->reset_constrs();
         SPP->print();
         SPP_solv.run(5, 1e-7);
