@@ -132,6 +132,14 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
+void Net::add_node(Node* node, size_t pos) {
+    if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
+        cerr << "ERROR: adding the same node twice!";
+    }
+    nodes.resize(pos+1);
+    nodes[pos] = node;
+}
+
 Node* Net::get_node(string name) const{
     auto it = nodeID.find(name);
     if(it==nodeID.end())
@@ -630,23 +638,21 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                             }
                         }
                         new_bag.first = key;
-                        DebugOff("new bag = {");
-//                        for (int i=0; i<new_bag.second.size();     i++) {
-//                            cout << new_bag.second.at(i)->_name << " ";
-//                        }
-                        DebugOff("}" << endl);
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
-                            DebugOff("Bag added!" << endl);
-                        }
-                        else{
-                            DebugOff("Bag discarded!" << endl);
+                            DebugOn("new bag = { ");
+                            for (int i=0; i<new_bag.second.size();     i++) {
+                                cout << new_bag.second.at(i)->_name << " ";
+                            }
+                            DebugOn("}" << endl);
+
                         }
                     }
                 }
             }
         }
     }
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
 
