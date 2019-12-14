@@ -24,7 +24,7 @@ int main (int argc, char * argv[]) {
 
     PoolNet poolnet;
     poolnet.readgrid();
-    SolverType solv_type = gurobi;
+    SolverType solv_type = ipopt;
     
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
@@ -32,15 +32,38 @@ int main (int argc, char * argv[]) {
   //  auto SPP=build_pool_qform(poolnet);
      auto SPP=build_pool_pform(poolnet);
     
-   
+   auto g = SPP->get_symbolic_interaction_graph();
+    g.print();
     
     SPP->print();
 
     solver<> SPP_solv(SPP,solv_type);
+        SPP_solv.run(5, 1e-7);
+            auto fk_old=SPP->get_obj_val();
+    while (SPP->_status==0) {
+
+        auto sumyk=SPP->get_var<double>("sumyk");
+        auto sumyk_val=sumyk.eval(0);
+        auto con=SPP->get_constraint("sumy_con");
+        auto con_val=con->eval(0);
+        auto syk=con_val-sumyk_val;
+            sumyk.set_lb(syk+0.1);
+        SPP->reindex();
+        SPP->reset_constrs();
+       
     SPP_solv.run(5, 1e-7);
+        if(SPP->_status==0){
+            auto fk_new=SPP->get_obj_val();
+        if(fk_new>=fk_old)
+        {
+            break;
+        }
+        fk_old=fk_new;
+        }
+    }
 
+    
 
-//    SPP.min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
     
     SPP->print_solution();
     SPP->print_constraints_stats(1e-7);

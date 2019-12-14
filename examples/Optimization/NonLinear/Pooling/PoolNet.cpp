@@ -976,6 +976,7 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     auto cost_po=poolnet.cost_po.in(pools_outputs);
     
     var<> x("x", x_min, x_max);
+    var<> sumyk("sumyk");
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 5);
@@ -983,7 +984,8 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     SPP->add(y.in(pools_outputs));
     SPP->add(z.in(inputs_outputs));
     SPP->add(p_pool.in(pool_attr));
-    
+    SPP->add(sumyk);
+    sumyk.set_lb(0);
     x.initialize_all(2.0);
     y.initialize_all(2.0);
     
@@ -1032,9 +1034,13 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     }
     
     
-    Constraint<> quality_balance("quality_balance");//TODO debug transpose version
-    quality_balance=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
-    SPP->add(quality_balance.in(pool_attr)==0);
+    Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
+    quality_balance_le=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+    SPP->add(quality_balance_le.in(pool_attr)<=0);
+    
+    Constraint<> quality_balance_ge("quality_balance_ge");//TODO debug transpose version
+    quality_balance_ge=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+    SPP->add(quality_balance_ge.in(pool_attr)>=0);
     //SPP->print();
     
     
@@ -1116,16 +1122,17 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet)
     //    SPP->add(product_quality_ub.in(Outputs)<=0);
     
     
-    Constraint<> product_quality_ub("product_quality_ub");//TODO debug transpose version and propagate matrix indexing to function
+//    Constraint<> product_quality_ub_le("product_quality_ub_le");//TODO debug transpose version and propagate matrix indexing to function
+//    product_quality_ub_le=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
+//    SPP->add(product_quality_ub_le.in(outputs_attr)<=0);
     
-    //    product_quality_ub = z.in(in_arcs_from_input_per_output_attr);
-    product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
+    Constraint<> product_quality_ub("product_quality_ub"); product_quality_ub=y.in(in_arcs_from_pool_per_output_attr)*p_pool.in(pool_attr_per_output_attr_matrix)+z.in(in_arcs_from_input_per_output_attr)*p_in.in(input_attr_per_output_attr_matrix)-p_out_max.in(output_attr_per_ypo_matrix)*y.in(in_arcs_from_pool_per_output_attr)-p_out_max.in(output_attr_per_zio_matrix)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality_ub.in(outputs_attr)<=0);
     
-//    Constraint<> sumy("sumy");
-//    sumy=sum(y);
-//    SPP->add_lazy(sumy>=11);
-    //
+    Constraint<> sumy_con("sumy_con");
+    sumy_con=sum(y);
+    SPP->add_lazy(sumy_con>=sumyk);
+    
     auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
     SPP->min(obj);
     
