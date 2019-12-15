@@ -1438,7 +1438,8 @@ TEST_CASE("Few Degrees Of Freedom") {
     rhs_ids.print();
     
     /* ----- Variables ----- */
-    auto x = var<>("x");
+    auto x = var<>("x",-1e4,1e4);
+    m.initialize_midpoint();
     m.add(x.in(range(1,55)));
     auto obj = var<>("obj");
     
@@ -1523,7 +1524,8 @@ TEST_CASE("Few Degrees Of Freedom") {
     
     m.print();
     auto s = solver<>(m,ipopt);
-    s.run();
+    s.run(5,1e-6);
+    m.print_solution();
     CHECK(abs(m.get_obj_val()-60.9836)<1e-4);
 }
 
