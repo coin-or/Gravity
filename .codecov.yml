@@ -26,5 +26,6 @@ comment:
   require_changes: no
 
 ignore:
-  - "examples/*" 
+  - "./examples" 
   - "include/gravity/doctest.h" 
+  - "include/gravity/rapidcsv.h" 
