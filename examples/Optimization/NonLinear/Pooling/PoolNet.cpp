@@ -323,11 +323,17 @@ indices PoolNet::in_arcs_per_node() const{
     return ids;
 }
 
+std::string trim(std::string word){
+    
+}
+
+
+
 
 void PoolNet::readgrid(string fname) {
     
    // string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
-    string word="", tempwrd, numwrd;
+    string word="", tempwrd, numwrd1, numwrd;
     
     int flag;
     double val;
@@ -348,7 +354,7 @@ void PoolNet::readgrid(string fname) {
     getline(file, word);
     
     tempwrd=word.substr(word.find_first_of("*")+1);
-    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of("/"));
 
    
     N_node = atoi(numwrd.c_str());
@@ -356,24 +362,26 @@ void PoolNet::readgrid(string fname) {
     getline(file, word);
     
     tempwrd=word.substr(word.find_first_of("*")+1);
-    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of("/"));
     
     
     N_input = atoi(numwrd.c_str());
 
     getline(file, word);
     
-    tempwrd=word.substr(word.find_first_of("/")+2);
-    numwrd=tempwrd.substr(0, tempwrd.find_first_of("*"));
+    numwrd1=word.substr(word.find_first_of("/")+1,word.find_first_of("*"));
+    tempwrd=word.substr(word.find_first_of("*")+1);
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of("/"));
     
     
-    N_output = N_node+1-atoi(numwrd.c_str());
+    
+    N_output = atoi(numwrd.c_str())-atoi(numwrd1.c_str())+1;
     
     
     getline(file, word);
     
     tempwrd=word.substr(word.find_first_of("*")+1);
-    numwrd=tempwrd.substr(0, tempwrd.find_first_of(" "));
+    numwrd=tempwrd.substr(0, tempwrd.find_first_of("/"));
     
     
     N_attr = atoi(numwrd.c_str());
