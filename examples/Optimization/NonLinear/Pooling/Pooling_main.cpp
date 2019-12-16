@@ -23,8 +23,8 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
 
     PoolNet poolnet;
-     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
-    //string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3.gms.txt";
+     //string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3_gms.txt";
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
