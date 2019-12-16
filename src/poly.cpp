@@ -538,11 +538,34 @@ namespace gravity{
     }
     
     string qterm::print_transposed(size_t inst, int prec) const{
-        if(!_p->first->is_matrix_indexed()){
+        if(!_coef_p1_tr && !_p->first->is_matrix_indexed()){
             return print_transposed(prec);
         }
         string str;
         size_t dim = 0;
+        if (_coef_p1_tr) { // qterm = (coef*p1)^T*p2
+            for (auto i = 0; i<_p->first->get_dim(); i++) {
+                for (auto j = 0; j<_coef->get_dim(i); j++) {
+                    string coef;
+                    if (_coef->is_number()){
+                        coef = _coef->to_str(prec);
+                    }
+                    else {
+                        coef = _coef->to_str(i,j,prec);
+                    }
+                    str += clean_print(_sign,coef);
+                    auto name1 = _p->first->get_name(j);
+                    auto name2 = _p->second->get_name(i);
+                    if (name1==name2) {
+                        str += name1 + "²";
+                    }
+                    else {
+                        str += name1 + name2;
+                    }
+                }
+            }
+            return str;
+        }
         if(_coef->_is_transposed){
             dim = _coef->get_dim(inst);
         }
