@@ -47,7 +47,7 @@ int main (int argc, char * argv[]) {
     bool nonlin=true;
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
 
 #ifdef USE_OPT_PARSER
     
