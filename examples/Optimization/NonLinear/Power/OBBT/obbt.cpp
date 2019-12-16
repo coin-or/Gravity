@@ -256,7 +256,7 @@ int main (int argc, char * argv[]) {
         
 
        //SDP->print();
-        SDPLB.run(output = 0, 1e-8, "ma27");
+        SDPLB.run(output = 0, 1e-8);
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
