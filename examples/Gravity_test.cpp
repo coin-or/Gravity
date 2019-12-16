@@ -1458,6 +1458,35 @@ TEST_CASE("Few Degrees Of Freedom") {
 }
 
 
+TEST_CASE("Paths") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices bus_pairs("bpairs");
+    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
+    Mtest.add(SOC.in(bus_pairs) <= 0);
+    Mtest.print();
+    auto g = Mtest.get_interaction_graph();
+    g.print();
+    CHECK(g.nodes.size()==12);
+    CHECK(g.arcs.size()==4);
+    Path p;
+    p.nodes.push_back(g.get_node("Wii[1]"));
+    p.nodes.push_back(g.get_node("Wii[2]"));
+    p.nodes.push_back(g.get_node("Wii[3]"));
+    p.nodes.push_back(g.get_node("Wii[1]"));
+    CHECK(p.source_dest(g.get_node("Wii[1]"), g.get_node("Wii[1]")));
+    CHECK(p.length()==4);
+    CHECK(p.cycle());
+    CHECK(p.to_str()=="{ Wii[1] , Wii[2] , Wii[3] , Wii[1] }");
+}
+
 #ifdef USE_MPI
 TEST_CASE("testing MPI") {
     DebugOn("testing MPI" << endl);
