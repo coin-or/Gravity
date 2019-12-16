@@ -544,10 +544,12 @@ namespace gravity {
 //        return run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
 //    }
     
-    /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
+
+
+    /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6);
     
-    
+    int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
 #ifdef USE_MPI
     
     /** Send model status to all workers
