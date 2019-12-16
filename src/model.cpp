@@ -5870,7 +5870,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    int nb_threads = 12;
+    int nb_threads = 1;
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
