@@ -154,11 +154,11 @@ int main (int argc, char * argv[])
     /** AC Power Flows */
     Constraint<Cpx> Flow_From("Flow_From");
     Flow_From = S_from - ((conj(Y)+conj(Ych))/sqrmag(T))*sqrmag(V_from) + (conj(Y)/T)*V_from*conj(V_to);
-    CPXOPF.add(Flow_From.in(arcs)==0);
+    CPXOPF.add(Flow_From.in(arcs)==0, true); /* Lift nonlinear terms */
     
     Constraint<Cpx> Flow_To("Flow_To");
     Flow_To = S_to - (conj(Y)+conj(Ych))*sqrmag(V_to) + (conj(Y)/conj(T))*conj(V_from)*V_to;
-    CPXOPF.add(Flow_To.in(arcs)==0);
+    CPXOPF.add(Flow_To.in(arcs)==0, true); /* Lift nonlinear terms */
     
     /* Phase Angle Bounds constraints */
     Constraint<Cpx> PAD_UB("PAD_UB");
@@ -180,9 +180,6 @@ int main (int argc, char * argv[])
     CPXOPF.add(Thermal_Limit_to.in(arcs) <= 0);
     CPXOPF.print_symbolic();
     CPXOPF.print();
-    auto g = CPXOPF.get_symbolic_interaction_graph();
-    g.print();
-    return 0;
 //    solver<Cpx> OPF(CPXOPF,ipopt);
     auto solver_time_start = get_wall_time();
 //    OPF.run(output, tol = 1e-6);

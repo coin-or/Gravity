@@ -79,6 +79,9 @@ namespace gravity {
         SolverType                                _stype;
         type                                      _tol = 1e-6; /*<< Solver tolerance. */
         unsigned                                  _nb_iterations = 0;
+        map<string,string>                        _str_options;
+        map<string,int>                           _int_options;
+        map<string,double>                        _double_options;
         
         /** Constructor */
         //@{
@@ -96,6 +99,17 @@ namespace gravity {
             _model = (Model<type>*)&model;
             _model->_built = true;
             init();
+        }
+        void set_option(const string& option, const string& val){
+            _str_options[option] = val;
+        }
+        
+        void set_option(const string& option, const int& val){
+            _int_options[option] = val;
+        }
+        
+        void set_option(const string& option, const double& val){
+            _double_options[option] = val;
         }
         
         unsigned get_nb_iterations(){
@@ -243,9 +257,9 @@ namespace gravity {
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-                    iapp->Options()->SetNumericValue("bound_relax_factor", 1e-12);
+                    iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-1);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
-                    //                                iapp->Options()->SetStringValue("derivative_test", "second-order");
+//                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
@@ -287,6 +301,15 @@ namespace gravity {
                     //            iapp.Options()->SetIntegerValue("print_level", 5);
                     
                     //                        iapp->Options()->SetStringValue("derivative_test_print_all", "yes");
+                    for(const auto &op: _str_options){
+                        iapp->Options()->SetStringValue(op.first, op.second);
+                    }
+                    for(const auto &op: _int_options){
+                        iapp->Options()->SetIntegerValue(op.first, op.second);
+                    }
+                    for(const auto &op: _double_options){
+                        iapp->Options()->SetNumericValue(op.first, op.second);
+                    }
                     if(!_model->_built){ /* Constraints have been added */
                         _model->reindex();
                     }
@@ -521,10 +544,12 @@ namespace gravity {
 //        return run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
 //    }
     
-    /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
+
+
+    /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6);
     
-    
+    int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
 #ifdef USE_MPI
     
     /** Send model status to all workers

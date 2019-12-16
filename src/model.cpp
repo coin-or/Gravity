@@ -5870,7 +5870,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    int nb_threads = 12;
+    int nb_threads = 1;
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
@@ -5896,7 +5896,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
-        SolverType solv_type = gurobi;
+        SolverType solv_type = ipopt;
         const double tol = 1e-8;
           int output = 0;
         
@@ -5908,7 +5908,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //        this->reindex();
         solver<> SDPLB2(*this,solv_type);
 
-        SDPLB2.run(output = 0, 1e-9, "ma27");
+        SDPLB2.run(output = 0, 1e-9);
         double lower_bound_init=-999, lower_bound;
 
 //        this->print();
@@ -6032,7 +6032,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                 run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",2000,2000, false,true);
 
 #else
-                              run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
+                              run_parallel(batch_models,solv_type,tol,nb_threads, 2000);
                               //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
@@ -6247,7 +6247,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                     {
                                               //    model->print();
                                         solver<> SDPLB_model(*model,solv_type);
-                                        SDPLB_model.run(output = 0, tol, "ma27");
+                                        SDPLB_model.run(output = 0, tol);
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         
                                         
@@ -6363,7 +6363,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                       
             solver<> SDPLB1(*this,solv_type);
             
-            SDPLB1.run(output = 0, tol, "ma27");
+            SDPLB1.run(output = 0, tol);
         }
         
     }

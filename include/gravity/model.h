@@ -4022,7 +4022,7 @@ namespace gravity {
                                         n2 = new Node(p2_name);
                                         g.add_node(n2);
                                     }
-                                    if(g.get_arc(n1, n2)==nullptr){
+                                    if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                         auto a = new Arc(n1,n2);
                                         g.add_arc(a);
                                         a->connect();
@@ -4042,7 +4042,7 @@ namespace gravity {
                                     n2 = new Node(p2_name);
                                     g.add_node(n2);
                                 }
-                                if(g.get_arc(n1, n2)==nullptr){
+                                if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                     auto a = new Arc(n1,n2);
                                     g.add_arc(a);
                                     a->connect();
@@ -4073,7 +4073,7 @@ namespace gravity {
                                             n2 = new Node(p2_name);
                                             g.add_node(n2);
                                         }
-                                        if(g.get_arc(n1, n2)==nullptr){
+                                        if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                             auto a = new Arc(n1,n2);
                                             g.add_arc(a);
                                             a->connect();
@@ -4093,7 +4093,7 @@ namespace gravity {
                                         n2 = new Node(p2_name);
                                         g.add_node(n2);
                                     }
-                                    if(g.get_arc(n1, n2)==nullptr){
+                                    if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                         auto a = new Arc(n1,n2);
                                         g.add_arc(a);
                                         a->connect();
@@ -4125,7 +4125,7 @@ namespace gravity {
                                     n2 = new Node(p2_name);
                                     g.add_node(n2);
                                 }
-                                if(g.get_arc(n1, n2)==nullptr){
+                                if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                     auto a = new Arc(n1,n2);
                                     g.add_arc(a);
                                     a->connect();
@@ -4147,7 +4147,7 @@ namespace gravity {
                                 n2 = new Node(p2_name);
                                 g.add_node(n2);
                             }
-                            if(g.get_arc(n1, n2)==nullptr){
+                            if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                 auto a = new Arc(n1,n2);
                                 g.add_arc(a);
                                 a->connect();
@@ -4167,7 +4167,7 @@ namespace gravity {
                             n2 = new Node(p2_name);
                             g.add_node(n2);
                         }
-                        if(g.get_arc(n1, n2)==nullptr){
+                        if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                             auto a = new Arc(n1,n2);
                             g.add_arc(a);
                             a->connect();
@@ -4189,7 +4189,7 @@ namespace gravity {
                                 n2 = new Node(n2_name);
                                 g.add_node(n2);
                             }
-                            if(g.get_arc(n1, n2)==nullptr){
+                            if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
                                 auto a = new Arc(n1,n2);
                                 g.add_arc(a);
                                 a->connect();
