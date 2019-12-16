@@ -30,6 +30,8 @@ before_install:
 script:
 - make
 - ../bin/Debug/gravity_test
+- ../bin/Debug/obbt
+- ../bin/Debug/cpxopf
 - ../bin/Debug/space_craft
 - ../bin/Debug/acopf
 - ../bin/Debug/dcopf
@@ -38,7 +40,6 @@ script:
 - ../bin/Debug/sdpcuts -lz yes
 - ../bin/Debug/svm -nb -1 -mu 1e2
 - ../bin/Debug/stable_set
-- ../bin/Debug/AlpineX -s ipopt
 #- ../bin/Debug/ising
 - cd ../
 - ./get_code_cov.sh
