@@ -31,8 +31,8 @@ int main (int argc, char * argv[]) {
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
     
-    //    auto SPP=build_pool_qform(poolnet);
-    auto SPP=build_pool_pform(poolnet, solv_type);
+        auto SPP=build_pool_qform(poolnet);
+//    auto SPP=build_pool_pform(poolnet, solv_type);
     
     
     

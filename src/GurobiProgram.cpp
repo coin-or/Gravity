@@ -10,7 +10,7 @@ GurobiProgram::GurobiProgram(){
 //    grb_env->set(GRB_IntParam_Threads,1);
        grb_env->set(GRB_IntParam_Presolve,0);
       grb_env->set(GRB_IntParam_NumericFocus,3);
-     grb_env->set(GRB_IntParam_NonConvex,2);
+//     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
     
@@ -29,7 +29,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     //    grb_env->set(GRB_IntParam_Threads,1);
     grb_env->set(GRB_IntParam_Presolve,0);
     grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+//    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
     
@@ -50,7 +50,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     //    grb_env->set(GRB_IntParam_Threads,1);
     grb_env->set(GRB_IntParam_Presolve,0);
     grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+//    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
     
@@ -328,7 +328,22 @@ void GurobiProgram::create_grb_constraints(){
                         quadlhs += lterm;
                     }
                     for (auto& it1: c->get_qterms()) {
-                        if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix_indexed() || it1.second._p->first->is_matrix_indexed()) {
+                        if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                            for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
+                                for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
+                                    coeff = _model->_obj->eval(it1.second._coef,i,j);
+                                    gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(j)];
+                                    gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
+                                    if (!it1.second._sign) {
+                                        quadlhs -= coeff*gvar1*gvar2;
+                                    }
+                                    else {
+                                        quadlhs += coeff*gvar1*gvar2;
+                                    }
+                                }
+                            }
+                        }
+                        else if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix_indexed() || it1.second._p->first->is_matrix_indexed()) {
                             auto dim =it1.second._p->first->get_dim(i);
                             for (int j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
@@ -404,11 +419,23 @@ void GurobiProgram::set_grb_objective(){
             qobj += lterm;
         }
     for (auto& it1: _model->_obj->get_qterms()) {
-//        idx = it1.second._p->first->get_id();
-        gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst()];
-//        idx = it1.second._p->second->get_id();
-        gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst()];
-        if (it1.second._coef->_is_transposed) {
+        if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+            assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
+            for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
+                for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
+                    coeff = _model->_obj->eval(it1.second._coef,i,j);
+                    gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(j)];
+                    gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
+                    if (!it1.second._sign) {
+                        qobj -= coeff*gvar1*gvar2;
+                    }
+                    else {
+                        qobj += coeff*gvar1*gvar2;
+                    }
+                }
+            }
+        }
+        else if (it1.second._coef->_is_transposed) {
             auto dim =it1.second._p->first->get_dim();
             for (int j = 0; j<dim; j++) {
                 coeff = _model->_obj->eval(it1.second._coef,j);

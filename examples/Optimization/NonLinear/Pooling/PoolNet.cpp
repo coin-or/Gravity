@@ -902,7 +902,8 @@ SPP->add(product_quality_ub.in(outputs_attr)<=0);
 //costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
 //SPP->add(costq==0);
 
-SPP->min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
+//SPP->min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
+    SPP->min(q.tr()*cost_ip.in(q_per_ypo_per_input_matrix)*y);
 //auto obj=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
 //auto obj1=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
 
