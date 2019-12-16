@@ -3913,7 +3913,14 @@ namespace gravity {
             if(!_qterms->empty()){
                 for (auto &pair:*_qterms) {
                     type qval = 0;
-                    if(pair.second._coef->_is_transposed || pair.second._p->second->is_matrix_indexed()){
+                    if (pair.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+                        for (auto i = 0; i<pair.second._p->first->_dim[0]; i++) {
+                            for (auto j = 0; j<pair.second._p->first->_dim[0]; j++) {
+                                qval += eval_coef(pair.second._coef,i,j) * eval(pair.second._p->first,j) * eval(pair.second._p->second,i);
+                            }
+                        }
+                    }
+                    else if(pair.second._coef->_is_transposed || pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -3923,14 +3930,6 @@ namespace gravity {
                         else {
                             for (size_t j = 0; j<dim; j++) {
                                 res -= eval_coef(pair.second._coef,i,j) * eval(pair.second._p->first,i,j) * eval(pair.second._p->second,i,j);
-                            }
-                        }
-                    }
-                    else if (pair.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
-                        //                        assert(pair.second._p->first->_dim[1]==1 && pair.second._coef->_dim[0]==pair.second._p->second->_dim[0]);
-                        for (auto i = 0; i<pair.second._p->first->_dim[0]; i++) {
-                            for (auto j = 0; j<pair.second._p->first->_dim[0]; j++) {
-                                qval += eval_coef(pair.second._coef,i,j) * eval(pair.second._p->first,j) * eval(pair.second._p->second,i);
                             }
                         }
                     }
@@ -7348,7 +7347,7 @@ namespace gravity {
             res.update_dot_dim(p1,p2);
         }
         else if(p2.is_param() && p1.is_var()){
-            if(p1._is_transposed && p2.is_row_vector()){/* transform x^T*p to (p^T*x)^T */
+            if(p1._is_transposed && (p2.is_row_vector() || p2.is_matrix_indexed())){/* transform x^T*p to (p^T*x)^T */
                 auto new_p2 = p2.tr();
                 auto new_p1 = p1.tr();
                 res.insert(true,new_p2,new_p1);
@@ -7412,7 +7411,7 @@ namespace gravity {
             res.update_dot_dim(p1,p2);
         }
         else if(p2.is_param() && p1.is_var()){
-            if(p1._is_transposed && p2.is_row_vector()){/* transform x^T*p to (p^T*x)^T */
+            if(p1._is_transposed && (p2.is_row_vector() || p2.is_matrix_indexed())){/* transform x^T*p to (p^T*x)^T */
                 auto new_p2 = p2.tr();
                 auto new_p1 = p1.tr();
                 res.insert(true,new_p2,new_p1);

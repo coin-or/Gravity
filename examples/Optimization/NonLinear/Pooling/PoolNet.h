@@ -58,6 +58,8 @@ public:
     indices inputs_attr;
     
     indices outputs_attr;
+    
+    
 
     /** Constructors */
     PoolNet();
@@ -68,9 +70,6 @@ public:
     
         void readgrid1();
     
-     /** Accessors */
-    
-        void update_net();
     
 
     
@@ -90,8 +89,9 @@ public:
     indices in_arcs_per_pool_attr() const;
 
     indices in_arcs_per_pool() const;
-
     
+    indices inputs_pools_outputs() const;
+
     indices out_arcs_per_pool() const;
     
     indices out_arcs_per_pool_attr() const;
@@ -114,5 +114,6 @@ public:
 };
 shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet);
 shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type);
+shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type);
 
 #endif

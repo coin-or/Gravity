@@ -24,22 +24,26 @@ int main (int argc, char * argv[]) {
     
     PoolNet poolnet;
 
-     //string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
-    string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3_gms.txt";
+     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    //string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3_gms.txt";
 
     poolnet.readgrid(fname);
-    SolverType solv_type = gurobi;
+    SolverType solv_type = ipopt;
     
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
     
+
     //    auto SPP=build_pool_qform(poolnet);
     
-    auto SPP=build_pool_pform(poolnet, solv_type);
-    
-    
+    auto SPP=build_pool_pqform(poolnet, solv_type);
+
+     //   auto SPP=build_pool_qform(poolnet);
+
+
     
     SPP->print();
+    
     auto g = SPP->get_interaction_graph();
     g.get_tree_decomp_bags();
     if(g._tree){
@@ -64,9 +68,12 @@ int main (int argc, char * argv[]) {
         auto con_val=con->eval();
         
         sumyk.set_val(0, (con_val+0.001+sumyk_val));
-        auto v= SPP->get_var<double>(<#const string &vname#>)
-        SPP->initialize_all(2.0);
+        auto vx= SPP->get_var<double>("x");
+        vx.initialize_all(2.0);
   
+        auto vy= SPP->get_var<double>("y");
+        vy.initialize_all(2.0);
+        
         SPP_solv.run(5, 1e-6);
         if(SPP->_status==0){
             auto fk_new=SPP->get_obj_val();
