@@ -52,7 +52,7 @@ add_executable(svm ${ML_SOURCES} ${SVM_SOURCES})
 #add_executable(neuralnet ${CLASS_SOURCES} ${NEURALNET_SOURCES})
 #add_executable(microgid ${MICROGRID_SOURCES} ${Power_SOURCES})
 #add_executable(min_k_part ${MINK_SOURCES})
-add_executable(pooling ${POOLING_SOURCES} ${HEADERS} ${POOLHEADERS} ${Power_SOURCES})
+add_executable(pooling ${POOLING_SOURCES} ${POOLHEADERS})
 
 target_link_libraries(space_craft gravity)
 #target_link_libraries(ising gravity)
