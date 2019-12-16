@@ -117,7 +117,7 @@ int main (int argc, char * argv[]) {
     time_s=argv[2];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
         time_s="3600";
     }
     current=true;
