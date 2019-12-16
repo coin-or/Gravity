@@ -32,6 +32,7 @@ script:
 - ../bin/Debug/gravity_test
 - ../bin/Debug/obbt
 - ../bin/Debug/cpxopf
+- ../bin/Debug/AlpineX -s ipopt
 - ../bin/Debug/space_craft
 - ../bin/Debug/acopf
 - ../bin/Debug/dcopf
