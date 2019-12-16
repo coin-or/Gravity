@@ -47,7 +47,7 @@ int main (int argc, char * argv[]) {
     bool nonlin=true;
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
 
 #ifdef USE_OPT_PARSER
     
@@ -117,7 +117,7 @@ int main (int argc, char * argv[]) {
     time_s=argv[2];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
         time_s="3600";
     }
     current=true;
@@ -256,7 +256,7 @@ int main (int argc, char * argv[]) {
         
 
        //SDP->print();
-        SDPLB.run(output = 0, 1e-8, "ma27");
+        SDPLB.run(output = 0, 1e-8);
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);

@@ -30,10 +30,3 @@ bool Path::cycle(){
     return (nodes.front()==nodes.back());
 }
 
-Path* Path::clone(){
-    Path* newp = new Path();
-    for (std::list<Node*>::iterator i = nodes.begin(); i != nodes.end(); i++) {
-        newp->nodes.push_back((*i));
-    }
-    return newp;
-}

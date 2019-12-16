@@ -219,7 +219,7 @@ namespace gravity {
     
     
     
-    /** Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
+    /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter){
         std::vector<thread> threads;
         std::vector<bool> feasible;
@@ -247,6 +247,10 @@ namespace gravity {
         return 0;
     }
     
+    int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter){
+        return run_parallel(models,stype,tol,nr_threads,"",max_iter);
+    };
+
     /** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
      @param[in] nb_discr:
      @param[in] con:

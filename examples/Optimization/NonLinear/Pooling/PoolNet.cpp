@@ -1047,7 +1047,9 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type)
         row_id++;
     }
     
+    if(solv_type==gurobi){
     
+        
     Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
     quality_balance_le=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
     SPP->add(quality_balance_le.in(pool_attr)<=0);
@@ -1056,7 +1058,18 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type)
     quality_balance_ge=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
     SPP->add(quality_balance_ge.in(pool_attr)>=0);
     //SPP->print();
-    
+    }
+    else{
+        Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
+        quality_balance_le=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+        SPP->add(quality_balance_le.in(pool_attr)<=0);
+        
+        Constraint<> quality_balance_ge("quality_balance_ge");//TODO debug transpose version
+        quality_balance_ge=p_in.in(in_arcs_attr_per_pool)*x.in(in_arcs_per_pool_attr) - p_pool.in(pool_matrix)*y.in(out_arcs_per_pool_attr);// - p_pool* sum(y, out_arcs_per_pool)
+        SPP->add(quality_balance_ge.in(pool_attr)>=0);
+        
+    }
+        
     
     
     
