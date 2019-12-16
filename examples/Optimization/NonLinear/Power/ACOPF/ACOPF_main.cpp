@@ -294,7 +294,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to -= pow(S_max,2);
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
-//    ACOPF.print();
+    ACOPF.print();
 //    ACOPF.initialize_uniform();
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();

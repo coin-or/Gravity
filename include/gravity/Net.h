@@ -83,6 +83,8 @@ public:
 
     /** Modifiers */
     void add_node(Node* n);
+    /* Add node at specified position in nodes */
+    void add_node(Node* n, size_t pos);
     bool add_arc(Arc* a);
     void add_undirected_arc(Arc* a);
 
@@ -136,6 +138,7 @@ public:
     std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
     std::vector<pair<string,vector<Node*>>> decompose_bags_3d(bool print_bags=false);
 
+    void print() const;
     
     /** Sort nodes in decreasing degree */
     void orderNodes(Net* net);

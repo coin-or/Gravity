@@ -140,6 +140,7 @@ namespace gravity {
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
+                    DebugOff(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
                     throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
@@ -154,18 +155,24 @@ namespace gravity {
             return inst;
         };
 
-        size_t get_id_inst(size_t inst1, size_t inst2) const {
-            if (is_matrix_indexed()) {
-                if (_indices->_ids->size()<=inst1) {
-                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst1 out of range\n");
+        size_t get_id_inst(size_t i, size_t j) const {
+            if (is_indexed() && _indices->_ids->size()>1) {
+                if (_indices->_ids->size() <= i) {
+                    throw invalid_argument("get_id_inst(i,j): i out of range");
                 }
-                if (_indices->_ids->at(inst1).size()<=inst2) {
-                    throw invalid_argument("get_id_inst(size_t inst1, size_t inst2) inst2 out of range\n");
+                if (_indices->_ids->at(i).size() <= j) {
+                    throw invalid_argument("get_id_inst(i,j): j out of range");
                 }
-                return _indices->_ids->at(inst1).at(inst2);
+                return _indices->_ids->at(i).at(j);
             }
-            return get_id_inst(inst2);
-//            throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
+            if (!is_matrix()) {
+                DebugOff(_name << ": calling get_id_inst("<< i<<","<<j<<")" << "will call get_id_inst(j)" << endl);
+                return get_id_inst(j);
+            }
+            if (_is_transposed) {
+                return j*_dim[0]+i;
+            }
+            return i*_dim[1]+j;
         };
 
 
@@ -833,6 +840,7 @@ namespace gravity {
             return _val->back();
         }
 
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline type eval(size_t i) const {
             if(is_matrix()){
                 throw invalid_argument("eval() should be called with double index here\n");
@@ -850,6 +858,37 @@ namespace gravity {
 //            if (_val->size()<=idx){
 //                throw invalid_argument("Param eval out of range");
 //            }
+            return _val->at(idx);
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        inline type eval(size_t i) const {
+            if(is_matrix()){
+                throw invalid_argument("eval() should be called with double index here\n");
+            }
+            auto idx = get_id_inst(i);
+            //            if (is_indexed()) {
+            //                if (_indices->_ids->size()>1) {
+            //                    throw invalid_argument("eval() should be called with double index here\n");
+            //                }
+            //                if (_val->size()<=idx){
+            //                    throw invalid_argument("Param eval out of range");
+            //                }
+            //                return _val->at(idx);
+            //            }
+            //            if (_val->size()<=idx){
+            //                throw invalid_argument("Param eval out of range");
+            //            }
+            if(_is_conjugate)
+                return conj(_val->at(idx));
+            if(_is_angle)
+                return Cpx(arg(_val->at(idx)),0);
+            if(_is_sqrmag)
+                return Cpx(std::pow(std::abs(_val->at(idx)),2),0);
+            if(_is_imag)
+                return Cpx(0,imag(_val->at(idx)));
+            if(_is_real)
+                return Cpx(real(_val->at(idx)),0);
             return _val->at(idx);
         }
 

@@ -21,7 +21,208 @@ namespace gravity {
  @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
  **/
 template <typename type>
-template<typename T,typename std::enable_if<is_arithmetic<type>::value>::type*>
+template<class T, typename enable_if<is_same<T, Cpx>::value>::type*>
+Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
+    if(c.is_constant() || c.is_linear()){
+        return c;
+    }
+    if(c.is_nonlinear() || c.is_polynomial()){
+        throw invalid_argument("lift can only be called on quadratic constraints for now");
+    }
+    /* Lambda models are taken from Padberg's paper as they are described in type II and type III */
+    if((model_type != "on/off") && (model_type != "lambda_II") && (model_type != "lambda_III")){
+        throw invalid_argument("model_type can only be one of the following: 'on/off', 'lambda_II', 'lambda_III' ");
+    }
+    Constraint<Cpx> lifted(c._name+"_lifted");
+    if (!c.get_cst()->is_zero()) {
+        if (c.get_cst()->is_number()) {
+            auto f_cst = static_pointer_cast<constant<Cpx>>(c.get_cst());
+            lifted.add_cst(*f_cst);
+        }
+        else if (c.get_cst()->is_param()) {
+            auto f_cst = static_pointer_cast<param<Cpx>>(c.get_cst());
+            lifted.add_cst(*f_cst);
+        }
+        else {
+            auto f_cst = static_pointer_cast<func<Cpx>>(c.get_cst());
+            lifted.add_cst(*f_cst);
+        }
+        if (lifted._cst->is_function()) {
+            lifted.embed(*static_pointer_cast<func<Cpx>>(lifted._cst));
+        }
+    }
+    for (auto &pair:*c._lterms) {
+        auto term = pair.second;
+        if (term._coef->is_function()) {
+            auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
+            term._coef = func<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_param()) {
+            auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
+            term._coef = param<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_number()) {
+            auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
+            term._coef = constant<Cpx>(coef).copy();//TODO if T2==type no need to cast
+        }
+        lifted.insert(term);
+    }
+    bool lift_sign; /* create lift_sign for correct lower/upper bounding of the variables */
+    for (auto &pair:*c._qterms) {
+        auto term = pair.second;
+        lterm lt;
+        lt._sign = term._sign;
+        if (term._coef->is_function()) {
+            auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
+            lt._coef = func<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_param()) {
+            auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
+            lt._coef = param<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_number()) {
+            auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
+            lt._coef = constant<Cpx>(coef).copy();
+            lift_sign = (term._sign ^ coef.is_negative()); //TODO: update prod_sign in other cases of coef type. Don't know how to do!
+        }
+        
+        if (c.func<Cpx>::is_concave()) //reverse the sign if the constraint is concave
+        {
+            DebugOn("Changing the sign of the lifted variable." << endl);
+            lift_sign = !lift_sign;
+        }
+        else{
+            DebugOn("Keeping the sign of the lifted variable same." << endl);
+        }
+        
+        //arrange the variables so that if they have the same base name, use them ordered in name
+        auto o1 = *static_pointer_cast<var<Cpx>>(term._p->first);
+        auto o2 = *static_pointer_cast<var<Cpx>>(term._p->second);
+        if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
+            o2 = *static_pointer_cast<var<Cpx>>(term._p->first);
+            o1 = *static_pointer_cast<var<Cpx>>(term._p->second);
+            DebugOff("O1 name "<< o1._name << endl);
+            DebugOff("O2 name "<< o2._name << endl);
+        }
+        
+        string name;
+        indices ids;
+        if(o1==o2){
+            name = "Lift("+o1.get_name(true,true)+"^2)";
+            ids = *o1._indices;
+        }
+        else {
+            name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+            ids = combine(*o1._indices,*o2._indices);
+        }
+        auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+        auto o1_ids = *o1._indices;
+        auto o2_ids = *o2._indices;
+        if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+            auto keep_refs = ids.get_unique_refs();
+            o1_ids.filter_refs(keep_refs);
+            o2_ids.filter_refs(keep_refs);
+        }
+        param<Cpx> lb("lb"), ub("ub");
+        lb.in(unique_ids);ub.in(unique_ids);
+        auto it = _vars_name.find(name);
+        auto name1 = o1.get_name(true,true);
+        auto name2 = o2.get_name(true,true);
+        if(it==_vars_name.end()){
+            /* create the lifted variable with proper lower and upper bounds */
+            var<Cpx> vlift(name, lb, ub);
+            vlift._lift = true;
+            add(vlift.in(unique_ids));
+            lt._p = make_shared<var<Cpx>>(vlift.in(ids));
+        }
+        else {
+            auto vlift = static_pointer_cast<var<Cpx>>(it->second);
+            auto added = vlift->add_bounds(lb,ub);
+            lt._p = make_shared<var<Cpx>>(vlift->in(ids));
+            if(!added.empty()){
+                assert(o1._indices->size()==o2._indices->size());
+                if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                    auto keep_refs = ids.diff_refs(added);
+                    o1_ids.filter_refs(keep_refs);
+                    o2_ids.filter_refs(keep_refs);
+                }
+                reindex_vars();
+                // If some keys are repeated in individual indices, remove them from the refs of o1 and o2
+                auto o1_ids_uq = o1_ids;
+                auto o2_ids_uq = o2_ids;
+                auto keep_refs1 = o1_ids_uq.get_unique_refs();
+                auto keep_refs2 = o2_ids_uq.get_unique_refs();
+                o1_ids_uq.filter_refs(keep_refs1);
+                o2_ids_uq.filter_refs(keep_refs2);
+                reindex_vars();
+            }
+        }
+        lifted.insert(lt);
+    }
+    for (auto &pair:*c._pterms) {
+        auto term = pair.second;
+        lterm lt;
+        lt._sign = term._sign;
+        if (term._coef->is_function()) {
+            auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
+            lt._coef = func<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_param()) {
+            auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
+            lt._coef = param<Cpx>(coef).copy();
+        }
+        else if(term._coef->is_number()) {
+            auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
+            lt._coef = constant<Cpx>(coef).copy();
+        }
+        func<Cpx> prod = 1;
+        string prod_name = "Lift(";
+        auto list = pair.second._l;
+        for (auto &ppi: *list) {
+            auto p = ppi.first;
+            auto orig_var = *static_pointer_cast<var<Cpx>>(p);
+            if(ppi.second>1){
+                prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                //TODO Lift univarite power function
+            }
+            else{
+                prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
+            }
+            prod *= pow(orig_var,ppi.second);
+        }
+        prod_name += ")";
+        
+        auto ids = *c._indices;
+        param<Cpx> lb("lb"), ub("ub");
+        lb.in(ids);ub.in(ids);
+        lb.set_val(prod._range->first);
+        ub.set_val(prod._range->second);
+        var<Cpx> vlift(prod_name, lb, ub);
+        auto it = _vars_name.find(prod_name);
+        if(it==_vars_name.end()){
+            vlift._lift=true;
+            add(vlift.in(ids));
+            lt._p = make_shared<var<Cpx>>(vlift);
+        }
+        else {
+            vlift = *static_pointer_cast<var<Cpx>>(it->second);
+            lt._p = make_shared<var<Cpx>>(vlift);
+        }
+        lifted.insert(lt);
+    }
+    lifted._range = c._range;
+    lifted._all_convexity = linear_;
+    lifted._all_sign = c._all_sign;
+    lifted._ftype = lin_;
+    lifted._ctype = c._ctype;
+    lifted._indices = c._indices;
+    lifted._dim[0] = c._dim[0];
+    lifted._dim[1] = c._dim[1];
+    return lifted;
+}
+
+template <typename type>
+template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
 Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     if(c.is_constant() || c.is_linear()){
         return c;
@@ -146,6 +347,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 auto prod_b1 = o1.get_lb(key1)*o1.get_lb(key1);
                 auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
                 auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
+                
+                
                 
                 lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
                 ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
@@ -5656,10 +5859,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 }
 
 
-
     template <typename type>
     template<typename T,
-    typename std::enable_if<is_same<type,double>::value>::type*>
+    typename std::enable_if<is_same<T,double>::value>::type*>
     std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(double max_time, unsigned max_iter, const pair<bool,double>& upper_bound, unsigned precision, shared_ptr<Model<type>> ub_model, shared_ptr<Model<type>> nonlin_model, bool nonlin) {
         std::tuple<bool,int,double, double, double, bool> res;
 
@@ -5703,10 +5905,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
        
         shared_ptr<map<string,size_t>> p_map;
-        this->reindex();
+//        this->reindex();
         solver<> SDPLB2(*this,solv_type);
 
-        SDPLB2.run(output = 0, tol, "ma27");
+        SDPLB2.run(output = 0, 1e-9);
         double lower_bound_init=-999, lower_bound;
 
 //        this->print();
@@ -5801,11 +6003,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                         //Loop on directions, upper bound and lower bound
                         for(auto &dir: dir_array)
                         {
-                             auto    solver_time1= get_wall_time();
+                           
                             auto modelk = this->copy();
-                             auto    solver_time2= get_wall_time();
-                            auto copy_time=solver_time2-solver_time1;
-                            DebugOn("copy time "<<copy_time<<endl);
+                            
                             mname=vname+"|"+key+"|"+dir;
                             modelk->set_name(mname);
                             
@@ -5820,7 +6020,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                 modelk->max(vark(key));
                                 
                             }
-                            
+                            modelk->reindex();
                             if(fixed_point[mname]==false){
                                 batch_models.push_back(modelk);
                             }
@@ -5829,10 +6029,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                             {
                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",800,800, false,true);
+                                run_MPI(batch_models,solv_type,tol,nb_threads,"ma27",2000,2000, false,true);
 
 #else
-                              run_parallel(batch_models,solv_type,tol,nb_threads, "ma27", 2000);
+                              run_parallel(batch_models,solv_type,tol,nb_threads, 2000);
                               //  run_parallel(batch_models,cplex,1e-6,nb_threads);
 #endif
                                 double batch_time_end = get_wall_time();
@@ -6031,12 +6231,23 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                                 
                                             }
                                         }
+                                        auto lift_name="Lift("+vkname+"^2)";
+                                        if(this->_vars_name.find(lift_name)!=this->_vars_name.end()){
+                                            auto liftv=this->get_var<T>(lift_name);
+                                            auto lbvk=vk.get_lb(keyk);
+                                            auto ubvk=vk.get_ub(keyk);
+                                            auto temp_a=std::max(std::max(0.0, lbvk), ubvk*(-1));
+                                            auto lift_lb=std::min(temp_a*temp_a, ubvk*ubvk);
+                                            liftv.set_lb(keyk, lift_lb);
+                                            liftv.set_ub(keyk, std::max(lbvk*lbvk, ubvk*ubvk));
+                                            
+                                        }
                                     }
                                     else
                                     {
-                                               //   model->print();
-//                                        solver<> SDPLB_model(*model,solv_type);
-//                                        SDPLB_model.run(output = 5, tol, "ma27");
+                                              //    model->print();
+                                        solver<> SDPLB_model(*model,solv_type);
+                                        SDPLB_model.run(output = 0, tol);
                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                         
                                         
@@ -6054,7 +6265,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(iter%gap_count_int==0)
             {    solver_time= get_wall_time()-solver_time_start;
 
-                //                    this->print();
+                                   //this->print();
 
                 this->reset_constrs();
                 this->reindex();
@@ -6129,8 +6340,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 sum+=interval_gap.back();
                 if( in_orig_model)
                 {
+                    var_ub.uneval();
                     if((var_ub.eval(key)-v.get_lb(key)) <0.000 || (var_ub.eval(key)-v.get_ub(key))>0.000){
                         xb_true=false;
+                         DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
                     }
                 }
                 DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
@@ -6150,7 +6363,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                       
             solver<> SDPLB1(*this,solv_type);
             
-            SDPLB1.run(output = 0, tol, "ma27");
+            SDPLB1.run(output = 0, tol);
         }
         
     }
@@ -6247,6 +6460,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     
     
     template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, shared_ptr<Model<double>>, shared_ptr<Model<double>>, bool);
+
+    template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
+
+
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;

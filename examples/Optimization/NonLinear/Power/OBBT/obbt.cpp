@@ -231,7 +231,7 @@ int main (int argc, char * argv[]) {
             gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
             DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
             
-            auto SDPOA=SDP->buildOA(15, 10);
+            auto SDPOA=SDP->buildOA(5, 5);
               solver<> SDPLB(SDPOA,ipopt);
               SDPLB.run(output = 0, tol);
             
@@ -251,20 +251,26 @@ int main (int argc, char * argv[]) {
 //        vector<double> x_sol(SDP->get_nb_vars());
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
-//        SDP->print();
-        SDPLB.run(output = 0, 1e-6, "ma27");
+
+        //SDP->print_solution(10);
+        
+
+       //SDP->print();
+        SDPLB.run(output = 0, 1e-8, "ma27");
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
         lb_solv=false;
         if(SDP->_status==0){
             lb_solv=true;
+
         lower_bound=SDP->get_obj_val()*upper_bound;
         
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
+
             auto solver_time1= get_wall_time();
-         SDPO=SDP->buildOA(10, 10);
+         SDPO=SDP->buildOA(5, 5);
             DebugOn(grid._name<<endl);
             DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
              DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
@@ -288,6 +294,8 @@ int main (int argc, char * argv[]) {
 ////        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
 //        double gap_lin=100*(upper_bound - SDPO->get_obj_val()*upper_bound)/upper_bound;
 //        DebugOn("Gap Linear"<<gap_lin);
+
+            
         
         
      
@@ -295,6 +303,7 @@ int main (int argc, char * argv[]) {
        
         
         auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
+            SDPO->print();
         
 //        auto SDPO_IIS1=SDPO->build_model_IIS();
 //        solver<> IIS_test1(SDPO_IIS1,cplex);

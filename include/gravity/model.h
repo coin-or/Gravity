@@ -309,9 +309,17 @@ namespace gravity {
                 }
             }
             for(auto &cp: m._cons_name){
-                add(*cp.second);
-                merge_vars(_cons_vec.back());
-                _cons_vec.back()->uneval();
+                if(*cp.second->_all_lazy){
+                    add_lazy(*cp.second);
+                    auto c = _cons_name[cp.first];
+                    merge_vars(c);
+                    c->uneval();
+                }
+                else{
+                    add(*cp.second);
+                    merge_vars(_cons_vec.back());
+                    _cons_vec.back()->uneval();
+                }
             }
             if(m._obj)
                 set_objective(*m._obj, _objt);
@@ -803,190 +811,190 @@ namespace gravity {
          @return the linearized constraint
          @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
          **/
-        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        Constraint<type> get_standard_SOC(Constraint<type>& c){
-            if(!c.is_rotated_soc()){
-                return c;
-            }
-            Constraint<type> newc_standard(c._name+"_standard");
-            if (!c.get_cst()->is_zero()) { //here we extract the constant part of the constraint
-                if (c.get_cst()->is_number()) {
-                    auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
-                    newc_standard.add_cst(*f_cst);
-                }
-                else if (c.get_cst()->is_param()) {
-                    auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
-                    newc_standard.add_cst(*f_cst);
-                }
-                else {
-                    auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
-                    newc_standard.add_cst(*f_cst);
-                }
-                if (newc_standard._cst->is_function()) {
-                    newc_standard.embed(*static_pointer_cast<func<type>>(newc_standard._cst));
-                }
-            }
-            for (auto &pair:*c._lterms) { //here we extract the linear terms appearing in the constraint
-                auto term = pair.second;
-                newc_standard.insert(term);
-            }
-            //go over the quadratic terms (including the bilinears)
-            //here we will introduce two auxiliary variables for the bilinear term
-            for (auto &pair:*c._qterms) {
-                if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
-                    qterm lt1;
-                    qterm lt2;
-                    lt1._sign = !(pair.second._sign);
-                    lt2._sign = pair.second._sign;
-                    if (pair.second._coef->is_function()) {
-                        auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
-                        lt1._coef = func<type>(coef).copy();
-                        lt2._coef = func<type>(coef).copy();
-                    }
-                    else if(pair.second._coef->is_param()) {
-                        auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
-                        lt1._coef = param<type>(coef).copy();
-                        lt2._coef = param<type>(coef).copy();
-                    }
-                    else if(pair.second._coef->is_number()) {
-                        auto coef = *static_pointer_cast<constant<type>>(pair.second._coef);
-                        lt1._coef = constant<type>(coef).copy();
-                        lt2._coef = constant<type>(coef).copy();
-                    }
-                    
-                    auto v1 = *static_pointer_cast<var<type>>(pair.second._p->first); //assign the pointers to the variables
-                    auto v2 = *static_pointer_cast<var<type>>(pair.second._p->second);
-                    
-                    if((v1._name > v2._name)){    //get the variables in the alphabetical order
-                        v2 = *static_pointer_cast<var<type>>(pair.second._p->first);
-                        v1 = *static_pointer_cast<var<type>>(pair.second._p->second);
-                    }
-                    auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
-                    
-                    // I am not sure that we need the following part or not!! ***************************************************************************************************************************************
-                    auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
-                    auto v1_ids = *v1._indices;
-                    auto v2_ids = *v2._indices;
-                    if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                        auto keep_refs = ids.get_unique_refs();
-                        v1_ids.filter_refs(keep_refs);
-                        v2_ids.filter_refs(keep_refs);
-                    }
-                    // ***************************************************************************************************************************************
-                    
-                    param<type> lb1("lb1"), ub1("ub1");
-                    lb1.in(unique_ids);ub1.in(unique_ids);
-                    param<type> lb2("lb2"), ub2("ub2");
-                    lb2.in(unique_ids);ub2.in(unique_ids);
-                    
-                    //get the bounds for the auxiliary variables y1 and y2
-                    for (int i=0; i<unique_ids.size(); i++) {
-                        size_t id1;
-                        size_t id2;
-                        if(v1_ids._ids == nullptr){
-                            id1 = i;
-                        }
-                        else id1 = v1_ids._ids->at(0).at(i);
-                        if(v2_ids._ids == nullptr){
-                            id2 = i;
-                        }
-                        else id2 = v2_ids._ids->at(0).at(i);
-                        auto key1 = v1_ids._keys->at(id1);
-                        auto key2 = v2_ids._keys->at(id2);
-                        
-                        auto sum_b1 = v1.get_lb(key1) - v2.get_ub(key2);
-                        auto sum_b2 = v1.get_ub(key1) - v2.get_lb(key2);
-                        auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
-                        auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
-                        
-                        lb1.set_val(key1+","+key2, sum_b1/2);
-                        ub1.set_val(key1+","+key2, sum_b2/2);
-                        
-                        lb2.set_val(key1+","+key2, sum_b3/2);
-                        ub2.set_val(key1+","+key2, sum_b4/2);
-                    }
-                    //define the names of auxiliary variables to check their prior existence in the model
-                    string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
-                    string aux2_name = "aux2("+v1.get_name(true,true)+v2.get_name(true,true)+")";
-                    
-                    auto it1 = _vars_name.find(aux1_name);
-                    auto it2 = _vars_name.find(aux2_name);
-                    
-                    if(it1==_vars_name.end()){ //means the variables have not been included in the model, so create new ones, and add them to the model
-                        //define variables
-                        var<type> y1(aux1_name, lb1, ub1);
-                        add(y1.in(unique_ids));
-                        *y1._num_partns = *v1._num_partns + *v2._num_partns;
-                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
-                        var<type> y2(aux2_name, lb2, ub2);
-                        add(y2.in(unique_ids));
-                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2.in(ids)), make_shared<var<type>>(y2.in(ids))));
-                        //add constraints
-                        Constraint<type> link1(pair.first+"_link1");
-                        link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
-                        add(link1.in(unique_ids) == 0);
-                        
-                        Constraint<type> link2(pair.first+"_link2");
-                        link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
-                        add(link2.in(unique_ids) == 0);
-                    }
-                    else{ //if the variables are already included in the model before, access the correct pointer and add the new indices/linkage
-                        //get variables
-                        auto y1 = static_pointer_cast<var<type>>(it1->second);
-                        auto added1 = y1->add_bounds(lb1,ub1);
-                        *y1->_num_partns = *v1._num_partns + *v2._num_partns;
-                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
-                        if(!added1.empty()){
-                            assert(v1._indices->size()==v2._indices->size());
-                            if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                                auto keep_refs = ids.diff_refs(added1);
-                                v1_ids.filter_refs(keep_refs);
-                                v2_ids.filter_refs(keep_refs);
-                            }
-                            reindex_vars();
-                        }
-                        auto y2 = static_pointer_cast<var<type>>(it2->second);
-                        auto added2 = y2->add_bounds(lb2,ub2);
-                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2->in(ids)), make_shared<var<type>>(y2->in(ids))));
-                        if(!added2.empty()){
-                            assert(v1._indices->size()==v2._indices->size());
-                            if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                                auto keep_refs = ids.diff_refs(added2);
-                                v1_ids.filter_refs(keep_refs);
-                                v2_ids.filter_refs(keep_refs);
-                            }
-                            reindex_vars();
-                        }
-                        
-                        //create constraints for linking the auxiliary variables to the bilinear term
-                        Constraint<type> link1(pair.first+"_link1");
-                        link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
-                        add(link1.in(unique_ids) == 0);
-                        
-                        Constraint<type> link2(pair.first+"_link2");
-                        link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
-                        add(link2.in(unique_ids) == 0);
-                        
-                    }
-                    //insert the standardized terms into the new constraint
-                    newc_standard.insert(lt1);
-                    newc_standard.insert(lt2);
-                }
-                else { /* simply insert the squared term (not bilinear) */
-                    newc_standard.insert(pair.second);
-                }
-            }
-            //set the other properties of the standardized constraint properly
-            newc_standard._range = c._range;
-            newc_standard._all_convexity = c._all_convexity;
-            newc_standard._all_sign = c._all_sign;
-            newc_standard._ftype = c._ftype;
-            newc_standard._ctype = c._ctype;
-            newc_standard._indices = c._indices;
-            newc_standard._dim[0] = c._dim[0];
-            newc_standard._dim[1] = c._dim[1];
-            return newc_standard;
-        }
+//        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
+//        Constraint<type> get_standard_SOC(Constraint<type>& c){
+//            if(!c.is_rotated_soc()){
+//                return c;
+//            }
+//            Constraint<type> newc_standard(c._name+"_standard");
+//            if (!c.get_cst()->is_zero()) { //here we extract the constant part of the constraint
+//                if (c.get_cst()->is_number()) {
+//                    auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
+//                    newc_standard.add_cst(*f_cst);
+//                }
+//                else if (c.get_cst()->is_param()) {
+//                    auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
+//                    newc_standard.add_cst(*f_cst);
+//                }
+//                else {
+//                    auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
+//                    newc_standard.add_cst(*f_cst);
+//                }
+//                if (newc_standard._cst->is_function()) {
+//                    newc_standard.embed(*static_pointer_cast<func<type>>(newc_standard._cst));
+//                }
+//            }
+//            for (auto &pair:*c._lterms) { //here we extract the linear terms appearing in the constraint
+//                auto term = pair.second;
+//                newc_standard.insert(term);
+//            }
+//            //go over the quadratic terms (including the bilinears)
+//            //here we will introduce two auxiliary variables for the bilinear term
+//            for (auto &pair:*c._qterms) {
+//                if (pair.second._p->first!=pair.second._p->second) { //means it is bilinear term
+//                    qterm lt1;
+//                    qterm lt2;
+//                    lt1._sign = !(pair.second._sign);
+//                    lt2._sign = pair.second._sign;
+//                    if (pair.second._coef->is_function()) {
+//                        auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
+//                        lt1._coef = func<type>(coef).copy();
+//                        lt2._coef = func<type>(coef).copy();
+//                    }
+//                    else if(pair.second._coef->is_param()) {
+//                        auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
+//                        lt1._coef = param<type>(coef).copy();
+//                        lt2._coef = param<type>(coef).copy();
+//                    }
+//                    else if(pair.second._coef->is_number()) {
+//                        auto coef = *static_pointer_cast<constant<type>>(pair.second._coef);
+//                        lt1._coef = constant<type>(coef).copy();
+//                        lt2._coef = constant<type>(coef).copy();
+//                    }
+//
+//                    auto v1 = *static_pointer_cast<var<type>>(pair.second._p->first); //assign the pointers to the variables
+//                    auto v2 = *static_pointer_cast<var<type>>(pair.second._p->second);
+//
+//                    if((v1._name > v2._name)){    //get the variables in the alphabetical order
+//                        v2 = *static_pointer_cast<var<type>>(pair.second._p->first);
+//                        v1 = *static_pointer_cast<var<type>>(pair.second._p->second);
+//                    }
+//                    auto ids = combine(*v1._indices,*v2._indices); //get the combined index set
+//
+//                    // I am not sure that we need the following part or not!! ***************************************************************************************************************************************
+//                    auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+//                    auto v1_ids = *v1._indices;
+//                    auto v2_ids = *v2._indices;
+//                    if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+//                        auto keep_refs = ids.get_unique_refs();
+//                        v1_ids.filter_refs(keep_refs);
+//                        v2_ids.filter_refs(keep_refs);
+//                    }
+//                    // ***************************************************************************************************************************************
+//
+//                    param<type> lb1("lb1"), ub1("ub1");
+//                    lb1.in(unique_ids);ub1.in(unique_ids);
+//                    param<type> lb2("lb2"), ub2("ub2");
+//                    lb2.in(unique_ids);ub2.in(unique_ids);
+//
+//                    //get the bounds for the auxiliary variables y1 and y2
+//                    for (int i=0; i<unique_ids.size(); i++) {
+//                        size_t id1;
+//                        size_t id2;
+//                        if(v1_ids._ids == nullptr){
+//                            id1 = i;
+//                        }
+//                        else id1 = v1_ids._ids->at(0).at(i);
+//                        if(v2_ids._ids == nullptr){
+//                            id2 = i;
+//                        }
+//                        else id2 = v2_ids._ids->at(0).at(i);
+//                        auto key1 = v1_ids._keys->at(id1);
+//                        auto key2 = v2_ids._keys->at(id2);
+//
+//                        auto sum_b1 = v1.get_lb(key1) - v2.get_ub(key2);
+//                        auto sum_b2 = v1.get_ub(key1) - v2.get_lb(key2);
+//                        auto sum_b3 = v1.get_lb(key1) + v2.get_lb(key2);
+//                        auto sum_b4 = v1.get_ub(key1) + v2.get_ub(key2);
+//
+//                        lb1.set_val(key1+","+key2, sum_b1/2);
+//                        ub1.set_val(key1+","+key2, sum_b2/2);
+//
+//                        lb2.set_val(key1+","+key2, sum_b3/2);
+//                        ub2.set_val(key1+","+key2, sum_b4/2);
+//                    }
+//                    //define the names of auxiliary variables to check their prior existence in the model
+//                    string aux1_name = "aux1("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+//                    string aux2_name = "aux2("+v1.get_name(true,true)+v2.get_name(true,true)+")";
+//
+//                    auto it1 = _vars_name.find(aux1_name);
+//                    auto it2 = _vars_name.find(aux2_name);
+//
+//                    if(it1==_vars_name.end()){ //means the variables have not been included in the model, so create new ones, and add them to the model
+//                        //define variables
+//                        var<type> y1(aux1_name, lb1, ub1);
+//                        add(y1.in(unique_ids));
+//                        *y1._num_partns = *v1._num_partns + *v2._num_partns;
+//                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1.in(ids)), make_shared<var<type>>(y1.in(ids))));
+//                        var<type> y2(aux2_name, lb2, ub2);
+//                        add(y2.in(unique_ids));
+//                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2.in(ids)), make_shared<var<type>>(y2.in(ids))));
+//                        //add constraints
+//                        Constraint<type> link1(pair.first+"_link1");
+//                        link1 = y1.in(unique_ids) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
+//                        add(link1.in(unique_ids) == 0);
+//
+//                        Constraint<type> link2(pair.first+"_link2");
+//                        link2 = y2.in(unique_ids) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
+//                        add(link2.in(unique_ids) == 0);
+//                    }
+//                    else{ //if the variables are already included in the model before, access the correct pointer and add the new indices/linkage
+//                        //get variables
+//                        auto y1 = static_pointer_cast<var<type>>(it1->second);
+//                        auto added1 = y1->add_bounds(lb1,ub1);
+//                        *y1->_num_partns = *v1._num_partns + *v2._num_partns;
+//                        lt1._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y1->in(ids)), make_shared<var<type>>(y1->in(ids))));
+//                        if(!added1.empty()){
+//                            assert(v1._indices->size()==v2._indices->size());
+//                            if(added1.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+//                                auto keep_refs = ids.diff_refs(added1);
+//                                v1_ids.filter_refs(keep_refs);
+//                                v2_ids.filter_refs(keep_refs);
+//                            }
+//                            reindex_vars();
+//                        }
+//                        auto y2 = static_pointer_cast<var<type>>(it2->second);
+//                        auto added2 = y2->add_bounds(lb2,ub2);
+//                        lt2._p = make_shared<gravity::pair< shared_ptr<param_>,shared_ptr<param_> >>(make_pair(make_shared<var<type>>(y2->in(ids)), make_shared<var<type>>(y2->in(ids))));
+//                        if(!added2.empty()){
+//                            assert(v1._indices->size()==v2._indices->size());
+//                            if(added2.size()!=v1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+//                                auto keep_refs = ids.diff_refs(added2);
+//                                v1_ids.filter_refs(keep_refs);
+//                                v2_ids.filter_refs(keep_refs);
+//                            }
+//                            reindex_vars();
+//                        }
+//
+//                        //create constraints for linking the auxiliary variables to the bilinear term
+//                        Constraint<type> link1(pair.first+"_link1");
+//                        link1 = y1->in(added1) - (v1.in(v1_ids) - v2.in(v2_ids))/2;
+//                        add(link1.in(unique_ids) == 0);
+//
+//                        Constraint<type> link2(pair.first+"_link2");
+//                        link2 = y2->in(added2) - (v1.in(v1_ids) + v2.in(v2_ids))/2;
+//                        add(link2.in(unique_ids) == 0);
+//
+//                    }
+//                    //insert the standardized terms into the new constraint
+//                    newc_standard.insert(lt1);
+//                    newc_standard.insert(lt2);
+//                }
+//                else { /* simply insert the squared term (not bilinear) */
+//                    newc_standard.insert(pair.second);
+//                }
+//            }
+//            //set the other properties of the standardized constraint properly
+//            newc_standard._range = c._range;
+//            newc_standard._all_convexity = c._all_convexity;
+//            newc_standard._all_sign = c._all_sign;
+//            newc_standard._ftype = c._ftype;
+//            newc_standard._ctype = c._ctype;
+//            newc_standard._indices = c._indices;
+//            newc_standard._dim[0] = c._dim[0];
+//            newc_standard._dim[1] = c._dim[1];
+//            return newc_standard;
+//        }
         
         
         /** Lift and linearize the nonlinear constraint c, return the linearized form and add linking constraints to the model.
@@ -995,7 +1003,10 @@ namespace gravity {
          @return the linearized constraint
          @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
          **/
-        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        Constraint<type> lift(Constraint<type>& c, string model_type);
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
         Constraint<type> lift(Constraint<type>& c, string model_type);
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
@@ -2740,8 +2751,6 @@ namespace gravity {
                 
                 if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
-                if(var_equal)
-                {
                     MC5 += vlift;
                     
                     MC5 -= v1*v1;
@@ -2750,10 +2759,11 @@ namespace gravity {
                     MC5._relaxed = true; /* MC5 is a relaxation of a non-convex constraint */
                     add(MC5.in(*vlift._indices));
                 }
+                
                 }
             }
             //    MC4.print();
-        }
+        
         
         //        template<typename T1>
         //        void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
@@ -3849,50 +3859,341 @@ namespace gravity {
             }
         }
         
-        /* Build interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or in the objective */
-        Net build_interaction_graph() const{
+        /* Build the interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or if they are linked in a nonlinear fashion in the objective
+            @param[degree] degree of the relaxation, if degree = 2 and the model is quadratic, do not account for linear relationships.
+         */
+        Net get_symbolic_interaction_graph(int degree=2) const{
+            if(this->_type==nlin_m){
+                throw invalid_argument("get_symbolic_interaction_graph currently only supports polynomial, quadratic and linear models");
+            }
             Net g;
             Node* n1 = nullptr;
             Node* n2 = nullptr;
-            Arc* a = nullptr;
             for(auto& c_p :_cons) {
                 auto c = c_p.second;
-                for(auto it = c._vars->begin(); it != c._vars->end(); it++) {
-                    n1 = g.get_node(it->first);
-                    if(n1==nullptr){
-                        n1 = new Node(it->first);
-                        g.add_node(n1);
-                    }
-                    auto it2 = next(it);
-                    if(it2 != c._vars->end()){
-                        n2 = g.get_node(it2->first);
+                if(this->_type==quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
+                    for (auto &pair:*c->_qterms) {
+                        auto coef = pair.second._coef;
+                        auto p1 = pair.second._p->first;
+                        auto p2 = pair.second._p->second;
+                        auto p1_name = p1->get_name(false,false);
+                        auto p2_name = p2->get_name(false,false);
+                        n1 = g.get_node(p1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(p1_name);
+                            g.add_node(n1);
+                        }
+                        n2 = g.get_node(p2_name);
                         if(n2==nullptr){
-                            n2 = new Node(it2->first);
+                            n2 = new Node(p2_name);
                             g.add_node(n2);
                         }
-                        a = new Arc(n1,n2);
-                    }                    
+                        if(g.get_arc(n1, n2)==nullptr){
+                            auto a = new Arc(n1,n2);
+                            g.add_arc(a);
+                            a->connect();
+                            
+                        }
+                    }
+                }
+                else { /* All variables appearing in the constraint are linked in the interaction graph */
+                    for(auto it = c->_vars->begin(); it != c->_vars->end(); it++) {
+                        n1 = g.get_node(it->first);
+                        if(n1==nullptr){
+                            n1 = new Node(it->first);
+                            g.add_node(n1);
+                        }
+                        if(it->second.first->_is_vector){/* There's a sum linking all instances of this variable together */
+                            if(g.get_arc(n1, n1)==nullptr){
+                                auto a = new Arc(n1,n1);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                        for(auto it2 = next(it); it2 != c->_vars->end(); it2++) {
+                            n2 = g.get_node(it2->first);
+                            if(n2==nullptr){
+                                n2 = new Node(it2->first);
+                                g.add_node(n2);
+                            }
+                            if(g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                    }
+                }
+            }
+            if(!_obj->is_constant()){
+                for (auto &pair:*_obj->_qterms) {
+                    auto coef = pair.second._coef;
+                    auto p1 = pair.second._p->first;
+                    auto p2 = pair.second._p->second;
+                    auto p1_name = p1->get_name(false,false);
+                    auto p2_name = p1->get_name(false,false);
+                    n1 = g.get_node(p1_name);
+                    if(n1==nullptr){
+                        n1 = new Node(p1_name);
+                        g.add_node(n1);
+                    }
+                    n2 = g.get_node(p2_name);
+                    if(n2==nullptr){
+                        n2 = new Node(p2_name);
+                        g.add_node(n2);
+                    }
+                    if(g.get_arc(n1, n2)==nullptr){
+                        auto a = new Arc(n1,n2);
+                        g.add_arc(a);
+                        a->connect();
+                    }
+                    assert(p1->_is_vector == p2->_is_vector); /* They're both vectors or they're both not */
+                    if(p1->_is_vector){
+                        if(g.get_arc(n1, n1)==nullptr){
+                            auto a = new Arc(n1,n1);
+                            g.add_arc(a);
+                            a->connect();
+                        }
+                        if(g.get_arc(n2, n2)==nullptr){
+                            auto a = new Arc(n2,n2);
+                            g.add_arc(a);
+                            a->connect();
+                        }
+                    }
+                }
+                for (auto &pair:*_obj->_pterms) {
+                    for(auto it = pair.second._l->begin(); it != pair.second._l->end(); it++) {
+                        auto n1_name = it->first->get_name(false,false);
+                        n1 = g.get_node(n1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(n1_name);
+                            g.add_node(n1);
+                        }
+                        for(auto it2 = next(it); it2 != pair.second._l->end(); it2++) {
+                            auto n2_name = it2->first->get_name(false,false);
+                            n2 = g.get_node(n2_name);
+                            if(n2==nullptr){
+                                n2 = new Node(n2_name);
+                                g.add_node(n2);
+                            }
+                            if(g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                    }
                 }
             }
             return g;
         }
         
-        Net build_full_interaction_graph() const{
-            Net g;
-            for(auto &v_p: _vars) {
-                for (size_t i = 0; i < v_p.second->get_dim(); i++) {
-                    auto n = new Node(v_p.second->get_name(i));
-                     g.add_node(n);
-                }
+        /* Build the interaction graph with all indexed variables as nodes, an edge links two variables if they appear together in a constraint or if they are linked in a nonlinear fashion in the objective
+           @param[degree] degree of the relaxation, if degree = 2 and the model is quadratic, do not account for linear relationships.
+        */
+        Net get_interaction_graph(int degree=2) const{
+            if(this->_type==nlin_m){
+                throw invalid_argument("get_interaction_graph currently only supports polynomial, quadratic and linear models");
             }
+            Net g;
+            Node* n1 = nullptr;
+            Node* n2 = nullptr;
             for(auto& c_p :_cons) {
                 auto c = c_p.second;
-                auto nb_ins = c->get_nb_inst();
-                for (size_t i = 0; i< nb_ins; i++){
-                    for(auto &it: *c._vars)
-                    {
-                        auto v = it.second.first;
-                        if(v->_is_vector) {
+                if(this->_type==quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
+                    auto nb_inst = c->get_nb_inst();
+                    for(int inst = 0; inst<nb_inst; inst++){
+                        for (auto &pair:*c->_qterms) {
+                            auto coef = pair.second._coef;
+                            auto p1 = pair.second._p->first;
+                            auto p2 = pair.second._p->second;
+                            if(p1->is_matrix_indexed()){
+                                auto dim = p1->get_dim(inst);
+                                for (size_t j = 0; j<dim; j++) {
+                                    auto p1_name = p1->get_name(inst,j);
+                                    auto p2_name = p2->get_name(inst,j);
+                                    n1 = g.get_node(p1_name);
+                                    if(n1==nullptr){
+                                        n1 = new Node(p1_name);
+                                        g.add_node(n1);
+                                    }
+                                    n2 = g.get_node(p2_name);
+                                    if(n2==nullptr){
+                                        n2 = new Node(p2_name);
+                                        g.add_node(n2);
+                                    }
+                                    if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                        auto a = new Arc(n1,n2);
+                                        g.add_arc(a);
+                                        a->connect();
+                                    }
+                                }
+                            }
+                            else {
+                                auto p1_name = p1->get_name(inst);
+                                auto p2_name = p2->get_name(inst);
+                                n1 = g.get_node(p1_name);
+                                if(n1==nullptr){
+                                    n1 = new Node(p1_name);
+                                    g.add_node(n1);
+                                }
+                                n2 = g.get_node(p2_name);
+                                if(n2==nullptr){
+                                    n2 = new Node(p2_name);
+                                    g.add_node(n2);
+                                }
+                                if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                    auto a = new Arc(n1,n2);
+                                    g.add_arc(a);
+                                    a->connect();
+                                }
+                            }
+                        }
+                    }
+                }
+                else { /* All variables appearing in the constraint are linked in the interaction graph */
+                    auto nb_inst = c->get_nb_inst();
+                    for(int inst = 0; inst<nb_inst; inst++){
+                        for(auto it = c->_vars->begin(); it != c->_vars->end(); it++) {
+                            auto p1 = it->second.first;
+                            for(auto it2 = next(it); it2 != c->_vars->end(); it2++) {
+                                auto p2 = it2->second.first;
+                                if(p1->is_matrix_indexed()){
+                                    auto dim = p1->get_dim(inst);
+                                    for (size_t j = 0; j<dim; j++) {
+                                        auto p1_name = p1->get_name(inst,j);
+                                        auto p2_name = p2->get_name(inst,j);
+                                        n1 = g.get_node(p1_name);
+                                        if(n1==nullptr){
+                                            n1 = new Node(p1_name);
+                                            g.add_node(n1);
+                                        }
+                                        n2 = g.get_node(p2_name);
+                                        if(n2==nullptr){
+                                            n2 = new Node(p2_name);
+                                            g.add_node(n2);
+                                        }
+                                        if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                            auto a = new Arc(n1,n2);
+                                            g.add_arc(a);
+                                            a->connect();
+                                        }
+                                    }
+                                }
+                                else {
+                                    auto p1_name = p1->get_name(inst);
+                                    auto p2_name = p2->get_name(inst);
+                                    n1 = g.get_node(p1_name);
+                                    if(n1==nullptr){
+                                        n1 = new Node(p1_name);
+                                        g.add_node(n1);
+                                    }
+                                    n2 = g.get_node(p2_name);
+                                    if(n2==nullptr){
+                                        n2 = new Node(p2_name);
+                                        g.add_node(n2);
+                                    }
+                                    if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                        auto a = new Arc(n1,n2);
+                                        g.add_arc(a);
+                                        a->connect();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if(!_obj->is_constant()){
+                for (auto &pair:*_obj->_qterms) {
+                    auto coef = pair.second._coef;
+                    auto p1 = pair.second._p->first;
+                    auto p2 = pair.second._p->second;
+                    if(p1->is_matrix_indexed()){
+                        for (size_t inst = 0; inst<p1->get_dim(0); inst++) {
+                            auto dim = p1->get_dim(inst);
+                            for (size_t j = 0; j<dim; j++) {
+                                auto p1_name = p1->get_name(inst,j);
+                                auto p2_name = p2->get_name(inst,j);
+                                n1 = g.get_node(p1_name);
+                                if(n1==nullptr){
+                                    n1 = new Node(p1_name);
+                                    g.add_node(n1);
+                                }
+                                n2 = g.get_node(p2_name);
+                                if(n2==nullptr){
+                                    n2 = new Node(p2_name);
+                                    g.add_node(n2);
+                                }
+                                if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                    auto a = new Arc(n1,n2);
+                                    g.add_arc(a);
+                                    a->connect();
+                                }
+                            }
+                        }
+                    }
+                    else if(p1->_is_vector){
+                        for (size_t inst = 0; inst<p1->get_dim(0); inst++) {
+                            auto p1_name = p1->get_name(inst);
+                            auto p2_name = p2->get_name(inst);
+                            n1 = g.get_node(p1_name);
+                            if(n1==nullptr){
+                                n1 = new Node(p1_name);
+                                g.add_node(n1);
+                            }
+                            n2 = g.get_node(p2_name);
+                            if(n2==nullptr){
+                                n2 = new Node(p2_name);
+                                g.add_node(n2);
+                            }
+                            if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
+                        }
+                    }
+                    else {
+                        auto p1_name = p1->get_name(false,false);
+                        auto p2_name = p2->get_name(false,false);
+                        n1 = g.get_node(p1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(p1_name);
+                            g.add_node(n1);
+                        }
+                        n2 = g.get_node(p2_name);
+                        if(n2==nullptr){
+                            n2 = new Node(p2_name);
+                            g.add_node(n2);
+                        }
+                        if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                            auto a = new Arc(n1,n2);
+                            g.add_arc(a);
+                            a->connect();
+                        }
+                    }
+                }
+                for (auto &pair:*_obj->_pterms) {
+                    for(auto it = pair.second._l->begin(); it != pair.second._l->end(); it++) {
+                        auto n1_name = it->first->get_name(false,false);
+                        n1 = g.get_node(n1_name);
+                        if(n1==nullptr){
+                            n1 = new Node(n1_name);
+                            g.add_node(n1);
+                        }
+                        for(auto it2 = next(it); it2 != pair.second._l->end(); it2++) {
+                            auto n2_name = it2->first->get_name(false,false);
+                            n2 = g.get_node(n2_name);
+                            if(n2==nullptr){
+                                n2 = new Node(n2_name);
+                                g.add_node(n2);
+                            }
+                            if(n1!=n2 && g.get_arc(n1, n2)==nullptr){
+                                auto a = new Arc(n1,n2);
+                                g.add_arc(a);
+                                a->connect();
+                            }
                         }
                     }
                 }
@@ -4357,103 +4658,103 @@ namespace gravity {
         
         
         /*** adding on/off option to a constraint within an interval ***/
-        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
-        void add_on_off_univariate(const Constraint<type>& c, var<bool>& on, int num_partns, int cur_partn){
-            if (c.get_ftype() != lin_) {
-                cerr << "Nonlinear constraint.\n";
-                exit(-1);
-            }
-            
-            param<type> M1 ("M1");
-            param<type> M2 ("M2");
-            
-            size_t nb_ins = c.get_nb_inst();
-            
-            for (size_t inst = 0; inst<nb_ins; inst++)
-            {
-                for (auto &pair:*c._lterms) {
-                    auto term = pair.second;
-                    type coef_val = 0;
-                    if (term._coef->is_function()) {
-                        auto coef = static_pointer_cast<func<type>>(term._coef);
-                        coef_val = coef->eval(inst);//this will give you the value of this instance
-                    }
-                    else if(term._coef->is_param()) {
-                        auto coef = static_pointer_cast<param<type>>(term._coef);
-                        coef_val = coef->eval(inst);//this will give you the value of this instance
-                    }
-                    else { /*means (term._coef->is_number())*/
-                        auto coef = static_pointer_cast<constant<type>>(term._coef);
-                        coef_val = coef->eval();
-                    }
-                    
-                    auto LB = (term._p->get_double_lb(inst));
-                    auto UB = (term._p->get_double_ub(inst));
-                    
-                    if (c.get_ctype() == eq) {
-                        double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-                        double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
-                        
-                        if (coef_val < 0){
-                            M1.add_val(coef_val * LB_partn);
-                            M2.add_val(coef_val * UB_partn);
-                        }
-                        else {
-                            M1.add_val(coef_val * UB_partn);
-                            M2.add_val(coef_val * LB_partn);
-                        }
-                        
-                    }
-                    
-                    else if (c.get_ctype() == leq) {
-                        if (coef_val < 0){
-                            type LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-                            M1.add_val(coef_val * LB_partn);
-                            
-                        }
-                        else {
-                            type UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
-                            M1.add_val(coef_val * UB_partn);
-                        }
-                    }
-                    
-                    else {
-                        if (coef_val < 0){
-                            auto UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
-                            M2.add_val(coef_val * UB_partn);
-                        }
-                        else {
-                            auto LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
-                            M2.add_val(coef_val * LB_partn);
-                            
-                        }
-                    }
-                }
-            }
-            
-            
-            if (c.get_ctype() == eq){
-                Constraint<type> res1(c.get_name() + "_on/off");
-                res1 = c - M1*(1-on);
-                add_constraint(res1<=0);
-                
-                Constraint<type> res2(c.get_name() + "_on/off2");
-                res2 = c - M2*(1-on);
-                add_constraint(res2>=0);
-            }
-            
-            if (c.get_ctype() == leq){
-                Constraint<type> res1(c.get_name() + "_on/off");
-                res1 = c - M1*(1-on);
-                add_constraint(res1<=0);
-            }
-            
-            if (c.get_ctype() == geq){
-                Constraint<type> res2(c.get_name() + "_on/off2");
-                res2 = c - M2*(1-on);
-                add_constraint(res2>=0);
-            }
-        }
+//        template<typename T=type,typename std::enable_if<is_arithmetic<type>::value>::type* = nullptr>
+//        void add_on_off_univariate(const Constraint<type>& c, var<bool>& on, int num_partns, int cur_partn){
+//            if (c.get_ftype() != lin_) {
+//                cerr << "Nonlinear constraint.\n";
+//                exit(-1);
+//            }
+//
+//            param<type> M1 ("M1");
+//            param<type> M2 ("M2");
+//
+//            size_t nb_ins = c.get_nb_inst();
+//
+//            for (size_t inst = 0; inst<nb_ins; inst++)
+//            {
+//                for (auto &pair:*c._lterms) {
+//                    auto term = pair.second;
+//                    type coef_val = 0;
+//                    if (term._coef->is_function()) {
+//                        auto coef = static_pointer_cast<func<type>>(term._coef);
+//                        coef_val = coef->eval(inst);//this will give you the value of this instance
+//                    }
+//                    else if(term._coef->is_param()) {
+//                        auto coef = static_pointer_cast<param<type>>(term._coef);
+//                        coef_val = coef->eval(inst);//this will give you the value of this instance
+//                    }
+//                    else { /*means (term._coef->is_number())*/
+//                        auto coef = static_pointer_cast<constant<type>>(term._coef);
+//                        coef_val = coef->eval();
+//                    }
+//
+//                    auto LB = (term._p->get_double_lb(inst));
+//                    auto UB = (term._p->get_double_ub(inst));
+//
+//                    if (c.get_ctype() == eq) {
+//                        double LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+//                        double UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+//
+//                        if (coef_val < 0){
+//                            M1.add_val(coef_val * LB_partn);
+//                            M2.add_val(coef_val * UB_partn);
+//                        }
+//                        else {
+//                            M1.add_val(coef_val * UB_partn);
+//                            M2.add_val(coef_val * LB_partn);
+//                        }
+//
+//                    }
+//
+//                    else if (c.get_ctype() == leq) {
+//                        if (coef_val < 0){
+//                            type LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+//                            M1.add_val(coef_val * LB_partn);
+//
+//                        }
+//                        else {
+//                            type UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+//                            M1.add_val(coef_val * UB_partn);
+//                        }
+//                    }
+//
+//                    else {
+//                        if (coef_val < 0){
+//                            auto UB_partn = (LB*(num_partns - cur_partn) + UB*(cur_partn))/num_partns;
+//                            M2.add_val(coef_val * UB_partn);
+//                        }
+//                        else {
+//                            auto LB_partn = (LB*(num_partns - cur_partn + 1) + UB*(cur_partn - 1))/num_partns;
+//                            M2.add_val(coef_val * LB_partn);
+//
+//                        }
+//                    }
+//                }
+//            }
+//
+//
+//            if (c.get_ctype() == eq){
+//                Constraint<type> res1(c.get_name() + "_on/off");
+//                res1 = c - M1*(1-on);
+//                add_constraint(res1<=0);
+//
+//                Constraint<type> res2(c.get_name() + "_on/off2");
+//                res2 = c - M2*(1-on);
+//                add_constraint(res2>=0);
+//            }
+//
+//            if (c.get_ctype() == leq){
+//                Constraint<type> res1(c.get_name() + "_on/off");
+//                res1 = c - M1*(1-on);
+//                add_constraint(res1<=0);
+//            }
+//
+//            if (c.get_ctype() == geq){
+//                Constraint<type> res2(c.get_name() + "_on/off2");
+//                res2 = c - M2*(1-on);
+//                add_constraint(res2>=0);
+//            }
+//        }
         
         
         //this function calculates on-off coefficients for representing the convex hull of the disjunctive union of constraints
@@ -6195,7 +6496,7 @@ namespace gravity {
         //optimality based bound tightening procedure for a given mathematical formulation
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
         template<typename T=type,
-        typename std::enable_if<is_same<type,double>::value>::type* = nullptr>
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         std::tuple<bool,int,double,double,double,bool> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6, shared_ptr<Model<type>> ub_model= nullptr, shared_ptr<Model<type>> nonlin_model= nullptr, bool nonlin=true);
         
         

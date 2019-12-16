@@ -10,8 +10,10 @@ GurobiProgram::GurobiProgram(){
 //    grb_env->set(GRB_IntParam_Threads,1);
        grb_env->set(GRB_IntParam_Presolve,0);
       grb_env->set(GRB_IntParam_NumericFocus,3);
+     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
     grb_env->set(GRB_IntParam_OutputFlag,1);
 //    grb_mod = new GRBModel(*grb_env);
     grb_mod = NULL;
@@ -20,6 +22,18 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env = new GRBEnv();
+    grb_env->set(GRB_IntParam_Presolve,0);
+    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+    //    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Presolve,0);
+    grb_env->set(GRB_IntParam_NumericFocus,3);
+    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
@@ -29,6 +43,18 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env = new GRBEnv();
+    grb_env->set(GRB_IntParam_Presolve,0);
+    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+    //    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Presolve,0);
+    grb_env->set(GRB_IntParam_NumericFocus,3);
+    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-7);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-7);
+    
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
 //    grb_env->set(GRB_IntParam_OutputFlag,2);
 //    _model = m;
@@ -243,7 +269,7 @@ void GurobiProgram::create_grb_constraints(){
             default:
                 break;
         }
-        nb_inst = c->get_nb_instances();
+        nb_inst = c->get_nb_inst();
         inst = 0;
         if (c->is_linear()) {
             for (size_t i = 0; i< nb_inst; i++){
@@ -283,8 +309,8 @@ void GurobiProgram::create_grb_constraints(){
                     quadlhs = 0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
-                        if (it1.second._p->_is_vector || it1.second._p->is_matrix_indexed() || it1.second._coef->is_matrix()) {
-                            auto dim =it1.second._p->get_dim(i);
+                        if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix() || it1.second._p->is_matrix_indexed()) {
+                            auto dim = it1.second._p->get_dim(i);
                             for (size_t j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
                                 gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
@@ -302,9 +328,7 @@ void GurobiProgram::create_grb_constraints(){
                         quadlhs += lterm;
                     }
                     for (auto& it1: c->get_qterms()) {
-                        gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
-                        gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
-                        if (it1.second._p->first->_is_vector) {
+                        if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix_indexed() || it1.second._p->first->is_matrix_indexed()) {
                             auto dim =it1.second._p->first->get_dim(i);
                             for (int j = 0; j<dim; j++) {
                                 coeff = c->eval(it1.second._coef,i,j);
@@ -319,6 +343,8 @@ void GurobiProgram::create_grb_constraints(){
                             }
                         }
                         else {
+                            gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst(i)];
+                            gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst(i)];
                             coeff = c->eval(it1.second._coef,i);
                             if (!it1.second._sign) {
                                 quadlhs += -1*coeff*gvar1*gvar2;
