@@ -250,18 +250,13 @@ namespace gravity {
         
         template<typename... Args>
         var operator()(size_t i) {
-            if(!this->_indices){
-                throw invalid_argument("Current param/var is not indexed.");
-            }
-            return (*this)(this->_indices->_keys->at(i));
+            return (*this)(to_string(i));
         }
         
         
         template<typename... Args>
         var operator[](size_t i) {
-            auto res = (*this)(i-1);
-            res._name = this->_name+"["+to_string(i)+"]";
-            return res;
+            return (*this)(to_string(i));
         }
         
 //        var in_pairs(){

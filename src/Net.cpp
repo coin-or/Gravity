@@ -132,6 +132,14 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
+void Net::add_node(Node* node, size_t pos) {
+    if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
+        cerr << "ERROR: adding the same node twice!";
+    }
+    nodes.resize(pos+1);
+    nodes[pos] = node;
+}
+
 Node* Net::get_node(string name) const{
     auto it = nodeID.find(name);
     if(it==nodeID.end())
@@ -222,10 +230,10 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
-    if (src == dest){
-        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-        
-    }
+//    if (src == dest){
+//        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+//        
+//    }
     
     
     key.clear();
@@ -630,23 +638,21 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                             }
                         }
                         new_bag.first = key;
-                        DebugOff("new bag = {");
-//                        for (int i=0; i<new_bag.second.size();     i++) {
-//                            cout << new_bag.second.at(i)->_name << " ";
-//                        }
-                        DebugOff("}" << endl);
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
-                            DebugOff("Bag added!" << endl);
-                        }
-                        else{
-                            DebugOff("Bag discarded!" << endl);
+                            DebugOff("new bag = { ");
+                            for (int i=0; i<new_bag.second.size();     i++) {
+                                DebugOff(new_bag.second.at(i)->_name << " ");
+                            }
+                            DebugOff("}" << endl);
+
                         }
                     }
                 }
             }
         }
     }
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
 
@@ -1075,6 +1081,12 @@ Net::~Net() {
         delete horton_net;
     for (pair<string,map<string,Arc*>*> it:arcID) {
         delete it.second;
+    }
+}
+
+void Net::print() const{
+    for(const Node* n:nodes){
+        n->print();
     }
 }
 

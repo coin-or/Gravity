@@ -784,6 +784,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         ch.add_val(name,arc->ch);
         //        S_max.add_val(name,gravity::min(arc->limit,max(2.*total_p_load, 2.*total_q_load)));
         S_max.add_val(name,arc->limit);
+        Smax.add_val(name,Cpx(arc->limit,arc->limit));
         pf_from_max.add_val(name, arc->limit);
         pf_from_min.add_val(name, (arc->limit)*(-1));
         qf_from_max.add_val(name, arc->limit);
