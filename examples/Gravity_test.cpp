@@ -1440,7 +1440,7 @@ TEST_CASE("testing projection") {
     var<>  Wii("Wii", 0.8, 1.21);
     Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = R_Wij + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    SOC = 3*R_Wij + pow(Im_Wij, 2) - 5*Wii.from(bus_pairs);
     Mtest.add(SOC.in(bus_pairs) == 0);
     
     Constraint<> PAD("PAD");

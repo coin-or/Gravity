@@ -1147,6 +1147,7 @@ namespace gravity {
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         void project() {/**<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
+            vector<string> delete_cstr;
             for (auto& c_pair:_cons_name) {
                 if (c_pair.second->is_eq()) {
                     auto &lterms = c_pair.second->get_lterms();
@@ -1156,16 +1157,55 @@ namespace gravity {
                         func<T> f = *c_pair.second;
                         if (v->get_intype()==double_) {
                             auto vv = *static_pointer_cast<var<double>>(v);
-                            if (first->second._sign) {
-                                f -= vv;
+                            if (first->second._coef->is_function()) {
+                                auto coef = *static_pointer_cast<func<T>>(first->second._coef);
+                                if (first->second._sign) {
+                                    f -= coef*vv;
+                                }
+                                else {
+                                    f += coef*vv;
+                                }
+                                if(coef._indices){
+                                    f *= (-1./coef).in(*coef._indices);
+                                }
+                                else {
+                                    f *= -1./coef;/* TODO: indexing */
+                                }
                             }
-                            else {
-                                f += vv;
+                            else if(first->second._coef->is_param()) {
+                                auto coef = *static_pointer_cast<param<T>>(first->second._coef);
+                                if (first->second._sign) {
+                                    f -= coef*vv;
+                                }
+                                else {
+                                    f += coef*vv;
+                                }
+                                if(coef._indices){
+                                    f *= (-1./coef).in(*coef._indices);
+                                }
+                                else {
+                                    f *= -1./coef;/* TODO: indexing */
+                                }
+
                             }
+                            else if(first->second._coef->is_number()) {
+                                auto coef = *static_pointer_cast<constant<T>>(first->second._coef);
+                                if (first->second._sign) {
+                                    f -= coef*vv;
+                                }
+                                else {
+                                    f += coef*vv;
+                                }
+                                f *= -1./coef;
+                            }
+                            delete_cstr.push_back(c_pair.first);
                             c_pair.second->_is_constraint = false;
                             replace(vv,f);
                         }
                         DebugOff(f.to_str());
+                        for(const auto cstr_name: delete_cstr){
+                            remove(cstr_name);
+                        }
                         return;
                     }
                 }
