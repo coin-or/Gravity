@@ -220,6 +220,61 @@ public:
         return *this;
     }
     
+    template<typename T=type>
+    void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
+        func<T> new_f = *this;
+        if(!v.is_indexed()){/* Replace all instances of v, no need to split the constraint */
+             for (auto &lt:this->get_lterms()) {
+                 auto vv = lt.second._p;
+                 if(v.get_vec_id()==vv->get_vec_id()){
+                     if(!vv->is_indexed()){/* No need to select a subset of indices in f */
+                         func<T> coef;
+                         if (lt.second._coef->is_function()) {
+                             coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                         }
+                         else if(lt.second._coef->is_param()) {
+                             coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                         }
+                         else if(lt.second._coef->is_number()) {
+                             coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                         }
+                         if(lt.second._sign) {
+                             f -= coef*v;
+                             f += coef*f;
+                         }
+                         else {
+                             f += coef*v;
+                             f -= coef*f;
+                         }
+                     }
+                 }
+             }
+             for (auto &lt:this->get_qterms()) {
+                 if(v.get_vec_id()==lt.second._p->first->get_vec_id()){
+                 }
+//                     lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first;
+             }
+             for (auto &lt:this->get_pterms()) {
+                 for (auto &v_p:*lt.second._l) {
+                     if(v.get_vec_id()==v_p.first->get_vec_id()){
+                         
+                     }
+                 }
+             }
+             if (this->_expr) {
+                 if (this->_expr->is_uexpr()) {
+                     auto ue = static_pointer_cast<uexpr<type>>(this->_expr);
+                 }
+                 else {
+                     auto be = static_pointer_cast<bexpr<type>>(this->_expr);
+                 }
+             }
+        }
+        else {
+        }
+        *this = f;
+    }
+    
     size_t get_nb_instances() const{
         size_t nb = 0;
         if (!*_all_lazy) {

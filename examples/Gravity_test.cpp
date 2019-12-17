@@ -1426,6 +1426,34 @@ TEST_CASE("testing constraint delete") {
     CHECK(Mtest.get_nb_cons() == 4);
 }
 
+
+TEST_CASE("testing projection") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices bus_pairs("bpairs");
+    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = R_Wij + pow(Im_Wij, 2) - Wii.from(bus_pairs);
+    Mtest.add(SOC.in(bus_pairs) == 0);
+    
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij - Im_Wij;
+    Mtest.add(PAD.in(bus_pairs)<=2);
+    
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 8);
+    Mtest.project();
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 4);
+}
+
 TEST_CASE("Few Degrees Of Freedom") {
     auto m = Model<>("test");
     /* ----- Indices ----- */

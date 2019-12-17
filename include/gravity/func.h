@@ -6954,6 +6954,8 @@ namespace gravity {
             merge_vars(f);
         }
         
+        
+        
         /**
          Relax and replace integer variables with continuous ones provided in argument vars.
          @param[in] vars set with continuous variables replacements.

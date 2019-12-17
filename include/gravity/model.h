@@ -1130,105 +1130,42 @@ namespace gravity {
             _has_callback = true;
         }
         
-        template<typename T>
+        template<typename T=type>
         void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
-                if (!c->has_var(*v)) {
+                if (!c->_is_constraint || !c->has_var(v)) {
                     continue;
                 }
                 c->replace(v, f);
             }
-            _vars_name.erase(v->_name);
-            auto vid = *v->_vec_id;
-            _vars.erase(vid);
-            reindex_vars();
+//            _vars_name.erase(v->_name);
+//            auto vid = *v->_vec_id;
+//            _vars.erase(vid);
+//            reindex_vars();
         }
-        
-        
-        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void project() {/**<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
             for (auto& c_pair:_cons_name) {
                 if (c_pair.second->is_eq()) {
                     auto &lterms = c_pair.second->get_lterms();
                     if (!lterms.empty()) {
                         auto first = lterms.begin();
                         auto v = first->second._p;
-                        auto f = *c_pair.second;
-                        switch (v->get_intype()) {
-                            case binary_: {
-                                auto vv = *static_pointer_cast<var<bool>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
+                        func<T> f = *c_pair.second;
+                        if (v->get_intype()==double_) {
+                            auto vv = *static_pointer_cast<var<double>>(v);
+                            if (first->second._sign) {
+                                f -= vv;
                             }
-                            case short_: {
-                                auto vv = *static_pointer_cast<var<short>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
+                            else {
+                                f += vv;
                             }
-                            case integer_: {
-                                auto vv = *static_pointer_cast<var<int>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case float_: {
-                                auto vv = *static_pointer_cast<var<float>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case double_: {
-                                auto vv = *static_pointer_cast<var<double>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case long_: {
-                                auto vv = *static_pointer_cast<var<long double>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case complex_: {
-                                auto vv = *static_pointer_cast<var<Cpx>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
+                            c_pair.second->_is_constraint = false;
+                            replace(vv,f);
                         }
                         DebugOff(f.to_str());
-                        remove(c_pair.first);
-                        replace(v,f);
                         return;
                     }
                 }
