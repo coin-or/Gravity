@@ -239,12 +239,12 @@ public:
                              coef = *static_pointer_cast<constant<T>>(lt.second._coef);
                          }
                          if(lt.second._sign) {
-                             f -= coef*v;
-                             f += coef*f;
+                             new_f -= coef*v;
+                             new_f += coef*f;
                          }
                          else {
-                             f += coef*v;
-                             f -= coef*f;
+                             new_f += coef*v;
+                             new_f -= coef*f;
                          }
                      }
                  }
@@ -272,7 +272,7 @@ public:
         }
         else {
         }
-        *this = f;
+        *this = new_f;
     }
     
     size_t get_nb_instances() const{

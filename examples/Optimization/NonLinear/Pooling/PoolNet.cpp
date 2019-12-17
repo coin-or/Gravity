@@ -1329,6 +1329,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     demand_ub=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-dem_max;
     SPP->add(demand_ub.in(Outputs)<=0);
 
+    SPP->print();
     
     row_id = 0;
     indices outattr_x_matrix = indices("outattr_x_matrix");
@@ -1389,7 +1390,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     }
     
     Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
-    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix))*x.in(outattr_x_matrix);
+    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix);
             SPP->add(quality_balance_le.in(outputs_attr)<=0);
     
     
