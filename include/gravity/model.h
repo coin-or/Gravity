@@ -1132,6 +1132,7 @@ namespace gravity {
         
         template<typename T=type>
         void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
+            _obj->replace(v,f);
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
                 if (!c->_is_constraint || !c->has_var(v)) {
