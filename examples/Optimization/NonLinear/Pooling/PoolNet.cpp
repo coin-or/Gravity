@@ -1328,7 +1328,72 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     Constraint<> demand_ub("demand_ub");
     demand_ub=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-dem_max;
     SPP->add(demand_ub.in(Outputs)<=0);
-        SPP->print();
+
+    
+    row_id = 0;
+    indices outattr_x_matrix = indices("outattr_x_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattr_x_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        for (auto &ipo:*inputs_pools_outputs._keys) {
+            
+            auto pos = nthOccurrence(ipo, ",", 2);
+            auto pos1 = nthOccurrence(ipo, ",", 3);
+            auto out1 = ipo.substr(pos+1, pos1-(pos+1));
+            
+            if(out_key==out1){
+                outattr_x_matrix.add_in_row(row_id, ipo);
+            }
+        }
+        row_id++;
+    }
+    
+    row_id = 0;
+    indices outattr_pin_matrix = indices("outattr_pin_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattr_pin_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+        for (auto &ipo:*inputs_pools_outputs._keys) {
+            auto pos1 = nthOccurrence(ipo, ",", 1);
+            auto pos2 = nthOccurrence(ipo, ",", 2);
+            auto pos3 = nthOccurrence(ipo, ",", 3);
+            auto out1 = ipo.substr(pos2+1, pos3-(pos2+1));
+            auto in=ipo.substr(0, pos1);
+            if(out_key==out1){
+                outattr_pin_matrix.add_in_row(row_id, in+","+at_key);
+            }
+        }
+        row_id++;
+    }
+    
+    row_id = 0;
+    indices outattr_pout_matrix = indices("outattr_pout_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattr_pout_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+        for (auto &ipo:*inputs_pools_outputs._keys) {
+            auto pos1 = nthOccurrence(ipo, ",", 1);
+            auto pos2 = nthOccurrence(ipo, ",", 2);
+            auto pos3 = nthOccurrence(ipo, ",", 3);
+            auto out1 = ipo.substr(pos2+1, pos3-(pos2+1));
+            if(out_key==out1){
+                outattr_pout_matrix.add_in_row(row_id, outat_key);
+            }
+        }
+        row_id++;
+    }
+    
+    Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
+    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix))*x.in(outattr_x_matrix);
+            SPP->add(quality_balance_le.in(outputs_attr)<=0);
+    
+    
+            SPP->print();
 //
 //    Constraint<> mass_balance("mass_balance");
 //    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
