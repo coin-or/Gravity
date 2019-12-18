@@ -28,13 +28,15 @@ class PoolNet: public Net {
     
 public:
     
-    param<double> q_min, q_max, inqual,x_min,x_max;//in inputs_pools
+    param<double> x_min,x_max;//in inputs_pools
     param<double> y_min, y_max;//in pools_outputs
-    param<double> z_min, z_max,outqual_min, outqual_max;//in inputs_outputs
-    param<double>  avail_max, avail_min; //in inputs
-    param<double> rev, dem_max, dem_min; //in outputs
-    param<double> pool_cap; //in pools
-    param<double> cost_ip,cost_io, cost_po;
+    param<double> z_min, z_max;//in inputs_outputs
+    param<double> A_L, A_U; //in inputs
+    param<double> D_L, D_U; //in outputs
+    param<double> S; //in pools
+    param<double> c_tx,c_tz, c_ty;
+    param<double> C; //in inputs_attr
+    param<double> P_U; //in outputs_attr
     param<double> sumyk;
 
     
@@ -51,15 +53,15 @@ public:
     
     indices pools_outputs;
     
-    indices pools_attr;
     
     indices inputs_outputs;
     
-    indices inputs_attr;
+    indices inputs_attr=indices(Inputs, Attr);
+    indices outputs_attr=indices(Outputs, Attr);
+    indices pools_attr=indices(Pools, Attr);
+
     
-    indices outputs_attr;
-    
-    
+
 
     /** Constructors */
     PoolNet();

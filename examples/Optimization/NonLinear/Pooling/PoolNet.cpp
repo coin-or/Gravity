@@ -38,19 +38,18 @@ PoolNet::PoolNet() {
     z_min.set_name("z_min");
     z_max.set_name("z_max");
     //in inputs
-    cost_ip.set_name("cost_ip");
-    cost_io.set_name("cost_io");
-    cost_po.set_name("cost_po");
-    avail_min.set_name("avail_min");
-    avail_max.set_name("avail_max");
-    inqual.set_name("inqual");
+    c_tx.set_name("c_tx");
+    c_tz.set_name("c_tz");
+    c_ty.set_name("c_ty");
+    A_L.set_name("A_L");
+    A_U.set_name("A_U");
+    C.set_name("C");
     //in outputs
-    dem_min.set_name("dem_min");
-    dem_max.set_name("dem_max");
-    outqual_min.set_name("outqual_min");
-    outqual_max.set_name("outqual_max");
+    D_L.set_name("D_L");
+    D_U.set_name("D_U");
+    P_U.set_name("P_U");
     //in pools
-    pool_cap.set_name("pool_cap");
+    S.set_name("S");
     sumyk.set_name("sumyk");
     sumyk.in(range(0,0));
     sumyk.set_val(0);
@@ -531,7 +530,7 @@ void PoolNet::readgrid(string fname) {
         file>>flag;
         for(auto j=1;j<=N_attr;j++){
             file>>val;
-            inqual.add_val(to_string(i)+","+to_string(j), val);
+            C.add_val(to_string(i)+","+to_string(j), val);
             inputs_attr.add(to_string(i) + "," + to_string(j));
         }
     }
@@ -539,8 +538,7 @@ void PoolNet::readgrid(string fname) {
         file>>flag;
         for(auto j=1;j<=N_attr;j++){
             file>>val;
-            outqual_max.add_val(to_string(i)+","+to_string(j), val);
-            outqual_min.add_val(to_string(i)+","+to_string(j), 0);
+            P_U.add_val(to_string(i)+","+to_string(j), val);
             outputs_attr.add(to_string(i) + "," + to_string(j));
         }
     }
@@ -557,14 +555,14 @@ void PoolNet::readgrid(string fname) {
         file>>flag;
        
             file>>val;
-            avail_min.add_val(to_string(i), val);
+            A_L.add_val(to_string(i), val);
        
     }
     
     for(auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++){
         file>>flag;
         file>>val;
-        dem_min.add_val(to_string(i), val);
+        D_L.add_val(to_string(i), val);
     }
     while(word.find("capacity upper bound")==string::npos){
         getline(file, word);
@@ -577,19 +575,57 @@ void PoolNet::readgrid(string fname) {
         file>>flag;
         
         file>>val;
-        avail_max.add_val(to_string(i), val);
+        A_U.add_val(to_string(i), val);
         
     }
     for(auto i=N_input+1;i<=N_input+N_pool;i++){
         file>>flag;
         file>>val;
-        pool_cap.add_val(to_string(i), val);
+        S.add_val(to_string(i), val);
     }
     for(auto i=N_input+N_pool+1;i<=N_input+N_pool+N_output;i++){
         file>>flag;
         file>>val;
-        dem_max.add_val(to_string(i), val);
+        D_U.add_val(to_string(i), val);
     }
+    
+
+    
+    
+    
+   
+    file.clear();
+    file.seekg(0, ios::beg);
+    while(word.find("table c(i,j)")==string::npos){
+        getline(file, word);
+    }
+    getline(file, word);
+    for(auto i=1;i<=N_input;i++){
+        file>>flag;
+        for(auto j=N_input+1;j<=N_input+N_pool;j++){
+            file>>val;
+    auto key=to_string(i)+","+to_string(j);
+            c_tx.add_val(key, val);
+      }
+
+        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+           file>>val;
+            auto key=to_string(i)+","+to_string(j);
+            c_tz.add_val(key, val);
+        }
+    }
+    for(auto i=N_input+1;i<=N_input+N_pool;i++){
+        file>>flag;
+        for(auto j=1;j<=N_pool;j++){
+            file>>val;
+        }
+                for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
+               file>>val;
+        auto key=to_string(i)+","+to_string(j);
+        c_ty.add_val(key, val);
+    }
+    }
+    file.close();
     
     for(auto key: *(inputs_pools._keys)){
         x_min.add_val(key, 0);
@@ -602,49 +638,11 @@ void PoolNet::readgrid(string fname) {
         
     }
     for(auto key: *(inputs_outputs._keys)){
-        z_min.add_val(key, 0);
-        z_max.add_val(key, 100);
+        auto pos = nthOccurrence(key, ",", 1);
+        auto in = key.substr(0,pos);
+        auto out=key.substr(pos+1);
         
     }
-    
-    
-    
-    for(auto key: *(Outputs._keys)){
-        rev.add_val(key, 0);
-        
-    }
-    file.clear();
-    file.seekg(0, ios::beg);
-    while(word.find("table c(i,j)")==string::npos){
-        getline(file, word);
-    }
-    getline(file, word);
-    for(auto i=1;i<=N_input;i++){
-        file>>flag;
-        for(auto j=N_input+1;j<=N_input+N_pool;j++){
-            file>>val;
-    auto key=to_string(i)+","+to_string(j);
-            cost_ip.add_val(key, val);
-      }
-
-        for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
-           file>>val;
-            auto key=to_string(i)+","+to_string(j);
-            cost_io.add_val(key, val);
-        }
-    }
-    for(auto i=N_input+1;i<=N_input+N_pool;i++){
-        file>>flag;
-        for(auto j=1;j<=N_pool;j++){
-            file>>val;
-        }
-                for(auto j=N_input+N_pool+1;j<=N_input+N_pool+N_output;j++){
-               file>>val;
-        auto key=to_string(i)+","+to_string(j);
-        cost_po.add_val(key, val);
-    }
-    }
-    file.close();
 
 }
 shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet)
@@ -694,21 +692,19 @@ auto z_min=poolnet.z_min.in(inputs_outputs);
 auto z_max=poolnet.z_max.in(inputs_outputs);
 
 // auto cost=poolnet.cost.in(Inputs);
-auto avail_min=poolnet.avail_min.in(Inputs);
-auto avail_max=poolnet.avail_max.in(Inputs);
-auto p_in=poolnet.inqual.in(inputs_attr);
+auto avail_min=poolnet.A_L.in(Inputs);
+auto avail_max=poolnet.A_U.in(Inputs);
+auto p_in=poolnet.C.in(inputs_attr);
 
-auto rev=poolnet.rev.in(Outputs);
-auto dem_min=poolnet.dem_min.in(Outputs);
-auto dem_max=poolnet.dem_max.in(Outputs);
-auto p_out_min=poolnet.outqual_min.in(outputs_attr);
-auto p_out_max=poolnet.outqual_max.in(outputs_attr);
+auto dem_min=poolnet.D_L.in(Outputs);
+auto dem_max=poolnet.D_U.in(Outputs);
+auto p_out_max=poolnet.P_U.in(outputs_attr);
 
-auto pool_cap=poolnet.pool_cap.in(Pools);
+auto pool_cap=poolnet.S.in(Pools);
 
-auto cost_ip=poolnet.cost_ip.in(inputs_pools);
-auto cost_io=poolnet.cost_io.in(inputs_outputs);
-auto cost_po=poolnet.cost_po.in(pools_outputs);
+auto cost_ip=poolnet.c_tx.in(inputs_pools);
+auto cost_io=poolnet.c_tz.in(inputs_outputs);
+auto cost_po=poolnet.c_ty.in(pools_outputs);
 
 var<> q("q", 0, 1);
 var<> cq("cq", 0, 100);
@@ -986,21 +982,19 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type)
     auto z_max=poolnet.z_max.in(inputs_outputs);
     
     // auto cost=poolnet.cost.in(Inputs);
-    auto avail_min=poolnet.avail_min.in(Inputs);
-    auto avail_max=poolnet.avail_max.in(Inputs);
-    auto p_in=poolnet.inqual.in(inputs_attr);
+    auto avail_min=poolnet.A_L.in(Inputs);
+    auto avail_max=poolnet.A_U.in(Inputs);
+    auto p_in=poolnet.C.in(inputs_attr);
     
-    auto rev=poolnet.rev.in(Outputs);
-    auto dem_min=poolnet.dem_min.in(Outputs);
-    auto dem_max=poolnet.dem_max.in(Outputs);
-    auto p_out_min=poolnet.outqual_min.in(outputs_attr);
-    auto p_out_max=poolnet.outqual_max.in(outputs_attr);
+    auto dem_min=poolnet.D_L.in(Outputs);
+    auto dem_max=poolnet.D_U.in(Outputs);
+    auto p_out_max=poolnet.P_U.in(outputs_attr);
     
-    auto pool_cap=poolnet.pool_cap.in(Pools);
+    auto pool_cap=poolnet.S.in(Pools);
     
-    auto cost_ip=poolnet.cost_ip.in(inputs_pools);
-    auto cost_io=poolnet.cost_io.in(inputs_outputs);
-    auto cost_po=poolnet.cost_po.in(pools_outputs);
+    auto cost_ip=poolnet.c_tx.in(inputs_pools);
+    auto cost_io=poolnet.c_tz.in(inputs_outputs);
+    auto cost_po=poolnet.c_ty.in(pools_outputs);
     auto sumyk=poolnet.sumyk;
     
     var<> x("x", x_min, x_max);
@@ -1187,20 +1181,20 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     auto SPP= make_shared<Model<>>("Std-Pooling-Prob-P");
     
-    indices Inputs=poolnet.Inputs;
-    indices Pools=poolnet.Pools;
-    indices Outputs=poolnet.Outputs;
-    indices Attr=poolnet.Attr;
+    indices I=poolnet.Inputs;
+    indices L=poolnet.Pools;
+    indices J=poolnet.Outputs;
+    indices K=poolnet.Attr;
     
     //indices Nodes=pool.nodes;
     
     
-    indices inputs_pools=poolnet.inputs_pools;
-    indices pools_outputs=poolnet.pools_outputs;
-    indices inputs_outputs=poolnet.inputs_outputs;
-    indices inputs_attr=poolnet.inputs_attr;
-    indices outputs_attr=poolnet.outputs_attr;
-    indices pool_attr = indices(Pools,Attr);
+    indices Tx=poolnet.inputs_pools;
+    indices Ty=poolnet.pools_outputs;
+    indices Tz=poolnet.inputs_outputs;
+    indices I_K=indices(I,K);
+    indices J_K=indices(J,K);
+    indices L_K = indices(L,K);
     
     indices inputs_pools_outputs=poolnet.inputs_pools_outputs();
     auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
@@ -1218,21 +1212,19 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     // auto cost=poolnet.cost.in(Inputs);
-    auto avail_min=poolnet.avail_min.in(Inputs);
-    auto avail_max=poolnet.avail_max.in(Inputs);
-    auto p_in=poolnet.inqual.in(inputs_attr);
+    auto A_L=poolnet.A_L.in(I);
+    auto A_U=poolnet.A_U.in(I);
+    auto C=poolnet.C.in(I_K);
     
-    auto rev=poolnet.rev.in(Outputs);
-    auto dem_min=poolnet.dem_min.in(Outputs);
-    auto dem_max=poolnet.dem_max.in(Outputs);
-    auto p_out_min=poolnet.outqual_min.in(outputs_attr);
-    auto p_out_max=poolnet.outqual_max.in(outputs_attr);
+    auto D_L=poolnet.D_L.in(J);
+    auto D_U=poolnet.D_U.in(J);
+    auto P_U=poolnet.P_U.in(J_K);
     
-    auto pool_cap=poolnet.pool_cap.in(Pools);
+    auto S=poolnet.S.in(L);
     
-    auto cost_ip=poolnet.cost_ip.in(inputs_pools);
-    auto cost_io=poolnet.cost_io.in(inputs_outputs);
-    auto cost_po=poolnet.cost_po.in(pools_outputs);
+    auto c_tx=poolnet.c_tx.in(Tx);
+    auto c_tz=poolnet.c_tz.in(Tz);
+    auto c_ty=poolnet.c_ty.in(Ty);
     auto sumyk=poolnet.sumyk;
     
 //    auto x_min=poolnet.x_min.in(inputs_pools_outputs);
@@ -1242,16 +1234,16 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 //    auto y_min=poolnet.y_min.in(pools_outputs);
 //    auto y_max=poolnet.y_max.in(pools_outputs);
 //
-    auto z_min=poolnet.z_min.in(inputs_outputs);
-    auto z_max=poolnet.z_max.in(inputs_outputs);
+    auto z_min=poolnet.z_min.in(Tz);
+    auto z_max=poolnet.z_max.in(Tz);
     
     var<> x("x",0, 100), y("y", 0, 100);
     var<> q("q", 0, 1), z("z", z_min, z_max);
   
     SPP->add(x.in(inputs_pools_outputs));
-    SPP->add(q.in(inputs_pools));
-    SPP->add(z.in(inputs_outputs));
-    SPP->add(y.in(pools_outputs));
+    SPP->add(q.in(Tx));
+    SPP->add(z.in(Tz));
+    SPP->add(y.in(Ty));
 
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
@@ -1260,7 +1252,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
         int row_id = 0;
         indices input_x_matrix = indices("input_x_matrix");
-        for (const string& input_key:*Inputs._keys) {
+        for (const string& input_key:*I._keys) {
           
             input_x_matrix.add_empty_row();
             for (auto &ipo:*inputs_pools_outputs._keys) {
@@ -1278,14 +1270,13 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     
-    Constraint<> avail_ub("avail_ub");
-  //  avail_lb=sum(x, out_arcs_to_pool_per_input)+sum(z, out_arcs_to_output_per_input)-avail_min;
-        avail_ub=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-avail_max;;
-    SPP->add(avail_ub.in(Inputs)<=0);
+    Constraint<> feed_availability("feed_availability");
+        feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
+    SPP->add(feed_availability.in(I)<=0);
     
     row_id = 0;
     indices pool_x_matrix = indices("pool_x_matrix");
-    for (const string& pool_key:*Pools._keys) {
+    for (const string& pool_key:*L._keys) {
         
         pool_x_matrix.add_empty_row();
         for (auto &ipo:*inputs_pools_outputs._keys) {
@@ -1302,14 +1293,14 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     }
     
         Constraint<> pool_capacity("pool_capacity");
-        pool_capacity=sum(x, pool_x_matrix)-pool_cap;
-        SPP->add(pool_capacity.in(Pools)<=0);
+        pool_capacity=sum(x, pool_x_matrix)-S;
+        SPP->add(pool_capacity.in(L)<=0);
 
     
     
     row_id = 0;
     indices output_x_matrix = indices("pool_x_matrix");
-    for (const string& out_key:*Outputs._keys) {
+    for (const string& out_key:*J._keys) {
         
         output_x_matrix.add_empty_row();
         for (auto &ipo:*inputs_pools_outputs._keys) {
@@ -1326,15 +1317,15 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     }
     
     
-    Constraint<> demand_ub("demand_ub");
-    demand_ub=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-dem_max;
-    SPP->add(demand_ub.in(Outputs)<=0);
+    Constraint<> product_demand("product_demand");
+    product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
+    SPP->add(product_demand.in(J)<=0);
 
     
     
     row_id = 0;
     indices outattr_x_matrix = indices("outattr_x_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
+    for (const string& outat_key:*J_K._keys) {
         
         outattr_x_matrix.add_empty_row();
         auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
@@ -1353,7 +1344,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     row_id = 0;
     indices outattr_pin_matrix = indices("outattr_pin_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
+    for (const string& outat_key:*J_K._keys) {
         
         outattr_pin_matrix.add_empty_row();
         auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
@@ -1373,7 +1364,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     row_id = 0;
     indices outattr_pout_matrix = indices("outattr_pout_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
+    for (const string& outat_key:*J_K._keys) {
         
         outattr_pout_matrix.add_empty_row();
         auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
@@ -1392,12 +1383,12 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     row_id = 0;
     indices outattrz_pin_matrix = indices("outattrz_pin_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
+    for (const string& outat_key:*J_K._keys) {
         
         outattrz_pin_matrix.add_empty_row();
         auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
         auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*inputs_outputs._keys) {
+        for (auto &ipo:*Tz._keys) {
             auto pos1 = nthOccurrence(ipo, ",", 1);
             auto out1 = ipo.substr(pos1+1);
             auto in=ipo.substr(0, pos1);
@@ -1410,12 +1401,12 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     row_id = 0;
     indices outattrz_pout_matrix = indices("outattrz_pout_matrix");
-    for (const string& outat_key:*outputs_attr._keys) {
+    for (const string& outat_key:*J_K._keys) {
         
         outattrz_pout_matrix.add_empty_row();
         auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
         auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*inputs_outputs._keys) {
+        for (auto &ipo:*Tz._keys) {
             auto pos1 = nthOccurrence(ipo, ",", 1);
             auto out1=ipo.substr(pos1+1);
             if(out_key==out1){
@@ -1425,17 +1416,17 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
         row_id++;
     }
 
-     Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
-    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(p_in.in(outattrz_pin_matrix)-p_out_max.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
-    SPP->add(quality_balance_le.in(outputs_attr)<=0);
+     Constraint<> product_quality("product_quality");//TODO debug transpose version
+    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
+    SPP->add(product_quality.in(J_K)<=0);
     
     
     row_id = 0;
     indices pool_q_matrix = indices("pool_q_matrix");
-    for (const string& pool_key:*Pools._keys) {
+    for (const string& pool_key:*L._keys) {
         
         pool_q_matrix.add_empty_row();
-        for (auto &ip:*inputs_pools._keys) {
+        for (auto &ip:*Tx._keys) {
             
             auto pos = nthOccurrence(ip, ",", 1);
             auto pool1 = ip.substr(pos+1);
@@ -1449,12 +1440,12 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     Constraint<> simplex("simplex");//TODO debug transpose version
     simplex=q.in(pool_q_matrix)-1;
-    SPP->add(simplex.in(Pools)==0);
+    SPP->add(simplex.in(L)==0);
     
     
     row_id = 0;
     indices pooloutput_x_matrix = indices("pooloutput_x_matrix");
-    for (const string& poolout_key:*pools_outputs._keys) {
+    for (const string& poolout_key:*Ty._keys) {
         
         pooloutput_x_matrix.add_empty_row();
         for (auto &ipo:*inputs_pools_outputs._keys) {
@@ -1472,12 +1463,12 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     Constraint<> PQ("PQ");//TODO debug transpose version
     PQ=x.in(pooloutput_x_matrix)-y;
-    SPP->add(PQ.in(pools_outputs)==0);
+    SPP->add(PQ.in(Ty)==0);
   
     
     row_id = 0;
     indices inputpool_x_matrix = indices("inputpool_x_matrix");
-    for (const string& inputpool_key:*inputs_pools._keys) {
+    for (const string& inputpool_key:*Tx._keys) {
         
         inputpool_x_matrix.add_empty_row();
         for (auto &ipo:*inputs_pools_outputs._keys) {
@@ -1494,7 +1485,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     row_id = 0;
     indices inputpool_q_matrix = indices("inputpool_q_matrix");
     indices inputpool_poolcap_matrix = indices("inputpool_poolcap_matrix");
-    for (const string& inputpool_key:*inputs_pools._keys) {
+    for (const string& inputpool_key:*Tx._keys) {
         
         inputpool_q_matrix.add_empty_row();
         inputpool_poolcap_matrix.add_empty_row();
@@ -1511,8 +1502,8 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     
     Constraint<> PQ1("PQ1");//TODO debug transpose version
-    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*pool_cap.in(inputpool_poolcap_matrix);
-    SPP->add(PQ1.in(inputs_pools)<=0);
+    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
+    SPP->add(PQ1.in(Tx)<=0);
     
     
     row_id = 0;
@@ -1560,20 +1551,12 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     }
      row_id++;
     
-    auto obj=x.in(inpoolout_x_matrix)*(cost_ip.in(inpoolout_cip_matrix)+cost_po.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(cost_io, z);
+    auto obj=x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
     
     SPP->min(obj);
     SPP->print();
     
-
-//    
-//    Constraint<> sumy_con("sumy_con");
-//    sumy_con=sum(y)-sumyk;
-//    SPP->add(sumy_con.in(range(0,0))>=0);
-//    
-//    auto obj= product(cost_ip, x)+product(cost_io, z)+product(cost_po, y);
-//    SPP->min(obj);
-//    
+    
     return SPP;
 }
 
