@@ -28,7 +28,7 @@ int main (int argc, char * argv[]) {
     //string fname="/Users/smitha/Desktop/Pooling_instances/Adhya3_gms.txt";
 
     poolnet.readgrid(fname);
-    SolverType solv_type = ipopt;
+    SolverType solv_type = gurobi;
     
     //do bounds on x,y,z using preprocessign in paper!
     //This is p-q-formulaiton of pooling problem!
