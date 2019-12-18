@@ -55,7 +55,7 @@ int main (int argc, char * argv[]) {
     
     solver<> SPP_solv(SPP,solv_type);
     SPP_solv.run(5, 1e-6);
-    if(solv_type!=gurobi){
+    if(false){
     auto fk_old=SPP->get_obj_val();
     while (SPP->_status==0) {
         
