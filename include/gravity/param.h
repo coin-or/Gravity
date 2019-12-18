@@ -440,6 +440,16 @@ namespace gravity {
         }
 
         size_t get_dim() const{
+            if(is_matrix_indexed()){
+                size_t s = 0;
+                for (auto i = 0; i<_indices->_ids->size(); i++) {
+                    s += _indices->_ids->at(i).size();
+                }
+                return s;
+            }
+            else if(is_indexed()){
+                return _indices->_ids->at(0).size();
+            }
             return constant_::get_dim();
         }
 
@@ -450,7 +460,7 @@ namespace gravity {
                 }
                 return _indices->_ids->at(i).size();
             }
-            if(is_indexed()){
+            else if(is_indexed()){
                 return _indices->_ids->at(0).size();
             }
             return this->_dim[0];
