@@ -33,7 +33,7 @@ int main (int argc, char * argv[]) {
     string sdp_cuts_s = "yes";
     
     string current_s = "yes";
-    string time_s = "100000";
+    string time_s = "1000";
     string threads_s="12";
     
     string lazy_s = "no";
@@ -117,17 +117,18 @@ int main (int argc, char * argv[]) {
     time_s=argv[2];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+        //fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+        fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case30_as__api.m";
         time_s="3600";
     }
     current=true;
     
-    auto max_time=std::stod(time_s);
+    auto max_time=std::atoi(time_s.c_str());
     
     
 #endif
     
-    auto nb_threads=std::stod(threads_s);
+    auto nb_threads=std::atoi(threads_s.c_str());
     
     cout << "\nnum bags = " << num_bags << endl;
     
@@ -169,9 +170,12 @@ int main (int argc, char * argv[]) {
     
     bool terminate=false, xb_true=false;
     
+    
+    
     auto OPF=build_ACOPF(grid, ACRECT);
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 0, 1e-6);
+    OPFUB.set_option("bound_relax_factor", 1e-11);
+    OPFUB.run(output = 5, 1e-6);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
     
@@ -251,12 +255,13 @@ int main (int argc, char * argv[]) {
 //        vector<double> x_sol(SDP->get_nb_vars());
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
+        SDPLB.set_option("bound_relax_factor", 1e-11);
 
         //SDP->print_solution(10);
         
 
        //SDP->print();
-        SDPLB.run(output = 0, 1e-8);
+        SDPLB.run(output = 5, 1e-8);
 //        SDP->print_solution();
       //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
         DebugOn("solution of LB"<<endl);
@@ -265,6 +270,8 @@ int main (int argc, char * argv[]) {
             lb_solv=true;
 
         lower_bound=SDP->get_obj_val()*upper_bound;
+            
+             DebugOn("lower_bound "<<lower_bound<<endl);
         
         gap=100*(upper_bound - lower_bound)/upper_bound;
         DebugOn("Gap "<<gap);
