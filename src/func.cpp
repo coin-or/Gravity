@@ -4188,7 +4188,7 @@ namespace gravity{
 
     template<typename type>
     template<typename T>
-    func<type> func<type>::replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears */
+    func<type> func<type>::replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears. Assumes v has only unique keys! */
         func<type> new_f = *this;
         vector<bool> keep_ids, diff_ids;
         for (auto &lt:this->get_lterms()) {
@@ -4206,27 +4206,38 @@ namespace gravity{
                 else if(lt.second._coef->is_number()) {
                     coef = *static_pointer_cast<constant<T>>(lt.second._coef);
                 }
-                if(v._indices->size()>=vv->_indices->size()){
+                if(v._indices->size()>=vv->_indices->size()){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
                     f_cpy.update_indices(keep_ids);
-                    v_cpy._indices->filter_refs(keep_ids);/* TODO: update name */
+                    auto vcast = *static_pointer_cast<var<T>>(vv);
                     if(lt.second._sign) {
-                        new_f -= coef*v_cpy;
+                        new_f -= coef*vcast;
                         new_f += coef*f_cpy;
                     }
                     else {
-                        new_f += coef*v_cpy;
+                        new_f += coef*vcast;
                         new_f -= coef*f_cpy;
                     }
                 }
                 else { /* vv has more indices */
                     keep_ids = vv->_indices->get_common_refs(*v._indices); /* indices to keep */
                     diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
+                    auto diff_set = indices(*vv->_indices);
+                    diff_set.filter_refs(diff_ids);
                     new_f.update_indices(keep_ids);
+                    auto vcast = *static_pointer_cast<var<T>>(vv);
                     if(lt.second._sign) {
+                        new_f -= coef*vcast;
+                        if(vcast._is_vector){
+                            new_f += coef*vcast.in(diff_set);
+                        }
                         new_f += coef*f_cpy;
                     }
                     else {
+                        new_f += coef*vcast;
+                        if(vcast._is_vector){
+                            new_f -= coef*vcast.in(diff_set);
+                        }
                         new_f -= coef*f_cpy;
                     }
                     /* TODO: if coef is indexed, update indexing and take care of vector/matrix products

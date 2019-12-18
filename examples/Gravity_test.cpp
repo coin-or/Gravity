@@ -1493,6 +1493,20 @@ TEST_CASE("testing projection2") {
     CHECK(Mtest.get_nb_cons() == 4);
 }
 
+TEST_CASE("testing projection3") {
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    double tol = 1e-6;
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto SOCOPF = grid.build_SCOPF();
+    SOCOPF->print();
+    
+    SOCOPF->project();
+    SOCOPF->print();
+//    CHECK(Mtest.get_nb_cons() == 4);
+}
+
 TEST_CASE("Few Degrees Of Freedom") {
     auto m = Model<>("test");
     /* ----- Indices ----- */
