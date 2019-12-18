@@ -627,20 +627,54 @@ void PoolNet::readgrid(string fname) {
     }
     file.close();
     
-    for(auto key: *(inputs_pools._keys)){
-        x_min.add_val(key, 0);
-        x_max.add_val(key, 100);
+    indices inputs_pools_outputs=this->inputs_pools_outputs();
+    indices inputs_attr=indices(Inputs, Attr);
+    indices outputs_attr=indices(Outputs, Attr);
+    indices pools_attr=indices(Pools, Attr);
+    
+    for(auto key: *(inputs_pools_outputs._keys)){
+    
+        auto pos = nthOccurrence(key, ",", 1);
+        auto in= key.substr(0,pos);
+        auto pos1 = nthOccurrence(key, ",", 2);
+        auto po = key.substr(pos+1, pos1-(pos+1));
+        auto out=key.substr(pos1+1);
+        auto a=A_U.eval(in);
+        auto b=S.eval(po);
+        auto c=D_U.eval(out);
+        
+                x_min.add_val(key, 0);
+                x_max.add_val(key, std::min(std::min(a,b), c));
         
     }
     for(auto key: *(pools_outputs._keys)){
-        y_min.add_val(key, 0);
-        y_max.add_val(key, 100);
+     
+        auto pos = nthOccurrence(key, ",", 1);
+        auto pool = key.substr(0,pos);
+        auto a=S.eval(pool);
+        auto out=key.substr(pos+1);
+        auto b=D_U.eval(out);
+        auto c=0.0;
         
+        for(auto in:*Inputs._keys){
+            auto inpo=in+","+pool;
+            if(inputs_pools._keys_map->find(inpo)!=inputs_pools._keys_map->end()){
+                c+=A_U.eval(in);
+            }
+        }
+        
+        
+        y_max.add_val(key, std::min(std::min(a,b), c));
+        y_min.add_val(key, 0);
     }
     for(auto key: *(inputs_outputs._keys)){
         auto pos = nthOccurrence(key, ",", 1);
         auto in = key.substr(0,pos);
+        auto a=A_U.eval(in);
         auto out=key.substr(pos+1);
+        auto b=D_U.eval(out);
+        z_max.set_val(key, std::min(a,b));
+        z_min.set_val(key,  0);
         
     }
 
@@ -1227,17 +1261,17 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     auto c_ty=poolnet.c_ty.in(Ty);
     auto sumyk=poolnet.sumyk;
     
-//    auto x_min=poolnet.x_min.in(inputs_pools_outputs);
-//    auto x_max=poolnet.x_max.in(inputs_pools_outputs);
-//
+    auto x_min=poolnet.x_min.in(inputs_pools_outputs);
+    auto x_max=poolnet.x_max.in(inputs_pools_outputs);
+
     
-//    auto y_min=poolnet.y_min.in(pools_outputs);
-//    auto y_max=poolnet.y_max.in(pools_outputs);
-//
+    auto y_min=poolnet.y_min.in(Ty);
+    auto y_max=poolnet.y_max.in(Ty);
+
     auto z_min=poolnet.z_min.in(Tz);
     auto z_max=poolnet.z_max.in(Tz);
     
-    var<> x("x",0, 100), y("y", 0, 100);
+    var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", 0, 1), z("z", z_min, z_max);
   
     SPP->add(x.in(inputs_pools_outputs));
@@ -1247,8 +1281,8 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
-    x.initialize_all(2.0);
-    q.initialize_all(0.5);
+//    x.initialize_all(2.0);
+//    q.initialize_all(0.5);
     
         int row_id = 0;
         indices input_x_matrix = indices("input_x_matrix");
