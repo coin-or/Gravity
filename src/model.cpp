@@ -142,7 +142,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(!added.empty()){
                 assert(o1._indices->size()==o2._indices->size());
                 if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = ids.diff_refs(added);
+                    auto keep_refs = ids.get_diff_refs(added);
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
@@ -2891,7 +2891,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             if(!added.empty()){
                 assert(o1._indices->size()==o2._indices->size());
                 if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = ids.diff_refs(added);
+                    auto keep_refs = ids.get_diff_refs(added);
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
@@ -6457,7 +6457,6 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //#endif
 //
 
-    
     
     template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(double, unsigned int, const pair<bool,double>&, unsigned int, shared_ptr<Model<double>>, shared_ptr<Model<double>>, bool);
 

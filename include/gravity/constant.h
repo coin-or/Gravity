@@ -189,7 +189,7 @@ namespace gravity {
         virtual string to_str(size_t idx1, size_t idx2, int prec) {return string();};
         
         
-        size_t get_dim() const {
+        virtual size_t get_dim() const {
             size_t dim = _dim[0];
             if(_dim[1]>0){
                 dim*= _dim[1];
@@ -271,7 +271,7 @@ namespace gravity {
             _dim[0] = c1._dim[0];
             _dim[1] = c2._dim[1];
             if(get_dim()==1){
-                _is_vector = false;
+                _is_vector = false;                
             }
         }
         
