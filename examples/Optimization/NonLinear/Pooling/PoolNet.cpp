@@ -1527,10 +1527,20 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
             inpoolout_q_matrix.add_in_row(row_id, inpo);
             row_id++;
     }
-    
+    if(solv_type==gurobi || true){
+        Constraint<> mass_balance_le("mass_balance_le");
+        mass_balance_le=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance_le.in(inputs_pools_outputs)<=0);
+        Constraint<> mass_balance_ge("mass_balance_ge");
+        mass_balance_ge=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance_ge.in(inputs_pools_outputs)>=0);
+    }
+    else{
         Constraint<> mass_balance("mass_balance");
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
         SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+        
+    }
     
     row_id = 0;
     indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
