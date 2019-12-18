@@ -515,7 +515,7 @@ public:
         set<size_t> unique_ids;
         if(is_indexed()){/* If ids has key references, use those */
             for (auto &idx:_ids->at(0)) {
-                if(ids._keys_map->count(_keys->at(idx))!=0){
+                if(ids.has_key(_keys->at(idx))){
                     res.push_back(true);
                 }
                 else {
@@ -525,7 +525,7 @@ public:
         }
         else {
             for (auto &key:*_keys) {
-                if(ids._keys_map->count(key)!=0){
+                if(ids.has_key(key)){
                     res.push_back(true);
                 }
                 else {
@@ -536,14 +536,28 @@ public:
         return res;
     }
     
+    bool has_key(const string& key) const{
+         if(is_indexed()){/* If ids has key references, use those */
+             auto idx0 = _keys_map->at(key);
+             for (auto i= 0; i<_ids->size();i++) {
+                 for (auto const idx :_ids->at(i)) {
+                     if(idx0==idx)
+                         return true;
+                 }
+             }
+             return false;
+         }
+        return _keys_map->count(key)!=0;
+    }
+    
     /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
-    vector<bool> diff_refs(const indices& ids) const{
+    vector<bool> get_diff_refs(const indices& ids) const{
         vector<bool> res;
-        assert(_ids);
+        // assert(_ids);
         set<size_t> unique_ids;
         if(is_indexed()){/* If ids has key references, use those */
             for (auto &idx:_ids->at(0)) {
-                if(ids._keys_map->count(_keys->at(idx))==0){
+                if(!ids.has_key(_keys->at(idx))){
                     res.push_back(true);
                 }
                 else {
@@ -553,7 +567,7 @@ public:
         }
         else {
             for (auto &key:*_keys) {
-                if(ids._keys_map->count(key)==0){
+                if(!ids.has_key(key)){
                     res.push_back(true);
                 }
                 else {
@@ -581,6 +595,7 @@ public:
     
     /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
     void filter_refs(const vector<bool>& keep){
+        string excluded = "\\{";
         if(_ids){
             if(keep.size()!=_ids->at(0).size()){
                 throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
@@ -591,8 +606,12 @@ public:
                 if(keep[idx]){
                     new_ids.at(0).push_back(_ids->at(0).at(idx));
                 }
+                else {
+                    excluded += "("+_keys->at(_ids->at(0).at(idx)) +"),";
+                }
             }
             *_ids = new_ids;
+            _name += excluded.substr(0,excluded.size()-1) + "}";
         }
         else {
             if(keep.size()!=_keys->size()){
@@ -604,8 +623,12 @@ public:
                 if(keep[idx]){
                     new_ids->at(0).push_back(idx);
                 }
+                else {
+                    excluded += "("+_keys->at(idx) +"),";
+                }
             }
             _ids = new_ids;
+            _name += excluded.substr(0,excluded.size()-1) + "}";
         }
     }
     

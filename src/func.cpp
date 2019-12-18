@@ -3795,6 +3795,11 @@ namespace gravity{
         }
         return nullptr;
     }
+
+
+    bool func_::has_sym_var(const param_& v) const{
+        return get_var(*v._vec_id)!=nullptr;
+    }
 //
     bool func_::has_var(const param_& v) const{
         return get_var(v.get_name(true, false))!=nullptr;
@@ -4180,6 +4185,79 @@ namespace gravity{
 //    }
 //
 //
+
+    template<typename type>
+    template<typename T>
+    func<type> func<type>::replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears */
+        func<type> new_f = *this;
+        vector<bool> keep_ids, diff_ids;
+        for (auto &lt:this->get_lterms()) {
+            auto vv = lt.second._p;
+            if(v.get_vec_id()==vv->get_vec_id()){
+                auto f_cpy = f;
+                auto v_cpy = v;
+                func<T> coef;
+                if (lt.second._coef->is_function()) {
+                    coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                }
+                else if(lt.second._coef->is_param()) {
+                    coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                }
+                else if(lt.second._coef->is_number()) {
+                    coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                }
+                if(v._indices->size()>=vv->_indices->size()){
+                    keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
+                    f_cpy.update_indices(keep_ids);
+                    v_cpy._indices->filter_refs(keep_ids);/* TODO: update name */
+                    if(lt.second._sign) {
+                        new_f -= coef*v_cpy;
+                        new_f += coef*f_cpy;
+                    }
+                    else {
+                        new_f += coef*v_cpy;
+                        new_f -= coef*f_cpy;
+                    }
+                }
+                else { /* vv has more indices */
+                    keep_ids = vv->_indices->get_common_refs(*v._indices); /* indices to keep */
+                    diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
+                    new_f.update_indices(keep_ids);
+                    if(lt.second._sign) {
+                        new_f += coef*f_cpy;
+                    }
+                    else {
+                        new_f -= coef*f_cpy;
+                    }
+                    /* TODO: if coef is indexed, update indexing and take care of vector/matrix products
+                     */
+                }
+                
+            }
+        }
+        for (auto &lt:this->get_qterms()) {
+            if(v.get_vec_id()==lt.second._p->first->get_vec_id()){
+            }
+            //                     lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first;
+        }
+        for (auto &lt:this->get_pterms()) {
+            for (auto &v_p:*lt.second._l) {
+                if(v.get_vec_id()==v_p.first->get_vec_id()){
+                    
+                }
+            }
+        }
+        if (this->_expr) {
+            if (this->_expr->is_uexpr()) {
+                auto ue = static_pointer_cast<uexpr<type>>(this->_expr);
+            }
+            else {
+                auto be = static_pointer_cast<bexpr<type>>(this->_expr);
+            }
+        }
+        return new_f;
+    }
+
     void func_::print_symbolic(bool endline, bool display_input){
         string str;
         if (display_input) {
@@ -5140,6 +5218,41 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
 //        _indices = make_shared<indices>(ids);
 //        return *this;
 //    }
+
+
+
+    /**
+     Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep an index if it corresponding entry in keep_id is true.
+     @param[in] keep_ids vector of booleans, specifying which ids to keep
+     @return current function
+     */
+    void func_::update_indices(const vector<bool>& keep_ids) {
+        _nb_vars = 0;
+        string key;
+        auto iter = _vars->begin();
+        while (iter!=_vars->end()) {
+            auto pair = (*iter++);
+            auto v = pair.second.first;
+            v->_indices->filter_refs(keep_ids);/* TODO: update name */
+            if (!v->_is_vector) {// i.e., it is not transposed
+                _nb_vars++;
+            }
+            else {
+                _nb_vars += v->get_dim();
+            }
+        }
+        iter = _params->begin();
+        while (iter!=_params->end()) {
+            auto pair = (*iter++);
+            auto p = pair.second.first;
+            p->_indices->filter_refs(keep_ids);
+        }
+        if(_indices) {
+            _indices->filter_refs(keep_ids);
+            _dim[0] = _indices->size();
+        }
+    }
+
     
     
 
@@ -5432,4 +5545,5 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
 //    func<double> param<Cpx>::get_real() const;
 //    template <>
 //    func<double> param<Cpx>::get_imag() const;
+    template func<double> func<double>::replace<double>(const var<double>&, const func<double>&) const;
 }

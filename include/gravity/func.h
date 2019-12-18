@@ -80,7 +80,11 @@ namespace gravity {
         bool is_indexed() const{
             return (_indices && _indices->_ids);
         }
+        /* Has var with identical indexing */
         bool has_var(const param_& v) const;
+        /* Has symbolic var ignoring indexing */
+        bool has_sym_var(const param_& v) const;
+        /* Has var with identical indexing */
         bool has_var(const string& name) const;
         bool is_binary() const {
             return (_return_type==binary_);
@@ -261,6 +265,12 @@ namespace gravity {
             throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
         };
         
+        /**
+         Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep an index if it corresponding entry in keep_id is true.
+         @param[in] keep_ids vector of booleans, specifying which ids to keep
+         @return current function
+         */
+        void update_indices(const vector<bool>& keep_ids);
         
         
         /**
@@ -2565,6 +2575,9 @@ namespace gravity {
         //            return res;
         //        }
         
+        
+        
+        
         template<typename... Args>
         void index_in(const indices& ids1, Args&&... args) {
             _indices = make_shared<indices>(ids1, args...);
@@ -4006,60 +4019,8 @@ namespace gravity {
         }
         
         
-        template<typename T=type>
-        void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
-            func<T> new_f = *this;
-            if(!v.is_indexed()){/* Replace all instances of v, no need to split the constraint */
-                 for (auto &lt:this->get_lterms()) {
-                     auto vv = lt.second._p;
-                     if(v.get_vec_id()==vv->get_vec_id()){
-                         if(!vv->is_indexed()){/* No need to select a subset of indices in f */
-                             func<T> coef;
-                             if (lt.second._coef->is_function()) {
-                                 coef = *static_pointer_cast<func<T>>(lt.second._coef);
-                             }
-                             else if(lt.second._coef->is_param()) {
-                                 coef = *static_pointer_cast<param<T>>(lt.second._coef);
-                             }
-                             else if(lt.second._coef->is_number()) {
-                                 coef = *static_pointer_cast<constant<T>>(lt.second._coef);
-                             }
-                             if(lt.second._sign) {
-                                 new_f -= coef*v;
-                                 new_f += coef*f;
-                             }
-                             else {
-                                 new_f += coef*v;
-                                 new_f -= coef*f;
-                             }
-                         }
-                     }
-                 }
-                 for (auto &lt:this->get_qterms()) {
-                     if(v.get_vec_id()==lt.second._p->first->get_vec_id()){
-                     }
-    //                     lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first;
-                 }
-                 for (auto &lt:this->get_pterms()) {
-                     for (auto &v_p:*lt.second._l) {
-                         if(v.get_vec_id()==v_p.first->get_vec_id()){
-                             
-                         }
-                     }
-                 }
-                 if (this->_expr) {
-                     if (this->_expr->is_uexpr()) {
-                         auto ue = static_pointer_cast<uexpr<type>>(this->_expr);
-                     }
-                     else {
-                         auto be = static_pointer_cast<bexpr<type>>(this->_expr);
-                     }
-                 }
-            }
-            else {
-            }
-            *this = new_f;
-        }
+        template<typename T>
+        func<type> replace(const var<T>& v, const func<T>& f) const;/**<  Replace v with function f everywhere it appears */
         
         inline type eval_cst(size_t i) {
             return eval_coef(_cst, i);
@@ -5802,6 +5763,9 @@ namespace gravity {
                 auto cpy = this->copy();
                 func res = f;
                 res.update_dot_dim(*this,f);
+                if(res.get_dim()==1 && res._indices && res._indices->size()>1){ /* Vectorial product, ignore the indices of f */
+                    res._indices = nullptr;
+                }
                 if(is_non_positive()){
                     res.reverse_convexity();
                 }
