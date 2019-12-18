@@ -1245,17 +1245,18 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     auto z_min=poolnet.z_min.in(inputs_outputs);
     auto z_max=poolnet.z_max.in(inputs_outputs);
     
-    var<> x("x",0, 100);
-    var<> y("y", 0, 1), z("z", z_min, z_max);
-    var<> p_pool("p_pool", 0, 100);
+    var<> x("x",0, 100), y("y", 0, 100);
+    var<> q("q", 0, 1), z("z", z_min, z_max);
+  
     SPP->add(x.in(inputs_pools_outputs));
-    SPP->add(y.in(pools_outputs));
+    SPP->add(q.in(inputs_pools));
     SPP->add(z.in(inputs_outputs));
-    SPP->add(p_pool.in(pool_attr));
+    SPP->add(y.in(pools_outputs));
+
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
     x.initialize_all(2.0);
-    y.initialize_all(2.0);
+    q.initialize_all(0.5);
     
         int row_id = 0;
         indices input_x_matrix = indices("input_x_matrix");
@@ -1389,12 +1390,151 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
         row_id++;
     }
     
-    Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
-    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix);
-            SPP->add(quality_balance_le.in(outputs_attr)<=0);
+    row_id = 0;
+    indices outattrz_pin_matrix = indices("outattrz_pin_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattrz_pin_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+        for (auto &ipo:*inputs_outputs._keys) {
+            auto pos1 = nthOccurrence(ipo, ",", 1);
+            auto out1 = ipo.substr(pos1+1);
+            auto in=ipo.substr(0, pos1);
+            if(out_key==out1){
+               outattrz_pin_matrix.add_in_row(row_id, in+","+at_key);
+            }
+        }
+        row_id++;
+    }
     
-    
+    row_id = 0;
+    indices outattrz_pout_matrix = indices("outattrz_pout_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattrz_pout_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+        for (auto &ipo:*inputs_outputs._keys) {
+            auto pos1 = nthOccurrence(ipo, ",", 1);
+            auto out1=ipo.substr(pos1+1);
+            if(out_key==out1){
+                outattrz_pout_matrix.add_in_row(row_id, outat_key);
+            }
+        }
+        row_id++;
+    }
+
+     Constraint<> quality_balance_le("quality_balance_le");//TODO debug transpose version
+    quality_balance_le=(p_in.in(outattr_pin_matrix)-p_out_max.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(p_in.in(outattrz_pin_matrix)-p_out_max.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
+    SPP->add(quality_balance_le.in(outputs_attr)<=0);
             SPP->print();
+    
+    row_id = 0;
+    indices pool_q_matrix = indices("pool_q_matrix");
+    for (const string& pool_key:*Pools._keys) {
+        
+        pool_q_matrix.add_empty_row();
+        for (auto &ip:*inputs_pools._keys) {
+            
+            auto pos = nthOccurrence(ip, ",", 1);
+            auto pool1 = ip.substr(pos+1);
+            
+            if(pool_key==pool1){
+                pool_q_matrix.add_in_row(row_id, ip);
+            }
+        }
+        row_id++;
+    }
+    
+    Constraint<> simplex("simplex");//TODO debug transpose version
+    simplex=q.in(pool_q_matrix)-1;
+    SPP->add(simplex.in(Pools)==0);
+    SPP->print();
+    
+    row_id = 0;
+    indices pooloutput_x_matrix = indices("pooloutput_x_matrix");
+    for (const string& poolout_key:*pools_outputs._keys) {
+        
+        pooloutput_x_matrix.add_empty_row();
+        for (auto &ipo:*inputs_pools_outputs._keys) {
+            
+            auto pos = nthOccurrence(ipo, ",", 1);
+            auto poolout1 = ipo.substr(pos+1);
+            
+            if(poolout_key==poolout1){
+                pooloutput_x_matrix.add_in_row(row_id, ipo);
+            }
+        }
+        row_id++;
+    }
+    
+    
+    Constraint<> PQ("PQ");//TODO debug transpose version
+    PQ=x.in(pooloutput_x_matrix)-y;
+    SPP->add(PQ.in(pools_outputs)==0);
+    SPP->print();
+    
+    row_id = 0;
+    indices inputpool_x_matrix = indices("inputpool_x_matrix");
+    for (const string& inputpool_key:*inputs_pools._keys) {
+        
+        inputpool_x_matrix.add_empty_row();
+        for (auto &ipo:*inputs_pools_outputs._keys) {
+            
+            auto pos = nthOccurrence(ipo, ",", 2);
+            auto inputpool1 = ipo.substr(0, pos);
+            
+            if(inputpool_key==inputpool1){
+                inputpool_x_matrix.add_in_row(row_id, ipo);
+            }
+        }
+        row_id++;
+    }
+    row_id = 0;
+    indices inputpool_q_matrix = indices("inputpool_q_matrix");
+    indices inputpool_poolcap_matrix = indices("inputpool_poolcap_matrix");
+    for (const string& inputpool_key:*inputs_pools._keys) {
+        
+        inputpool_q_matrix.add_empty_row();
+        inputpool_poolcap_matrix.add_empty_row();
+        inputpool_q_matrix.add_in_row(row_id, inputpool_key);
+        auto pos=nthOccurrence(inputpool_key, ",", 1);
+        auto pool_key=inputpool_key.substr(pos+1);
+        inputpool_poolcap_matrix.add_in_row(row_id, pool_key);
+        row_id++;
+    }
+        
+        
+    
+    
+    
+    
+    Constraint<> PQ1("PQ1");//TODO debug transpose version
+    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*pool_cap.in(inputpool_poolcap_matrix);
+    SPP->add(PQ1.in(inputs_pools)<=0);
+    SPP->print();
+    
+    row_id = 0;
+    indices inpoolout_y_matrix = indices("inpoolout_y_matrix");
+    indices inpoolout_q_matrix = indices("inpoolout_q_matrix");
+    for (const string& inpoout_key:*inputs_pools_outputs._keys) {
+            auto pos = nthOccurrence(inpoout_key, ",", 1);
+            auto poout=inpoout_key.substr(pos+1);
+            auto pos1 = nthOccurrence(inpoout_key, ",", 2);
+            auto inpo=inpoout_key.substr(0,pos1);
+            inpoolout_y_matrix.add_in_row(row_id, poout);
+            inpoolout_q_matrix.add_in_row(row_id, inpo);
+            row_id++;
+    }
+    
+        Constraint<> mass_balance("mass_balance");
+        mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+    
+    SPP->print();
+    
+    
 //
 //    Constraint<> mass_balance("mass_balance");
 //    mass_balance=sum(x, in_arcs_per_pool)-sum(y, out_arcs_per_pool);
