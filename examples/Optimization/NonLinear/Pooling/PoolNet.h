@@ -56,9 +56,9 @@ public:
     
     indices inputs_outputs;
     
-    indices inputs_attr=indices(Inputs, Attr);
-    indices outputs_attr=indices(Outputs, Attr);
-    indices pools_attr=indices(Pools, Attr);
+    indices inputs_attr=indices("inputs_attr");
+    indices outputs_attr=indices("outputs_attr");
+    indices pools_attr=indices("pools_attr");
 
     
 
