@@ -398,13 +398,11 @@ void GurobiProgram::set_grb_objective(){
         qobj = 0;
         for (auto& it1: _model->_obj->get_lterms()) {
             lterm = 0;
-//            idx = it1.second._p->get_id();
-            if (it1.second._coef->_is_transposed) {
-                auto dim = it1.second._p->_dim[0];
-                auto idx = it1.second._p->get_id();
-                for (int j = 0; j<dim; j++) {
-                    coeff = _model->_obj->eval(it1.second._coef,j);
-                    gvar1 = _grb_vars[idx + it1.second._p->get_id_inst(j)];
+            if (it1.second._coef->_is_transposed || it1.second._coef->is_matrix() || it1.second._p->is_matrix_indexed()) {
+                auto dim = it1.second._p->get_dim(0);
+                for (size_t j = 0; j<dim; j++) {
+                    coeff = _model->_obj->eval(it1.second._coef,0,j);
+                    gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(0,j)];
                     lterm += coeff*gvar1;
                 }
             }
