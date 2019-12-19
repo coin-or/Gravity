@@ -3100,6 +3100,9 @@ namespace gravity {
             }
             else if(coef->is_param()) {
                 auto p_cst = *((param<type>*)(coef.get()));
+                if(p_cst==p){
+                    return constant<type>(0).copy();
+                }
                 auto new_cst = p_cst - p;
                 return new_cst.copy();
             }
@@ -3115,6 +3118,9 @@ namespace gravity {
         shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
                 auto f_cst = *((func<type>*)(coef.get()));
+                if(f_cst==f){
+                    return constant<type>(0).copy();
+                }
                 f_cst -= func<type>(f);
                 embed(f_cst);
                 return f_cst.copy();
@@ -4018,6 +4024,13 @@ namespace gravity {
             return res;
         }
         
+        bool has_matrix_indexed_vars() const{
+            for (auto &vp:*_vars) {
+                if(vp.second.first->is_matrix_indexed())
+                    return true;
+            }
+            return false;
+        }
         
         template<typename T>
         func<type> replace(const var<T>& v, const func<T>& f) const;/**<  Replace v with function f everywhere it appears */
@@ -5594,8 +5607,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-            //            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         

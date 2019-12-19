@@ -4189,34 +4189,35 @@ namespace gravity{
     template<typename type>
     template<typename T>
     func<type> func<type>::replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears. Assumes v has only unique keys! */
+        if(!has_sym_var(v)) return *this;
         func<type> new_f = *this;
         vector<bool> keep_ids, diff_ids;
+        bool updated_ids = false;
         for (auto &lt:this->get_lterms()) {
             auto vv = lt.second._p;
             if(v.get_vec_id()==vv->get_vec_id()){
                 auto f_cpy = f;
                 auto v_cpy = v;
-                func<T> coef;
-                if (lt.second._coef->is_function()) {
-                    coef = *static_pointer_cast<func<T>>(lt.second._coef);
-                }
-                else if(lt.second._coef->is_param()) {
-                    coef = *static_pointer_cast<param<T>>(lt.second._coef);
-                }
-                else if(lt.second._coef->is_number()) {
-                    coef = *static_pointer_cast<constant<T>>(lt.second._coef);
-                }
+                
                 if(v._indices->size()>=vv->_indices->size()){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
-                    f_cpy.update_indices(keep_ids);
-                    auto vcast = *static_pointer_cast<var<T>>(vv);
-                    if(lt.second._sign) {
-                        new_f -= coef*vcast;
-                        new_f += coef*f_cpy;
+                    if(!updated_ids){
+                        f_cpy.update_indices(keep_ids);
+                        updated_ids = true;
                     }
-                    else {
-                        new_f += coef*vcast;
-                        new_f -= coef*f_cpy;
+                    auto vcast = *static_pointer_cast<var<T>>(vv);
+                    new_f.insert(!lt.second._sign,*lt.second._coef,*lt.second._p);/* Remove coef*v from new_f */
+                    if (lt.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                    }
+                    else if(lt.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                    }
+                    else if(lt.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
                     }
                 }
                 else { /* vv has more indices */
@@ -4224,32 +4225,100 @@ namespace gravity{
                     diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv->_indices);
                     diff_set.filter_refs(diff_ids);
-                    new_f.update_indices(keep_ids);
+                    if(!updated_ids){
+                        new_f.update_indices(keep_ids);
+                        updated_ids = true;
+                    }
                     auto vcast = *static_pointer_cast<var<T>>(vv);
-                    if(lt.second._sign) {
-                        new_f -= coef*vcast;
+                    new_f.insert(!lt.second._sign,*lt.second._coef,*lt.second._p);/* Remove coef*v from new_f */
+                    if (lt.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
                         if(vcast._is_vector){
                             new_f += coef*vcast.in(diff_set);
                         }
-                        new_f += coef*f_cpy;
                     }
-                    else {
-                        new_f += coef*vcast;
+                    else if(lt.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
                         if(vcast._is_vector){
-                            new_f -= coef*vcast.in(diff_set);
+                            new_f += coef*vcast.in(diff_set);
                         }
-                        new_f -= coef*f_cpy;
                     }
-                    /* TODO: if coef is indexed, update indexing and take care of vector/matrix products
-                     */
+                    else if(lt.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        if(vcast._is_vector){
+                            new_f += coef*vcast.in(diff_set);
+                        }
+                    }
                 }
                 
             }
         }
         for (auto &lt:this->get_qterms()) {
-            if(v.get_vec_id()==lt.second._p->first->get_vec_id()){
+            auto vv1 = lt.second._p->first;
+            auto vv2 = lt.second._p->second;
+            if(v.get_vec_id()==vv1->get_vec_id() && v.get_vec_id()==vv2->get_vec_id()){ /* Square term with v in*/
+                auto f_cpy = f;
+                auto v_cpy = v;
+                if(v._indices->size()>=vv1->_indices->size()){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
+                    keep_ids = v._indices->get_common_refs(*vv1->_indices); /* indices to keep */
+                    if(!updated_ids){
+                        f_cpy.update_indices(keep_ids);
+                        updated_ids = true;
+                    }
+                    auto vcast = *static_pointer_cast<var<T>>(vv1);
+                    new_f.insert(!lt.second._sign,*lt.second._coef,*vv1,*vv2);/* Remove coef*v*v from new_f */
+                    if (lt.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
+                    }
+                    else if(lt.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
+                    }
+                    else if(lt.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
+                    }
+                }
+                else { /* vv has more indices */
+                    keep_ids = vv1->_indices->get_common_refs(*v._indices); /* indices to keep */
+                    diff_ids = vv1->_indices->get_diff_refs(*v._indices); /* indices not in v */
+                    auto diff_set = indices(*vv1->_indices);
+                    diff_set.filter_refs(diff_ids);
+                    if(!updated_ids){
+                        new_f.update_indices(keep_ids);
+                        updated_ids = true;
+                    }
+                    auto vcast1 = *static_pointer_cast<var<T>>(vv1);
+                    auto vcast2 = *static_pointer_cast<var<T>>(vv2);
+                    new_f.insert(!lt.second._sign,*lt.second._coef,*vv1,*vv2);/* Remove coef*v*v from new_f */
+                    if (lt.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        if(vcast1._is_vector || vcast2._is_vector){
+                            new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        }
+                    }
+                    else if(lt.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        if(vcast1._is_vector || vcast2._is_vector){
+                            new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        }
+                    }
+                    else if(lt.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        if(vcast1._is_vector || vcast2._is_vector){
+                            new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        }
+                    }
+                }
+                
             }
-            //                     lt.second._p->second = new_vars->at(lt.second._p->second->get_name(false,false)).first;
         }
         for (auto &lt:this->get_pterms()) {
             for (auto &v_p:*lt.second._l) {

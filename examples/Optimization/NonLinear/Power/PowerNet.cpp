@@ -1305,14 +1305,14 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     /** Define constraints */
     
     /* REF BUS */
-    Constraint<> Ref_Bus("Ref_Bus");
-    if (polar) {
-        Ref_Bus = theta(grid.ref_bus);
-    }
-    else {
-        Ref_Bus = vi(grid.ref_bus);
-    }
-    ACOPF->add(Ref_Bus == 0);
+//    Constraint<> Ref_Bus("Ref_Bus");
+//    if (polar) {
+//        Ref_Bus = theta(grid.ref_bus);
+//    }
+//    else {
+//        Ref_Bus = vi(grid.ref_bus);
+//    }
+//    ACOPF->add(Ref_Bus == 0);
     
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
