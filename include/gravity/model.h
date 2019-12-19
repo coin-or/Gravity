@@ -392,6 +392,7 @@ namespace gravity {
             return _convexity==concave_;
         }
         
+        
         bool has_var(const param_& v) const{
             return (_vars.count(v.get_vec_id())!=0);
         };
@@ -500,6 +501,7 @@ namespace gravity {
                 add_var(move(v));
             }
         }
+        
         
         
         /* Output */
@@ -1132,10 +1134,11 @@ namespace gravity {
         
         template<typename T=type>
         void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
-            *_obj = _obj->replace(v, f);            
+            if(_obj->has_sym_var(v))
+                *_obj = _obj->replace(v, f);
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
-                if (!c->_is_constraint || !c->has_sym_var(v)) {
+                if (!c->_is_constraint || !c->has_sym_var(v) || c->has_matrix_indexed_vars()) {
                     continue;
                 }
                 auto new_c = c->replace(v, f);
@@ -1149,6 +1152,12 @@ namespace gravity {
                 }
                 
             }
+            Constraint<> v_lb(v.get_name(false,false)+"_LB");
+            v_lb = f - v.get_lb().in(*v._indices);
+            add(v_lb.in(*v._indices) >= 0);
+            Constraint<> v_ub(v.get_name(false,false)+"_UB");
+            v_ub = f - v.get_ub().in(*v._indices);
+            add(v_ub.in(*v._indices) <= 0);
 //            _vars_name.erase(v->_name);
 //            auto vid = *v->_vec_id;
 //            _vars.erase(vid);
@@ -1160,70 +1169,51 @@ namespace gravity {
             vector<string> delete_cstr;
             /* First look for symbolic variables that appear linearly with a positive/negative (invertible) coefficient in a given equation */
             for (auto& c_pair:_cons_name) {
-                if (c_pair.second->is_eq()) {
-                    auto &lterms = c_pair.second->get_lterms();
-                    if (!lterms.empty()) {
-                        auto first = lterms.begin();
-                        auto v = first->second._p;
+                if (c_pair.second->is_eq() && !c_pair.second->has_matrix_indexed_vars()) {
+                    for (auto& lterm: c_pair.second->get_lterms()) {
+                        auto v = lterm.second._p;
                         func<T> f = *c_pair.second;
                         if (v->get_intype()==double_) {
-                            if(!first->second._coef->is_negative() && !first->second._coef->is_positive()){/* cannot invert */
-                                continue;
+                            if(!lterm.second._coef->is_negative() && !lterm.second._coef->is_positive()){/* cannot invert */
+                                continue;/* TODO: find smallest invertible set */
                             }
                             auto vv = *static_pointer_cast<var<double>>(v);
-                            if (first->second._coef->is_function()) {
-                                auto coef = *static_pointer_cast<func<T>>(first->second._coef);
-                                if (first->second._sign) {
-                                    f -= coef*vv;
-                                }
-                                else {
-                                    f += coef*vv;
-                                }
+                            f.insert(!lterm.second._sign,*lterm.second._coef,*lterm.second._p);/* Remove coef*v from f */
+                            if (lterm.second._coef->is_function()) {
+                                auto coef = *static_pointer_cast<func<T>>(lterm.second._coef);
                                 if(coef._indices){
                                     f *= (-1./coef).in(*coef._indices);
                                 }
                                 else {
-                                    f *= -1./coef;/* TODO: indexing */
+                                    f *= -1./coef;
                                 }
                             }
-                            else if(first->second._coef->is_param()) {
-                                auto coef = *static_pointer_cast<param<T>>(first->second._coef);
-                                if (first->second._sign) {
-                                    f -= coef*vv;
-                                }
-                                else {
-                                    f += coef*vv;
-                                }
+                            else if(lterm.second._coef->is_param()) {
+                                auto coef = *static_pointer_cast<param<T>>(lterm.second._coef);
                                 if(coef._indices){
                                     f *= (-1./coef).in(*coef._indices);
                                 }
                                 else {
-                                    f *= -1./coef;/* TODO: indexing */
+                                    f *= -1./coef;
                                 }
 
                             }
-                            else if(first->second._coef->is_number()) {
-                                auto coef = *static_pointer_cast<constant<T>>(first->second._coef);
-                                if (first->second._sign) {
-                                    f -= coef*vv;
-                                }
-                                else {
-                                    f += coef*vv;
-                                }
+                            else if(lterm.second._coef->is_number()) {
+                                auto coef = *static_pointer_cast<constant<T>>(lterm.second._coef);
                                 f *= -1./coef;
                             }
                             delete_cstr.push_back(c_pair.first);
                             c_pair.second->_is_constraint = false;
-                            replace(vv,f);
+                            replace(vv,f);/* Add bound constraints */
+                            break;
                         }
-                        DebugOff(f.to_str());
-                        for(const auto cstr_name: delete_cstr){
-                            remove(cstr_name);
-                        }
-                        return;
                     }
                 }
             }
+            for(const auto cstr_name: delete_cstr){
+                remove(cstr_name);
+            }
+            return;
             /* Second look for indexed variables (with a subset of indices) that appear linearly with a positive/negative coefficient of an equation */
             for (auto& c_pair:_cons_name) {
                 if (c_pair.second->is_eq()) {

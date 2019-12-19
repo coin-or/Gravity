@@ -220,6 +220,8 @@ public:
         return *this;
     }
     
+    
+    
     template<typename T=type>
     Constraint<type> replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears */
         Constraint<type> cpy = *this;
