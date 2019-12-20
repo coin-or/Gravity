@@ -1818,9 +1818,6 @@ namespace gravity {
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
             }
-            if(res._val->size() < res._indices->size()){
-                res._val->resize(res._indices->size());
-            }
             res.reset_range();
             return res;
         }
