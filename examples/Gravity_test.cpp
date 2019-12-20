@@ -53,7 +53,8 @@ TEST_CASE("testing projection1") {
     CHECK(Mtest.get_nb_cons() == 8);
     Mtest.project();
     Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 12);
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 12);
 }
 
 TEST_CASE("testing projection2") {
@@ -85,7 +86,8 @@ TEST_CASE("testing projection2") {
     CHECK(Mtest.get_nb_cons() == 7);
     Mtest.project();
     Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 10);
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 10);
 }
 
 TEST_CASE("testing projection3") {
@@ -95,6 +97,7 @@ TEST_CASE("testing projection3") {
     PowerNet grid;
     grid.readgrid(fname);
     auto ACOPF = build_ACOPF(grid,ACRECT);
+    ACOPF->print_symbolic();
     ACOPF->print();
     
     ACOPF->project();

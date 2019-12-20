@@ -204,7 +204,9 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_lb() const {
         param<type> lb(this->_name+"_lb");
         _lb->eval_all();
-        lb.index_in(*this->_indices);
+        if(!_lb->func_is_number()){
+            lb.index_in(*this->_indices);
+        }
         lb._val = _lb->_val;
         lb._range = _lb->_range;
         lb._dim[0] = _lb->_dim[0];
@@ -216,7 +218,9 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_ub() const {
         param<type> ub(this->_name+"_ub");
         _ub->eval_all();
-        ub.index_in(*this->_indices);
+        if(!_ub->func_is_number()){
+            ub.index_in(*this->_indices);
+        }
         ub._val = _ub->_val;
         ub._range = _ub->_range;
         ub._dim[0] = _ub->_dim[0];

@@ -3118,6 +3118,7 @@ namespace gravity {
         shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const func<T2>& f){
             if (coef->is_function()) {
                 auto f_cst = *((func<type>*)(coef.get()));
+                f_cst.update_str();
                 if(f_cst==f){
                     return constant<type>(0).copy();
                 }
@@ -5607,8 +5608,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-//            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         
