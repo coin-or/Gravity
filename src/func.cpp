@@ -4186,6 +4186,11 @@ namespace gravity{
 //
 //
 
+/** Return the number of linear terms in this function */
+unsigned func_::nb_linear_terms() const{
+    return _lterms->size();
+}
+
     template<typename type>
     template<typename T>
     func<type> func<type>::replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears. Assumes v has only unique keys! */
@@ -4198,15 +4203,15 @@ namespace gravity{
             if(v.get_vec_id()==vv->get_vec_id()){
                 auto f_cpy = f;
                 auto v_cpy = v;
-                
-                if(v._indices->size()>=vv->_indices->size()){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
+                if(vv->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, we can safely remove the linear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
                     if(!updated_ids){
                         f_cpy.update_indices(keep_ids);
+                        f_cpy.keep_unique_keys();
                         updated_ids = true;
                     }
                     auto vcast = *static_pointer_cast<var<T>>(vv);
-                    new_f.insert(!lt.second._sign,*lt.second._coef,*lt.second._p);/* Remove coef*v from new_f */
+                    new_f.insert(!lt.second._sign,*lt.second._coef,*lt.second._p);/* Remove coef*vv from new_f */
                     if (lt.second._coef->is_function()) {
                         auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
                         new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
@@ -4220,13 +4225,14 @@ namespace gravity{
                         new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
                     }
                 }
-                else { /* vv has more indices */
+                else if(vv->_indices->is_superset(*v._indices)){ /* vv has more indices */
                     keep_ids = vv->_indices->get_common_refs(*v._indices); /* indices to keep */
                     diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv->_indices);
                     diff_set.filter_refs(diff_ids);
                     if(!updated_ids){
                         new_f.update_indices(keep_ids);
+                        new_f.keep_unique_keys();
                         updated_ids = true;
                     }
                     auto vcast = *static_pointer_cast<var<T>>(vv);
@@ -4262,10 +4268,11 @@ namespace gravity{
             if(v.get_vec_id()==vv1->get_vec_id() && v.get_vec_id()==vv2->get_vec_id()){ /* Square term with v in*/
                 auto f_cpy = f;
                 auto v_cpy = v;
-                if(v._indices->size()>=vv1->_indices->size()){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
+                if(vv1->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv1->_indices); /* indices to keep */
                     if(!updated_ids){
                         f_cpy.update_indices(keep_ids);
+                        f_cpy.keep_unique_keys();
                         updated_ids = true;
                     }
                     auto vcast = *static_pointer_cast<var<T>>(vv1);
@@ -4283,13 +4290,14 @@ namespace gravity{
                         new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                     }
                 }
-                else { /* vv has more indices */
+                else if(v._indices->is_subset(*vv1->_indices)){ /* vv has more indices */
                     keep_ids = vv1->_indices->get_common_refs(*v._indices); /* indices to keep */
                     diff_ids = vv1->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv1->_indices);
                     diff_set.filter_refs(diff_ids);
                     if(!updated_ids){
                         new_f.update_indices(keep_ids);
+                        new_f.keep_unique_keys();
                         updated_ids = true;
                     }
                     auto vcast1 = *static_pointer_cast<var<T>>(vv1);
@@ -4297,21 +4305,21 @@ namespace gravity{
                     new_f.insert(!lt.second._sign,*lt.second._coef,*vv1,*vv2);/* Remove coef*v*v from new_f */
                     if (lt.second._coef->is_function()) {
                         auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
-                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         if(vcast1._is_vector || vcast2._is_vector){
                             new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
                         }
                     }
                     else if(lt.second._coef->is_param()) {
                         auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
-                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         if(vcast1._is_vector || vcast2._is_vector){
                             new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
                         }
                     }
                     else if(lt.second._coef->is_number()) {
                         auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
-                        new_f += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                        new_f += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         if(vcast1._is_vector || vcast2._is_vector){
                             new_f += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
                         }
@@ -4494,9 +4502,9 @@ namespace gravity{
             throw invalid_argument("In function add_var(v,nb): Variable already contained in function");
         }
         _vars->insert(make_pair<>(v->get_name(false,false), make_pair<>(v, nb)));
-        if(v->is_matrix_indexed()){
-            _indices = v->_indices;
-        }
+//        if(v->is_matrix_indexed()){
+//            _indices = v->_indices;
+//        }
         if (v->_is_vector) {// i.e., it appears in a sum
             if (v->is_matrix()) {
                 if (v->_is_transposed) {
@@ -5298,7 +5306,12 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
 //        _indices = make_shared<indices>(ids);
 //        return *this;
 //    }
-
+    /** The function iterates over key references in _ids and keeps only the unique entries */
+    void func_::keep_unique_keys() {
+        if(_indices){
+            _indices->keep_unique_keys();
+        }
+    }
 
 
     /**

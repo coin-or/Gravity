@@ -228,7 +228,7 @@ public:
         cpy = cpy.func<type>::replace(v,f);
         cpy._is_constraint = true;
         if(cpy._indices && cpy._indices->size()!=this->_indices->size()){
-            cpy._name += "_projected_subset";
+            cpy._name += "_projected_subset_"+cpy._indices->get_name();
         }
         return cpy;
     }
