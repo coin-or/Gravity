@@ -518,6 +518,12 @@ namespace gravity {
         virtual bool get_lift() const{return 0;};
         virtual bool get_in_SOC_partn() const{return 0;};
         virtual void set_in_SOC_partn(bool in_SOC_partn) {};
+        
+        /* Returns a pair of boolean vectors <z_v, nnz_v> indicating which row p has a zero/non-zero coefficient in */
+        pair<vector<bool>,vector<bool>> get_nnz_rows() const;
+        
+        /* Deletes the ith column for the matrix indeed param/var */
+        indices delete_column(size_t i);
 
     };
 
@@ -909,7 +915,13 @@ namespace gravity {
 
         inline type eval(size_t i, size_t j) const {
 
-            if (is_indexed() && _indices->_ids->size()>1) {
+            if (_indices && _indices->_type==matrix_) {
+                if (_indices->_ids->size() <= i) {
+                    throw invalid_argument("eval(i,j): out of range");
+                }
+                if (_indices->_ids->at(i).size()<=j){
+                    return 0;
+                }
                 if (_indices->_ids->at(i).at(j) >= _val->size()) {
                     throw invalid_argument("eval(i,j): out of range");
                 }

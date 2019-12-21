@@ -265,6 +265,13 @@ namespace gravity {
             throw invalid_argument("Calling get_id_inst(size_t inst1, size_t inst2) on a non-indexed param\n");
         };
         
+        
+        /** Return the number of linear terms in this function */
+        unsigned nb_linear_terms() const;
+        
+        /** The function iterates over key references in _ids and keeps only the unique entries */
+        void keep_unique_keys();
+        
         /**
          Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep an index if it corresponding entry in keep_id is true.
          @param[in] keep_ids vector of booleans, specifying which ids to keep
@@ -3115,10 +3122,11 @@ namespace gravity {
         }
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        shared_ptr<constant_> subtract(shared_ptr<constant_> coef, const func<T2>& f){
+        shared_ptr<constant_> subtract(shared_ptr<constant_> coef, func<T2>& f){
             if (coef->is_function()) {
                 auto f_cst = *((func<type>*)(coef.get()));
                 f_cst.update_str();
+                f.update_str();
                 if(f_cst==f){
                     return constant<type>(0).copy();
                 }
@@ -3146,16 +3154,19 @@ namespace gravity {
             if (_cst->is_function()) {
                 auto f_cst = *static_pointer_cast<func<type>>(_cst);
                 if(f_cst.func_is_number()){
+                    embed(f_cst);
                     _cst = make_shared<constant<type>>(eval(f_cst.copy(),0) + eval(f.copy(),0));
                 }
                 else {
                     f_cst += func<type>(f);
+                    embed(f_cst);
                     _cst = make_shared<func<type>>(move(f_cst));
                 }
             }
             else if(_cst->is_param()) {
                 auto p_cst = *static_pointer_cast<param<type>>(_cst);
                 auto new_cst = f + p_cst;
+                embed(new_cst);
                 _cst = make_shared<func<type>>(move(new_cst));
             }
             else if(_cst->is_number()) {
@@ -3337,11 +3348,24 @@ namespace gravity {
             _to_str = f._to_str;
             _all_convexity = f._all_convexity;
             _all_sign = f._all_sign;
-            _cst = f._cst->copy();
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            if (f._cst->is_function()) {
+                auto coef = *static_pointer_cast<func<type>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_param()) {
+                auto coef = *static_pointer_cast<param<type>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_number()) {
+                auto coef = *static_pointer_cast<constant<type>>(f._cst);
+                _cst = constant<type>(coef.eval()).copy();
+            }
             _val = make_shared<vector<type>>();
             _range = make_shared<pair<type,type>>();
             _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
             _pterms = make_shared<map<string, pterm>>();
@@ -3410,13 +3434,16 @@ namespace gravity {
             _to_str = f._to_str;
             _all_convexity = f._all_convexity;
             _all_sign = f._all_sign;
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             if (f._cst->is_function()) {
                 auto coef = *static_pointer_cast<func<T2>>(f._cst);
                 _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
             }
             else if(f._cst->is_param()) {
                 auto coef = *static_pointer_cast<param<T2>>(f._cst);
-                _cst = param<type>(coef).copy();
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
             }
             else if(f._cst->is_number()) {
                 auto coef = *static_pointer_cast<constant<T2>>(f._cst);
@@ -3425,7 +3452,6 @@ namespace gravity {
             _val = make_shared<vector<type>>();
             _range = make_shared<pair<type,type>>();
             _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             _lterms = make_shared<map<string, lterm>>();
             _qterms = make_shared<map<string, qterm>>();
             _pterms = make_shared<map<string, pterm>>();
@@ -5608,8 +5634,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         
@@ -6294,12 +6320,12 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._lterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        return *this;
+//                    }
                     if (t2.second._coef->is_function()) {
                         auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);
