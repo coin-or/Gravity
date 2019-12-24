@@ -518,6 +518,12 @@ namespace gravity {
         virtual bool get_lift() const{return 0;};
         virtual bool get_in_SOC_partn() const{return 0;};
         virtual void set_in_SOC_partn(bool in_SOC_partn) {};
+        
+        /* Returns a pair of boolean vectors <z_v, nnz_v> indicating which row p has a zero/non-zero coefficient in */
+        pair<vector<bool>,vector<bool>> get_nnz_rows() const;
+        
+        /* Deletes the ith column for the matrix indeed param/var */
+        indices delete_column(size_t i);
 
     };
 
@@ -909,7 +915,13 @@ namespace gravity {
 
         inline type eval(size_t i, size_t j) const {
 
-            if (is_indexed() && _indices->_ids->size()>1) {
+            if (_indices && _indices->_type==matrix_) {
+                if (_indices->_ids->size() <= i) {
+                    throw invalid_argument("eval(i,j): out of range");
+                }
+                if (_indices->_ids->at(i).size()<=j){
+                    return 0;
+                }
                 if (_indices->_ids->at(i).at(j) >= _val->size()) {
                     throw invalid_argument("eval(i,j): out of range");
                 }
@@ -1276,8 +1288,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0);
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{

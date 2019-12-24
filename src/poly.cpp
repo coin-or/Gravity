@@ -570,7 +570,7 @@ namespace gravity{
             dim = _coef->get_dim(inst);
         }
         else{
-            dim = _p->first->get_dim(inst);
+            dim = std::min(_p->first->get_dim(inst),_p->second->get_dim(inst));
         }
         if(dim==0){
             return str;

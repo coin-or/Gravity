@@ -117,8 +117,7 @@ int main (int argc, char * argv[]) {
     time_s=argv[2];
     }
     else{
-        //fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
-        fname="/Users/smitha/Utils/pglib-opf-master/api/pglib_opf_case30_as__api.m";
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
         time_s="3600";
     }
     current=true;

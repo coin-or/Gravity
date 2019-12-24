@@ -593,10 +593,23 @@ public:
         return *this;
     }
     
-    /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
+    /* Delete indices (rows if matrix indexed) where keep[i] is false. */
     void filter_refs(const vector<bool>& keep){
         string excluded = "\\{";
-        if(_ids){
+        if(_type == matrix_){/* If ids is matrix indexed */
+            if(keep.size()!=get_nb_rows()){
+                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+            }
+            shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+            auto nb_rows = this->get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                if(keep[i]==true){
+                    new_ids->push_back(_ids->at(i));
+                }
+            }
+            _ids = new_ids;
+        }
+        else if(_ids){
             if(keep.size()!=_ids->at(0).size()){
                 throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
             }
@@ -665,6 +678,44 @@ public:
             }
             *_ids = new_ids;
         }
+    }
+    
+    
+    
+    /* Returns true if current index set is a subset of ids */
+    bool is_subset(const indices & ids) const{
+        if(_type == matrix_){/* If ids is matrix indexed */
+            auto nb_rows = this->get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                    auto key_ref = _ids->at(i).at(j);
+                    auto key = _keys->at(key_ref);
+                    if(!ids.has_key(key)){
+                        return false;
+                    }
+                }
+            }
+        }
+        else if(_ids){
+            for (auto idx = 0; idx<size();idx++) {
+                if(!ids.has_key(_keys->at(_ids->at(0).at(idx)))){
+                    return false;
+                }
+            }
+        }
+        else {
+            for (auto idx = 0; idx<size();idx++) {
+                if(!ids.has_key(_keys->at(idx))){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    /* Returns true if current index set is a superset of ids */
+    bool is_superset(const indices & ids) const{
+        return ids.is_subset(*this);
     }
     
     /** The function iterates over key references in _ids and keeps only the unique entries */
