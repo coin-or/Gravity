@@ -244,7 +244,7 @@ namespace gravity {
                     //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
-                    iapp->Options()->SetStringValue("honor_original_bounds", "no");
+                    //iapp->Options()->SetStringValue("honor_original_bounds", "no");
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
@@ -257,7 +257,7 @@ namespace gravity {
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-                    iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-1);
+                    //iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-1);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
 //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
