@@ -2829,6 +2829,9 @@ namespace gravity {
         
         
         string to_str(size_t index1, size_t index2, int prec) {
+            if(!_indices || _indices->_type != matrix_){
+                return to_str(index1,prec);
+            }
             if (is_constant()) {
                 return to_string_with_precision(eval(index1,index2),prec);
             }
@@ -4790,7 +4793,12 @@ namespace gravity {
             auto coef_type = coef->get_type();
             if (coef_type==func_c) {
                 auto f_cst = ((func<type>*)(coef.get()));
-                return f_cst->eval(i,j);
+                if(f_cst->_indices && f_cst->_indices->_type == matrix_){
+                    return f_cst->eval(i,j);
+                }
+                else {
+                    return f_cst->eval(i);
+                }
             }
             else if(coef_type==par_c || coef_type==var_c) {
                 auto p_cst = ((param<type>*)(coef.get()));
@@ -4952,16 +4960,16 @@ namespace gravity {
         
         type eval_pterm(const pterm& pt, size_t i){
             type res = zero<type>().eval();
-            if (pt._coef->_is_transposed) {
-                throw invalid_argument("Unspported operation\n");
-            }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
-            else {
+//            if (pt._coef->_is_transposed) {
+////                throw invalid_argument("Unspported operation\n");
+//            }// TREAT TRANSPOSED VECTORS IN POLYNOMIAL TERMS HERE
+//            else {
                 res += 1;
                 for (auto &pair: *pt._l) {
                     res *= pow(eval(pair.first, i), pair.second);
                 }
                 res *= eval_coef(pt._coef,i);
-            }
+//            }
             if (!pt._sign) {
                 res *= -1;
             }
@@ -5942,29 +5950,29 @@ namespace gravity {
                 res._range->second = extended_mult(res._range->second,(type)_dim[0]);
             }
             for (auto& t1: *_pterms) {
-                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
-                    auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                    *this = func(be);
-                    _evaluated = false;
-                    _range = res._range;
-                    _expr->_range->first = _range->first;
-                    _expr->_range->second = _range->second;
-                    _expr->_all_convexity = _all_convexity;
-                    _expr->_all_sign = _all_sign;
-                    return *this;
-                }
+//                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), we cannot factor the coefficients. Just create a binary expression and return it.
+//                    auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                    *this = func(be);
+//                    _evaluated = false;
+//                    _range = res._range;
+//                    _expr->_range->first = _range->first;
+//                    _expr->_range->second = _range->second;
+//                    _expr->_all_convexity = _all_convexity;
+//                    _expr->_all_sign = _all_sign;
+//                    return *this;
+//                }
                 for (auto& t2: *f._pterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        _range = res._range;
-                        _expr->_range->first = _range->first;
-                        _expr->_range->second = _range->second;
-                        _expr->_all_convexity = _all_convexity;
-                        _expr->_all_sign = _all_sign;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        _expr->_range->first = _range->first;
+//                        _expr->_range->second = _range->second;
+//                        _expr->_all_convexity = _all_convexity;
+//                        _expr->_all_sign = _all_sign;
+//                        return *this;
+//                    }
                     auto newl(*t1.second._l);
                     for (auto& it: *t2.second._l) {// TODO check if same l
                         newl.push_back(make_pair<>(it.first, it.second));
@@ -5986,17 +5994,17 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._qterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        _range = res._range;
-                        _expr->_range->first = _range->first;
-                        _expr->_range->second = _range->second;
-                        _expr->_all_convexity = _all_convexity;
-                        _expr->_all_sign = _all_sign;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function), see comment above.
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        _expr->_range->first = _range->first;
+//                        _expr->_range->second = _range->second;
+//                        _expr->_all_convexity = _all_convexity;
+//                        _expr->_all_sign = _all_sign;
+//                        return *this;
+//                    }
                     auto newl(*t1.second._l);
                     newl.push_back(make_pair<>((t2.second._p->first), 1));
                     newl.push_back(make_pair<>((t2.second._p->second), 1));
@@ -6017,17 +6025,17 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._lterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        _range = res._range;
-                        _expr->_range->first = _range->first;
-                        _expr->_range->second = _range->second;
-                        _expr->_all_convexity = _all_convexity;
-                        _expr->_all_sign = _all_sign;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial function)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        _expr->_range->first = _range->first;
+//                        _expr->_range->second = _range->second;
+//                        _expr->_all_convexity = _all_convexity;
+//                        _expr->_all_sign = _all_sign;
+//                        return *this;
+//                    }
                     auto newl(*t1.second._l);
                     newl.push_back(make_pair<>((t2.second._p), 1));
                     if (t2.second._coef->is_function()) {
@@ -6066,20 +6074,22 @@ namespace gravity {
                 }
             }
             for (auto& t1: *_qterms) {
-                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
-                    auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                    *this = func(be);
-                    _evaluated = false;
-                    _range = res._range;
-                    return *this;
-                }
+//                if (t1.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(Quadratic term)
+//                    auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                    *this = func(be);
+//                    _evaluated = false;
+//                    _range = res._range;
+//                    return *this;
+//                }
                 for (auto& t2: *f._pterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto range = get_product_range(_range,f._range);
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto range = get_product_range(_range,f._range);
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        return *this;
+//                    }
                     auto newl(*t2.second._l);
                     newl.push_front(make_pair<>(t1.second._p->first, 1));
                     newl.push_front(make_pair<>(t1.second._p->second, 1));
@@ -6100,12 +6110,14 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._qterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto range = get_product_range(_range,f._range);
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto range = get_product_range(_range,f._range);
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        return *this;
+//                    }
                     list<pair<shared_ptr<param_>, int>> newl;
                     newl.push_back(make_pair<>(t1.second._p->first, 1));
                     newl.push_back(make_pair<>(t1.second._p->second, 1));
@@ -6128,12 +6140,14 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._lterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto range = get_product_range(_range,f._range);
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto range = get_product_range(_range,f._range);
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        return *this;
+//                    }
                     list<pair<shared_ptr<param_>, int>> newl;
                     newl.push_back(make_pair<>(t1.second._p->first, 1));
                     newl.push_back(make_pair<>(t1.second._p->second, 1));
@@ -6173,11 +6187,13 @@ namespace gravity {
             }
             for (auto& t1: *_lterms) {
                 for (auto& t2: *f._pterms) {
-                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                    }
+//                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        return *this;
+//                    }
                     auto newl(*t2.second._l);
                     newl.push_front(make_pair<>((t1.second._p), 1));
                     if (t2.second._coef->is_function()) {
@@ -6197,11 +6213,13 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._qterms) {
-                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                    }
+//                    if (t1.second._coef->_is_transposed || t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        _range = res._range;
+//                        return *this;
+//                    }
                     list<pair<shared_ptr<param_>, int>> newl;
                     newl.push_back(make_pair<>(t1.second._p, 1));
                     newl.push_back(make_pair<>(t2.second._p->first, 1));
@@ -6274,12 +6292,12 @@ namespace gravity {
             }
             if (!_cst->is_zero()) {
                 for (auto& t2: *f._pterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        return *this;
+//                    }
                     if (t2.second._coef->is_function()) {
                         auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);
@@ -6297,12 +6315,12 @@ namespace gravity {
                     }
                 }
                 for (auto& t2: *f._qterms) {
-                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
-                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
-                        *this = func(be);
-                        _evaluated = false;
-                        return *this;
-                    }
+//                    if (t2.second._coef->_is_transposed) {// If the coefficient in front is transposed: a^T.(polynomial term)
+//                        auto be = bexpr<type>(product_, make_shared<func>(*this), make_shared<func>(f));
+//                        *this = func(be);
+//                        _evaluated = false;
+//                        return *this;
+//                    }
                     if (t2.second._coef->is_function()) {
                         auto f_cst = *static_pointer_cast<func<T2>>(t2.second._coef);
                         auto coef = multiply(_cst, f_cst);

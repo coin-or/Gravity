@@ -513,7 +513,21 @@ public:
         vector<bool> res;
         // assert(_ids);
         set<size_t> unique_ids;
-        if(is_indexed()){/* If ids has key references, use those */
+        if(_type == matrix_){/* If ids is matrix indexed */
+            auto nb_rows = this->get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                    auto idx = _ids->at(i).at(j);
+                    if(ids.has_key(_keys->at(idx))){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }
+        }
+        else if(is_indexed()){/* If ids has key references, use those */
             for (auto &idx:_ids->at(0)) {
                 if(ids.has_key(_keys->at(idx))){
                     res.push_back(true);
@@ -555,7 +569,21 @@ public:
         vector<bool> res;
         // assert(_ids);
         set<size_t> unique_ids;
-        if(is_indexed()){/* If ids has key references, use those */
+        if(_type == matrix_){/* If ids is matrix indexed */
+            auto nb_rows = this->get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                    auto idx = _ids->at(i).at(j);
+                    if(!ids.has_key(_keys->at(idx))){
+                        res.push_back(true);
+                    }
+                    else {
+                        res.push_back(false);
+                    }
+                }
+            }
+        }
+        else if(is_indexed()){/* If ids has key references, use those */
             for (auto &idx:_ids->at(0)) {
                 if(!ids.has_key(_keys->at(idx))){
                     res.push_back(true);
@@ -1217,6 +1245,9 @@ public:
     
     size_t get_max_nb_columns() const {
         assert(is_indexed());
+        if(_type != matrix_){
+            throw invalid_argument("cannot call get_nb_cols() on a non-indexed set");
+        }
         auto nb_inst = _ids->size();
         size_t max_dim = 0;
         for(size_t inst = 0; inst<nb_inst; inst++){
@@ -1233,6 +1264,7 @@ public:
         return _ids->size();
     };
     
+    
     /** @return size of index set, if this is a matrix indexing, it returns the number of rows, if the set is a mask (has _ids) it returns the mask size, otherwize it return the total number of keys. **/
     size_t size() const {
         if(is_indexed()){
@@ -1242,6 +1274,18 @@ public:
             return _ids->at(0).size();
         }
         return _keys->size();
+    };
+    
+    size_t nb_keys() const {
+        if(_type != matrix_){
+            throw invalid_argument("cannot call nb_keys() on a non-matrix index set");
+        }
+        size_t n = 0;
+        for(auto &vec: *_ids){
+            if(vec.size()>0)
+                n++;
+        }
+        return n;
     };
     
     size_t nb_active_keys() const {return _keys->size() - _excluded_keys.size();};
