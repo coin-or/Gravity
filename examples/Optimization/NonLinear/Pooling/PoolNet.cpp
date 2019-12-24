@@ -322,7 +322,7 @@ indices PoolNet::in_arcs_per_node() const{
     return ids;
 }
 
-indices PoolNet::inputs_pools_outputs() const{
+indices PoolNet::inputs_pools_outputs_fill() const{
     indices in_po_out("in_po_out");
 
     for(const string& ip: *this->inputs_pools._keys){
@@ -352,6 +352,9 @@ void PoolNet::readgrid(string fname) {
     double val;
     
     int N_node,N_input,N_output,N_pool, N_attr;
+    
+    auto pos=fname.find_last_of("/");
+    this->_name=fname.substr(pos+1);
     
     ifstream file(fname.c_str(), std::ifstream::in);
     
@@ -627,7 +630,7 @@ void PoolNet::readgrid(string fname) {
     }
     file.close();
     
-    indices inputs_pools_outputs=this->inputs_pools_outputs();
+    inputs_pools_outputs=this->inputs_pools_outputs_fill();
     indices inputs_attr=indices(Inputs, Attr);
     indices outputs_attr=indices(Outputs, Attr);
     indices pools_attr=indices(Pools, Attr);
@@ -673,8 +676,8 @@ void PoolNet::readgrid(string fname) {
         auto a=A_U.eval(in);
         auto out=key.substr(pos+1);
         auto b=D_U.eval(out);
-        z_max.set_val(key, std::min(a,b));
-        z_min.set_val(key,  0);
+        z_max.add_val(key, std::min(a,b));
+        z_min.add_val(key,  0);
         
     }
 
@@ -1213,7 +1216,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     //This is pq-formulaiton of pooling problem as written in DOI 10.1007/s10898-012-9875-6!
     
     
-    auto SPP= make_shared<Model<>>("Std-Pooling-Prob-P");
+    auto SPP= make_shared<Model<>>("Std-Pooling-Prob-PQ");
     
     indices I=poolnet.Inputs;
     indices L=poolnet.Pools;
@@ -1230,20 +1233,41 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     indices J_K=indices(J,K);
     indices L_K = indices(L,K);
     
-    indices inputs_pools_outputs=poolnet.inputs_pools_outputs();
-    auto out_arcs_to_pool_per_input = poolnet.out_arcs_to_pool_per_input();
+    indices inputs_pools_outputs=poolnet.inputs_pools_outputs;
     auto out_arcs_to_output_per_input = poolnet.out_arcs_to_output_per_input();
-    auto in_arcs_per_pool = poolnet.in_arcs_per_pool();
-    auto in_arcs_per_pool_attr = poolnet.in_arcs_per_pool_attr();
-    auto in_arcs_attr_per_pool = poolnet.in_arcs_attr_per_pool();
-    auto out_arcs_per_pool = poolnet.out_arcs_per_pool();
-    auto out_arcs_per_pool_attr = poolnet.out_arcs_per_pool_attr();
-    auto in_arcs_from_pool_per_output = poolnet.in_arcs_from_pool_per_output();
-    auto in_arcs_from_pool_per_output_attr=poolnet.in_arcs_from_pool_per_output_attr();
-    auto in_arcs_from_input_per_output = poolnet.in_arcs_from_input_per_output();
-    auto in_arcs_from_input_per_output_attr = poolnet.in_arcs_from_input_per_output_attr();
+    auto in_arcs_from_input_per_output=poolnet.in_arcs_from_input_per_output();
+    auto in_arcs_from_input_per_output_attr=poolnet.in_arcs_from_input_per_output_attr();
+
+    indices pool_x_matrix = poolnet.pool_x_matrix_fill();
+    indices input_x_matrix = poolnet.input_x_matrix_fill();
+    indices output_x_matrix = poolnet.output_x_matrix_fill();
+    auto res=poolnet.outattr_x_p_matrix_fill();
+    indices outattr_x_matrix= res[0];
+    indices outattr_pin_matrix= res[1];
+    indices outattr_pout_matrix=res[2];
+    auto res1=poolnet.outattrz_p_matrix_fill();
+    indices outattrz_pin_matrix = res1[0];
+    indices outattrz_pout_matrix = res1[1];
+    indices pool_q_matrix = poolnet.pool_q_matrix_fill();
+    indices pooloutput_x_matrix = poolnet.pooloutput_x_matrix_fill();
+    
+    auto res2=poolnet.inputpool_x_q_S_matrix_fill();
+    indices inputpool_x_matrix=res2[0];
+    indices inputpool_q_matrix=res2[1];
+    indices inputpool_poolcap_matrix=res2[2];
+    
+    auto res3=poolnet.inpoolout_y_q_matrix_fill();
+    indices inpoolout_y_matrix = res3[0];
+    indices inpoolout_q_matrix = res3[1];
+    
+    auto res4=poolnet.inpoolout_x_c_matrix_fill();
+    
+    indices inpoolout_x_matrix=res4[0];
+    indices inpoolout_cip_matrix=res4[1];
+    indices inpoolout_cpo_matrix=res4[2];
     
 
+    
     
     // auto cost=poolnet.cost.in(Inputs);
     auto A_L=poolnet.A_L.in(I);
@@ -1273,33 +1297,24 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", 0, 1), z("z", z_min, z_max);
+    var<> objvar("objvar");
   
     SPP->add(x.in(inputs_pools_outputs));
     SPP->add(q.in(Tx));
     SPP->add(z.in(Tz));
     SPP->add(y.in(Ty));
+    SPP->add(objvar.in(range(0,0)));
 
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
-//    x.initialize_all(2.0);
-//    q.initialize_all(0.5);
+   // SPP->initialize_zero();
+       x.initialize_all(1.0);
+      y.initialize_all(1.0);
+     z.initialize_all(1.0);
+ q.initialize_all(0.5);
     
         int row_id = 0;
-        indices input_x_matrix = indices("input_x_matrix");
-        for (const string& input_key:*I._keys) {
-          
-            input_x_matrix.add_empty_row();
-            for (auto &ipo:*inputs_pools_outputs._keys) {
-                
-                auto pos = nthOccurrence(ipo, ",", 1);
-                auto input1 = ipo.substr(0,pos);
-                
-                if(input_key==input1){
-                    input_x_matrix.add_in_row(row_id, ipo);
-                }
-            }
-            row_id++;
-        }
+    
     
 
     
@@ -1308,23 +1323,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
         feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
     SPP->add(feed_availability.in(I)<=0);
     
-    row_id = 0;
-    indices pool_x_matrix = indices("pool_x_matrix");
-    for (const string& pool_key:*L._keys) {
-        
-        pool_x_matrix.add_empty_row();
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            
-            auto pos = nthOccurrence(ipo, ",", 1);
-            auto pos1 = nthOccurrence(ipo, ",", 2);
-            auto pool1 = ipo.substr(pos+1, pos1-(pos+1));
-            
-            if(pool_key==pool1){
-                pool_x_matrix.add_in_row(row_id, ipo);
-            }
-        }
-        row_id++;
-    }
+
     
         Constraint<> pool_capacity("pool_capacity");
         pool_capacity=sum(x, pool_x_matrix)-S;
@@ -1332,24 +1331,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     
-    row_id = 0;
-    indices output_x_matrix = indices("pool_x_matrix");
-    for (const string& out_key:*J._keys) {
-        
-        output_x_matrix.add_empty_row();
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            
-            auto pos = nthOccurrence(ipo, ",", 2);
-            auto pos1 = nthOccurrence(ipo, ",", 3);
-            auto out1 = ipo.substr(pos+1, pos1-(pos+1));
-            
-            if(out_key==out1){
-                output_x_matrix.add_in_row(row_id, ipo);
-            }
-        }
-        row_id++;
-    }
-    
+
     
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
@@ -1357,202 +1339,48 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     
-    row_id = 0;
-    indices outattr_x_matrix = indices("outattr_x_matrix");
-    for (const string& outat_key:*J_K._keys) {
-        
-        outattr_x_matrix.add_empty_row();
-        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            
-            auto pos = nthOccurrence(ipo, ",", 2);
-            auto pos1 = nthOccurrence(ipo, ",", 3);
-            auto out1 = ipo.substr(pos+1, pos1-(pos+1));
-            
-            if(out_key==out1){
-                outattr_x_matrix.add_in_row(row_id, ipo);
-            }
-        }
-        row_id++;
-    }
+
     
-    row_id = 0;
-    indices outattr_pin_matrix = indices("outattr_pin_matrix");
-    for (const string& outat_key:*J_K._keys) {
-        
-        outattr_pin_matrix.add_empty_row();
-        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
-        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            auto pos1 = nthOccurrence(ipo, ",", 1);
-            auto pos2 = nthOccurrence(ipo, ",", 2);
-            auto pos3 = nthOccurrence(ipo, ",", 3);
-            auto out1 = ipo.substr(pos2+1, pos3-(pos2+1));
-            auto in=ipo.substr(0, pos1);
-            if(out_key==out1){
-                outattr_pin_matrix.add_in_row(row_id, in+","+at_key);
-            }
-        }
-        row_id++;
-    }
+
     
-    row_id = 0;
-    indices outattr_pout_matrix = indices("outattr_pout_matrix");
-    for (const string& outat_key:*J_K._keys) {
-        
-        outattr_pout_matrix.add_empty_row();
-        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
-        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            auto pos1 = nthOccurrence(ipo, ",", 1);
-            auto pos2 = nthOccurrence(ipo, ",", 2);
-            auto pos3 = nthOccurrence(ipo, ",", 3);
-            auto out1 = ipo.substr(pos2+1, pos3-(pos2+1));
-            if(out_key==out1){
-                outattr_pout_matrix.add_in_row(row_id, outat_key);
-            }
-        }
-        row_id++;
-    }
+
     
-    row_id = 0;
-    indices outattrz_pin_matrix = indices("outattrz_pin_matrix");
-    for (const string& outat_key:*J_K._keys) {
-        
-        outattrz_pin_matrix.add_empty_row();
-        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
-        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*Tz._keys) {
-            auto pos1 = nthOccurrence(ipo, ",", 1);
-            auto out1 = ipo.substr(pos1+1);
-            auto in=ipo.substr(0, pos1);
-            if(out_key==out1){
-               outattrz_pin_matrix.add_in_row(row_id, in+","+at_key);
-            }
-        }
-        row_id++;
-    }
-    
-    row_id = 0;
-    indices outattrz_pout_matrix = indices("outattrz_pout_matrix");
-    for (const string& outat_key:*J_K._keys) {
-        
-        outattrz_pout_matrix.add_empty_row();
-        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
-        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
-        for (auto &ipo:*Tz._keys) {
-            auto pos1 = nthOccurrence(ipo, ",", 1);
-            auto out1=ipo.substr(pos1+1);
-            if(out_key==out1){
-                outattrz_pout_matrix.add_in_row(row_id, outat_key);
-            }
-        }
-        row_id++;
-    }
+ 
 
      Constraint<> product_quality("product_quality");//TODO debug transpose version
     product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
     
     
-    row_id = 0;
-    indices pool_q_matrix = indices("pool_q_matrix");
-    for (const string& pool_key:*L._keys) {
-        
-        pool_q_matrix.add_empty_row();
-        for (auto &ip:*Tx._keys) {
-            
-            auto pos = nthOccurrence(ip, ",", 1);
-            auto pool1 = ip.substr(pos+1);
-            
-            if(pool_key==pool1){
-                pool_q_matrix.add_in_row(row_id, ip);
-            }
-        }
-        row_id++;
-    }
+
     
     Constraint<> simplex("simplex");//TODO debug transpose version
     simplex=q.in(pool_q_matrix)-1;
     SPP->add(simplex.in(L)==0);
     
     
-    row_id = 0;
-    indices pooloutput_x_matrix = indices("pooloutput_x_matrix");
-    for (const string& poolout_key:*Ty._keys) {
-        
-        pooloutput_x_matrix.add_empty_row();
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            
-            auto pos = nthOccurrence(ipo, ",", 1);
-            auto poolout1 = ipo.substr(pos+1);
-            
-            if(poolout_key==poolout1){
-                pooloutput_x_matrix.add_in_row(row_id, ipo);
-            }
-        }
-        row_id++;
-    }
+
     
     
-    Constraint<> PQ("PQ");//TODO debug transpose version
-    PQ=x.in(pooloutput_x_matrix)-y;
-    SPP->add(PQ.in(Ty)==0);
+//    Constraint<> PQ("PQ");//TODO debug transpose version
+//    PQ=x.in(pooloutput_x_matrix)-y;
+//    SPP->add(PQ.in(Ty)==0);
   
     
-    row_id = 0;
-    indices inputpool_x_matrix = indices("inputpool_x_matrix");
-    for (const string& inputpool_key:*Tx._keys) {
-        
-        inputpool_x_matrix.add_empty_row();
-        for (auto &ipo:*inputs_pools_outputs._keys) {
-            
-            auto pos = nthOccurrence(ipo, ",", 2);
-            auto inputpool1 = ipo.substr(0, pos);
-            
-            if(inputpool_key==inputpool1){
-                inputpool_x_matrix.add_in_row(row_id, ipo);
-            }
-        }
-        row_id++;
-    }
-    row_id = 0;
-    indices inputpool_q_matrix = indices("inputpool_q_matrix");
-    indices inputpool_poolcap_matrix = indices("inputpool_poolcap_matrix");
-    for (const string& inputpool_key:*Tx._keys) {
-        
-        inputpool_q_matrix.add_empty_row();
-        inputpool_poolcap_matrix.add_empty_row();
-        inputpool_q_matrix.add_in_row(row_id, inputpool_key);
-        auto pos=nthOccurrence(inputpool_key, ",", 1);
-        auto pool_key=inputpool_key.substr(pos+1);
-        inputpool_poolcap_matrix.add_in_row(row_id, pool_key);
-        row_id++;
-    }
-        
+   
+    
         
     
     
     
     
-    Constraint<> PQ1("PQ1");//TODO debug transpose version
-    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
-    SPP->add(PQ1.in(Tx)<=0);
+//    Constraint<> PQ1("PQ1");//TODO debug transpose version
+//    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
+//    SPP->add(PQ1.in(Tx)<=0);
     
     
-    row_id = 0;
-    indices inpoolout_y_matrix = indices("inpoolout_y_matrix");
-    indices inpoolout_q_matrix = indices("inpoolout_q_matrix");
-    for (const string& inpoout_key:*inputs_pools_outputs._keys) {
-            auto pos = nthOccurrence(inpoout_key, ",", 1);
-            auto poout=inpoout_key.substr(pos+1);
-            auto pos1 = nthOccurrence(inpoout_key, ",", 2);
-            auto inpo=inpoout_key.substr(0,pos1);
-            inpoolout_y_matrix.add_in_row(row_id, poout);
-            inpoolout_q_matrix.add_in_row(row_id, inpo);
-            row_id++;
-    }
-    if(solv_type==gurobi || true){
+
+    if(solv_type==gurobi){
         Constraint<> mass_balance_le("mass_balance_le");
         mass_balance_le=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
         SPP->add(mass_balance_le.in(inputs_pools_outputs)<=0);
@@ -1567,30 +1395,249 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
         
     }
     
-    row_id = 0;
-    indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
-      indices inpoolout_cip_matrix = indices("inpoolout_cip_matrix");
-    indices inpoolout_cpo_matrix = indices("inpoolout_cpo_matrix");
-    for (const string& inpoout_key:*inputs_pools_outputs._keys) {
-          inpoolout_x_matrix.add_empty_row();
-        inpoolout_x_matrix.add_in_row(row_id, inpoout_key);
-        auto pos = nthOccurrence(inpoout_key, ",", 1);
-        auto poout=inpoout_key.substr(pos+1);
-        auto pos1 = nthOccurrence(inpoout_key, ",", 2);
-        auto inpo=inpoout_key.substr(0,pos1);
-        inpoolout_cip_matrix.add_in_row(row_id,inpo);
-        inpoolout_cpo_matrix.add_in_row(row_id,poout);
- 
-       
-    }
-     row_id++;
     
-    auto obj=x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
+//    Constraint<> sumy_con("sumy_con");
+//    sumy_con=sum(x)-sumyk;
+//    SPP->add(sumy_con.in(range(0,0))>=0);
     
-    SPP->min(obj);
+
+
+    
+    Constraint<> obj_eq("obj_eq");
+    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
+    SPP->add(obj_eq.in(range(0,0))==0);
+    
+    
+    SPP->min(objvar("0"));
     SPP->print();
     
     
     return SPP;
 }
+indices PoolNet::pool_x_matrix_fill() const{
+    int row_id=0;
+indices pool_x_matrix = indices("pool_x_matrix");
+for (const string& pool_key:*Pools._keys) {
+    
+    pool_x_matrix.add_empty_row();
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos = nthOccurrence(ipo, ",", 1);
+        auto pos1 = nthOccurrence(ipo, ",", 2);
+        auto pool1 = ipo.substr(pos+1, pos1-(pos+1));
+        
+        if(pool_key==pool1){
+            pool_x_matrix.add_in_row(row_id, ipo);
+        }
+    }
+    row_id++;
+    }
+    return pool_x_matrix;
+}
+indices PoolNet::input_x_matrix_fill() const{
+    int row_id=0;
+indices input_x_matrix = indices("input_x_matrix");
+for (const string& input_key:*Inputs._keys) {
+    
+    input_x_matrix.add_empty_row();
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos = nthOccurrence(ipo, ",", 1);
+        auto input1 = ipo.substr(0,pos);
+        
+        if(input_key==input1){
+            input_x_matrix.add_in_row(row_id, ipo);
+        }
+    }
+    row_id++;
+}
+    return input_x_matrix;
+}
+indices PoolNet::output_x_matrix_fill() const{
+auto row_id = 0;
+indices output_x_matrix = indices("output_x_matrix");
+for (const string& out_key:*Outputs._keys) {
+    
+    output_x_matrix.add_empty_row();
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos = nthOccurrence(ipo, ",", 2);
+        auto pos1 = nthOccurrence(ipo, ",", 3);
+        auto out1 = ipo.substr(pos+1, pos1-(pos+1));
+        
+        if(out_key==out1){
+            output_x_matrix.add_in_row(row_id, ipo);
+        }
+    }
+    row_id++;
+}
+    return output_x_matrix;
+}
+vector<indices> PoolNet::outattr_x_p_matrix_fill() const{
+        vector<indices> result;
+int row_id = 0;
+indices outattr_x_matrix = indices("outattr_x_matrix");
+      indices outattr_pin_matrix = indices("outattr_pin_matrix");
+    indices outattr_pout_matrix = indices("outattr_pout_matrix");
+for (const string& outat_key:*outputs_attr._keys) {
+    
+    outattr_x_matrix.add_empty_row();
+    auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+     auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos1 = nthOccurrence(ipo, ",", 1);
+        auto pos2 = nthOccurrence(ipo, ",", 2);
+        auto pos3 = nthOccurrence(ipo, ",", 3);
+        auto out1 = ipo.substr(pos2+1, pos3-(pos2+1));
+        auto in=ipo.substr(0, pos1);
+        
+        if(out_key==out1){
+            outattr_x_matrix.add_in_row(row_id, ipo);
+            outattr_pin_matrix.add_in_row(row_id, in+","+at_key);
+            outattr_pout_matrix.add_in_row(row_id, outat_key);
+        }
+    }
+    row_id++;
+}
+    result.push_back(outattr_x_matrix);
+    result.push_back(outattr_pin_matrix);
+    result.push_back(outattr_pout_matrix);
+    
+    return result;
+}
 
+vector<indices> PoolNet::outattrz_p_matrix_fill() const{
+     vector<indices> result;
+    int row_id = 0;
+    indices outattrz_pin_matrix = indices("outattrz_pin_matrix");
+    indices outattrz_pout_matrix = indices("outattrz_pout_matrix");
+    for (const string& outat_key:*outputs_attr._keys) {
+        
+        outattrz_pin_matrix.add_empty_row();
+        auto out_key = outat_key.substr(0, outat_key.find_first_of(","));
+        auto at_key = outat_key.substr(outat_key.find_first_of(",")+1);
+        for (auto &ipo:*inputs_outputs._keys) {
+            auto pos1 = nthOccurrence(ipo, ",", 1);
+            auto out1 = ipo.substr(pos1+1);
+            auto in=ipo.substr(0, pos1);
+            if(out_key==out1){
+                outattrz_pin_matrix.add_in_row(row_id, in+","+at_key);
+                outattrz_pout_matrix.add_in_row(row_id, outat_key);
+            }
+        }
+        row_id++;
+    }
+    result.push_back(outattrz_pin_matrix);
+    result.push_back(outattrz_pout_matrix);
+    return result;
+}
+
+indices PoolNet::pool_q_matrix_fill() const{
+int row_id = 0;
+indices pool_q_matrix = indices("pool_q_matrix");
+for (const string& pool_key:*Pools._keys) {
+    
+    pool_q_matrix.add_empty_row();
+    for (auto &ip:*inputs_pools._keys) {
+        
+        auto pos = nthOccurrence(ip, ",", 1);
+        auto pool1 = ip.substr(pos+1);
+        
+        if(pool_key==pool1){
+            pool_q_matrix.add_in_row(row_id, ip);
+        }
+    }
+    row_id++;
+}
+return pool_q_matrix;
+}
+indices PoolNet::pooloutput_x_matrix_fill() const{
+int row_id = 0;
+indices pooloutput_x_matrix = indices("pooloutput_x_matrix");
+for (const string& poolout_key:*pools_outputs._keys) {
+    
+    pooloutput_x_matrix.add_empty_row();
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos = nthOccurrence(ipo, ",", 1);
+        auto poolout1 = ipo.substr(pos+1);
+        
+        if(poolout_key==poolout1){
+            pooloutput_x_matrix.add_in_row(row_id, ipo);
+        }
+    }
+    row_id++;
+    }
+    return pooloutput_x_matrix;
+}
+vector<indices> PoolNet::inputpool_x_q_S_matrix_fill() const{
+    vector<indices> res;
+int row_id = 0;
+indices inputpool_x_matrix = indices("inputpool_x_matrix");
+    indices inputpool_q_matrix = indices("inputpool_q_matrix");
+    indices inputpool_poolcap_matrix = indices("inputpool_poolcap_matrix");
+for (const string& inputpool_key:*inputs_pools._keys) {
+    inputpool_q_matrix.add_empty_row();
+    inputpool_poolcap_matrix.add_empty_row();
+    inputpool_q_matrix.add_in_row(row_id, inputpool_key);
+    auto pos=nthOccurrence(inputpool_key, ",", 1);
+    auto pool_key=inputpool_key.substr(pos+1);
+    inputpool_poolcap_matrix.add_in_row(row_id, pool_key);
+  
+    inputpool_x_matrix.add_empty_row();
+    for (auto &ipo:*inputs_pools_outputs._keys) {
+        
+        auto pos = nthOccurrence(ipo, ",", 2);
+        auto inputpool1 = ipo.substr(0, pos);
+        
+        if(inputpool_key==inputpool1){
+            inputpool_x_matrix.add_in_row(row_id, ipo);
+        }
+    }
+    row_id++;
+    }
+    res.push_back(inputpool_x_matrix);
+        res.push_back(inputpool_q_matrix);
+         res.push_back(inputpool_poolcap_matrix);
+    return res;
+}
+vector<indices> PoolNet::inpoolout_y_q_matrix_fill() const{
+    vector<indices> res;
+int row_id = 0;
+indices inpoolout_y_matrix = indices("inpoolout_y_matrix");
+indices inpoolout_q_matrix = indices("inpoolout_q_matrix");
+for (const string& inpoout_key:*inputs_pools_outputs._keys) {
+    auto pos = nthOccurrence(inpoout_key, ",", 1);
+    auto poout=inpoout_key.substr(pos+1);
+    auto pos1 = nthOccurrence(inpoout_key, ",", 2);
+    auto inpo=inpoout_key.substr(0,pos1);
+    inpoolout_y_matrix.add_in_row(row_id, poout);
+    inpoolout_q_matrix.add_in_row(row_id, inpo);
+    row_id++;
+    }
+    res.push_back(inpoolout_y_matrix);
+    res.push_back(inpoolout_q_matrix);
+    return res;
+}
+vector<indices> PoolNet::inpoolout_x_c_matrix_fill() const{
+    vector<indices> res;
+int row_id = 0;
+indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
+indices inpoolout_cip_matrix = indices("inpoolout_cip_matrix");
+indices inpoolout_cpo_matrix = indices("inpoolout_cpo_matrix");
+for (const string& inpoout_key:*inputs_pools_outputs._keys) {
+    inpoolout_x_matrix.add_empty_row();
+    inpoolout_x_matrix.add_in_row(row_id, inpoout_key);
+    auto pos = nthOccurrence(inpoout_key, ",", 1);
+    auto poout=inpoout_key.substr(pos+1);
+    auto pos1 = nthOccurrence(inpoout_key, ",", 2);
+    auto inpo=inpoout_key.substr(0,pos1);
+    inpoolout_cip_matrix.add_in_row(row_id,inpo);
+    inpoolout_cpo_matrix.add_in_row(row_id,poout);
+    }
+    res.push_back(inpoolout_x_matrix);
+    res.push_back(inpoolout_cip_matrix);
+    res.push_back(inpoolout_cpo_matrix);
+    return res;
+}

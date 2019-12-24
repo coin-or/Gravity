@@ -56,6 +56,9 @@ public:
     
     indices inputs_outputs;
     
+    
+    indices inputs_pools_outputs;
+    
     indices inputs_attr=indices("inputs_attr");
     indices outputs_attr=indices("outputs_attr");
     indices pools_attr=indices("pools_attr");
@@ -92,7 +95,7 @@ public:
 
     indices in_arcs_per_pool() const;
     
-    indices inputs_pools_outputs() const;
+    indices inputs_pools_outputs_fill() const;
 
     indices out_arcs_per_pool() const;
     
@@ -111,6 +114,21 @@ public:
   
     indices out_arcs_per_node(indices arcs) const;
     indices in_arcs_per_node(indices arcs) const;
+    
+    indices pool_x_matrix_fill() const;
+    indices input_x_matrix_fill() const;
+    indices output_x_matrix_fill() const;
+     indices outattrz_pin_matrix_fill() const;
+    indices outattrz_pout_matrix_fill() const;
+    vector<indices> outattr_x_p_matrix_fill() const;
+    vector<indices> outattrz_p_matrix_fill() const;
+    indices pool_q_matrix_fill() const;
+    indices pooloutput_x_matrix_fill() const;
+    vector<indices> inputpool_x_q_S_matrix_fill() const;
+    vector<indices> inpoolout_y_q_matrix_fill() const;
+    vector<indices> inpoolout_x_c_matrix_fill() const;
+    
+    
     
     void fill_wbnds();
 };
