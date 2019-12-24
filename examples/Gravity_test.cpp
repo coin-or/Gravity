@@ -23,6 +23,105 @@ using namespace std;
 using namespace gravity;
 
 
+//TEST_CASE("testing projection3") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto ACOPF = build_ACOPF(grid,ACRECT);
+//    ACOPF->print_symbolic();
+//    ACOPF->print();
+//    
+//    ACOPF->project();
+//    ACOPF->print();
+////    CHECK(Mtest.get_nb_cons() == 4);
+//}
+//
+//TEST_CASE("testing projection1") {
+//    indices buses("buses");
+//    buses.insert("1", "2", "3", "4");
+//    indices bus_pairs("bpairs");
+//    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+//    
+//    Model<> Mtest("Mtest");
+//    var<>  R_Wij("R_Wij", -1, 1);
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", -1, 1);
+//    var<>  Wii("Wii", 0.8, 1.21);
+//    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+//    Constraint<> SOC("SOC");
+//    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(bus_pairs);
+//    Mtest.add(SOC.in(bus_pairs) == 0);
+//    
+//    auto subset = bus_pairs.exclude("4,1");
+//    Constraint<> PAD("PAD");
+//    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
+//    Mtest.add(PAD.in(subset)<=2);
+//    
+//    
+//    Constraint<> PAD2("PAD2");
+//    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
+//    Mtest.add(PAD2>=1);
+//    
+//    Mtest.min(sum(R_Wij));
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_cons() == 8);
+//    Mtest.project();
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_eq() == 0);
+//    CHECK(Mtest.get_nb_ineq() == 12);
+//}
+//
+//TEST_CASE("testing projection2") {
+//    indices buses("buses");
+//    buses.insert("1", "2", "3", "4");
+//    indices bus_pairs("bpairs");
+//    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+//    auto subset = bus_pairs.exclude("4,1");
+//    
+//    Model<> Mtest("Mtest");
+//    var<>  R_Wij("R_Wij", -1, 1);
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", -1, 1);
+//    var<>  Wii("Wii", 0.8, 1.21);
+//    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+//    
+//    Constraint<> SOC("SOC");
+//    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
+//    Mtest.add(SOC.in(subset) == 0);
+//    
+//    
+//    Constraint<> PAD("PAD");
+//    PAD = 2*R_Wij.in(bus_pairs) - Im_Wij.in(bus_pairs);
+//    Mtest.add(PAD.in(bus_pairs)<=2);
+//    
+//    
+//    Mtest.min(sum(R_Wij));
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_cons() == 7);
+//    Mtest.project();
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_eq() == 0);
+//    CHECK(Mtest.get_nb_ineq() == 10);
+//}
+//
+//
+//
+//TEST_CASE("testing projection3") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto SOCOPF = grid.build_SCOPF();
+//    SOCOPF->print_symbolic();
+//    SOCOPF->print();
+//    
+//    SOCOPF->project();
+//    SOCOPF->print();
+////    CHECK(Mtest.get_nb_cons() == 4);
+//}
 
 
 TEST_CASE("testing constants") {
@@ -1427,85 +1526,9 @@ TEST_CASE("testing constraint delete") {
 }
 
 
-TEST_CASE("testing projection1") {
-    indices buses("buses");
-    buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
-    
-    Model<> Mtest("Mtest");
-    var<>  R_Wij("R_Wij", -1, 1);
-    /* Imaginary part of Wij = ViVj */
-    var<>  Im_Wij("Im_Wij", -1, 1);
-    var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
-    Constraint<> SOC("SOC");
-    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs) == 0);
-    
-    auto subset = bus_pairs.exclude("4,1");
-    Constraint<> PAD("PAD");
-    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
-    Mtest.add(PAD.in(subset)<=2);
-    
-    
-    Constraint<> PAD2("PAD2");
-    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
-    Mtest.add(PAD2>=1);
-    
-    Mtest.min(sum(R_Wij));
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 8);
-    Mtest.project();
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 4);
-}
 
-TEST_CASE("testing projection2") {
-    indices buses("buses");
-    buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
-    auto subset = bus_pairs.exclude("4,1");
-    
-    Model<> Mtest("Mtest");
-    var<>  R_Wij("R_Wij", -1, 1);
-    /* Imaginary part of Wij = ViVj */
-    var<>  Im_Wij("Im_Wij", -1, 1);
-    var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
-    
-    Constraint<> SOC("SOC");
-    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
-    Mtest.add(SOC.in(subset) == 0);
-    
-    
-    Constraint<> PAD("PAD");
-    PAD = 2*R_Wij.in(bus_pairs) - Im_Wij.in(bus_pairs);
-    Mtest.add(PAD.in(bus_pairs)<=2);
-    
-    
-    Mtest.min(sum(R_Wij));
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 7);
-    Mtest.project();
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 4);
-}
 
-TEST_CASE("testing projection3") {
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-    int output = 0;
-    double tol = 1e-6;
-    PowerNet grid;
-    grid.readgrid(fname);
-    auto SOCOPF = grid.build_SCOPF();
-    SOCOPF->print();
-    
-    SOCOPF->project();
-    SOCOPF->print();
-//    CHECK(Mtest.get_nb_cons() == 4);
-}
+
 
 TEST_CASE("Few Degrees Of Freedom") {
     auto m = Model<>("test");

@@ -220,13 +220,15 @@ public:
         return *this;
     }
     
+    
+    
     template<typename T=type>
     Constraint<type> replace(const var<T>& v, const func<T>& f) const{/**<  Replace v with function f everywhere it appears */
         Constraint<type> cpy = *this;
         cpy = cpy.func<type>::replace(v,f);
         cpy._is_constraint = true;
         if(cpy._indices && cpy._indices->size()!=this->_indices->size()){
-            cpy._name += "_projected_subset";
+            cpy._name += "_projected_subset_"+cpy._indices->get_name();
         }
         return cpy;
     }
