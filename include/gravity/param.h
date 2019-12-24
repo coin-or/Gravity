@@ -137,10 +137,25 @@ namespace gravity {
 
         indices get_indices() const{return *_indices;};
         
+        size_t get_nb_rows() const {
+            if(!_indices){
+                throw invalid_argument("cannot call get_nb_rows() on a non-indexed set");
+            }
+            if(_indices->_type != matrix_){
+                return _indices->size();
+            }
+            size_t nb_rows = 0;
+            for(auto &vec: *_indices->_ids){
+                if(vec.size()>0)
+                    nb_rows++;
+            }
+            return nb_rows;
+        };
+        
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
-                    DebugOff(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
+                    DebugOn(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
                     throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
                 }
                 return _indices->_ids->at(0).at(inst);
@@ -856,6 +871,9 @@ namespace gravity {
             return _val->back();
         }
 
+        
+        
+        
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline type eval(size_t i) const {
             if(is_matrix()){
@@ -1725,12 +1743,12 @@ namespace gravity {
                 _val->resize(dim);
                 if(ids._type==matrix_){
                         if(_is_transposed){
-                            _dim[0] = ids._dim->at(1);
-                            _dim[1] = ids._dim->at(0);
+                            _dim[0] = ids.get_max_nb_columns();
+                            _dim[1] = ids.get_nb_rows();
                         }
                         else {
-                            _dim[1] = ids._dim->at(0);
-                            _dim[0] = ids._dim->at(1);
+                            _dim[1] = ids.get_max_nb_columns();
+                            _dim[0] = ids.get_nb_rows();
                         }
                 }
                 else {

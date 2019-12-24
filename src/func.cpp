@@ -4205,7 +4205,7 @@ unsigned func_::nb_linear_terms() const{
                 auto v_cpy = v;
                 if(vv->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, we can safely remove the linear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
-                    if(!updated_ids){
+                    if(!updated_ids && f_cpy._indices){
                         f_cpy.update_indices(keep_ids);
                         f_cpy.keep_unique_keys();
                         updated_ids = true;
@@ -4230,7 +4230,7 @@ unsigned func_::nb_linear_terms() const{
                     diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv->_indices);
                     diff_set.filter_refs(diff_ids);
-                    if(!updated_ids){
+                    if(!updated_ids && new_f._indices){
                         new_f.update_indices(keep_ids);
                         new_f.keep_unique_keys();
                         updated_ids = true;
@@ -4270,7 +4270,7 @@ unsigned func_::nb_linear_terms() const{
                 auto v_cpy = v;
                 if(vv1->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, wecan safely remove the lienear term including vv */
                     keep_ids = v._indices->get_common_refs(*vv1->_indices); /* indices to keep */
-                    if(!updated_ids){
+                    if(!updated_ids && f_cpy._indices){
                         f_cpy.update_indices(keep_ids);
                         f_cpy.keep_unique_keys();
                         updated_ids = true;
@@ -4295,7 +4295,7 @@ unsigned func_::nb_linear_terms() const{
                     diff_ids = vv1->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv1->_indices);
                     diff_set.filter_refs(diff_ids);
-                    if(!updated_ids){
+                    if(!updated_ids && new_f._indices){
                         new_f.update_indices(keep_ids);
                         new_f.keep_unique_keys();
                         updated_ids = true;
