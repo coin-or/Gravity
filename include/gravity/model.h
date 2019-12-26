@@ -1108,7 +1108,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
-                if (!c->_is_constraint || !c->has_sym_var(v) || c->has_matrix_indexed_vars()) {
+                if (!c->_is_constraint || !c->has_sym_var(v)) {
                     continue;
                 }
                 DebugOn("After replacing " << v.get_name(true,true) << " in " << c->get_name() << ": " << endl);
@@ -1129,6 +1129,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
                 else{
                     *c = new_c;
+                    c->allocate_mem();
                     c->print();
                 }                
             }
@@ -1141,6 +1142,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 Constraint<> v_ub(v.get_name(false,false)+"_UB");
                 v_ub = f - v.get_ub().in(*v._indices);
                 add(v_ub.in(*v._indices) <= 0);
+                v_ub.print();
             }
 //            _vars_name.erase(v->_name);
 //            auto vid = *v->_vec_id;

@@ -211,6 +211,9 @@ namespace gravity {
             auto temp = _dim[0];
             _dim[0] = _dim[1];
             _dim[1] = temp;
+            if(get_dim()==1){
+                _is_vector = false;
+            }
         }
         
         

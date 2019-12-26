@@ -1703,6 +1703,30 @@ namespace gravity {
             return res;
         }
         
+        /* Return the prefix including all entries except the last three */
+        string get_prefix(string& key, int nb_entries){
+            string pref="";
+            if(nb_entries>3){
+                pref = key.substr(0, key.find_last_of(","));
+                pref = pref.substr(0, pref.find_last_of(","));
+                pref = pref.substr(0, pref.find_last_of(",")+1);
+            }
+            return pref;
+        }
+        
+        /* Gets the one to last entry appended to the prefix (see get_prefix) */
+        void get_from(string& key, int nb_entries){
+            auto pref = get_prefix(key,nb_entries);
+            key = key.substr(0, key.find_last_of(","));
+            key = pref+key.substr(key.find_last_of(",")+1,key.size());
+        }
+        
+        /* Gets the last entry appended to the prefix (see get_prefix) */
+        void get_to(string& key, int nb_entries){
+            auto pref = get_prefix(key,nb_entries);
+            key = pref+key.substr(key.find_last_of(",")+1,key.size());
+        }
+        
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
          @param[in] start_position
          @param[in] ids_ index set
@@ -1775,12 +1799,19 @@ namespace gravity {
             res._indices->_ids->resize(1);
             res._indices->_type = ids._type;
             nb_inst = ids.size();
+            auto nb_entries = ids.get_nb_entries();
             if(ids._type==matrix_){
                 res._indices->_ids->resize(nb_inst);
                 for (size_t i = 0; i<nb_inst; i++) {
                     for (size_t j = 0; j<ids._ids->at(i).size(); j++) {
                         auto key_ref = ids._ids->at(i).at(j);
                         key = ids._keys->at(key_ref);
+                        if(_indices->_type==to_){
+                            get_to(key,nb_entries);
+                        }
+                        else if(_indices->_type==from_){
+                            get_from(key,nb_entries);
+                        }
                         auto it = _indices->_keys_map->find(key);
                         if (it == _indices->_keys_map->end()){
                             throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
@@ -1798,6 +1829,12 @@ namespace gravity {
             else if(ids.is_indexed()){/* If ids has key references, use those */
                 for(auto &key_ref: ids._ids->at(0)){
                     key = ids._keys->at(key_ref);
+                    if(_indices->_type==to_){
+                        get_to(key,nb_entries);
+                    }
+                    else if(_indices->_type==from_){
+                        get_from(key,nb_entries);
+                    }
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
                         throw invalid_argument("Variable " + _name + ": In function param.in(const indices& index_set1, Args&&... args), an index set has unrecognized key: " + key);
@@ -1812,22 +1849,12 @@ namespace gravity {
                 }
             }
             else {
-                auto nb_entries = ids.get_nb_entries();
                 for(auto key: *ids._keys){
-                    if(_indices->_type==to_ || _indices->_type==from_){
-                        string pref="";
-                        if(nb_entries>3){/* key has a prefix */
-                            pref = key.substr(0, key.find_last_of(","));
-                            pref = pref.substr(0, pref.find_last_of(","));
-                            pref = pref.substr(0, pref.find_last_of(",")+1);
-                        }
-                        if(_indices->_type==to_){
-                            key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                        }
-                        else if(_indices->_type==from_){
-                            key = key.substr(0, key.find_last_of(","));
-                            key = pref+key.substr(key.find_last_of(",")+1,key.size());
-                        }
+                    if(_indices->_type==to_){
+                        get_to(key,nb_entries);
+                    }
+                    else if(_indices->_type==from_){
+                        get_from(key,nb_entries);
                     }
                     auto it = _indices->_keys_map->find(key);
                     if (it == _indices->_keys_map->end()){
@@ -1847,6 +1874,12 @@ namespace gravity {
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */
                 res._name += "\{" + excluded + "}";
+            }
+            if(ids._type!=matrix_ && _indices->_type==to_){
+                res._indices->_type = to_;
+            }
+            else if(ids._type!=matrix_ && _indices->_type==from_){
+                res._indices->_type = from_;
             }
             res.reset_range();
             return res;
