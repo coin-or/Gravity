@@ -275,9 +275,11 @@ namespace gravity {
         /**
          Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep an index if it corresponding entry in keep_id is true.
          @param[in] keep_ids vector of booleans, specifying which ids to keep
-         @return current function
          */
         void update_indices(const vector<bool>& keep_ids);
+        
+        
+        
         
         
         /**
@@ -699,7 +701,11 @@ namespace gravity {
             return (_vars->empty());
         }
         
-        
+        /**
+         Update the variables/parameters indexing using the set ids.
+         @param[in] ids indext set
+         */
+        void update_var_indices(const indices& ids);
         
         /**
          Index the function and its variables/parameters using the indices in ids
@@ -765,6 +771,9 @@ namespace gravity {
             auto temp = _dim[0];
             _dim[0] = _dim[1];
             _dim[1] = temp;
+            if(get_dim()==1){
+                _is_vector = false;
+            }
             for (auto &vp: *_vars) {
                 if(vp.second.first->_is_transposed){
                     vp.second.first->transpose();
