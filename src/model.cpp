@@ -14,6 +14,10 @@ using namespace std;
 namespace gravity {
 
 
+const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2) {
+    return v1.second->get_nb_rows() > v2.second->get_nb_rows();
+}
+
 /** Lift and linearize the nonlinear constraint c, return the linearized form and add linking constraints to the model.
  @param[in] c: constraint to linearize
  @param[in] partition_model: formulation used for partitionning the nonconvex parts of the constraint

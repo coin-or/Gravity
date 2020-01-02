@@ -44,6 +44,8 @@ namespace gravity {
         return c1->nb_linear_terms() > c2->nb_linear_terms();
     }
 
+const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2);
+
     /**
      Parallel computation of the constraints stored in v[i] to v[j]
      @param[in] v vector of constraints
@@ -1099,35 +1101,49 @@ namespace gravity {
         
         template<typename T=type>
         void replace(const var<T>& v, const func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
-            if(_obj->has_sym_var(v))
+            if(_obj->has_sym_var(v)){
                 *_obj = _obj->replace(v, f);
+                _obj->_dim[0] = 1;
+//                _obj->_indices = nullptr;
+            }
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
-                if (!c->_is_constraint || !c->has_sym_var(v) || c->has_matrix_indexed_vars()) {
+                if (!c->_is_constraint || !c->has_sym_var(v)) {
                     continue;
                 }
                 DebugOn("After replacing " << v.get_name(true,true) << " in " << c->get_name() << ": " << endl);
                 auto new_c = c->replace(v, f);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=c->_indices->size()){
-                    eq_list.push_back(this->add_constraint(new_c));
+                    if(new_c._ctype==eq){
+                        eq_list.push_back(this->add_constraint(new_c));
+                    }
+                    else {
+                        this->add_constraint(new_c);
+                    }
                     auto diff_refs = c->_indices->get_diff_refs(*new_c._indices);
                     c->update_indices(diff_refs);
                     c->_indices->keep_unique_keys();
                     c->print();
                     DebugOn("Projected constraint: " << endl);
+                    new_c.print();
                 }
                 else{
                     *c = new_c;
-                }
-                new_c.print();
+                    c->allocate_mem();
+                    c->print();
+                }                
             }
-            Constraint<> v_lb(v.get_name(false,false)+"_LB");
-            v_lb = f - v.get_lb().in(*v._indices);
-            add(v_lb.in(*v._indices) >= 0);
-            v_lb.print();
-            Constraint<> v_ub(v.get_name(false,false)+"_UB");
-            v_ub = f - v.get_ub().in(*v._indices);
-            add(v_ub.in(*v._indices) <= 0);
+            if(v.is_bounded_below()){
+                Constraint<> v_lb(v.get_name(false,false)+"_LB");
+                v_lb = f - v.get_lb().in(*v._indices);
+                add(v_lb.in(*v._indices) >= 0);
+            }
+            if(v.is_bounded_above()) {
+                Constraint<> v_ub(v.get_name(false,false)+"_UB");
+                v_ub = f - v.get_ub().in(*v._indices);
+                add(v_ub.in(*v._indices) <= 0);
+                v_ub.print();
+            }
 //            _vars_name.erase(v->_name);
 //            auto vid = *v->_vec_id;
 //            _vars.erase(vid);
@@ -1154,60 +1170,71 @@ namespace gravity {
                     break;
                 }
                 /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
+                list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
                 for (auto& lterm: c->get_lterms()) {
                     auto v = lterm.second._p;
                     if(v->get_intype()==double_ && c->_vars->at(v->_name).second==1 /* only appears in linear part of c*/ && (lterm.second._coef->is_negative() || lterm.second._coef->is_positive()) /* invertible */){
-                        func<T> f = *c;
-                        if(!lterm.second._coef->is_negative() && !lterm.second._coef->is_positive()){/* cannot invert */
-                            continue;/* TODO: find smallest invertible set */
+                        var_list.push_back({lterm.first,v});
+                    }
+                }
+                var_list.sort(var_compare);
+                auto v = var_list.front().second;
+                auto lterm = c->_lterms->at(var_list.front().first);
+                if(v->get_intype()==double_ && c->_vars->at(v->_name).second==1 /* only appears in linear part of c*/ && (lterm._coef->is_negative() || lterm._coef->is_positive()) /* invertible */){
+                    func<T> f = *c;
+                    if(!lterm._coef->is_negative() && !lterm._coef->is_positive()){/* cannot invert */
+                        continue;/* TODO: find smallest invertible set */
+                    }
+                    auto vv = *static_pointer_cast<var<double>>(v);
+                    if(vv.is_matrix_indexed()){
+                        pair<vector<bool>,vector<bool>> z_nnz_rows = vv.get_nnz_rows();
+                        auto c_split = *c;
+                        c_split._name += "_split";
+                        c_split.update_indices(z_nnz_rows.first);// rows where v is zero
+                        c_split.insert(!lterm._sign,*lterm._coef,*lterm._p);/* Remove coef*v from f */
+                        if(c_split.get_dim()!=0){
+                            eq_list.push_back(add_constraint(c_split));
+                            c_split.print();
+                            c->update_indices(z_nnz_rows.second);
                         }
-                        auto vv = *static_pointer_cast<var<double>>(v);
-                        if(vv.is_matrix_indexed()){
-                            pair<vector<bool>,vector<bool>> z_nnz_rows = vv.get_nnz_rows();
-                            auto c_split = *c;
-                            c_split._name += "_split";
-                            c_split.update_indices(z_nnz_rows.first);// rows where v is zero
-                            c_split.insert(!lterm.second._sign,*lterm.second._coef,*lterm.second._p);/* Remove coef*v from f */
-                            if(c_split.get_dim()!=0){
-                                eq_list.push_back(add_constraint(c_split));
-                                c_split.print();
-                                c->update_indices(z_nnz_rows.second);
-                            }
-                            auto column_0 = v->delete_column(0);
-                            vv.index_in(column_0);
-                            f = *c;
+                        auto column_0 = v->delete_column(0);
+                        if(v->_indices->nb_keys()==0){
+                            c->insert(!lterm._sign,*lterm._coef,*v);/* Remove coef*v from c */
                         }
                         else {
-                            f.insert(!lterm.second._sign,*lterm.second._coef,*lterm.second._p);/* Remove coef*v from f */
+                            vv.index_in(column_0);
                         }
-                        if (lterm.second._coef->is_function()) {
-                            auto coef = *static_pointer_cast<func<T>>(lterm.second._coef);
-                            if(coef._indices){
-                                f *= (-1./coef).in(*coef._indices);
-                            }
-                            else {
-                                f *= -1./coef;
-                            }
+                        f = *c;
+                    }
+                    else {
+                        f.insert(!lterm._sign,*lterm._coef,*lterm._p);/* Remove coef*v from f */
+                    }
+                    if (lterm._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lterm._coef);
+                        if(coef._indices){
+                            f *= (-1./coef).in(*coef._indices);
                         }
-                        else if(lterm.second._coef->is_param()) {
-                            auto coef = *static_pointer_cast<param<T>>(lterm.second._coef);
-                            if(coef._indices){
-                                f *= (-1./coef).in(*coef._indices);
-                            }
-                            else {
-                                f *= -1./coef;
-                            }
-                            
-                        }
-                        else if(lterm.second._coef->is_number()) {
-                            auto coef = *static_pointer_cast<constant<T>>(lterm.second._coef);
+                        else {
                             f *= -1./coef;
                         }
-                        delete_cstr.push_back(c->_name);
-                        c->_is_constraint = false;
-                        replace(vv,f,eq_list);/* Add bound constraints */
-                        break;
                     }
+                    else if(lterm._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lterm._coef);
+                        if(coef._indices){
+                            f *= (-1./coef).in(*coef._indices);
+                        }
+                        else {
+                            f *= -1./coef;
+                        }
+                        
+                    }
+                    else if(lterm._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lterm._coef);
+                        f *= -1./coef;
+                    }
+                    delete_cstr.push_back(c->_name);
+                    c->_is_constraint = false;
+                    replace(vv,f,eq_list);/* Add bound constraints */                    
                 }
             }
             for(const auto cstr_name: delete_cstr){
