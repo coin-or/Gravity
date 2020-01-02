@@ -23,6 +23,12 @@ using namespace gravity;
 int main (int argc, char * argv[]) {
     auto SPP= make_shared<Model<>>("Std-Pooling-Prob-PQ");
     
+    PoolNet poolnet;
+    
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    poolnet.readgrid(fname);
+    SolverType solv_type = ipopt;
+    
     indices I=poolnet.Inputs;
     indices L=poolnet.Pools;
     indices J=poolnet.Outputs;
