@@ -118,7 +118,7 @@ public:
     indices pool_x_matrix_fill() const;
     indices input_x_matrix_fill() const;
     indices output_x_matrix_fill() const;
-     indices outattrz_pin_matrix_fill() const;
+    indices outattrz_pin_matrix_fill() const;
     indices outattrz_pout_matrix_fill() const;
     vector<indices> outattr_x_p_matrix_fill() const;
     vector<indices> outattrz_p_matrix_fill() const;

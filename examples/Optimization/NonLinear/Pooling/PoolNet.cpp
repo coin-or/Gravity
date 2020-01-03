@@ -1035,8 +1035,6 @@ shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type)
     auto sumyk=poolnet.sumyk;
     
     var<> x("x", x_min, x_max);
-
-    
     
     var<> y("y", y_min, y_max), z("z", z_min, z_max);
     var<> p_pool("p_pool", 0, 5);
@@ -1312,67 +1310,34 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
       y.initialize_all(1.0);
      z.initialize_all(1.0);
  q.initialize_all(0.5);
-    
-        int row_id = 0;
-    
-    
-
-    
+  
     
     Constraint<> feed_availability("feed_availability");
         feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
     SPP->add(feed_availability.in(I)<=0);
-    
-
-    
+   
         Constraint<> pool_capacity("pool_capacity");
         pool_capacity=sum(x, pool_x_matrix)-S;
         SPP->add(pool_capacity.in(L)<=0);
 
-    
-    
-
-    
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
     SPP->add(product_demand.in(J)<=0);
 
     
-    
-
-    
-
-    
-
-    
- 
-
      Constraint<> product_quality("product_quality");//TODO debug transpose version
     product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
-    
-    
-
     
     Constraint<> simplex("simplex");//TODO debug transpose version
     simplex=q.in(pool_q_matrix)-1;
     SPP->add(simplex.in(L)==0);
     
     
-
-    
-    
 //    Constraint<> PQ("PQ");//TODO debug transpose version
 //    PQ=x.in(pooloutput_x_matrix)-y;
 //    SPP->add(PQ.in(Ty)==0);
   
-    
-   
-    
-        
-    
-    
-    
     
 //    Constraint<> PQ1("PQ1");//TODO debug transpose version
 //    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
