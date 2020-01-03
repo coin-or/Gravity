@@ -1569,17 +1569,18 @@ for (const string& inputpool_key:*inputs_pools._keys) {
 }
 vector<indices> PoolNet::inpoolout_y_q_matrix_fill() const{
     vector<indices> res;
-int row_id = 0;
 indices inpoolout_y_matrix = indices("inpoolout_y_matrix");
+    inpoolout_y_matrix = pools_outputs;
 indices inpoolout_q_matrix = indices("inpoolout_q_matrix");
+    inpoolout_q_matrix = inputs_pools;
 for (const string& inpoout_key:*inputs_pools_outputs._keys) {
     auto pos = nthOccurrence(inpoout_key, ",", 1);
     auto poout=inpoout_key.substr(pos+1);
     auto pos1 = nthOccurrence(inpoout_key, ",", 2);
     auto inpo=inpoout_key.substr(0,pos1);
-    inpoolout_y_matrix.add_in_row(row_id, poout);
-    inpoolout_q_matrix.add_in_row(row_id, inpo);
-    row_id++;
+    inpoolout_y_matrix.add_ref(poout);
+    inpoolout_q_matrix.add_ref(inpo);
+    
     }
     res.push_back(inpoolout_y_matrix);
     res.push_back(inpoolout_q_matrix);
