@@ -1262,14 +1262,10 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     //    Pg.initialize_av();
     //    Qg.initialize_uniform();
     /* Power flow variables */
-//    var<> Pf_from("Pf_from", -1.*S_max,S_max);
-//    var<> Qf_from("Qf_from", -1.*S_max,S_max);
-//    var<> Pf_to("Pf_to", -1.*S_max,S_max);
-//    var<> Qf_to("Qf_to", -1.*S_max,S_max);
-    var<> Pf_from("Pf_from");
-    var<> Qf_from("Qf_from");
-    var<> Pf_to("Pf_to");
-    var<> Qf_to("Qf_to");
+    var<> Pf_from("Pf_from", -1.*S_max,S_max);
+    var<> Qf_from("Qf_from", -1.*S_max,S_max);
+    var<> Pf_to("Pf_to", -1.*S_max,S_max);
+    var<> Qf_to("Qf_to", -1.*S_max,S_max);
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     /** Voltage related variables */
@@ -1309,14 +1305,14 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     /** Define constraints */
     
     /* REF BUS */
-//    Constraint<> Ref_Bus("Ref_Bus");
-//    if (polar) {
-//        Ref_Bus = theta(grid.ref_bus);
-//    }
-//    else {
-//        Ref_Bus = vi(grid.ref_bus);
-//    }
-//    ACOPF->add(Ref_Bus == 0);
+    Constraint<> Ref_Bus("Ref_Bus");
+    if (polar) {
+        Ref_Bus = theta(grid.ref_bus);
+    }
+    else {
+        Ref_Bus = vi(grid.ref_bus);
+    }
+    ACOPF->add(Ref_Bus == 0);
     
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -1452,7 +1448,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     cout << "\nnum bags = " << num_bags << endl;
     
     
-    grid.update_ref_bus();
+    //grid.update_ref_bus();
     
     /* Grid Stats */
     auto nb_gen = grid.get_nb_active_gens();
@@ -2267,8 +2263,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDPOPF->min(obj);
         
         Constraint<> obj_UB("obj_UB");
-        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
-        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+        //SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
     }
     else
     {
