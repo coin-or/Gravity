@@ -2701,16 +2701,16 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
             Constraint<type> MC1(name+"_McCormick1");
             param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
-            if(!lb1_.func_is_number()){
+            if(!v1._lb->func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
             }
-            if(!lb2_.func_is_number()){
+            if(!v2._lb->func_is_number()){
                 lb2_ = v2.get_lb().in(*v2._indices);
             }
-            if(!ub1_.func_is_number()){
+            if(!v1._ub->func_is_number()){
                 ub1_ = v1.get_ub().in(*v1._indices);
             }
-            if(!ub2_.func_is_number()){
+            if(!v2._ub->func_is_number()){
                 ub2_ = v2.get_ub().in(*v2._indices);
             }
             bool var_equal=false;
