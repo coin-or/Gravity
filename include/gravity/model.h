@@ -1194,7 +1194,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         c_split.update_rows(z_nnz_rows.first);// rows where v is zero
                         if(c_split.get_dim()!=0){
                             eq_list.push_back(add_constraint(c_split));
-                            c_split.print();
+//                            c_split.print();
                             c->update_rows(z_nnz_rows.second);
                         }
                         auto column_0 = v->delete_column(0);
@@ -2704,14 +2704,30 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if(!v1._lb->func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
             }
+            else{
+                lb1_ = v1.get_lb().in(*v1._indices);
+                lb1_ = v1.get_lb(0);
+            }
             if(!v2._lb->func_is_number()){
                 lb2_ = v2.get_lb().in(*v2._indices);
+            }
+            else{
+                lb2_ = v2.get_lb().in(*v2._indices);
+                lb2_ = v2.get_lb(0);
             }
             if(!v1._ub->func_is_number()){
                 ub1_ = v1.get_ub().in(*v1._indices);
             }
+            else{
+                ub1_ = v1.get_ub().in(*v1._indices);
+                ub1_ = v1.get_ub(0);
+            }
             if(!v2._ub->func_is_number()){
                 ub2_ = v2.get_ub().in(*v2._indices);
+            }
+            else{
+                ub2_ = v2.get_ub().in(*v2._indices);
+                ub2_ = v2.get_ub(0);
             }
             bool var_equal=false;
             if(v1._name==v2._name)
