@@ -47,7 +47,9 @@ int main (int argc, char * argv[]) {
     bool nonlin=true;
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    //string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    
+    string fname = "/Users/smitha/Utils/pglib-opf-master/pglib_opf_case3_lmbd.m";
 
 #ifdef USE_OPT_PARSER
     
@@ -116,10 +118,10 @@ int main (int argc, char * argv[]) {
     fname=argv[1];
     time_s=argv[2];
     }
-    else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
-        time_s="3600";
-    }
+//    else{
+//        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//        time_s="3600";
+//    }
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
@@ -172,8 +174,12 @@ int main (int argc, char * argv[]) {
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
+    
+    OPF->print();
+    
     solver<> OPFUB(OPF, solv_type);
-    OPFUB.set_option("bound_relax_factor", 1e-11);
+    
+   // OPFUB.set_option("bound_relax_factor", 1e-11);
     OPFUB.run(output = 5, 1e-6);
 //    OPF->print_solution();
     double upper_bound=OPF->get_obj_val();
@@ -201,19 +207,34 @@ int main (int argc, char * argv[]) {
         std::pair<bool,double> ub;
         ub.first=true;
         ub.second=upper_bound;
-    nonlin=false;
+    nonlin=true;
     if(nonlin){
         //SDPO=SDP->copy();
         
         nonlin_obj=false;
         
-        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
+      //  auto SDP= build_SDPOPF(grid, current, upper_bound, true);
+        
+        auto SDP= build_SDPOPF(grid, false, upper_bound, true);
 //        
 //        auto SDPA= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
 //
 //        auto SDP=SDPA->copy();
         
         SDP->print();
+        
+        solver<> SDPLB(SDP, ipopt);
+        //   SDPLB.set_option("bound_relax_factor", 1e-11);
+        
+        //SDP->print_solution(10);
+        
+        
+        //SDP->print();
+        SDPLB.run(output = 5, 1e-6);
+        
+        auto gapl = 100*(upper_bound - SDP->get_obj_val()*upper_bound)/upper_bound;
+        
+        DebugOn("Gap "<<gapl<<endl);
         
         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
         if(SDP->_status==0)
@@ -254,7 +275,7 @@ int main (int argc, char * argv[]) {
 //        vector<double> x_sol(SDP->get_nb_vars());
 //        SDP->get_solution(x_sol);
          solver<> SDPLB(SDP, ipopt);
-        SDPLB.set_option("bound_relax_factor", 1e-11);
+     //   SDPLB.set_option("bound_relax_factor", 1e-11);
 
         //SDP->print_solution(10);
         
