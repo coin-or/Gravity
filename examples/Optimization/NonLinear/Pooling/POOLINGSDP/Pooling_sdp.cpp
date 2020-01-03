@@ -190,5 +190,23 @@ int main (int argc, char * argv[]) {
     
     solver<> SPP_solv(SPP,ipopt);
     SPP_solv.run(5, 1e-6);
+
+//    poolnet.get_interaction_graph();
+//
+    poolnet.get_tree_decomp_bags();
+//    auto bags_3d=grid.decompose_bags_3d();
+    
+    
+//        auto g = SPP->get_interaction_graph();
+//        g.get_tree_decomp_bags();
+//        if(g._tree){
+//            DebugOn("Interaction graph is a tree!" << endl);
+//        }
+//        else {
+//            auto bags_3d=g.decompose_bags_3d();
+//        }
+//    SPP->print();
+    
+
     
 }
