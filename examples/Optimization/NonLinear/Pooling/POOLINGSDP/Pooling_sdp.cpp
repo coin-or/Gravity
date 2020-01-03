@@ -52,30 +52,29 @@ int main (int argc, char * argv[]) {
     indices pool_x_matrix = poolnet.pool_x_matrix_fill();
     indices input_x_matrix = poolnet.input_x_matrix_fill();
     indices output_x_matrix = poolnet.output_x_matrix_fill();
-    auto res=poolnet.outattr_x_p_matrix_fill();
-    indices outattr_x_matrix= res[0];
-    indices outattr_pin_matrix= res[1];
-    indices outattr_pout_matrix=res[2];
-    auto res1=poolnet.outattrz_p_matrix_fill();
-    indices outattrz_pin_matrix = res1[0];
-    indices outattrz_pout_matrix = res1[1];
+    auto x_p_indices =poolnet.outattr_x_p_matrix_fill();
+    indices outattr_x_matrix= x_p_indices[0];
+    indices outattr_pin_matrix= x_p_indices[1];
+    indices outattr_pout_matrix=x_p_indices[2];
+    auto p_indices=poolnet.outattrz_p_matrix_fill();
+    indices outattrz_pin_matrix = p_indices[0];
+    indices outattrz_pout_matrix = p_indices[1];
     indices pool_q_matrix = poolnet.pool_q_matrix_fill();
     indices pooloutput_x_matrix = poolnet.pooloutput_x_matrix_fill();
     
-    auto res2=poolnet.inputpool_x_q_S_matrix_fill();
-    indices inputpool_x_matrix=res2[0];
-    indices inputpool_q_matrix=res2[1];
-    indices inputpool_poolcap_matrix=res2[2];
+    auto x_q_indices=poolnet.inputpool_x_q_S_matrix_fill();
+    indices inputpool_x_matrix=x_q_indices[0];
+    indices inputpool_q_matrix=x_q_indices[1];
+    indices inputpool_poolcap_matrix=x_q_indices[2];
     
-    auto res3=poolnet.inpoolout_y_q_matrix_fill();
-    indices inpoolout_y_matrix = res3[0];
-    indices inpoolout_q_matrix = res3[1];
+    auto y_q_indices=poolnet.inpoolout_y_q_matrix_fill();
+    indices inpoolout_y_matrix = y_q_indices[0];
+    indices inpoolout_q_matrix = y_q_indices[1];
     
-    auto res4=poolnet.inpoolout_x_c_matrix_fill();
-    
-    indices inpoolout_x_matrix=res4[0];
-    indices inpoolout_cip_matrix=res4[1];
-    indices inpoolout_cpo_matrix=res4[2];
+    auto x_c_indices=poolnet.inpoolout_x_c_matrix_fill();
+    indices inpoolout_x_matrix=x_c_indices[0];
+    indices inpoolout_cip_matrix=x_c_indices[1];
+    indices inpoolout_cpo_matrix=x_c_indices[2];
     
     
     
@@ -114,7 +113,7 @@ int main (int argc, char * argv[]) {
     SPP->add(q.in(Tx));
     SPP->add(z.in(Tz));
     SPP->add(y.in(Ty));
-    SPP->add(objvar.in(range(0,0)));
+    SPP->add(objvar);
     
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
@@ -169,7 +168,7 @@ int main (int argc, char * argv[]) {
     else{
         Constraint<> mass_balance("mass_balance");
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+        SPP->add(mass_balance.in(inputs_pools_outputs)==0, true);
         
     }
     
@@ -183,10 +182,10 @@ int main (int argc, char * argv[]) {
     
     Constraint<> obj_eq("obj_eq");
     obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
-    SPP->add(obj_eq.in(range(0,0))==0);
+    SPP->add(obj_eq==0);
     
     
-    SPP->min(objvar("0"));
+    SPP->min(objvar);
     SPP->print();
     
 }

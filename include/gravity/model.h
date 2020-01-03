@@ -1114,6 +1114,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 DebugOn("After replacing " << v.get_name(true,true) << " in " << c->get_name() << ": " << endl);
                 auto new_c = c->replace(v, f);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=c->_indices->size()){
+                    DebugOn("Projected constraint: " << endl);
+                    new_c.print();
                     if(new_c._ctype==eq){
                         eq_list.push_back(this->add_constraint(new_c));
                     }
@@ -1124,8 +1126,6 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     c->update_indices(diff_refs);
                     c->_indices->keep_unique_keys();
                     c->print();
-                    DebugOn("Projected constraint: " << endl);
-                    new_c.print();
                 }
                 else{
                     *c = new_c;
@@ -1190,12 +1190,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         pair<vector<bool>,vector<bool>> z_nnz_rows = vv.get_nnz_rows();
                         auto c_split = *c;
                         c_split._name += "_split";
-                        c_split.update_indices(z_nnz_rows.first);// rows where v is zero
                         c_split.insert(!lterm._sign,*lterm._coef,*lterm._p);/* Remove coef*v from f */
+                        c_split.update_rows(z_nnz_rows.first);// rows where v is zero
                         if(c_split.get_dim()!=0){
                             eq_list.push_back(add_constraint(c_split));
                             c_split.print();
-                            c->update_indices(z_nnz_rows.second);
+                            c->update_rows(z_nnz_rows.second);
                         }
                         auto column_0 = v->delete_column(0);
                         if(v->_indices->nb_keys()==0){

@@ -23,20 +23,21 @@ using namespace std;
 using namespace gravity;
 
 
-TEST_CASE("testing projection3") {
-    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
-    int output = 0;
-    double tol = 1e-6;
-    PowerNet grid;
-    grid.readgrid(fname);
-    auto ACOPF = build_ACOPF(grid,ACRECT);
-    ACOPF->print_symbolic();
-    ACOPF->print();
-
-    ACOPF->project();
-    ACOPF->print();
-//    CHECK(Mtest.get_nb_cons() == 4);
-}
+//TEST_CASE("testing projection3") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+////    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto ACOPF = build_ACOPF(grid,ACRECT);
+//    ACOPF->print_symbolic();
+//    ACOPF->print();
+//
+//    ACOPF->project();
+//    ACOPF->print();
+////    CHECK(Mtest.get_nb_cons() == 4);
+//}
 
 TEST_CASE("testing projection1") {
     indices buses("buses");
@@ -893,13 +894,14 @@ TEST_CASE("testing multithread solve"){
     PowerNet grid1,grid2;
     grid1.readgrid(fname);
     auto ACOPF1 = build_ACOPF(grid1,ACRECT);
-    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-    auto ACOPF2 = build_ACOPF(grid1,ACPOL);
+    fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    grid2.readgrid(fname);
+    auto ACOPF2 = build_ACOPF(grid2,ACPOL);
     auto models = {ACOPF1, ACOPF2};
     /* run in parallel */
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
-    CHECK(std::abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
+    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-3);
+    CHECK(std::abs(ACOPF2->get_obj_val()-3087.841985)<1e-3);
     CHECK(ACOPF1->is_feasible(tol));
     ACOPF1->print_solution();
     auto Mc = ACOPF1->build_McCormick();
