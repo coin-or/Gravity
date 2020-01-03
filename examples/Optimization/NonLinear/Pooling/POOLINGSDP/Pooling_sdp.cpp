@@ -168,7 +168,7 @@ int main (int argc, char * argv[]) {
     else{
         Constraint<> mass_balance("mass_balance");
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+        SPP->add(mass_balance.in(inputs_pools_outputs)==0,true);
         
     }
     
@@ -187,9 +187,11 @@ int main (int argc, char * argv[]) {
     
     SPP->min(objvar);
     SPP->print();
-    
-    solver<> SPP_solv(SPP,ipopt);
-    SPP_solv.run(5, 1e-6);
+    auto g = SPP->get_interaction_graph();
+    g.get_tree_decomp_bags();
+    g.print();
+//    solver<> SPP_solv(SPP,ipopt);
+//    SPP_solv.run(5, 1e-6);
 //    SPP->project();
 //    SPP->print();
     
