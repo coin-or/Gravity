@@ -188,4 +188,7 @@ int main (int argc, char * argv[]) {
     SPP->min(objvar);
     SPP->print();
     
+    solver<> SPP_solv(SPP,ipopt);
+    SPP_solv.run(5, 1e-6);
+    
 }
