@@ -202,6 +202,7 @@ namespace gravity {
         void print(size_t ind) const;
         string print_transposed(int prec) const;
         string print_transposed(size_t idx, int prec) const;
+        string print_row(size_t idx, int prec) const;
     };
 
 
@@ -279,6 +280,8 @@ namespace gravity {
             return sign;
         }
                 
+        /* Return a new polynomial term excluding p */
+        pterm exclude(const shared_ptr<param_>& p) const;
         
         bool operator==(const pterm& l) const;
         bool operator!=(const pterm& l) const;

@@ -425,8 +425,23 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (c_new->_is_transposed || c_new->is_matrix_indexed() || p_new1->is_matrix_indexed()) {
-            str += print_transposed(ind,prec);
+        if (p_new1->is_matrix_indexed()) {
+            if (c_new->_is_transposed) {
+                auto dim = c_new->get_dim();
+                string term="";
+                for(auto i=0; i<dim;i++){
+                    term = print_transposed(i,prec);
+                    if(str.size()>0 && term.size()>0 && i!=0){
+                        str += " + " + term;
+                    }
+                    else {
+                        str += term;
+                    }
+                }
+            }
+            else {
+                str += print_row(ind,prec);
+            }
         }
         else{
             if (c_new->is_number()){
@@ -450,6 +465,18 @@ namespace gravity{
             str += p_new2->get_name(ind);
         }
         return str;
+    }
+
+    /* Return a new polynomial term excluding p */
+    pterm pterm::exclude(const shared_ptr<param_>& p) const{
+        pterm new_pt(*this);
+        auto new_l = make_shared<list<pair<shared_ptr<param_>, int>>>();
+        for (auto &pair : *_l) {
+            if(pair.first->get_name(true, false)!=p->get_name(true, false))
+                new_l->push_back(make_pair<>(pair.first, pair.second));
+        }
+        new_pt._l = new_l;
+        return new_pt;
     }
     
     string qterm::to_str(size_t ind1, size_t ind2, int prec) const {
@@ -532,6 +559,62 @@ namespace gravity{
             }
             else {
                 str += _p->first->get_name(idx)+ _p->second->get_name(idx);
+            }
+        }
+        return str;
+    }
+
+    string qterm::print_row(size_t inst, int prec) const{
+        if(!_coef_p1_tr && !_p->first->is_matrix_indexed()){
+            return print_transposed(prec);
+        }
+        string str;
+        size_t dim = 0;
+        if (_coef_p1_tr) { // qterm = (coef*p1)^T*p2
+            for (auto i = 0; i<_p->first->get_dim(); i++) {
+                for (auto j = 0; j<_coef->get_dim(i); j++) {
+                    string coef;
+                    if (_coef->is_number()){
+                        coef = _coef->to_str(prec);
+                    }
+                    else {
+                        coef = _coef->to_str(i,j,prec);
+                    }
+                    str += clean_print(_sign,coef);
+                    auto name1 = _p->first->get_name(j);
+                    auto name2 = _p->second->get_name(i);
+                    if (name1==name2) {
+                        str += name1 + "²";
+                    }
+                    else {
+                        str += name1 + name2;
+                    }
+                }
+            }
+            return str;
+        }
+
+        dim = std::min(_p->first->get_dim(inst),_p->second->get_dim(inst));
+        if(dim==0){
+            return str;
+        }
+        
+        for (auto idx = 0; idx <dim; idx++) {
+            string coef;
+            if (_coef->is_number()){
+                coef = _coef->to_str(prec);
+            }
+            else {
+                coef = _coef->to_str(inst, idx,prec);
+            }
+            str += clean_print(_sign,coef);
+            auto name1 = _p->first->get_name(inst,idx);
+            auto name2 = _p->second->get_name(inst,idx);
+            if (name1==name2) {
+                str += name1 + "²";
+            }
+            else {
+                str += name1 + name2;
             }
         }
         return str;
