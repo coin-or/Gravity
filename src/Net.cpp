@@ -588,6 +588,7 @@ void Net::get_tree_decomp_bags() {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
+                //DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
             }
         }
         if(unique_bags.insert(bag).second==true){
@@ -1239,3 +1240,34 @@ void Net::combine(Node* src, Path* p){
 //    }
 //    return res;
 //}
+indices Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+   
+    indices like("like");
+    if(!this->bus_pairs_chord.empty()){
+        return this->bus_pairs_chord;
+    }
+    map<string,pair<Node*,Node*>> unique_pairs;
+    map<string,int> likenames;
+    string key;
+    
+    for (auto &bag: bags) {
+        for (size_t i = 0; i< bag.second.size()-1; i++) {
+            if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
+           
+                auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                auto name1=bag.second[i]->_name.substr(0, bag.second[i]->_name.find_first_of("["));
+                auto name2=bag.second[i+1]->_name.substr(0, bag.second[i+1]->_name.find_first_of("["));
+                if(name1==name2){
+                    like.add(name);
+                }
+                bus_pairs_chord.add(name);
+            }
+        }
+        /* Loop back pair */
+        if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
+            auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+            bus_pairs_chord.add(name);
+        }
+    }
+    return bus_pairs_chord;
+}

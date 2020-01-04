@@ -4082,7 +4082,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             for(auto it2 = next(it); it2 != c->_vars->end(); it2++) {
                                 auto p2 = it2->second.first;
                                 if(p1->is_matrix_indexed()){
-                                    auto dim = p1->get_dim(inst);
+                                    auto dim = std::min(p1->get_dim(inst),p2->get_dim(inst));
                                     for (size_t j = 0; j<dim; j++) {
                                         auto p1_name = p1->get_name(inst,j);
                                         auto p2_name = p2->get_name(inst,j);
