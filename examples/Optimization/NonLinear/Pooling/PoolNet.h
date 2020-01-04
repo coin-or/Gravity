@@ -128,6 +128,8 @@ public:
     vector<indices> inpoolout_y_q_matrix_fill() const;
     vector<indices> inpoolout_x_c_matrix_fill() const;
     
+  
+    
     
     
     void fill_wbnds();

@@ -26,7 +26,8 @@ int main (int argc, char * argv[]) {
     
     //string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
    // string fname=argv[1];
-    string fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
+    //string fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
+   string fname="/Users/smitha/Desktop/Pooling_instances/Adhya1.gms";
     
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;

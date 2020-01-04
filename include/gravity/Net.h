@@ -176,7 +176,7 @@ public:
     
     void Fast_Horton(Net *net);
 
-    
+    gravity::indices get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     
     
     /** get algorithmic graph */

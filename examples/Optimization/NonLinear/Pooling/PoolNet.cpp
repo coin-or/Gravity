@@ -1592,6 +1592,8 @@ int row_id = 0;
 indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
 indices inpoolout_cip_matrix = indices("inpoolout_cip_matrix");
 indices inpoolout_cpo_matrix = indices("inpoolout_cpo_matrix");
+indices pos_x=indices("pos_x");
+indices neg_x=indices("neg_x");
 for (const string& inpoout_key:*inputs_pools_outputs._keys) {
     inpoolout_x_matrix.add_empty_row();
     inpoolout_x_matrix.add_in_row(row_id, inpoout_key);
@@ -1601,6 +1603,13 @@ for (const string& inpoout_key:*inputs_pools_outputs._keys) {
     auto inpo=inpoout_key.substr(0,pos1);
     inpoolout_cip_matrix.add_in_row(row_id,inpo);
     inpoolout_cpo_matrix.add_in_row(row_id,poout);
+    if(c_tx.eval(inpo)+c_ty.eval(poout)>0){
+        pos_x.add(inpoout_key);
+    }
+    if(c_tx.eval(inpo)+c_ty.eval(poout)<0){
+        neg_x.add(inpoout_key);
+    }
+        
     }
     res.push_back(inpoolout_x_matrix);
     res.push_back(inpoolout_cip_matrix);

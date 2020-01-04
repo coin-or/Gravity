@@ -169,7 +169,6 @@ int main (int argc, char * argv[]) {
         Constraint<> mass_balance("mass_balance");
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
         SPP->add(mass_balance.in(inputs_pools_outputs)==0);
-        
     }
     
     
@@ -187,16 +186,77 @@ int main (int argc, char * argv[]) {
     
     SPP->min(objvar);
     SPP->print();
-    SPP->project();
-    SPP->print();
-    auto g = SPP->get_interaction_graph();
-    g.get_tree_decomp_bags();
-    auto g3 = g.decompose_bags_3d(true);
-    g.print();
-//    solver<> SPP_solv(SPP,ipopt);
-//    SPP_solv.run(5, 1e-6);
+
 //    SPP->project();
 //    SPP->print();
+//    auto g = SPP->get_interaction_graph();
+//    g.get_tree_decomp_bags();
+//    auto g3 = g.decompose_bags_3d(true);
+//    g.print();
+
+//
+//    solver<> SPP_solv(SPP,ipopt);
+//    SPP_solv.run(5, 1e-6);
+//
+////    poolnet.get_interaction_graph();
+////
+//    poolnet.get_tree_decomp_bags();
+////    auto bags_3d=grid.decompose_bags_3d();
+//
+//
+////        auto g = SPP->get_interaction_graph();
+////        g.get_tree_decomp_bags();
+////        if(g._tree){
+////            DebugOn("Interaction graph is a tree!" << endl);
+////        }
+////        else {
+////            auto bags_3d=g.decompose_bags_3d();
+////        }
+
     
+    auto SPP_NC=build_pool_pqform(poolnet, ipopt);
+    auto g = SPP_NC->get_interaction_graph();
+    g.get_tree_decomp_bags();
+    
+       auto bags_3d=g.decompose_bags_3d();
+    DebugOn("bags \n");
+    for(auto bag:bags_3d){
+        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+    }
+    
+    g.print();
+    solver<> SPP_ub_solv(SPP_NC,ipopt);
+    SPP_ub_solv.run(5, 1e-6);
+    double upper_bound=SPP_NC->get_obj_val();
+    DebugOn("upper_bound \t"<<upper_bound<<endl);
+//    solver<> SPP_lb_solv(SPP,ipopt);
+//    SPP_lb_solv.run(5, 1e-6);
+    //    double lower_bound=SPP->get_obj_val();
+//    DebugOn("lower_bound \t"<<lower_bound<<endl);
+//    double gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
+//    DebugOn("Gap before sdp \t"<<gap<<endl);
+    
+    auto pairs=g.get_bus_pairs();
+    DebugOn("bus pairs \n");
+    for(auto k: *pairs._keys){
+        DebugOn(k<<endl);
+    }
+    var<> W("W");
+    SPP->add(W.in(pairs));
+    
+    auto pairs1=g.get_pairs_chord(bags_3d);
+    DebugOn("bus pairs \n");
+    for(auto k: *pairs1._keys){
+        DebugOn(k<<endl);
+    }
+
+    
+    //auto pairs_chord=g.get_bus_pairs_chord(bags_3d);
+    
+//    SPP->project();
+
+//    SPP->print();
+    
+
     
 }
