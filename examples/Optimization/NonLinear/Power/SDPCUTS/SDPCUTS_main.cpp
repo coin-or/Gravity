@@ -522,6 +522,5 @@ int main (int argc, char * argv[]) {
     //        DebugOn("WARNING: Relaxation did not converge!"<<endl);
     //    }
     
-    
-    
+
 }
