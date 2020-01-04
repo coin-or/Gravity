@@ -608,8 +608,15 @@ namespace gravity{
                 coef = _coef->to_str(inst, idx,prec);
             }
             str += clean_print(_sign,coef);
-            auto name1 = _p->first->get_name(inst,idx);
-            auto name2 = _p->second->get_name(inst,idx);
+            string name1, name2;
+            if(_p->first->is_matrix_indexed())
+                name1 = _p->first->get_name(inst,idx);
+            else
+                name1 = _p->first->get_name(inst);
+            if(_p->second->is_matrix_indexed())
+                name2 = _p->second->get_name(inst,idx);
+            else
+                name2 = _p->second->get_name(inst);
             if (name1==name2) {
                 str += name1 + "²";
             }
