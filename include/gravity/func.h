@@ -3986,7 +3986,7 @@ namespace gravity {
                             }
                         }
                     }
-                    else if(pair.second._coef->_is_transposed || pair.second._p->second->is_matrix_indexed()){
+                    else if(pair.second._coef->_is_transposed || pair.second._p->first->is_matrix_indexed()|| pair.second._p->second->is_matrix_indexed()){
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {

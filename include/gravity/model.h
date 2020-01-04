@@ -41,7 +41,10 @@ using namespace std;
 namespace gravity {
     template<typename type>
     const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
-        return c1->nb_linear_terms() > c2->nb_linear_terms();
+        if(c1->get_nb_inst() > c2->get_nb_inst())
+            return true;
+        return false;
+//        return c1->nb_linear_terms() > c2->nb_linear_terms();
     }
 
 const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2);
@@ -4023,7 +4026,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             Node* n2 = nullptr;
             for(auto& c_p :_cons) {
                 auto c = c_p.second;
-                if(this->_type==quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
+                if(this->_type<=quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
                     auto nb_inst = c->get_nb_inst();
                     for(int inst = 0; inst<nb_inst; inst++){
                         for (auto &pair:*c->_qterms) {
