@@ -785,7 +785,7 @@ public:
                     }
                 }
             }
-            if(ids._type==matrix){
+            if(ids._type==matrix_){
                 if(nb_keys()==ids.nb_keys())
                    return false;
             }

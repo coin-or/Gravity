@@ -1266,10 +1266,6 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     var<> Qf_from("Qf_from", -1.*S_max,S_max);
     var<> Pf_to("Pf_to", -1.*S_max,S_max);
     var<> Qf_to("Qf_to", -1.*S_max,S_max);
-//    var<> Pf_from("Pf_from");
-//    var<> Qf_from("Qf_from");
-//    var<> Pf_to("Pf_to");
-//    var<> Qf_to("Qf_to");
     ACOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     /** Voltage related variables */
@@ -1452,7 +1448,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     cout << "\nnum bags = " << num_bags << endl;
     
     
-    grid.update_ref_bus();
+    //grid.update_ref_bus();
     
     /* Grid Stats */
     auto nb_gen = grid.get_nb_active_gens();
@@ -2267,8 +2263,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDPOPF->min(obj);
         
         Constraint<> obj_UB("obj_UB");
-        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
-        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+        //SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
     }
     else
     {
