@@ -230,41 +230,35 @@ int main (int argc, char * argv[]) {
     int row_id=0;
 
     for (const string& inpoout_key:*inputs_pools_outputs._keys) {
-        inpoolout_W_matrix.add_empty_row();
         auto pos = nthOccurrence(inpoout_key, ",", 2);
         auto qid=inpoout_key.substr(0, pos);
         auto pos1 = nthOccurrence(inpoout_key, ",", 1);
         auto yid=inpoout_key.substr(pos1+1);
-        inpoolout_W_matrix.add_in_row(row_id++, "q["+qid+"],y["+yid+"]");
+        inpoolout_W_matrix.add("q["+qid+"],y["+yid+"]");
     }
         
         
     Constraint<> x_Wij("x_Wij");
     x_Wij=x-Wij.in(inpoolout_W_matrix);
-   // SPP->add(x_Wij.in(inputs_pools_outputs)==0);
+    SPP->add(x_Wij.in(inputs_pools_outputs)==0);
     
     indices qq_Wa_matrix = indices("qq_Wa_matrix");
     indices qq_Wb_matrix = indices("qq_Wb_matrix");
     
     row_id=0;
     for (const string& key:*qq._keys) {
-        qq_Wa_matrix.add_empty_row();
-        qq_Wb_matrix.add_empty_row();
         auto pos = nthOccurrence(key, ",", 2);
         auto pos1=nthOccurrence(key, "[", 1);
         auto qid1=key.substr(pos1+1, pos-pos1-2);
         auto pos2=nthOccurrence(key, "]", 2);
         auto qid2=key.substr(pos+3, pos2-pos-3);
-        qq_Wa_matrix.add_in_row(row_id, qid1);
-        qq_Wb_matrix.add_in_row(row_id, qid2);
-        row_id++;
+        qq_Wa_matrix.add(qid1);
+        qq_Wb_matrix.add(qid2);
     }
     
-    
     Constraint<> q_W("q_W");
-   // q_W=Wij-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-   // SPP->add(q_W.in(qq)==0);
-    
+    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
+    SPP->add(q_W.in(qq)==0);
     
     //    Constraint<> sumy_con("sumy_con");
     //    sumy_con=sum(x)-sumyk;
@@ -274,8 +268,9 @@ int main (int argc, char * argv[]) {
     
     
     Constraint<> obj_eq("obj_eq");
-    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
-    SPP->add(obj_eq.in(range(0,0))==0);
+    obj_eq=objvar-(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)+product(c_tz, z);
+//    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
+    SPP->add(obj_eq==0);
     
     
     SPP->min(objvar);
