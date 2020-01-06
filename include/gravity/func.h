@@ -5804,7 +5804,7 @@ namespace gravity {
         //        }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
-            return (!_is_vector && func_is_number() && _range->first == 1 && _range->second == 1);
+            return (!_is_vector && !_is_transposed && func_is_number() && _range->first == 1 && _range->second == 1);
             //            return (_range->first == 1 && _range->second == 1);
         }
         

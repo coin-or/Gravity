@@ -1105,6 +1105,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if(_obj->has_sym_var(v)){
                 *_obj = _obj->replace(v, f);
                 _obj->_dim[0] = 1;
+                _obj->_indices = nullptr;
                 _obj->_is_constraint = false;
             }
             for (auto &c_p: _cons_name) {
@@ -1136,14 +1137,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             if(v.is_bounded_below()){
                 Constraint<> v_lb(v.get_name(false,false)+"_LB");
-                v_lb = f - v.get_lb().in(*v._indices);
+                v_lb = f - v.get_lb();
                 add(v_lb.in(*v._indices) >= 0);
             }
             if(v.is_bounded_above()) {
                 Constraint<> v_ub(v.get_name(false,false)+"_UB");
-                v_ub = f - v.get_ub().in(*v._indices);
+                v_ub = f - v.get_ub();
                 add(v_ub.in(*v._indices) <= 0);
-                v_ub.print();
             }
 //            _vars_name.erase(v->_name);
 //            auto vid = *v->_vec_id;
