@@ -1240,12 +1240,12 @@ void Net::combine(Node* src, Path* p){
 //    }
 //    return res;
 //}
-indices Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
-   
+vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+    vector<indices> res;
     indices like("like");
-    if(!this->bus_pairs_chord.empty()){
-        return this->bus_pairs_chord;
-    }
+//    if(!this->bus_pairs_chord.empty()){
+//        return this->bus_pairs_chord;
+//    }
     map<string,pair<Node*,Node*>> unique_pairs;
     map<string,int> likenames;
     string key;
@@ -1269,5 +1269,7 @@ indices Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
             bus_pairs_chord.add(name);
         }
     }
-    return bus_pairs_chord;
+    res.push_back(bus_pairs_chord);
+    res.push_back(like);
+    return res;
 }
