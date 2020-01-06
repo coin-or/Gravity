@@ -152,6 +152,33 @@ namespace gravity {
             return nb_rows;
         };
         
+        void match_matrix_ids(const indices& matrix_ids, const indices& old_ids) {
+            if(matrix_ids._type!=matrix_){
+                throw invalid_argument("in match_matix_ids(matrix_ids,old_ids), matrix_ids has to be a matrix indexing");
+            }
+            if(is_matrix_indexed()){
+                throw invalid_argument("in match_matix_ids(matrix_ids,old_ids), this cannot be matrix indexed");
+            }
+            indices new_ids = *_indices;
+            new_ids._ids = make_shared<vector<vector<size_t>>>();
+            new_ids._type = matrix_;
+            auto nb_inst = matrix_ids.size();
+            new_ids._ids->resize(nb_inst);
+            for (size_t i = 0; i<nb_inst; i++) {
+                new_ids._ids->at(i).resize(matrix_ids._ids->at(i).size());
+                for (size_t j = 0; j<matrix_ids._ids->at(i).size(); j++) {
+                    auto key_ref = matrix_ids._ids->at(i).at(j);
+                    for(size_t k = 0; k<old_ids.size(); k++){
+                        if(old_ids._ids->at(0).at(k)==key_ref) {
+                            new_ids._ids->at(i).at(j) = _indices->_ids->at(0).at(k);
+                            break;
+                        }
+                    }
+                }
+            }
+            *_indices = new_ids;
+        }
+        
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
@@ -470,7 +497,7 @@ namespace gravity {
 
         size_t get_dim(size_t i) const{
             if(is_matrix_indexed()){
-                if(i>_indices->_ids->size()){
+                if(i>=_indices->_ids->size()){
                     throw invalid_argument("get_dim(size_t i) i out of range\n");
                 }
                 return _indices->_ids->at(i).size();
@@ -1889,6 +1916,8 @@ namespace gravity {
         void index_in(const indices& ids1, Args&&... args) {
             *this = this->in(ids1,args...);
         }
+        
+        
         
 //        void index_in(const indices& ids) {
 //            *this = this->in(ids);

@@ -191,9 +191,9 @@ namespace gravity {
         
         virtual size_t get_dim() const {
             size_t dim = _dim[0];
-            if(_dim[1]>0){
+//            if(_dim[1]>0){
                 dim*= _dim[1];
-            }
+//            }
             return dim;
         }
         
@@ -475,12 +475,12 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool unit_val() const{
-            return (!_is_vector && _val == Cpx(1,0));
+            return (!_is_vector && !_is_transposed && _val == Cpx(1,0));
         }
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool unit_val() const{
-            return (!_is_vector && _val == 1);
+            return (!_is_vector && !_is_transposed && _val == 1);
         }
         
         bool is_negative() const {

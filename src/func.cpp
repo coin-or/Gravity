@@ -4204,7 +4204,7 @@ unsigned func_::nb_linear_terms() const{
                 auto f_cpy = f;
                 if(vv->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, we can safely remove the linear term including vv */
                     if(vv->is_matrix_indexed() && !v.is_matrix_indexed()){
-                        f_cpy.update_var_indices(*vv->_indices);
+                        f_cpy.update_var_indices(*vv->_indices, *v._indices);
                     }
                     else {
                         keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
@@ -4271,6 +4271,24 @@ unsigned func_::nb_linear_terms() const{
                         if(vcast._is_vector){
                             new_this += coef*vcast.in(diff_set);
                         }
+                    }
+                }
+                else {
+                    if(vv->is_matrix_indexed() && !v.is_matrix_indexed()){
+                        f_cpy.update_var_indices(*vv->_indices, *v._indices);
+                    }
+                    new_this.insert(!lt.second._sign,*lt.second._coef,*lt.second._p);/* Remove coef*vv from new_f */
+                    if (lt.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
+                        new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                    }
+                    else if(lt.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lt.second._coef);
+                        new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
+                    }
+                    else if(lt.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lt.second._coef);
+                        new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy;
                     }
                 }
             }
@@ -4350,17 +4368,33 @@ unsigned func_::nb_linear_terms() const{
                     }
                 }
                 else if(v._indices->is_subset(*vv->_indices)){ /* vv has more indices */
+                    if(f_cpy.has_matrix_indexed_vars()){/* cannot do this yet */
+                        return *this;
+                    }
                     keep_ids = vv->_indices->get_common_refs(*v._indices); /* indices to keep */
                     diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
                     auto diff_set = indices(*vv->_indices);
                     diff_set.filter_refs(diff_ids);
-                    if(!updated_ids && new_this._indices && !vv->is_matrix_indexed()){
-                        new_this.update_rows(keep_ids);
-                        new_this.keep_unique_keys();
-                        updated_ids = true;
+                    if(!updated_ids && new_this._indices){
+                        if(!vv->is_matrix_indexed()){
+                            new_this.update_rows(keep_ids);
+                            new_this.keep_unique_keys();
+                            updated_ids = true;
+                        }
+                        else {
+                            new_this.update_indices(keep_ids);
+                            new_this.keep_unique_keys();
+                            new_this.print();
+                            updated_ids = true;
+                        }
                     }
-                    auto vcast1 = *static_pointer_cast<var<T>>(vv1);
-                    auto vcast2 = *static_pointer_cast<var<T>>(vv2);
+                    if(vv->is_matrix_indexed() && f_cpy.has_matrix_indexed_vars()){/* cannot do this yet */
+                        return *this;
+//                        f_cpy.update_var_indices(*new_this.get_var(vv->get_name(false,false))->_indices, *v._indices);
+//                        f_cpy.print();
+                    }
+                    auto v1 = *static_pointer_cast<var<T>>(new_this.get_var(vv1->get_name(false,false)));
+                    auto v2 = *static_pointer_cast<var<T>>(new_this.get_var(vv2->get_name(false,false)));
                     new_this.insert(!lt.second._sign,*lt.second._coef,*vv1,*vv2);/* Remove coef*v*v from new_f */
                     if (lt.second._coef->is_function()) {
                         auto coef = *static_pointer_cast<func<T>>(lt.second._coef);
@@ -4368,15 +4402,13 @@ unsigned func_::nb_linear_terms() const{
                             new_this += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         }
                         else if(v.get_vec_id()==vv1->get_vec_id()){
-                            auto v2 = *static_pointer_cast<var<T>>(vv2);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy*v2;
                         }
                         else {
-                            auto v1 = *static_pointer_cast<var<T>>(vv1);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*v1*f_cpy;
                         }
-                        if(vcast1._is_vector || vcast2._is_vector){
-                            new_this += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        if(v1._is_vector || v2._is_vector){
+                            new_this += coef*v1.in(diff_set)*v2.in(diff_set);
                         }
                     }
                     else if(lt.second._coef->is_param()) {
@@ -4385,15 +4417,13 @@ unsigned func_::nb_linear_terms() const{
                             new_this += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         }
                         else if(v.get_vec_id()==vv1->get_vec_id()){
-                            auto v2 = *static_pointer_cast<var<T>>(vv2);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy*v2;
                         }
                         else {
-                            auto v1 = *static_pointer_cast<var<T>>(vv1);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*v1*f_cpy;
                         }
-                        if(vcast1._is_vector || vcast2._is_vector){
-                            new_this += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        if(v1._is_vector || v2._is_vector){
+                            new_this += coef*v1.in(diff_set)*v2.in(diff_set);
                         }
                     }
                     else if(lt.second._coef->is_number()) {
@@ -4402,15 +4432,13 @@ unsigned func_::nb_linear_terms() const{
                             new_this += std::pow(-1,1-lt.second._sign)*coef*pow(f_cpy,2);
                         }
                         else if(v.get_vec_id()==vv1->get_vec_id()){
-                            auto v2 = *static_pointer_cast<var<T>>(vv2);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*f_cpy*v2;
                         }
                         else {
-                            auto v1 = *static_pointer_cast<var<T>>(vv1);
                             new_this += std::pow(-1,1-lt.second._sign)*coef*v1*f_cpy;
                         }
-                        if(vcast1._is_vector || vcast2._is_vector){
-                            new_this += coef*vcast1.in(diff_set)*vcast2.in(diff_set);
+                        if(v1._is_vector || v2._is_vector){
+                            new_this += coef*v1.in(diff_set)*v2.in(diff_set);
                         }
                     }
                 }
@@ -4425,7 +4453,7 @@ unsigned func_::nb_linear_terms() const{
                     auto new_term = func<type>(term.second.exclude(vv));
                     if(vv->_indices->is_subset(*v._indices)){/* Case where vv index set is a subset of v, we can safely remove the linear term including vv */
                         if(vv->is_matrix_indexed() && !v.is_matrix_indexed()){
-                            f_cpy.update_var_indices(*vv->_indices);
+                            f_cpy.update_var_indices(*vv->_indices, *v._indices);
                         }
                         else {
                             keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
@@ -5473,6 +5501,50 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
         }
     }
 
+/**
+ Update the variables/parameters indexing using the set ids and the references in old_ids.
+ @param[in] ids indext set
+ */
+template<typename type>
+void func<type>::update_var_indices(const indices& ids, const indices& old_ids){
+    _nb_vars = 0;
+    string key;
+    auto iter = _vars->begin();
+    while (iter!=_vars->end()) {
+        auto pair = (*iter++);
+        auto p = pair.second.first;
+        p->match_matrix_ids(ids,old_ids);
+    }
+    iter = _params->begin();
+    while (iter!=_params->end()) {
+        auto pair = (*iter++);
+        auto p = pair.second.first;
+        p->match_matrix_ids(ids,old_ids);
+    }
+    for (auto &pair:*_lterms) {
+        auto coef = pair.second._coef;
+        if (coef->is_function()) {
+            auto c = static_pointer_cast<func<type>>(coef);
+            c->update_var_indices(ids,old_ids);
+        }
+    }
+    for (auto &pair:*_qterms) {
+        auto coef = pair.second._coef;
+        if (coef->is_function()) {
+            auto c = static_pointer_cast<func<type>>(coef);
+            c->update_var_indices(ids,old_ids);
+        }
+    }
+    for (auto &pair:*_pterms) {
+        auto coef = pair.second._coef;
+        if (coef->is_function()) {
+            auto c = static_pointer_cast<func<type>>(coef);
+            c->update_var_indices(ids,old_ids);
+        }
+    }
+    this->index_in(range(1,ids.size()));
+    /* TODO: nonlinear part*/
+}
 
     /**
      Update the variables/parameters indexing using the set ids.
@@ -5574,12 +5646,19 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
     void func<type>::update_indices(const vector<bool>& keep_ids) {
         _nb_vars = 0;
         string key;
+        bool has_matrix_ids = has_matrix_indexed_vars();
         auto iter = _vars->begin();
         while (iter!=_vars->end()) {
             auto pair = (*iter++);
             auto v = pair.second.first;
-            v->_indices->filter_refs(keep_ids);/* TODO: update name */
-            if (!v->_is_vector) {// i.e., it is not transposed
+            if(has_matrix_ids && !v->is_matrix_indexed()){
+//                v->_indices->to_matrix();
+                v->_indices->filter_matrix_rows(keep_ids);
+            }
+            else {
+                v->_indices->filter_refs(keep_ids);
+            }
+            if (!v->_is_vector) {// TODO: matrix indexed case
                 _nb_vars++;
             }
             else {
@@ -5590,10 +5669,21 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
         while (iter!=_params->end()) {
             auto pair = (*iter++);
             auto p = pair.second.first;
-            p->_indices->filter_refs(keep_ids);
+            if(has_matrix_ids && !p->is_matrix_indexed()){
+//                p->_indices->to_matrix();
+                p->_indices->filter_matrix_rows(keep_ids);
+            }
+            else {
+                p->_indices->filter_refs(keep_ids);
+            }
         }
         if(_indices) {
-            _indices->filter_refs(keep_ids);
+            if(has_matrix_ids && !_indices->is_matrix_indexed()){
+                _indices->filter_matrix_rows(keep_ids);
+            }
+            else {
+                _indices->filter_refs(keep_ids);
+            }
             _dim[0] = _indices->size();
         }
         auto f_cpy = *this;
@@ -5610,9 +5700,9 @@ func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const
                 update = true;
             }
         }
-        for (auto &pair:*_pterms) {
-            insert(pair.second);
-        }
+//        for (auto &pair:*_pterms) {
+//            insert(pair.second);
+//        }
         if(update){
             *this = f_cpy;
         }
@@ -5632,7 +5722,8 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     while (iter!=_vars->end()) {
         auto pair = (*iter++);
         auto v = pair.second.first;
-        v->_indices->filter_rows(keep_ids);/* TODO: update name */
+        if(v->get_nb_inst()>1)
+            v->_indices->filter_rows(keep_ids);/* TODO: update name */
         if (!v->_is_vector) {// i.e., it is not transposed
             _nb_vars++;
         }
@@ -5644,9 +5735,10 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     while (iter!=_params->end()) {
         auto pair = (*iter++);
         auto p = pair.second.first;
-        p->_indices->filter_rows(keep_ids);
+        if(p->get_nb_inst()>1)
+            p->_indices->filter_rows(keep_ids);
     }
-    if(_indices) {
+    if(_indices && get_nb_inst()>1) {
         _indices->filter_rows(keep_ids);
         _dim[0] = _indices->size();
     }
