@@ -21,13 +21,55 @@ using namespace gravity;
 
 /* main */
 int main (int argc, char * argv[]) {
-    auto SPP= make_shared<Model<>>("Std-Pooling-Prob-PQ");
     
     PoolNet poolnet;
     
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
+    
+    auto SPP_NC=build_pool_pqform(poolnet, ipopt);
+    auto g = SPP_NC->get_interaction_graph();
+    g.get_tree_decomp_bags();
+    
+    auto bags_3d=g.decompose_bags_3d();
+    DebugOn("bags \n");
+    for(auto bag:bags_3d){
+        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+    }
+    
+    g.print();
+    solver<> SPP_ub_solv(SPP_NC,ipopt);
+    SPP_ub_solv.run(5, 1e-6);
+    double upper_bound=SPP_NC->get_obj_val();
+    DebugOn("upper_bound \t"<<upper_bound<<endl);
+    //    solver<> SPP_lb_solv(SPP,ipopt);
+    //    SPP_lb_solv.run(5, 1e-6);
+    //    double lower_bound=SPP->get_obj_val();
+    //    DebugOn("lower_bound \t"<<lower_bound<<endl);
+    //    double gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
+    //    DebugOn("Gap before sdp \t"<<gap<<endl);
+    
+    auto pairs=g.get_bus_pairs();
+//    DebugOn("bus pairs \n");
+//    for(auto k: *pairs._keys){
+//        DebugOn(k<<endl);
+//    }
+
+    
+    auto res=g.get_pairs_chord(bags_3d);
+    auto pairs_chordal=res[0];
+//    DebugOn("bus pairs chordal \n");
+//    for(auto k: *pairs_chordal._keys){
+//        DebugOn(k<<endl);
+//    }
+    
+    auto qq=res[1];
+
+    
+    auto SPP= make_shared<Model<>>("Std-Pooling-Prob-PQ");
+    
+
     
     indices I=poolnet.Inputs;
     indices L=poolnet.Pools;
@@ -105,24 +147,37 @@ int main (int argc, char * argv[]) {
     auto z_min=poolnet.z_min.in(Tz);
     auto z_max=poolnet.z_max.in(Tz);
     
+    indices TxplusTy("TxplusTy");
+    for(auto key:*Tx._keys){
+        TxplusTy.add("q["+key+"]");
+    }
+    for(auto key:*Ty._keys){
+        TxplusTy.add("y["+key+"]");
+    }
+    
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", 0, 1), z("z", z_min, z_max);
     var<> objvar("objvar");
+    var<> Wij("Wij", 0, 100);
+    var<> Wii("Wii", 0, 1000);
     
     SPP->add(x.in(inputs_pools_outputs));
     SPP->add(q.in(Tx));
     SPP->add(z.in(Tz));
     SPP->add(y.in(Ty));
     SPP->add(objvar);
+    SPP->add(Wij.in(pairs_chordal));
+    SPP->add(Wii.in(TxplusTy));
     
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
     // SPP->initialize_zero();
-    x.initialize_all(1.0);
-    y.initialize_all(1.0);
-    z.initialize_all(1.0);
-    q.initialize_all(0.5);
-    
+//    x.initialize_all(1.0);
+//    y.initialize_all(1.0);
+//    z.initialize_all(1.0);
+//    q.initialize_all(0.5);
+//    Wii.initialize_all(1.0);
+//    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
     feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
@@ -168,7 +223,7 @@ int main (int argc, char * argv[]) {
     else{
         Constraint<> mass_balance("mass_balance");
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+        SPP->add(mass_balance.in(inputs_pools_outputs)==0, true);
     }
     
     
@@ -185,73 +240,46 @@ int main (int argc, char * argv[]) {
     
     
     SPP->min(objvar);
+    
+    auto bag_size = bags_3d.size();
+    Constraint<> SDP3("SDP_3D");
+    //      Constraint<> SDPD("SDPD");
+    if(!poolnet._tree)
+    {
+        DebugOn("\nNum of bags = " << bag_size << endl);
+        DebugOn("Adding 3d determinant polynomial cuts\n");
+        auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = Wii.in_bags(bags_3d, 3);
+        
+        
+        
+        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+    
+            SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+    
+            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+        }
+        
+
+    
+    
+    
     SPP->print();
 
-//    SPP->project();
-//    SPP->print();
-//    auto g = SPP->get_interaction_graph();
-//    g.get_tree_decomp_bags();
-//    auto g3 = g.decompose_bags_3d(true);
-//    g.print();
 
-//
-//    solver<> SPP_solv(SPP,ipopt);
-//    SPP_solv.run(5, 1e-6);
-//
-////    poolnet.get_interaction_graph();
-////
-//    poolnet.get_tree_decomp_bags();
-////    auto bags_3d=grid.decompose_bags_3d();
-//
-//
-////        auto g = SPP->get_interaction_graph();
-////        g.get_tree_decomp_bags();
-////        if(g._tree){
-////            DebugOn("Interaction graph is a tree!" << endl);
-////        }
-////        else {
-////            auto bags_3d=g.decompose_bags_3d();
-////        }
+    solver<> SPP_solv(SPP,solv_type);
+    SPP_solv.run(5, 1e-6);
+    SPP->print_solution();
+    
+
+
 
     
-    auto SPP_NC=build_pool_pqform(poolnet, ipopt);
-    auto g = SPP_NC->get_interaction_graph();
-    g.get_tree_decomp_bags();
     
-       auto bags_3d=g.decompose_bags_3d();
-    DebugOn("bags \n");
-    for(auto bag:bags_3d){
-        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
-    }
-    
-    g.print();
-    solver<> SPP_ub_solv(SPP_NC,ipopt);
-    SPP_ub_solv.run(5, 1e-6);
-    double upper_bound=SPP_NC->get_obj_val();
-    DebugOn("upper_bound \t"<<upper_bound<<endl);
-//    solver<> SPP_lb_solv(SPP,ipopt);
-//    SPP_lb_solv.run(5, 1e-6);
-    //    double lower_bound=SPP->get_obj_val();
-//    DebugOn("lower_bound \t"<<lower_bound<<endl);
-//    double gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
-//    DebugOn("Gap before sdp \t"<<gap<<endl);
-    
-    auto pairs=g.get_bus_pairs();
-    DebugOn("bus pairs \n");
-    for(auto k: *pairs._keys){
-        DebugOn(k<<endl);
-    }
-    var<> W("W");
-    SPP->add(W.in(pairs));
-    
-    auto pairs1=g.get_pairs_chord(bags_3d);
-    DebugOn("bus pairs chordal \n");
-    for(auto k: *pairs1[0]._keys){
-        DebugOn(k<<endl);
-    }
-
-    
-    //auto pairs_chord=g.get_bus_pairs_chord(bags_3d);
     
 //    SPP->project();
 
