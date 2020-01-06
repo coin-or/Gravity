@@ -716,6 +716,12 @@ namespace gravity {
         void update_var_indices(const indices& ids);
         
         /**
+         Update the variables/parameters indexing using the set ids and using references from old_ids.
+         @param[in] ids indext set
+         */
+        void update_var_indices(const indices& ids, const indices& old_ids);
+        
+        /**
          Index the function and its variables/parameters using the indices in ids
          @param[in] ids indices
          @return current function
@@ -2768,9 +2774,9 @@ namespace gravity {
         size_t get_nb_inst() const{
             if(is_matrix_indexed())
                 return _indices->_ids->size();
-            if(is_indexed() && !_is_transposed){
-                return _indices->_ids->at(0).size();
-            }
+            if(_indices && !_is_transposed){
+                return _indices->size();
+            }            
             return this->_dim[0];
         }
         
@@ -5798,7 +5804,7 @@ namespace gravity {
         //        }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_unit() const { /**< Returns true if all values of this paramter are 1 **/
-            return (!_is_vector && func_is_number() && _range->first == 1 && _range->second == 1);
+            return (!_is_vector && !_is_transposed && func_is_number() && _range->first == 1 && _range->second == 1);
             //            return (_range->first == 1 && _range->second == 1);
         }
         
