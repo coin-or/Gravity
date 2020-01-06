@@ -673,6 +673,84 @@ public:
         }
     }
     
+        /* Delete row if all correspondong cols in keep[i] are false. */
+        void filter_matrix_rows(const vector<bool>& keep){
+            string excluded = "\\{";
+            if(_type == matrix_){
+                auto nb_rows = _ids->size();
+                auto nb_cols = keep.size()/nb_rows;
+                vector<vector<size_t>> new_ids;
+                new_ids.resize(nb_rows);
+                for (auto row = 0; row<nb_rows;row++) {
+                    bool exclude_row = true;/* Excluderow if all cols are false */
+                    for (auto col = 0; col<nb_cols;col++) {
+                        if(keep[row*nb_cols+col]){
+                            exclude_row = false;
+                        }
+                    }
+                    if(exclude_row){
+                        excluded += "("+_keys->at(_ids->at(row).at(0)) +"),";
+                    }
+                    else {
+                        new_ids.at(row).push_back(_ids->at(row).at(0));
+                    }
+                }
+                *_ids = new_ids;
+                _name += excluded.substr(0,excluded.size()-1) + "}";
+                remove_empty_rows();
+            }
+            else if(_ids){
+                if(keep.size()<=_ids->at(0).size()){
+                    throw invalid_argument("in filter_matrix_rows(const vector<bool>& keep): dimension mismatch");
+                }
+                auto nb_rows = _ids->at(0).size();
+                auto nb_cols = keep.size()/nb_rows;
+                vector<vector<size_t>> new_ids;
+                new_ids.resize(1);
+                for (auto row = 0; row<nb_rows;row++) {
+                    bool exclude_row = true;/* Excluderow if all cols are false */
+                    for (auto col = 0; col<nb_cols;col++) {
+                        if(keep[row*nb_cols+col]){
+                            exclude_row = false;
+                        }
+                    }
+                    if(exclude_row){
+                        excluded += "("+_keys->at(_ids->at(0).at(row)) +"),";
+                    }
+                    else {
+                        new_ids.at(0).push_back(_ids->at(0).at(row));
+                    }
+                }
+                *_ids = new_ids;
+                _name += excluded.substr(0,excluded.size()-1) + "}";
+            }
+            else {
+                if(keep.size()<=_keys->size()){
+                    throw invalid_argument("in filter_matrix_rows(const vector<bool>& keep): dimension mismatch");
+                }
+                auto nb_rows = _keys->size();
+                auto nb_cols = keep.size()/nb_rows;
+                shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+                new_ids->resize(1);
+                for (auto row = 0; row<nb_rows;row++) {
+                    bool exclude_row = true;/* Excluderow if all cols are false */
+                    for (auto col = 0; col<nb_cols;col++) {
+                        if(keep[row*nb_cols+col]){
+                            exclude_row = false;
+                        }
+                    }
+                    if(exclude_row){
+                        excluded += "("+_keys->at(row) +"),";
+                    }
+                    else {
+                        new_ids->at(0).push_back(row);
+                    }
+                }
+                _ids = new_ids;
+                _name += excluded.substr(0,excluded.size()-1) + "}";
+            }
+        }
+    
     /* Delete indices where keep[i] is false. */
     void filter_refs(const vector<bool>& keep){
         string excluded = "\\{";
@@ -698,6 +776,7 @@ public:
 //                }
 //            }
             _ids = new_ids;
+            remove_empty_rows();
         }
         else if(_ids){
             if(keep.size()!=_ids->at(0).size()){
@@ -735,6 +814,23 @@ public:
         }
     }
     
+    bool is_matrix_indexed() const{
+        return _type == matrix_;
+    }
+    
+    void remove_empty_rows() {
+        if(_type!=matrix_){
+            throw invalid_argument("clean_empty_rows() can only be called on a matrix indexed set");
+        }
+        shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+        auto nb_rows = this->get_nb_rows();
+        for (size_t i = 0; i<nb_rows; i++) {
+            if(_ids->at(i).size()>0){
+                new_ids->push_back(move(_ids->at(i)));
+            }
+        }
+        _ids = new_ids;
+    }
     
     /** Returns a vector of bools indicating if a reference is unique so far. The function iterates over key references in _ids. */
     vector<bool> get_unique_refs() const{
@@ -790,7 +886,8 @@ public:
                    return false;
             }
             else {
-                
+                if(nb_keys()==ids.size())
+                return false;
             }
         }
         else if(_ids){
@@ -807,8 +904,14 @@ public:
                 }
             }
         }
-        if(size()==ids.size())
-            return false;
+        if(ids._type==matrix_){
+            if(size()==ids.nb_keys())
+               return false;
+        }
+        else {
+            if(size()==ids.size())
+                return false;
+        }
         return true;
     }
     
@@ -817,6 +920,34 @@ public:
         return ids.is_subset(*this);
     }
     
+    /* Transform the current index set into a matrix indexed set. If transformed (it was not a matrix already), the resulting set will have unidimentional columns. */
+    void to_matrix(){
+        if(_type!=matrix_){
+            *this = get_matrix_form();
+        }
+    }
+    
+    /* Get a matrix version of the current index set. If transformed (it was not a matrix already), the resulting set will have unidimentional columns. */
+    indices get_matrix_form() const {
+        if(_type==matrix_){
+            return *this;
+        }
+        indices res(_name);
+        res._type = matrix_;
+        res._keys = _keys;
+        res._keys_map= _keys_map;
+        auto nb_rows = this->size();
+        for (size_t i = 0; i<nb_rows; i++) {
+            res.add_empty_row();
+            if(_ids){
+                res.add_in_row(i, _keys->at(_ids->at(0).at(i)));
+            }
+            else {
+                res.add_in_row(i, _keys->at(i));
+            }
+        }
+        return res;
+    }
     /** The function iterates over key references in _ids and keeps only the unique entries */
     void keep_unique_keys(){
         indices res(_name);

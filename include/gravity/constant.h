@@ -191,9 +191,9 @@ namespace gravity {
         
         virtual size_t get_dim() const {
             size_t dim = _dim[0];
-            if(_dim[1]>0){
+//            if(_dim[1]>0){
                 dim*= _dim[1];
-            }
+//            }
             return dim;
         }
         

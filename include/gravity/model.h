@@ -472,8 +472,6 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         template <typename T>
         void add_var(var<T>&& v){//Add variables by copy
-            if(v.get_dim()==0)
-                return;
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
@@ -1107,7 +1105,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if(_obj->has_sym_var(v)){
                 *_obj = _obj->replace(v, f);
                 _obj->_dim[0] = 1;
-//                _obj->_indices = nullptr;
+                _obj->_is_constraint = false;
             }
             for (auto &c_p: _cons_name) {
                 auto c = c_p.second;
@@ -1171,6 +1169,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 eq_list.pop_front();
                 if(c->_lterms->empty()){
                     break;
+                }
+                if(c->has_matrix_indexed_vars()){
+                    continue;
                 }
                 /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
                 list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
@@ -1237,12 +1238,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                     delete_cstr.push_back(c->_name);
                     c->_is_constraint = false;
-                    replace(vv,f,eq_list);/* Add bound constraints */                    
+                    replace(vv,f,eq_list);/* Add bound constraints */
                 }
             }
             for(const auto cstr_name: delete_cstr){
                 remove(cstr_name);
             }
+            DebugOn("Model after projetion: " << endl);
+            print();
         }
         
         
