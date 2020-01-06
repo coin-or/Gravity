@@ -37,7 +37,7 @@ using namespace gravity;
 //    ACOPF->project();
 //    ACOPF->print();
 ////    CHECK(Mtest.get_nb_cons() == 4);
-}
+//}
 
 TEST_CASE("testing projection1") {
     indices buses("buses");
