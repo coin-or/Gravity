@@ -374,7 +374,7 @@ namespace gravity {
                 res._ub->allocate_mem();
                 res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             }
-            else {
+            else if(!res._lb->func_is_number() && !res._ub->func_is_number()){
                 res._lb->allocate_mem();
                 res._ub->allocate_mem();
                 auto new_lb(*res._lb);
