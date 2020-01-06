@@ -238,8 +238,8 @@ int main (int argc, char * argv[]) {
     SPP->add(W.in(pairs));
     
     auto pairs1=g.get_pairs_chord(bags_3d);
-    DebugOn("bus pairs \n");
-    for(auto k: *pairs1._keys){
+    DebugOn("bus pairs chordal \n");
+    for(auto k: *pairs1[0]._keys){
         DebugOn(k<<endl);
     }
 
