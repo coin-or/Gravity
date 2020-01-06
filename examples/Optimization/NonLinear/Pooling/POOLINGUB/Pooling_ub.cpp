@@ -24,11 +24,9 @@ int main (int argc, char * argv[]) {
     
     PoolNet poolnet;
     
-    //string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
    // string fname=argv[1];
-    //string fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
-   string fname="/Users/smitha/Desktop/Pooling_instances/Adhya1.gms";
-    
+
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
@@ -44,7 +42,7 @@ int main (int argc, char * argv[]) {
     
     
     
-   // SPP->print();
+    SPP->print();
     
 //    auto g = SPP->get_interaction_graph();
 //    g.get_tree_decomp_bags();
@@ -59,12 +57,13 @@ int main (int argc, char * argv[]) {
     SPP_solv.run(5, 1e-6);
     auto end=get_wall_time();
     auto comp_time=end-start;
+    SPP->project();
 //    DebugOn("obj"<<SPP->_obj->eval()<<endl);
 //     string result_name=string(prj_dir)+"results_pool.txt";
 //    ofstream fout(result_name.c_str(), ios::app);
 //    fout<<poolnet._name<<"\t"<<std::fixed<<std::setprecision(5)<<SPP->_obj->eval()<<"\t"<<std::setprecision(5)<<comp_time<<"\t"<<SPP->_status<<endl;
 //    fout.close();
-    SPP->print();
+//    SPP->print();
     if(false){
         auto fk_old=SPP->get_obj_val();
         while (SPP->_status==0) {

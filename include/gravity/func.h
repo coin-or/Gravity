@@ -2765,7 +2765,7 @@ namespace gravity {
         size_t get_dim(size_t i) const{
             if(is_matrix_indexed())
                 return _indices->_ids->at(i).size();
-            if (is_indexed()) {
+            if (is_indexed() && !_is_transposed) {
                 return _indices->_ids->at(0).size();
             }
             return constant_::get_dim(i);
