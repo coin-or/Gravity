@@ -23,21 +23,21 @@ using namespace std;
 using namespace gravity;
 
 
-//TEST_CASE("testing projection3") {
-//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
-////    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    int output = 0;
-//    double tol = 1e-6;
-//    PowerNet grid;
-//    grid.readgrid(fname);
-//    auto ACOPF = build_ACOPF(grid,ACRECT);
-//    ACOPF->print_symbolic();
-//    ACOPF->print();
-//
-//    ACOPF->project();
-//    ACOPF->print();
-////    CHECK(Mtest.get_nb_cons() == 4);
-//}
+TEST_CASE("testing projection3") {
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    double tol = 1e-6;
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto ACOPF = build_ACOPF(grid,ACRECT);
+    ACOPF->print_symbolic();
+    ACOPF->print();
+
+    ACOPF->project();
+    ACOPF->print();
+//    CHECK(Mtest.get_nb_cons() == 4);
+}
 
 TEST_CASE("testing projection1") {
     indices buses("buses");
