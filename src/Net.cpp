@@ -562,8 +562,25 @@ void Net::get_tree_decomp_bags() {
         bag_copy.first += "," +n->_name;
         bag.second.push_back(get_node(n->_name)); // node in this graph
         bag.first += "," +n->_name;
-        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
+        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
+        for(auto it=bag.second.begin();it!=bag.second.end();it++){
+            if(next(it)!=bag.second.end()){
+            bag.first+=(*it)->_name+",";
+            }
+            else{
+                bag.first+=(*it)->_name;
+            }
+        }
+        for(auto it=bag_copy.second.begin();it!=bag_copy.second.end();it++){
+            if(next(it)!=bag_copy.second.end()){
+                bag_copy.first+=(*it)->_name+",";
+            }
+            else{
+                bag_copy.first+=(*it)->_name;
+            }
+        }
+        
         
         // update clone_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.second.size(); i++) {
@@ -627,9 +644,9 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                     for (auto k = j+1; k<bag_copy.second.size(); k++) {
                         pair<string,vector<Node*>> new_bag;
                         map<int, Node*> ordered_names;
-                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
-                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
-                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
+                        ordered_names[0] = bag_copy.second[i];
+                        ordered_names[1] = bag_copy.second[j];
+                        ordered_names[2] = bag_copy.second[k];
                         string key;
                         for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
                             new_bag.second.push_back(node_it->second);

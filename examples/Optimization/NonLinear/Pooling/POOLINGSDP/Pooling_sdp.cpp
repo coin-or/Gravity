@@ -51,18 +51,18 @@ int main (int argc, char * argv[]) {
     //    DebugOn("Gap before sdp \t"<<gap<<endl);
     
     auto pairs=g.get_bus_pairs();
-//    DebugOn("bus pairs \n");
-//    for(auto k: *pairs._keys){
-//        DebugOn(k<<endl);
-//    }
+    DebugOn("bus pairs \n");
+    for(auto k: *pairs._keys){
+        DebugOn(k<<endl);
+    }
 
     
     auto res=g.get_pairs_chord(bags_3d);
     auto pairs_chordal=res[0];
-//    DebugOn("bus pairs chordal \n");
-//    for(auto k: *pairs_chordal._keys){
-//        DebugOn(k<<endl);
-//    }
+    DebugOn("bus pairs chordal \n");
+    for(auto k: *pairs_chordal._keys){
+        DebugOn(k<<endl);
+    }
     
     auto qq=res[1];
 
@@ -225,6 +225,45 @@ int main (int argc, char * argv[]) {
         mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
         SPP->add(mass_balance.in(inputs_pools_outputs)==0, true);
     }
+    
+    indices inpoolout_W_matrix = indices("inpoolout_W_matrix");
+    int row_id=0;
+
+    for (const string& inpoout_key:*inputs_pools_outputs._keys) {
+        inpoolout_W_matrix.add_empty_row();
+        auto pos = nthOccurrence(inpoout_key, ",", 2);
+        auto qid=inpoout_key.substr(0, pos);
+        auto pos1 = nthOccurrence(inpoout_key, ",", 1);
+        auto yid=inpoout_key.substr(pos1+1);
+        inpoolout_W_matrix.add_in_row(row_id++, "q["+qid+"],y["+yid+"]");
+    }
+        
+        
+    Constraint<> x_Wij("x_Wij");
+    x_Wij=x-Wij.in(inpoolout_W_matrix);
+   // SPP->add(x_Wij.in(inputs_pools_outputs)==0);
+    
+    indices qq_Wa_matrix = indices("qq_Wa_matrix");
+    indices qq_Wb_matrix = indices("qq_Wb_matrix");
+    
+    row_id=0;
+    for (const string& key:*qq._keys) {
+        qq_Wa_matrix.add_empty_row();
+        qq_Wb_matrix.add_empty_row();
+        auto pos = nthOccurrence(key, ",", 2);
+        auto pos1=nthOccurrence(key, "[", 1);
+        auto qid1=key.substr(pos1+1, pos-pos1-2);
+        auto pos2=nthOccurrence(key, "]", 2);
+        auto qid2=key.substr(pos+3, pos2-pos-3);
+        qq_Wa_matrix.add_in_row(row_id, qid1);
+        qq_Wb_matrix.add_in_row(row_id, qid2);
+        row_id++;
+    }
+    
+    
+    Constraint<> q_W("q_W");
+   // q_W=Wij-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
+   // SPP->add(q_W.in(qq)==0);
     
     
     //    Constraint<> sumy_con("sumy_con");
