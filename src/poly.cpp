@@ -425,9 +425,9 @@ namespace gravity{
         auto p_new1 = _p->first;
         auto p_new2 = _p->second;
         string coef;
-        if (p_new1->is_matrix_indexed()) {
+        if (p_new1->is_matrix_indexed() || c_new->_is_transposed) {
             if (c_new->_is_transposed) {
-                auto dim = c_new->get_dim();
+                auto dim = c_new->get_dim(0);
                 string term="";
                 for(auto i=0; i<dim;i++){
                     term = print_transposed(i,prec);

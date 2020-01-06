@@ -1369,7 +1369,9 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     Constraint<> obj_eq("obj_eq");
-    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
+   
+    obj_eq=objvar-(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)+product(c_tz, z);
+//    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
     SPP->add(obj_eq.in(range(0,0))==0);
     
     
@@ -1588,28 +1590,20 @@ for (const string& inpoout_key:*inputs_pools_outputs._keys) {
 }
 vector<indices> PoolNet::inpoolout_x_c_matrix_fill() const{
     vector<indices> res;
-int row_id = 0;
-indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
-indices inpoolout_cip_matrix = indices("inpoolout_cip_matrix");
-indices inpoolout_cpo_matrix = indices("inpoolout_cpo_matrix");
-indices pos_x=indices("pos_x");
-indices neg_x=indices("neg_x");
-for (const string& inpoout_key:*inputs_pools_outputs._keys) {
-    inpoolout_x_matrix.add_empty_row();
-    inpoolout_x_matrix.add_in_row(row_id, inpoout_key);
-    auto pos = nthOccurrence(inpoout_key, ",", 1);
-    auto poout=inpoout_key.substr(pos+1);
-    auto pos1 = nthOccurrence(inpoout_key, ",", 2);
-    auto inpo=inpoout_key.substr(0,pos1);
-    inpoolout_cip_matrix.add_in_row(row_id,inpo);
-    inpoolout_cpo_matrix.add_in_row(row_id,poout);
-    if(c_tx.eval(inpo)+c_ty.eval(poout)>0){
-        pos_x.add(inpoout_key);
-    }
-    if(c_tx.eval(inpo)+c_ty.eval(poout)<0){
-        neg_x.add(inpoout_key);
-    }
-        
+    indices inpoolout_x_matrix = indices("inpoolout_x_matrix");
+    inpoolout_x_matrix = inputs_pools_outputs;
+    indices inpoolout_cip_matrix = indices("inpoolout_cip_matrix");
+    inpoolout_cip_matrix = inputs_pools;
+    indices inpoolout_cpo_matrix = indices("inpoolout_cpo_matrix");
+    inpoolout_cpo_matrix = pools_outputs;
+    for (const string& inpoout_key:*inputs_pools_outputs._keys) {
+        inpoolout_x_matrix.add_ref(inpoout_key);
+        auto pos = nthOccurrence(inpoout_key, ",", 1);
+        auto poout=inpoout_key.substr(pos+1);
+        auto pos1 = nthOccurrence(inpoout_key, ",", 2);
+        auto inpo=inpoout_key.substr(0,pos1);
+        inpoolout_cip_matrix.add_ref(inpo);
+        inpoolout_cpo_matrix.add_ref(poout);
     }
     res.push_back(inpoolout_x_matrix);
     res.push_back(inpoolout_cip_matrix);
