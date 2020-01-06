@@ -1610,3 +1610,4 @@ vector<indices> PoolNet::inpoolout_x_c_matrix_fill() const{
     res.push_back(inpoolout_cpo_matrix);
     return res;
 }
+

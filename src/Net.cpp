@@ -562,11 +562,146 @@ void Net::get_tree_decomp_bags() {
         bag_copy.first += "," +n->_name;
         bag.second.push_back(get_node(n->_name)); // node in this graph
         bag.first += "," +n->_name;
+        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
+    
+        // update clone_graph and construct chordal extension.
+        for (int i = 0; i < bag_copy.second.size(); i++) {
+            u = bag_copy.second.at(i);
+            for (int j = i+1; j<bag_copy.second.size(); j++) {
+                nn = bag_copy.second.at(j);
+                if (u->is_connected(nn)) {
+                    if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
+                        Arc* off_arc = get_arc(u,nn);
+                        off_arc->_imaginary = true;
+                        off_arc->_free = true;
+                    }
+                    continue;
+                }
+                name = to_string((int) graph_clone->arcs.size()+1);
+                arc = new Arc(name);
+                
+                arc->_id = arcs.size();
+                arc->_src = u;
+                arc->_dest = nn;
+                arc->_imaginary = true;
+                arc->_free = true;
+                arc->connect();
+                graph_clone->add_undirected_arc(arc);
+                //DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
+            }
+        }
+        if(unique_bags.insert(bag).second==true){
+            _bags.push_back(bag); // bag original
+            if (bag.second.size()==3) {
+                nb++;
+            }
+        }
+        
+        if (bag_copy.second.size()>max_size) {
+            max_size = bag_copy.second.size();
+        }
+        delete n;
+    }
+    
+    
+    DebugOn("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Max clique size = " << max_size << endl);
+    if(max_size==2){
+        this->_tree = true;
+    }
+    
+    delete graph_clone;
+    
+}
+
+std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
+    map<string,vector<Node*>> unique_bags;
+    vector<pair<string,vector<Node*>>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.second.size()>=3){
+            DebugOff("Decomposing bigger bag into 3d bags\n");
+            
+            for (auto i = 0; i<bag_copy.second.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        map<int, Node*> ordered_names;
+                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];                    string key;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
+                        new_bag.first = key;
+                        if(unique_bags.insert(new_bag).second){
+                            res.push_back(new_bag);
+                            if(print_bags){
+                                DebugOn("new bag = { ");
+                                for (int i=0; i<new_bag.second.size();     i++) {
+                                    DebugOn(new_bag.second.at(i)->_name << " ");
+                                }
+                                DebugOn("}" << endl);
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
+    return res;
+}
+void Net::pool_get_tree_decomp_bags() {
+    Node* n = nullptr;
+    Node* u = nullptr;
+    Node* nn = nullptr;
+    Arc* arc = nullptr;
+    map<string,vector<Node*>> unique_bags;
+    string name="";
+    Net* graph_clone = clone_undirected(); //
+    int nb = 0;
+    unsigned max_size = 0;
+    
+    /** cliques with less than 1 nodes are useless for us.*/
+    while (graph_clone->nodes.size()> 2) {
+        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+        
+        // last element has the minimum fill-in.
+        n = graph_clone->nodes.back();
+        if(!n->_active) {
+            graph_clone->remove_end_node();
+            continue;
+        }
+        Debug(n->_name << endl);
+        Debug(graph_clone->nodes.size() << endl);
+        pair<string,vector<Node*>> bag_copy;
+        pair<string,vector<Node*>> bag;
+        DebugOff("new bag = { ");
+        for (auto nn: n->get_neighbours()) {
+            if(!nn.second->_active) continue;
+            bag_copy.second.push_back(nn.second);
+            bag_copy.first += "," +nn.first;
+            bag.second.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            bag.first += "," +nn.first;
+            DebugOff(nn.second->_name << ", ");
+        }
+        DebugOff(n->_name << "}\n");
+        graph_clone->remove_end_node();
+        bag_copy.second.push_back(n);
+        bag_copy.first += "," +n->_name;
+        bag.second.push_back(get_node(n->_name)); // node in this graph
+        bag.first += "," +n->_name;
         sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
         sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
         for(auto it=bag.second.begin();it!=bag.second.end();it++){
             if(next(it)!=bag.second.end()){
-            bag.first+=(*it)->_name+",";
+                bag.first+=(*it)->_name+",";
             }
             else{
                 bag.first+=(*it)->_name;
@@ -632,7 +767,7 @@ void Net::get_tree_decomp_bags() {
     
 }
 
-std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
+std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_bags){
     map<string,vector<Node*>> unique_bags;
     vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
@@ -665,7 +800,7 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                                 }
                                 DebugOn("}" << endl);
                             }
-
+                            
                         }
                     }
                 }

@@ -30,9 +30,9 @@ int main (int argc, char * argv[]) {
     
     auto SPP_NC=build_pool_pqform(poolnet, ipopt);
     auto g = SPP_NC->get_interaction_graph();
-    g.get_tree_decomp_bags();
+    g.pool_get_tree_decomp_bags();
     
-    auto bags_3d=g.decompose_bags_3d();
+    auto bags_3d=g.pool_decompose_bags_3d();
     DebugOn("bags \n");
     for(auto bag:bags_3d){
         DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
