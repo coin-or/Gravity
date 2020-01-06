@@ -785,6 +785,13 @@ public:
                     }
                 }
             }
+            if(ids._type==matrix_){
+                if(nb_keys()==ids.nb_keys())
+                   return false;
+            }
+            else {
+                
+            }
         }
         else if(_ids){
             for (auto idx = 0; idx<size();idx++) {
@@ -800,6 +807,8 @@ public:
                 }
             }
         }
+        if(size()==ids.size())
+            return false;
         return true;
     }
     
