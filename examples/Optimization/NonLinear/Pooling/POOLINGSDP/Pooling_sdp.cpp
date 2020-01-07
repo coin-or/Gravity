@@ -25,6 +25,9 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
+    if(argc==2){
+        fname=argv[1];
+    }
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
@@ -274,19 +277,20 @@ int main (int argc, char * argv[]) {
     indices qq_Wb_matrix = indices("qq_Wb_matrix");
     
     row_id=0;
-    for (const string& key:*qq._keys) {
-        auto pos = nthOccurrence(key, ",", 2);
-        auto pos1=nthOccurrence(key, "[", 1);
-        auto qid1=key.substr(pos1+1, pos-pos1-2);
-        auto pos2=nthOccurrence(key, "]", 2);
-        auto qid2=key.substr(pos+3, pos2-pos-3);
-        qq_Wa_matrix.add(qid1);
-        qq_Wb_matrix.add(qid2);
-    }
-    
-    Constraint<> q_W("q_W");
-    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-    SPP->add(q_W.in(qq)==0,true);
+//    for (const string& key:*qq._keys) {
+//        auto pos = nthOccurrence(key, ",", 2);
+//        auto pos1=nthOccurrence(key, "[", 1);
+//        auto qid1=key.substr(pos1+1, pos-pos1-2);
+//        auto pos2=nthOccurrence(key, "]", 2);
+//        auto qid2=key.substr(pos+3, pos2-pos-3);
+//        if(!qq_Wa_matrix.has_key(qid1)
+//        qq_Wa_matrix.add(qid1);
+//        qq_Wb_matrix.add(qid2);
+//    }
+//
+//    Constraint<> q_W("q_W");
+//    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
+//    SPP->add(q_W.in(qq)==0,true);
     
 //    Constraint<> y_W("y_W");
 //    y_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
@@ -332,7 +336,7 @@ int main (int argc, char * argv[]) {
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
-        
+        auto nb_bags3 = Wij_[0]._indices->size();
         
         
         SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
@@ -344,7 +348,21 @@ int main (int argc, char * argv[]) {
         SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+        
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+        
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+        
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
+    
+    
     
     
     
