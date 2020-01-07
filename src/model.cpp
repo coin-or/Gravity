@@ -5920,14 +5920,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         //Check if gap is already not zero at root node
         if(this->_status==0)
         {
-            lower_bound_init=this->get_obj_val()*upper_bound.second;
-            gapnl=(upper_bound.second-lower_bound_init)/(upper_bound.second)*100;
+            lower_bound_init=this->get_obj_val();
+            gapnl=(upper_bound.second-lower_bound_init)/std::abs(upper_bound.second)*100;
             DebugOn("Initial gap "<<gapnl<<endl);
             double lower_bound=lower_bound_init;
             
 
             
-          if ((upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(upper_bound.second+zero_tol)>=rel_tol)
+          if (std::abs(upper_bound.second-lower_bound)>=abs_tol || (upper_bound.second-lower_bound)/(std::abs(upper_bound.second)+zero_tol)>=rel_tol)
         {
             terminate=false;
             for(auto &it:this->_vars_name)
@@ -6278,13 +6278,13 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 SDPLB1.run(output = 0, tol);
                 if(this->_status==0)
                 {
-                    lower_bound=this->get_obj_val()*upper_bound.second;
-                    auto gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
+                    lower_bound=this->get_obj_val();
+                    auto gap = 100*(upper_bound.second - lower_bound)/std::abs(upper_bound.second);
                     DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                 }
                 
               
-                if (upper_bound.second- lower_bound<=abs_tol && (upper_bound.second- lower_bound)/(upper_bound.second+zero_tol)<=rel_tol)
+                if (std::abs(upper_bound.second- lower_bound)<=abs_tol && ((upper_bound.second- lower_bound))/(std::abs(upper_bound.second)+zero_tol)<=rel_tol)
                 {
                     
                     //                        this->print();
@@ -6293,7 +6293,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                     
                     DebugOn("Gap closed at iter "<< iter<<endl);
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                    gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
+                    gap = 100*std::abs(upper_bound.second - lower_bound)/std::abs(upper_bound.second);
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);
                     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
@@ -6357,7 +6357,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         }
         avg=sum/num_var;
         
-        DebugOff("Average interval reduction\t"<<avg<<endl);
+        DebugOn("Average interval reduction\t"<<avg<<endl);
         
         if(!close)
         {
@@ -6404,8 +6404,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 
                 
                 DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                lower_bound=this->get_obj_val()*upper_bound.second;
-                gap = 100*(upper_bound.second - lower_bound)/upper_bound.second;
+                lower_bound=this->get_obj_val();
+                gap = 100*std::abs(upper_bound.second - lower_bound)/std::abs(upper_bound.second);
                 DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                 DebugOn("Upper bound = " << to_string(upper_bound.second) << "."<<endl);
                 DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);

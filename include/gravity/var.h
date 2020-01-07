@@ -733,6 +733,7 @@ namespace gravity {
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);
+                this->_off.resize(s._dim[0]);
                 _lb->allocate_mem();
                 _ub->allocate_mem();
                 return *this;
