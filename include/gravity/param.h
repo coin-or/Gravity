@@ -1788,7 +1788,7 @@ namespace gravity {
             if(!ids._excluded_keys.empty()){
                 ids.remove_excluded();
             }
-            if(!_indices || _indices->empty()){/**< No need to add each key individually */
+            if(!_indices){/**< No need to add each key individually */
                 _indices = make_shared<indices>(ids);
                 auto dim = _indices->size();
                 _val->resize(dim);
