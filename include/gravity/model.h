@@ -2705,36 +2705,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         template<typename T1>
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
+            if(v1._lb->func_is_number() || v2._lb->func_is_number() || v1._ub->func_is_number() || v2._ub->func_is_number())
+                throw invalid_argument("Cannot accept numerical bounds when calling add_McCormick");
             Constraint<type> MC1(name+"_McCormick1");
             param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
-            if(!v1._lb->func_is_number()){
-                lb1_ = v1.get_lb().in(*v1._indices);
-            }
-            else{
-                lb1_ = v1.get_lb().in(*v1._indices);
-                lb1_ = v1.get_lb(0);
-            }
-            if(!v2._lb->func_is_number()){
-                lb2_ = v2.get_lb().in(*v2._indices);
-            }
-            else{
-                lb2_ = v2.get_lb().in(*v2._indices);
-                lb2_ = v2.get_lb(0);
-            }
-            if(!v1._ub->func_is_number()){
-                ub1_ = v1.get_ub().in(*v1._indices);
-            }
-            else{
-                ub1_ = v1.get_ub().in(*v1._indices);
-                ub1_ = v1.get_ub(0);
-            }
-            if(!v2._ub->func_is_number()){
-                ub2_ = v2.get_ub().in(*v2._indices);
-            }
-            else{
-                ub2_ = v2.get_ub().in(*v2._indices);
-                ub2_ = v2.get_ub(0);
-            }
+            lb1_ = v1.get_lb().in(*v1._indices);
+            lb2_ = v2.get_lb().in(*v2._indices);
+            ub1_ = v1.get_ub().in(*v1._indices);
+            ub2_ = v2.get_ub().in(*v2._indices);
             bool var_equal=false;
             if(v1._name==v2._name)
                 var_equal=true;
