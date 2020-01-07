@@ -42,6 +42,7 @@ int main (int argc, char * argv[]) {
     solver<> SPP_ub_solv(SPP_NC,ipopt);
     SPP_ub_solv.run(5, 1e-6);
     double upper_bound=SPP_NC->get_obj_val();
+    pair<bool,double> ub = {true,upper_bound};
     DebugOn("upper_bound \t"<<upper_bound<<endl);
     //    solver<> SPP_lb_solv(SPP,ipopt);
     //    SPP_lb_solv.run(5, 1e-6);
@@ -164,18 +165,36 @@ int main (int argc, char * argv[]) {
         TxplusTy.add("y["+key+"]");
         y_diag.add("y["+key+"]");
     }
-    
+    auto objvar_min = param<>("objvar_min");
+    objvar_min.in(R(1));
+    objvar_min = -1e6;
+    auto objvar_max = param<>("objvar_max");
+    objvar_max.in(R(1));
+    objvar_max = upper_bound;
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
-    var<> objvar("objvar");
-    var<> Wij("Wij", 0, 100);
-    var<> Wii("Wii", 0, 1000);
+    var<> objvar("objvar",objvar_min, objvar_max);
+    auto Wij_min = param<>("Wij_min");
+    Wij_min.in(pairs_chordal);
+    Wij_min = 0;
+    auto Wij_max = param<>("Wij_max");
+    Wij_max.in(pairs_chordal);
+    Wij_max = 1e2;
+    auto Wii_min = param<>("Wii_min");
+    Wii_min.in(TxplusTy);
+    Wii_min = 0;
+    auto Wii_max = param<>("Wii_max");
+    Wii_max.in(TxplusTy);
+    Wii_max = 1e3;
+    
+    var<> Wij("Wij", Wij_min, Wij_max);
+    var<> Wii("Wii", Wii_min, Wii_max);
     
     SPP->add(x.in(inputs_pools_outputs));
     SPP->add(q.in(Tx));
     SPP->add(z.in(Tz));
     SPP->add(y.in(Ty));
-    SPP->add(objvar);
+    SPP->add(objvar.in(R(1)));
     SPP->add(Wij.in(pairs_chordal));
     SPP->add(Wii.in(TxplusTy));
     
@@ -202,8 +221,7 @@ int main (int argc, char * argv[]) {
     SPP->add(product_demand.in(J)<=0);
     
     
-    Constraint<> product_quality("product_quality");//TODO debug transpose version
-    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
+    Constraint<> product_quality("product_quality");    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
     
     Constraint<> simplex("simplex");//TODO debug transpose version
@@ -270,6 +288,10 @@ int main (int argc, char * argv[]) {
     q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
     SPP->add(q_W.in(qq)==0,true);
     
+//    Constraint<> y_W("y_W");
+//    y_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
+//    SPP->add(y_W.in(qq)==0,true);
+    
     //    Constraint<> sumy_con("sumy_con");
     //    sumy_con=sum(x)-sumyk;
     //    SPP->add(sumy_con.in(range(0,0))>=0);
@@ -285,13 +307,12 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) <= 0);
-    SPP->print();
+//    SPP->add(SOC.in(pairs_chordal) <= 0);
     
     
     
     Constraint<> obj_eq("obj_eq");
-    obj_eq=objvar-(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)+product(c_tz, z);
+    obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
     //    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
     SPP->add(obj_eq==0);
     
@@ -316,7 +337,7 @@ int main (int argc, char * argv[]) {
         SDP3 -= pow(Wij_[2], 2) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+//        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
     }
@@ -330,7 +351,16 @@ int main (int argc, char * argv[]) {
     
     solver<> SPP_solv(SPP,solv_type);
     SPP_solv.run(5, 1e-6);
-    SPP->print_solution();
+    
+    auto gapl = 100*std::abs(upper_bound - SPP->get_obj_val()*upper_bound)/std::abs(upper_bound);
+    
+    DebugOn("Initial Gap  = " << gapl << "%" << endl);
+    double max_time = 600, precision = 1e-6;
+    bool nonlin = true;
+    int max_iter = 50;
+    auto status = SPP->run_obbt(max_time, max_iter, ub, precision, SPP_NC, SPP, nonlin);
+    SPP->print();
+//    SPP->print_solution();
     
     
     

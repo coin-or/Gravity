@@ -453,8 +453,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 shared_ptr<param_> newv;
-                if (v._val->empty()) {
-                    Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
+                if (!v._indices) {
+                    Warning("WARNING adding unindexed variable to model: " << name << endl);
+                    Warning("Treating it as a one dimensional Real.\n");
                     newv = (v.in(R(1))).pcopy();
                 }
                 else {
@@ -481,8 +482,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 shared_ptr<param_> newv;
-                if (v._val->empty()) {
-                    Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
+                if (!v._indices) {
+                    Warning("WARNING adding unindexed variable to model: " << name << endl);
+                    Warning("Treating it as a one dimensional Real.\n");
                     newv = make_shared<var<T>>(move((v.in(R(1)))));
                 }
                 else {
