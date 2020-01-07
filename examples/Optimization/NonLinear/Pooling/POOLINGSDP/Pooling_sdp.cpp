@@ -258,7 +258,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> q_W("q_W");
     q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-    SPP->add(q_W.in(qq)==0);
+    SPP->add(q_W.in(qq)==0, true);
     
     //    Constraint<> sumy_con("sumy_con");
     //    sumy_con=sum(x)-sumyk;
