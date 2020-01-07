@@ -223,7 +223,7 @@ int main (int argc, char * argv[]) {
         SDP->print();
         
         solver<> SDPLB(SDP, ipopt);
-        //   SDPLB.set_option("bound_relax_factor", 1e-11);
+       SDPLB.set_option("bound_relax_factor", 1e-11);
         
         //SDP->print_solution(10);
         
@@ -231,16 +231,17 @@ int main (int argc, char * argv[]) {
         //SDP->print();
         SDPLB.run(output = 5, 1e-6);
         
-        auto gapl = 100*(upper_bound - SDP->get_obj_val()*upper_bound)/upper_bound;
+        auto gapl = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
         
         DebugOn("Gap "<<gapl<<endl);
         
         auto res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
+        res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
         if(SDP->_status==0)
         {
             //            SDP->print();
             
-            lower_bound=SDP->get_obj_val()*upper_bound;
+            lower_bound=SDP->get_obj_val();
             gap=100*(upper_bound - lower_bound)/upper_bound;
             
             terminate=std::get<0>(res);
@@ -288,7 +289,7 @@ int main (int argc, char * argv[]) {
         if(SDP->_status==0){
             lb_solv=true;
             
-            lower_bound=SDP->get_obj_val()*upper_bound;
+            lower_bound=SDP->get_obj_val();
             
             DebugOn("lower_bound "<<lower_bound<<endl);
             
@@ -351,7 +352,7 @@ int main (int argc, char * argv[]) {
                 
                 
                 
-                lower_bound=SDPO->get_obj_val()*upper_bound;
+                lower_bound=SDPO->get_obj_val();
                 gap=100*(upper_bound - lower_bound)/upper_bound;
                 terminate=std::get<0>(res);
                 iter=std::get<1>(res);
