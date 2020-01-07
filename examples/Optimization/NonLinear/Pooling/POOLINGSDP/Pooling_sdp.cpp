@@ -139,7 +139,12 @@ int main (int argc, char * argv[]) {
     
     auto x_min=poolnet.x_min.in(inputs_pools_outputs);
     auto x_max=poolnet.x_max.in(inputs_pools_outputs);
-    
+    auto q_min = param<>("q_min");
+    q_min.in(Tx);
+    q_min = 0;
+    auto q_max = param<>("q_max");
+    q_max.in(Tx);
+    q_max = 1;
     
     auto y_min=poolnet.y_min.in(Ty);
     auto y_max=poolnet.y_max.in(Ty);
@@ -156,7 +161,7 @@ int main (int argc, char * argv[]) {
     }
     
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
-    var<> q("q", 0, 1), z("z", z_min, z_max);
+    var<> q("q", q_min, q_max), z("z", z_min, z_max);
     var<> objvar("objvar");
     var<> Wij("Wij", 0, 100);
     var<> Wii("Wii", 0, 1000);
@@ -258,8 +263,8 @@ int main (int argc, char * argv[]) {
     
     Constraint<> q_W("q_W");
     q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-    SPP->add(q_W.in(qq)==0);
-    
+    SPP->add(q_W.in(qq)==0,true);
+    SPP->print();
     //    Constraint<> sumy_con("sumy_con");
     //    sumy_con=sum(x)-sumyk;
     //    SPP->add(sumy_con.in(range(0,0))>=0);
