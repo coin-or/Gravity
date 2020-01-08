@@ -280,21 +280,39 @@ int main (int argc, char * argv[]) {
     indices qq_Wb_matrix = indices("qq_Wb_matrix");
     
 
-    row_id=0;
-//    for (const string& key:*qq._keys) {
-//        auto pos = nthOccurrence(key, ",", 2);
-//        auto pos1=nthOccurrence(key, "[", 1);
-//        auto qid1=key.substr(pos1+1, pos-pos1-2);
-//        auto pos2=nthOccurrence(key, "]", 2);
-//        auto qid2=key.substr(pos+3, pos2-pos-3);
-//        if(!qq_Wa_matrix.has_key(qid1)
-//        qq_Wa_matrix.add(qid1);
-//        qq_Wb_matrix.add(qid2);
-//    }
-//
-//    Constraint<> q_W("q_W");
-//    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-//    SPP->add(q_W.in(qq)==0,true);
+    auto q_from = indices("q_from");
+    q_from = Tx;
+    auto q_to = indices("q_to");
+    q_to = Tx;
+    
+    for (const string& key:*qq._keys) {
+
+        auto key_pos=(pairs_chordal._keys_map)->at(key);
+        auto from_ref=pairs_chordal_from._ids->at(0)[key_pos];
+        auto from=pairs_chordal_from._keys->at(from_ref);
+        
+        auto pos=from.find_first_of("[");
+        auto pos1=from.find_first_of("]");
+        auto a_key=from.substr(pos+1,pos1-pos-1);
+        q_from.add_ref(a_key);
+        
+        auto to_ref=pairs_chordal_to._ids->at(0)[key_pos];
+        auto to=pairs_chordal_from._keys->at(to_ref);
+        
+        auto pos2=to.find_first_of("[");
+        auto pos3=to.find_first_of("]");
+        auto b_key=to.substr(pos2+1,pos3-pos2-1);
+        q_to.add_ref(b_key);
+
+    }
+
+    Constraint<> q_W("q_W");
+    q_W=Wij.in(qq)-q.in(q_from)*q.in(q_to);
+    SPP->add(q_W.in(qq)==0);
+    
+    q_W.print();
+    
+    
     
 
     
