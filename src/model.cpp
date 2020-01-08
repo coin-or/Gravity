@@ -5897,7 +5897,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
-        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-2, zero_val=1e-6;
+        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-6, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
@@ -6073,7 +6073,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                                         }
                                         if(std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
                                         {//do not close intervals to OBBT before finishing at least one full iteration over all variables
-                                            if(iter>1)
+                                            if(iter>3)
                                                 fixed_point[model->get_name()]=true;
                                             
                                         }

@@ -38,6 +38,7 @@ public:
     param<double> C; //in inputs_attr
     param<double> P_U; //in outputs_attr
     param<double> sumyk;
+    param<double> Wij_min, Wij_max, Wii_min, Wii_max;
 
     
     /** Set of all diesel generators */
@@ -127,7 +128,8 @@ public:
     vector<indices> inputpool_x_q_S_matrix_fill() const;
     vector<indices> inpoolout_y_q_matrix_fill() const;
     vector<indices> inpoolout_x_c_matrix_fill() const;
-    
+    vector<indices> TxplusTy_fill() const;
+ 
   
     
     
