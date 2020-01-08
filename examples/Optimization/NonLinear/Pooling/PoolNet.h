@@ -38,7 +38,7 @@ public:
     param<double> C; //in inputs_attr
     param<double> P_U; //in outputs_attr
     param<double> sumyk;
-    param<double> Wij_min, Wij_max, Wii_min, Wii_max;
+    param<double> Wij_min, Wij_max, Wii_min, Wii_max, q_min, q_max;
 
     
     /** Set of all diesel generators */
@@ -139,5 +139,6 @@ public:
 shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet);
 shared_ptr<Model<>> build_pool_pform(PoolNet& poolnet,  SolverType solv_type);
 shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type);
+vector<param<>> fill_wijbounds(PoolNet& poolnet, vector<indices>& vec_pairs);
 
 #endif

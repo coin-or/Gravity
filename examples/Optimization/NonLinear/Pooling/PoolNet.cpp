@@ -57,7 +57,8 @@ PoolNet::PoolNet() {
     Wii_max.set_name("Wii_max");
     Wij_min.set_name("Wij_min");
     Wij_max.set_name("Wij_max");
-    
+    q_min.set_name("q_min");
+    q_max.set_name("q_max");
  
 }
 
@@ -638,9 +639,9 @@ void PoolNet::readgrid(string fname) {
     indices inputs_attr=indices(Inputs, Attr);
     indices outputs_attr=indices(Outputs, Attr);
     indices pools_attr=indices(Pools, Attr);
-    auto res_ind=this->TxplusTy_fill();
-    indices q_diag=res_ind[1];
-    indices y_diag=res_ind[2];
+//    auto res_ind=this->TxplusTy_fill();
+//    indices q_diag=res_ind[1];
+//    indices y_diag=res_ind[2];
     
     for(auto key: *(inputs_pools_outputs._keys)){
     
@@ -700,9 +701,9 @@ void PoolNet::readgrid(string fname) {
         auto kqdiag="q["+key+"]";
         Wii_max.add_val(kqdiag, 1);
         Wii_min.add_val(kqdiag, 0);
-        
+        q_min.add_val(key, 0);
+        q_max.add_val(key, 1);
     }
-
     
 
 }
@@ -1652,3 +1653,55 @@ indices y_diag("y_diag");
     res.push_back(y_diag);
     return res;
 }
+vector<param<>> fill_wijbounds(PoolNet& poolnet, vector<indices>& vec_pairs){
+    auto pairs_chordal=vec_pairs[0];
+    auto pairs_from=vec_pairs[3];
+    auto pairs_to=vec_pairs[4];
+    auto q_min=poolnet.q_min.in(poolnet.inputs_pools);
+    auto q_max=poolnet.q_max.in(poolnet.inputs_pools);
+    auto y_min=poolnet.y_min.in(poolnet.pools_outputs);
+    auto y_max=poolnet.y_max.in(poolnet.pools_outputs);
+    param<> Wij_min("Wij_min"), Wij_max("Wij_max");
+    vector<param<>> res;
+    int i=0;
+    double a_lb, a_ub, b_lb, b_ub;
+    for(auto key:*pairs_chordal._keys){
+        auto from_ref=pairs_from._ids->at(0)[i];
+        auto from=pairs_from._keys->at(from_ref);
+        auto pos=from.find_first_of("[");
+        auto pos1=from.find_first_of("]");
+        auto a_name=from.substr(0, pos);
+        auto a_key=from.substr(pos+1,pos1-pos-1);
+        auto to_ref=pairs_to._ids->at(0)[i];
+        auto to=pairs_to._keys->at(to_ref);
+        auto pos2=to.find_first_of("[");
+        auto pos3=to.find_first_of("]");
+        auto b_name=to.substr(0, pos2);
+        auto b_key=to.substr(pos2+1,pos3-pos2-1);
+        if(a_name=="q"){
+            a_lb=q_min.eval(a_key);
+            a_ub=q_max.eval(a_key);
+        }
+        else{
+            a_lb=y_min.eval(a_key);
+            a_ub=y_max.eval(a_key);
+        }
+        if(b_name=="q"){
+            b_lb=q_min.eval(b_key);
+            b_ub=q_max.eval(b_key);
+        }
+        else{
+            b_lb=y_min.eval(b_key);
+            b_ub=y_max.eval(b_key);
+        }
+        Wij_min.add_val(key, std::min(std::min(a_lb*b_lb, a_lb*b_ub), std::min(a_ub*b_lb, a_ub*b_ub)));
+        Wij_max.add_val(key, std::max(std::max(a_lb*b_lb, a_lb*b_ub), std::max(a_ub*b_lb, a_ub*b_ub)));
+        i++;
+    }
+    res.push_back(Wij_min);
+    res.push_back(Wij_max);
+    return res;
+}
+    
+    
+
