@@ -25,6 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
@@ -120,8 +121,11 @@ int main (int argc, char * argv[]) {
     indices inpoolout_cip_matrix=x_c_indices[1];
     indices inpoolout_cpo_matrix=x_c_indices[2];
     
-    
-    
+    auto txty_indices=poolnet.TxplusTy_fill();
+    indices TxplusTy=txty_indices[0];
+    indices q_diag=txty_indices[1];
+    indices y_diag=txty_indices[2];
+
     
     // auto cost=poolnet.cost.in(Inputs);
     auto A_L=poolnet.A_L.in(I);
@@ -154,17 +158,7 @@ int main (int argc, char * argv[]) {
     auto z_min=poolnet.z_min.in(Tz);
     auto z_max=poolnet.z_max.in(Tz);
     
-    indices TxplusTy("TxplusTy");
-    indices q_diag("q_diag");
-    indices y_diag("y_diag");
-    for(auto key:*Tx._keys){
-        TxplusTy.add("q["+key+"]");
-        q_diag.add("q["+key+"]");
-    }
-    for(auto key:*Ty._keys){
-        TxplusTy.add("y["+key+"]");
-        y_diag.add("y["+key+"]");
-    }
+
     auto objvar_min = param<>("objvar_min");
     objvar_min.in(R(1));
     objvar_min = -1e6;
@@ -229,14 +223,14 @@ int main (int argc, char * argv[]) {
     SPP->add(simplex.in(L)==0);
     
     
-    //    Constraint<> PQ("PQ");//TODO debug transpose version
-    //    PQ=x.in(pooloutput_x_matrix)-y;
-    //    SPP->add(PQ.in(Ty)==0);
+        Constraint<> PQ("PQ");//TODO debug transpose version
+        PQ=x.in(pooloutput_x_matrix)-y;
+        SPP->add(PQ.in(Ty)==0);
     
     
-    //    Constraint<> PQ1("PQ1");//TODO debug transpose version
-    //    PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
-    //    SPP->add(PQ1.in(Tx)<=0);
+        Constraint<> PQ1("PQ1");//TODO debug transpose version
+        PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
+        SPP->add(PQ1.in(Tx)<=0);
     
     
     
@@ -273,24 +267,21 @@ int main (int argc, char * argv[]) {
     indices qq_Wa_matrix = indices("qq_Wa_matrix");
     indices qq_Wb_matrix = indices("qq_Wb_matrix");
     
-    row_id=0;
-    for (const string& key:*qq._keys) {
-        auto pos = nthOccurrence(key, ",", 2);
-        auto pos1=nthOccurrence(key, "[", 1);
-        auto qid1=key.substr(pos1+1, pos-pos1-2);
-        auto pos2=nthOccurrence(key, "]", 2);
-        auto qid2=key.substr(pos+3, pos2-pos-3);
-        qq_Wa_matrix.add(qid1);
-        qq_Wb_matrix.add(qid2);
-    }
+//    row_id=0;
+//    for (const string& key:*qq._keys) {
+//        auto pos = nthOccurrence(key, ",", 2);
+//        auto pos1=nthOccurrence(key, "[", 1);
+//        auto qid1=key.substr(pos1+1, pos-pos1-2);
+//        auto pos2=nthOccurrence(key, "]", 2);
+//        auto qid2=key.substr(pos+3, pos2-pos-3);
+//        qq_Wa_matrix.add(qid1);
+//        qq_Wb_matrix.add(qid2);
+//    }
+//
+//    Constraint<> q_W("q_W");
+//    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
+//    SPP->add(q_W.in(qq)==0,true);
     
-    Constraint<> q_W("q_W");
-    q_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-    SPP->add(q_W.in(qq)==0,true);
-    
-//    Constraint<> y_W("y_W");
-//    y_W=Wij.in(qq)-q.in(qq_Wa_matrix)*q.in(qq_Wb_matrix);
-//    SPP->add(y_W.in(qq)==0,true);
 
     
     //    Constraint<> sumy_con("sumy_con");
@@ -308,8 +299,12 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) <= 0);
+    //SPP->add(SOC.in(pairs_chordal) == 0, true);
     
+//    Constraint<> SOC_nc("SOC_nc");
+//    SOC_nc = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
+//    SPP->add(SOC_nc.in(pairs_chordal) >= 0, true);
+
     
     
     Constraint<> obj_eq("obj_eq");
@@ -338,7 +333,7 @@ int main (int argc, char * argv[]) {
         SDP3 -= pow(Wij_[2], 2) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+       // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
     }

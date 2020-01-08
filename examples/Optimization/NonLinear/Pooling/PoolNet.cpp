@@ -53,6 +53,10 @@ PoolNet::PoolNet() {
     sumyk.set_name("sumyk");
     sumyk.in(range(0,0));
     sumyk.set_val(0);
+    Wii_min.set_name("Wii_min");
+    Wii_max.set_name("Wii_max");
+    Wij_min.set_name("Wij_min");
+    Wij_max.set_name("Wij_max");
     
  
 }
@@ -634,6 +638,9 @@ void PoolNet::readgrid(string fname) {
     indices inputs_attr=indices(Inputs, Attr);
     indices outputs_attr=indices(Outputs, Attr);
     indices pools_attr=indices(Pools, Attr);
+    auto res_ind=this->TxplusTy_fill();
+    indices q_diag=res_ind[1];
+    indices y_diag=res_ind[2];
     
     for(auto key: *(inputs_pools_outputs._keys)){
     
@@ -669,6 +676,14 @@ void PoolNet::readgrid(string fname) {
         
         y_max.add_val(key, std::min(std::min(a,b), c));
         y_min.add_val(key, 0);
+        auto kydiag="y["+key+"]";
+        if(y_min.eval(key)<=0 && y_max.eval(key)>=0){
+        Wii_min.add_val(kydiag, 0);
+        }
+        else{
+            Wii_min.add_val(kydiag, std::min(std::pow(y_max.eval(key),2), std::pow(y_min.eval(key),2)));
+        }
+        Wii_max.add_val(kydiag, std::max(std::pow(y_max.eval(key),2), std::pow(y_min.eval(key),2)));
     }
     for(auto key: *(inputs_outputs._keys)){
         auto pos = nthOccurrence(key, ",", 1);
@@ -680,6 +695,15 @@ void PoolNet::readgrid(string fname) {
         z_min.add_val(key,  0);
         
     }
+    
+    for(auto key: *(inputs_pools._keys)){
+        auto kqdiag="q["+key+"]";
+        Wii_max.add_val(kqdiag, 1);
+        Wii_min.add_val(kqdiag, 0);
+        
+    }
+
+    
 
 }
 shared_ptr<Model<>> build_pool_qform(PoolNet& poolnet)
@@ -1610,4 +1634,21 @@ vector<indices> PoolNet::inpoolout_x_c_matrix_fill() const{
     res.push_back(inpoolout_cpo_matrix);
     return res;
 }
-
+vector<indices> PoolNet:: TxplusTy_fill() const{
+indices TxplusTy("TxplusTy");
+indices q_diag("q_diag");
+indices y_diag("y_diag");
+    vector<indices> res;
+    for(auto key:*inputs_pools._keys){
+        TxplusTy.add("q["+key+"]");
+        q_diag.add("q["+key+"]");
+    }
+    for(auto key:*pools_outputs._keys){
+        TxplusTy.add("y["+key+"]");
+        y_diag.add("y["+key+"]");
+    }
+    res.push_back(TxplusTy);
+    res.push_back(q_diag);
+    res.push_back(y_diag);
+    return res;
+}
