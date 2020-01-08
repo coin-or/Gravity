@@ -25,7 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
 
-    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
    // fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
 
     if(argc==2){
@@ -313,7 +313,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    //SPP->add(SOC.in(pairs_chordal) == 0, true);
+    SPP->add(SOC.in(pairs_chordal) == 0, true);
     
 //    Constraint<> SOC_nc("SOC_nc");
 //    SOC_nc = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
@@ -347,7 +347,7 @@ int main (int argc, char * argv[]) {
         SDP3 -= pow(Wij_[2], 2) * Wii_[1];
         SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-       // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
@@ -384,9 +384,9 @@ int main (int argc, char * argv[]) {
     int max_iter = 50;
     auto status = SPP->run_obbt(max_time, max_iter, ub, precision, SPP_NC, SPP, nonlin);
     status = SPP->run_obbt(max_time, max_iter, ub, precision, SPP_NC, SPP, nonlin);
-    SPP->print();
-//    SPP->print_solution();
-    
+//    SPP->print();
+    SPP->print_solution();
+    SPP->print_constraints_stats(1e-6);
     
     
     

@@ -5898,7 +5898,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         bool break_flag=false, time_limit = false, lifted_var=false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
-        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-6, zero_val=1e-6;
+        const double rel_tol=1e-2, abs_tol=1e6, fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, range_tol=1e-3, zero_val=1e-6;
         int gap_count_int=1, iter=0;
         double ub_vp, lb_vp, ub_vp_new, lb_vp_new;
         SolverType solv_type = ipopt;
