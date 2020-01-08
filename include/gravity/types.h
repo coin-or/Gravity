@@ -1048,7 +1048,8 @@ public:
     }
     
     indices& operator=(const indices& cpy){
-        _name = cpy._name;
+        if(_name.empty())
+            _name = cpy._name;
         _type = cpy._type;
         _keys_map = cpy._keys_map;
         _keys = cpy._keys;
@@ -1086,7 +1087,7 @@ public:
     }
     
     indices& operator=(indices&& cpy){
-        if(!cpy._name.empty())
+        if(_name.empty())
             _name = cpy._name;
         _type = cpy._type;
         _keys_map = move(cpy._keys_map);

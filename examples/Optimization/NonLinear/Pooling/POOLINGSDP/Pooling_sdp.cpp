@@ -308,7 +308,7 @@ int main (int argc, char * argv[]) {
 
     Constraint<> q_W("q_W");
     q_W=Wij.in(qq)-q.in(q_from)*q.in(q_to);
-    SPP->add(q_W.in(qq)==0);
+    SPP->add(q_W.in(qq)==0,true);
     
     q_W.print();
     
