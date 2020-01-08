@@ -24,8 +24,14 @@ int main (int argc, char * argv[]) {
     
     PoolNet poolnet;
     
+
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
-    fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
+   // fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
+
+    if(argc==2){
+        fname=argv[1];
+    }
+
     poolnet.readgrid(fname);
     SolverType solv_type = ipopt;
     
@@ -34,6 +40,8 @@ int main (int argc, char * argv[]) {
     g.pool_get_tree_decomp_bags();
     
     auto bags_3d=g.pool_decompose_bags_3d();
+
+    
     DebugOn("bags \n");
     for(auto bag:bags_3d){
         DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
@@ -67,8 +75,13 @@ int main (int argc, char * argv[]) {
     }
     
     auto qq=res[1];
-    auto pairs_chordal_from = res[2];
-    auto pairs_chordal_to = res[3];
+    auto yy=res[2];
+    auto pairs_chordal_from = res[3];
+    auto pairs_chordal_to = res[4];
+    
+    auto vec_param=fill_wijbounds(poolnet, res);
+    auto Wij_min=vec_param[0].in(pairs_chordal);
+    auto Wij_max=vec_param[1].in(pairs_chordal);
     
     auto SPP= make_shared<Model<>>("Std-Pooling-Prob-PQ");
     
@@ -145,18 +158,17 @@ int main (int argc, char * argv[]) {
     
     auto x_min=poolnet.x_min.in(inputs_pools_outputs);
     auto x_max=poolnet.x_max.in(inputs_pools_outputs);
-    auto q_min = param<>("q_min");
-    q_min.in(Tx);
-    q_min = 0;
-    auto q_max = param<>("q_max");
-    q_max.in(Tx);
-    q_max = 1;
+    auto q_min=poolnet.q_min.in(Tx);
+    auto q_max=poolnet.q_max.in(Tx);
     
     auto y_min=poolnet.y_min.in(Ty);
     auto y_max=poolnet.y_max.in(Ty);
     
     auto z_min=poolnet.z_min.in(Tz);
     auto z_max=poolnet.z_max.in(Tz);
+    
+    auto Wii_min=poolnet.Wii_min.in(TxplusTy);
+    auto Wii_max=poolnet.Wii_max.in(TxplusTy);
     
 
     auto objvar_min = param<>("objvar_min");
@@ -168,19 +180,19 @@ int main (int argc, char * argv[]) {
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
     var<> objvar("objvar",objvar_min, objvar_max);
-    auto Wij_min = param<>("Wij_min");
-    Wij_min.in(pairs_chordal);
-    Wij_min = 0;
-    auto Wij_max = param<>("Wij_max");
-    Wij_max.in(pairs_chordal);
-    Wij_max = 1e2;
-    auto Wii_min = param<>("Wii_min");
-    Wii_min.in(TxplusTy);
-    Wii_min = 0;
-    auto Wii_max = param<>("Wii_max");
-    Wii_max.in(TxplusTy);
-    Wii_max = 1e3;
-    
+//    auto Wij_min = param<>("Wij_min");
+//    Wij_min.in(pairs_chordal);
+//    Wij_min = 0;
+//    auto Wij_max = param<>("Wij_max");
+//    Wij_max.in(pairs_chordal);
+//    Wij_max = 1e2;
+//    auto Wii_min = param<>("Wii_min");
+//    Wii_min.in(TxplusTy);
+//    Wii_min = 0;
+//    auto Wii_max = param<>("Wii_max");
+//    Wii_max.in(TxplusTy);
+//    Wii_max = 1e3;
+//
     var<> Wij("Wij", Wij_min, Wij_max);
     var<> Wii("Wii", Wii_min, Wii_max);
     
@@ -267,13 +279,15 @@ int main (int argc, char * argv[]) {
     indices qq_Wa_matrix = indices("qq_Wa_matrix");
     indices qq_Wb_matrix = indices("qq_Wb_matrix");
     
-//    row_id=0;
+
+    row_id=0;
 //    for (const string& key:*qq._keys) {
 //        auto pos = nthOccurrence(key, ",", 2);
 //        auto pos1=nthOccurrence(key, "[", 1);
 //        auto qid1=key.substr(pos1+1, pos-pos1-2);
 //        auto pos2=nthOccurrence(key, "]", 2);
 //        auto qid2=key.substr(pos+3, pos2-pos-3);
+//        if(!qq_Wa_matrix.has_key(qid1)
 //        qq_Wa_matrix.add(qid1);
 //        qq_Wb_matrix.add(qid2);
 //    }
@@ -324,7 +338,7 @@ int main (int argc, char * argv[]) {
         DebugOn("Adding 3d determinant polynomial cuts\n");
         auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
-        
+        auto nb_bags3 = Wij_[0]._indices->size();
         
         
         SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
@@ -336,7 +350,21 @@ int main (int argc, char * argv[]) {
        // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+        
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+        
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+        
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
+    
+    
     
     
     
