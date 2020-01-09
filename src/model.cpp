@@ -251,8 +251,6 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         else {
             auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
             lifted.add_cst(*f_cst);
-        }
-        if (lifted._cst->is_function()) {
             lifted.embed(*static_pointer_cast<func<type>>(lifted._cst));
         }
     }
@@ -293,11 +291,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         
         if (c.func<type>::is_concave()) //reverse the sign if the constraint is concave
         {
-            DebugOn("Changing the sign of the lifted variable." << endl);
+            DebugOff("Changing the sign of the lifted variable." << endl);
             lift_sign = !lift_sign;
         }
         else{
-            DebugOn("Keeping the sign of the lifted variable same." << endl);
+            DebugOff("Keeping the sign of the lifted variable same." << endl);
         }
         
         //arrange the variables so that if they have the same base name, use them ordered in name
@@ -333,58 +331,85 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         int num_partns1 = *o1._num_partns;
         int num_partns2 = *o2._num_partns;
         
-        param<type> lb("lb"), ub("ub");
-        lb.in(unique_ids);ub.in(unique_ids);
+        func<double> lb, ub;
         
         //calculate the tightest valid bounds
         if(o1==o2) //if variables are same, calculate the bounds more efficiently
         {
-            for (int i=0; i<unique_ids.size(); i++) {
-                //calculate all the possibilities and assign the worst case
-                size_t id1;
-                if(o1_ids._ids == nullptr){
-                    id1 = i;
-                }
-                else id1 = o1_ids._ids->at(0).at(i);
-                auto key1 = o1_ids._keys->at(id1);
-                
-                auto prod_b1 = o1.get_lb(key1)*o1.get_lb(key1);
-                auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
-                auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
-                
-                
-                
-                lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
-                ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
-            }
+            func<double> prod_b1 = (o1.get_lb()*o1.get_lb()).in(unique_ids);
+            func<double> prod_b2 = (o1.get_lb()*o1.get_ub()).in(unique_ids);
+            func<double> prod_b3 = (o1.get_ub()*o1.get_ub()).in(unique_ids);
+            
+            lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3), func<type>());
+            ub = gravity::max(gravity::max(prod_b1,prod_b2),prod_b3);
+
+
+//            lb = max(min(min(o1.get_lb()*o1.get_lb(),o1.get_lb()*o1.get_ub()), o1.get_ub()*o1.get_ub()), 0);
+//            ub = max(max(o1.get_lb()*o1.get_lb(),o1.get_lb()*o1.get_ub()), o1.get_ub()*o1.get_ub());
+//            for (int i=0; i<unique_ids.size(); i++) {
+//                //calculate all the possibilities and assign the worst case
+//                size_t id1;
+//                if(o1_ids._ids == nullptr){
+//                    id1 = i;
+//                }
+//                else id1 = o1_ids._ids->at(0).at(i);
+//                auto key1 = o1_ids._keys->at(id1);
+//
+//                auto prod_b1 = o1.get_lb(key1)*o1.get_lb(key1);
+//                auto prod_b2 = o1.get_lb(key1)*o1.get_ub(key1);
+//                auto prod_b3 = o1.get_ub(key1)*o1.get_ub(key1);
+//
+//
+//
+//                lb.set_val(key1, std::max(std::min(std::min(prod_b1,prod_b2), prod_b3), (type)0 ));
+//                ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
+//            }
         }
         else //if variables are different, need to check all four combinations
         {
-            for (int i=0; i<unique_ids.size(); i++) {
-                //calculate all the possibilities and assign the worst case
-                size_t id1;
-                size_t id2;
-                if(o1_ids._ids == nullptr){
-                    id1 = i;
-                }
-                else id1 = o1_ids._ids->at(0).at(i);
-                if(o2_ids._ids == nullptr){
-                    id2 = i;
-                }
-                else id2 = o2_ids._ids->at(0).at(i);
-                auto key1 = o1_ids._keys->at(id1);
-                auto key2 = o2_ids._keys->at(id2);
-                
-                auto prod_b1 = o1.get_lb(key1)*o2.get_lb(key2);
-                auto prod_b2 = o1.get_lb(key1)*o2.get_ub(key2);
-                auto prod_b3 = o1.get_ub(key1)*o2.get_lb(key2);
-                auto prod_b4 = o1.get_ub(key1)*o2.get_ub(key2);
-                
-                lb.set_val(key1+","+key2, std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)));
-                ub.set_val(key1+","+key2, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
-            }
+            auto lb1 = o1.get_lb();
+            auto ub1 = o1.get_ub();
+            auto lb2 = o2.get_lb();
+            auto ub2 = o2.get_ub();
+            func<double> prod_b1 = (lb1*lb2).in(unique_ids);
+            func<double> prod_b2 = (lb1*ub2).in(unique_ids);
+            func<double> prod_b3 = (ub1*lb2).in(unique_ids);
+            func<double> prod_b4 = (ub1*ub2).in(unique_ids);
+
+            lb = gravity::min(gravity::min(prod_b1,prod_b2),gravity::min(prod_b3,prod_b4));
+            ub = gravity::max(gravity::max(prod_b1,prod_b2),gravity::max(prod_b3,prod_b4));
+//            for (int i=0; i<unique_ids.size(); i++) {
+//                //calculate all the possibilities and assign the worst case
+//                size_t id1;
+//                size_t id2;
+//                if(o1_ids._ids == nullptr){
+//                    id1 = i;
+//                }
+//                else id1 = o1_ids._ids->at(0).at(i);
+//                if(o2_ids._ids == nullptr){
+//                    id2 = i;
+//                }
+//                else id2 = o2_ids._ids->at(0).at(i);
+//                auto key1 = o1_ids._keys->at(id1);
+//                auto key2 = o2_ids._keys->at(id2);
+//
+//                auto prod_b1 = o1.get_lb(key1)*o2.get_lb(key2);
+//                auto prod_b2 = o1.get_lb(key1)*o2.get_ub(key2);
+//                auto prod_b3 = o1.get_ub(key1)*o2.get_lb(key2);
+//                auto prod_b4 = o1.get_ub(key1)*o2.get_ub(key2);
+//
+//                lb.set_val(key1+","+key2, std::min(std::min(prod_b1,prod_b2),std::min(prod_b3,prod_b4)));
+//                ub.set_val(key1+","+key2, std::max(std::max(prod_b1,prod_b2),std::max(prod_b3,prod_b4)));
+//            }
         }
-        
+//        lb.update_var_indices(un)
+        lb.index_in(unique_ids);
+        ub.index_in(unique_ids);
+        lb.eval_all();
+        ub.eval_all();
+//        auto common_refs = o1._indices->get_common_refs(unique_ids);
+//        lb.update_rows(common_refs);
+//        ub.update_rows(common_refs);
         auto it = _vars_name.find(name);
         
         auto name1 = o1.get_name(true,true);
@@ -2890,7 +2915,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         }
         else {
             auto vlift = static_pointer_cast<var<type>>(it->second);
-            auto added = vlift->add_bounds(lb,ub);
+            param<T> lb_p("lb_p");
+            lb_p = lb;
+            param<T> ub_p("ub_p");
+            ub_p = ub;
+            auto added = vlift->add_bounds(lb_p,ub_p);
             lt._p = make_shared<var<type>>(vlift->in(ids));
             if(!added.empty()){
                 assert(o1._indices->size()==o2._indices->size());
@@ -5899,9 +5928,11 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     shared_ptr<map<string,size_t>> p_map;
     /* Running upper and lower bound solvers */
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 0, ub_solver_tol);
+    UB_solver.run(output = 5, ub_solver_tol);
+    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
     solver<> LB_solver(relaxed_model,lb_solver_type);
-    LB_solver.run(output = 0, lb_solver_tol);
+    LB_solver.run(output = 5, lb_solver_tol);
+    DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
     double lower_bound_init = numeric_limits<double>::min(), upper_bound_init, lower_bound;
     if(this->_status==0)
     {
@@ -6122,17 +6153,17 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
                                                     
                                                 }
                                             }
-                                            auto lift_name="Lift("+vkname+"^2)";
-                                            if(relaxed_model->_vars_name.find(lift_name)!=relaxed_model->_vars_name.end()){
-                                                auto liftv=relaxed_model->template get_var<T>(lift_name);
-                                                auto lbvk=vk.get_lb(keyk);
-                                                auto ubvk=vk.get_ub(keyk);
-                                                auto temp_a=std::max(std::max(0.0, lbvk), ubvk*(-1));
-                                                auto lift_lb=std::min(temp_a*temp_a, ubvk*ubvk);
-                                                liftv.set_lb(keyk, lift_lb);
-                                                liftv.set_ub(keyk, std::max(lbvk*lbvk, ubvk*ubvk));
-                                                
-                                            }
+//                                            auto lift_name="Lift("+vkname+"^2)";
+//                                            if(relaxed_model->_vars_name.find(lift_name)!=relaxed_model->_vars_name.end()){
+//                                                auto liftv=relaxed_model->template get_var<T>(lift_name);
+//                                                auto lbvk=vk.get_lb(keyk);
+//                                                auto ubvk=vk.get_ub(keyk);
+//                                                auto temp_a=std::max(std::max(0.0, lbvk), ubvk*(-1));
+//                                                auto lift_lb=std::min(temp_a*temp_a, ubvk*ubvk);
+//                                                liftv.set_lb(keyk, lift_lb);
+//                                                liftv.set_ub(keyk, std::max(lbvk*lbvk, ubvk*ubvk));
+//
+//                                            }
                                         }
                                         else
                                         {

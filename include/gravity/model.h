@@ -476,8 +476,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
-            v._lb->eval_all();
-            v._ub->eval_all();
+//            v._lb->allocate_mem();
+//            v._ub->allocate_mem();
+//            v._lb->eval_all();
+//            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -1153,6 +1155,101 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
 //            reindex_vars();
         }
         
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        shared_ptr<Model<T>> relax() const{/*<  return a convex relaxation of the current model */
+            shared_ptr<Model<T>> relax = make_shared<Model<T>>(_name+"_relaxed");
+            for(auto &vp: _vars){
+                switch (vp.second->get_intype()) {
+                    case binary_: {
+                        auto vv = *static_pointer_cast<var<bool>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case short_: {
+                        auto vv = *static_pointer_cast<var<short>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case integer_: {
+                        auto vv = *static_pointer_cast<var<int>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case float_: {
+                        auto vv = *static_pointer_cast<var<float>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case double_: {
+                        auto vv = *static_pointer_cast<var<double>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case long_: {
+                        auto vv = *static_pointer_cast<var<long double>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case complex_: {
+                        auto vv = *static_pointer_cast<var<Cpx>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                }
+            }
+            for(auto &cp: _cons_name){
+                if(*cp.second->_all_lazy){
+                    if(cp.second->is_convex()){
+                        relax->add_lazy(*cp.second);
+                    }
+                    else {
+                        relax->add_lazy(*cp.second,true);
+                    }
+                    auto c = relax->_cons_name[cp.first];
+                    relax->merge_vars(c);
+                    c->uneval();
+                }
+                else{
+                    if(cp.second->is_convex()){
+                        relax->add(*cp.second);
+                    }
+                    else {
+                        relax->add(*cp.second,true);
+                    }
+                    relax->merge_vars(relax->_cons_vec.back());
+                    relax->_cons_vec.back()->uneval();
+                }
+            }
+            if(_obj->is_convex()){
+                func<T> new_obj = *_obj;
+                relax->set_objective(new_obj, _objt);
+            }
+            else {
+                param<> obj_lb("obj_lb");
+                param<> obj_ub("obj_ub");
+                obj_lb = _obj->_range->first;
+                obj_ub = _obj->_range->second;
+                var<type> v_obj("v_obj",obj_lb,obj_ub);
+                relax->add(v_obj);
+                Constraint<> obj("obj");
+                obj = v_obj - *_obj;
+                if(_objt==minimize){
+                    if(obj.is_convex())
+                        relax->add(obj >=0);
+                    else
+                        relax->add(obj >=0,true);
+                }
+                else if(_objt==maximize){
+                    if(obj.is_concave())
+                        relax->add(obj <=0);
+                    else
+                        relax->add(obj <=0,true);
+                }
+                relax->set_objective(v_obj, _objt);
+            }
+            return relax;
+        }
         
         
         template<typename T=type,
@@ -1294,7 +1391,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     return newc;
                 }
                 newc->update_str();
-                if(lift_flag){
+                if(lift_flag && !newc->is_linear()){
                     if(newc->func<type>::is_convex() && newc->_ctype==eq && split){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
@@ -1453,7 +1550,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void min(const func<T1>& f){
             set_objective(f, minimize);
         }
-        
+                
         
         template<typename T1>
         void max(const param<T1>& p){
@@ -6622,6 +6719,117 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         string _status;
     };
     
+    template<class T>
+    func<T> min(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const func<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const func<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const func<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const func<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
     
 }
 

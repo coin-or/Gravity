@@ -132,7 +132,7 @@ bool CplexProgram::solve(bool relax, double mipgap) {
         }
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
 //        cplex.setParam(IloCplex::Param::Threads, 1);
-        cplex.setParam(IloCplex::BarDisplay, 0);
+//        cplex.setParam(IloCplex::BarDisplay, 0);
 //        cplex.setParam(IloCplex::AdvInd, 1);
 
         cplex.setParam(IloCplex::MIPDisplay, 0);
@@ -143,9 +143,9 @@ bool CplexProgram::solve(bool relax, double mipgap) {
 //        cplex.setParam(IloCplex::PreslvNd,-1);
 
 //        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-8);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-8);
-        cplex.setParam(IloCplex::EpGap, 1e-8 ); //stopping criterion MIPgap
+        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-6);
+        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-6);
+        cplex.setParam(IloCplex::EpGap, 1e-6 ); //stopping criterion MIPgap
 //        cplex.setParam(IloCplex::PreInd, 1);
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
         

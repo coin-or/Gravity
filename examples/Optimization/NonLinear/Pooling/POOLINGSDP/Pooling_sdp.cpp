@@ -283,7 +283,7 @@ int main (int argc, char * argv[]) {
     q_W=Wij.in(qq)-q.in(q_from)*q.in(q_to);
     SPP->add(q_W.in(qq)==0,true);
     
-    q_W.print();
+//    q_W.print();
     
     
     
@@ -339,22 +339,22 @@ int main (int argc, char * argv[]) {
         Constraint<> Rank_type2a("RankType2a");
         Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
         SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-        
+
         Constraint<> Rank_type2b("RankType2b");
         Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
         SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-        
+
         Constraint<> Rank_type2c("RankType2c");
         Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
         SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
 //    SPP->print();
-    double max_time = 1000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto status = SPP_NC->run_obbt(SPP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
-    SPP->print_solution();
+//    SPP->print_solution();
     SPP->print_constraints_stats(1e-6);
     
     //    SPP->project();

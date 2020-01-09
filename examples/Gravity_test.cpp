@@ -39,6 +39,89 @@ using namespace gravity;
 ////    CHECK(Mtest.get_nb_cons() == 4);
 //}
 
+//m = Model(solver=solver)
+//
+//@variable(m, x[1:8])
+//
+//setlowerbound(x[1], 100)
+//setlowerbound(x[2], 1000)
+//setlowerbound(x[3], 1000)
+//setlowerbound(x[4], 10)
+//setlowerbound(x[5], 10)
+//setlowerbound(x[6], 10)
+//setlowerbound(x[7], 10)
+//setlowerbound(x[8], 10)
+//
+//setupperbound(x[1], 10000)
+//setupperbound(x[2], 10000)
+//setupperbound(x[3], 10000)
+//setupperbound(x[4], 1000)
+//setupperbound(x[5], 1000)
+//setupperbound(x[6], 1000)
+//setupperbound(x[7], 1000)
+//setupperbound(x[8], 1000)
+//
+//@constraint(m, 0.0025*(x[4] + x[6]) <= 1)
+//@constraint(m, 0.0025*(x[5] - x[4] + x[7]) <= 1)
+//@constraint(m, 0.01(x[8]-x[5]) <= 1)
+//@NLconstraint(m, 100*x[1] - x[1]*x[6] + 833.33252*x[4] <= 83333.333)
+//@NLconstraint(m, x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5] <= 0)
+//@NLconstraint(m, x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000 <= 0)
+//
+//@objective(m, Min, x[1]+x[2]+x[3])
+
+TEST_CASE("hard nlp") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    M.add(x.in(range(1,8)));
+    Constraint<> C1("C1");
+    C1 = 0.0025*(x[4] + x[6]);
+    M.add(C1 <= 1);
+    Constraint<> C2("C2");
+    C2 = 0.0025*(x[5] - x[4] + x[7]);
+    M.add(C2 <= 1);
+    Constraint<> C3("C3");
+    C3 = 0.01*(x[8]-x[5]);
+    M.add(C3 <= 1);
+    Constraint<> C4("C4");
+    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
+    M.add(C4 <= 83333.333);
+    Constraint<> C5("C5");
+    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
+    M.add(C5 <= 0);
+    Constraint<> C6("C6");
+    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
+    M.add(C6 <= 0);
+    M.min(x[1]+x[2]+x[3]);
+    M.print();
+    auto g = M.get_interaction_graph();
+    g.pool_get_tree_decomp_bags();
+    
+    auto bags_3d=g.pool_decompose_bags_3d();
+
+    
+    DebugOn("bags \n");
+    for(auto bag:bags_3d){
+        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+    }
+    
+    
+    auto pairs=g.get_bus_pairs();
+    DebugOn("bus pairs \n");
+    for(auto k: *pairs._keys){
+        DebugOn(k<<endl);
+    }
+    
+    auto LB = M.relax();
+    LB->print();
+    M.run_obbt(LB);
+    
+}
+
 TEST_CASE("testing projection1") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");

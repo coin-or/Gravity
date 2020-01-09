@@ -1334,7 +1334,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
        x.initialize_all(1.0);
       y.initialize_all(1.0);
      z.initialize_all(1.0);
- q.initialize_all(0.5);
+     q.initialize_all(0.5);
   
     
     Constraint<> feed_availability("feed_availability");
@@ -1401,7 +1401,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     
     SPP->min(objvar("0"));
-    SPP->print();
+//    SPP->print();
     
     
     return SPP;

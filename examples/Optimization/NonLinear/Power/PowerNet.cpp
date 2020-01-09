@@ -24,6 +24,7 @@
 #include <time.h>
 //#include <xlnt/xlnt.hpp>
 #include <gravity/solver.h>
+#include <gravity/model.h>
 
 using namespace std;
 
