@@ -385,10 +385,8 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP,ipopt);
-    SOCPOPF.run(output, tol = 1e-8);
     
-    SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP->run_obbt(SOCP);
     SOCP->print();
 //    auto original_SOC = grid.build_SCOPF();
 //    solver<> SOCOPF_ORIG(original_SOC, ipopt);

@@ -6524,11 +6524,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
         }
         
-        //optimality based bound tightening procedure for a given mathematical formulation
+        /* Run Optimality Based Bound Tightening
+         @param[in] relaxed_model a convex relaxtion of the current model
+         @param[in] res vector storing the computation results
+         @param[in] i starting index in v
+         @param[in] j ending index in v
+
+         */
         //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6, shared_ptr<Model<type>> ub_model= nullptr, shared_ptr<Model<type>> nonlin_model= nullptr, bool nonlin=true);
+        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<type>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){
