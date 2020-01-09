@@ -47,18 +47,6 @@ int main (int argc, char * argv[]) {
         DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
     }
     
-    g.print();
-    solver<> SPP_ub_solv(SPP_NC,ipopt);
-    SPP_ub_solv.run(5, 1e-6);
-    double upper_bound=SPP_NC->get_obj_val();
-    pair<bool,double> ub = {true,upper_bound};
-    DebugOn("upper_bound \t"<<upper_bound<<endl);
-    //    solver<> SPP_lb_solv(SPP,ipopt);
-    //    SPP_lb_solv.run(5, 1e-6);
-    //    double lower_bound=SPP->get_obj_val();
-    //    DebugOn("lower_bound \t"<<lower_bound<<endl);
-    //    double gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
-    //    DebugOn("Gap before sdp \t"<<gap<<endl);
     
     auto pairs=g.get_bus_pairs();
     DebugOn("bus pairs \n");
@@ -176,23 +164,10 @@ int main (int argc, char * argv[]) {
     objvar_min = -1e6;
     auto objvar_max = param<>("objvar_max");
     objvar_max.in(R(1));
-    objvar_max = upper_bound;
+    objvar_max = 1e6;
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
     var<> objvar("objvar",objvar_min, objvar_max);
-//    auto Wij_min = param<>("Wij_min");
-//    Wij_min.in(pairs_chordal);
-//    Wij_min = 0;
-//    auto Wij_max = param<>("Wij_max");
-//    Wij_max.in(pairs_chordal);
-//    Wij_max = 1e2;
-//    auto Wii_min = param<>("Wii_min");
-//    Wii_min.in(TxplusTy);
-//    Wii_min = 0;
-//    auto Wii_max = param<>("Wii_max");
-//    Wii_max.in(TxplusTy);
-//    Wii_max = 1e3;
-//
     var<> Wij("Wij", Wij_min, Wij_max);
     var<> Wii("Wii", Wii_min, Wii_max);
     
@@ -207,12 +182,12 @@ int main (int argc, char * argv[]) {
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
     // SPP->initialize_zero();
-    //    x.initialize_all(1.0);
-    //    y.initialize_all(1.0);
-    //    z.initialize_all(1.0);
-    //    q.initialize_all(0.5);
-    //    Wii.initialize_all(1.0);
-    //    Wij.initialize_all(1.0);
+    x.initialize_all(1.0);
+    y.initialize_all(1.0);
+    z.initialize_all(1.0);
+    q.initialize_all(0.5);
+    Wii.initialize_all(1.0);
+    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
     feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
@@ -230,17 +205,17 @@ int main (int argc, char * argv[]) {
     Constraint<> product_quality("product_quality");    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
     
-    Constraint<> simplex("simplex");//TODO debug transpose version
+    Constraint<> simplex("simplex");
     simplex=q.in(pool_q_matrix)-1;
     SPP->add(simplex.in(L)==0);
     
     
-        Constraint<> PQ("PQ");//TODO debug transpose version
+        Constraint<> PQ("PQ");
         PQ=x.in(pooloutput_x_matrix)-y;
         SPP->add(PQ.in(Ty)==0);
     
     
-        Constraint<> PQ1("PQ1");//TODO debug transpose version
+        Constraint<> PQ1("PQ1");
         PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
         SPP->add(PQ1.in(Tx)<=0);
     
@@ -261,8 +236,6 @@ int main (int argc, char * argv[]) {
     }
     
     indices inpoolout_W_matrix = indices("inpoolout_W_matrix");
-    int row_id=0;
-    
     for (const string& inpoout_key:*inputs_pools_outputs._keys) {
         auto pos = nthOccurrence(inpoout_key, ",", 2);
         auto qid=inpoout_key.substr(0, pos);
@@ -332,16 +305,11 @@ int main (int argc, char * argv[]) {
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
     SPP->add(SOC.in(pairs_chordal) == 0, true);
-    
-//    Constraint<> SOC_nc("SOC_nc");
-//    SOC_nc = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-//    SPP->add(SOC_nc.in(pairs_chordal) >= 0, true);
 
     
     
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
-    //    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
     SPP->add(obj_eq==0);
     
     
@@ -349,7 +317,6 @@ int main (int argc, char * argv[]) {
     
     auto bag_size = bags_3d.size();
     Constraint<> SDP3("SDP_3D");
-    //      Constraint<> SDPD("SDPD");
     if(!poolnet._tree)
     {
         DebugOn("\nNum of bags = " << bag_size << endl);
@@ -381,40 +348,16 @@ int main (int argc, char * argv[]) {
         Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
         SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
-    
-    
-    
-    
-    
-    
-    
-    SPP->print();
-    
-    
-    solver<> SPP_solv(SPP,solv_type);
-    SPP_solv.run(5, 1e-6);
-    
-    auto gapl = 100*(upper_bound - SPP->get_obj_val())/std::abs(upper_bound);
-    
-    DebugOn("Initial Gap  = " << gapl << "%" << endl);
-    double max_time = 600, precision = 1e-6;
-    bool nonlin = true;
-    int max_iter = 50;
-    auto status = SPP->run_obbt(max_time, max_iter, ub, precision, SPP_NC, SPP, nonlin);
-    status = SPP->run_obbt(max_time, max_iter, ub, precision, SPP_NC, SPP, nonlin);
+//    SPP->print();
+    double max_time = 1000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
+    unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    auto status = SPP_NC->run_obbt(SPP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
     SPP->print_solution();
     SPP->print_constraints_stats(1e-6);
     
-    
-    
-    
-    
-    
     //    SPP->project();
-    
     //    SPP->print();
-    
-    
     
 }

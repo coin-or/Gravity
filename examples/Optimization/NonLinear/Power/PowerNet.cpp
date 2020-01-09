@@ -2043,7 +2043,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_bound, bool nonlin_obj)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
 {
     bool relax, sdp_cuts = true,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
     size_t num_bags = 0;
@@ -2262,9 +2262,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         SDPOPF->min(obj);
         
-        Constraint<> obj_UB("obj_UB");
-        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
-        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+//        Constraint<> obj_UB("obj_UB");
+//        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+//        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
     }
     else
     {
@@ -2277,9 +2277,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, double upper_boun
         SDPOPF->min(obj);
     
         
-        Constraint<> obj_UB("obj_UB");
-        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
-        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+//        Constraint<> obj_UB("obj_UB");
+//        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
+//        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
 
     
          

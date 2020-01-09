@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
-    string threads_s="12";
+    string threads_s="1";
     
     string lazy_s = "no";
     string orig_s = "no";
@@ -44,7 +44,7 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     
-    bool nonlin=true;
+    bool linearize=true;
     
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -58,7 +58,7 @@ int main (int argc, char * argv[]) {
                    "shows option help");//No option means Default values which may be seen above using option strings
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
-    opt.add_option("threads", "threads", "Number of threads, defaut 24", threads_s);
+    opt.add_option("threads", "threads", "Number of threads, defaut 1", threads_s);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
@@ -78,6 +78,7 @@ int main (int argc, char * argv[]) {
         exit(0);
     }
     solver_str = opt["s"];
+    threads_s = opt["threads"];
     if (solver_str.compare("gurobi")==0) {
         solv_type = gurobi;
     }
@@ -153,228 +154,58 @@ int main (int argc, char * argv[]) {
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
     
-    // int nb_threads = thread::hardware_concurrency();
-    nb_threads=12;
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
     
-    bool lb_solv;
-    double gap=999, gapnl=999;
-    double lower_bound=-99999, avg=0;
+    double lower_bound=numeric_limits<double>::lowest(), lower_bound_init=numeric_limits<double>::lowest(), avg=0;
     double solver_time =0;
     int iter=0;
-    unsigned max_iter=1000;
-    unsigned precision=0;
     
     bool terminate=false, xb_true=false;
     
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    
-    OPF->print();
-    
-    solver<> OPFUB(OPF, solv_type);
-    
-    // OPFUB.set_option("bound_relax_factor", 1e-11);
-    OPFUB.run(output = 5, 1e-6);
-    //    OPF->print_solution();
-    double upper_bound=OPF->get_obj_val();
-    
-    bool nonlin_obj=false;
-    
-    //  auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
-    shared_ptr<Model<double>> SDPO;
-    
-    double lower_bound_init;
-    
-    //    SDP->print();
-    
-    //  solver<> SDPLB(SDP,solv_type);
-    //DebugOn("Lower bounding ipopt"<<endl);
-    // double solver_time_start=get_wall_time();
-    //SDPLB.run(output = 0, tol);
-    // double solver_time_end=get_wall_time();
-    //double solver_time_lb=solver_time_end-solver_time_start;
-    //  SDP->print();
-    //    SDP->print_solution();
-    
-    
-    
-    std::pair<bool,double> ub;
-    ub.first=true;
-    ub.second=upper_bound;
-    //    nonlin=false;
-    if(nonlin){
-        //SDPO=SDP->copy();
-        
-        nonlin_obj=true;
-        
-        //  auto SDP= build_SDPOPF(grid, current, upper_bound, true);
-        
-        //        auto SDP= build_SDPOPF(grid, false, upper_bound, true);
-        //
-        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
-        //
-        //        auto SDP=SDPA->copy();
-        
-        SDP->print();
-        
-        solver<> SDPLB(SDP, ipopt);
-       SDPLB.set_option("bound_relax_factor", 1e-11);
-        
-        //SDP->print_solution(10);
-        
-        
-        //SDP->print();
-        SDPLB.run(output = 5, 1e-6);
-        
-        auto gapl = 100*(upper_bound - SDP->get_obj_val())/upper_bound;
-        
-        DebugOn("Gap "<<gapl<<endl);
-        
-        auto res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
-        res=SDP->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
-        if(SDP->_status==0)
-        {
-            //            SDP->print();
-            
-            lower_bound=SDP->get_obj_val();
-            gap=100*(upper_bound - lower_bound)/upper_bound;
-            
-            terminate=std::get<0>(res);
-            iter=std::get<1>(res);
-            solver_time=std::get<2>(res);
-            lower_bound_init=std::get<3>(res);
-            avg=std::get<4>(res);
-            xb_true=std::get<5>(res);
-            
-            
-            gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-            DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
-            
-            //            auto SDPOA=SDP->buildOA(5, 5);
-            //              solver<> SDPLB(SDPOA,ipopt);
-            //              SDPLB.run(output = 0, tol);
-            //
-            //
-            //            auto gapl = 100*(upper_bound - SDPOA->get_obj_val()*upper_bound)/upper_bound;
-            //            DebugOn("Gap linear at solution of OBBT model = " << to_string(gapl) << "%."<<endl);
-            
-            
-            
-        }
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
+    unsigned max_iter=1e3;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+
+    if(!linearize){
+        auto nonlin_obj=true;
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj);
+        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        lower_bound = SDP->get_obj_val();
+        lower_bound_init = get<3>(res);
     }
     else{
+        auto nonlin_obj=false;
+        auto SDP=build_SDPOPF(grid, current, nonlin_obj);
+        solver<> SDPLB(SDP, lb_solver_type);
+        SDPLB.run(output = 5, lb_solver_tol);
+        auto solver_time1= get_wall_time();
+        auto SDPOA=SDP->buildOA(5, 5);
+        DebugOn(grid._name<<endl);
+        DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
+        DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
+        DebugOn("Number of symbolic constraints orginal lower bound "<< SDP->_cons_name.size()<<endl );
+        DebugOn("Number of variables linear problem "<< SDPOA->_nb_vars<<endl);
+        DebugOn("Number of constraints linear problem "<< SDPOA->_nb_cons<<endl);
+        DebugOn("Number of symbolic constraints linear problem "<< SDPOA->_cons_name.size()<<endl );
         
-        nonlin_obj=false;
-        
-        auto SDP= build_SDPOPF(grid, current, upper_bound, nonlin_obj);
-        //        vector<double> x_sol(SDP->get_nb_vars());
-        //        SDP->get_solution(x_sol);
-        solver<> SDPLB(SDP, ipopt);
-        //   SDPLB.set_option("bound_relax_factor", 1e-11);
-        
-        //SDP->print_solution(10);
-        
-        
-        //SDP->print();
-        SDPLB.run(output = 5, 1e-8);
-        //        SDP->print_solution();
-        //  DebugOn("Objective = " << to_string_with_precision(SDP->get_obj_val(),20) << endl);
-        DebugOn("solution of LB"<<endl);
-        lb_solv=false;
-        if(SDP->_status==0){
-            lb_solv=true;
-            
-            lower_bound=SDP->get_obj_val();
-            
-            DebugOn("lower_bound "<<lower_bound<<endl);
-            
-            gap=100*(upper_bound - lower_bound)/upper_bound;
-            DebugOn("Gap "<<gap);
-            
-            auto solver_time1= get_wall_time();
-            SDPO=SDP->buildOA(5, 5);
-            DebugOn(grid._name<<endl);
-            DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
-            DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
-            DebugOn("Number of symbolic constraints orginal lower bound "<< SDP->_cons_name.size()<<endl );
-            DebugOn("Number of variables linear problem "<< SDPO->_nb_vars<<endl);
-            DebugOn("Number of constraints linear problem "<< SDPO->_nb_cons<<endl);
-            DebugOn("Number of symbolic constraints linear problem "<< SDPO->_cons_name.size()<<endl );
-            
-            auto    solver_time2= get_wall_time();
-            auto buildtime=solver_time2-solver_time1;
-            DebugOn("build time "<<buildtime<<endl);
-            // SDPO->set_solution(x_sol);
-            //   SDPO->print();
-            //         DebugOn("stats OA-LB"<<endl);
-            //  SDPO->print_constraints_stats(1e-10);
-            //  SDPO->print();
-            //          solver<> SDPLin(SDPO, ipopt);
-            //        SDPLin.run(output = 0, 1e-8);
-            ////        DebugOn("N vars "<<SDPO->_nb_vars<<endl);
-            ////        DebugOn("N cons "<<SDPO->_nb_cons<<endl);
-            ////        DebugOn("SDPO obj value\t"<<SDPO->get_obj_val()<<endl);
-            //        double gap_lin=100*(upper_bound - SDPO->get_obj_val()*upper_bound)/upper_bound;
-            //        DebugOn("Gap Linear"<<gap_lin);
-            
-            
-            
-            
-            
-            
-            
-            
-            auto res=SDPO->run_obbt(max_time, max_iter, ub, precision, OPF, SDP, nonlin);
-//            SDPO->print();
-            
-            //        auto SDPO_IIS1=SDPO->build_model_IIS();
-            //        solver<> IIS_test1(SDPO_IIS1,cplex);
-            //        IIS_test1.run(output = 0, tol);
-            //   SDPO_IIS1->print();
-            
-            //   SDPO_IIS1->print_solution();
-            
-            
-            
-            //        solver<> test2(SDPO, cplex);
-            //        test2.run(output = 5, tol);
-            //        SDPO->print();
-            
-            
-            if(SDPO->_status==0)
-            {
-                
-                
-                
-                
-                lower_bound=SDPO->get_obj_val();
-                gap=100*(upper_bound - lower_bound)/upper_bound;
-                terminate=std::get<0>(res);
-                iter=std::get<1>(res);
-                solver_time=std::get<2>(res);
-                lower_bound_init=std::get<3>(res);
-                avg=std::get<4>(res);
-                xb_true=std::get<5>(res);
-                
-                
-                gapnl = 100*(upper_bound - lower_bound_init)/upper_bound;
-                // DebugOn("Initial Gap= " << to_string(gapnl) << "%."<<endl);
-                
-            }
-            
-            
-        }
-        
+        auto    solver_time2= get_wall_time();
+        auto buildtime=solver_time2-solver_time1;
+        DebugOn("build time "<<buildtime<<endl);
+        auto res=OPF->run_obbt(SDPOA, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        lower_bound = SDPOA->get_obj_val();
+        lower_bound_init = get<3>(res);
     }
     
-    assert(gap<1);
-    
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
+    auto upper_bound = OPF->get_obj_val();
+    auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
     if(worker_id==0){
         
@@ -382,17 +213,17 @@ int main (int argc, char * argv[]) {
         
         
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<"\t"<<lb_solv<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<"\t"<<lb_solv<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
     }
     MPI_Finalize();
 #else
-    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl);
+    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl);
     
     
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
+    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
     fout.close();
 #endif
     
