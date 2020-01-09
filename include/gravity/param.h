@@ -113,6 +113,10 @@ namespace gravity {
         
         virtual void print(){};
         
+        /** let this share the bounds of p */
+        virtual void share_bounds(const shared_ptr<param_>& p){};
+
+        
         virtual void print_vals(int prec){};
         
         virtual void print_symbolic() const{};
@@ -686,6 +690,7 @@ namespace gravity {
                     break;
             }
         }
+        
         
         param deep_copy() const{
             param res;

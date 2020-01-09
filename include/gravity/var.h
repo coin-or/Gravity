@@ -609,6 +609,49 @@ namespace gravity {
             return *this;
         }
         
+        /** let this share the bounds of p */
+        void share_bounds(const shared_ptr<param_>& p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<var<bool>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<var<short>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<var<int>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<var<float>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (var<double>*)(p.get());
+                    share_bounds_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<var<long double>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<var<Cpx>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
         /** let this share the values of p */
         void share_vals(const shared_ptr<param_>& p){
             switch (p->get_intype()) {
@@ -652,6 +695,19 @@ namespace gravity {
             }
         }
         
+        
+        /** let this share the bounds of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_bounds_(var<T2>& p){
+            throw invalid_argument("cannot share bounds with different typed params/vars");
+        }
+        
+        /** let this share the bounds of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_bounds_(var<T2>& pp){
+            this->_lb = pp._lb;
+            this->_ub = pp._ub;
+        }
         
         /** let this share the values of p */
         template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
