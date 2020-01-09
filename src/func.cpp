@@ -6069,4 +6069,7 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     template func<double> func<double>::replace<double>(const var<double>&, const func<double>&) const;
     template void func<double>::update_rows(vector<bool> const&);
     template void func<double>::update_indices(vector<bool> const&);
+//    template func<double> min(const func<double>& p1, const func<double>& p2);
+//    template func<double> max(const func<double>& p1, const func<double>& p2);
+
 }
