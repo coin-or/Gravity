@@ -238,6 +238,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 if (p->is_var()) {
                     auto pid = *p->_vec_id;
                     p->share_vals(_vars.at(pid));
+                    p->share_bounds(_vars.at(pid));
                 }
             }
             for (auto &pair:*f->_qterms) {
@@ -247,10 +248,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 if (p1->is_var()) {
                     auto pid1 = *p1->_vec_id;
                     p1->share_vals(_vars.at(pid1));
+                    p1->share_bounds(_vars.at(pid1));
                 }
                 if (p2->is_var()) {
                     auto pid2 = *p2->_vec_id;
                     p2->share_vals(_vars.at(pid2));
+                    p2->share_bounds(_vars.at(pid2));
                 }
             }
             for (auto &pair:*f->_pterms) {
@@ -260,6 +263,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     if (p->is_var()) {
                         auto pid = *p->_vec_id;
                         ppi.first->share_vals(_vars.at(pid));
+                        ppi.first->share_bounds(_vars.at(pid));
                     }
                 }
             }
@@ -1199,26 +1203,25 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             for(auto &cp: _cons_name){
-                if(*cp.second->_all_lazy){
-                    if(cp.second->is_convex()){
-                        relax->add_lazy(*cp.second);
+                auto c_cpy = make_shared<Constraint<T>>();
+                c_cpy->deep_copy(*cp.second);                
+                relax->merge_vars(c_cpy);
+                c_cpy->uneval();
+                if(*c_cpy->_all_lazy){
+                    if(c_cpy->is_convex()){
+                        relax->add_lazy(*c_cpy);
                     }
                     else {
-                        relax->add_lazy(*cp.second,true);
+                        relax->add_lazy(*c_cpy,true);
                     }
-                    auto c = relax->_cons_name[cp.first];
-                    relax->merge_vars(c);
-                    c->uneval();
                 }
                 else{
                     if(cp.second->is_convex()){
-                        relax->add(*cp.second);
+                        relax->add(*c_cpy);
                     }
                     else {
-                        relax->add(*cp.second,true);
+                        relax->add(*c_cpy,true);
                     }
-                    relax->merge_vars(relax->_cons_vec.back());
-                    relax->_cons_vec.back()->uneval();
                 }
             }
             if(_obj->is_convex()){
@@ -4333,6 +4336,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(auto& c_p :_cons)
             {
                 c_p.second->uneval();
+            }
+            for(auto &v_p: _vars)
+            {
+                if(v_p.second->get_lift())
+                    v_p.second->reset_bounds();
             }
         }
         

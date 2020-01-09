@@ -164,6 +164,25 @@ public:
         *this = move(c);
     }
     
+    void deep_copy(const Constraint& c){
+        this->func<type>::deep_copy(c);
+        _jac_cstr_idx = c._jac_cstr_idx;
+        _id = c._id;
+        _ctype = c._ctype;
+        _dual = c._dual;
+        _all_active = c._all_active;
+        _active = c._active;
+        this->_all_lazy = make_shared<bool>(*c._all_lazy);
+        _lazy = c._lazy;
+        _all_satisfied = c._all_satisfied;
+        _violated = c._violated;
+        _relaxed = c._relaxed;
+        this->_name = c._name;
+        this->_is_constraint = true;
+        _onCoef = c._onCoef.deep_copy();
+        _offCoef = c._offCoef.deep_copy();        
+    }
+    
     Constraint& operator=(const Constraint& c){
         _jac_cstr_idx = c._jac_cstr_idx;
         _id = c._id;
