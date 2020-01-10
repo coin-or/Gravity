@@ -610,7 +610,7 @@ namespace gravity {
         }
         
         /** let this share the bounds of p */
-        void share_bounds(const shared_ptr<param_>& p){
+        void share_bounds(shared_ptr<param_> p){
             switch (p->get_intype()) {
                 case binary_:{
                     auto pp =  static_pointer_cast<var<bool>>(p);
@@ -653,7 +653,7 @@ namespace gravity {
         }
         
         /** let this share the values of p */
-        void share_vals(const shared_ptr<param_>& p){
+        void share_vals(shared_ptr<param_> p){
             switch (p->get_intype()) {
                 case binary_:{
                     auto pp =  static_pointer_cast<var<bool>>(p);
@@ -705,8 +705,8 @@ namespace gravity {
         /** let this share the bounds of p */
         template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
         void share_bounds_(var<T2>& pp){
-            this->_lb = pp._lb;
-            this->_ub = pp._ub;
+            this->_lb->_val = pp._lb->_val;
+            this->_ub->_val = pp._ub->_val;
         }
         
         /** let this share the values of p */

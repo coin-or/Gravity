@@ -105,7 +105,7 @@ namespace gravity {
         virtual void reset_range(){};
         
         /** let p share the values and indices of current var */
-        virtual void share_vals(const shared_ptr<param_>& p){};
+        virtual void share_vals(shared_ptr<param_> p){};
         virtual void initialize_uniform(){};
         virtual void initialize_midpoint(){};
         virtual void initialize_zero(){};
@@ -114,7 +114,7 @@ namespace gravity {
         virtual void print(){};
         
         /** let this share the bounds of p */
-        virtual void share_bounds(const shared_ptr<param_>& p){};
+        virtual void share_bounds(shared_ptr<param_> p){};
 
         
         virtual void print_vals(int prec){};
@@ -649,7 +649,7 @@ namespace gravity {
         }
         
         /** let this share the values of p */
-        void share_vals(const shared_ptr<param_>& p){
+        void share_vals(shared_ptr<param_> p){
             switch (p->get_intype()) {
                 case binary_:{
                     auto pp =  static_pointer_cast<param<bool>>(p);
