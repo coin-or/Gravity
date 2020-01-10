@@ -201,13 +201,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         
-        void merge_vars(const shared_ptr<expr<type>>& e){/**<  Transfer all variables and parameters to the model. */
+        void merge_vars(const shared_ptr<expr<type>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
                 case uexp_c:{
                     auto ue = (uexpr<type>*)e.get();
                     if (ue->_son->is_function()) {
                         auto f = static_pointer_cast<func<type>>(ue->_son);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     break;
                 }
@@ -215,11 +215,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     auto be = (bexpr<type>*)e.get();
                     if (be->_lson->is_function()) {
                         auto f = static_pointer_cast<func<type>>(be->_lson);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     if (be->_rson->is_function()) {
                         auto f = static_pointer_cast<func<type>>(be->_rson);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     break;
                 }
@@ -232,13 +232,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          Subfunction of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
          @param[in] f function to merge variables and parameters with.
          */
-        void merge_vars(const shared_ptr<func<type>>& f){
+        void merge_vars(const shared_ptr<func<type>>& f, bool share_bounds = false){
             for (auto &pair:*f->_lterms) {
                 auto p = pair.second._p;
                 if (p->is_var()) {
                     auto pid = *p->_vec_id;
                     p->share_vals(_vars.at(pid));
-                    p->share_bounds(_vars.at(pid));
+                    if(share_bounds)
+                        p->share_bounds(_vars.at(pid));
                 }
             }
             for (auto &pair:*f->_qterms) {
@@ -248,12 +249,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 if (p1->is_var()) {
                     auto pid1 = *p1->_vec_id;
                     p1->share_vals(_vars.at(pid1));
-                    p1->share_bounds(_vars.at(pid1));
+                    if(share_bounds)
+                        p1->share_bounds(_vars.at(pid1));
                 }
                 if (p2->is_var()) {
                     auto pid2 = *p2->_vec_id;
                     p2->share_vals(_vars.at(pid2));
-                    p2->share_bounds(_vars.at(pid2));
+                    if(share_bounds)
+                        p2->share_bounds(_vars.at(pid2));
                 }
             }
             for (auto &pair:*f->_pterms) {
@@ -263,12 +266,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     if (p->is_var()) {
                         auto pid = *p->_vec_id;
                         ppi.first->share_vals(_vars.at(pid));
-                        ppi.first->share_bounds(_vars.at(pid));
+                        if(share_bounds)
+                            ppi.first->share_bounds(_vars.at(pid));
                     }
                 }
             }
             if (f->_expr) {
-                merge_vars(f->_expr);
+                merge_vars(f->_expr, share_bounds);
             }
         }
         
@@ -322,20 +326,22 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             for(auto &cp: m._cons_name){
-                if(*cp.second->_all_lazy){
-                    add_lazy(*cp.second);
-                    auto c = _cons_name[cp.first];
-                    merge_vars(c);
-                    c->uneval();
+                auto c_cpy = make_shared<Constraint<type>>();
+                c_cpy->deep_copy(*cp.second);
+                merge_vars(c_cpy);
+                c_cpy->uneval();
+                if(*c_cpy->_all_lazy){
+                    add_lazy(*c_cpy);
                 }
                 else{
-                    add(*cp.second);
-                    merge_vars(_cons_vec.back());
-                    _cons_vec.back()->uneval();
+                    add(*c_cpy);
                 }
             }
-            if(m._obj)
-                set_objective(*m._obj, _objt);
+            if(m._obj){
+                func<type> obj_cpy;
+                obj_cpy.deep_copy(*m._obj);
+                set_objective(obj_cpy, _objt);
+            }
             return *this;
         }
         
@@ -1205,7 +1211,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(auto &cp: _cons_name){
                 auto c_cpy = make_shared<Constraint<T>>();
                 c_cpy->deep_copy(*cp.second);                
-                relax->merge_vars(c_cpy);
+                relax->merge_vars(c_cpy,true);
                 c_cpy->uneval();
                 if(*c_cpy->_all_lazy){
                     if(c_cpy->is_convex()){
@@ -1235,8 +1241,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 obj_ub = _obj->_range->second;
                 var<type> v_obj("v_obj",obj_lb,obj_ub);
                 relax->add(v_obj);
-                Constraint<> obj("obj");
-                obj = v_obj - *_obj;
+                auto obj_cpy = make_shared<func<T>>();
+                obj_cpy->deep_copy(*_obj);
+                relax->merge_vars(obj_cpy,true);
+                Constraint<T> obj("obj");
+                obj = v_obj - *obj_cpy;
                 if(_objt==minimize){
                     if(obj.is_convex())
                         relax->add(obj >=0);
@@ -3191,8 +3200,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             //    vector<Constraint*> cons;
             if (_type!=nlin_m) {//Polynomial, Quadratic or Linear
                 
-                //                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
-                //                return;
+                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
+                return;
                 unsigned nr_threads = std::thread::hardware_concurrency();
                 if(nr_threads>_cons_vec.size()){
                     nr_threads=_cons_vec.size();
@@ -4337,11 +4346,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             {
                 c_p.second->uneval();
             }
-            for(auto &v_p: _vars)
-            {
-                if(v_p.second->get_lift())
-                    v_p.second->reset_bounds();
-            }
+//            for(auto &v_p: _vars)
+//            {
+//                if(v_p.second->get_lift())
+//                    v_p.second->reset_bounds();
+//            }
         }
         
         void fill_in_cstr_bounds(double* g_l ,double* g_u) {
