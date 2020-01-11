@@ -326,7 +326,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             o1_ids.filter_refs(keep_refs);
             o2_ids.filter_refs(keep_refs);
         }
-        
+
         // collect the number of partitions of each variable
         int num_partns1 = *o1._num_partns;
         int num_partns2 = *o2._num_partns;
@@ -340,8 +340,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             func<double> prod_b2 = (o1.get_lb()*o1.get_ub()).in(unique_ids);
             func<double> prod_b3 = (o1.get_ub()*o1.get_ub()).in(unique_ids);
             
-            lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3), func<type>());
-            ub = gravity::max(gravity::max(prod_b1,prod_b2),prod_b3);
+            lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(unique_ids), func<type>());
+            ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),prod_b3);
 
 
 //            lb = max(min(min(o1.get_lb()*o1.get_lb(),o1.get_lb()*o1.get_ub()), o1.get_ub()*o1.get_ub()), 0);
@@ -365,19 +365,37 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 //                ub.set_val(key1, std::max(std::max(prod_b1,prod_b2),prod_b3));
 //            }
         }
-        else //if variables are different, need to check all four combinations
+        else /* if variables are different */
         {
-            auto lb1 = o1.get_lb();
-            auto ub1 = o1.get_ub();
-            auto lb2 = o2.get_lb();
-            auto ub2 = o2.get_ub();
+            auto it = _vars_name.find(name);
+            if(it!=_vars_name.end()){
+                auto vlift = static_pointer_cast<var<type>>(it->second);
+                vlift->_lb->merge_vars(*vlift->_ub);
+                auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);
+                unique_ids.filter_refs(new_ids);
+                o1_ids.filter_refs(new_ids);
+                o2_ids.filter_refs(new_ids);
+                auto o1_lb = vlift->get_bilinear_lb1();
+                auto o1_ub = vlift->get_bilinear_ub1();
+                o1_lb->_indices->add_refs(o1_ids);
+                o1_ub->_indices->add_refs(o1_ids);
+                auto o2_lb = vlift->get_bilinear_lb2();
+                auto o2_ub = vlift->get_bilinear_ub2();
+                o2_lb->_indices->add_refs(o2_ids);
+                o2_ub->_indices->add_refs(o2_ids);
+            }
+            
+            auto lb1 = o1.get_lb().in(o1_ids);
+            auto ub1 = o1.get_ub().in(o1_ids);
+            auto lb2 = o2.get_lb().in(o2_ids);
+            auto ub2 = o2.get_ub().in(o2_ids);
             func<double> prod_b1 = (lb1*lb2).in(unique_ids);
             func<double> prod_b2 = (lb1*ub2).in(unique_ids);
             func<double> prod_b3 = (ub1*lb2).in(unique_ids);
             func<double> prod_b4 = (ub1*ub2).in(unique_ids);
 
-            lb = gravity::min(gravity::min(prod_b1,prod_b2),gravity::min(prod_b3,prod_b4));
-            ub = gravity::max(gravity::max(prod_b1,prod_b2),gravity::max(prod_b3,prod_b4));
+            lb = gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids),gravity::min(prod_b3,prod_b4).in(unique_ids));
+            ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),gravity::max(prod_b3,prod_b4).in(unique_ids));
 //            for (int i=0; i<unique_ids.size(); i++) {
 //                //calculate all the possibilities and assign the worst case
 //                size_t id1;
@@ -2922,6 +2940,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             auto added = vlift->add_bounds(lb_p,ub_p);
             lt._p = make_shared<var<type>>(vlift->in(ids));
             if(!added.empty()){
+                vlift->_lb->update_vars();
+                vlift->_ub->update_vars();
                 assert(o1._indices->size()==o2._indices->size());
                 if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
                     auto keep_refs = ids.get_diff_refs(added);
@@ -5965,7 +5985,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
                     if(v._lift){
                         fixed_point[key_lb]=true;
                         fixed_point[key_ub]=true;
-                        DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                     }
                     else{
                         fixed_point[key_lb]=false;
@@ -5977,7 +5997,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
                     {
                         fixed_point[key_lb]=true;
                         fixed_point[key_ub]=true;
-                        DebugOn("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+                        DebugOn("Off var: "<<vname<<"\t"<<key<<endl);
                     }
                     
                     interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
@@ -6173,6 +6193,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
                     //this->print();
                     
                     relaxed_model->reset_constrs();
+                    relaxed_model->reset_lifted_vars_bounds();
                     relaxed_model->reindex();
                     solver<> LB_solver(relaxed_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);

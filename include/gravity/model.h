@@ -4341,6 +4341,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return g;
         }
         
+        void reset_lifted_vars_bounds() {
+            for(auto &v_p: _vars)
+            {
+                if(v_p.second->get_lift())
+                    v_p.second->reset_bounds();
+            }
+        }
+        
         void reset_constrs() {
             for(auto& c_p :_cons)
             {
@@ -6775,6 +6783,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
+        res.update_vars();
         return res;
     }
     
@@ -6789,6 +6798,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
+        res.update_vars();
         return res;
     }
     
@@ -6831,12 +6841,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
+        res.update_vars();
         return res;
     }
     
     template<class T>
     func<T> min(const func<T>& p1, const func<T>& p2){
         func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+//        auto lson = static_ptr_cast<func<T>>(res.get_lson());
+//        auto rson = static_ptr_cast<func<T>>(res.get_rson());
         res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
         res._all_convexity = undet_;
         res._range->first = gravity::min(p1._range->first,p2._range->first);
@@ -6845,6 +6858,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res._expr->_range->second = res._range->second;
         res._expr->_all_convexity = res._all_convexity;
         res._expr->_all_sign = res._all_sign;
+        res.update_vars();
         return res;
     }
     

@@ -37,7 +37,8 @@ namespace gravity {
         string                                 _to_str = "noname"; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
-        
+        virtual shared_ptr<constant_> get_lson() const {return nullptr;};
+        virtual shared_ptr<constant_> get_rson() const {return nullptr;};
         virtual void uneval(){};
         virtual void update_double_index(){};
         void propagate_dim(size_t d){
@@ -315,6 +316,9 @@ namespace gravity {
         bexpr(){
             this->_type = bexp_c;
         }
+        
+        shared_ptr<constant_> get_lson() const {return _lson;};
+        shared_ptr<constant_> get_rson() const {return _rson;};
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         bexpr(const bexpr<T2>& exp){ /**< Copy constructor from binary expression tree */

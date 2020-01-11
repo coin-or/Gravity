@@ -489,8 +489,12 @@ namespace gravity {
         }
         
         void reset_bounds(){
+//            _lb->_evaluated = false;
+//            _ub->_evaluated = false;
             _lb->uneval();
             _ub->uneval();
+            _lb->eval_all();
+            _ub->eval_all();
         }
         
         //    var in(const node_pairs& np){
@@ -548,8 +552,18 @@ namespace gravity {
         type    get_ub(const string& key) const;
         
         param<type>    get_lb() const;
-        
         param<type>    get_ub() const;
+        
+        /* If this is a lifted variable lifted(xy)= xy, return the lowerbound on x*/
+        shared_ptr<param<type>>    get_bilinear_lb1() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the lowerbound on y*/
+        shared_ptr<param<type>>    get_bilinear_lb2() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the upperbound on x*/
+        shared_ptr<param<type>>    get_bilinear_ub1() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the upperbound on y*/
+        shared_ptr<param<type>>    get_bilinear_ub2() const;
+        
+        
         
         
         template<typename T=type,
@@ -728,10 +742,10 @@ namespace gravity {
         void update_dim(){
             this->_dim[0] = this->_indices->size();
             this->_val->resize(this->get_dim());
-            _lb->_dim[0] = _lb->_indices->size();
-            _ub->_dim[0] = _ub->_indices->size();
-            _lb->_val->resize(_lb->get_dim());
-            _ub->_val->resize(_ub->get_dim());
+            _lb->_dim[0] = std::max(_lb->_dim[0], _lb->_indices->size());
+            _ub->_dim[0] = std::max(_ub->_dim[0], _ub->_indices->size());
+            _lb->_val->resize(_lb->_dim[0]);
+            _ub->_val->resize(_ub->_dim[0]);
         }
         
         /**
@@ -760,20 +774,26 @@ namespace gravity {
                     _lb->_indices->add(ids);
                     _ub->_indices->add(ids);
                     this->update_dim();
-                    for (auto i = 0; i< ids.size(); i++) {
-                        auto idx = lb.get_id_inst(i);
-                        auto key = ids._keys->at(idx);
-                        auto lb_idx = _lb->_indices->_keys_map->at(key);
-                        auto lb_val = lb._val->at(idx);
-                        _lb->_val->at(lb_idx) = lb_val; /* Update the bound */
-                        _lb->update_range(lb_val);
-                        this->update_range(lb_val);
-                        auto ub_idx = _ub->_indices->_keys_map->at(key);
-                        auto ub_val = ub._val->at(idx);
-                        _ub->_val->at(ub_idx) = ub_val; /* Update the bound */
-                        _ub->update_range(ub_val);
-                        this->update_range(ub_val);
-                    }
+                    _lb->index_in(indices(*_lb->_indices));/* Update subexpression indices */
+                    _ub->index_in(indices(*_ub->_indices));/* Update subexpression indices */
+                    _lb->uneval();
+                    _ub->uneval();
+                    _lb->eval_all();
+                    _ub->eval_all();
+//                    for (auto i = 0; i< ids.size(); i++) {
+//                        auto idx = lb.get_id_inst(i);
+//                        auto key = ids._keys->at(idx);
+//                        auto lb_idx = _lb->_indices->_keys_map->at(key);
+//                        auto lb_val = lb._val->at(idx);
+//                        _lb->_val->at(lb_idx) = lb_val; /* Update the bound */
+//                        _lb->update_range(lb_val);
+//                        this->update_range(lb_val);
+//                        auto ub_idx = _ub->_indices->_keys_map->at(key);
+//                        auto ub_val = ub._val->at(idx);
+//                        _ub->_val->at(ub_idx) = ub_val; /* Update the bound */
+//                        _ub->update_range(ub_val);
+//                        this->update_range(ub_val);
+//                    }
                 }
                 return added;
             }
@@ -789,7 +809,7 @@ namespace gravity {
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);
-                this->_off.resize(s._dim[0]);
+                this->_off.resize(s._dim[0],false);
                 _lb->allocate_mem();
                 _ub->allocate_mem();
                 return *this;

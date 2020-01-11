@@ -746,10 +746,10 @@ namespace gravity {
             //                }
             //            }
             _indices = make_shared<indices>(ids);
-            _dim[0] = ids.size();
-            //            if(_expr){// TODO take care of nonlinear part
-            //                _expr->in(ids);
-            //            }
+            _dim[0] = std::max(_dim[0], ids.size());
+            if(_expr){// TODO take care of nonlinear part
+                _expr->in(ids);
+            }
             return *this;
         }
         
@@ -2609,8 +2609,8 @@ namespace gravity {
         
         
         template<typename... Args>
-        void index_in(const indices& ids1, Args&&... args) {
-            _indices = make_shared<indices>(ids1, args...);
+        void index_in(const indices& ids) {
+            this->in(ids);
         }
         
         void print() {
