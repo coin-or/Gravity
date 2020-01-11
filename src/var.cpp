@@ -213,6 +213,67 @@ type    var<type>::get_ub(size_t i) const {
         lb._dim[1] = _lb->_dim[1];
         return lb;
     };
+
+
+/* If this is a lifted variable lifted(xy)= xy, return the lowerbound on x*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_lb1() const{
+        assert(_lift);
+        auto lson = static_pointer_cast<func<type>>(_lb->_expr->get_lson());
+        auto rson = static_pointer_cast<func<type>>(lson->_expr->get_rson());
+        /* prod_b2 = (lb1*ub2);*/
+        for (auto p_it: *rson->_params) {
+            if (p_it.first.find("lb") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(xy)= xy, return the lowerbound on y*/
+    template<typename type>
+    shared_ptr<param<type>> var<type>::get_bilinear_lb2() const{
+        assert(_lift);
+        auto rson = static_pointer_cast<func<type>>(_lb->_expr->get_rson());
+        auto lson = static_pointer_cast<func<type>>(rson->_expr->get_lson());
+        /* prod_b3 = (ub1*lb2);*/
+        for (auto p_it: *lson->_params) {
+            if (p_it.first.find("lb") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(xy)= xy, return the upperbound on x*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_ub1() const{
+        assert(_lift);
+        auto rson = static_pointer_cast<func<type>>(_lb->_expr->get_rson());
+        auto lson = static_pointer_cast<func<type>>(rson->_expr->get_lson());
+        /* prod_b3 = (ub1*lb2);*/
+        for (auto p_it: *lson->_params) {
+            if (p_it.first.find("ub") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(xy)= xy, return the upperbound on y*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_ub2() const{
+        assert(_lift);
+        auto lson = static_pointer_cast<func<type>>(_lb->_expr->get_lson());
+        auto rson = static_pointer_cast<func<type>>(lson->_expr->get_rson());
+        /* prod_b2 = (lb1*ub2);*/
+        for (auto p_it: *rson->_params) {
+            if (p_it.first.find("ub") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
     
     template<typename type>
     param<type>    var<type>::get_ub() const {

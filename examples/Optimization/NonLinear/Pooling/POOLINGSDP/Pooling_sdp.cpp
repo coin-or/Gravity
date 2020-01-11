@@ -355,7 +355,7 @@ int main (int argc, char * argv[]) {
     auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
 //    SPP->print_solution();
-    SPP->print_constraints_stats(1e-6);
+//    SPP->print_constraints_stats(1e-6);
     
     //    SPP->project();
     //    SPP->print();

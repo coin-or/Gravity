@@ -564,7 +564,7 @@ public:
         return _keys_map->count(key)!=0;
     }
     
-    /** Returns a vector of bools indicating if the ith reference is in ids but not in this. The function iterates over key references in _ids. */
+    /** Returns a vector of bools indicating if the ith reference is in this but not in ids. The function iterates over key references in _ids. */
     vector<bool> get_diff_refs(const indices& ids) const{
         vector<bool> res;
         // assert(_ids);
@@ -1349,6 +1349,32 @@ public:
         return added;
     }
     
+    
+    /*
+     Add refs to all keys found in ids
+     */
+    template<typename... Args>
+    void add_refs(const indices& ids) {
+        if(ids.is_matrix_indexed()){
+            if(!is_matrix_indexed()){
+                throw invalid_argument("calling add_refs(ids) with a matrix indexed set while current set is not matrix indexed.");
+            }
+            auto nb_rows = ids.get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                _ids->push_back(ids._ids->at(i));
+            }
+        }
+        else if(ids.is_indexed()){
+            for(auto &key_ref: ids._ids->at(0)){
+                add_ref(ids._keys->at(key_ref));
+            }
+        }
+        else {
+            for(auto &key: *ids._keys){
+                add_ref(key);
+            }
+        }
+    }
     
     
     

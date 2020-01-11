@@ -1075,8 +1075,7 @@ namespace gravity {
                 throw invalid_argument("Cannot call param::add_val(type val) on matrix");
             }
             _val->push_back(val);
-            _off.resize(_off.size()+1);
-            _off[_off.size()-1] = 0;
+            _off.push_back(false);
             update_range(val);
             _dim[0] = _val->size();
         }
@@ -1102,8 +1101,7 @@ namespace gravity {
             }
             _dim[0] = max(_dim[0],i+1);
             _val->resize(max(_val->size(),i+1));
-            _off.resize(max(_off.size(),i+1));
-            _off[_off.size()-1] = 0;
+            _off.push_back(false);
             _val->at(i) = val;
             update_range(val);
         }
@@ -1165,8 +1163,7 @@ namespace gravity {
                 _indices->_keys->resize(_val->size());
                 _indices->_keys->at(index) = key;
                 _val->at(index) = val;
-                _off.resize(max(_off.size(),index+1));
-                _off[_off.size()-1] = 0;
+                _off.resize(max(_off.size(),index+1), false);
                 update_range(val);
                 return index;
             }
@@ -1815,11 +1812,7 @@ namespace gravity {
                         _dim[0] = dim;
                     }
                 }
-                _off.resize(dim);
-                for(auto i=0;i<dim;i++)
-                {
-                    _off[i] = false;
-                }
+                _off.resize(dim,false);
                 param res(*this);
                 res._name += ".in("+ids.get_name()+")";
                 return res;
