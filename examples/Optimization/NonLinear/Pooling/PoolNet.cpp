@@ -1644,8 +1644,8 @@ vector<indices> PoolNet::pool_get_pairs_chord(const vector<pair<string,vector<No
     pairs_from.set_name("pairs_from");
     auto pairs_to = indices(nodes);
     pairs_to.set_name("pairs_to");
-//    if(!this->bus_pairs_chord.empty()){
-//        return this->bus_pairs_chord;
+//    if(!this->node_pairs_chord.empty()){
+//        return this->node_pairs_chord;
 //    }
     map<string,pair<Node*,Node*>> unique_pairs;
     map<string,int> likenames;
@@ -1664,7 +1664,7 @@ vector<indices> PoolNet::pool_get_pairs_chord(const vector<pair<string,vector<No
                 if(name1==name2 && name1=="y" && !likey.has_key(name)){
                     likey.add(name);
                 }
-                bus_pairs_chord.add(name);
+                node_pairs_chord.add(name);
                 pairs_from.add_ref(bag.second[i]->_name);
                 pairs_to.add_ref(bag.second[i+1]->_name);
             }
@@ -1680,12 +1680,12 @@ vector<indices> PoolNet::pool_get_pairs_chord(const vector<pair<string,vector<No
             if(name1==name2 && name1=="y" && !likey.has_key(name)){
                 likey.add(name);
             }
-            bus_pairs_chord.add(name);
+            node_pairs_chord.add(name);
             pairs_from.add_ref(bag.second[0]->_name);
             pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
         }
     }
-    res.push_back(bus_pairs_chord);
+    res.push_back(node_pairs_chord);
     res.push_back(likeq);
     res.push_back(likey);
     res.push_back(pairs_from);

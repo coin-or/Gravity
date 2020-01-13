@@ -180,20 +180,20 @@ TEST_CASE("hard nlp") {
 TEST_CASE("testing projection1") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
 
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs) == 0);
+    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
+    Mtest.add(SOC.in(node_pairs) == 0);
 
-    auto subset = bus_pairs.exclude("4,1");
+    auto subset = node_pairs.exclude("4,1");
     Constraint<> PAD("PAD");
     PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
     Mtest.add(PAD.in(subset)<=2);
@@ -215,16 +215,16 @@ TEST_CASE("testing projection1") {
 TEST_CASE("testing projection2") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
-    auto subset = bus_pairs.exclude("4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    auto subset = node_pairs.exclude("4,1");
 
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij");
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
 
     Constraint<> SOC("SOC");
     SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
@@ -232,8 +232,8 @@ TEST_CASE("testing projection2") {
 
 
     Constraint<> PAD("PAD");
-    PAD = 2*R_Wij.in(bus_pairs) - Im_Wij.in(bus_pairs);
-    Mtest.add(PAD.in(bus_pairs)<=2);
+    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
+    Mtest.add(PAD.in(node_pairs)<=2);
 
 
     Mtest.min(sum(R_Wij));
@@ -1618,17 +1618,17 @@ TEST_CASE("testing sum_ith() func<> version"){
 TEST_CASE("testing get_interaction_grap()") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);    
-    Mtest.add(SOC.in(bus_pairs) <= 0);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs)*Wii.to(node_pairs);    
+    Mtest.add(SOC.in(node_pairs) <= 0);
     Mtest.print();
     auto g = Mtest.get_interaction_graph();
     g.print();
@@ -1640,22 +1640,22 @@ TEST_CASE("testing get_interaction_grap()") {
 TEST_CASE("testing constraint delete") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs));
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs);
+    Mtest.add(SOC.in(node_pairs));
     
     Constraint<> PAD("PAD");
     PAD = 2*R_Wij - Im_Wij;
-    Mtest.add(PAD.in(bus_pairs)<=2);
+    Mtest.add(PAD.in(node_pairs)<=2);
     
     Mtest.print();
     CHECK(Mtest.get_nb_cons() == 8);
@@ -1705,16 +1705,16 @@ TEST_CASE("Few Degrees Of Freedom") {
 TEST_CASE("Paths") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs) <= 0);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs)*Wii.to(node_pairs);
+    Mtest.add(SOC.in(node_pairs) <= 0);
     Mtest.print();
     auto g = Mtest.get_interaction_graph();
     g.print();
