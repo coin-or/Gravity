@@ -110,7 +110,8 @@ namespace gravity {
         virtual void initialize_midpoint(){};
         virtual void initialize_zero(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
-        
+        virtual void scale(double unit){};
+        virtual double get_scale_factor(double unit){return 0;};
         virtual void print(){};
         
         /** let this share the bounds of p */

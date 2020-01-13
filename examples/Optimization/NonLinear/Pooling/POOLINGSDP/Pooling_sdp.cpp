@@ -55,7 +55,7 @@ int main (int argc, char * argv[]) {
     }
     
     
-    auto res=g.get_pairs_chord(bags_3d);
+    auto res=g.pool_get_pairs_chord(bags_3d);
     auto pairs_chordal=res[0];
     DebugOn("bus pairs chordal \n");
     for(auto k: *pairs_chordal._keys){

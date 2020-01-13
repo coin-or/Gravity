@@ -4245,6 +4245,15 @@ namespace gravity {
         template<typename T>
         func<type> replace(const var<T>& v, const func<T>& f) const;/**<  Replace v with function f everywhere it appears */
         
+        /* Get the scaling factor needed to make sure all coefficients are in [-unit,unit] */
+        double get_scale_factor(double unit);
+        
+        /* Make sure all variables' bounds are in [-unit,unit] */
+        void scale_vars(double unit);
+        
+        /* Make sure all coefficient values are in [-unit,unit] */
+        void scale_coefs(double unit);
+        
         inline type eval_cst(size_t i) {
             return eval_coef(_cst, i);
         }

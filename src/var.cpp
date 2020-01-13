@@ -59,6 +59,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
+    _original_vars = v._original_vars;
     return *this;
 };
 
@@ -73,6 +74,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
+    _original_vars = move(v._original_vars);
     return *this;
 };
 
