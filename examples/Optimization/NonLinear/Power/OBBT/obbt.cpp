@@ -141,8 +141,8 @@ int main (int argc, char * argv[]) {
     auto arcs = indices(grid.arcs);
     auto v_max = grid.v_max.in(nodes);
     auto bags_3d=grid.decompose_bags_3d();
-    auto bus_pairs = grid.get_bus_pairs();
-    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    auto node_pairs = grid.get_node_pairs();
+    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);

@@ -48,14 +48,14 @@ int main (int argc, char * argv[]) {
     }
     
     
-    auto pairs=g.get_bus_pairs();
+    auto pairs=g.get_node_pairs();
     DebugOn("bus pairs \n");
     for(auto k: *pairs._keys){
         DebugOn(k<<endl);
     }
     
     
-    auto res=g.pool_get_pairs_chord(bags_3d);
+    auto res=poolnet.pool_get_pairs_chord(bags_3d);
     auto pairs_chordal=res[0];
     DebugOn("bus pairs chordal \n");
     for(auto k: *pairs_chordal._keys){

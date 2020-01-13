@@ -66,7 +66,7 @@ int main (int argc, char * argv[])
     grid.readgrid(fname,false);
     
     /* Grid Stats */
-    auto bus_pairs = grid.get_bus_pairs();
+    auto node_pairs = grid.get_node_pairs();
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -92,8 +92,8 @@ int main (int argc, char * argv[])
     auto gs = grid.gs.in(nodes);
     auto S_max = grid.S_max.in(arcs);
     auto b = grid.b.in(arcs);
-    auto th_min = grid.th_min.in(bus_pairs);
-    auto th_max = grid.th_max.in(bus_pairs);
+    auto th_min = grid.th_min.in(node_pairs);
+    auto th_max = grid.th_max.in(node_pairs);
     
     /** Declare model */
     Model<> DCOPF("DCOPF Model");
@@ -127,13 +127,13 @@ int main (int argc, char * argv[])
         
         /* Phase Angle Bounds constraints */
         Constraint<> PAD_UB("PAD_UB");
-        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_UB -= th_max;
-        DCOPF.add(PAD_UB.in(bus_pairs) <= 0);
+        DCOPF.add(PAD_UB.in(node_pairs) <= 0);
         Constraint<> PAD_LB("PAD_LB");
-        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_LB -= th_min;
-        DCOPF.add(PAD_LB.in(bus_pairs) >= 0);
+        DCOPF.add(PAD_LB.in(node_pairs) >= 0);
         
         /* Line Limits constraints */
         Constraint<> Thermal_UB("Thermal_UB");
@@ -182,13 +182,13 @@ int main (int argc, char * argv[])
         
         /* Phase Angle Bounds constraints */
         Constraint<> PAD_UB("PAD_UB");
-        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_UB -= th_max;
-        DCOPF.add(PAD_UB.in(bus_pairs) <= 0);
+        DCOPF.add(PAD_UB.in(node_pairs) <= 0);
         Constraint<> PAD_LB("PAD_LB");
-        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_LB -= th_min;
-        DCOPF.add(PAD_LB.in(bus_pairs) >= 0);
+        DCOPF.add(PAD_LB.in(node_pairs) >= 0);
     }
     /* Solver selection */
     if (use_cplex) {

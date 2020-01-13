@@ -93,9 +93,9 @@ int main (int argc, char * argv[])
     /* Thermal limits */
     auto Smax = grid.Smax.in(arcs);
     /* Phase angle Bounds */
-    auto bus_pairs = grid.get_bus_pairs();
-    auto th_min = grid.th_min.in(bus_pairs);
-    auto th_max = grid.th_max.in(bus_pairs);
+    auto node_pairs = grid.get_node_pairs();
+    auto th_min = grid.th_min.in(node_pairs);
+    auto th_max = grid.th_max.in(node_pairs);
     /* Generators' costs */
     auto c0 = grid.c0.in(gens);
     auto c1 = grid.c1.in(gens);
@@ -162,13 +162,13 @@ int main (int argc, char * argv[])
     
     /* Phase Angle Bounds constraints */
     Constraint<Cpx> PAD_UB("PAD_UB");
-    PAD_UB = ang(V.from(bus_pairs)) - ang(V.to(bus_pairs));
+    PAD_UB = ang(V.from(node_pairs)) - ang(V.to(node_pairs));
     PAD_UB -= th_max;
-    CPXOPF.add(PAD_UB.in(bus_pairs) <= 0);
+    CPXOPF.add(PAD_UB.in(node_pairs) <= 0);
     Constraint<Cpx> PAD_LB("PAD_LB");
-    PAD_LB = ang(V.from(bus_pairs)) - ang(V.to(bus_pairs));
+    PAD_LB = ang(V.from(node_pairs)) - ang(V.to(node_pairs));
     PAD_LB -= th_min;
-    CPXOPF.add(PAD_LB.in(bus_pairs) >= 0);
+    CPXOPF.add(PAD_LB.in(node_pairs) >= 0);
     
     /*  Thermal Limit Constraints */
     Constraint<Cpx> Thermal_Limit_from("Thermal_Limit_from");

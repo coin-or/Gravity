@@ -62,7 +62,7 @@ int main (int argc, char * argv[])
     
     
     /* Grid Stats */
-    auto bus_pairs = grid.get_bus_pairs();
+    auto node_pairs = grid.get_node_pairs();
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
@@ -117,8 +117,8 @@ int main (int argc, char * argv[])
     var<>  Im_Wij("Im_Wij", grid.wi_min, grid.wi_max);
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP.add(Wii.in(nodes));
-    SOCP.add(R_Wij.in(bus_pairs));
-    SOCP.add(Im_Wij.in(bus_pairs));
+    SOCP.add(R_Wij.in(node_pairs));
+    SOCP.add(Im_Wij.in(node_pairs));
     
     /* Initialize variables */
     R_Wij.initialize_all(1.0);
@@ -133,8 +133,8 @@ int main (int argc, char * argv[])
     /* Second-order cone constraints */
     bool convexify;
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    SOCP.add(SOC.in(bus_pairs) <= 0);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs)*Wii.to(node_pairs);
+    SOCP.add(SOC.in(node_pairs) <= 0);
 
     /* Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -166,12 +166,12 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add(PAD_UB.in(bus_pairs));
+    SOCP.add(PAD_UB.in(node_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add(PAD_LB.in(bus_pairs));
+    SOCP.add(PAD_LB.in(node_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
@@ -187,18 +187,18 @@ int main (int argc, char * argv[])
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
-    LNC1 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
-    LNC1 -= grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
-    LNC1 -= grid.v_max.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
-    LNC1 -= grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SOCP.add(LNC1.in(bus_pairs) >= 0);
+    LNC1 += (grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC1 -= grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
+    LNC1 -= grid.v_max.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
+    LNC1 -= grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
+    SOCP.add(LNC1.in(node_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
-    LNC2 += (grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
-    LNC2 -= grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.to(bus_pairs)+grid.v_max.to(bus_pairs))*Wii.from(bus_pairs);
-    LNC2 -= grid.v_min.from(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)+grid.v_max.from(bus_pairs))*Wii.to(bus_pairs);
-    LNC2 += grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs)*grid.cos_d*(grid.v_min.from(bus_pairs)*grid.v_min.to(bus_pairs) - grid.v_max.from(bus_pairs)*grid.v_max.to(bus_pairs));
-    SOCP.add(LNC2.in(bus_pairs) >= 0);
+    LNC2 += (grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
+    LNC2 -= grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
+    LNC2 -= grid.v_min.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
+    LNC2 += grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
+    SOCP.add(LNC2.in(node_pairs) >= 0);
     
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
