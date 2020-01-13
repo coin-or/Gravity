@@ -70,6 +70,48 @@ using namespace gravity;
 //
 //@objective(m, Min, x[1]+x[2]+x[3])
 
+
+TEST_CASE("Varialbe Scaling") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    M.add(x.in(range(1,8)));
+    
+    Constraint<> C1("C1");
+    C1 = 0.0025*(x[4] + x[6]);
+    M.add(C1 <= 1);
+    
+    Constraint<> C2("C2");
+    C2 = 0.0025*(x[5] - x[4] + x[7]);
+    M.add(C2 <= 1);
+    
+    Constraint<> C3("C3");
+    C3 = 0.01*(x[8]-x[5]);
+    M.add(C3 <= 1);
+    
+    Constraint<> C4("C4");
+    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
+    M.add(C4 <= 83333.333);
+    Constraint<> C5("C5");
+    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
+    M.add(C5 <= 0);
+    Constraint<> C6("C6");
+    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
+    M.add(C6 <= 0);
+    
+    M.min(x[1]+x[2]+x[3]);
+    M.scale_vars(10);
+    double coef_scale = 100;
+    M.scale_coefs(coef_scale);
+    M.print();
+    solver<> s(M,ipopt);
+    s.run(5,1e-6);
+    CHECK(std::abs(M.get_obj_val()-704.9248) < 1e-3);
+}
+
 TEST_CASE("hard nlp") {
     Model<> M("Test");
     param<> lb("x_lb");
@@ -81,12 +123,28 @@ TEST_CASE("hard nlp") {
     Constraint<> C1("C1");
     C1 = 0.0025*(x[4] + x[6]);
     M.add(C1 <= 1);
+    
+    Constraint<> RLT1("RLT1");
+    RLT1 = pow(0.0025*(x[4] + x[6]) - 1, 2);
+    M.add(RLT1 <= 0);
+    
     Constraint<> C2("C2");
     C2 = 0.0025*(x[5] - x[4] + x[7]);
     M.add(C2 <= 1);
+    
+    Constraint<> RLT2("RLT2");
+    RLT2 = pow(0.0025*(x[5] - x[4] + x[7])-1, 2);
+    M.add(RLT2 <= 0);
+    
     Constraint<> C3("C3");
     C3 = 0.01*(x[8]-x[5]);
     M.add(C3 <= 1);
+    
+    Constraint<> RLT3("RLT3");
+    RLT3 = pow(0.01*(x[8]-x[5])-1, 2);
+    M.add(RLT3 <= 0);
+    
+    
     Constraint<> C4("C4");
     C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
     M.add(C4 <= 83333.333);
@@ -96,33 +154,25 @@ TEST_CASE("hard nlp") {
     Constraint<> C6("C6");
     C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
     M.add(C6 <= 0);
+    
+    
+    
     M.min(x[1]+x[2]+x[3]);
-    M.print();
-    auto g = M.get_interaction_graph();
-    g.pool_get_tree_decomp_bags();
-    
-    auto bags_3d=g.pool_decompose_bags_3d();
 
-    
-    DebugOn("bags \n");
-    for(auto bag:bags_3d){
-        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
-    }
-    
-    
-    auto pairs=g.get_bus_pairs();
-    DebugOn("bus pairs \n");
-    for(auto k: *pairs._keys){
-        DebugOn(k<<endl);
-    }
-    
-    auto LB = M.relax();
+//    M.scale_vars(100);
+//    double coef_scale = 100;
+//    M.scale_coefs(coef_scale);
+    M.print();
+
+    auto determinant_level = 1;
+    bool add_Rank1 = true;
+    auto LB = M.relax(determinant_level,add_Rank1);
     LB->print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto status = M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    LB->print_constraints_stats(1e-6);
+    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();
 }

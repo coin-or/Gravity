@@ -588,7 +588,7 @@ void Net::get_tree_decomp_bags() {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
-                //DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
+                DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
             }
         }
         if(unique_bags.insert(bag).second==true){
@@ -851,16 +851,16 @@ std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_b
 //}
 
 /** Return the vector of arcs ignoring parallel lines **/
-indices Net::get_bus_pairs(){
-    if(!bus_pairs.empty()){
-        return bus_pairs;
+indices Net::get_node_pairs(){
+    if(!node_pairs.empty()){
+        return node_pairs;
     }
     for (auto a: arcs) {
         if (!a->_parallel) {
-            bus_pairs.add(a->_src->_name+","+a->_dest->_name);
+            node_pairs.add(a->_src->_name+","+a->_dest->_name);
         }
     }
-    return bus_pairs;
+    return node_pairs;
 }
 
 vector<Path*> Net::get_cycle_basis(){
@@ -1382,7 +1382,7 @@ void Net::combine(Node* src, Path* p){
 //}
 
 
-//std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
+//std::vector<gravity::index_pair*> Net::get_node_pairs_all(){
 //    vector<gravity::index_pair*> res;
 //    string ni, nj;
 //    for(int i = 0; i < nodes.size()-1; i++) {
@@ -1396,14 +1396,13 @@ void Net::combine(Node* src, Path* p){
 //}
 vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
     vector<indices> res;
-    indices likeq("likeq");
-    indices likey("likey");
+    auto pairs = indices("pairs_chordal");
     auto pairs_from = indices(nodes);
-    pairs_from.set_name("pairs_from");
+    pairs_from.set_name("pairs_chordal_from");
     auto pairs_to = indices(nodes);
-    pairs_to.set_name("pairs_to");
-//    if(!this->bus_pairs_chord.empty()){
-//        return this->bus_pairs_chord;
+    pairs_to.set_name("pairs_chordal_to");
+//    if(!this->node_pairs_chord.empty()){
+//        return this->node_pairs_chord;
 //    }
     map<string,pair<Node*,Node*>> unique_pairs;
     map<string,int> likenames;
@@ -1413,39 +1412,37 @@ vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& b
         for (size_t i = 0; i< bag.second.size()-1; i++) {
             if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
            
-                auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
-                auto name1=bag.second[i]->_name.substr(0, bag.second[i]->_name.find_first_of("["));
-                auto name2=bag.second[i+1]->_name.substr(0, bag.second[i+1]->_name.find_first_of("["));
-                if(name1==name2 && name1=="q" && !likeq.has_key(name)){
-                    likeq.add(name);
+                if(bag.second[i]->_name <= bag.second[i+1]->_name){
+                    auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[i]->_name);
+                    pairs_to.add_ref(bag.second[i+1]->_name);
                 }
-                if(name1==name2 && name1=="y" && !likey.has_key(name)){
-                    likey.add(name);
+                else {
+                    auto name = bag.second[i+1]->_name + "," + bag.second[i]->_name;
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[i+1]->_name);
+                    pairs_to.add_ref(bag.second[i]->_name);
                 }
-                bus_pairs_chord.add(name);
-                pairs_from.add_ref(bag.second[i]->_name);
-                pairs_to.add_ref(bag.second[i+1]->_name);
             }
         }
         /* Loop back pair */
         if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
-            auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
-            auto name1=bag.second[0]->_name.substr(0, bag.second[0]->_name.find_first_of("["));
-            auto name2=bag.second[bag.second.size()-1]->_name.substr(0, bag.second[bag.second.size()-1]->_name.find_first_of("["));
-            if(name1==name2 && name1=="q" && !likeq.has_key(name)){
-                likeq.add(name);
+            if(bag.second[0]->_name <= bag.second[bag.second.size()-1]->_name){
+                auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+                pairs.add(name);
+                pairs_from.add_ref(bag.second[0]->_name);
+                pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
             }
-            if(name1==name2 && name1=="y" && !likey.has_key(name)){
-                likey.add(name);
+            else {
+                auto name = bag.second[bag.second.size()-1]->_name + "," + bag.second[0]->_name;
+                pairs.add(name);
+                pairs_from.add_ref(bag.second[bag.second.size()-1]->_name);
+                pairs_to.add_ref(bag.second[0]->_name);
             }
-            bus_pairs_chord.add(name);
-            pairs_from.add_ref(bag.second[0]->_name);
-            pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
         }
     }
-    res.push_back(bus_pairs_chord);
-    res.push_back(likeq);
-    res.push_back(likey);
+    res.push_back(pairs);
     res.push_back(pairs_from);
     res.push_back(pairs_to);
     return res;

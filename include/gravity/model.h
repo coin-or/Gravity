@@ -1114,6 +1114,29 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _has_callback = true;
         }
         
+        /* Make sure all variables have bounds in [-unit,unit] */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void scale_vars(double unit){            
+            _obj->scale_vars(unit);
+            for (auto &c_p: _cons_name) {
+                c_p.second->scale_vars(unit);
+            }
+            for(auto &vp: _vars){
+                vp.second->scale(unit);
+            }
+        }
+        
+        /* Make sure all coefficients in objective and constraints have values in [-unit,unit] */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void scale_coefs(double unit){
+            _obj->scale_coefs(unit);
+            for (auto &c_p: _cons_name) {
+                c_p.second->scale_coefs(unit);
+            }
+        }
+        
         template<typename T=type>
         void replace(const var<T>& v, const func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
             if(_obj->has_sym_var(v)){
@@ -1167,7 +1190,25 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        shared_ptr<Model<T>> relax() const{/*<  return a convex relaxation of the current model */
+        shared_ptr<Model<T>> relax(unsigned determinant_level = 0, bool add_Rank_1 = false, bool add_RLT = false) const{/*<  return a convex relaxation of the current model */
+            
+            auto g = get_interaction_graph();
+            g.get_tree_decomp_bags();
+            auto bags_3d=g.decompose_bags_3d();
+            DebugOn("bags \n");
+            for(auto bag:bags_3d){
+                DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+            }
+                        
+            auto indices=g.get_pairs_chord(bags_3d);
+            auto pairs = indices[0];
+            auto pairs_from = indices[1];
+            auto pairs_to = indices[2];
+            DebugOn("Node pairs of chordal graph\n");
+            for(auto k: *pairs._keys){
+                DebugOn(k<<endl);
+            }
+            
             shared_ptr<Model<T>> relax = make_shared<Model<T>>(_name+"_relaxed");
             for(auto &vp: _vars){
                 switch (vp.second->get_intype()) {
@@ -1259,6 +1300,64 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         relax->add(obj <=0,true);
                 }
                 relax->set_objective(v_obj, _objt);
+            }
+            
+            if(determinant_level>1){
+                for(auto &vp: relax->_vars){
+                    if (vp.second->get_intype()==double_) {
+                        auto vv = static_pointer_cast<var<double>>(vp.second);
+                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+                            DebugOn("OffDiagonal element: " << vv->_name << endl);
+                            DebugOn("Original var1: " << vv->_original_vars[0]->_name << endl);
+                            DebugOn("Original var2: " << vv->_original_vars[1]->_name << endl);
+                            auto name1 = "Lift("+vv->_original_vars[0]->_name+"^2)";
+                            DebugOn("Diagonal element 1: " << name1 << endl);
+                            auto name2 = "Lift("+vv->_original_vars[1]->_name+"^2)";
+                            DebugOn("Diagonal element 2: " << name2 << endl);
+                            if (relax->_vars_name.count(name1)==0) {
+                                auto v1 = *vv->_original_vars[0];
+                                Constraint<> diag(name1+"_diag");
+                                if(v1.is_non_negative()){
+                                    diag = pow(v1,2) - v1.get_ub()*v1;
+                                }
+                                else {
+                                    diag = pow(v1,2) - pow(v1.get_ub(),2);
+                                }
+                                relax->add(diag.in(*v1._indices)<=0,true);
+                            }
+                            if (relax->_vars_name.count(name2)==0) {
+                                auto v2 = *vv->_original_vars[1];
+                                Constraint<> diag(name2+"_diag");
+                                if(v2.is_non_negative()){
+                                    diag = pow(v2,2) - v2.get_ub()*v2;
+                                }
+                                else {
+                                    diag = pow(v2,2) - pow(v2.get_ub(),2);
+                                }
+                                relax->add(diag.in(*v2._indices)<=0,true);
+                            }
+                            auto vdiag1 = relax->template get_var<double>(name1);
+                            auto vdiag2 = relax->template get_var<double>(name2);
+//                            vdiag1.initialize_all(1e3);
+//                            vdiag2.initialize_all(1e3);
+                            Constraint<> SOC(vv->_name+"_SOC");
+                            SOC = pow(*vv, 2) - vdiag1*vdiag2;
+                            relax->add(SOC.in(*vv->_indices) == 0, true);
+//                            SOC.print();
+//                            relax->print();
+                        }
+                    }
+                }
+            }
+            if(add_Rank_1){
+                for(auto &vp: relax->_vars){
+                    if (vp.second->get_intype()==double_) {
+                        auto vv = static_pointer_cast<var<double>>(vp.second);
+                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+                            
+                        }
+                    }
+                }
             }
             return relax;
         }
@@ -1403,6 +1502,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     return newc;
                 }
                 newc->update_str();
+                embed(newc, false);
                 if(lift_flag && !newc->is_linear()){
                     if(newc->func<type>::is_convex() && newc->_ctype==eq && split){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
@@ -1424,7 +1524,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     return add_constraint(lifted);
                 }
                     
-                embed(newc, false);
+                
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);
                 _cons_name[c.get_name()] = newc;
@@ -6646,14 +6746,18 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
         }
         
-        /* Run Optimality Based Bound Tightening
+        /* Run a single iteration of Optimality Based Bound Tightening
          @param[in] relaxed_model a convex relaxtion of the current model
          @param[in] res vector storing the computation results
-         @param[in] i starting index in v
-         @param[in] j ending index in v
-
          */
-        //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<type>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
+        
+        /* Run Optimality Based Bound Tightening
+        @param[in] relaxed_model a convex relaxtion of the current model
+        @param[in] res vector storing the computation results
+        */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<type>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);

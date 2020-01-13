@@ -38,10 +38,10 @@ public:
     std::vector<Arc*> _exist_arcs;
 
     /** Set of bus pairs */
-    gravity::node_pairs _bus_pairs;
+    gravity::node_pairs _node_pairs;
 
     /** Set of bus pairs in the chordal completion */
-    gravity::node_pairs _bus_pairs_chord;
+    gravity::node_pairs _node_pairs_chord;
 
     /** Mapping the directed arcs to their source-_destination by their names, i.e, (name_src, name_dest)*/
     std::map<std::string, std::map<string,Arc*>*> arcID;
@@ -62,7 +62,7 @@ public:
     /** Is a tree */
     bool _tree = false;
     /** Indices */
-    gravity::indices bus_pairs = gravity::indices("bus_pairs"), bus_pairs_chord = gravity::indices("bus_pairs_chordal");
+    gravity::indices node_pairs = gravity::indices("node_pairs"), node_pairs_chord = gravity::indices("node_pairs_chordal");
 
     bool duplicate(std::string name1, std::string name2, int id1);
 
@@ -188,11 +188,11 @@ public:
     Net* get_chordal_extension();
 
     /** Compute the vector of bus pairs, ignoring parallel lines **/
-    gravity::indices get_bus_pairs();
+    gravity::indices get_node_pairs();
     
     
      /** Compute the vector of reference bus pairs, ignoring parallel lines **/
-     gravity::indices get_ref_bus_pairs();
+     gravity::indices get_ref_node_pairs();
     
 
     /** Compute the tree decomposition bags **/
@@ -205,6 +205,6 @@ public:
     Arc *get_directed_arc(std::string src, std::string dest);
 
 
-    vector<gravity::index_pair *> get_bus_pairs_all();
+    vector<gravity::index_pair *> get_node_pairs_all();
 };
 #endif

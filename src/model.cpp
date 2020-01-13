@@ -299,11 +299,15 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         }
         
         //arrange the variables so that if they have the same base name, use them ordered in name
-        auto o1 = *static_pointer_cast<var<type>>(term._p->first);
-        auto o2 = *static_pointer_cast<var<type>>(term._p->second);
-        if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
-            o2 = *static_pointer_cast<var<type>>(term._p->first);
-            o1 = *static_pointer_cast<var<type>>(term._p->second);
+        auto o1_ptr = static_pointer_cast<var<type>>(term._p->first);
+        auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
+        auto o1 = *o1_ptr;
+        auto o2 = *o2_ptr;
+        if((o1 != o2) && (o1._name > o2._name) ){
+            o2_ptr = static_pointer_cast<var<type>>(term._p->first);
+            o1_ptr = static_pointer_cast<var<type>>(term._p->second);
+            o1 = *o1_ptr;
+            o2 = *o2_ptr;
             DebugOff("O1 name "<< o1._name << endl);
             DebugOff("O2 name "<< o2._name << endl);
         }
@@ -315,7 +319,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             ids = *o1._indices;
         }
         else {
-            name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+            name = "Lift("+o1.get_name(true,true)+"|"+o2.get_name(true,true)+")";
             ids = combine(*o1._indices,*o2._indices);
         }
         auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
@@ -440,6 +444,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             //create the lifted variable with proper lower and upper bounds
             var<type> vlift(name, lb, ub);
             vlift._lift = true;
+            vlift._original_vars.push_back(o1_ptr);
+            vlift._original_vars.push_back(o2_ptr);
             add(vlift.in(unique_ids));
             lt._p = make_shared<var<type>>(vlift.in(ids));
             
@@ -5911,11 +5917,33 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     return lifted;
 }
 
-
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
 std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<type>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
+    int total_iter=0, global_iter=1;
+    double total_time =0, time_start = get_wall_time(), time_end = 0;
+    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    total_iter += get<1>(status);
+    while(get<1>(status)>1){
+        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        total_iter += get<1>(status);
+        global_iter++;
+    }
+    time_end = get_wall_time();
+    total_time = time_end - time_start;
+    get<1>(status) = total_iter;
+    get<2>(status) = total_time;
+    DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
+    DebugOn("Total number of OBBT iterations = " << total_iter << endl);
+    DebugOn("Number of global iterations = " << global_iter << endl);
+    return status;
+}
+
+template <typename type>
+template<typename T,
+typename std::enable_if<is_same<T,double>::value>::type*>
+std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iteration(shared_ptr<Model<type>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
     
     std::tuple<bool,int,double, double, double, bool> res;
 #ifdef USE_MPI
@@ -5949,7 +5977,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     /* Running upper and lower bound solvers */
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol);
-    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
+    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);    
     solver<> LB_solver(relaxed_model,lb_solver_type);
     LB_solver.run(output = 5, lb_solver_tol);
     DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
@@ -6340,6 +6368,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
 template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
+template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 
 
 

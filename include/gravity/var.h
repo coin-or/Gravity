@@ -43,7 +43,7 @@ namespace gravity {
         bool _lift_lb = false;/*flag to show if the lifted variables need lower-bounding function*/
         bool _lift_ub = false;/*flag to show if the lifted variables need upper-bounding function*/
         bool _in_SOC_partn = false;/*flag to show if variable appers in a SOC partition*/
-        
+        vector<shared_ptr<var>> _original_vars;/*< If this is a lifted variable, pointers to the corresponding original variables */
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         shared_ptr<int> _num_partns;/*number of partitons*/
         int _cur_partn = 1;/*current partition we are focused on*/
@@ -976,6 +976,29 @@ namespace gravity {
             cout << str << endl;
         }
         
+        
+        /* Return the scaling factor needed to make sure all bounds are in [-unit,unit] */
+        double get_scale_factor(double unit){
+            auto absmax = std::max(std::abs(this->_range->first),std::abs(this->_range->second));
+            return unit/absmax;
+        }
+        
+        /* Make sure all bounds are in [-unit,unit] */
+        void scale(double unit){
+            _lb->eval_all();
+            _ub->eval_all();
+            auto dim = this->get_dim();
+            auto absmax = std::max(std::abs(this->_range->first),std::abs(this->_range->second));
+            auto factor = unit/absmax;
+            for (size_t i = 0; i < dim; i++) {
+                _lb->_val->at(i) = factor*_lb->_val->at(i);
+                _ub->_val->at(i) = factor*_ub->_val->at(i);
+            }
+            _lb->_range->first = factor*_lb->_range->first;
+            _ub->_range->first = factor*_ub->_range->first;
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
+        }
         
         template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void copy_bounds(const shared_ptr<param_>& p){

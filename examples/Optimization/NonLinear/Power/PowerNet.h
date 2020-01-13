@@ -245,7 +245,7 @@ public:
     /** Accessors */
     string get_ref_bus();
     unsigned get_nb_active_gens() const;
-    unsigned get_nb_active_bus_pairs() const;
+    unsigned get_nb_active_node_pairs() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
     void time_expand(unsigned T); /* < Time expansion of the grid parameters */
@@ -256,15 +256,15 @@ public:
     void save_all_sol(const string& fname);
     
     /** get set indexed by bus pairs in the chordal extension */
-    gravity::indices get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
+    gravity::indices get_node_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     
-    gravity::indices get_bus_pairs_chord_bags(std::vector<pair<string,vector<Node*>>> bags);
+    gravity::indices get_node_pairs_chord_bags(std::vector<pair<string,vector<Node*>>> bags);
     
-    gravity::indices get_ref_bus_pairs_from();
+    gravity::indices get_ref_node_pairs_from();
     
-    gravity::indices get_ref_bus_pairs_to();
+    gravity::indices get_ref_node_pairs_to();
     
-    gravity::indices bus_pairs_no_line_charge();
+    gravity::indices node_pairs_no_line_charge();
     
     gravity::indices arcs_inductive_only();
     
@@ -272,7 +272,7 @@ public:
     
     gravity::indices arcs_line_charge();
     
-    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
+    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_node_pairs_ijkl();
     
     void update_ref_bus();
     
