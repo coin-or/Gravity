@@ -180,6 +180,7 @@ public:
 
     vector<gravity::indices> get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     
+    vector<gravity::indices> pool_get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     
     /** get algorithmic graph */
     void get_algorithmic_graph(); // a cloned graph without in-active, parallel lines.
