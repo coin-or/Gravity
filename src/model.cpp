@@ -5990,8 +5990,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     solver<> LB_solver(relaxed_model,lb_solver_type);
     LB_solver.run(output = 5, lb_solver_tol);
     DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
-    double lower_bound_init = numeric_limits<double>::min(), upper_bound_init, lower_bound;
-    if(this->_status==0)
+    double lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
+    if(relaxed_model->_status==0)
     {
         /* Check if gap is already not zero at root node */
         lower_bound_init=relaxed_model->get_obj_val();
@@ -6001,10 +6001,12 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
         if ((upper_bound_init-lower_bound_init)>=abs_tol || (upper_bound_init-lower_bound_init)/(std::abs(upper_bound_init)+zero_tol)>=rel_tol)
         {
             /* Add the upper bound constraint on the objective */
-            auto obj = *relaxed_model->_obj;
-            Constraint<type> obj_ub("obj_ub");
-            obj_ub = obj - upper_bound_init;
-            relaxed_model->add(obj_ub<=0);
+            if(this->_status==0){
+                auto obj = *relaxed_model->_obj;
+                Constraint<type> obj_ub("obj_ub");
+                obj_ub = obj - upper_bound_init;
+                relaxed_model->add(obj_ub<=0);
+            }
             /**/
             terminate=false;
             for(auto &it:relaxed_model->_vars_name)
@@ -6375,6 +6377,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 
 
 template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol);
+    
+template std::tuple<bool,int,double,double,double,bool> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);

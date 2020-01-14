@@ -42,25 +42,25 @@ int main (int argc, char * argv[]) {
     auto bags_3d=g.pool_decompose_bags_3d();
 
     
-    DebugOn("bags \n");
-    for(auto bag:bags_3d){
-        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
-    }
+//    DebugOn("bags \n");
+//    for(auto bag:bags_3d){
+//        DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+//    }
     
     
     auto pairs=g.get_node_pairs();
-    DebugOn("bus pairs \n");
-    for(auto k: *pairs._keys){
-        DebugOn(k<<endl);
-    }
+//    DebugOn("bus pairs \n");
+//    for(auto k: *pairs._keys){
+//        DebugOn(k<<endl);
+//    }
     
     
     auto res=g.pool_get_pairs_chord(bags_3d);
     auto pairs_chordal=res[0];
-    DebugOn("bus pairs chordal \n");
-    for(auto k: *pairs_chordal._keys){
-        DebugOn(k<<endl);
-    }
+//    DebugOn("bus pairs chordal \n");
+//    for(auto k: *pairs_chordal._keys){
+//        DebugOn(k<<endl);
+//    }
     
     auto qq=res[1];
     auto yy=res[2];
@@ -182,12 +182,12 @@ int main (int argc, char * argv[]) {
     
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
-     SPP->initialize_zero();
+//     SPP->initialize_zero();
 //    x.initialize_all(1.0);
 //    y.initialize_all(1.0);
 //    z.initialize_all(1.0);
 //    q.initialize_all(0.5);
-//    Wii.initialize_all(1.0);
+    Wii.initialize_all(1.0);
 //    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
@@ -200,7 +200,7 @@ int main (int argc, char * argv[]) {
     
 //    Constraint<> pool_capacity_y("pool_capacity_y");
 //    pool_capacity_y=sum(y, pool_y_matrix)-S;
-//    SPP->add(pool_capacity.in(L)<=0);
+//    SPP->add(pool_capacity_y.in(L)<=0);
 //
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
@@ -342,7 +342,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) >= 0, true);
+    SPP->add(SOC.in(pairs_chordal) <= 0);
 
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
@@ -361,12 +361,12 @@ int main (int argc, char * argv[]) {
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         auto nb_bags3 = Wij_[0]._indices->size();
         
-        
-        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//
+//        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+//        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+//        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+//        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
        // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
@@ -388,6 +388,9 @@ int main (int argc, char * argv[]) {
 //    SPP->scale_vars(1000);
 //    double coef_scale = 1000;
 //    SPP->scale_coefs(coef_scale);
+    //SPP->print();
+//    solver<> SPP_solv(SPP, ipopt);
+//    SPP_solv.run(5, 1e-6);
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
