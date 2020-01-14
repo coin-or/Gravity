@@ -26,7 +26,7 @@ int main (int argc, char * argv[]) {
     
 
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
-   // fname="/Users/smitha/Utils/Pooling_instances/Adhya3.gms";
+    fname="/Users/smitha/Utils/Pooling_instances/sppA5.gms";
 
     if(argc==2){
         fname=argv[1];
@@ -182,13 +182,13 @@ int main (int argc, char * argv[]) {
     
     //    SPP->add(sumyk);
     //    sumyk.set_lb(0);
-    // SPP->initialize_zero();
-    x.initialize_all(1.0);
-    y.initialize_all(1.0);
-    z.initialize_all(1.0);
-    q.initialize_all(0.5);
-    Wii.initialize_all(1.0);
-    Wij.initialize_all(1.0);
+     SPP->initialize_zero();
+//    x.initialize_all(1.0);
+//    y.initialize_all(1.0);
+//    z.initialize_all(1.0);
+//    q.initialize_all(0.5);
+//    Wii.initialize_all(1.0);
+//    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
     feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
@@ -290,6 +290,39 @@ int main (int argc, char * argv[]) {
     
 //    q_W.print();
     
+    indices yy_Wa_matrix = indices("yy_Wa_matrix");
+    indices yy_Wb_matrix = indices("yy_Wb_matrix");
+    
+    
+    auto y_from = indices("y_from");
+    y_from = Ty;
+    auto y_to = indices("y_to");
+    y_to = Ty;
+    
+    for (const string& key:*yy._keys) {
+        
+        auto key_pos=(pairs_chordal._keys_map)->at(key);
+        auto from_ref=pairs_chordal_from._ids->at(0)[key_pos];
+        auto from=pairs_chordal_from._keys->at(from_ref);
+        
+        auto pos=from.find_first_of("[");
+        auto pos1=from.find_first_of("]");
+        auto a_key=from.substr(pos+1,pos1-pos-1);
+        y_from.add_ref(a_key);
+        
+        auto to_ref=pairs_chordal_to._ids->at(0)[key_pos];
+        auto to=pairs_chordal_from._keys->at(to_ref);
+        
+        auto pos2=to.find_first_of("[");
+        auto pos3=to.find_first_of("]");
+        auto b_key=to.substr(pos2+1,pos3-pos2-1);
+        y_to.add_ref(b_key);
+        
+    }
+
+    Constraint<> y_W("y_W");
+    y_W=Wij.in(yy)-y.in(y_from)*y.in(y_to);
+    SPP->add(y_W.in(yy)==0,true);
     
     
 
@@ -309,7 +342,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) == 0, true);
+    SPP->add(SOC.in(pairs_chordal) <= 0, true);
 
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
@@ -339,19 +372,22 @@ int main (int argc, char * argv[]) {
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-        Constraint<> Rank_type2a("RankType2a");
-        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-
-        Constraint<> Rank_type2b("RankType2b");
-        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-
-        Constraint<> Rank_type2c("RankType2c");
-        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+//        Constraint<> Rank_type2a("RankType2a");
+//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+//
+//        Constraint<> Rank_type2b("RankType2b");
+//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+//
+//        Constraint<> Rank_type2c("RankType2c");
+//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
-//    SPP->print();
+   // SPP->print();
+//    SPP->scale_vars(1000);
+//    double coef_scale = 1000;
+//    SPP->scale_coefs(coef_scale);
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
