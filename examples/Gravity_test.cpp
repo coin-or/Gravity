@@ -103,6 +103,7 @@ TEST_CASE("Varialbe Scaling") {
     M.add(C6 <= 0);
     
     M.min(x[1]+x[2]+x[3]);
+    M.print();
     M.scale_vars(10);
     double coef_scale = 100;
     M.scale_coefs(coef_scale);
@@ -159,12 +160,12 @@ TEST_CASE("hard nlp") {
     
     M.min(x[1]+x[2]+x[3]);
 
-//    M.scale_vars(100);
-//    double coef_scale = 100;
-//    M.scale_coefs(coef_scale);
+    M.scale_vars(100);
+    double coef_scale = 100;
+    M.scale_coefs(coef_scale);
     M.print();
 
-    auto determinant_level = 1;
+    auto determinant_level = 2;
     bool add_Rank1 = true;
     auto LB = M.relax(determinant_level,add_Rank1);
     LB->print();
