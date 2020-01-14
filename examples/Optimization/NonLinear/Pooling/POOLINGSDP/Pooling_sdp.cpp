@@ -26,7 +26,7 @@ int main (int argc, char * argv[]) {
     
 
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
-    fname="/Users/smitha/Utils/Pooling_instances/sppA5.gms";
+ 
 
     if(argc==2){
         fname=argv[1];
@@ -342,7 +342,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) <= 0, true);
+    SPP->add(SOC.in(pairs_chordal) >= 0, true);
 
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
