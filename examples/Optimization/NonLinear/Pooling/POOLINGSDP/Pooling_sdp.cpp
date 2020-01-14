@@ -26,7 +26,7 @@ int main (int argc, char * argv[]) {
     
 
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
-   // fname="/Users/smitha/Desktop/Pooling_instances/sppA5.gms";
+   // fname="/Users/smitha/Utils/Pooling_instances/Adhya3.gms";
 
     if(argc==2){
         fname=argv[1];
@@ -96,6 +96,7 @@ int main (int argc, char * argv[]) {
     auto in_arcs_from_input_per_output_attr=poolnet.in_arcs_from_input_per_output_attr();
     
     indices pool_x_matrix = poolnet.pool_x_matrix_fill();
+    indices pool_y_matrix = poolnet.pool_y_matrix_fill();
     indices input_x_matrix = poolnet.input_x_matrix_fill();
     indices output_x_matrix = poolnet.output_x_matrix_fill();
     auto x_p_indices =poolnet.outattr_x_p_matrix_fill();
@@ -197,6 +198,10 @@ int main (int argc, char * argv[]) {
     pool_capacity=sum(x, pool_x_matrix)-S;
     SPP->add(pool_capacity.in(L)<=0);
     
+//    Constraint<> pool_capacity_y("pool_capacity_y");
+//    pool_capacity_y=sum(y, pool_y_matrix)-S;
+//    SPP->add(pool_capacity.in(L)<=0);
+//
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
     SPP->add(product_demand.in(J)<=0);
@@ -302,12 +307,10 @@ int main (int argc, char * argv[]) {
     SPP->add(y2.in(y_diag)==0,true, "on/off", false);
     
     
-//    Constraint<> SOC("SOC");
-//    SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-//    SPP->add(SOC.in(pairs_chordal) == 0, true);
+    Constraint<> SOC("SOC");
+    SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
+    SPP->add(SOC.in(pairs_chordal) == 0, true);
 
-    
-    
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
     SPP->add(obj_eq==0);
@@ -321,32 +324,32 @@ int main (int argc, char * argv[]) {
     {
         DebugOn("\nNum of bags = " << bag_size << endl);
         DebugOn("Adding 3d determinant polynomial cuts\n");
-//        auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
-//        auto Wii_ = Wii.in_bags(bags_3d, 3);
-//        auto nb_bags3 = Wij_[0]._indices->size();
+        auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = Wii.in_bags(bags_3d, 3);
+        auto nb_bags3 = Wij_[0]._indices->size();
         
         
-//        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-//        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-//        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-//        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-//        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+       // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
-//        DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+        DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-//        Constraint<> Rank_type2a("RankType2a");
-//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2b("RankType2b");
-//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2c("RankType2c");
-//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
 //    SPP->print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
