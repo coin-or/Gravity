@@ -5924,6 +5924,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     int total_iter=0, global_iter=1;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    double lower_bound_init = get<3>(status);
+    double upper_bound_init = get<4>(status);
     total_iter += get<1>(status);
     while(get<1>(status)>1){
         status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
@@ -5934,9 +5936,16 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     total_time = time_end - time_start;
     get<1>(status) = total_iter;
     get<2>(status) = total_time;
+    get<3>(status) = lower_bound_init;
+    get<4>(status) = upper_bound_init;
     DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
     DebugOn("Total number of OBBT iterations = " << total_iter << endl);
     DebugOn("Number of global iterations = " << global_iter << endl);
+    auto gapnl=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
+    DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
+    auto lower_bound_final=relaxed_model->get_obj_val();
+    auto gap_final = 100*(upper_bound_init - lower_bound_final)/std::abs(upper_bound_init);
+    DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
     return status;
 }
 
@@ -5945,7 +5954,7 @@ template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
 std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iteration(shared_ptr<Model<type>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
     
-    std::tuple<bool,int,double, double, double, bool> res;
+    std::tuple<bool,int,double, double, double, double> res;
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -5977,7 +5986,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     /* Running upper and lower bound solvers */
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol);
-    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);    
+    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
     solver<> LB_solver(relaxed_model,lb_solver_type);
     LB_solver.run(output = 5, lb_solver_tol);
     DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
@@ -6357,8 +6366,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     std::get<1>(res) = iter;
     std::get<2>(res) = solver_time;
     std::get<3>(res) = lower_bound_init;
-    std::get<4>(res) = avg;
-    std::get<5>(res) = xb_true;
+    std::get<4>(res) = upper_bound_init;
+    std::get<5>(res) = avg;
     return res;
 }
 
