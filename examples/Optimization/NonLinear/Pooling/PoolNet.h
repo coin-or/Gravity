@@ -117,6 +117,7 @@ public:
     indices in_arcs_per_node(indices arcs) const;
     
     indices pool_x_matrix_fill() const;
+    indices pool_y_matrix_fill() const;
     indices input_x_matrix_fill() const;
     indices output_x_matrix_fill() const;
     indices outattrz_pin_matrix_fill() const;

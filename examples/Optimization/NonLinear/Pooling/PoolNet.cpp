@@ -1426,6 +1426,26 @@ for (const string& pool_key:*Pools._keys) {
     }
     return pool_x_matrix;
 }
+indices PoolNet::pool_y_matrix_fill() const{
+    int row_id=0;
+    indices pool_y_matrix = indices("pool_y_matrix");
+    for (const string& pool_key:*Pools._keys) {
+        
+        pool_y_matrix.add_empty_row();
+        for (auto &po:*pools_outputs._keys) {
+            
+            auto pos = nthOccurrence(po, ",", 1);
+            auto pool1 = po.substr(0, pos);
+            auto out=po.substr(pos+1);
+            
+            if(pool_key==pool1){
+                pool_y_matrix.add_in_row(row_id, out);
+            }
+        }
+        row_id++;
+    }
+    return pool_y_matrix;
+}
 indices PoolNet::input_x_matrix_fill() const{
     int row_id=0;
 indices input_x_matrix = indices("input_x_matrix");
