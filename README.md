@@ -70,4 +70,4 @@ Performance Profile on Inverse Ising Model
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
 
 
-Click [here](https://www.allinsights.io/numerical-results) for more details.
+Click [here](https://openreview.net/pdf?id=SygqpT-2YQ) for more details.
