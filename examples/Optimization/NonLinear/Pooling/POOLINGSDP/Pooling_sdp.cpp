@@ -175,6 +175,7 @@ int main (int argc, char * argv[]) {
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
     var<> objvar("objvar",objvar_min, objvar_max);
+    //var<>  objvar("objvar");
     var<> Wij("Wij", Wij_min, Wij_max);
     var<> Wii("Wii", Wii_min, Wii_max);
     
@@ -193,7 +194,7 @@ int main (int argc, char * argv[]) {
 //    y.initialize_all(1.0);
 //    z.initialize_all(1.0);
 //    q.initialize_all(0.5);
-    Wii.initialize_all(1.0);
+   Wii.initialize_all(1.0);
 //    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
@@ -204,17 +205,17 @@ int main (int argc, char * argv[]) {
     pool_capacity=sum(x, pool_x_matrix)-S;
     SPP->add(pool_capacity.in(L)<=0);
     
-    Constraint<> pool_capacity_y("pool_capacity_y");
-    pool_capacity_y=sum(y, pool_y_matrix)-S;
-    SPP->add(pool_capacity_y.in(L)<=0);
+//    Constraint<> pool_capacity_y("pool_capacity_y");
+//    pool_capacity_y=sum(y, pool_y_matrix)-S;
+//    SPP->add(pool_capacity_y.in(L)<=0);
 
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
     SPP->add(product_demand.in(J)<=0);
     
-    Constraint<> product_demand_y("product_demand_y");
-    product_demand_y=sum(y, output_y_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
-    SPP->add(product_demand_y.in(J)<=0);
+//    Constraint<> product_demand_y("product_demand_y");
+//    product_demand_y=sum(y, output_y_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
+//    SPP->add(product_demand_y.in(J)<=0);
     
     
     Constraint<> product_quality("product_quality");
@@ -226,9 +227,9 @@ int main (int argc, char * argv[]) {
     SPP->add(simplex.in(L)==0);
     
     
-        Constraint<> PQ("PQ");
-        PQ=x.in(pooloutput_x_matrix)-y;
-        SPP->add(PQ.in(Ty)==0);
+//        Constraint<> PQ("PQ");
+//        PQ=x.in(pooloutput_x_matrix)-y;
+//        SPP->add(PQ.in(Ty)==0);
 //
 //
 //        Constraint<> PQ1("PQ1");
