@@ -25,7 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
 
-    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/sppA5_gms.txt";
  
 
     if(argc==2){
@@ -327,20 +327,20 @@ int main (int argc, char * argv[]) {
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-        Constraint<> Rank_type2a("RankType2a");
-        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-
-        Constraint<> Rank_type2b("RankType2b");
-        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-
-        Constraint<> Rank_type2c("RankType2c");
-        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+//        Constraint<> Rank_type2a("RankType2a");
+//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+//
+//        Constraint<> Rank_type2b("RankType2b");
+//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+//
+//        Constraint<> Rank_type2c("RankType2c");
+//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
-   // SPP->print();
-//    SPP->scale_vars(1000);
+    SPP->print();
+    //SPP->scale_vars(1000);
 //    double coef_scale = 1000;
 //    SPP->scale_coefs(coef_scale);
     //SPP->print();
