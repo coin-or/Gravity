@@ -55,7 +55,7 @@ int main (int argc, char * argv[]) {
 //    }
     
     
-    auto res=g.pool_get_pairs_chord(bags_3d);
+    auto res=poolnet.pool_get_pairs_chord(g, bags_3d);
     auto pairs_chordal=res[0];
 //    DebugOn("bus pairs chordal \n");
 //    for(auto k: *pairs_chordal._keys){
@@ -66,6 +66,10 @@ int main (int argc, char * argv[]) {
     auto yy=res[2];
     auto pairs_chordal_from = res[3];
     auto pairs_chordal_to = res[4];
+    auto q_from=res[5];
+    auto q_to=res[6];
+    auto y_from=res[7];
+    auto y_to=res[8];
     
     auto vec_param=fill_wijbounds(poolnet, res);
     auto Wij_min=vec_param[0].in(pairs_chordal);
@@ -99,6 +103,7 @@ int main (int argc, char * argv[]) {
     indices pool_y_matrix = poolnet.pool_y_matrix_fill();
     indices input_x_matrix = poolnet.input_x_matrix_fill();
     indices output_x_matrix = poolnet.output_x_matrix_fill();
+    indices output_y_matrix = poolnet.output_y_matrix_fill();
     auto x_p_indices =poolnet.outattr_x_p_matrix_fill();
     indices outattr_x_matrix= x_p_indices[0];
     indices outattr_pin_matrix= x_p_indices[1];
@@ -127,7 +132,8 @@ int main (int argc, char * argv[]) {
     indices TxplusTy=txty_indices[0];
     indices q_diag=txty_indices[1];
     indices y_diag=txty_indices[2];
-
+    
+    
     
     // auto cost=poolnet.cost.in(Inputs);
     auto A_L=poolnet.A_L.in(I);
@@ -198,16 +204,21 @@ int main (int argc, char * argv[]) {
     pool_capacity=sum(x, pool_x_matrix)-S;
     SPP->add(pool_capacity.in(L)<=0);
     
-//    Constraint<> pool_capacity_y("pool_capacity_y");
-//    pool_capacity_y=sum(y, pool_y_matrix)-S;
-//    SPP->add(pool_capacity_y.in(L)<=0);
-//
+    Constraint<> pool_capacity_y("pool_capacity_y");
+    pool_capacity_y=sum(y, pool_y_matrix)-S;
+    SPP->add(pool_capacity_y.in(L)<=0);
+
     Constraint<> product_demand("product_demand");
     product_demand=sum(x, output_x_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
     SPP->add(product_demand.in(J)<=0);
     
+    Constraint<> product_demand_y("product_demand_y");
+    product_demand_y=sum(y, output_y_matrix)+sum(z,in_arcs_from_input_per_output)-D_U;
+    SPP->add(product_demand_y.in(J)<=0);
     
-    Constraint<> product_quality("product_quality");    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
+    
+    Constraint<> product_quality("product_quality");
+    product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
     
     Constraint<> simplex("simplex");
@@ -254,35 +265,6 @@ int main (int argc, char * argv[]) {
     x_Wij=x-Wij.in(inpoolout_W_matrix);
     SPP->add(x_Wij.in(inputs_pools_outputs)==0);
     
-    indices qq_Wa_matrix = indices("qq_Wa_matrix");
-    indices qq_Wb_matrix = indices("qq_Wb_matrix");
-    
-
-    auto q_from = indices("q_from");
-    q_from = Tx;
-    auto q_to = indices("q_to");
-    q_to = Tx;
-    
-    for (const string& key:*qq._keys) {
-
-        auto key_pos=(pairs_chordal._keys_map)->at(key);
-        auto from_ref=pairs_chordal_from._ids->at(0)[key_pos];
-        auto from=pairs_chordal_from._keys->at(from_ref);
-        
-        auto pos=from.find_first_of("[");
-        auto pos1=from.find_first_of("]");
-        auto a_key=from.substr(pos+1,pos1-pos-1);
-        q_from.add_ref(a_key);
-        
-        auto to_ref=pairs_chordal_to._ids->at(0)[key_pos];
-        auto to=pairs_chordal_from._keys->at(to_ref);
-        
-        auto pos2=to.find_first_of("[");
-        auto pos3=to.find_first_of("]");
-        auto b_key=to.substr(pos2+1,pos3-pos2-1);
-        q_to.add_ref(b_key);
-
-    }
 
     Constraint<> q_W("q_W");
     q_W=Wij.in(qq)-q.in(q_from)*q.in(q_to);
@@ -290,35 +272,9 @@ int main (int argc, char * argv[]) {
     
 //    q_W.print();
     
-    indices yy_Wa_matrix = indices("yy_Wa_matrix");
-    indices yy_Wb_matrix = indices("yy_Wb_matrix");
     
     
-    auto y_from = indices("y_from");
-    y_from = Ty;
-    auto y_to = indices("y_to");
-    y_to = Ty;
-    
-    for (const string& key:*yy._keys) {
-        
-        auto key_pos=(pairs_chordal._keys_map)->at(key);
-        auto from_ref=pairs_chordal_from._ids->at(0)[key_pos];
-        auto from=pairs_chordal_from._keys->at(from_ref);
-        
-        auto pos=from.find_first_of("[");
-        auto pos1=from.find_first_of("]");
-        auto a_key=from.substr(pos+1,pos1-pos-1);
-        y_from.add_ref(a_key);
-        
-        auto to_ref=pairs_chordal_to._ids->at(0)[key_pos];
-        auto to=pairs_chordal_from._keys->at(to_ref);
-        
-        auto pos2=to.find_first_of("[");
-        auto pos3=to.find_first_of("]");
-        auto b_key=to.substr(pos2+1,pos3-pos2-1);
-        y_to.add_ref(b_key);
-        
-    }
+   
 
     Constraint<> y_W("y_W");
     y_W=Wij.in(yy)-y.in(y_from)*y.in(y_to);
@@ -372,17 +328,17 @@ int main (int argc, char * argv[]) {
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-//        Constraint<> Rank_type2a("RankType2a");
-//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2b("RankType2b");
-//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2c("RankType2c");
-//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
    // SPP->print();
 //    SPP->scale_vars(1000);

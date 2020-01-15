@@ -77,7 +77,7 @@ public:
         void readgrid1();
     
     
-    vector<indices> pool_get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
+    vector<indices> pool_get_pairs_chord(Net& g, const vector<pair<string,vector<Node*>>>& bags);
     
     /** get set indexed by bus pairs in the chordal extension */
    // gravity::indices get_node_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
@@ -120,6 +120,7 @@ public:
     indices pool_y_matrix_fill() const;
     indices input_x_matrix_fill() const;
     indices output_x_matrix_fill() const;
+    indices output_y_matrix_fill() const;
     indices outattrz_pin_matrix_fill() const;
     indices outattrz_pout_matrix_fill() const;
     vector<indices> outattr_x_p_matrix_fill() const;
