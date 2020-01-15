@@ -30,6 +30,7 @@ before_install:
 script:
 - make
 - ../bin/Debug/gravity_test
+- ../bin/Debug/poolingsdp
 - ../bin/Debug/obbt
 - ../bin/Debug/cpxopf
 - ../bin/Debug/AlpineX -s ipopt

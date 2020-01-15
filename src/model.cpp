@@ -5930,7 +5930,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     while(get<1>(status)>1){
         status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         total_iter += get<1>(status);
-        global_iter++;
+        if(get<1>(status)>0)
+            global_iter++;
     }
     time_end = get_wall_time();
     total_time = time_end - time_start;
