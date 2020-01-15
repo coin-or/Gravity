@@ -12,7 +12,7 @@
 
 <p align="center"> Created by Hassan Hijazi. </p>
 
-<H2 align="center"> www.allinsights.io/gravity </H2>
+<H2 align="center"> https://www.gravityopt.com </H2>
 
 
 
