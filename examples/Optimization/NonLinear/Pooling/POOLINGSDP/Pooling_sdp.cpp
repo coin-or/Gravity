@@ -133,9 +133,6 @@ int main (int argc, char * argv[]) {
     indices q_diag=txty_indices[1];
     indices y_diag=txty_indices[2];
     
-    
-    
-    // auto cost=poolnet.cost.in(Inputs);
     auto A_L=poolnet.A_L.in(I);
     auto A_U=poolnet.A_U.in(I);
     auto C=poolnet.C.in(I_K);
@@ -175,7 +172,6 @@ int main (int argc, char * argv[]) {
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
     var<> objvar("objvar",objvar_min, objvar_max);
-    //var<>  objvar("objvar");
     var<> Wij("Wij", Wij_min, Wij_max);
     var<> Wii("Wii", Wii_min, Wii_max);
     
@@ -194,7 +190,7 @@ int main (int argc, char * argv[]) {
 //    y.initialize_all(1.0);
 //    z.initialize_all(1.0);
 //    q.initialize_all(0.5);
-   Wii.initialize_all(1.0);
+      Wii.initialize_all(1.0);
 //    Wij.initialize_all(1.0);
     
     Constraint<> feed_availability("feed_availability");
@@ -266,21 +262,13 @@ int main (int argc, char * argv[]) {
     x_Wij=x-Wij.in(inpoolout_W_matrix);
     SPP->add(x_Wij.in(inputs_pools_outputs)==0);
     
-
     Constraint<> q_W("q_W");
     q_W=Wij.in(qq)-q.in(q_from)*q.in(q_to);
     SPP->add(q_W.in(qq)==0,true);
-    
-    
-    
-    
-   
 
     Constraint<> y_W("y_W");
     y_W=Wij.in(yy)-y.in(y_from)*y.in(y_to);
     SPP->add(y_W.in(yy)==0,true);
-    
-    
 
     
     //    Constraint<> sumy_con("sumy_con");
@@ -295,7 +283,6 @@ int main (int argc, char * argv[]) {
     y2 = Wii.in(y_diag) - pow(y,2);
     SPP->add(y2.in(y_diag)==0,true, "on/off", false);
     
-    
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
     SPP->add(SOC.in(pairs_chordal) <= 0);
@@ -303,7 +290,6 @@ int main (int argc, char * argv[]) {
     Constraint<> obj_eq("obj_eq");
     obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
     SPP->add(obj_eq==0);
-    
     
     SPP->min(objvar);
     
