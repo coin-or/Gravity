@@ -1439,7 +1439,7 @@ indices PoolNet::pool_y_matrix_fill() const{
             auto out=po.substr(pos+1);
             
             if(pool_key==pool1){
-                pool_y_matrix.add_in_row(row_id, out);
+                pool_y_matrix.add_in_row(row_id, po);
             }
         }
         row_id++;
@@ -1484,6 +1484,25 @@ for (const string& out_key:*Outputs._keys) {
     row_id++;
 }
     return output_x_matrix;
+}
+indices PoolNet::output_y_matrix_fill() const{
+    auto row_id = 0;
+    indices output_y_matrix = indices("output_y_matrix");
+    for (const string& out_key:*Outputs._keys) {
+        
+        output_y_matrix.add_empty_row();
+        for (auto &po:*pools_outputs._keys) {
+            
+            auto pos = nthOccurrence(po, ",", 1);
+            auto out1 = po.substr(pos+1);
+            
+            if(out_key==out1){
+                output_y_matrix.add_in_row(row_id, po);
+            }
+        }
+        row_id++;
+    }
+    return output_y_matrix;
 }
 vector<indices> PoolNet::outattr_x_p_matrix_fill() const{
         vector<indices> result;
@@ -1656,13 +1675,13 @@ vector<indices> PoolNet::inpoolout_x_c_matrix_fill() const{
     return res;
 }
 
-vector<indices> PoolNet::pool_get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+vector<indices> PoolNet::pool_get_pairs_chord(Net& g, const vector<pair<string,vector<Node*>>>& bags){
     vector<indices> res;
     indices likeq("likeq");
     indices likey("likey");
-    auto pairs_from = indices(nodes);
+    auto pairs_from = indices(g.nodes);
     pairs_from.set_name("pairs_from");
-    auto pairs_to = indices(nodes);
+    auto pairs_to = indices(g.nodes);
     pairs_to.set_name("pairs_to");
 //    if(!this->node_pairs_chord.empty()){
 //        return this->node_pairs_chord;
@@ -1705,11 +1724,66 @@ vector<indices> PoolNet::pool_get_pairs_chord(const vector<pair<string,vector<No
             pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
         }
     }
+    auto q_from = indices("q_from");
+    q_from = inputs_pools;
+    auto q_to = indices("q_to");
+    q_to = inputs_pools;
+    
+    for (const string& key:*likeq._keys) {
+        
+        auto key_pos=(node_pairs_chord._keys_map)->at(key);
+        auto from_ref=pairs_from._ids->at(0)[key_pos];
+        auto from=pairs_from._keys->at(from_ref);
+        
+        auto pos=from.find_first_of("[");
+        auto pos1=from.find_first_of("]");
+        auto a_key=from.substr(pos+1,pos1-pos-1);
+        q_from.add_ref(a_key);
+        
+        auto to_ref=pairs_to._ids->at(0)[key_pos];
+        auto to=pairs_to._keys->at(to_ref);
+        
+        auto pos2=to.find_first_of("[");
+        auto pos3=to.find_first_of("]");
+        auto b_key=to.substr(pos2+1,pos3-pos2-1);
+        q_to.add_ref(b_key);
+        
+    }
+    
+    auto y_from = indices("y_from");
+    y_from = pools_outputs;
+    auto y_to = indices("y_to");
+    y_to = pools_outputs;
+    
+    for (const string& key:*likey._keys) {
+        
+        auto key_pos=(node_pairs_chord._keys_map)->at(key);
+        auto from_ref=pairs_from._ids->at(0)[key_pos];
+        auto from=pairs_from._keys->at(from_ref);
+        
+        auto pos=from.find_first_of("[");
+        auto pos1=from.find_first_of("]");
+        auto a_key=from.substr(pos+1,pos1-pos-1);
+        y_from.add_ref(a_key);
+        
+        auto to_ref=pairs_to._ids->at(0)[key_pos];
+        auto to=pairs_to._keys->at(to_ref);
+        
+        auto pos2=to.find_first_of("[");
+        auto pos3=to.find_first_of("]");
+        auto b_key=to.substr(pos2+1,pos3-pos2-1);
+        y_to.add_ref(b_key);
+        
+    }
     res.push_back(node_pairs_chord);
     res.push_back(likeq);
     res.push_back(likey);
     res.push_back(pairs_from);
     res.push_back(pairs_to);
+    res.push_back(q_from);
+    res.push_back(q_to);
+    res.push_back(y_from);
+    res.push_back(y_to);
     return res;
 }
 
