@@ -170,7 +170,7 @@ TEST_CASE("hard nlp") {
     auto LB = M.relax(determinant_level,add_Rank1);
     LB->print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
-    unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
+    unsigned max_iter=2, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
@@ -1040,7 +1040,7 @@ TEST_CASE("testing multithread solve"){
     /* run in parallel */
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
     CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-3);
-    CHECK(std::abs(ACOPF2->get_obj_val()-3087.841985)<1e-3);
+    CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-3);
     CHECK(ACOPF1->is_feasible(tol));
     ACOPF1->print_solution();
     auto Mc = ACOPF1->build_McCormick();
