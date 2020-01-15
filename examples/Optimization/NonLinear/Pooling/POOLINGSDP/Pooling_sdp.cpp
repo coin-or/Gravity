@@ -25,7 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
 
-    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
  
 
     if(argc==2){
@@ -229,11 +229,11 @@ int main (int argc, char * argv[]) {
         Constraint<> PQ("PQ");
         PQ=x.in(pooloutput_x_matrix)-y;
         SPP->add(PQ.in(Ty)==0);
-    
-    
-        Constraint<> PQ1("PQ1");
-        PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
-        SPP->add(PQ1.in(Tx)<=0);
+//
+//
+//        Constraint<> PQ1("PQ1");
+//        PQ1=x.in(inputpool_x_matrix)-q.in(inputpool_q_matrix)*S.in(inputpool_poolcap_matrix);
+//        SPP->add(PQ1.in(Tx)<=0);
     
     
     
@@ -350,7 +350,7 @@ int main (int argc, char * argv[]) {
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
 //    SPP->print_solution();
 //    SPP->print_constraints_stats(1e-6);
