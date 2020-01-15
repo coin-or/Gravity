@@ -2303,21 +2303,50 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         
         
-        Constraint<> SDP3("SDP_3D");
-        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
-        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
-        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-        if (lazy_bool) {
-                SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
-            
-        }
-        else {
-            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
-            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
-        }
+//        Constraint<> SDP3("SDP_3D");
+//        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+//        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+//        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+//        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+//        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        
+        /* Second-order cone constraints */
+        Constraint<> SOC_Kojima1_0("SOC_Kojima1_0");
+        SOC_Kojima1_0 = pow(R_Wij_[0] + R_Wij_[2], 2) + pow(Im_Wij_[0] + Im_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*R_Wij_[1]);
+        SDPOPF->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
+        
+        /* Second-order cone constraints */
+        Constraint<> SOC_Kojima2_0("SOC_Kojima2_0");
+        SOC_Kojima2_0 = pow(R_Wij_[0] + R_Wij_[1], 2) + pow(Im_Wij_[0] - Im_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]+2*R_Wij_[2]);
+        SDPOPF->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
+        
+        
+        Constraint<> SOC_Kojima3_0("SOC_Kojima3_0");
+        SOC_Kojima3_0 = pow(R_Wij_[2] + R_Wij_[1], 2) + pow(Im_Wij_[2] + Im_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*R_Wij_[0]);
+        SDPOPF->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
+        
+        Constraint<> SOC_Kojima1_90("SOC_Kojima1_90");
+        SOC_Kojima1_90 = pow(R_Wij_[0] - Im_Wij_[2], 2) + pow(Im_Wij_[0] + R_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]-2*Im_Wij_[1]);
+        SDPOPF->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+//
+       Constraint<> SOC_Kojima2_90("SOC_Kojima2_90");
+       SOC_Kojima2_90 = pow(R_Wij_[0] - Im_Wij_[1], 2) + pow(Im_Wij_[0] - R_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]-2*Im_Wij_[2]);
+       SDPOPF->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+//
+        Constraint<> SOC_Kojima3_90("SOC_Kojima3_90");
+        SOC_Kojima3_90 = pow(R_Wij_[2] + Im_Wij_[1], 2) + pow(Im_Wij_[2] - R_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]-2*Im_Wij_[0]);
+        SDPOPF->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
+        
+//        SDPOPF->print();
+//        if (lazy_bool) {
+//                SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
+//
+//        }
+//        else {
+//            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
+//            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+//        }
         }
     
     
