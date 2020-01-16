@@ -337,7 +337,7 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3, nb_threads = 24;
     DebugOn("nb_threads= "<<nb_threads);
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
 //    SPP->print_solution();
 //    SPP->print_constraints_stats(1e-6);
