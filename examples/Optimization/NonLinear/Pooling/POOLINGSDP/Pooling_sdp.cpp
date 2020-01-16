@@ -25,7 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
 
-    string fname=string(prj_dir)+"/data_sets/Pooling/sppA5_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
  
 
     if(argc==2){
