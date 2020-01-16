@@ -213,7 +213,7 @@ int main (int argc, char * argv[]) {
         
         
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<"\t"<<lb_solv<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
     }
