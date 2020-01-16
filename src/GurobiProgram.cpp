@@ -99,7 +99,8 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //            cout << "\n";
 //        }
 //    }
-    cout << "\n***** Optimal Objective = " << grb_mod->get(GRB_DoubleAttr_ObjVal) << " *****\n";
+    _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
+    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
     if (grb_mod->get(GRB_IntAttr_IsMIP)) {
         cout.setf(ios::fixed);
         cout.precision(3);
