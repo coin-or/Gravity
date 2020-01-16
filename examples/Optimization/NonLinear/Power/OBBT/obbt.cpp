@@ -175,7 +175,7 @@ int main (int argc, char * argv[]) {
     if(!linearize){
         auto nonlin_obj=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj);
-        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        auto res=OPF->run_obbt(SDP,max_time,max_iter,24,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
     }
