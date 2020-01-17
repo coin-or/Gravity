@@ -163,15 +163,15 @@ int main (int argc, char * argv[]) {
     auto Wii_max=poolnet.Wii_max.in(TxplusTy);
     
 
-    auto objvar_min = param<>("objvar_min");
-    objvar_min.in(R(1));
-    objvar_min = -1e6;
-    auto objvar_max = param<>("objvar_max");
-    objvar_max.in(R(1));
-    objvar_max = 1e6;
+//    auto objvar_min = param<>("objvar_min");
+//    objvar_min.in(R(1));
+//    objvar_min = -1e6;
+//    auto objvar_max = param<>("objvar_max");
+//    objvar_max.in(R(1));
+//    objvar_max = 1e6;
     var<> x("x",x_min, x_max), y("y", y_min, y_max);
     var<> q("q", q_min, q_max), z("z", z_min, z_max);
-    var<> objvar("objvar",objvar_min, objvar_max);
+//    var<> objvar("objvar",objvar_min, objvar_max);
     var<> Wij("Wij", Wij_min, Wij_max);
     var<> Wii("Wii", Wii_min, Wii_max);
     
@@ -179,7 +179,7 @@ int main (int argc, char * argv[]) {
     SPP->add(q.in(Tx));
     SPP->add(z.in(Tz));
     SPP->add(y.in(Ty));
-    SPP->add(objvar.in(R(1)));
+//    SPP->add(objvar.in(R(1)));
     SPP->add(Wij.in(pairs_chordal));
     SPP->add(Wii.in(TxplusTy));
     
@@ -287,11 +287,12 @@ int main (int argc, char * argv[]) {
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
     SPP->add(SOC.in(pairs_chordal) <= 0);
 
-    Constraint<> obj_eq("obj_eq");
-    obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
-    SPP->add(obj_eq==0);
-    
-    SPP->min(objvar);
+//    Constraint<> obj_eq("obj_eq");
+//    obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
+//    SPP->add(obj_eq==0);
+//
+//    SPP->min(objvar);
+    SPP->min((c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)+product(c_tz, z));
     
     auto bag_size = bags_3d.size();
     Constraint<> SDP3("SDP_3D");
@@ -302,7 +303,32 @@ int main (int argc, char * argv[]) {
         auto Wij_ = Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         auto nb_bags3 = Wij_[0]._indices->size();
-        
+        /* Second-order cone constraints */
+//            Constraint<> SOC_Kojima1_0("SOC_Kojima1_0");
+//            SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+//            SPP->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
+//            
+//            /* Second-order cone constraints */
+//            Constraint<> SOC_Kojima2_0("SOC_Kojima2_0");
+//            SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+//            SPP->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
+//            
+//            
+//            Constraint<> SOC_Kojima3_0("SOC_Kojima3_0");
+//            SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+//            SPP->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
+            
+//            Constraint<> SOC_Kojima1_90("SOC_Kojima1_90");
+//            SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+//            SPP->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+//    //
+//           Constraint<> SOC_Kojima2_90("SOC_Kojima2_90");
+//           SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+//           SPP->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+//    //
+//            Constraint<> SOC_Kojima3_90("SOC_Kojima3_90");
+//            SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+//            SPP->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
 //
 //        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
 //        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
@@ -326,15 +352,15 @@ int main (int argc, char * argv[]) {
 //        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
 //        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
-    SPP->print();
-    //SPP->scale_vars(1000);
-//    double coef_scale = 1000;
-//    SPP->scale_coefs(coef_scale);
-    //SPP->print();
+//    SPP->print();
+//    SPP->scale_vars(100);
+//    double coef_scale = 100;
+//    SPP_NC->scale_coefs(coef_scale);
+//    SPP->print();
 //    solver<> SPP_solv(SPP, ipopt);
 //    SPP_solv.run(5, 1e-6);
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3;
-    unsigned max_iter=1e3, nb_threads = 24;
+    unsigned max_iter=1e3, nb_threads = 10;
     DebugOn("nb_threads= "<<nb_threads);
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);

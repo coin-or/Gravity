@@ -1125,15 +1125,23 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(auto &vp: _vars){
                 vp.second->scale(unit);
             }
+            _obj->uneval();
+            _obj->eval_all();
+            for (auto &c_p: _cons_name) {
+                c_p.second->uneval();
+                c_p.second->eval_all();
+            }
         }
         
         /* Make sure all coefficients in objective and constraints have values in [-unit,unit] */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         void scale_coefs(double unit){
-            _obj->scale_coefs(unit);
+//            _obj->scale_coefs(unit);
             for (auto &c_p: _cons_name) {
                 c_p.second->scale_coefs(unit);
+                c_p.second->uneval();
+                c_p.second->eval_all();
             }
         }
         
