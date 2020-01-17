@@ -159,9 +159,9 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
     
-    double lower_bound=numeric_limits<double>::lowest(), lower_bound_init=numeric_limits<double>::lowest(), avg=0;
+    double lower_bound=numeric_limits<double>::lowest(), lower_bound_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
     double solver_time =0;
-    int iter=0;
+    int iter=0, total_iter=0;
     
     bool terminate=false, xb_true=false;
     
@@ -175,9 +175,11 @@ int main (int argc, char * argv[]) {
     if(!linearize){
         auto nonlin_obj=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj);
-        auto res=OPF->run_obbt(SDP,max_time,max_iter,24,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
+        total_iter=get<1>(res);
+        total_time=get<2>(res);
     }
     else{
         auto nonlin_obj=false;
@@ -200,9 +202,11 @@ int main (int argc, char * argv[]) {
         auto res=OPF->run_obbt(SDPOA, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDPOA->get_obj_val();
         lower_bound_init = get<3>(res);
+        total_iter=get<1>(res);
+        total_time=get<2>(res);
     }
-    
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
+
     auto upper_bound = OPF->get_obj_val();
     auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
@@ -213,17 +217,17 @@ int main (int argc, char * argv[]) {
         
         
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
     }
     MPI_Finalize();
 #else
-    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl);
+    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl);
     
     
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<avg<<"\t"<<xb_true<<endl;
+     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
     fout.close();
 #endif
     
