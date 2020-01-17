@@ -105,12 +105,13 @@ TEST_CASE("Varialbe Scaling") {
     M.min(x[1]+x[2]+x[3]);
     M.print();
     M.scale_vars(10);
+    M.print();
     double coef_scale = 100;
     M.scale_coefs(coef_scale);
     M.print();
     solver<> s(M,ipopt);
     s.run(5,1e-6);
-    CHECK(std::abs(M.get_obj_val()-704.9248) < 1e-3);
+    CHECK(std::abs(M.get_obj_val()-7049.246) < 1e-3);
 }
 
 TEST_CASE("hard nlp") {
