@@ -2329,11 +2329,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
         Constraint<> SOC_Kojima1_90("SOC_Kojima1_90");
         SOC_Kojima1_90 = pow(R_Wij_[0] - Im_Wij_[2], 2) + pow(Im_Wij_[0] + R_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]-2*Im_Wij_[1]);
         SDPOPF->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
-//
+
        Constraint<> SOC_Kojima2_90("SOC_Kojima2_90");
        SOC_Kojima2_90 = pow(R_Wij_[0] - Im_Wij_[1], 2) + pow(Im_Wij_[0] - R_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]-2*Im_Wij_[2]);
        SDPOPF->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
-//
+
         Constraint<> SOC_Kojima3_90("SOC_Kojima3_90");
         SOC_Kojima3_90 = pow(R_Wij_[2] + Im_Wij_[1], 2) + pow(Im_Wij_[2] - R_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]-2*Im_Wij_[0]);
         SDPOPF->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
