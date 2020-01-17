@@ -803,6 +803,98 @@ namespace gravity {
         IIS->print();
         return IIS;
     }
+#ifdef USE_MPI
+
+    /** Runs models stored in the vector in parallel using MPI
+ *      @models vector of models to run in parallel
+ *           @stype Solver type
+ *                @tol numerical tolerance
+ *                     @max_iter max number of iterations per model
+ *                          @max_batch_time max wall clock time of each batch
+ *                               @nb_threads Number of parallel threads per worker
+ *                                    @lin_solver linear system solver
+ *                                         @share_all propagate model status and solutions to all workers, if false, only worker 0 has updated solutions and status flags for all models
+ *                                              @share_all_obj propagate only objective values and model status to all workers
+ *                                                   */
+    int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        auto nb_workers_ = std::min((size_t)nb_workers, models.size());
+        MPI_Request send_reqs[nb_workers_*models.size()];
+
+        if(models.size()!=0){
+            /* Split models into equal loads */
+            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
+            auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
+            DebugOff("I have " << nb_workers_ << " workers" << endl);
+            DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
+            std::vector<size_t> limits = bounds(nb_workers_, models.size());
+            DebugOff("I will be splitting " << models.size() << " tasks ");
+            DebugOff("among " << nb_workers_ << " worker(s)" << endl);
+            DebugOff("limits size = " << limits.size() << endl);
+            for (size_t i = 0; i < limits.size(); ++i) {
+                DebugOff("limits[" << i << "] = " << limits[i] << endl);
+            }
+            if(worker_id+1<limits.size()){
+                /* Launch all threads in parallel */
+                if(limits[worker_id] == limits[worker_id+1]){
+                    throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
+                }
+                DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                auto vec = vector<shared_ptr<gravity::Model<double>>>();
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    vec.push_back(models[i]);
+                }
+                run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
+            }
+            send_status(models,limits);
+            MPI_Barrier(MPI_COMM_WORLD);
+            if(!share_all && !share_all_obj){/* Only share solution with worker 0 */
+                if (worker_id == 0){
+                    DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+                    for (auto w_id = 1; w_id<nb_workers_; w_id++) {
+                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                            auto model = models[i];
+                            auto nb_vars = model->get_nb_vars();
+                            vector<double> solution;
+                            solution.resize(nb_vars);
+                            DebugOff("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                            DebugOff("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            model->set_solution(solution);
+                        }
+                    }
+                }
+                else {
+                    DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                        auto model = models[i];
+                        auto nb_vars = model->get_nb_vars();
+                        vector<double> solution;
+                        solution.resize(nb_vars);
+                        model->get_solution(solution);
+                        DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                        MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
+                        DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
+                    }
+                }
+            }
+            else if(share_all && !share_all_obj){
+                /* We will send the solution of successful models */
+                send_solution_all(models,limits);
+            }
+            else if(share_all_obj){
+                /* We will send the objective value of successful models */
+                send_obj_all(models,limits);
+            }
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        return max(err_rank, err_size);
+    }
+void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
+        run_MPI(vector<shared_ptr<gravity::Model<double>>>(models), stype, tol, nr_threads, lin_solver);}
+#endif
     template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
     template Model<double> Model<double>::build_model_interior() const;
     template shared_ptr<Model<double>> Model<double>::build_model_IIS();

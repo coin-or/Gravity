@@ -26,6 +26,7 @@ int main (int argc, char * argv[]) {
     
 
     string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+
  
 
     if(argc==2){

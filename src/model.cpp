@@ -5920,7 +5920,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<type>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
+std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
     int total_iter=0, global_iter=1;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
@@ -5955,7 +5955,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iteration(shared_ptr<Model<type>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
+std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol) {
     
     std::tuple<bool,int,double, double, double, double> res;
 #ifdef USE_MPI

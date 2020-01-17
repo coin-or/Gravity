@@ -6760,7 +6760,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<type>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
+        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
         
         /* Run Optimality Based Bound Tightening
         @param[in] relaxed_model a convex relaxtion of the current model
@@ -6768,7 +6768,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<type>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
+        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){
