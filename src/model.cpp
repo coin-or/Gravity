@@ -5928,12 +5928,12 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     double upper_bound_init = get<4>(status);
     total_iter += get<1>(status);
     while(get<1>(status)>1){
+        if(total_iter>= max_iter)
+            break;
         status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         total_iter += get<1>(status);
         if(get<1>(status)>0)
             global_iter++;
-        if(total_iter>= max_iter)
-            break;
     }
     time_end = get_wall_time();
     total_time = time_end - time_start;
@@ -6051,7 +6051,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 
             }
             solver_time= get_wall_time()-solver_time_start;
-            while(solver_time<=max_time && !terminate && iter<=max_iter)
+            while(solver_time<=max_time && !terminate && iter<max_iter)
             {
                 iter++;
                 terminate=true;

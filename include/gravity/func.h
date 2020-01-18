@@ -6966,8 +6966,8 @@ namespace gravity {
         
         
         
-        /**
-         Subfuntion of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+        /*
+         Subfuntion of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function. If x does not appear in this, add it. THIS SHOULD ONLY BE CALLED BY A SUBEXPRESSION OF THIS.
          @param[in] f function to merge variables and parameters with.
          */
         void merge_vars(func& f){
@@ -7088,7 +7088,7 @@ namespace gravity {
                 if (vv != vv_f) {
                     //                delete vv_f;
                     f._vars->erase(vp.first);
-                    f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, 1)));
+                    f._vars->insert(make_pair<>(vp.first, make_pair<>(vv, vp.second.second)));
                 }
             }
             auto old_params = *f._params;
@@ -7098,7 +7098,7 @@ namespace gravity {
                 if (p != p_f) {
                     //                delete p_f;
                     f._params->erase(pp.first);
-                    f._params->insert(make_pair<>(pp.first, make_pair<>(p, 1)));
+                    f._params->insert(make_pair<>(pp.first, make_pair<>(p, pp.second.second)));
                 }
             }
         }

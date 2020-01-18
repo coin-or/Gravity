@@ -71,7 +71,7 @@ using namespace gravity;
 //@objective(m, Min, x[1]+x[2]+x[3])
 
 
-TEST_CASE("Varialbe Scaling") {
+TEST_CASE("Variable Scaling") {
     Model<> M("Test");
     param<> lb("x_lb");
     lb = {100,1000,1000,10,10,10,10,10};
@@ -104,14 +104,21 @@ TEST_CASE("Varialbe Scaling") {
     
     M.min(x[1]+x[2]+x[3]);
     M.print();
-    M.scale_vars(10);
-    M.print();
-    double coef_scale = 100;
-    M.scale_coefs(coef_scale);
-    M.print();
+    
     solver<> s(M,ipopt);
     s.run(5,1e-6);
-    CHECK(std::abs(M.get_obj_val()-7049.246) < 1e-3);
+    auto obj_val = M.get_obj_val();
+    auto M_scale = M;
+    M_scale.reset();
+    M_scale.scale_vars(10);
+    M_scale.print();
+    double coef_scale = 100;
+    M_scale.scale_coefs(coef_scale);
+    M_scale.print();
+    M_scale.initialize_midpoint();
+    solver<> s2(M_scale,ipopt);
+    s2.run(5,1e-6);
+    CHECK(std::abs(M_scale.get_obj_val()-obj_val) < 1e-3);
 }
 
 TEST_CASE("hard nlp") {
@@ -1420,7 +1427,7 @@ TEST_CASE("testing normal distributions") {
     double tol;
     string lin_solver;
     NLP.run(output=5,tol=1e-6);
-    M.print_solution();
+    CHECK(std::abs(M.get_obj_val()-42.2716)<1e-3);
 }
 
 TEST_CASE("testing set union unindexed") {
