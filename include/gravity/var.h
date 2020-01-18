@@ -96,6 +96,7 @@ namespace gravity {
         
         shared_ptr<constant_> copy() const{return make_shared<var>(*this);};
         
+        shared_ptr<param_> ptr_deep_copy() const{return make_shared<var>(this->deep_copy());};
         //@{
                 
 //        var(const string& name, type lb, type ub){
@@ -366,13 +367,24 @@ namespace gravity {
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
             res._type = var_c;
             if(first_time_indexing){
+                if(_lb->func_is_number()){
+                    param<type> lb(this->_name+"-lb");
+                    lb.index_in(*res._indices);
+                    lb.set_val(_lb->eval());
+                    *this->_lb = lb;
+                }
+                if(_ub->func_is_number()){
+                    param<type> ub(this->_name+"-ub");
+                    ub.index_in(*res._indices);
+                    ub.set_val(_ub->eval());
+                    *this->_ub = ub;
+                }
                 _lb->index_in(*res._indices);
                 _ub->index_in(*res._indices);
+                _lb->allocate_mem();
+                _ub->allocate_mem();
                 res._lb = _lb;
                 res._ub = _ub;
-                res._lb->allocate_mem();
-                res._ub->allocate_mem();
-                res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             }
             else if(!res._lb->func_is_number() && !res._ub->func_is_number()){
                 res._lb->allocate_mem();
@@ -977,10 +989,12 @@ namespace gravity {
         }
         
         
-        /* Return the scaling factor needed to make sure all bounds are in [-unit,unit] */
+        /* Return the scaling factor needed to make sure all bounds are in [-unit,unit]*/
         double get_scale_factor(double unit){
             auto absmax = std::max(std::abs(this->_range->first),std::abs(this->_range->second));
-            return unit/absmax;
+            if(absmax>unit)
+                return unit/absmax;
+            return 1;
         }
         
         /* Make sure all bounds are in [-unit,unit] */
@@ -988,8 +1002,9 @@ namespace gravity {
             _lb->eval_all();
             _ub->eval_all();
             auto dim = this->get_dim();
-            auto absmax = std::max(std::abs(this->_range->first),std::abs(this->_range->second));
-            auto factor = unit/absmax;
+            auto factor = get_scale_factor(unit);
+            if(factor==1)
+                return;
             for (size_t i = 0; i < dim; i++) {
                 _lb->_val->at(i) = factor*_lb->_val->at(i);
                 _ub->_val->at(i) = factor*_ub->_val->at(i);

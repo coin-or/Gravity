@@ -110,6 +110,7 @@ namespace gravity {
         virtual void initialize_midpoint(){};
         virtual void initialize_zero(){};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
+        virtual shared_ptr<param_> ptr_deep_copy()const{return nullptr;};
         virtual void scale(double unit){};
         virtual double get_scale_factor(double unit){return 0;};
         virtual void print(){};
@@ -586,7 +587,7 @@ namespace gravity {
 
         param() {
             update_type();
-            init_range();
+            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
             _val = make_shared<vector<type>>();
             _in = make_shared<bool>(true);
         }
@@ -595,13 +596,15 @@ namespace gravity {
 
         shared_ptr<constant_> copy()const{return make_shared<param>(*this);};
         
+        shared_ptr<param_> ptr_deep_copy()const{return make_shared<param>(this->deep_copy());};
+        
         ~param(){};
         template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         param (const param<T2>& p) {
             *this = p;
         }
 
-        param (const param& p):param() {
+        param (const param& p){
             *this = p;
         }
         
@@ -1031,7 +1034,8 @@ namespace gravity {
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void init_range() {
-            _range = make_shared<pair<type,type>>(make_pair<>(numeric_limits<type>::max(), numeric_limits<type>::lowest()));
+            _range->first = numeric_limits<type>::max();
+            _range->second = numeric_limits<type>::lowest();
         }
         
         
@@ -1513,11 +1517,12 @@ namespace gravity {
             return res;
         }
 
-        param operator()(size_t idx) {
-            if(!_indices){
-                throw invalid_argument("Current param/var is not indexed.");
-            }
-            return (*this)(this->_indices->_keys->at(idx));
+        param operator[](size_t i) {
+            return (*this)(to_string(i));
+        }
+        
+        param operator()(size_t i) {
+            return (*this)(to_string(i));
         }
 
         template<bool...> struct bool_pack;
@@ -2505,8 +2510,7 @@ namespace gravity {
         void copy_vals(const param<T>& p){
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
-            auto dim = p.get_dim();
-            _val->resize(dim);
+            _val->resize(p._val->size());
             for (size_t i = 0; i < p._val->size(); i++) {
                 _val->at(i) = p._val->at(i);
             }
