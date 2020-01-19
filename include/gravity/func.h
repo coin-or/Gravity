@@ -3375,6 +3375,314 @@ namespace gravity {
             _all_convexity = f._all_convexity;
             _all_sign = f._all_sign;
             _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            for(auto const &pp: *f._params){
+                (*_params)[pp.second.first->get_name(false,false)] = {pp.second.first->ptr_deep_copy(),pp.second.second};
+            }
+            _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            for(auto const &vp: *f._vars){
+                (*_vars)[vp.second.first->get_name(false,false)] = {vp.second.first->ptr_deep_copy(),vp.second.second};
+            }
+            _val = make_shared<vector<type>>();
+            _range = make_shared<pair<type,type>>();
+            _lterms = make_shared<map<string, lterm>>();
+            _qterms = make_shared<map<string, qterm>>();
+            _pterms = make_shared<map<string, pterm>>();
+            for (auto pair:*f._lterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto pname = pair.second._p->get_name(false,false);
+                if (pair.second._p->is_var()) {
+                    pair.second._p = _vars->at(pname).first;
+                }
+                else {
+                    pair.second._p = _params->at(pname).first;
+                }
+                (*_lterms)[pair.first] = pair.second;
+            }
+            for (auto pair:*f._qterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto pname1 = pair.second._p->first->get_name(false,false);
+                auto pname2 = pair.second._p->second->get_name(false,false);
+                if (pair.second._p->first->is_var()) {
+                    pair.second._p->first = _vars->at(pname1).first;
+                    pair.second._p->second = _vars->at(pname2).first;
+                }
+                else {
+                    pair.second._p->first = _params->at(pname1).first;
+                    pair.second._p->second = _params->at(pname2).first;
+                }
+                (*_qterms)[pair.first] = pair.second;
+            }
+            for (auto pair:*f._pterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<type>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<type>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto newl = make_shared<list<std::pair<shared_ptr<param_>, int>>>();
+                for(auto &vp: *pair.second._l){
+                    std::pair<shared_ptr<param_>, int> new_pair;
+                    auto pname = vp.first->get_name(false,false);
+                    if (vp.first->is_var()) {
+                        new_pair.first = _vars->at(pname).first;
+                    }
+                    else {
+                        new_pair.first = _params->at(pname).first;
+                    }
+                    new_pair.second = vp.second;
+                    newl->push_back(new_pair);
+                }
+                pair.second._l = newl;
+                (*_pterms)[pair.first] = pair.second;
+            }
+            if(f._expr){
+                if (f._expr->is_uexpr()) {
+                    _expr = make_shared<uexpr<type>>(*static_pointer_cast<uexpr<type>>(f._expr));
+                }
+                else {
+                    _expr = make_shared<bexpr<type>>(*static_pointer_cast<bexpr<type>>(f._expr));
+                }
+                embed(_expr);
+            }
+            else {
+                _expr = nullptr;
+            }
+            if (f._cst->is_function()) {
+                auto coef = *static_pointer_cast<func<type>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_param()) {
+                auto coef = *static_pointer_cast<param<type>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_number()) {
+                auto coef = *static_pointer_cast<constant<type>>(f._cst);
+                _cst = constant<type>(coef.eval()).copy();
+            }
+            if(f._indices){
+                _indices = make_shared<indices>(*f._indices);
+            }
+            else {
+                _indices = nullptr;
+            }
+            _range->first = f._range->first;
+            _range->second = f._range->second;
+            //            _val->clear();
+            _val->resize(f._val->size());
+            for(auto i = 0; i< f._val->size(); i++){
+                _val->at(i) = f._val->at(i);
+            }
+            *_convexity = *f._convexity;
+            _sign = f._sign;
+            constant_::_is_transposed = f._is_transposed;
+            constant_::_is_vector = f._is_vector;
+            if(f._is_constraint)
+                _is_constraint = true;
+            _is_hessian = f._is_hessian;
+            constant_::_dim[0] = f._dim[0];
+            constant_::_dim[1] = f._dim[1];
+            _embedded = f._embedded;
+            _dfdx = make_shared<map<string,shared_ptr<func<type>>>>();
+            if(f._hess_link){
+                _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
+            }
+            else {
+                _hess_link = nullptr;
+            }
+            _nnz_j = f._nnz_j;
+            _nnz_h = f._nnz_h;
+            _hess_link = f._hess_link;
+            _nb_vars = f._nb_vars;
+            _evaluated = f._evaluated;
+        }
+        
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        void deep_copy(const func<T2>& f){
+            constant_::_type = f._type;
+            _ftype = f._ftype;
+            _return_type = f._return_type;
+            _to_str = f._to_str;
+            _all_convexity = f._all_convexity;
+            _all_sign = f._all_sign;
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            for(auto const &pp: *f._params){
+                (*_params)[pp.second.first->get_name(false,false)] = {pp.second.first->ptr_deep_copy(),pp.second.second};
+            }
+            _vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+            for(auto const &vp: *f._vars){
+                (*_vars)[vp.second.first->get_name(false,false)] = {vp.second.first->ptr_deep_copy(),vp.second.second};
+            }
+            _val = make_shared<vector<type>>();
+            _range = make_shared<pair<type,type>>();
+            _lterms = make_shared<map<string, lterm>>();
+            _qterms = make_shared<map<string, qterm>>();
+            _pterms = make_shared<map<string, pterm>>();
+            for (auto pair:*f._lterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<T2>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<T2>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto pname = pair.second._p->get_name(false,false);
+                if (pair.second._p->is_var()) {
+                    pair.second._p = _vars->at(pname).first;
+                }
+                else {
+                    pair.second._p = _params->at(pname).first;
+                }
+                (*_lterms)[pair.first] = pair.second;
+            }
+            for (auto pair:*f._qterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<T2>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<T2>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto pname1 = pair.second._p->first->get_name(false,false);
+                auto pname2 = pair.second._p->second->get_name(false,false);
+                if (pair.second._p->first->is_var()) {
+                    pair.second._p->first = _vars->at(pname1).first;
+                    pair.second._p->second = _vars->at(pname2).first;
+                }
+                else {
+                    pair.second._p->first = _params->at(pname1).first;
+                    pair.second._p->second = _params->at(pname2).first;
+                }
+                (*_qterms)[pair.first] = pair.second;
+            }
+            for (auto pair:*f._pterms) {
+                if (pair.second._coef->is_function()) {
+                    auto coef = *static_pointer_cast<func<T2>>(pair.second._coef);
+                    pair.second._coef = coef.copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                else if(pair.second._coef->is_param()) {
+                    auto coef = *static_pointer_cast<param<T2>>(pair.second._coef);
+                    pair.second._coef = func(coef).copy();
+                    embed(*static_pointer_cast<func>(pair.second._coef));
+                }
+                auto newl = make_shared<list<std::pair<shared_ptr<param_>, int>>>();
+                for(auto &vp: *pair.second._l){
+                    std::pair<shared_ptr<param_>, int> new_pair;
+                    auto pname = vp.first->get_name(false,false);
+                    if (vp.first->is_var()) {
+                        new_pair.first = _vars->at(pname).first;
+                    }
+                    else {
+                        new_pair.first = _params->at(pname).first;
+                    }
+                    new_pair.second = vp.second;
+                    newl->push_back(new_pair);
+                }
+                pair.second._l = newl;
+                (*_pterms)[pair.first] = pair.second;
+            }
+            if(f._expr){
+                if (f._expr->is_uexpr()) {
+                    _expr = make_shared<uexpr<type>>(*static_pointer_cast<uexpr<T2>>(f._expr));
+                }
+                else {
+                    _expr = make_shared<bexpr<type>>(*static_pointer_cast<bexpr<T2>>(f._expr));
+                }
+                embed(_expr);
+            }
+            else {
+                _expr = nullptr;
+            }
+            if (f._cst->is_function()) {
+                auto coef = *static_pointer_cast<func<T2>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_param()) {
+                auto coef = *static_pointer_cast<param<T2>>(f._cst);
+                _cst = func(coef).copy();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            else if(f._cst->is_number()) {
+                auto coef = *static_pointer_cast<constant<T2>>(f._cst);
+                _cst = constant<type>(coef.eval()).copy();
+            }
+            if(f._indices){
+                _indices = make_shared<indices>(*f._indices);
+            }
+            else {
+                _indices = nullptr;
+            }
+            _range->first = f._range->first;
+            _range->second = f._range->second;
+            //            _val->clear();
+            _val->resize(f._val->size());
+            for(auto i = 0; i< f._val->size(); i++){
+                _val->at(i) = f._val->at(i);
+            }
+            *_convexity = *f._convexity;
+            _sign = f._sign;
+            constant_::_is_transposed = f._is_transposed;
+            constant_::_is_vector = f._is_vector;
+            if(f._is_constraint)
+                _is_constraint = true;
+            _is_hessian = f._is_hessian;
+            constant_::_dim[0] = f._dim[0];
+            constant_::_dim[1] = f._dim[1];
+            _embedded = f._embedded;
+            _dfdx = make_shared<map<string,shared_ptr<func<type>>>>();
+            if(f._hess_link){
+                _hess_link = make_shared<map<size_t, set<size_t>>>(*f._hess_link);
+            }
+            else {
+                _hess_link = nullptr;
+            }
+            _nnz_j = f._nnz_j;
+            _nnz_h = f._nnz_h;
+            _hess_link = f._hess_link;
+            _nb_vars = f._nb_vars;
+            _evaluated = f._evaluated;
+        }
+        
+        func& operator=(const func& f){
+            constant_::_type = f._type;
+            _ftype = f._ftype;
+            _return_type = f._return_type;
+            _to_str = f._to_str;
+            _all_convexity = f._all_convexity;
+            _all_sign = f._all_sign;
+            _params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             if (f._cst->is_function()) {
                 auto coef = *static_pointer_cast<func<type>>(f._cst);
                 _cst = func(coef).copy();
@@ -3452,11 +3760,11 @@ namespace gravity {
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
             _evaluated = f._evaluated;
+            return  *this;
         }
         
-        
-        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
-        void deep_copy(const func<T2>& f){
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func& operator=(const func<T2>& f){
             _to_str = f._to_str;
             _all_convexity = f._all_convexity;
             _all_sign = f._all_sign;
@@ -3590,16 +3898,6 @@ namespace gravity {
             _hess_link = f._hess_link;
             _nb_vars = f._nb_vars;
             _evaluated = f._evaluated;
-        }
-        
-        func& operator=(const func& f){
-            deep_copy(f);
-            return  *this;
-        }
-        
-        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
-        func& operator=(const func<T2>& f){
-            deep_copy(f);
             return  *this;
         }
         
