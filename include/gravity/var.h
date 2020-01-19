@@ -1135,7 +1135,8 @@ namespace gravity {
         int get_num_partns() const{ return *_num_partns;};
         int get_cur_partn() const{ return _cur_partn;};
         
-        bool get_lift() const{return _lift;};
+        vector<shared_ptr<param_>> get_original_vars(){vector<shared_ptr<param_>> res; res.push_back(_original_vars[0]); res.push_back(_original_vars[1]); return res;};
+        bool is_lifted() const{return _lift;};
         bool get_in_SOC_partn() const{return _in_SOC_partn;};
         void set_in_SOC_partn(bool in_SOC_partn) {this->_in_SOC_partn = in_SOC_partn;};
         

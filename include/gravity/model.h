@@ -1114,16 +1114,129 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _has_callback = true;
         }
         
+        /* Rescale functions to make sure all variables' bounds are in [-unit,unit] */
+        void scale_func_vars(shared_ptr<expr<type>>& e, double unit){
+            if(e->is_uexpr()){
+                auto ue = (uexpr<type>*)e.get();
+                if (ue->_son->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(ue->_son);
+                    scale_func_vars(*f, unit);
+                }
+                else if (ue->_son->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(ue->_son));
+                    scale_func_vars(f, unit);
+                    ue->_son = f.copy();
+                }
+            }
+            else{
+                auto be = (bexpr<type>*)e.get();
+                if (be->_lson->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(be->_lson);
+                    scale_func_vars(*f, unit);
+                }
+                else if (be->_lson->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(be->_lson));
+                    scale_func_vars(f, unit);
+                    be->_lson = f.copy();
+                }
+                if (be->_rson->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(be->_rson);
+                    scale_func_vars(*f, unit);
+                }
+                else if (be->_rson->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(be->_rson));
+                    scale_func_vars(f, unit);
+                    be->_rson = f.copy();
+                }
+            }
+        }
+        
+        /* Rescale functions to make sure all variables' bounds are in [-unit,unit] */
+        void scale_func_vars(func<type>& f, double unit){
+            for (auto &lt:f.get_lterms()) {
+                auto vv = _vars.at(*lt.second._p->_vec_id);
+                double factor = 1;
+                if(!vv->is_lifted()) {
+                    factor = vv->get_scale_factor(unit);
+                }
+                else {
+                    auto vv1 = _vars.at(*vv->get_original_vars()[0]->_vec_id);
+                    auto vv2 = _vars.at(*vv->get_original_vars()[1]->_vec_id);
+                    factor = vv1->get_scale_factor(unit)*vv2->get_scale_factor(unit);
+                }
+                if(factor!=1){
+                    lt.second._coef = f.multiply(lt.second._coef, constant<>(1./factor));
+                    lt.second._coef->uneval();
+                }
+
+            }
+            for (auto &qt:f.get_qterms()) {
+                double factor1 = 1, factor2 = 1;
+                auto vv1 = _vars.at(*qt.second._p->first->_vec_id);
+                if(!vv1->is_lifted()) {
+                    factor1 = vv1->get_scale_factor(unit);
+                }
+                else {
+                    auto vv11 = _vars.at(*vv1->get_original_vars()[0]->_vec_id);
+                    auto vv12 = _vars.at(*vv1->get_original_vars()[1]->_vec_id);
+                    factor1 = vv11->get_scale_factor(unit)*vv12->get_scale_factor(unit);
+                }
+                auto vv2 = _vars.at(*qt.second._p->second->_vec_id);
+                if(!vv2->is_lifted()) {
+                    factor2 = vv2->get_scale_factor(unit);
+                }
+                else {
+                    auto vv21 = _vars.at(*vv2->get_original_vars()[0]->_vec_id);
+                    auto vv22 = _vars.at(*vv2->get_original_vars()[1]->_vec_id);
+                    factor2 = vv21->get_scale_factor(unit)*vv22->get_scale_factor(unit);
+                }
+                if(factor1!=1 || factor2!=1){
+                    qt.second._coef = f.multiply(qt.second._coef, constant<>(1./(factor1*factor2)));
+                    qt.second._coef->uneval();
+                }
+            }
+            for (auto &pt:f.get_pterms()) {
+                double factor = 1;
+                for (auto &vpair: *pt.second._l) {
+                    auto vv = _vars.at(*vpair.first->_vec_id);
+                    if(!vv->is_lifted()) {
+                        factor *= vv->get_scale_factor(unit);
+                    }
+                    else {
+                        auto vv1 = _vars.at(*vv->get_original_vars()[0]->_vec_id);
+                        auto vv2 = _vars.at(*vv->get_original_vars()[1]->_vec_id);
+                        factor *= vv1->get_scale_factor(unit)*vv2->get_scale_factor(unit);
+                    }
+                }
+                if(factor!=1){
+                    pt.second._coef = f.multiply(pt.second._coef, constant<>(1./factor));
+                    pt.second._coef->uneval();
+                }
+            }
+            if(f._expr){
+                scale_func_vars(f._expr, unit);
+            }
+            f._cst->uneval();
+        }
+        
         /* Make sure all variables have bounds in [-unit,unit] */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
         void scale_vars(double unit){            
-            _obj->scale_vars(unit);
+            scale_func_vars(*_obj, unit);
             for (auto &c_p: _cons_name) {
-                c_p.second->scale_vars(unit);
+                if(c_p.first.find("_McCormick")==string::npos && c_p.first.find("_diag")==string::npos && c_p.first.find("_Secant")==string::npos)
+                    scale_func_vars(*c_p.second, unit);
             }
             for(auto &vp: _vars){
-                vp.second->scale(unit);
+                if(!vp.second->is_lifted()){
+                    vp.second->scale(unit);
+                }
+            }
+            for(auto &vp: _vars){
+                if(vp.second->is_lifted()){
+                    vp.second->reset_bounds();
+                }
             }
             _obj->uneval();
             _obj->eval_all();
@@ -4452,7 +4565,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void reset_lifted_vars_bounds() {
             for(auto &v_p: _vars)
             {
-                if(v_p.second->get_lift())
+                if(v_p.second->is_lifted())
                     v_p.second->reset_bounds();
             }
         }
@@ -4464,7 +4577,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
 //            for(auto &v_p: _vars)
 //            {
-//                if(v_p.second->get_lift())
+//                if(v_p.second->is_lifted())
 //                    v_p.second->reset_bounds();
 //            }
         }
@@ -5097,7 +5210,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     LB_off = (term._p->get_double_lb(inst_id));
                     UB_off = (term._p->get_double_ub(inst_id));
                     
-                    auto lifted = term._p->get_lift();
+                    auto lifted = term._p->is_lifted();
                     if (lifted){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1
                         LB_on = (term._p->get_double_lb(inst_id));
                         UB_on = (term._p->get_double_ub(inst_id));
@@ -5242,7 +5355,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     LB_off = (pair.second._p->get_double_lb(inst_id));
                     UB_off = (pair.second._p->get_double_ub(inst_id));
                     
-                    auto lifted = pair.second._p->get_lift();
+                    auto lifted = pair.second._p->is_lifted();
                     if (lifted || (num_partns == 1) || in_SOC_partn){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1, similarly if number of partitions is 1
                         LB_on = (pair.second._p->get_double_lb(inst_id));
                         UB_on = (pair.second._p->get_double_ub(inst_id));

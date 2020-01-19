@@ -109,6 +109,7 @@ namespace gravity {
         virtual void initialize_uniform(){};
         virtual void initialize_midpoint(){};
         virtual void initialize_zero(){};
+        virtual vector<shared_ptr<param_>> get_original_vars(){return vector<shared_ptr<param_>>();};
         virtual shared_ptr<param_> pcopy() const{return nullptr;};
         virtual shared_ptr<param_> ptr_deep_copy()const{return nullptr;};
         virtual void scale(double unit){};
@@ -563,7 +564,7 @@ namespace gravity {
         virtual int get_num_partns() const{return 0;};
         virtual int get_cur_partn() const{return 0;};
         
-        virtual bool get_lift() const{return 0;};
+        virtual bool is_lifted() const{return 0;};
         virtual bool get_in_SOC_partn() const{return 0;};
         virtual void set_in_SOC_partn(bool in_SOC_partn) {};
         
