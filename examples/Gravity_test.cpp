@@ -44,6 +44,22 @@ TEST_CASE("testing param, var anf func copy operators") {
     CHECK(ip._range->first==-1);/* The range of ip should be updated */
     CHECK(ip2._range->first==-1);/* So is the range of ip2 */
     CHECK(ip3.eval("key1")==2);/* The _val of ip3 was not modified */
+    var<> v1("v1", -2,3), v2("v2", -10,40);
+    v1.in(ids);v2.in(ids);
+    func<> f = v1 + v1.get_lb()*v2;
+    f.print();
+    auto fcpy = f;
+    func<> deep_cpy;
+    deep_cpy.deep_copy(f);
+    fcpy.print();
+    v1.set_lb("key1", 0);
+    f.uneval();
+    f.eval_all();
+    fcpy.uneval();
+    fcpy.eval_all();
+    f.print();
+    fcpy.print();
+    deep_cpy.print();
 }
 
 

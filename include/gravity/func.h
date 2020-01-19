@@ -2325,6 +2325,17 @@ namespace gravity {
                 if (c_new->is_function()) {
                     embed(*static_pointer_cast<func>(c_new));
                 }
+                else if(c_new->is_param()) {
+                    auto cp = static_pointer_cast<param_>(c_new);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
                 if (p.is_var()) {
                     auto p_exist = get_var(pname);
                     if (!p_exist) {
@@ -2374,6 +2385,9 @@ namespace gravity {
                         auto coef2 = *(constant<type>*)(&coef);
                         pair_it->second._coef = subtract(pair_it->second._coef,coef2);
                     }
+                }
+                if (pair_it->second._coef->is_function()) {
+                    embed(*static_pointer_cast<func>(pair_it->second._coef));
                 }
                 if (pair_it->second._coef->is_zero()) {
                     if (p.is_var()) {
@@ -7274,6 +7288,17 @@ namespace gravity {
                 if(coef->is_function()){
                     embed(*static_pointer_cast<func>(coef));
                 }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
                 auto p = pair.second._p;
                 if (p->is_var()) {
                     auto pname = p->get_name(false,false);
@@ -7302,6 +7327,17 @@ namespace gravity {
                 auto coef = pair.second._coef;
                 if (coef->is_function()){
                     embed(*static_pointer_cast<func>(coef));
+                }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
                 }
                 auto p1 = pair.second._p->first;
                 auto p2 = pair.second._p->second;
@@ -7346,6 +7382,17 @@ namespace gravity {
                 auto coef = pair.second._coef;
                 if(coef->is_function()){
                     embed(*static_pointer_cast<func>(coef));
+                }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
                 }
                 auto list = pair.second._l;
                 for (auto &ppi: *list) {
@@ -7639,6 +7686,17 @@ namespace gravity {
                 if (c_new->is_function()) {
                     embed(*static_pointer_cast<func>(c_new));
                 }
+                else if(c_new->is_param()) {
+                    auto cp = static_pointer_cast<param_>(c_new);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
                 qterm q(sign, c_new, p_new1, p_new2);
                 q._coef_p1_tr = c_p1_transposed;
                 _qterms->insert(make_pair<>(qname, move(q)));
@@ -7676,6 +7734,9 @@ namespace gravity {
                         auto coef2 = *(constant<type>*)(&coef);
                         pair_it->second._coef = subtract(pair_it->second._coef,coef2);
                     }
+                }
+                if (pair_it->second._coef->is_function()) {
+                    embed(*static_pointer_cast<func>(pair_it->second._coef));
                 }
                 if (pair_it->second._coef->is_zero()) {
                     if (p1.is_var()) {
@@ -7803,6 +7864,17 @@ namespace gravity {
                 if (c_new->is_function()) {
                     embed(*static_pointer_cast<func>(c_new));
                 }
+                else if(c_new->is_param()) {
+                    auto cp = static_pointer_cast<param_>(c_new);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
                 pterm p(sign, c_new, newl);
                 _pterms->insert(make_pair<>(name, move(p)));
                 if(pnew->is_var()){
@@ -7838,6 +7910,9 @@ namespace gravity {
                         auto coef2 = *(constant<type>*)(&coef);
                         pair_it->second._coef = subtract(pair_it->second._coef,coef2);
                     }
+                }
+                if (pair_it->second._coef->is_function()) {
+                    embed(*static_pointer_cast<func>(pair_it->second._coef));
                 }
                 if (pair_it->second._coef->is_zero()) {
                     for (auto& it:*pair_it->second._l) {

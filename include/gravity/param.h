@@ -701,12 +701,10 @@ namespace gravity {
             res._type = _type;
             res._polar = _polar;
             res._intype = _intype;
-//            res._id = make_shared<size_t>();
-//            res._vec_id = make_shared<size_t>();
-//            res._val = make_shared<vector<type>>(*_val);
+            res._id = make_shared<size_t>(*_id);
+            res._vec_id = make_shared<size_t>(*_vec_id);
             res._val = make_shared<vector<type>>();
             res.copy_vals(*this);
-//            res._val = make_shared<vector<type>>(*_val);
             res._range = make_shared<pair<type,type>>(*_range);
             res._name = _name;
             res._is_transposed = _is_transposed;
