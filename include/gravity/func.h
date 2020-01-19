@@ -692,6 +692,13 @@ namespace gravity {
             throw invalid_argument("Unsupported numerical function type");
         }
         
+        bool has_lifted_vars() const{
+            for (auto const& vp: *_vars){
+                if(vp.second.first->is_lifted())
+                    return true;
+            }
+            return false;
+        }
         
         bool is_constant() const{
             return (_vars->empty());
@@ -4560,8 +4567,8 @@ namespace gravity {
         /* Get the scaling factor needed to make sure all coefficients are in [-unit,unit] */
         double get_scale_factor(double unit);
         
-        /* Make sure all variables' bounds are in [-unit,unit] */
-        void scale_vars(double unit);
+//        /* Make sure all variables' bounds are in [-unit,unit] */
+//        void scale_vars(double unit);
         
         /* Make sure all coefficient values are in [-unit,unit] */
         void scale_coefs(double unit);

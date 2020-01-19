@@ -4192,32 +4192,7 @@ unsigned func_::nb_linear_terms() const{
 }
 
 
-    /* Make sure all variables' bounds are in [-unit,unit] */
-    template<typename type>
-    void func<type>::scale_vars(double unit){
-        for (auto &lt:this->get_lterms()) {
-            auto vv = lt.second._p;
-            double factor = vv->get_scale_factor(unit);
-            lt.second._coef = multiply(lt.second._coef, constant<>(1./factor));
-        }
-        for (auto &qt:this->get_qterms()) {
-            auto vv1 = qt.second._p->first;
-            double factor1 = vv1->get_scale_factor(unit);
-            auto vv2 = qt.second._p->second;
-            double factor2 = vv2->get_scale_factor(unit);
-            qt.second._coef = multiply(qt.second._coef, constant<>(1./(factor1*factor2)));
-        }
-        for (auto &pt:this->get_pterms()) {
-            double factor = 1;
-            for (auto &vpair: *pt.second._l) {
-                factor *= vpair.first->get_scale_factor(unit);
-            }
-            pt.second._coef = multiply(pt.second._coef, constant<>(1./factor));
-        }
-        if(_expr){
-            _expr->scale_vars(unit);
-        }
-    }
+    
 
     template<typename type>
     double func<type>::get_scale_factor(double unit){
@@ -6155,7 +6130,6 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
 //    template <>
 //    func<double> param<Cpx>::get_imag() const;
     template func<double> func<double>::replace<double>(const var<double>&, const func<double>&) const;
-    template void func<double>::scale_vars(double);
     template void func<double>::scale_coefs(double);
     template double func<double>::get_scale_factor(double);
     template void func<double>::update_rows(vector<bool> const&);

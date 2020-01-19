@@ -52,7 +52,7 @@ TEST_CASE("testing param, var anf func copy operators") {
     func<> deep_cpy;
     deep_cpy.deep_copy(f);
     fcpy.print();
-    v1.set_lb("key1", 0);
+    v1.set_lb("key1", -3);
     f.uneval();
     f.eval_all();
     fcpy.uneval();
@@ -60,6 +60,8 @@ TEST_CASE("testing param, var anf func copy operators") {
     f.print();
     fcpy.print();
     deep_cpy.print();
+    CHECK(fcpy.to_str(0,5)=="v1[key1] - 3v2[key1]");
+    CHECK(deep_cpy.to_str(0,5)=="v1[key1] - 2v2[key1]");
 }
 
 
@@ -208,15 +210,22 @@ TEST_CASE("hard nlp") {
     
     M.min(x[1]+x[2]+x[3]);
 
-    M.scale_vars(100);
-    double coef_scale = 100;
-    M.scale_coefs(coef_scale);
+//    M.scale_vars(100);
+//    double coef_scale = 100;
+//    M.scale_coefs(coef_scale);
     M.print();
 
     auto determinant_level = 2;
     bool add_Rank1 = true;
     auto LB = M.relax(determinant_level,add_Rank1);
+    
     LB->print();
+    LB->scale_vars(100);
+    LB->print();
+    double coef_scale = 100;
+    LB->scale_coefs(coef_scale);
+//    LB->print();
+//    M.print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
     unsigned max_iter=2, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
