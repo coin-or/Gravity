@@ -23,6 +23,30 @@ using namespace std;
 using namespace gravity;
 
 
+TEST_CASE("testing param, var anf func copy operators") {
+    indices ids("ids");
+    ids.add("key1", "key2");
+    param<int> ip("ip");
+    ip.in(ids);
+    ip.print();
+    ip.set_val("key1",2);
+    ip.set_val("key2",3);
+    ip.print();
+    CHECK(ip._range->first==2);
+    CHECK(ip._range->second==3);
+    param<int> ip2 = ip("key1");/* ip2 is a masked copy of ip, they will be sharing the same _val vector */
+    ip2.print();
+    CHECK(ip2.is_param());
+    CHECK(ip2.get_intype()==integer_);
+    CHECK(ip2.is_positive());
+    param<int> ip3 = ip.deep_copy();/* ip3 will not be sharing the same _val vector with ip or ip2 */
+    ip.set_val("key1",-1);
+    CHECK(ip._range->first==-1);/* The range of ip should be updated */
+    CHECK(ip2._range->first==-1);/* So is the range of ip2 */
+    CHECK(ip3.eval("key1")==2);/* The _val of ip3 was not modified */
+}
+
+
 //TEST_CASE("testing projection3") {
 //    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
 ////    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
@@ -1421,13 +1445,6 @@ TEST_CASE("testing normal distributions") {
     M.add(Lin==s);
     
     M.print_symbolic();
-    //    M.print();
-    solver<> NLP(M,ipopt);
-    int output;
-    double tol;
-    string lin_solver;
-    NLP.run(output=5,tol=1e-6);
-    CHECK(std::abs(M.get_obj_val()-42.2716)<1e-3);
 }
 
 TEST_CASE("testing set union unindexed") {
