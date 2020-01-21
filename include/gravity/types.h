@@ -1336,15 +1336,45 @@ public:
     template<typename... Args>
     indices add(const indices& ids) {
         indices added("added");
-        auto it = ids._keys->begin();
-        for (size_t i= 0; i < ids.size(); i++) {
-            auto idx = _keys->size();
-            auto pp = _keys_map->insert(make_pair<>(*it,idx));
-            if (pp.second) {//new index inserted
-                _keys->push_back(*it);
-                added.add(*it);
+        if(ids.is_matrix_indexed()){
+            if(!is_matrix_indexed()){
+                throw invalid_argument("calling add(ids) with a matrix indexed set while current set is not matrix indexed.");
             }
-            it++;
+            auto nb_rows = ids.get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                for (size_t j = 0; j<ids._ids->at(i).size(); j++) {
+                    auto key = ids._keys->at(ids._ids->at(i).at(j));
+                    auto idx = _keys->size();
+                    auto pp = _keys_map->insert(make_pair<>(key,idx));
+                    if (pp.second) {//new index inserted
+                        _keys->push_back(key);
+                        added.add(key);
+                    }
+                }
+            }
+        }
+        else if(ids.is_indexed()){
+            for(auto &key_ref: ids._ids->at(0)){
+                auto key = ids._keys->at(key_ref);
+                auto idx = _keys->size();
+                auto pp = _keys_map->insert(make_pair<>(key,idx));
+                if (pp.second) {//new index inserted
+                    _keys->push_back(key);
+                    added.add(key);
+                }
+            }
+        }
+        else {
+            auto it = ids._keys->begin();
+            for (size_t i= 0; i < ids.size(); i++) {
+                auto idx = _keys->size();
+                auto pp = _keys_map->insert(make_pair<>(*it,idx));
+                if (pp.second) {//new index inserted
+                    _keys->push_back(*it);
+                    added.add(*it);
+                }
+                it++;
+            }
         }
         return added;
     }

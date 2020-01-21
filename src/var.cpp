@@ -232,6 +232,23 @@ type    var<type>::get_ub(size_t i) const {
         return nullptr;
     }
 
+/* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
+//ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),prod_b3);
+template<typename type>
+shared_ptr<param<type>>    var<type>::get_square_lb() const{
+    assert(_lift);
+    auto lson = static_pointer_cast<func<type>>(_ub->_expr->get_lson());
+    auto lson2 = static_pointer_cast<func<type>>(lson->_expr->get_lson());
+    return static_pointer_cast<param<type>>(lson2->_params->begin()->second.first);
+}
+
+template<typename type>
+shared_ptr<param<type>>    var<type>::get_square_ub() const{
+    assert(_lift);
+    auto rson = static_pointer_cast<func<type>>(_ub->_expr->get_rson());
+    return static_pointer_cast<param<type>>(rson->_params->begin()->second.first);
+}
+
 /* If this is a lifted variable lifted(xy)= xy, return the lowerbound on y*/
     template<typename type>
     shared_ptr<param<type>> var<type>::get_bilinear_lb2() const{

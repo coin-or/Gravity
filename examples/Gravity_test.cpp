@@ -215,7 +215,7 @@ TEST_CASE("hard nlp") {
 //    M.scale_coefs(coef_scale);
     M.print();
 
-    auto determinant_level = 2;
+    auto determinant_level = 1;
     bool add_Rank1 = true;
     auto LB = M.relax(determinant_level,add_Rank1);
     
@@ -227,7 +227,7 @@ TEST_CASE("hard nlp") {
 //    LB->print();
 //    M.print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
-    unsigned max_iter=2, nb_threads = thread::hardware_concurrency();
+    unsigned max_iter=200, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);

@@ -116,7 +116,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             ids = *o1._indices;
         }
         else {
-            name = "Lift("+o1.get_name(true,true)+o2.get_name(true,true)+")";
+            name = "Lift("+o1.get_name(true,true)+"|"+o2.get_name(true,true)+")";
             ids = combine(*o1._indices,*o2._indices);
         }
         auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
@@ -340,6 +340,25 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         //calculate the tightest valid bounds
         if(o1==o2) //if variables are same, calculate the bounds more efficiently
         {
+            auto it = _vars_name.find(name);
+            if(it!=_vars_name.end()){
+                auto vlift = static_pointer_cast<var<type>>(it->second);
+                vlift->_lb->merge_vars(*vlift->_ub);
+                auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);
+                unique_ids.filter_refs(new_ids);
+                o1_ids.filter_refs(new_ids);
+                o2_ids.filter_refs(new_ids);
+                auto o1_lb = vlift->get_square_lb();
+                auto o1_ub = vlift->get_square_ub();
+                o1_lb->_indices->add_refs(o1_ids);
+                o1_ub->_indices->add_refs(o1_ids);
+                vlift->_original_vars[0]->_indices->add_refs(o1_ids);
+                vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
+                vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
+                vlift->_original_vars[1]->_indices->add_refs(o2_ids);
+                vlift->_original_vars[1]->_lb->index_in(*vlift->_original_vars[1]->_indices);
+                vlift->_original_vars[1]->_ub->index_in(*vlift->_original_vars[1]->_indices);
+            }
             func<double> prod_b1 = (o1.get_lb()*o1.get_lb()).in(unique_ids);
             func<double> prod_b2 = (o1.get_lb()*o1.get_ub()).in(unique_ids);
             func<double> prod_b3 = (o1.get_ub()*o1.get_ub()).in(unique_ids);
@@ -387,6 +406,12 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 auto o2_ub = vlift->get_bilinear_ub2();
                 o2_lb->_indices->add_refs(o2_ids);
                 o2_ub->_indices->add_refs(o2_ids);
+                vlift->_original_vars[0]->_indices->add_refs(o1_ids);
+                vlift->_original_vars[1]->_indices->add_refs(o2_ids);
+                vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
+                vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
+                vlift->_original_vars[1]->_lb->index_in(*vlift->_original_vars[1]->_indices);
+                vlift->_original_vars[1]->_ub->index_in(*vlift->_original_vars[1]->_indices);
             }
             
             auto lb1 = o1.get_lb().in(o1_ids);
@@ -444,8 +469,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             //create the lifted variable with proper lower and upper bounds
             var<type> vlift(name, lb, ub);
             vlift._lift = true;
-            vlift._original_vars.push_back(o1_ptr);
-            vlift._original_vars.push_back(o2_ptr);
+            vlift._original_vars.push_back(make_shared<var<type>>(*o1_ptr));
+            vlift._original_vars.push_back(make_shared<var<type>>(*o2_ptr));
             add(vlift.in(unique_ids));
             lt._p = make_shared<var<type>>(vlift.in(ids));
             
@@ -2949,7 +2974,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 vlift->_lb->update_vars();
                 vlift->_ub->update_vars();
                 assert(o1._indices->size()==o2._indices->size());
-                if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                if(added.size()!=o1_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
                     auto keep_refs = ids.get_diff_refs(added);
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);

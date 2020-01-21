@@ -574,7 +574,10 @@ namespace gravity {
         shared_ptr<param<type>>    get_bilinear_ub1() const;
         /* If this is a lifted variable lifted(xy)= xy, return the upperbound on y*/
         shared_ptr<param<type>>    get_bilinear_ub2() const;
-        
+        /* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
+        shared_ptr<param<type>>    get_square_lb() const;
+        /* If this is a lifted variable lifted(x^2)= x^2, return the upperbound on x*/
+        shared_ptr<param<type>>    get_square_ub() const;
         
         
         

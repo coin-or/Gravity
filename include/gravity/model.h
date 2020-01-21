@@ -486,10 +486,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
-//            v._lb->allocate_mem();
-//            v._ub->allocate_mem();
-//            v._lb->eval_all();
-//            v._ub->eval_all();
+            v._lb->eval_all();
+            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -1428,9 +1426,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     if (vp.second->get_intype()==double_) {
                         auto vv = static_pointer_cast<var<double>>(vp.second);
                         if(vv->_lift && vv->_name.find("^2")==string::npos){
-                            DebugOn("OffDiagonal element: " << vv->_name << endl);
-                            DebugOn("Original var1: " << vv->_original_vars[0]->_name << endl);
-                            DebugOn("Original var2: " << vv->_original_vars[1]->_name << endl);
+                            DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
+                            DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
+                            DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
                             auto name1 = "Lift("+vv->_original_vars[0]->_name+"^2)";
                             DebugOn("Diagonal element 1: " << name1 << endl);
                             auto name2 = "Lift("+vv->_original_vars[1]->_name+"^2)";
@@ -1464,7 +1462,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             Constraint<> SOC(vv->_name+"_SOC");
                             SOC = pow(*vv, 2) - vdiag1*vdiag2;
                             relax->add(SOC.in(*vv->_indices) == 0, true);
-//                            SOC.print();
+                            SOC.print();
 //                            relax->print();
                         }
                     }

@@ -2338,6 +2338,33 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
         SOC_Kojima3_90 = pow(R_Wij_[2] + Im_Wij_[1], 2) + pow(Im_Wij_[2] - R_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]-2*Im_Wij_[0]);
         SDPOPF->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
         
+        
+//        Constraint<> SOC_Kojima1_0_NC("SOC_Kojima1_0_NC");
+//         SOC_Kojima1_0_NC = pow(R_Wij_[0] + R_Wij_[2], 2) + pow(Im_Wij_[0] + Im_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*R_Wij_[1]);
+//         SDPOPF->add(SOC_Kojima1_0_NC.in(range(0,bag_size-1)) >= 0,true);
+//         
+//         /* Second-order cone constraints */
+//         Constraint<> SOC_Kojima2_0_NC("SOC_Kojima2_0_NC");
+//         SOC_Kojima2_0_NC = pow(R_Wij_[0] + R_Wij_[1], 2) + pow(Im_Wij_[0] - Im_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]+2*R_Wij_[2]);
+//         SDPOPF->add(SOC_Kojima2_0_NC.in(range(0,bag_size-1)) >= 0,true);
+//         
+//         
+//         Constraint<> SOC_Kojima3_0_NC("SOC_Kojima3_0_NC");
+//         SOC_Kojima3_0_NC = pow(R_Wij_[2] + R_Wij_[1], 2) + pow(Im_Wij_[2] + Im_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*R_Wij_[0]);
+//         SDPOPF->add(SOC_Kojima3_0_NC.in(range(0,bag_size-1)) >= 0,true);
+//         
+//         Constraint<> SOC_Kojima1_90_NC("SOC_Kojima1_90_NC");
+//         SOC_Kojima1_90_NC = pow(R_Wij_[0] - Im_Wij_[2], 2) + pow(Im_Wij_[0] + R_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]-2*Im_Wij_[1]);
+//         SDPOPF->add(SOC_Kojima1_90_NC.in(range(0,bag_size-1)) >= 0,true);
+//
+//        Constraint<> SOC_Kojima2_90_NC("SOC_Kojima2_90_NC");
+//        SOC_Kojima2_90_NC = pow(R_Wij_[0] - Im_Wij_[1], 2) + pow(Im_Wij_[0] - R_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]-2*Im_Wij_[2]);
+//        SDPOPF->add(SOC_Kojima2_90_NC.in(range(0,bag_size-1)) >= 0,true);
+//
+//         Constraint<> SOC_Kojima3_90_NC("SOC_Kojima3_90_NC");
+//         SOC_Kojima3_90_NC = pow(R_Wij_[2] + Im_Wij_[1], 2) + pow(Im_Wij_[2] - R_Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]-2*Im_Wij_[0]);
+//         SDPOPF->add(SOC_Kojima3_90_NC.in(range(0,bag_size-1)) >= 0,true);
+        
 //        SDPOPF->print();
 //        if (lazy_bool) {
 //                SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
