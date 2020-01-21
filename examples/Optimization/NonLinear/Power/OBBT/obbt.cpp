@@ -180,6 +180,7 @@ int main (int argc, char * argv[]) {
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
+        SDP->print_constraints_stats(1e-6);
     }
     else{
         auto nonlin_obj=false;
