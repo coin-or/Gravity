@@ -317,10 +317,12 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         if(o1==o2){
             name = "Lift("+o1.get_name(true,true)+"^2)";
             ids = *o1._indices;
+            ids.set_name(o1._name);
         }
         else {
             name = "Lift("+o1.get_name(true,true)+"|"+o2.get_name(true,true)+")";
             ids = combine(*o1._indices,*o2._indices);
+            ids.set_name(o1._name+"|"+o2._name);
         }
         auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
         auto o1_ids = *o1._indices;
@@ -358,6 +360,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 vlift->_original_vars[1]->_indices->add_refs(o2_ids);
                 vlift->_original_vars[1]->_lb->index_in(*vlift->_original_vars[1]->_indices);
                 vlift->_original_vars[1]->_ub->index_in(*vlift->_original_vars[1]->_indices);
+                
             }
             func<double> prod_b1 = (o1.get_lb()*o1.get_lb()).in(unique_ids);
             func<double> prod_b2 = (o1.get_lb()*o1.get_ub()).in(unique_ids);

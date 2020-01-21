@@ -277,6 +277,17 @@ namespace gravity {
             }
             return name;
         };
+        
+        string get_key(size_t inst) const {/*< Get the key corresponding ot inst */            
+            if (is_indexed()) {
+                size_t rev_idx = _indices->_ids->at(0).at(inst);
+                return _indices->_keys->at(rev_idx);
+            }
+            else if(_indices){
+                return _indices->_keys->at(get_id_inst(inst));
+            }
+            return to_string(inst);            
+        };
 
         string get_name(size_t inst1, size_t inst2) const {
             string name = _name;
@@ -1541,7 +1552,8 @@ namespace gravity {
             if (it1 == _indices->_keys_map->end()){
                 throw invalid_argument("In operator()(string key1, Args&&... args), unknown key");
             }
-            res._name += "["+key._name+"]";
+            res._name += ".in["+key._name+"]";
+            res._indices->set_name(res._name);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
             res._indices->_ids->at(0).push_back(it1->second);
