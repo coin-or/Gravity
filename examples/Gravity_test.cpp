@@ -215,16 +215,16 @@ TEST_CASE("hard nlp") {
 //    M.scale_coefs(coef_scale);
     M.print();
 
-    auto determinant_level = 1;
-    bool add_Rank1 = true;
-    auto LB = M.relax(determinant_level,add_Rank1);
+    auto determinant_level = 2;
+    bool add_Kim_Kojima = false;
+    auto LB = M.relax(determinant_level,add_Kim_Kojima);
     
-    LB->print();
+//    LB->print();
     LB->scale_vars(100);
-    LB->print();
+//    LB->print();
     double coef_scale = 100;
     LB->scale_coefs(coef_scale);
-//    LB->print();
+    LB->print();
 //    M.print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
     unsigned max_iter=200, nb_threads = thread::hardware_concurrency();
