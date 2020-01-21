@@ -176,24 +176,52 @@ TEST_CASE("hard nlp") {
     M.add(C1 <= 1);
     
     Constraint<> RLT1("RLT1");
-    RLT1 = pow(0.0025*(x[4] + x[6]) - 1, 2);
+    RLT1 = x[4]*(0.0025*(x[4] + x[6]) - 1);
     M.add(RLT1 <= 0);
+    
+    Constraint<> RLT11("RLT11");
+    RLT11 = x[6]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT11 <= 0);
+    
+    Constraint<> RLT1_squared("RLT1_squared");
+    RLT1_squared = pow(0.0025*(x[4] + x[6]) - 1, 2);
+    M.add(RLT1_squared <= 0);
     
     Constraint<> C2("C2");
     C2 = 0.0025*(x[5] - x[4] + x[7]);
     M.add(C2 <= 1);
     
     Constraint<> RLT2("RLT2");
-    RLT2 = pow(0.0025*(x[5] - x[4] + x[7])-1, 2);
+    RLT2 = x[5]*(0.0025*(x[5] - x[4] + x[7])-1);
     M.add(RLT2 <= 0);
+    
+    Constraint<> RLT22("RLT22");
+    RLT22 = x[4]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT22 <= 0);
+    
+    Constraint<> RLT222("RLT222");
+    RLT222 = x[7]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT222 <= 0);
+    
+    Constraint<> RLT2_squared("RLT2_squared");
+    RLT2_squared = pow(0.0025*(x[5] - x[4] + x[7])-1, 2);
+    M.add(RLT2_squared <= 0);
     
     Constraint<> C3("C3");
     C3 = 0.01*(x[8]-x[5]);
     M.add(C3 <= 1);
     
     Constraint<> RLT3("RLT3");
-    RLT3 = pow(0.01*(x[8]-x[5])-1, 2);
+    RLT3 = x[8]*(0.01*(x[8]-x[5])-1);
     M.add(RLT3 <= 0);
+    
+    Constraint<> RLT33("RLT33");
+    RLT33 = x[5]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT33 <= 0);
+    
+    Constraint<> RLT3_squared("RLT3_squared");
+    RLT3_squared = pow(0.01*(x[8]-x[5])-1, 2);
+    M.add(RLT3_squared <= 0);
     
     
     Constraint<> C4("C4");
