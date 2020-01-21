@@ -1434,7 +1434,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             DebugOn("Diagonal element 1: " << name1 << endl);
                             auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
                             DebugOn("Diagonal element 2: " << name2 << endl);
-                            if (relax->_vars_name.count(name1)==0) {
+                            if (relax->_cons_name.count(name1+"_diag")==0) {
                                 auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
                                 Constraint<> diag(name1+"_diag");
                                 if(v1.is_non_negative()){
@@ -1445,7 +1445,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 }
                                 relax->add(diag.in(*v1._indices)<=0,true);
                             }
-                            if (relax->_vars_name.count(name2)==0) {
+                            if (relax->_cons_name.count(name2+"_diag")==0) {
                                 auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
                                 Constraint<> diag(name2+"_diag");
                                 if(v2.is_non_negative()){
