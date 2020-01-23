@@ -1258,7 +1258,7 @@ TEST_CASE("testing multithread solve"){
     CHECK(clone->arcs.size()==grid1.arcs.size()-1);
 }
 
-TEST_CASE("testing socopf"){
+TEST_CASE("testing SOCOPF anc Cycle basis computation"){
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     //    string fname = "/Users/hlh/Dropbox/Work/Dev/pglib-opf-18.08/pglib_opf_case2383wp_k.m";
     int output = 0;
@@ -1279,6 +1279,28 @@ TEST_CASE("testing socopf"){
     for (auto cycle: cycle_basis) {
         cycle->print();
     }
+}
+
+TEST_CASE("testing SDPOPF"){
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case24_ieee_rts__api.m";
+    int output = 0;
+    double tol = 1e-6;
+    string mehrotra = "no", log_level="0";
+    PowerNet grid;
+    grid.readgrid(fname);
+    bool add_current_RLT = true;
+    auto OPF = build_ACOPF(grid, ACRECT);
+    auto SDP = build_SDPOPF(grid, add_current_RLT);
+    solver<> UB(OPF,ipopt);
+    solver<> LB(SDP,ipopt);
+    auto time_start = get_wall_time();
+    UB.run(output=5, tol=1e-6);
+    LB.run(output=5, tol=1e-6);
+    auto final_gap = 100*(OPF->get_obj_val() - SDP->get_obj_val())/std::abs(OPF->get_obj_val());
+    auto time_end = get_wall_time();
+    DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);
+    DebugOn("SDP Gap = " << final_gap << "%" << endl);
+    CHECK(final_gap<1.2);
 }
 
 TEST_CASE("Bug in Cplex MIQCP presolve"){
@@ -1931,6 +1953,33 @@ TEST_CASE("Paths") {
     CHECK(p.length()==4);
     CHECK(p.cycle());
     CHECK(p.to_str()=="{ Wii[1] , Wii[2] , Wii[3] , Wii[1] }");
+}
+
+TEST_CASE("testing SDP-BT"){
+    PowerNet grid;
+    auto fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    try{
+        build_ACOPF(grid, ACRECT);
+    }
+    catch(invalid_argument& arg){
+        cout << "Error successfully caught: "<< endl;
+        cout << arg.what() << endl;
+    }
+    grid.readgrid(fname);
+    auto OPF=build_ACOPF(grid, ACRECT);
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200;
+    unsigned max_iter=1e3, nb_threads=1;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    auto nonlin_obj=true, current=true;
+    auto SDP= build_SDPOPF(grid, current, nonlin_obj);
+    auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto lower_bound = SDP->get_obj_val();
+    auto lower_bound_init = get<3>(res);
+    auto upper_bound = OPF->get_obj_val();
+    auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+    CHECK(gap_init>10);
+    CHECK(final_gap<1);
 }
 
 #ifdef USE_MPI
