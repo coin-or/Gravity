@@ -10,7 +10,48 @@
 
 namespace gravity {
     
-    
+
+/* Deletes the ith column for the matrix indeed param/var */
+indices param_::delete_column(size_t i){
+    indices deleted_col = indices(_indices->get_name()+"\\col_"+to_string(i));
+   if(_indices->_type!=matrix_){
+        throw invalid_argument("delete_column(size_t i) can only be called on a matrix indexed param/var");
+    }
+    for (size_t j = 0; j<_indices->_ids->size(); j++) {
+        if(_indices->_ids->at(j).size()<=i){
+            throw invalid_argument("delete_column(size_t i) out of range: " + to_string(i) + " at row " + to_string(j));
+        }
+        deleted_col.add(_indices->_keys->at(_indices->_ids->at(j).at(i)));
+        vector<size_t> new_row;
+        for (size_t k = 0; k<_indices->_ids->at(j).size(); k++) {
+            if(k!=i)
+                new_row.push_back(_indices->_ids->at(j).at(k));
+        }
+        _indices->_ids->at(j) = new_row;
+    }
+    _name += +"\\col_"+to_string(i);
+    return deleted_col;
+}
+
+/* Returns a pair of boolean vectors <z_v, nnz_v> indicating which row p has a zero/non-zero coefficient in */
+pair<vector<bool>,vector<bool>> param_::get_nnz_rows() const{
+    if(_indices->_type!=matrix_){
+        throw invalid_argument("get_nnz_rows() can only be called on a matrix indexed param/var");
+    }
+    pair<vector<bool>,vector<bool>> nnz_rows;
+    nnz_rows.first.resize(_indices->get_nb_rows(),false);
+    nnz_rows.second.resize(_indices->get_nb_rows(),false);
+    for (size_t i = 0; i<_indices->_ids->size(); i++) {
+        if(_indices->_ids->at(i).size()>0){
+            nnz_rows.second[i] = true;
+        }
+        else{
+            nnz_rows.first[i] = true;
+        }
+    }
+    return nnz_rows;
+}
+
     template<typename T>
     void param<T>::copy_vals(const shared_ptr<param_>& p){
         switch (p->get_intype()) {

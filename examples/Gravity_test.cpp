@@ -23,6 +23,331 @@ using namespace std;
 using namespace gravity;
 
 
+TEST_CASE("testing param, var anf func copy operators") {
+    indices ids("ids");
+    ids.add("key1", "key2");
+    param<int> ip("ip");
+    ip.in(ids);
+    ip.print();
+    ip.set_val("key1",2);
+    ip.set_val("key2",3);
+    ip.print();
+    CHECK(ip._range->first==2);
+    CHECK(ip._range->second==3);
+    param<int> ip2 = ip("key1");/* ip2 is a masked copy of ip, they will be sharing the same _val vector */
+    ip2.print();
+    CHECK(ip2.is_param());
+    CHECK(ip2.get_intype()==integer_);
+    CHECK(ip2.is_positive());
+    param<int> ip3 = ip.deep_copy();/* ip3 will not be sharing the same _val vector with ip or ip2 */
+    ip.set_val("key1",-1);
+    CHECK(ip._range->first==-1);/* The range of ip should be updated */
+    CHECK(ip2._range->first==-1);/* So is the range of ip2 */
+    CHECK(ip3.eval("key1")==2);/* The _val of ip3 was not modified */
+    var<> v1("v1", -2,3), v2("v2", -10,40);
+    v1.in(ids);v2.in(ids);
+    func<> f = v1 + v1.get_lb()*v2;
+    f.print();
+    auto fcpy = f;
+    func<> deep_cpy;
+    deep_cpy.deep_copy(f);
+    fcpy.print();
+    v1.set_lb("key1", -3);
+    f.uneval();
+    f.eval_all();
+    fcpy.uneval();
+    fcpy.eval_all();
+    f.print();
+    fcpy.print();
+    deep_cpy.print();
+    CHECK(fcpy.to_str(0,5)=="v1[key1] - 3v2[key1]");
+    CHECK(deep_cpy.to_str(0,5)=="v1[key1] - 2v2[key1]");
+}
+
+
+//TEST_CASE("testing projection3") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+////    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto ACOPF = build_ACOPF(grid,ACRECT);
+//    ACOPF->print_symbolic();
+//    ACOPF->print();
+//
+//    ACOPF->project();
+//    ACOPF->print();
+////    CHECK(Mtest.get_nb_cons() == 4);
+//}
+
+//m = Model(solver=solver)
+//
+//@variable(m, x[1:8])
+//
+//setlowerbound(x[1], 100)
+//setlowerbound(x[2], 1000)
+//setlowerbound(x[3], 1000)
+//setlowerbound(x[4], 10)
+//setlowerbound(x[5], 10)
+//setlowerbound(x[6], 10)
+//setlowerbound(x[7], 10)
+//setlowerbound(x[8], 10)
+//
+//setupperbound(x[1], 10000)
+//setupperbound(x[2], 10000)
+//setupperbound(x[3], 10000)
+//setupperbound(x[4], 1000)
+//setupperbound(x[5], 1000)
+//setupperbound(x[6], 1000)
+//setupperbound(x[7], 1000)
+//setupperbound(x[8], 1000)
+//
+//@constraint(m, 0.0025*(x[4] + x[6]) <= 1)
+//@constraint(m, 0.0025*(x[5] - x[4] + x[7]) <= 1)
+//@constraint(m, 0.01(x[8]-x[5]) <= 1)
+//@NLconstraint(m, 100*x[1] - x[1]*x[6] + 833.33252*x[4] <= 83333.333)
+//@NLconstraint(m, x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5] <= 0)
+//@NLconstraint(m, x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000 <= 0)
+//
+//@objective(m, Min, x[1]+x[2]+x[3])
+
+
+TEST_CASE("Variable Scaling") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    M.add(x.in(range(1,8)));
+    
+    Constraint<> C1("C1");
+    C1 = 0.0025*(x[4] + x[6]);
+    M.add(C1 <= 1);
+    
+    Constraint<> C2("C2");
+    C2 = 0.0025*(x[5] - x[4] + x[7]);
+    M.add(C2 <= 1);
+    
+    Constraint<> C3("C3");
+    C3 = 0.01*(x[8]-x[5]);
+    M.add(C3 <= 1);
+    
+    Constraint<> C4("C4");
+    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
+    M.add(C4 <= 83333.333);
+    Constraint<> C5("C5");
+    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
+    M.add(C5 <= 0);
+    Constraint<> C6("C6");
+    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
+    M.add(C6 <= 0);
+    
+    M.min(x[1]+x[2]+x[3]);
+    M.print();
+    
+    solver<> s(M,ipopt);
+    s.run(5,1e-6);
+    auto obj_val = M.get_obj_val();
+    auto M_scale = M;
+    M_scale.reset();
+    M_scale.scale_vars(10);
+    M_scale.print();
+    double coef_scale = 100;
+    M_scale.scale_coefs(coef_scale);
+    M_scale.print();
+    M_scale.initialize_midpoint();
+    solver<> s2(M_scale,ipopt);
+    s2.run(5,1e-6);
+    CHECK(std::abs(M_scale.get_obj_val()-obj_val) < 1e-3);
+}
+
+TEST_CASE("hard nlp") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    M.add(x.in(range(1,8)));
+
+    
+    Constraint<> C1("C1");
+    C1 = 0.0025*(x[4] + x[6]);
+    M.add(C1 <= 1);
+ 
+    
+    Constraint<> RLT1_1("RLT1_1");
+    RLT1_1 = x[1]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_1 <= 0);
+    
+    Constraint<> RLT1_2("RLT1_2");
+    RLT1_2 = x[2]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_2 <= 0);
+    
+    Constraint<> RLT1_3("RLT1_3");
+    RLT1_3 = x[3]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_3 <= 0);
+    
+    
+    Constraint<> C2("C2");
+    C2 = 0.0025*(x[5] - x[4] + x[7]);
+    M.add(C2 <= 1);
+    
+    
+    Constraint<> RLT2_1("RLT2_1");
+    RLT2_1 = x[1]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_1 <= 0);
+    
+    Constraint<> RLT2_2("RLT2_2");
+    RLT2_2 = x[2]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_2 <= 0);
+    
+    Constraint<> RLT2_3("RLT2_3");
+    RLT2_3 = x[3]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_3 <= 0);
+
+    
+    Constraint<> C3("C3");
+    C3 = 0.01*(x[8]-x[5]);
+    M.add(C3 <= 1);
+    
+    
+    Constraint<> RLT3_1("RLT3_1");
+    RLT3_1 = x[1]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_1 <= 0);
+    
+    Constraint<> RLT3_2("RLT3_2");
+    RLT3_2 = x[2]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_2 <= 0);
+    
+    Constraint<> RLT3_3("RLT3_3");
+    RLT3_3 = x[3]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_3 <= 0);
+    
+    Constraint<> C4("C4");
+    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
+    M.add(C4 <= 83333.333);
+    Constraint<> C5("C5");
+    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
+    M.add(C5 <= 0);
+    Constraint<> C6("C6");
+    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
+    M.add(C6 <= 0);
+    
+    
+    M.min(x[1]+x[2]+x[3]);
+
+//    M.scale_vars(100);
+//    double coef_scale = 100;
+//    M.scale_coefs(coef_scale);
+    M.print();
+
+    auto determinant_level = 1;
+    bool add_Kim_Kojima = false, add_SDP_3d = false;
+    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+    
+//    LB->print();
+//    LB->scale_vars(100);
+//    LB->print();
+//    double coef_scale = 100;
+//    LB->scale_coefs(coef_scale);
+    LB->print();
+//    M.print();
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
+    unsigned max_iter=1, nb_threads = thread::hardware_concurrency();
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    LB->print_constraints_stats(1e-6);
+//    LB->print_nonzero_constraints(1e-6);
+    LB->print();
+}
+
+TEST_CASE("testing projection1") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
+    Mtest.add(SOC.in(node_pairs) == 0);
+
+    auto subset = node_pairs.exclude("4,1");
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
+    Mtest.add(PAD.in(subset)<=2);
+
+
+    Constraint<> PAD2("PAD2");
+    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
+    Mtest.add(PAD2>=1);
+
+    Mtest.min(sum(R_Wij));
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 8);
+    Mtest.project();
+    Mtest.print();
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 12);
+}
+
+TEST_CASE("testing projection2") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    auto subset = node_pairs.exclude("4,1");
+
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij");
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+
+    Constraint<> SOC("SOC");
+    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
+    Mtest.add(SOC.in(subset) == 0);
+
+
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
+    Mtest.add(PAD.in(node_pairs)<=2);
+
+
+    Mtest.min(sum(R_Wij));
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 7);
+    Mtest.project();
+    Mtest.print();
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 4);
+}
+//
+//
+//
+//TEST_CASE("testing projection3") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto SOCOPF = grid.build_SCOPF();
+//    SOCOPF->print_symbolic();
+//    SOCOPF->print();
+//
+//    SOCOPF->project();
+//    SOCOPF->print();
+////    CHECK(Mtest.get_nb_cons() == 4);
+//}
 
 
 TEST_CASE("testing constants") {
@@ -517,6 +842,15 @@ TEST_CASE("testing function convexity"){
     CHECK(fn.is_convex());
     auto f2 = pow(p,4);
     CHECK(f2.is_convex());
+    var<> x("x",1,2), y("y",2,4), z("z",2,4);
+    x.in(R(1));
+    y.in(R(1));
+    z.in(R(1));
+    auto f3 = x*(0.01*(x-y)-1);
+    f3.print();
+    auto f4 = x*(0.01*(x-y)-1) + z;
+    f4.print();
+    CHECK(!f4.is_rotated_soc());
 }
 
 TEST_CASE("testing bounds copy"){
@@ -627,25 +961,23 @@ TEST_CASE("testing soc/rotated soc constraints"){
     a = 1;
     a = 4;
     Constraint<> cstr("cstr");
-    cstr = (x2+a)*(x3+log(a)) - pow(x1,2);
+    cstr = a*x2*x3 - pow(x1,2);
     cstr >= 0;
     cstr.print_symbolic();
     cstr.print();
-    CHECK(cstr.to_str()==" - x1² + x2x3 + (log(a))x2 + (a)x3 + a * log(a)");
+    CHECK(cstr.to_str()==" - x1² + (a)x2x3");
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_quadratic());
     CHECK(cstr.check_rotated_soc());
     CHECK(cstr.get_dim()==2);
-    CHECK(cstr._range->first==1.1*(2+log(1))-1);
-    CHECK(cstr._range->second==(3+4)*(4+log(4)));
     auto dfdx2 = cstr.get_derivative(x2);
     dfdx2.print_symbolic();
-    CHECK(dfdx2.to_str()=="x3 + log(a)");
+    CHECK(dfdx2.to_str()=="(a)x3");
     CHECK(dfdx2.is_linear());
-    CHECK(dfdx2._range->first==2+log(1));
-    CHECK(dfdx2._range->second==4+log(4));
+    CHECK(dfdx2._range->first==2);
+    CHECK(dfdx2._range->second==16);
     Constraint<> cstr2("cstr2");
-    cstr2 = pow(x2+a,2) + pow(x3+sqrt(a),2) - pow(x1,2);
+    cstr2 = pow(x2,2) + pow(a*x3,2) - pow(x1,2);
     cstr2 <= 0;
     cstr2.print_symbolic();
     cstr2.print();
@@ -653,8 +985,8 @@ TEST_CASE("testing soc/rotated soc constraints"){
     CHECK(cstr2.is_quadratic());
     CHECK(cstr2.check_soc());
     CHECK(cstr2.get_dim()==2);
-    CHECK(cstr2._range->first==1.1*1.1 + 3*3 - 1);
-    CHECK(cstr2._range->second==7*7 + 6*6);
+    CHECK(cstr2._range->first==0.01 + 2*2 - 1);
+    CHECK(cstr2._range->second==3*3 + 16*4*4);
 }
 
 TEST_CASE("testing nonlinear expressions"){
@@ -794,13 +1126,14 @@ TEST_CASE("testing multithread solve"){
     PowerNet grid1,grid2;
     grid1.readgrid(fname);
     auto ACOPF1 = build_ACOPF(grid1,ACRECT);
-    fname = string(prj_dir)+"/data_sets/Power/nesta_case14_ieee.m";
-    auto ACOPF2 = build_ACOPF(grid1,ACPOL);
+    fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    grid2.readgrid(fname);
+    auto ACOPF2 = build_ACOPF(grid2,ACPOL);
     auto models = {ACOPF1, ACOPF2};
     /* run in parallel */
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89)<1e-3);
-    CHECK(std::abs(ACOPF2->get_obj_val()-17551.89)<1e-3);
+    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-3);
+    CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-3);
     CHECK(ACOPF1->is_feasible(tol));
     ACOPF1->print_solution();
     auto Mc = ACOPF1->build_McCormick();
@@ -1173,13 +1506,6 @@ TEST_CASE("testing normal distributions") {
     M.add(Lin==s);
     
     M.print_symbolic();
-    //    M.print();
-    solver<> NLP(M,ipopt);
-    int output;
-    double tol;
-    string lin_solver;
-    NLP.run(output=5,tol=1e-6);
-    M.print_solution();
 }
 
 TEST_CASE("testing set union unindexed") {
@@ -1379,17 +1705,17 @@ TEST_CASE("testing sum_ith() func<> version"){
 TEST_CASE("testing get_interaction_grap()") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);    
-    Mtest.add(SOC.in(bus_pairs) <= 0);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs)*Wii.to(node_pairs);    
+    Mtest.add(SOC.in(node_pairs) <= 0);
     Mtest.print();
     auto g = Mtest.get_interaction_graph();
     g.print();
@@ -1401,22 +1727,22 @@ TEST_CASE("testing get_interaction_grap()") {
 TEST_CASE("testing constraint delete") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     /* Imaginary part of Wij = ViVj */
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs));
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs);
+    Mtest.add(SOC.in(node_pairs));
     
     Constraint<> PAD("PAD");
     PAD = 2*R_Wij - Im_Wij;
-    Mtest.add(PAD.in(bus_pairs)<=2);
+    Mtest.add(PAD.in(node_pairs)<=2);
     
     Mtest.print();
     CHECK(Mtest.get_nb_cons() == 8);
@@ -1425,6 +1751,11 @@ TEST_CASE("testing constraint delete") {
     CHECK(Mtest.is_linear());
     CHECK(Mtest.get_nb_cons() == 4);
 }
+
+
+
+
+
 
 TEST_CASE("Few Degrees Of Freedom") {
     auto m = Model<>("test");
@@ -1461,16 +1792,16 @@ TEST_CASE("Few Degrees Of Freedom") {
 TEST_CASE("Paths") {
     indices buses("buses");
     buses.insert("1", "2", "3", "4");
-    indices bus_pairs("bpairs");
-    bus_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
     Model<> Mtest("Mtest");
     var<>  R_Wij("R_Wij", -1, 1);
     var<>  Im_Wij("Im_Wij", -1, 1);
     var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(bus_pairs), Im_Wij.in(bus_pairs), Wii.in(buses));
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
     Constraint<> SOC("SOC");
-    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs)*Wii.to(bus_pairs);
-    Mtest.add(SOC.in(bus_pairs) <= 0);
+    SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs)*Wii.to(node_pairs);
+    Mtest.add(SOC.in(node_pairs) <= 0);
     Mtest.print();
     auto g = Mtest.get_interaction_graph();
     g.print();

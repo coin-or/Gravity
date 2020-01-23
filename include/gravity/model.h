@@ -39,7 +39,16 @@
 using namespace std;
 
 namespace gravity {
-    
+    template<typename type>
+    const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
+        if(c1->get_nb_inst() > c2->get_nb_inst())
+            return true;
+        return false;
+//        return c1->nb_linear_terms() > c2->nb_linear_terms();
+    }
+
+const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2);
+
     /**
      Parallel computation of the constraints stored in v[i] to v[j]
      @param[in] v vector of constraints
@@ -192,13 +201,13 @@ namespace gravity {
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         
-        void merge_vars(const shared_ptr<expr<type>>& e){/**<  Transfer all variables and parameters to the model. */
+        void merge_vars(const shared_ptr<expr<type>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
                 case uexp_c:{
                     auto ue = (uexpr<type>*)e.get();
                     if (ue->_son->is_function()) {
                         auto f = static_pointer_cast<func<type>>(ue->_son);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     break;
                 }
@@ -206,11 +215,11 @@ namespace gravity {
                     auto be = (bexpr<type>*)e.get();
                     if (be->_lson->is_function()) {
                         auto f = static_pointer_cast<func<type>>(be->_lson);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     if (be->_rson->is_function()) {
                         auto f = static_pointer_cast<func<type>>(be->_rson);
-                        merge_vars(f);
+                        merge_vars(f,share_bounds);
                     }
                     break;
                 }
@@ -223,12 +232,14 @@ namespace gravity {
          Subfunction of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
          @param[in] f function to merge variables and parameters with.
          */
-        void merge_vars(const shared_ptr<func<type>>& f){
+        void merge_vars(const shared_ptr<func<type>>& f, bool share_bounds = false){
             for (auto &pair:*f->_lterms) {
                 auto p = pair.second._p;
                 if (p->is_var()) {
                     auto pid = *p->_vec_id;
                     p->share_vals(_vars.at(pid));
+                    if(share_bounds)
+                        p->share_bounds(_vars.at(pid));
                 }
             }
             for (auto &pair:*f->_qterms) {
@@ -238,10 +249,14 @@ namespace gravity {
                 if (p1->is_var()) {
                     auto pid1 = *p1->_vec_id;
                     p1->share_vals(_vars.at(pid1));
+                    if(share_bounds)
+                        p1->share_bounds(_vars.at(pid1));
                 }
                 if (p2->is_var()) {
                     auto pid2 = *p2->_vec_id;
                     p2->share_vals(_vars.at(pid2));
+                    if(share_bounds)
+                        p2->share_bounds(_vars.at(pid2));
                 }
             }
             for (auto &pair:*f->_pterms) {
@@ -251,11 +266,13 @@ namespace gravity {
                     if (p->is_var()) {
                         auto pid = *p->_vec_id;
                         ppi.first->share_vals(_vars.at(pid));
+                        if(share_bounds)
+                            ppi.first->share_bounds(_vars.at(pid));
                     }
                 }
             }
             if (f->_expr) {
-                merge_vars(f->_expr);
+                merge_vars(f->_expr, share_bounds);
             }
         }
         
@@ -309,20 +326,22 @@ namespace gravity {
                 }
             }
             for(auto &cp: m._cons_name){
-                if(*cp.second->_all_lazy){
-                    add_lazy(*cp.second);
-                    auto c = _cons_name[cp.first];
-                    merge_vars(c);
-                    c->uneval();
+                auto c_cpy = make_shared<Constraint<type>>();
+                c_cpy->deep_copy(*cp.second);
+                merge_vars(c_cpy);
+                c_cpy->uneval();
+                if(*c_cpy->_all_lazy){
+                    add_lazy(*c_cpy);
                 }
                 else{
-                    add(*cp.second);
-                    merge_vars(_cons_vec.back());
-                    _cons_vec.back()->uneval();
+                    add(*c_cpy);
                 }
             }
-            if(m._obj)
-                set_objective(*m._obj, _objt);
+            if(m._obj){
+                func<type> obj_cpy;
+                obj_cpy.deep_copy(*m._obj);
+                set_objective(obj_cpy, _objt);
+            }
             return *this;
         }
         
@@ -392,6 +411,7 @@ namespace gravity {
             return _convexity==concave_;
         }
         
+        
         bool has_var(const param_& v) const{
             return (_vars.count(v.get_vec_id())!=0);
         };
@@ -443,8 +463,9 @@ namespace gravity {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 shared_ptr<param_> newv;
-                if (v._val->empty()) {
-                    Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
+                if (!v._indices) {
+                    Warning("WARNING adding unindexed variable to model: " << name << endl);
+                    Warning("Treating it as a one dimensional Real.\n");
                     newv = (v.in(R(1))).pcopy();
                 }
                 else {
@@ -462,8 +483,6 @@ namespace gravity {
         
         template <typename T>
         void add_var(var<T>&& v){//Add variables by copy
-            if(v.get_dim()==0)
-                return;
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
@@ -473,8 +492,9 @@ namespace gravity {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
                 shared_ptr<param_> newv;
-                if (v._val->empty()) {
-                    Warning("WARNING adding unindexed variable to model, treating it as a one dimensional Real.\n");
+                if (!v._indices) {
+                    Warning("WARNING adding unindexed variable to model: " << name << endl);
+                    Warning("Treating it as a one dimensional Real.\n");
                     newv = make_shared<var<T>>(move((v.in(R(1)))));
                 }
                 else {
@@ -500,6 +520,7 @@ namespace gravity {
                 add_var(move(v));
             }
         }
+        
         
         
         /* Output */
@@ -1065,45 +1086,6 @@ namespace gravity {
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool split=true){
             if (c.get_dim()==0) {
                 return;
@@ -1130,109 +1112,550 @@ namespace gravity {
             _has_callback = true;
         }
         
-        template<typename T>
-        void replace(const var<T>& v, const func<T>& f){/**<  Replace v with function f everywhere it appears */
-            for (auto &c_p: _cons_name) {
-                auto c = c_p.second;
-                if (!c->has_var(*v)) {
-                    continue;
+        /* Rescale functions to make sure all variables' bounds are in [-unit,unit] */
+        void scale_func_vars(shared_ptr<expr<type>>& e, double unit){
+            if(e->is_uexpr()){
+                auto ue = (uexpr<type>*)e.get();
+                if (ue->_son->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(ue->_son);
+                    scale_func_vars(*f, unit);
                 }
-                c->replace(v, f);
+                else if (ue->_son->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(ue->_son));
+                    scale_func_vars(f, unit);
+                    ue->_son = f.copy();
+                }
             }
-            _vars_name.erase(v->_name);
-            auto vid = *v->_vec_id;
-            _vars.erase(vid);
-            reindex_vars();
+            else{
+                auto be = (bexpr<type>*)e.get();
+                if (be->_lson->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(be->_lson);
+                    scale_func_vars(*f, unit);
+                }
+                else if (be->_lson->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(be->_lson));
+                    scale_func_vars(f, unit);
+                    be->_lson = f.copy();
+                }
+                if (be->_rson->is_function()) {
+                    auto f = static_pointer_cast<func<type>>(be->_rson);
+                    scale_func_vars(*f, unit);
+                }
+                else if (be->_rson->is_var()){
+                    func<type> f = func<type>(*static_pointer_cast<var<type>>(be->_rson));
+                    scale_func_vars(f, unit);
+                    be->_rson = f.copy();
+                }
+            }
         }
         
+        /* Rescale functions to make sure all variables' bounds are in [-unit,unit] */
+        void scale_func_vars(func<type>& f, double unit){
+            for (auto &lt:f.get_lterms()) {
+                auto vv = _vars.at(*lt.second._p->_vec_id);
+                double factor = 1;
+                if(!vv->is_lifted()) {
+                    factor = vv->get_scale_factor(unit);
+                }
+                else {
+                    auto vv1 = _vars.at(*vv->get_original_vars()[0]->_vec_id);
+                    auto vv2 = _vars.at(*vv->get_original_vars()[1]->_vec_id);
+                    factor = vv1->get_scale_factor(unit)*vv2->get_scale_factor(unit);
+                }
+                if(factor!=1){
+                    lt.second._coef = f.multiply(lt.second._coef, constant<>(1./factor));
+                    lt.second._coef->uneval();
+                }
+
+            }
+            for (auto &qt:f.get_qterms()) {
+                double factor1 = 1, factor2 = 1;
+                auto vv1 = _vars.at(*qt.second._p->first->_vec_id);
+                if(!vv1->is_lifted()) {
+                    factor1 = vv1->get_scale_factor(unit);
+                }
+                else {
+                    auto vv11 = _vars.at(*vv1->get_original_vars()[0]->_vec_id);
+                    auto vv12 = _vars.at(*vv1->get_original_vars()[1]->_vec_id);
+                    factor1 = vv11->get_scale_factor(unit)*vv12->get_scale_factor(unit);
+                }
+                auto vv2 = _vars.at(*qt.second._p->second->_vec_id);
+                if(!vv2->is_lifted()) {
+                    factor2 = vv2->get_scale_factor(unit);
+                }
+                else {
+                    auto vv21 = _vars.at(*vv2->get_original_vars()[0]->_vec_id);
+                    auto vv22 = _vars.at(*vv2->get_original_vars()[1]->_vec_id);
+                    factor2 = vv21->get_scale_factor(unit)*vv22->get_scale_factor(unit);
+                }
+                if(factor1!=1 || factor2!=1){
+                    qt.second._coef = f.multiply(qt.second._coef, constant<>(1./(factor1*factor2)));
+                    qt.second._coef->uneval();
+                }
+            }
+            for (auto &pt:f.get_pterms()) {
+                double factor = 1;
+                for (auto &vpair: *pt.second._l) {
+                    auto vv = _vars.at(*vpair.first->_vec_id);
+                    if(!vv->is_lifted()) {
+                        factor *= vv->get_scale_factor(unit);
+                    }
+                    else {
+                        auto vv1 = _vars.at(*vv->get_original_vars()[0]->_vec_id);
+                        auto vv2 = _vars.at(*vv->get_original_vars()[1]->_vec_id);
+                        factor *= vv1->get_scale_factor(unit)*vv2->get_scale_factor(unit);
+                    }
+                }
+                if(factor!=1){
+                    pt.second._coef = f.multiply(pt.second._coef, constant<>(1./factor));
+                    pt.second._coef->uneval();
+                }
+            }
+            if(f._expr){
+                scale_func_vars(f._expr, unit);
+            }
+            f._cst->uneval();
+        }
         
-        void project() {/**<  Use the equations where at least one variable appear linearly to express it as a function of other variables in the problem */
-            for (auto& c_pair:_cons_name) {
-                if (c_pair.second->is_eq()) {
-                    auto &lterms = c_pair.second->get_lterms();
-                    if (!lterms.empty()) {
-                        auto first = lterms.begin();
-                        auto v = first->second._p;
-                        auto f = *c_pair.second;
-                        switch (v->get_intype()) {
-                            case binary_: {
-                                auto vv = *static_pointer_cast<var<bool>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case short_: {
-                                auto vv = *static_pointer_cast<var<short>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case integer_: {
-                                auto vv = *static_pointer_cast<var<int>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case float_: {
-                                auto vv = *static_pointer_cast<var<float>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case double_: {
-                                auto vv = *static_pointer_cast<var<double>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case long_: {
-                                auto vv = *static_pointer_cast<var<long double>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                            case complex_: {
-                                auto vv = *static_pointer_cast<var<Cpx>>(v);
-                                if (first->second._sign) {
-                                    f -= vv;
-                                }
-                                else {
-                                    f += vv;
-                                }
-                                break;
-                            }
-                        }
-                        DebugOff(f.to_str());
-                        remove(c_pair.first);
-                        replace(v,f);
-                        return;
+        /* Make sure all variables have bounds in [-unit,unit] */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void scale_vars(double unit){            
+            scale_func_vars(*_obj, unit);
+            for (auto &c_p: _cons_name) {
+                if(c_p.first.find("_McCormick")==string::npos && c_p.first.find("_diag")==string::npos && c_p.first.find("_Secant")==string::npos)
+                    scale_func_vars(*c_p.second, unit);
+            }
+            for(auto &vp: _vars){
+                if(!vp.second->is_lifted()){
+                    vp.second->scale(unit);
+                }
+            }
+            for(auto &vp: _vars){
+                if(vp.second->is_lifted()){
+                    vp.second->reset_bounds();
+                }
+            }
+            _obj->uneval();
+            _obj->eval_all();
+            for (auto &c_p: _cons_name) {
+                c_p.second->uneval();
+                c_p.second->eval_all();
+            }
+        }
+        
+        /* Make sure all coefficients in objective and constraints have values in [-unit,unit] */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void scale_coefs(double unit){
+//            _obj->scale_coefs(unit);
+            for (auto &c_p: _cons_name) {
+                c_p.second->scale_coefs(unit);
+                c_p.second->uneval();
+                c_p.second->eval_all();
+            }
+        }
+        
+        template<typename T=type>
+        void replace(const var<T>& v, const func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
+            if(_obj->has_sym_var(v)){
+                *_obj = _obj->replace(v, f);
+                _obj->_dim[0] = 1;
+                _obj->_indices = nullptr;
+                _obj->_is_constraint = false;
+            }
+            for (auto &c_p: _cons_name) {
+                auto c = c_p.second;
+                if (!c->_is_constraint || !c->has_sym_var(v)) {
+                    continue;
+                }
+                DebugOn("After replacing " << v.get_name(true,true) << " in " << c->get_name() << ": " << endl);
+                auto new_c = c->replace(v, f);
+                if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=c->_indices->size()){
+                    DebugOn("Projected constraint: " << endl);
+                    new_c.print();
+                    if(new_c._ctype==eq){
+                        eq_list.push_back(this->add_constraint(new_c));
+                    }
+                    else {
+                        this->add_constraint(new_c);
+                    }
+                    auto diff_refs = c->_indices->get_diff_refs(*new_c._indices);
+                    c->update_indices(diff_refs);
+                    c->_indices->keep_unique_keys();
+                    c->print();
+                }
+                else{
+                    *c = new_c;
+                    c->allocate_mem();
+                    c->print();
+                }                
+            }
+            if(v.is_bounded_below()){
+                Constraint<> v_lb(v.get_name(false,false)+"_LB");
+                v_lb = f - v.get_lb();
+                add(v_lb.in(*v._indices) >= 0);
+            }
+            if(v.is_bounded_above()) {
+                Constraint<> v_ub(v.get_name(false,false)+"_UB");
+                v_ub = f - v.get_ub();
+                add(v_ub.in(*v._indices) <= 0);
+            }
+//            _vars_name.erase(v->_name);
+//            auto vid = *v->_vec_id;
+//            _vars.erase(vid);
+//            reindex_vars();
+        }
+        
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        shared_ptr<Model<T>> relax(unsigned determinant_level = 0, bool add_Kim_Kojima = false, bool add_SDP_3d = false, bool add_RLT = false) const{/*<  return a convex relaxation of the current model */
+            
+            auto g = get_interaction_graph();
+            g.get_tree_decomp_bags();
+            auto bags_3d=g.decompose_bags_3d();
+            auto bag_size = bags_3d.size();
+            DebugOn("bags \n");
+            for(auto bag:bags_3d){
+                DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+            }
+                        
+            auto indices=g.get_pairs_chord(bags_3d);
+            auto pairs = indices[0];
+            auto pairs_from = indices[1];
+            auto pairs_to = indices[2];
+            DebugOn("Node pairs of chordal graph\n");
+            for(auto k: *pairs._keys){
+                DebugOn(k<<endl);
+            }
+            
+            shared_ptr<Model<T>> relax = make_shared<Model<T>>(_name+"_relaxed");
+            for(auto &vp: _vars){
+                switch (vp.second->get_intype()) {
+                    case binary_: {
+                        auto vv = *static_pointer_cast<var<bool>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case short_: {
+                        auto vv = *static_pointer_cast<var<short>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case integer_: {
+                        auto vv = *static_pointer_cast<var<int>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case float_: {
+                        auto vv = *static_pointer_cast<var<float>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case double_: {
+                        auto vv = *static_pointer_cast<var<double>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case long_: {
+                        auto vv = *static_pointer_cast<var<long double>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
+                    }
+                    case complex_: {
+                        auto vv = *static_pointer_cast<var<Cpx>>(vp.second);
+                        relax->add(vv.deep_copy());
+                        break;
                     }
                 }
             }
+            for(auto &cp: _cons_name){
+                auto c_cpy = make_shared<Constraint<T>>();
+                c_cpy->deep_copy(*cp.second);                
+                relax->merge_vars(c_cpy,true);
+                c_cpy->uneval();
+                if(*c_cpy->_all_lazy){
+                    if(c_cpy->is_convex()){
+                        relax->add_lazy(*c_cpy);
+                    }
+                    else {
+                        relax->add_lazy(*c_cpy,true);
+                    }
+                }
+                else{
+                    if(cp.second->is_convex()){
+                        relax->add(*c_cpy);
+                    }
+                    else {
+                        relax->add(*c_cpy,true);
+                    }
+                }
+            }
+            if(_obj->is_convex()){
+                func<T> new_obj = *_obj;
+                relax->set_objective(new_obj, _objt);
+            }
+            else {
+                param<> obj_lb("obj_lb");
+                param<> obj_ub("obj_ub");
+                obj_lb = _obj->_range->first;
+                obj_ub = _obj->_range->second;
+                var<type> v_obj("v_obj",obj_lb,obj_ub);
+                relax->add(v_obj);
+                auto obj_cpy = make_shared<func<T>>();
+                obj_cpy->deep_copy(*_obj);
+                relax->merge_vars(obj_cpy,true);
+                Constraint<T> obj("obj");
+                obj = v_obj - *obj_cpy;
+                if(_objt==minimize){
+                    if(obj.is_convex())
+                        relax->add(obj >=0);
+                    else
+                        relax->add(obj >=0,true);
+                }
+                else if(_objt==maximize){
+                    if(obj.is_concave())
+                        relax->add(obj <=0);
+                    else
+                        relax->add(obj <=0,true);
+                }
+                relax->set_objective(v_obj, _objt);
+            }
+            
+            if(determinant_level>1){
+                for(auto &vp: relax->_vars){
+                    if (vp.second->get_intype()==double_) {
+                        auto vv = static_pointer_cast<var<double>>(vp.second);
+                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+                            DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
+                            DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
+                            DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
+                            auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
+                            DebugOn("Diagonal element 1: " << name1 << endl);
+                            auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
+                            DebugOn("Diagonal element 2: " << name2 << endl);
+                            if (relax->_cons_name.count(name1+"_diag")==0) {
+                                auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
+                                Constraint<> diag(name1+"_diag");
+                                if(v1.is_non_negative()){
+                                    diag = pow(v1,2) - v1.get_ub()*v1;
+                                }
+                                else {
+                                    diag = pow(v1,2) - pow(v1.get_ub(),2);
+                                }
+                                relax->add(diag.in(*v1._indices)<=0,true);
+                            }
+                            if (relax->_cons_name.count(name2+"_diag")==0) {
+                                auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
+                                Constraint<> diag(name2+"_diag");
+                                if(v2.is_non_negative()){
+                                    diag = pow(v2,2) - v2.get_ub()*v2;
+                                }
+                                else {
+                                    diag = pow(v2,2) - pow(v2.get_ub(),2);
+                                }
+                                relax->add(diag.in(*v2._indices)<=0,true);
+                            }
+                            auto vdiag1 = relax->template get_var<double>(name1);
+                            auto vdiag2 = relax->template get_var<double>(name2);
+//                            vdiag1.initialize_all(1e3);
+//                            vdiag2.initialize_all(1e3);
+//                            Constraint<> SOC(vv->_name+"_SOC_diag");
+//                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+//                            relax->add(SOC.in(*vv->_indices) == 0, true);
+//                            SOC.print();
+//                            relax->print();
+                        }
+                    }
+                }
+            }
+            if(add_Kim_Kojima || add_SDP_3d){/* Need to extend Wij indices to include new chordal edges*/
+                for(auto &vp: relax->_vars){
+                    if (vp.second->get_intype()==double_) {
+                        auto vv = static_pointer_cast<var<double>>(vp.second);
+                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+                            auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
+                            auto Wii = relax->template get_var<type>(name1);
+                            DebugOn("Diagonal element : " << Wii._name << endl);
+                            auto Wij_ = vv->pairs_in_bags(bags_3d, 3);
+                            auto Wii_ = Wii.in_bags(bags_3d, 3);
+                            if(add_Kim_Kojima){
+                                Constraint<> SOC_Kojima1_0("SOC_Kojima1_0_diag");
+                                SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+                                relax->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
+
+                                Constraint<> SOC_Kojima2_0("SOC_Kojima2_0_diag");
+                                SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+                                relax->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
+
+                                Constraint<> SOC_Kojima3_0("SOC_Kojima3_0_diag");
+                                SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+                                relax->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
+
+                                Constraint<> SOC_Kojima1_90("SOC_Kojima1_90_diag");
+                                 SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+                                 relax->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+
+                                Constraint<> SOC_Kojima2_90("SOC_Kojima2_90_diag");
+                                SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+                                relax->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+
+                                 Constraint<> SOC_Kojima3_90("SOC_Kojima3_90_diag");
+                                 SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+                                 relax->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
+                            }
+//
+//                            const double root2=std::sqrt(2.0);
+//                            Constraint<> SOC_Kojima1_45("SOC_Kojima1_45_diag");
+//                            SOC_Kojima1_45 = pow(root2*Wij_[0] + Wij_[2], 2) + pow(Wij_[2], 2) - 2.0*Wii_[0]*(Wii_[1]+Wii_[2]+root2*(Wij_[1]));
+//                            relax->add(SOC_Kojima1_45.in(range(0,bag_size-1)) <= 0);
+//
+//                            /* Second-order cone constraints */
+//                            Constraint<> SOC_Kojima2_45("SOC_Kojima2_45_diag");
+//                            SOC_Kojima2_45 = pow(root2*Wij_[0] + Wij_[1], 2) + pow(Wij_[1], 2) - 2.0*Wii_[1]*(Wii_[0]+Wii_[2]+root2*(Wij_[2]));
+//                            relax->add(SOC_Kojima2_45.in(range(0,bag_size-1)) <= 0);
+//
+//
+//                            Constraint<> SOC_Kojima3_45("SOC_Kojima3_45_diag");
+//                            SOC_Kojima3_45 = pow(root2*Wij_[2] + Wij_[1], 2) + pow(Wij_[1], 2) - 2.0*Wii_[2]*(Wii_[0]+Wii_[1]+root2*(Wij_[0]));
+//                            relax->add(SOC_Kojima3_45.in(range(0,bag_size-1)) <= 0);
+
+                            if(add_SDP_3d){
+                                Constraint<> SDP3("SDP_3D_diag");
+                                SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+                                SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+                                SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+                                SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+                                SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+                                relax->add(SDP3.in(range(1, bag_size)) >= 0);
+                            }
+                                   // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+//                            Constraint<> SOC_Kojima1_0_NC("SOC_Kojima1_0_NC_diag");
+//                            SOC_Kojima1_0_NC = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+//                            relax->add(SOC_Kojima1_0_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima2_0_NC("SOC_Kojima2_0_NC_diag");
+//                            SOC_Kojima2_0_NC = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+//                            relax->add(SOC_Kojima2_0_NC.in(range(0,bag_size-1)) >= 0, true);
+////
+//                            Constraint<> SOC_Kojima3_0_NC("SOC_Kojima3_0_NC_diag");
+//                            SOC_Kojima3_0_NC = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+//                            relax->add(SOC_Kojima3_0_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima1_90_NC("SOC_Kojima1_90_NC_diag");
+//                            SOC_Kojima1_90_NC = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+//                            relax->add(SOC_Kojima1_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima2_90_NC("SOC_Kojima2_90_NC_diag");
+//                            SOC_Kojima2_90_NC = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+//                            relax->add(SOC_Kojima2_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima3_90_NC("SOC_Kojima3_90_NC_diag");
+//                            SOC_Kojima3_90_NC = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+//                            relax->add(SOC_Kojima3_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//                            break;
+                        }
+                    }
+                }
+            }
+            relax->print();
+            return relax;
+        }
+        
+        
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
+            vector<string> delete_cstr;
+            list<shared_ptr<Constraint<type>>> eq_list; /* sorted list of equations */
+            for (auto& c_pair:_cons) {
+                if (c_pair.second->is_eq()) {
+                    eq_list.push_back(c_pair.second);
+                }
+            }
+            while(!eq_list.empty()){
+                eq_list.sort(cstr_compare<type>);
+                shared_ptr<Constraint<type>> c = eq_list.front();
+                eq_list.pop_front();
+                if(c->_lterms->empty()){
+                    break;
+                }
+                if(c->has_matrix_indexed_vars()){
+                    continue;
+                }
+                /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
+                list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
+                for (auto& lterm: c->get_lterms()) {
+                    auto v = lterm.second._p;
+                    if(v->get_intype()==double_ && c->_vars->at(v->_name).second==1 /* only appears in linear part of c*/ && (lterm.second._coef->is_negative() || lterm.second._coef->is_positive()) /* invertible */){
+                        var_list.push_back({lterm.first,v});
+                    }
+                }
+                var_list.sort(var_compare);
+                auto v = var_list.front().second;
+                auto lterm = c->_lterms->at(var_list.front().first);
+                if(v->get_intype()==double_ && c->_vars->at(v->_name).second==1 /* only appears in linear part of c*/ && (lterm._coef->is_negative() || lterm._coef->is_positive()) /* invertible */){
+                    func<T> f = *c;
+                    if(!lterm._coef->is_negative() && !lterm._coef->is_positive()){/* cannot invert */
+                        continue;/* TODO: find smallest invertible set */
+                    }
+                    auto vv = *static_pointer_cast<var<double>>(v);
+                    if(vv.is_matrix_indexed()){
+                        pair<vector<bool>,vector<bool>> z_nnz_rows = vv.get_nnz_rows();
+                        auto c_split = *c;
+                        c_split._name += "_split";
+                        c_split.insert(!lterm._sign,*lterm._coef,*lterm._p);/* Remove coef*v from f */
+                        c_split.update_rows(z_nnz_rows.first);// rows where v is zero
+                        if(c_split.get_dim()!=0){
+                            eq_list.push_back(add_constraint(c_split));
+//                            c_split.print();
+                            c->update_rows(z_nnz_rows.second);
+                        }
+                        auto column_0 = v->delete_column(0);
+                        if(v->_indices->nb_keys()==0){
+                            c->insert(!lterm._sign,*lterm._coef,*v);/* Remove coef*v from c */
+                        }
+                        else {
+                            vv.index_in(column_0);
+                        }
+                        f = *c;
+                    }
+                    else {
+                        f.insert(!lterm._sign,*lterm._coef,*lterm._p);/* Remove coef*v from f */
+                    }
+                    if (lterm._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(lterm._coef);
+                        if(coef._indices){
+                            f *= (-1./coef).in(*coef._indices);
+                        }
+                        else {
+                            f *= -1./coef;
+                        }
+                    }
+                    else if(lterm._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(lterm._coef);
+                        if(coef._indices){
+                            f *= (-1./coef).in(*coef._indices);
+                        }
+                        else {
+                            f *= -1./coef;
+                        }
+                        
+                    }
+                    else if(lterm._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(lterm._coef);
+                        f *= -1./coef;
+                    }
+                    delete_cstr.push_back(c->_name);
+                    c->_is_constraint = false;
+                    replace(vv,f,eq_list);/* Add bound constraints */
+                }
+            }
+            for(const auto cstr_name: delete_cstr){
+                remove(cstr_name);
+            }
+            DebugOn("Model after projetion: " << endl);
+            print();
         }
         
         
@@ -1279,7 +1702,8 @@ namespace gravity {
                     return newc;
                 }
                 newc->update_str();
-                if(lift_flag){
+                embed(newc, false);
+                if(lift_flag && !newc->is_linear()){
                     if(newc->func<type>::is_convex() && newc->_ctype==eq && split){
                         DebugOn("Convex left hand side of equation detected, splitting constraint into <= and ==" << endl);
                         Constraint<type> c_cvx(*newc);
@@ -1300,7 +1724,7 @@ namespace gravity {
                     return add_constraint(lifted);
                 }
                     
-                embed(newc, false);
+                
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);
                 _cons_name[c.get_name()] = newc;
@@ -1438,7 +1862,7 @@ namespace gravity {
         void min(const func<T1>& f){
             set_objective(f, minimize);
         }
-        
+                
         
         template<typename T1>
         void max(const param<T1>& p){
@@ -1740,7 +2164,7 @@ namespace gravity {
                     DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
                 }
                 if (c->get_ctype()!=eq) {
-                    DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    DebugOn("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
                 }
             }
             auto nb_ineq = get_nb_ineq();
@@ -2694,17 +3118,33 @@ namespace gravity {
         void add_McCormick(std::string name, const var<T1>& vlift, const var<T1>& v1, const var<T1>& v2) {
             Constraint<type> MC1(name+"_McCormick1");
             param<T1> lb1_ = v1.get_lb(), lb2_ = v2.get_lb(), ub1_ = v1.get_ub(), ub2_= v2.get_ub();
-            if(!lb1_.func_is_number()){
+            if(!v1._lb->func_is_number()){
                 lb1_ = v1.get_lb().in(*v1._indices);
             }
-            if(!lb2_.func_is_number()){
+            else{
+                lb1_ = v1.get_lb().in(*v1._indices);
+                lb1_ = v1.get_lb(0);
+            }
+            if(!v2._lb->func_is_number()){
                 lb2_ = v2.get_lb().in(*v2._indices);
             }
-            if(!ub1_.func_is_number()){
+            else{
+                lb2_ = v2.get_lb().in(*v2._indices);
+                lb2_ = v2.get_lb(0);
+            }
+            if(!v1._ub->func_is_number()){
                 ub1_ = v1.get_ub().in(*v1._indices);
             }
-            if(!ub2_.func_is_number()){
+            else{
+                ub1_ = v1.get_ub().in(*v1._indices);
+                ub1_ = v1.get_ub(0);
+            }
+            if(!v2._ub->func_is_number()){
                 ub2_ = v2.get_ub().in(*v2._indices);
+            }
+            else{
+                ub2_ = v2.get_ub().in(*v2._indices);
+                ub2_ = v2.get_ub(0);
             }
             bool var_equal=false;
             if(v1._name==v2._name)
@@ -3060,8 +3500,8 @@ namespace gravity {
             //    vector<Constraint*> cons;
             if (_type!=nlin_m) {//Polynomial, Quadratic or Linear
                 
-                //                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
-                //                return;
+                compute_jac(_cons_vec, res, 0, _cons_vec.size(), _first_call_jac, _jac_vals);
+                return;
                 unsigned nr_threads = std::thread::hardware_concurrency();
                 if(nr_threads>_cons_vec.size()){
                     nr_threads=_cons_vec.size();
@@ -4000,7 +4440,7 @@ namespace gravity {
             Node* n2 = nullptr;
             for(auto& c_p :_cons) {
                 auto c = c_p.second;
-                if(this->_type==quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
+                if(this->_type<=quad_m && degree==2){ /* In the quadratic case, the degree 2 relaxation, no need to account for linear relationships */
                     auto nb_inst = c->get_nb_inst();
                     for(int inst = 0; inst<nb_inst; inst++){
                         for (auto &pair:*c->_qterms) {
@@ -4059,7 +4499,7 @@ namespace gravity {
                             for(auto it2 = next(it); it2 != c->_vars->end(); it2++) {
                                 auto p2 = it2->second.first;
                                 if(p1->is_matrix_indexed()){
-                                    auto dim = p1->get_dim(inst);
+                                    auto dim = std::min(p1->get_dim(inst),p2->get_dim(inst));
                                     for (size_t j = 0; j<dim; j++) {
                                         auto p1_name = p1->get_name(inst,j);
                                         auto p2_name = p2->get_name(inst,j);
@@ -4201,11 +4641,24 @@ namespace gravity {
             return g;
         }
         
+        void reset_lifted_vars_bounds() {
+            for(auto &v_p: _vars)
+            {
+                if(v_p.second->is_lifted())
+                    v_p.second->reset_bounds();
+            }
+        }
+        
         void reset_constrs() {
             for(auto& c_p :_cons)
             {
                 c_p.second->uneval();
             }
+//            for(auto &v_p: _vars)
+//            {
+//                if(v_p.second->is_lifted())
+//                    v_p.second->reset_bounds();
+//            }
         }
         
         void fill_in_cstr_bounds(double* g_l ,double* g_u) {
@@ -4836,7 +5289,7 @@ namespace gravity {
                     LB_off = (term._p->get_double_lb(inst_id));
                     UB_off = (term._p->get_double_ub(inst_id));
                     
-                    auto lifted = term._p->get_lift();
+                    auto lifted = term._p->is_lifted();
                     if (lifted){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1
                         LB_on = (term._p->get_double_lb(inst_id));
                         UB_on = (term._p->get_double_ub(inst_id));
@@ -4981,7 +5434,7 @@ namespace gravity {
                     LB_off = (pair.second._p->get_double_lb(inst_id));
                     UB_off = (pair.second._p->get_double_ub(inst_id));
                     
-                    auto lifted = pair.second._p->get_lift();
+                    auto lifted = pair.second._p->is_lifted();
                     if (lifted || (num_partns == 1) || in_SOC_partn){ //if lifted to LB_on values should be the global bounds since the number of partitions is 1, similarly if number of partitions is 1
                         LB_on = (pair.second._p->get_double_lb(inst_id));
                         UB_on = (pair.second._p->get_double_ub(inst_id));
@@ -6493,11 +6946,21 @@ namespace gravity {
             }
         }
         
-        //optimality based bound tightening procedure for a given mathematical formulation
-        //INPUT: a given mathematical model, tolerances, maximum number of iterations, max amount of CPU time, and an upper bound for the current formulation to further tighten the bounds
+        /* Run a single iteration of Optimality Based Bound Tightening
+         @param[in] relaxed_model a convex relaxtion of the current model
+         @param[in] res vector storing the computation results
+         */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt(double max_time = 1000, unsigned max_iter=1e3, const pair<bool,double>& upper_bound = make_pair<bool,double>(false,0), unsigned precision=6, shared_ptr<Model<type>> ub_model= nullptr, shared_ptr<Model<type>> nonlin_model= nullptr, bool nonlin=true);
+        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
+        
+        /* Run Optimality Based Bound Tightening
+        @param[in] relaxed_model a convex relaxtion of the current model
+        @param[in] res vector storing the computation results
+        */
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){
@@ -6585,6 +7048,123 @@ namespace gravity {
         string _status;
     };
     
+    template<class T>
+    func<T> min(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res.update_vars();
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const func<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res.update_vars();
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const param<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const func<T>& p1, const param<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const func<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
+        res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::max(p1._range->first,p2._range->first);
+        res._range->second = gravity::max(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res.update_vars();
+        return res;
+    }
+    
+    template<class T>
+    func<T> min(const func<T>& p1, const func<T>& p2){
+        func<T> res(bexpr<T>(min_, p1.copy(), p2.copy()));
+//        auto lson = static_ptr_cast<func<T>>(res.get_lson());
+//        auto rson = static_ptr_cast<func<T>>(res.get_rson());
+        res._all_sign = std::min(p1.get_all_sign(),p2.get_all_sign());
+        res._all_convexity = undet_;
+        res._range->first = gravity::min(p1._range->first,p2._range->first);
+        res._range->second = gravity::min(p1._range->second,p2._range->second);
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        res.update_vars();
+        return res;
+    }
     
 }
 

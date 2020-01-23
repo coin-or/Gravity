@@ -189,11 +189,11 @@ namespace gravity {
         virtual string to_str(size_t idx1, size_t idx2, int prec) {return string();};
         
         
-        size_t get_dim() const {
+        virtual size_t get_dim() const {
             size_t dim = _dim[0];
-            if(_dim[1]>0){
+//            if(_dim[1]>0){
                 dim*= _dim[1];
-            }
+//            }
             return dim;
         }
         
@@ -211,6 +211,9 @@ namespace gravity {
             auto temp = _dim[0];
             _dim[0] = _dim[1];
             _dim[1] = temp;
+            if(get_dim()==1){
+                _is_vector = false;
+            }
         }
         
         
@@ -271,7 +274,7 @@ namespace gravity {
             _dim[0] = c1._dim[0];
             _dim[1] = c2._dim[1];
             if(get_dim()==1){
-                _is_vector = false;
+                _is_vector = false;                
             }
         }
         
@@ -472,12 +475,12 @@ namespace gravity {
         }
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool unit_val() const{
-            return (!_is_vector && _val == Cpx(1,0));
+            return (!_is_vector && !_is_transposed && _val == Cpx(1,0));
         }
         
         template<typename T=type,
         typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr> bool unit_val() const{
-            return (!_is_vector && _val == 1);
+            return (!_is_vector && !_is_transposed && _val == 1);
         }
         
         bool is_negative() const {
@@ -530,19 +533,30 @@ namespace gravity {
         }
         
         friend constant operator+(const constant& c1, const constant& c2){
-            return constant(c1._val + c2._val);
+            if(c1._is_vector)
+                return constant(c1) += c2._val;
+            return constant(c2) += c1._val;
         }
 
         friend constant operator-(const constant& c1, const constant& c2){
-            return constant(c1._val - c2._val);
+            if(c2._is_vector){
+                return constant(-1*c2) += c1._val;
+            }
+            return constant(c1) -= c2._val;
         }
         
         friend constant operator/(const constant& c1, const constant& c2){
-            return constant(c1._val / c2._val);
+            if(c2._is_vector){
+                return constant(1/c2) *= c1._val;
+            }
+            return constant(c1) /= c2._val;
         }
         
         friend constant operator*(const constant& c1, const constant& c2){
-            return constant(c1._val * c2._val);
+            if(c2._is_vector){
+                return constant(c2) *= c1._val;
+            }
+            return constant(c1) *= c2._val;
         }
         
         friend constant operator^(const constant& c1, const constant& c2){
@@ -551,37 +565,37 @@ namespace gravity {
 
 
         friend constant operator+(const constant& c, type cst){
-            return constant(c._val + cst);
+            return constant(c) += cst;
         }
         
         friend constant operator-(const constant& c, type cst){
-            return constant(c._val - cst);
+            return constant(c) -= cst;
         }
         
         friend constant operator*(const constant& c, type cst){
-            return constant(c._val * cst);
+            return constant(c) *= cst;
         }
 
         
         friend constant operator/(const constant& c, type cst){
-            return constant(c._val / cst);
+            return constant(c) /= cst;
         }
 
         friend constant operator+(type cst, const constant& c){
-            return constant(c._val + cst);
+            return constant(c) += cst;
         }
         
         friend constant operator-(type cst, const constant& c){
-            return constant(cst - c._val);
+            return constant(-1*c) += cst;
         }
         
         friend constant operator*(type cst, const constant& c){
-            return constant(c._val * cst);
+            return constant(c) *= cst;
         }
         
         
         friend constant operator/(type cst, const constant& c){
-            return constant(cst / c._val);
+            return constant(c) *= cst/std::pow(c._val,2);
         }
 
         friend constant cos(const constant& c){
