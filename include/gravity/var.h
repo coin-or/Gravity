@@ -43,7 +43,7 @@ namespace gravity {
         bool _lift_lb = false;/*flag to show if the lifted variables need lower-bounding function*/
         bool _lift_ub = false;/*flag to show if the lifted variables need upper-bounding function*/
         bool _in_SOC_partn = false;/*flag to show if variable appers in a SOC partition*/
-        
+        vector<shared_ptr<var>> _original_vars;/*< If this is a lifted variable, pointers to the corresponding original variables */
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         shared_ptr<int> _num_partns;/*number of partitons*/
         int _cur_partn = 1;/*current partition we are focused on*/
@@ -96,6 +96,7 @@ namespace gravity {
         
         shared_ptr<constant_> copy() const{return make_shared<var>(*this);};
         
+        shared_ptr<param_> ptr_deep_copy() const{return make_shared<var>(this->deep_copy());};
         //@{
                 
 //        var(const string& name, type lb, type ub){
@@ -366,15 +367,26 @@ namespace gravity {
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
             res._type = var_c;
             if(first_time_indexing){
+                if(_lb->func_is_number()){
+                    param<type> lb(this->_name+"-lb");
+                    lb.index_in(*res._indices);
+                    lb.set_val(_lb->eval());
+                    *this->_lb = lb;
+                }
+                if(_ub->func_is_number()){
+                    param<type> ub(this->_name+"-ub");
+                    ub.index_in(*res._indices);
+                    ub.set_val(_ub->eval());
+                    *this->_ub = ub;
+                }
                 _lb->index_in(*res._indices);
                 _ub->index_in(*res._indices);
+                _lb->allocate_mem();
+                _ub->allocate_mem();
                 res._lb = _lb;
                 res._ub = _ub;
-                res._lb->allocate_mem();
-                res._ub->allocate_mem();
-                res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             }
-            else {
+            else if(!res._lb->func_is_number() && !res._ub->func_is_number()){
                 res._lb->allocate_mem();
                 res._ub->allocate_mem();
                 auto new_lb(*res._lb);
@@ -489,8 +501,12 @@ namespace gravity {
         }
         
         void reset_bounds(){
+//            _lb->_evaluated = false;
+//            _ub->_evaluated = false;
             _lb->uneval();
             _ub->uneval();
+            _lb->eval_all();
+            _ub->eval_all();
         }
         
         //    var in(const node_pairs& np){
@@ -548,8 +564,21 @@ namespace gravity {
         type    get_ub(const string& key) const;
         
         param<type>    get_lb() const;
-        
         param<type>    get_ub() const;
+        
+        /* If this is a lifted variable lifted(xy)= xy, return the lowerbound on x*/
+        shared_ptr<param<type>>    get_bilinear_lb1() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the lowerbound on y*/
+        shared_ptr<param<type>>    get_bilinear_lb2() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the upperbound on x*/
+        shared_ptr<param<type>>    get_bilinear_ub1() const;
+        /* If this is a lifted variable lifted(xy)= xy, return the upperbound on y*/
+        shared_ptr<param<type>>    get_bilinear_ub2() const;
+        /* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
+        shared_ptr<param<type>>    get_square_lb() const;
+        /* If this is a lifted variable lifted(x^2)= x^2, return the upperbound on x*/
+        shared_ptr<param<type>>    get_square_ub() const;
+        
         
         
         template<typename T=type,
@@ -609,8 +638,51 @@ namespace gravity {
             return *this;
         }
         
+        /** let this share the bounds of p */
+        void share_bounds(shared_ptr<param_> p){
+            switch (p->get_intype()) {
+                case binary_:{
+                    auto pp =  static_pointer_cast<var<bool>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case short_:{
+                    auto pp =  static_pointer_cast<var<short>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case integer_:{
+                    auto pp =  static_pointer_cast<var<int>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case float_:{
+                    auto pp =  static_pointer_cast<var<float>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case double_:{
+                    auto pp =  (var<double>*)(p.get());
+                    share_bounds_(*pp);
+                }
+                    break;
+                case long_:{
+                    auto pp =  static_pointer_cast<var<long double>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                case complex_:{
+                    auto pp =  static_pointer_cast<var<Cpx>>(p);
+                    share_bounds_(*pp);
+                }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
         /** let this share the values of p */
-        void share_vals(const shared_ptr<param_>& p){
+        void share_vals(shared_ptr<param_> p){
             switch (p->get_intype()) {
                 case binary_:{
                     auto pp =  static_pointer_cast<var<bool>>(p);
@@ -653,6 +725,19 @@ namespace gravity {
         }
         
         
+        /** let this share the bounds of p */
+        template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
+        void share_bounds_(var<T2>& p){
+            throw invalid_argument("cannot share bounds with different typed params/vars");
+        }
+        
+        /** let this share the bounds of p */
+        template<class T2, typename std::enable_if<is_same<T2, type>::value>::type* = nullptr>
+        void share_bounds_(var<T2>& pp){
+            this->_lb->_val = pp._lb->_val;
+            this->_ub->_val = pp._ub->_val;
+        }
+        
         /** let this share the values of p */
         template<class T2, typename std::enable_if<!is_same<T2, type>::value>::type* = nullptr>
         void share_vals_(var<T2>& p){
@@ -672,10 +757,10 @@ namespace gravity {
         void update_dim(){
             this->_dim[0] = this->_indices->size();
             this->_val->resize(this->get_dim());
-            _lb->_dim[0] = _lb->_indices->size();
-            _ub->_dim[0] = _ub->_indices->size();
-            _lb->_val->resize(_lb->get_dim());
-            _ub->_val->resize(_ub->get_dim());
+            _lb->_dim[0] = std::max(_lb->_dim[0], _lb->_indices->size());
+            _ub->_dim[0] = std::max(_ub->_dim[0], _ub->_indices->size());
+            _lb->_val->resize(_lb->_dim[0]);
+            _ub->_val->resize(_ub->_dim[0]);
         }
         
         /**
@@ -704,20 +789,26 @@ namespace gravity {
                     _lb->_indices->add(ids);
                     _ub->_indices->add(ids);
                     this->update_dim();
-                    for (auto i = 0; i< ids.size(); i++) {
-                        auto idx = lb.get_id_inst(i);
-                        auto key = ids._keys->at(idx);
-                        auto lb_idx = _lb->_indices->_keys_map->at(key);
-                        auto lb_val = lb._val->at(idx);
-                        _lb->_val->at(lb_idx) = lb_val; /* Update the bound */
-                        _lb->update_range(lb_val);
-                        this->update_range(lb_val);
-                        auto ub_idx = _ub->_indices->_keys_map->at(key);
-                        auto ub_val = ub._val->at(idx);
-                        _ub->_val->at(ub_idx) = ub_val; /* Update the bound */
-                        _ub->update_range(ub_val);
-                        this->update_range(ub_val);
-                    }
+                    _lb->index_in(indices(*_lb->_indices));/* Update subexpression indices */
+                    _ub->index_in(indices(*_ub->_indices));/* Update subexpression indices */
+                    _lb->uneval();
+                    _ub->uneval();
+                    _lb->eval_all();
+                    _ub->eval_all();
+//                    for (auto i = 0; i< ids.size(); i++) {
+//                        auto idx = lb.get_id_inst(i);
+//                        auto key = ids._keys->at(idx);
+//                        auto lb_idx = _lb->_indices->_keys_map->at(key);
+//                        auto lb_val = lb._val->at(idx);
+//                        _lb->_val->at(lb_idx) = lb_val; /* Update the bound */
+//                        _lb->update_range(lb_val);
+//                        this->update_range(lb_val);
+//                        auto ub_idx = _ub->_indices->_keys_map->at(key);
+//                        auto ub_val = ub._val->at(idx);
+//                        _ub->_val->at(ub_idx) = ub_val; /* Update the bound */
+//                        _ub->update_range(ub_val);
+//                        this->update_range(ub_val);
+//                    }
                 }
                 return added;
             }
@@ -733,6 +824,7 @@ namespace gravity {
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);
+                this->_off.resize(s._dim[0],false);
                 _lb->allocate_mem();
                 _ub->allocate_mem();
                 return *this;
@@ -900,6 +992,32 @@ namespace gravity {
         }
         
         
+        /* Return the scaling factor needed to make sure all bounds are in [-unit,unit]*/
+        double get_scale_factor(double unit){
+            auto absmax = std::max(std::abs(this->_range->first),std::abs(this->_range->second));
+            if(absmax>unit)
+                return unit/absmax;
+            return 1;
+        }
+        
+        /* Make sure all bounds are in [-unit,unit] */
+        void scale(double unit){
+            _lb->eval_all();
+            _ub->eval_all();
+            auto dim = this->get_dim();
+            auto factor = get_scale_factor(unit);
+            if(factor==1)
+                return;
+            for (size_t i = 0; i < dim; i++) {
+                _lb->_val->at(i) = factor*_lb->_val->at(i);
+                _ub->_val->at(i) = factor*_ub->_val->at(i);
+            }
+            _lb->_range->first = factor*_lb->_range->first;
+            _ub->_range->first = factor*_ub->_range->first;
+            this->_range->first = _lb->_range->first;
+            this->_range->second = _ub->_range->second;
+        }
+        
         template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void copy_bounds(const shared_ptr<param_>& p){
             auto dim = p->get_dim();
@@ -1020,7 +1138,8 @@ namespace gravity {
         int get_num_partns() const{ return *_num_partns;};
         int get_cur_partn() const{ return _cur_partn;};
         
-        bool get_lift() const{return _lift;};
+        vector<shared_ptr<param_>> get_original_vars(){vector<shared_ptr<param_>> res; res.push_back(_original_vars[0]); res.push_back(_original_vars[1]); return res;};
+        bool is_lifted() const{return _lift;};
         bool get_in_SOC_partn() const{return _in_SOC_partn;};
         void set_in_SOC_partn(bool in_SOC_partn) {this->_in_SOC_partn = in_SOC_partn;};
         

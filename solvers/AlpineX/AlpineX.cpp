@@ -83,10 +83,10 @@ int main (int argc, char * argv[])
     auto bags_3d=grid.decompose_bags_3d();
     
     /* Grid Stats */
-    auto bus_pairs = grid.get_bus_pairs();
-    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    auto node_pairs = grid.get_node_pairs();
+    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     if (grid._tree) {
-        bus_pairs_chord = bus_pairs;
+        node_pairs_chord = node_pairs;
     }
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
@@ -140,8 +140,8 @@ int main (int argc, char * argv[])
     auto v_min = grid.v_min.in(nodes);
     auto w_max = grid.w_max.in(nodes);
     auto w_min = grid.w_min.in(nodes);
-    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
-    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    auto tan_th_min = grid.tan_th_min.in(node_pairs);
+    auto tan_th_max = grid.tan_th_max.in(node_pairs);
     
     
     /** MODEL DECLARATION */
@@ -173,11 +173,11 @@ int main (int argc, char * argv[])
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", grid.w_min, grid.w_max);
     SOCP->add(Wii.in(nodes));
-    SOCP->add(R_Wij.in(bus_pairs_chord));
-    SOCP->add(Im_Wij.in(bus_pairs_chord));
+    SOCP->add(R_Wij.in(node_pairs_chord));
+    SOCP->add(Im_Wij.in(node_pairs_chord));
     //ACOPF.add(Wii.in(nodes));
-    //ACOPF.add(R_Wij.in(bus_pairs));
-    //ACOPF.add(Im_Wij.in(bus_pairs));
+    //ACOPF.add(R_Wij.in(node_pairs));
+    //ACOPF.add(Im_Wij.in(node_pairs));
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
@@ -235,8 +235,8 @@ int main (int argc, char * argv[])
         
         /* Second-order cone */
         Constraint<> SOC("SOC");
-        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(bus_pairs_chord)*Wii.to(bus_pairs_chord);
-        SOCP->add(SOC.in(bus_pairs_chord)<=0);
+        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs_chord)*Wii.to(node_pairs_chord);
+        SOCP->add(SOC.in(node_pairs_chord)<=0);
 //        SOCP->get_constraint("SOC")->_relaxed = true;
         
     }
@@ -256,13 +256,13 @@ int main (int argc, char * argv[])
     
 
     var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
-    Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-    Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-    Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+    Vi.real_imag(R_Vi.from(node_pairs_chord), Im_Vi.from(node_pairs_chord));
+    Vj.real_imag(R_Vi.to(node_pairs_chord), Im_Vi.to(node_pairs_chord));
+    Wij.real_imag(R_Wij.in(node_pairs_chord), Im_Wij.in(node_pairs_chord));
     
 //    Constraint<Cpx> Linking_Wij("Linking_Wij");
 //    Linking_Wij = Wij - Vi*conj(Vj);
-//    SOCP->add(Linking_Wij.in(bus_pairs_chord)==0, true);
+//    SOCP->add(Linking_Wij.in(node_pairs_chord)==0, true);
     
     Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
     
@@ -305,14 +305,14 @@ int main (int argc, char * argv[])
     
     /* Phase Angle Bounds constraints */
     Constraint<> PAD_UB("PAD_UB");
-    PAD_UB = Im_Wij.in(bus_pairs);
-    PAD_UB <= tan_th_max*R_Wij.in(bus_pairs);
-    SOCP->add(PAD_UB.in(bus_pairs));
+    PAD_UB = Im_Wij.in(node_pairs);
+    PAD_UB <= tan_th_max*R_Wij.in(node_pairs);
+    SOCP->add(PAD_UB.in(node_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
-    PAD_LB =  Im_Wij.in(bus_pairs);
-    PAD_LB >= tan_th_min*R_Wij.in(bus_pairs);
-    SOCP->add(PAD_LB.in(bus_pairs));
+    PAD_LB =  Im_Wij.in(node_pairs);
+    PAD_LB >= tan_th_min*R_Wij.in(node_pairs);
+    SOCP->add(PAD_LB.in(node_pairs));
     
     
     
@@ -329,31 +329,31 @@ int main (int argc, char * argv[])
     Thermal_Limit_to <= pow(S_max,2);
     SOCP->add(Thermal_Limit_to.in(arcs));
     
-    func<> theta_L = atan(min(Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs),Im_Wij.get_lb().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs)));
-    func<> theta_U = atan(max(Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_lb().in(bus_pairs),Im_Wij.get_ub().in(bus_pairs)/R_Wij.get_ub().in(bus_pairs)));
-    func<> phi=(theta_U.in(bus_pairs)+theta_L.in(bus_pairs))/2.0;
-    func<> del=(theta_U.in(bus_pairs)-theta_L.in(bus_pairs))/2.0;
+    func<> theta_L = atan(min(Im_Wij.get_lb().in(node_pairs)/R_Wij.get_ub().in(node_pairs),Im_Wij.get_lb().in(node_pairs)/R_Wij.get_lb().in(node_pairs)));
+    func<> theta_U = atan(max(Im_Wij.get_ub().in(node_pairs)/R_Wij.get_lb().in(node_pairs),Im_Wij.get_ub().in(node_pairs)/R_Wij.get_ub().in(node_pairs)));
+    func<> phi=(theta_U.in(node_pairs)+theta_L.in(node_pairs))/2.0;
+    func<> del=(theta_U.in(node_pairs)-theta_L.in(node_pairs))/2.0;
     
     
     Constraint<> LNC1("LNC1");
-    LNC1 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(Im_Wij.in(bus_pairs)*sin(phi.in(bus_pairs)) + R_Wij.in(bus_pairs)*cos(phi.in(bus_pairs)));
+    LNC1 += (sqrt(Wii.get_lb().from(node_pairs))+sqrt(Wii.get_ub().from(node_pairs)))*(sqrt(Wii.get_lb().to(node_pairs))+sqrt(Wii.get_ub().to(node_pairs)))*(Im_Wij.in(node_pairs)*sin(phi.in(node_pairs)) + R_Wij.in(node_pairs)*cos(phi.in(node_pairs)));
     
-    LNC1 -=sqrt(Wii.get_ub().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
+    LNC1 -=sqrt(Wii.get_ub().to(node_pairs))*cos(del.in(node_pairs))*(sqrt(Wii.get_lb().to(node_pairs))+sqrt(Wii.get_ub().to(node_pairs)))*Wii.from(node_pairs);
     
-    LNC1 -=sqrt(Wii.get_ub().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
+    LNC1 -=sqrt(Wii.get_ub().from(node_pairs))*cos(del.in(node_pairs))*(sqrt(Wii.get_lb().from(node_pairs))+sqrt(Wii.get_ub().from(node_pairs)))*Wii.to(node_pairs);
     
-    LNC1-=sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs))*cos(del)*(sqrt(Wii.get_lb().from(bus_pairs))*
-                                                                                        sqrt(Wii.get_lb().to(bus_pairs)) - sqrt(Wii.get_ub().from(bus_pairs))*sqrt(Wii.get_ub().to(bus_pairs)));
-    SOCP->add(LNC1.in(bus_pairs) >= 0);
+    LNC1-=sqrt(Wii.get_ub().from(node_pairs))*sqrt(Wii.get_ub().to(node_pairs))*cos(del)*(sqrt(Wii.get_lb().from(node_pairs))*
+                                                                                        sqrt(Wii.get_lb().to(node_pairs)) - sqrt(Wii.get_ub().from(node_pairs))*sqrt(Wii.get_ub().to(node_pairs)));
+    SOCP->add(LNC1.in(node_pairs) >= 0);
     
     
     Constraint<> LNC2("LNC2");
-    LNC2 += (sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*(sin(phi.in(bus_pairs))*Im_Wij.in(bus_pairs) + cos(phi.in(bus_pairs))*R_Wij.in(bus_pairs));
-    LNC2 -=sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().to(bus_pairs))+sqrt(Wii.get_ub().to(bus_pairs)))*Wii.from(bus_pairs);
-    LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_lb().from(bus_pairs))+sqrt(Wii.get_ub().from(bus_pairs)))*Wii.to(bus_pairs);
-    LNC2 -=sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs))*cos(del.in(bus_pairs))*(sqrt(Wii.get_ub().from(bus_pairs))*
-                                                                                                       sqrt(Wii.get_ub().to(bus_pairs))-sqrt(Wii.get_lb().from(bus_pairs))*sqrt(Wii.get_lb().to(bus_pairs)));
-    SOCP->add(LNC2.in(bus_pairs) >= 0);
+    LNC2 += (sqrt(Wii.get_lb().from(node_pairs))+sqrt(Wii.get_ub().from(node_pairs)))*(sqrt(Wii.get_lb().to(node_pairs))+sqrt(Wii.get_ub().to(node_pairs)))*(sin(phi.in(node_pairs))*Im_Wij.in(node_pairs) + cos(phi.in(node_pairs))*R_Wij.in(node_pairs));
+    LNC2 -=sqrt(Wii.get_lb().to(node_pairs))*cos(del.in(node_pairs))*(sqrt(Wii.get_lb().to(node_pairs))+sqrt(Wii.get_ub().to(node_pairs)))*Wii.from(node_pairs);
+    LNC2 -=sqrt(Wii.get_lb().from(node_pairs))*cos(del.in(node_pairs))*(sqrt(Wii.get_lb().from(node_pairs))+sqrt(Wii.get_ub().from(node_pairs)))*Wii.to(node_pairs);
+    LNC2 -=sqrt(Wii.get_lb().from(node_pairs))*sqrt(Wii.get_lb().to(node_pairs))*cos(del.in(node_pairs))*(sqrt(Wii.get_ub().from(node_pairs))*
+                                                                                                       sqrt(Wii.get_ub().to(node_pairs))-sqrt(Wii.get_lb().from(node_pairs))*sqrt(Wii.get_lb().to(node_pairs)));
+    SOCP->add(LNC2.in(node_pairs) >= 0);
     
     Constraint<> obj_UB("obj_UB");
     obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0))-upperbound;
@@ -385,10 +385,8 @@ int main (int argc, char * argv[])
     double max_time = 100000;
     int max_iter = 5;
     int precision = 4;
-    solver<> SOCPOPF(SOCP,ipopt);
-    SOCPOPF.run(output, tol = 1e-8);
     
-    SOCP->run_obbt(max_time,max_iter,{true,upperbound},precision);
+    SOCP->run_obbt(SOCP);
     SOCP->print();
 //    auto original_SOC = grid.build_SCOPF();
 //    solver<> SOCOPF_ORIG(original_SOC, ipopt);
@@ -448,13 +446,13 @@ int main (int argc, char * argv[])
         *R_Vi._num_partns = 3;
         *Im_Vi._num_partns = 3;
         
-        Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-        Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-        Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
+        Vi.real_imag(R_Vi.from(node_pairs_chord), Im_Vi.from(node_pairs_chord));
+        Vj.real_imag(R_Vi.to(node_pairs_chord), Im_Vi.to(node_pairs_chord));
+        Wij.real_imag(R_Wij.in(node_pairs_chord), Im_Wij.in(node_pairs_chord));
         
         Constraint<Cpx> Linking_Wij_partition("Linking_Wij_partition");
         Linking_Wij_partition = Wij - Vi*conj(Vj);
-        SOCP->add(Linking_Wij_partition.in(bus_pairs_chord)==0, true, "lambda_II");
+        SOCP->add(Linking_Wij_partition.in(node_pairs_chord)==0, true, "lambda_II");
         
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         
