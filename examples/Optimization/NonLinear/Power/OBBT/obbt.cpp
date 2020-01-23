@@ -34,12 +34,14 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
+    string sdp_kim_s="yes";
     string threads_s="1";
     
     string lazy_s = "no";
     string orig_s = "no";
     bool lazy_bool = false;
     bool add_original=false;
+    bool sdp_kim=true;
     SolverType solv_type = ipopt;
     const double tol = 1e-6;
     string mehrotra = "no";
@@ -114,9 +116,10 @@ int main (int argc, char * argv[]) {
     
     auto max_time = op::str2double(opt["t"]);
 #else
-    if(argc==3){
+    if(argc==4){
         fname=argv[1];
         time_s=argv[2];
+        sdp_kim_s=argv[3];
     }
     //    else{
     //        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -125,6 +128,13 @@ int main (int argc, char * argv[]) {
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
+    if (sdp_kim_s.compare("no")==0) {
+        sdp_kim = false;
+    }
+    else {
+        sdp_kim = true;
+    }
+    
     
     
 #endif
@@ -174,7 +184,7 @@ int main (int argc, char * argv[]) {
 
     if(!linearize){
         auto nonlin_obj=true;
-        auto SDP= build_SDPOPF(grid, current, nonlin_obj);
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
