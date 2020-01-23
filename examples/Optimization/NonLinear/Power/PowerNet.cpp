@@ -1201,6 +1201,9 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
 
 shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, double tol){
+    if(grid.nodes.empty()){
+        throw invalid_argument("empty grid! Make sure to call grid.readgrid(fname);");
+    }
     /** Sets */
     auto node_pairs = grid.get_node_pairs();
     auto nodes = indices(grid.nodes);
