@@ -303,7 +303,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
         auto o1 = *o1_ptr;
         auto o2 = *o2_ptr;
-        if((o1 != o2) && (o1._name > o2._name) ){
+        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
             o2_ptr = static_pointer_cast<var<type>>(term._p->first);
             o1_ptr = static_pointer_cast<var<type>>(term._p->second);
             o1 = *o1_ptr;
@@ -324,11 +324,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             ids = combine(*o1._indices,*o2._indices);
             ids.set_name(o1._name+"|"+o2._name);
         }
-        auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
         auto o1_ids = *o1._indices;
         auto o2_ids = *o2._indices;
-        if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-            auto keep_refs = ids.get_unique_refs();
+        auto flat_ids = ids;
+        if(ids.is_matrix_indexed()){/* Flatten matrix indexed sets */
+            flat_ids.flatten();
+            o1_ids.flatten();
+            o2_ids.flatten();
+        }
+        auto unique_ids = flat_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+        if(unique_ids.size()!=flat_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+            auto keep_refs = flat_ids.get_unique_refs();
             o1_ids.filter_refs(keep_refs);
             o2_ids.filter_refs(keep_refs);
         }
@@ -2978,7 +2984,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 vlift->_ub->update_vars();
                 assert(o1._indices->size()==o2._indices->size());
                 if(added.size()!=o1_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = ids.get_diff_refs(added);
+                    auto keep_refs = flat_ids.get_diff_refs(added);
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
