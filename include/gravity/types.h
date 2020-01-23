@@ -609,16 +609,14 @@ public:
     /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
     indices get_unique_keys() const{
         indices res(_name);
-        set<size_t> unique_ids;
-        if(_ids){
-            for (auto &idx:_ids->at(0)) {
-                if(unique_ids.insert(idx).second){
-                    res.add(_keys->at(idx));
-                }
-            }
-            return res;
-        }
-        return *this;
+        res._type = unindexed_;
+        res._keys = _keys;
+        res._keys_map = _keys_map;
+        res._excluded_keys = _excluded_keys;
+        res._dim = make_shared<vector<size_t>>();
+        res._dim->resize(1);
+        res._dim->at(0) = res._keys->size();
+        return res;
     }
     
     /* Delete rows where keep[i] is false. */
@@ -848,23 +846,37 @@ public:
         }
         return res;
     }
-    
-    /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
-    void filter_refs(const vector<bool>& keep) const{
-        if(_ids){
-            if(keep.size()!=_ids->at(0).size()){
-                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
-            }
-            vector<vector<size_t>> new_ids;
-            new_ids.resize(1);
-            for (auto idx = 0; idx<keep.size();idx++) {
-                if(keep[idx]){
-                    new_ids.at(0).push_back(_ids->at(0).at(idx));
-                }
-            }
-            *_ids = new_ids;
+    /* transform a matrix indexed set to a vector indexed one */
+    void flatten() {
+        if(_type != matrix_){
+            return;
         }
+        shared_ptr<vector<vector<size_t>>> new_ids = make_shared<vector<vector<size_t>>>();
+        new_ids->resize(1);
+        for (size_t i = 0; i<get_nb_rows(); i++) {
+            for (size_t j = 0; j<this->_ids->at(i).size(); j++) {
+                new_ids->at(0).push_back(_ids->at(i).at(j));
+            }
+        }
+        _ids = new_ids;
+        _type = in_;
     }
+//    /** The function iterates over the ith key references in _ids and deletes the ones where keep[i] is false. */
+//    void filter_refs(const vector<bool>& keep) const{
+//        if(_ids){
+//            if(keep.size()!=_ids->at(0).size()){
+//                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
+//            }
+//            vector<vector<size_t>> new_ids;
+//            new_ids.resize(1);
+//            for (auto idx = 0; idx<keep.size();idx++) {
+//                if(keep[idx]){
+//                    new_ids.at(0).push_back(_ids->at(0).at(idx));
+//                }
+//            }
+//            *_ids = new_ids;
+//        }
+//    }
     
     
     
@@ -1664,34 +1676,65 @@ indices range(size_t i, size_t j);
  */
 template<typename... Args>
 indices combine(const indices& ids1, Args&&... args){
+    bool matrix_indexed = false;
     indices res;
     string res_name;
     list<indices> all_ids = {ids1,forward<Args>(args)...};
     for (auto &ids: all_ids) {
+        if(ids.is_matrix_indexed()){
+            matrix_indexed = true;
+        }
         res_name += ids.get_name()+",";
     }
     res_name = res_name.substr(0, res_name.size()-1);/* remove last comma */
     res.set_name(res_name);
-    auto nb_keys = ids1.size();
-    for (auto i = 0; i< nb_keys; i++) {
-        string combined_key, key = "", prev_key = "";
-        //            bool same_key = true;
+    if(matrix_indexed){
+        auto nb_rows = ids1.get_nb_rows();
+        res._ids = make_shared<vector<vector<size_t>>>();
+        res._ids->resize(nb_rows);
         for (auto &ids: all_ids) {
-            auto idx = ids.get_id_inst(i);
-            key = ids._keys->at(idx);
-            //                if(prev_key!="" && key!=prev_key){
-            //                    same_key = false;
-            //                }
-            //                prev_key = key;
-            combined_key += key +",";
+            if(!ids.is_matrix_indexed())
+                throw invalid_argument("In combine(ids..) all or none of the index sets should be matrix indexed");
+            if(ids.get_nb_rows()!=nb_rows)
+                throw invalid_argument("In combine(ids..) all indices should have the same number of rows");
         }
-        //            if(same_key){
-        //                combined_key = key;
-        //            }
-        //            else {
-        combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
-        //            }
-        res.add(combined_key);
+        for (size_t i = 0; i<nb_rows; i++) {
+            for (size_t j = 0; j< ids1._ids->at(i).size(); j++) {
+                string combined_key, key = "";
+                for (auto &ids: all_ids) {
+                    if(ids._ids->at(i).size()!=ids1._ids->at(i).size())
+                        throw invalid_argument("In combine(ids..) all indices should have the same number of entries per row");
+                    auto idx = ids._ids->at(i).at(j);
+                    key = ids._keys->at(idx);
+                    combined_key += key +",";
+                }
+                combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
+                res.add_in_row(i,combined_key);
+            }
+        }
+    }
+    else {
+        auto nb_keys = ids1.size();
+        for (auto i = 0; i< nb_keys; i++) {
+            string combined_key, key = "", prev_key = "";
+            //            bool same_key = true;
+            for (auto &ids: all_ids) {
+                auto idx = ids.get_id_inst(i);
+                key = ids._keys->at(idx);
+                //                if(prev_key!="" && key!=prev_key){
+                //                    same_key = false;
+                //                }
+                //                prev_key = key;
+                combined_key += key +",";
+            }
+            //            if(same_key){
+            //                combined_key = key;
+            //            }
+            //            else {
+            combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
+            //            }
+            res.add(combined_key);
+        }
     }
     return res;
 }
