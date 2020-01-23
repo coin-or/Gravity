@@ -2302,21 +2302,21 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
         auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
         
-        
-        Constraint<> SDP3("SDP_3D");
-        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
-        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
-        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//
+//        Constraint<> SDP3("SDP_3D");
+//        SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+//        SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+//        SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+//        SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+//        SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
 //        /* Second-order cone constraints */
 //        Constraint<> SOC_Kojima1_0("SOC_Kojima1_0");
 //        SOC_Kojima1_0 = pow(R_Wij_[0] + R_Wij_[2], 2) + pow(Im_Wij_[0] + Im_Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*R_Wij_[1]);
 //        SDPOPF->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
-//
-//
+////
+////
 //        /* Second-order cone constraints */
 //        Constraint<> SOC_Kojima2_0("SOC_Kojima2_0");
 //        SOC_Kojima2_0 = pow(R_Wij_[0] + R_Wij_[1], 2) + pow(Im_Wij_[0] - Im_Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]+2*R_Wij_[2]);
@@ -2356,7 +2356,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
 //        Constraint<> SOC_Kojima3_45("SOC_Kojima3_45");
 //        SOC_Kojima3_45 = pow(root2*R_Wij_[2] + R_Wij_[1] +Im_Wij_[1], 2) + pow(root2*Im_Wij_[2] + Im_Wij_[1]-   R_Wij_[1], 2) - 2.0*Wii_[2]*(Wii_[0]+Wii_[1]+root2*(R_Wij_[0]-Im_Wij_[0]));
 //        SDPOPF->add(SOC_Kojima3_45.in(range(0,bag_size-1)) <= 0);
-        bool kim_kojima = false;
+        bool kim_kojima = true;
         if(kim_kojima){
             indices theta_kim("theta_kim");
             param<double> theta;
@@ -2391,16 +2391,22 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
             Constraint<> SOC_Kojima1_theta("SOC_Kojima1_theta");
             SOC_Kojima1_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2], 2)+pow(Im_Wij_[0] + cos(theta)*Im_Wij_[2]+sin(theta)*R_Wij_[2], 2)-Wii_[0]*(Wii_[1]+Wii_[2]+2*(cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1]));
             SDPOPF->add(SOC_Kojima1_theta.in(bags_theta) <= 0);
-            
-         
+
+
             Constraint<> SOC_Kojima2_theta("SOC_Kojima2_theta");
             SOC_Kojima2_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[0] - cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[1]*(Wii_[0]+Wii_[2]+2*(cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2]));
             SDPOPF->add(SOC_Kojima2_theta.in(bags_theta) <= 0);
-           
-            
+
+
             Constraint<> SOC_Kojima3_theta("SOC_Kojima3_theta");
             SOC_Kojima3_theta = pow(R_Wij_[2] + cos(theta)*R_Wij_[1]+sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[2] + cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[2]*(Wii_[0]+Wii_[1]+2*(cos(theta)*R_Wij_[0]-sin(theta)*Im_Wij_[0]));
             SDPOPF->add(SOC_Kojima3_theta.in(bags_theta) <= 0);
+            SDPOPF->print();
+            
+            SOC_Kojima1_theta.print();
+            SOC_Kojima2_theta.print();
+            SOC_Kojima3_theta.print();
+            
         }
 
 
@@ -2437,7 +2443,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj)
 //
 //        }
 //        else {
-            SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
+          //  SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
 //            DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
 //        }
 //        }
