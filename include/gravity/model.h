@@ -1309,7 +1309,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        shared_ptr<Model<T>> relax(unsigned determinant_level = 0, bool add_Kim_Kojima = false, bool add_RLT = false) const{/*<  return a convex relaxation of the current model */
+        shared_ptr<Model<T>> relax(unsigned determinant_level = 0, bool add_Kim_Kojima = false, bool add_SDP_3d = false, bool add_RLT = false) const{/*<  return a convex relaxation of the current model */
             
             auto g = get_interaction_graph();
             g.get_tree_decomp_bags();
@@ -1460,16 +1460,16 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             auto vdiag2 = relax->template get_var<double>(name2);
 //                            vdiag1.initialize_all(1e3);
 //                            vdiag2.initialize_all(1e3);
-                            Constraint<> SOC(vv->_name+"_SOC_diag");
-                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                            relax->add(SOC.in(*vv->_indices) == 0, true);
-                            SOC.print();
+//                            Constraint<> SOC(vv->_name+"_SOC_diag");
+//                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+//                            relax->add(SOC.in(*vv->_indices) == 0, true);
+//                            SOC.print();
 //                            relax->print();
                         }
                     }
                 }
             }
-            if(add_Kim_Kojima){/* Need to extend Wij indices to include new chordal edges*/
+            if(add_Kim_Kojima || add_SDP_3d){/* Need to extend Wij indices to include new chordal edges*/
                 for(auto &vp: relax->_vars){
                     if (vp.second->get_intype()==double_) {
                         auto vv = static_pointer_cast<var<double>>(vp.second);
@@ -1479,59 +1479,86 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             DebugOn("Diagonal element : " << Wii._name << endl);
                             auto Wij_ = vv->pairs_in_bags(bags_3d, 3);
                             auto Wii_ = Wii.in_bags(bags_3d, 3);
+                            if(add_Kim_Kojima){
+                                Constraint<> SOC_Kojima1_0("SOC_Kojima1_0_diag");
+                                SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+                                relax->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
 
-                            Constraint<> SOC_Kojima1_0("SOC_Kojima1_0");
-                            SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
-                            relax->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
-                            SOC_Kojima1_0.print();
-                            
-                            Constraint<> SOC_Kojima2_0("SOC_Kojima2_0");
-                            SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
-                            relax->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
-                                                        
-                            Constraint<> SOC_Kojima3_0("SOC_Kojima3_0");
-                            SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
-                            relax->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
-                
-                            Constraint<> SOC_Kojima1_90("SOC_Kojima1_90");
-                             SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
-                             relax->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+                                Constraint<> SOC_Kojima2_0("SOC_Kojima2_0_diag");
+                                SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+                                relax->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
 
-                            Constraint<> SOC_Kojima2_90("SOC_Kojima2_90");
-                            SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
-                            relax->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+                                Constraint<> SOC_Kojima3_0("SOC_Kojima3_0_diag");
+                                SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+                                relax->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
 
-                             Constraint<> SOC_Kojima3_90("SOC_Kojima3_90");
-                             SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
-                             relax->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
-                            
-                            Constraint<> SOC_Kojima1_0_NC("SOC_Kojima1_0_NC");
-                            SOC_Kojima1_0_NC = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
-                            relax->add(SOC_Kojima1_0_NC.in(range(0,bag_size-1)) >= 0, true);
-                            
-                            Constraint<> SOC_Kojima2_0_NC("SOC_Kojima2_0_NC");
-                            SOC_Kojima2_0_NC = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
-                            relax->add(SOC_Kojima2_0_NC.in(range(0,bag_size-1)) >= 0, true);
-                            
-                            Constraint<> SOC_Kojima3_0_NC("SOC_Kojima3_0_NC");
-                            SOC_Kojima3_0_NC = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
-                            relax->add(SOC_Kojima3_0_NC.in(range(0,bag_size-1)) >= 0, true);
-                            
-                            Constraint<> SOC_Kojima1_90_NC("SOC_Kojima1_90_NC");
-                            SOC_Kojima1_90_NC = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
-                            relax->add(SOC_Kojima1_90_NC.in(range(0,bag_size-1)) >= 0, true);
-                            
-                            Constraint<> SOC_Kojima2_90_NC("SOC_Kojima2_90_NC");
-                            SOC_Kojima2_90_NC = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
-                            relax->add(SOC_Kojima2_90_NC.in(range(0,bag_size-1)) >= 0, true);
-                            
-                            Constraint<> SOC_Kojima3_90_NC("SOC_Kojima3_90_NC");
-                            SOC_Kojima3_90_NC = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
-                            relax->add(SOC_Kojima3_90_NC.in(range(0,bag_size-1)) >= 0, true);
+                                Constraint<> SOC_Kojima1_90("SOC_Kojima1_90_diag");
+                                 SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+                                 relax->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+
+                                Constraint<> SOC_Kojima2_90("SOC_Kojima2_90_diag");
+                                SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+                                relax->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+
+                                 Constraint<> SOC_Kojima3_90("SOC_Kojima3_90_diag");
+                                 SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+                                 relax->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
+                            }
+//
+//                            const double root2=std::sqrt(2.0);
+//                            Constraint<> SOC_Kojima1_45("SOC_Kojima1_45_diag");
+//                            SOC_Kojima1_45 = pow(root2*Wij_[0] + Wij_[2], 2) + pow(Wij_[2], 2) - 2.0*Wii_[0]*(Wii_[1]+Wii_[2]+root2*(Wij_[1]));
+//                            relax->add(SOC_Kojima1_45.in(range(0,bag_size-1)) <= 0);
+//
+//                            /* Second-order cone constraints */
+//                            Constraint<> SOC_Kojima2_45("SOC_Kojima2_45_diag");
+//                            SOC_Kojima2_45 = pow(root2*Wij_[0] + Wij_[1], 2) + pow(Wij_[1], 2) - 2.0*Wii_[1]*(Wii_[0]+Wii_[2]+root2*(Wij_[2]));
+//                            relax->add(SOC_Kojima2_45.in(range(0,bag_size-1)) <= 0);
+//
+//
+//                            Constraint<> SOC_Kojima3_45("SOC_Kojima3_45_diag");
+//                            SOC_Kojima3_45 = pow(root2*Wij_[2] + Wij_[1], 2) + pow(Wij_[1], 2) - 2.0*Wii_[2]*(Wii_[0]+Wii_[1]+root2*(Wij_[0]));
+//                            relax->add(SOC_Kojima3_45.in(range(0,bag_size-1)) <= 0);
+
+                            if(add_SDP_3d){
+                                Constraint<> SDP3("SDP_3D_diag");
+                                SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+                                SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+                                SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+                                SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+                                SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+                                relax->add(SDP3.in(range(1, bag_size)) >= 0);
+                            }
+                                   // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+//                            Constraint<> SOC_Kojima1_0_NC("SOC_Kojima1_0_NC_diag");
+//                            SOC_Kojima1_0_NC = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+//                            relax->add(SOC_Kojima1_0_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima2_0_NC("SOC_Kojima2_0_NC_diag");
+//                            SOC_Kojima2_0_NC = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+//                            relax->add(SOC_Kojima2_0_NC.in(range(0,bag_size-1)) >= 0, true);
+////
+//                            Constraint<> SOC_Kojima3_0_NC("SOC_Kojima3_0_NC_diag");
+//                            SOC_Kojima3_0_NC = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+//                            relax->add(SOC_Kojima3_0_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima1_90_NC("SOC_Kojima1_90_NC_diag");
+//                            SOC_Kojima1_90_NC = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+//                            relax->add(SOC_Kojima1_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima2_90_NC("SOC_Kojima2_90_NC_diag");
+//                            SOC_Kojima2_90_NC = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+//                            relax->add(SOC_Kojima2_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//
+//                            Constraint<> SOC_Kojima3_90_NC("SOC_Kojima3_90_NC_diag");
+//                            SOC_Kojima3_90_NC = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+//                            relax->add(SOC_Kojima3_90_NC.in(range(0,bag_size-1)) >= 0, true);
+//                            break;
                         }
                     }
                 }
             }
+            relax->print();
             return relax;
         }
         
