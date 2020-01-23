@@ -4311,7 +4311,7 @@ namespace gravity {
                             }
                         }
                     }
-                    else if(pair.second._coef->_is_transposed || pair.second._p->first->is_matrix_indexed()|| pair.second._p->second->is_matrix_indexed()){
+                    else if(pair.second._coef->_is_transposed || pair.second._p->first->is_matrix_indexed()|| pair.second._p->second->is_matrix_indexed()){/* C*element_wise(X.Y)^T */
                         auto dim = pair.second._p->first->get_dim(i);
                         if (pair.second._sign) {
                             for (size_t j = 0; j<dim; j++) {
@@ -4336,7 +4336,7 @@ namespace gravity {
                         }
                         qval *= eval_coef(pair.second._coef,i);
                     }
-                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && !pair.second._p->second->is_matrix() && i==0) {//transposed vect * vec, a dot product of two vectors
+                    else if (!pair.second._p->first->is_matrix() && pair.second._p->first->_is_transposed && !pair.second._p->second->is_matrix() && i==0) {//TODO: what is this??
                         for (size_t j = 0; j<pair.second._p->first->_dim[1]; j++) {
                             qval += eval(pair.second._p->first,j) * eval(pair.second._p->second,j);
                         }
