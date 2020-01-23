@@ -171,110 +171,60 @@ TEST_CASE("hard nlp") {
     ub = {10000,10000,10000,1000,1000,1000,1000,1000};
     var<> x("x",lb,ub);
     M.add(x.in(range(1,8)));
-    
-//    Constraint<> L12("L12");
-//    L12 = x[1]*x[2] - x[1]*x.get_ub().in(range(2,2));
-//    M.add(L12 <= 0);
-//    
-//    Constraint<> L13("L13");
-//    L13 = x[1]*x[3] - x[1]*x.get_ub().in(range(3,3));
-//    M.add(L13 <= 0);
-//    
-//    Constraint<> L23("L23");
-//    L23 = x[2]*x[3] - x[2]*x.get_ub().in(range(3,3));
-//    M.add(L23 <= 0);
+
     
     Constraint<> C1("C1");
     C1 = 0.0025*(x[4] + x[6]);
     M.add(C1 <= 1);
+ 
     
-//    Constraint<> RLT1("RLT1");
-//    RLT1 = x[4]*(0.0025*(x[4] + x[6]) - 1);
-//    M.add(RLT1 <= 0);
-//
-//    Constraint<> RLT11("RLT11");
-//    RLT11 = x[6]*(0.0025*(x[4] + x[6]) - 1);
-//    M.add(RLT11 <= 0);
+    Constraint<> RLT1_1("RLT1_1");
+    RLT1_1 = x[1]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_1 <= 0);
     
-    Constraint<> RLT111("RLT111");
-    RLT111 = x[1]*(0.0025*(x[4] + x[6]) - 1);
-    M.add(RLT111 <= 0);
+    Constraint<> RLT1_2("RLT1_2");
+    RLT1_2 = x[2]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_2 <= 0);
     
-    Constraint<> RLT1111("RLT1111");
-    RLT1111 = x[2]*(0.0025*(x[4] + x[6]) - 1);
-    M.add(RLT1111 <= 0);
+    Constraint<> RLT1_3("RLT1_3");
+    RLT1_3 = x[3]*(0.0025*(x[4] + x[6]) - 1);
+    M.add(RLT1_3 <= 0);
     
-    Constraint<> RLT11111("RLT11111");
-    RLT11111 = x[3]*(0.0025*(x[4] + x[6]) - 1);
-    M.add(RLT11111 <= 0);
-    
-//    Constraint<> RLT1_squared("RLT1_squared");
-//    RLT1_squared = pow(0.0025*(x[4] + x[6]) - 1, 2);
-//    M.add(RLT1_squared >= 0);
     
     Constraint<> C2("C2");
     C2 = 0.0025*(x[5] - x[4] + x[7]);
     M.add(C2 <= 1);
     
-//    Constraint<> RLT2("RLT2");
-//    RLT2 = x[5]*(0.0025*(x[5] - x[4] + x[7])-1);
-//    M.add(RLT2 <= 0);
-//
-//    Constraint<> RLT22("RLT22");
-//    RLT22 = x[4]*(0.0025*(x[5] - x[4] + x[7])-1);
-//    M.add(RLT22 <= 0);
-//
-//    Constraint<> RLT222("RLT222");
-//    RLT222 = x[7]*(0.0025*(x[5] - x[4] + x[7])-1);
-//    M.add(RLT222 <= 0);
     
-    Constraint<> RLT2222("RLT2222");
-    RLT2222 = x[1]*(0.0025*(x[5] - x[4] + x[7])-1);
-    M.add(RLT2222 <= 0);
+    Constraint<> RLT2_1("RLT2_1");
+    RLT2_1 = x[1]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_1 <= 0);
     
-    Constraint<> RLT22222("RLT22222");
-    RLT22222 = x[2]*(0.0025*(x[5] - x[4] + x[7])-1);
-    M.add(RLT22222 <= 0);
+    Constraint<> RLT2_2("RLT2_2");
+    RLT2_2 = x[2]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_2 <= 0);
     
-    Constraint<> RLT222222("RLT222222");
-    RLT222222 = x[3]*(0.0025*(x[5] - x[4] + x[7])-1);
-    M.add(RLT222222 <= 0);
-    
-    
-    
-//    Constraint<> RLT2_squared("RLT2_squared");
-//    RLT2_squared = pow(0.0025*(x[5] - x[4] + x[7])-1, 2);
-//    M.add(RLT2_squared >= 0);
+    Constraint<> RLT2_3("RLT2_3");
+    RLT2_3 = x[3]*(0.0025*(x[5] - x[4] + x[7])-1);
+    M.add(RLT2_3 <= 0);
+
     
     Constraint<> C3("C3");
     C3 = 0.01*(x[8]-x[5]);
     M.add(C3 <= 1);
     
-//    Constraint<> RLT3("RLT3");
-//    RLT3 = x[8]*(0.01*(x[8]-x[5])-1);
-////    M.add(RLT3 <= 0);
-//
-//    Constraint<> RLT33("RLT33");
-//    RLT33 = x[5]*(0.01*(x[8]-x[5])-1);
-//    M.add(RLT33 <= 0);
     
-    Constraint<> RLT333("RLT333");
-    RLT333 = x[1]*(0.01*(x[8]-x[5])-1);
-    M.add(RLT333 <= 0);
+    Constraint<> RLT3_1("RLT3_1");
+    RLT3_1 = x[1]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_1 <= 0);
     
-    Constraint<> RLT3333("RLT3333");
-    RLT3333 = x[2]*(0.01*(x[8]-x[5])-1);
-    M.add(RLT3333 <= 0);
+    Constraint<> RLT3_2("RLT3_2");
+    RLT3_2 = x[2]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_2 <= 0);
     
-    Constraint<> RLT33333("RLT33333");
-    RLT33333 = x[3]*(0.01*(x[8]-x[5])-1);
-    M.add(RLT33333 <= 0);
-
-    
-//    Constraint<> RLT3_squared("RLT3_squared");
-//    RLT3_squared = pow(0.01*(x[8]-x[5])-1, 2);
-//    M.add(RLT3_squared >= 0);
-    
+    Constraint<> RLT3_3("RLT3_3");
+    RLT3_3 = x[3]*(0.01*(x[8]-x[5])-1);
+    M.add(RLT3_3 <= 0);
     
     Constraint<> C4("C4");
     C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
@@ -285,7 +235,6 @@ TEST_CASE("hard nlp") {
     Constraint<> C6("C6");
     C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
     M.add(C6 <= 0);
-    
     
     
     M.min(x[1]+x[2]+x[3]);
@@ -307,7 +256,7 @@ TEST_CASE("hard nlp") {
     LB->print();
 //    M.print();
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
-    unsigned max_iter=200, nb_threads = thread::hardware_concurrency();
+    unsigned max_iter=1, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
@@ -893,6 +842,15 @@ TEST_CASE("testing function convexity"){
     CHECK(fn.is_convex());
     auto f2 = pow(p,4);
     CHECK(f2.is_convex());
+    var<> x("x",1,2), y("y",2,4), z("z",2,4);
+    x.in(R(1));
+    y.in(R(1));
+    z.in(R(1));
+    auto f3 = x*(0.01*(x-y)-1);
+    f3.print();
+    auto f4 = x*(0.01*(x-y)-1) + z;
+    f4.print();
+    CHECK(!f4.is_rotated_soc());
 }
 
 TEST_CASE("testing bounds copy"){
@@ -1003,25 +961,23 @@ TEST_CASE("testing soc/rotated soc constraints"){
     a = 1;
     a = 4;
     Constraint<> cstr("cstr");
-    cstr = (x2+a)*(x3+log(a)) - pow(x1,2);
+    cstr = a*x2*x3 - pow(x1,2);
     cstr >= 0;
     cstr.print_symbolic();
     cstr.print();
-    CHECK(cstr.to_str()==" - x1² + x2x3 + (log(a))x2 + (a)x3 + a * log(a)");
+    CHECK(cstr.to_str()==" - x1² + (a)x2x3");
     CHECK(cstr.get_nb_vars()==3);
     CHECK(cstr.is_quadratic());
     CHECK(cstr.check_rotated_soc());
     CHECK(cstr.get_dim()==2);
-    CHECK(cstr._range->first==1.1*(2+log(1))-1);
-    CHECK(cstr._range->second==(3+4)*(4+log(4)));
     auto dfdx2 = cstr.get_derivative(x2);
     dfdx2.print_symbolic();
-    CHECK(dfdx2.to_str()=="x3 + log(a)");
+    CHECK(dfdx2.to_str()=="(a)x3");
     CHECK(dfdx2.is_linear());
-    CHECK(dfdx2._range->first==2+log(1));
-    CHECK(dfdx2._range->second==4+log(4));
+    CHECK(dfdx2._range->first==2);
+    CHECK(dfdx2._range->second==16);
     Constraint<> cstr2("cstr2");
-    cstr2 = pow(x2+a,2) + pow(x3+sqrt(a),2) - pow(x1,2);
+    cstr2 = pow(x2,2) + pow(a*x3,2) - pow(x1,2);
     cstr2 <= 0;
     cstr2.print_symbolic();
     cstr2.print();
@@ -1029,8 +985,8 @@ TEST_CASE("testing soc/rotated soc constraints"){
     CHECK(cstr2.is_quadratic());
     CHECK(cstr2.check_soc());
     CHECK(cstr2.get_dim()==2);
-    CHECK(cstr2._range->first==1.1*1.1 + 3*3 - 1);
-    CHECK(cstr2._range->second==7*7 + 6*6);
+    CHECK(cstr2._range->first==0.01 + 2*2 - 1);
+    CHECK(cstr2._range->second==3*3 + 16*4*4);
 }
 
 TEST_CASE("testing nonlinear expressions"){

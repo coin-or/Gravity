@@ -2414,7 +2414,7 @@ namespace gravity {
         };
         
         bool is_rotated_soc(){
-            if (_qterms->empty() || !_pterms->empty() || _expr) {
+            if (!_lterms->empty() || _qterms->empty() || !_pterms->empty() || _expr) {
                 return false;
             }
             unsigned nb_bilinear = 0, nb_quad = 0;
@@ -7206,7 +7206,7 @@ namespace gravity {
         }
         
         bool check_rotated_soc(){
-            if (_qterms->empty() || !_pterms->empty() || _expr) {
+            if (!_lterms->empty() || _qterms->empty() || !_pterms->empty() || _expr) {
                 return false;
             }
             unsigned nb_bilinear = 0, nb_quad = 0;
@@ -7253,7 +7253,7 @@ namespace gravity {
         }
         
         bool check_soc(){
-            if (_qterms->empty() || !_pterms->empty() || _expr) {
+            if (!_lterms->empty() || _qterms->empty() || !_pterms->empty() || _expr) {
                 return false;
             }
             unsigned nb_neg = 0, nb_pos = 0;
