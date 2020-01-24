@@ -25,7 +25,7 @@ int main (int argc, char * argv[]) {
     PoolNet poolnet;
     
 
-    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
+    string fname=string(prj_dir)+"/data_sets/Pooling/Adhya3_gms.txt";
 
  
 
@@ -286,7 +286,7 @@ int main (int argc, char * argv[]) {
     
     Constraint<> SOC("SOC");
     SOC = pow(Wij, 2) - Wii.in(pairs_chordal_from)*Wii.in(pairs_chordal_to);
-    SPP->add(SOC.in(pairs_chordal) <= 0);
+    SPP->add(SOC.in(pairs_chordal) == 0);
 
 //    Constraint<> obj_eq("obj_eq");
 //    obj_eq = objvar - (c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
@@ -331,27 +331,27 @@ int main (int argc, char * argv[]) {
 //            SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
 //            SPP->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
 //
-//        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-//        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-//        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-//        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-       // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-//        Constraint<> Rank_type2a("RankType2a");
-//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2b("RankType2b");
-//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2c("RankType2c");
-//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
 //    SPP->print();
 //    SPP->scale_vars(100);

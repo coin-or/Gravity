@@ -62,7 +62,7 @@ namespace gravity {
      **/
     template<typename type>
     template<typename T>
-    shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
+    shared_ptr<Model<type>> Model<type>::buildOA()
     {
         
 //        auto cpy = this->copy();
@@ -99,20 +99,12 @@ namespace gravity {
                     DebugOn("Throw exception" <<endl);
 
                 }
-                else
-                {
-
-                    OA->add_outer_app_uniform(nb_discr, *con);
-                }
             }
             else
             {
                 OA->add(*con);
             }
         }
-        set_solution(xsolution);
-        OA->add_outer_app_active(*this, nb_perturb);
-
         set_solution(xsolution);
         return OA;
     }
@@ -418,15 +410,9 @@ namespace gravity {
         //
         //        }
     }
-    //
-    /** Outer approximation of active (nonlinear) constraints of the model
-     @param[in] nonlin: original nonlinear model at whose solution (at the active point) OA cuts are added:
-     @param[in] nb_perturb:
-     @return void. OA cuts are added to the model that calls the function (for all func instances) at the solution and by perturbing the solution
-     Assumption: nonlinear constraint to be perturbed does not have any vector variables
-     **/
+    
     template<>
-    void Model<>::add_outer_app_active(const Model<>& nonlin, int nb_perturb)
+    void Model<>::add_outer_app_solution(const Model<>& nonlin)
     {
         const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
@@ -462,46 +448,46 @@ namespace gravity {
             if(!con->is_linear()) {
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
                 {
-                Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
-                indices activeset("active_"+con->_name);
-                      auto keys=con->_indices->_keys;
-                for(auto i=0;i<con->get_nb_inst();i++){
-//                    con->uneval();
-                    /** Generate an OA cut if constraint is active or if it has a convex representation */
-                    //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                    convex_region=true;
-                                            if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                         {
-                   
-                                                  xres=con->get_x(i);
-                                                  con->uneval();
-                                                auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                                auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                               auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                                if(soc1<=0 && soc2<=0 && soc3<=0){
-                                                   convex_region=true;
-                                                }
-                                             else{
-                                                   convex_region=false;
-                                                }
-                                            }
-                   
-                                           if(convex_region){
-                    
-                    if(con->is_active(i,active_tol_sol)){
-                      
-                        activeset.add((*keys)[i]);
+                    Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                    indices activeset("active_"+con->_name);
+                    auto keys=con->_indices->_keys;
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        //                    con->uneval();
+                        /** Generate an OA cut if constraint is active or if it has a convex representation */
+                        //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                        convex_region=true;
+                        if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+                        {
+                            
+                            xres=con->get_x(i);
+                            con->uneval();
+                            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                            if(soc1<=0 && soc2<=0 && soc3<=0){
+                                convex_region=true;
+                            }
+                            else{
+                                convex_region=false;
+                            }
+                        }
+                        
+                        if(convex_region){
+                            
+                            if(con->is_active(i,active_tol_sol)){
+                                
+                                activeset.add((*keys)[i]);
+                            }
+                        }
                     }
-                                           }
+                    OA_sol=con->get_outer_app(activeset);
+                    if(con->_ctype==leq) {
+                        add(OA_sol.in(activeset)<=0);
+                    }
+                    else {
+                        add(OA_sol.in(activeset)>=0);
+                    }
                 }
-                OA_sol=con->get_outer_app(activeset);
-                if(con->_ctype==leq) {
-                    add(OA_sol.in(activeset)<=0);
-                }
-                else {
-                    add(OA_sol.in(activeset)>=0);
-                }
-            }
                 else
                     if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                     {
@@ -510,211 +496,197 @@ namespace gravity {
                         auto keys=con->_indices->_keys;
                         for(auto i=0;i<con->get_nb_inst();i++){
                             
-                                allset.add((*keys)[i]);
+                            allset.add((*keys)[i]);
                             
-                                        }
-                             OA_sol=con->get_outer_app(allset);
+                        }
+                        OA_sol=con->get_outer_app(allset);
                         if(con->_ctype==leq) {
                             add(OA_sol<=0);
                         }
                         else {
                             add(OA_sol>=0);
                         }
-        }
-        }
-        }
-        indices Pert("Pert");
-            for(auto j=1;j<=nb_perturb;j++){
-                Pert.add("P"+to_string(j));
+                    }
             }
+        }
+    }
+    //
+    template<>
+    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, Model<>& lin, string name)
+    {
         
-        if(interior)
-        {
+        vector<double> xsolution(_nb_vars);
+        vector<double> xinterior(_nb_vars);
+        vector<double> xcurrent, xres;
+        get_solution(xsolution);
+        set_solution(obbt_solution);
+        const double active_tol=1e-6,active_tol_sol=1e-8;
+        
+        bool interior_solv=true;
+        vector<double> c_val ;
+        double c0_val;
+        vector<param<double>> oa_vec_c;
+        param<double> oa_c0;
+        
+        bool convex_region=true;
+        //    Ointerior.print();
+        
+        
+        //for (auto &con: _cons_vec)
+//        {
+//            if(!con->is_linear()) {
+//                    Constraint<> OA_sol("OA_cuts_solution_"+con->_name+name);
+//                    indices activeset("active_"+con->_name);
+//                    auto keys=con->_indices->_keys;
+//                    for(auto i=0;i<con->get_nb_inst();i++){
+//                        //                    con->uneval();
+//                        /** Generate an OA cut if constraint is active or if it has a convex representation */
+//                        //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+//                        convex_region=true;
+//                        if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+//                        {
+//
+//                            xres=con->get_x(i);
+//                            con->uneval();
+//                            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+//                            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+//                            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+//                            if(soc1<=0 && soc2<=0 && soc3<=0){
+//                                convex_region=true;
+//                            }
+//                            else{
+//                                convex_region=false;
+//                            }
+//                        }
+//
+//                        if(convex_region){
+//
+//                            if(con->is_active(i,active_tol_sol)){
+//
+//                                activeset.add((*keys)[i]);
+//                            }
+//                        }
+//                    }
+//                    OA_sol=con->get_outer_app(activeset);
+//                    if(con->_ctype==leq) {
+//                        add(OA_sol.in(activeset)<=0);
+//                    }
+//                    else {
+//                        add(OA_sol.in(activeset)>=0);
+//                    }
+//                }
+//        }
+    
             
-            for (auto &con: nonlin._cons_vec)
+            for (auto &con: _cons_vec)
             {
                 oa_vec_c.clear();/** vector of parameters corresponding to coeficients apearing in the OA cut for each symbolic constraint, the vectore entries are ordered according to the smae order they appear in _vars */
                 if(!con->is_linear()) {
-                    if (!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                       // con->print();
                         indices Inst("Inst");
                         for(auto i=0;i<con->get_nb_inst();i++){
                             Inst.add("I"+to_string(i));
                         }
                         indices V("V");
                         for(auto i=0;i<con->_nb_vars;i++){
-                                V.add("V"+to_string(i));
+                            V.add("V"+to_string(i));
                         }
+                        indices VI(V, Inst);
                         
-                        indices PertV(Pert, V);
-                        indices PertVI(PertV, Inst);
-                  
-                        for(auto i=0;i<con->_nb_vars;i++){
-                            param<double> ci("Param"+con->_name+"v"+to_string(i));
-                            ci.in(PertVI);
-                            oa_vec_c.push_back(ci);
+                    for(auto i=0;i<con->_nb_vars;i++){
+                        param<double> ci("Param"+con->_name+"v"+to_string(i));
+                        ci.in(Inst);
+                        oa_vec_c.push_back(ci);
+                    }
+                    param<double> oa_c0;
+                    oa_c0.in(Inst);
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        con->uneval();
+                        c0_val=0;
+                        c_val.resize(con->_nb_vars,0);
+                        auto cname=con->_name;
+                        auto con_interior=interior.get_constraint(cname);
+                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                        xcurrent=con->get_x(i);
+                        con->uneval();
+                        if(con->is_active(i,active_tol_sol)){
+                            con->get_outer_coef(i, c_val, c0_val);
                         }
-                        param<double> oa_c0;
-                        oa_c0.in(PertVI);
-                        for(auto i=0;i<con->get_nb_inst();i++){
-                         con->uneval();
+                        else if(interior_solv && ((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq))){
                             
-                            auto cname=con->_name;
-//                            if(cname=="SOC_convex")
-//                            {
-//                                DebugOn("enter breakpoint"<<endl);
-//                            }
-                            auto con_interior=Ointerior.get_constraint(cname);
-                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                            xcurrent=con->get_x(i);
                             
-                            if(con->is_active(i,active_tol_sol)){
-                                xactive=xcurrent;
-                            }
-                            else/* TODO: lazy version for non-active constraints */
-                            {
-                                auto res=con->get_any_active_point(i, con->_ctype); /** Newton-Raphson to get an active point */
-                                if(res.first){
-                                    xactive=res.second;
-                                }
-                                else{
-                                con->set_x(i, xcurrent);
-                                    continue;
-                                }
-                            }
-                            con->set_x(i, xactive);
-                            size_t posv;
-                            count=0;
-                            for(auto &it: *(con->_vars))
-                            {
-                                auto v = it.second.first;
-                                
-                                auto vname=v->_name;
-                                if(v->_is_vector)
+                            auto res_search=con->binary_line_search(xinterior, i);
+                            if(res_search){
+                                convex_region=true;
+                                if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                 {
-                                    DebugOn("Exception: Vector variables are not currently supported"<<endl);
-                                    DebugOn("Throw exception" <<endl);
-                                    break;
-                                }
-                                else
-                                {
-                                    posv=v->get_id_inst(i);
-                                    auto ub_v=v->get_double_ub(posv);
-                                    auto lb_v=v->get_double_lb(posv);
                                     
-                                    for(auto j=1;j<=nb_perturb;j++)
-                                    {
-                                        outer=false;
-//                                        convex_region=false;
-//                                        res_search=false;
-                                        c0_val=0;
-                                        c_val.resize(con->_nb_vars,0);
-                                        v->set_double_val(posv, std::max(xactive[count]*(1 - j*perturb_dist), lb_v)); /** Perturbed point with negative epsilon */
-                                        con->uneval();
-                                        fk=con->eval(i);
-                                        if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                            outer=true;
-                                        }
-                                        if(!outer){
-                                            v->set_double_val(posv, std::min(xactive[count]*(1 + j*perturb_dist),ub_v)); /** Perturbed point with positive epsilon */
-                                            con->uneval();
-                                            fk=con->eval(i);
-                                            if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                                outer=true;
-                                            }
-                                        }
-                                        if(outer)
-                                        {
-                                            auto res_search=con->binary_line_search(xinterior, i);
-                                            if(res_search){
-                                                convex_region=true;
-//                                                xres=con->get_x(i);
-//                                                con->uneval();
-//                                                fk=con->eval(i);
-                                                if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                                {
-                                                    
-                                                    xres=con->get_x(i);
-                                                    con->uneval();
-                                                    fk=con->eval(i);
-                                                    auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                                    auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                                    auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                                    if(soc1<=0 && soc2<=0 && soc3<=0){
-                                                        convex_region=true;
-                                                    }
-                                                    else{
-                                                        convex_region=false;
-                                                    }
-                                                }
-                                                if(convex_region){
-                                                    //                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
-                                                    //                                                for(auto l=0;l<c_val.size();l++)
-                                                    //                                                    DebugOn(c_val[l]<<"\t");
-                                                    //                                                DebugOn(c0_val<<endl);
-                                                    
-                                                    
-                                                    con->get_outer_coef(i, c_val, c0_val);
-                                                    //
-//                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
-//                                                    con_oa=con->get_outer_app_insti(i, false);
-//                                                    if(con->_ctype==geq)
-//                                                        add(con_oa>=0);
-//                                                    else
-//                                                        add(con_oa<=0);
-                                                }
-                                                
-                                            }
-                                            
-                                        }
-                                        for(auto l=0;l<con->_nb_vars;l++)
-                                        {
-                                            oa_vec_c[l].set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c_val[l]);
-                                        }
-//                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), 0);
-                                        oa_c0.set_val("P"+to_string(j) +",V"+to_string(count)+",I"+to_string(i), c0_val);
-//                                        if(j==1 && count==0 && i==0 ){
-//                                            xtest=con->get_x(i);
-//                                        }
-                                        con->set_x(i, xactive);
-                                        
+                                    xres=con->get_x(i);
+                                    auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                    auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                    auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                    if(soc1<=0 && soc2<=0 && soc3<=0){
+                                        convex_region=true;
                                     }
-                                    
-                                    
+                                    else{
+                                        convex_region=false;
+                                    }
                                 }
-                               
+                                if(convex_region){
+                                    //                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
+                                    //                                                for(auto l=0;l<c_val.size();l++)
+                                    //                                                    DebugOn(c_val[l]<<"\t");
+                                    //                                                DebugOn(c0_val<<endl);
                                     
-                                count++;
+                                    
+                                    con->get_outer_coef(i, c_val, c0_val);
+                                    //
+                                    //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
+                                    //                                                    con_oa=con->get_outer_app_insti(i, false);
+                                    //                                                    if(con->_ctype==geq)
+                                    //                                                        add(con_oa>=0);
+                                    //                                                    else
+                                    //                                                        add(con_oa<=0);
+                                }
+                                
                             }
-                            con->set_x(i, xcurrent);
-                            xcurrent.clear();
-                            xactive.clear();
-                            xinterior.clear();
                             
                         }
+                        for(auto l=0;l<con->_nb_vars;l++)
+                        {
+                            oa_vec_c[l].set_val("I"+to_string(i), c_val[l]);
+                        }
+                        oa_c0.set_val("I"+to_string(i), c0_val);
+                        con->set_x(i, xcurrent);
+                        xcurrent.clear();
+                        xinterior.clear();
                         
-                        Constraint<> OA_iter("OA_iter"+con->_name);
-                        OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, PertV);
-                        if(con->_ctype==leq){
-                            add(OA_iter <= 0);
-//                             OA_iter.print();
-                        }
-                        else{
-                           
-                            add(OA_iter >= 0);
-//                            OA_iter.print();
-                        }
-                        //OA_iter.print();
                     }
                     
+                    
+                
+                Constraint<> OA_iter("OA_iter"+con->_name);
+                OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, Inst);
+                if(con->_ctype==leq){
+                    lin.add(OA_iter <= 0);
+                    //                             OA_iter.print();
+                }
+                else{
+                    
+                    lin.add(OA_iter >= 0);
+                    //                            OA_iter.print();
                 }
                 
-                
             }
-            
-            
-        }
-    }
+            }
+                        
+        
+            set_solution(xsolution);
+        //OA_iter.print();
+                    }
+    
+                
+
+    
     
     /** Returns an interior point of a model
      @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
@@ -895,7 +867,7 @@ namespace gravity {
 void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
         run_MPI(vector<shared_ptr<gravity::Model<double>>>(models), stype, tol, nr_threads, lin_solver);}
 #endif
-    template shared_ptr<Model<double>> Model<double>::buildOA(int,int);
+    template shared_ptr<Model<double>> Model<double>::buildOA();
     template Model<double> Model<double>::build_model_interior() const;
     template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 }

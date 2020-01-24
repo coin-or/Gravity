@@ -5995,6 +5995,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
+    bool lin_model=true;
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
@@ -6018,17 +6019,18 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol);
     DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
-    solver<> LB_solver(relaxed_model,lb_solver_type);
-    LB_solver.run(output = 5, lb_solver_tol);
+    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+    LBnonlin_solver.run(output = 5, lb_solver_tol);
     DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
-    double lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
+    double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
     if(relaxed_model->_status==0)
     {
         /* Check if gap is already not zero at root node */
-        lower_bound_init=relaxed_model->get_obj_val();
+        lower_bound_nonlin_init=relaxed_model->get_obj_val();
         upper_bound_init=this->get_obj_val();
-        gapnl=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
-        DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
+        gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
+        DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+        auto lin_model=relaxed_model->buildOA();
         if ((upper_bound_init-lower_bound_init)>=abs_tol || (upper_bound_init-lower_bound_init)/(std::abs(upper_bound_init)+zero_tol)>=rel_tol)
         {
             /* Add the upper bound constraint on the objective */
@@ -6038,12 +6040,20 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 obj_ub = obj - upper_bound_init;
                 relaxed_model->add(obj_ub<=0);
             }
+            
+            lin_model->add_outer_app_solution(*relaxed_model);
+            solver<> LB_solver(lin_model,lb_solver_type);
+            LB_solver.run(output = 5, lb_solver_tol);
+            lower_bound_init=lin_model->get_obj_val();
+            auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
+            lin_model->print();
+             DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
             /**/
             terminate=false;
-            for(auto &it:relaxed_model->_vars_name)
+            for(auto &it:lin_model->_vars_name)
             {
                 string vname=it.first;
-                v=relaxed_model->template get_var<double>(vname);
+                v=lin_model->template get_var<double>(vname);
                 auto v_keys=v.get_keys();
                 auto v_key_map=v.get_keys_map();
                 for(auto &key: *v_keys)
@@ -6083,10 +6093,10 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
             {
                 iter++;
                 terminate=true;
-                for (auto it=relaxed_model->_vars_name.begin(); it!=relaxed_model->_vars_name.end(); it++)
+                for (auto it=lin_model->_vars_name.begin(); it!=lin_model->_vars_name.end(); it++)
                 {
                     vname=it->first;
-                    v = relaxed_model->template get_var<double>(vname);
+                    v = lin_model->template get_var<double>(vname);
                     auto v_keys=v.get_keys();
                     for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
                     {
@@ -6117,7 +6127,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                             /* Loop on Min/Max, upper bound and lower bound */
                             for(auto &dir: dir_array)
                             {
-                                auto modelk = relaxed_model->copy();
+                                auto modelk = lin_model->copy();
                                 mname=vname+"|"+key+"|"+dir;
                                 modelk->set_name(mname);
                                 vark=modelk->template get_var<T>(vname);
@@ -6137,7 +6147,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                     batch_models.push_back(modelk);
                                 }
                                 /* When batch models has reached size of nb_threads or when at the last key of last variable */
-                                if (batch_models.size()==nb_total_threads || (next(it)==relaxed_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
+                                if (batch_models.size()==nb_total_threads || (next(it)==lin_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                 {
                                     double batch_time_start = get_wall_time();
 #ifdef USE_MPI
@@ -6161,7 +6171,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                             pos=mkname.find("|");
                                             keyk.assign(mkname, 0, pos);
                                             dirk=mkname.substr(pos+1);
-                                            vk=relaxed_model->template get_var<T>(vkname);
+                                            vk=lin_model->template get_var<T>(vkname);
                                             var_key_k=vkname+"|"+keyk;
                                             objk=model->get_obj_val();
                                             
@@ -6244,6 +6254,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                     
                                                 }
                                             }
+                                            
                                         }
                                         else
                                         {
@@ -6263,14 +6274,14 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                     
                     //this->print();
                     
-                    relaxed_model->reset_constrs();
-                    relaxed_model->reset_lifted_vars_bounds();
-                    relaxed_model->reindex();
-                    solver<> LB_solver(relaxed_model,lb_solver_type);
+                    lin_model->reset_constrs();
+                    lin_model->reset_lifted_vars_bounds();
+                    lin_model->reindex();
+                    solver<> LB_solver(lin_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
-                    if(relaxed_model->_status==0)
+                    if(lin_model->_status==0)
                     {
-                        lower_bound=relaxed_model->get_obj_val();
+                        lower_bound=lin_model->get_obj_val();
                         auto gap = 100*(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
                         DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                     }
@@ -6303,10 +6314,10 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
             
             vector<double> interval_gap;
             
-            for(auto &it:relaxed_model->_vars_name)
+            for(auto &it:lin_model->_vars_name)
             {
                 string vname=it.first;
-                v=relaxed_model->template get_var<double>(vname);
+                v=lin_model->template get_var<double>(vname);
                 auto v_keys=v.get_keys();
                 bool in_orig_model=false;
                 if(this->_vars_name.find(vname)!=this->_vars_name.end())
@@ -6339,8 +6350,8 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
             if(!close)
             {
                 
-                relaxed_model->reset_constrs();
-                solver<> LB_solver(relaxed_model,lb_solver_type);
+                lin_model->reset_constrs();
+                solver<> LB_solver(lin_model,lb_solver_type);
                 LB_solver.run(output = 0, lb_solver_tol);
             }
             
@@ -6351,18 +6362,18 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 #ifdef USE_MPI
             if(worker_id==0){
 #endif
-                relaxed_model->reset_constrs();
-                solver<> LB_solver(relaxed_model,lb_solver_type);
+                lin_model->reset_constrs();
+                solver<> LB_solver(lin_model,lb_solver_type);
                 LB_solver.run(output = 0, lb_solver_tol);
-                if(relaxed_model->_status==0)
+                if(lin_model->_status==0)
                 {
                     
-                    DebugOff("\nLower bound = " << " " << to_string(relaxed_model->get_obj_val()) << " " <<endl);
+                    DebugOff("\nLower bound = " << " " << to_string(lin_model->get_obj_val()) << " " <<endl);
                     DebugOff("Solution Print"<<endl);
                     //                    SDP->print_solution();
                     //                    this->print_constraints_stats(tol);
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                    lower_bound=relaxed_model->get_obj_val();
+                    lower_bound=lin_model->get_obj_val();
                     gap = 100*std::abs(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound_init) << "."<<endl);
