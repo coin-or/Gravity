@@ -280,7 +280,7 @@ TEST_CASE("Model.relax()") {
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
     unsigned max_iter=20, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    M.run_obbt(LB, max_time, max_iter, nb_threads=2, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();
@@ -383,7 +383,7 @@ TEST_CASE("hard nlp") {
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
     unsigned max_iter=1, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    M.run_obbt(LB, max_time, max_iter, nb_threads=2, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();
@@ -1982,7 +1982,7 @@ TEST_CASE("testing SDP-BT"){
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     auto nonlin_obj=true, current=true;
     auto SDP= build_SDPOPF(grid, current, nonlin_obj);
-    auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads=2,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads=1,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     auto lower_bound = SDP->get_obj_val();
     auto lower_bound_init = get<3>(res);
     auto upper_bound = OPF->get_obj_val();
