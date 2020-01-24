@@ -5001,7 +5001,7 @@ unsigned func_::nb_linear_terms() const{
     }
     
 template<>
-func<double> func<double>::get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert){ /**< Returns an outer-approximation of the function using the current value of the variables **/
+func<double> func<double>:: get_OA_symbolic(const vector<param<double>>& c, const param<double>& c0, const indices& Pert){ /**< Returns an outer-approximation of the function using the current value of the variables **/
     func<double> res; // res = gradf(x*)*(x-x*) + f(x*)
     int j=0;
     res=0;

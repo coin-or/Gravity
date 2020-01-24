@@ -46,7 +46,7 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     
-    bool linearize=false;
+    bool linearize=true;
     
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -193,28 +193,15 @@ int main (int argc, char * argv[]) {
         SDP->print_constraints_stats(1e-6);
     }
     else{
+        current=false;
         auto nonlin_obj=false;
-        auto SDP=build_SDPOPF(grid, current, nonlin_obj);
-        solver<> SDPLB(SDP, lb_solver_type);
-        SDPLB.run(output = 5, lb_solver_tol);
-        auto solver_time1= get_wall_time();
-        auto SDPOA=SDP->buildOA(5, 5);
-        DebugOn(grid._name<<endl);
-        DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
-        DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
-        DebugOn("Number of symbolic constraints orginal lower bound "<< SDP->_cons_name.size()<<endl );
-        DebugOn("Number of variables linear problem "<< SDPOA->_nb_vars<<endl);
-        DebugOn("Number of constraints linear problem "<< SDPOA->_nb_cons<<endl);
-        DebugOn("Number of symbolic constraints linear problem "<< SDPOA->_cons_name.size()<<endl );
-        
-        auto    solver_time2= get_wall_time();
-        auto buildtime=solver_time2-solver_time1;
-        DebugOn("build time "<<buildtime<<endl);
-        auto res=OPF->run_obbt(SDPOA, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-        lower_bound = SDPOA->get_obj_val();
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
+        SDP->print_constraints_stats(1e-6);
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 
