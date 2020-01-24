@@ -331,27 +331,27 @@ int main (int argc, char * argv[]) {
 //            SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
 //            SPP->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
 //
-//        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-//        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-//        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-//        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-//        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+        SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+        SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+        SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
         
-       // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
+        SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
         
         DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
         
-//        Constraint<> Rank_type2a("RankType2a");
-//        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
-//        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2b("RankType2b");
-//        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
-//        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
-//
-//        Constraint<> Rank_type2c("RankType2c");
-//        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
-//        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
+        Constraint<> Rank_type2a("RankType2a");
+        Rank_type2a=Wij_[0]*Wij_[1]-Wii_[1]*Wij_[2];
+        SPP->add(Rank_type2a.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2b("RankType2b");
+        Rank_type2b=Wij_[2]*(Wij_[1])-Wii_[2]*Wij_[0];
+        SPP->add(Rank_type2b.in(range(1,nb_bags3))==0, true);
+
+        Constraint<> Rank_type2c("RankType2c");
+        Rank_type2c=Wij_[2]*(Wij_[0])-Wii_[0]*Wij_[1];
+        SPP->add(Rank_type2c.in(range(1,nb_bags3))==0, true);
     }
 //    SPP->print();
 //    SPP->scale_vars(100);
@@ -364,7 +364,7 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3, nb_threads = 10;
     DebugOn("nb_threads= "<<nb_threads);
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto status = SPP_NC->run_obbt(SPP, max_time, max_iter, nb_threads=10, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    SPP->print();
 //    SPP->print_solution();
 //    SPP->print_constraints_stats(1e-6);
