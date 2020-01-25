@@ -1282,7 +1282,12 @@ namespace gravity {
                 auto df = *compute_derivative(*v);
                 df.uneval();
                 df.eval_all();
-                df_xstar.in(*cpy._indices);
+                indices df_xstar_ind("df_xstar"+v->_name+"_ind");
+                for(auto key:*(cpy._indices->_keys)){
+                    df_xstar_ind.add(key);
+                }
+                    
+                df_xstar.in(df_xstar_ind);
                 df_xstar.copy_vals(df);
                 df_xstar._indices->filter_refs(keep);
                 for(auto key:*(df_xstar._indices->_keys)){
