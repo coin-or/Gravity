@@ -5995,7 +5995,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
-    bool lin_model=true;
+    bool linearize=true;
     vector<shared_ptr<Model<>>> batch_models;
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
@@ -6022,6 +6022,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
     LBnonlin_solver.run(output = 5, lb_solver_tol);
     DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
+    vector<double> obbt_solution(relaxed_model->_nb_vars);
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
     if(relaxed_model->_status==0)
     {
@@ -6041,7 +6042,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 relaxed_model->add(obj_ub<=0);
             }
             
-            lin_model->add_outer_app_solution(*relaxed_model);
+            auto interior_model=lin_model->add_outer_app_solution(*relaxed_model);
             solver<> LB_solver(lin_model,lb_solver_type);
             LB_solver.run(output = 5, lb_solver_tol);
             lower_bound_init=lin_model->get_obj_val();
@@ -6254,7 +6255,10 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                     
                                                 }
                                             }
-                                            
+                                            if(linearize){
+                                                model->get_solution(obbt_solution);
+                                                relaxed_model->add_iterative(interior_model, obbt_solution, *lin_model);
+                                            }
                                         }
                                         else
                                         {

@@ -65,7 +65,7 @@ namespace gravity {
     shared_ptr<Model<type>> Model<type>::buildOA()
     {
         
-//        auto cpy = this->copy();
+       auto cpy = this->copy();
 //        cpy->initialize_all(1);
         //    this->print_solution();
         vector<double> xsolution(_nb_vars);
@@ -75,14 +75,14 @@ namespace gravity {
 
 
         auto OA=make_shared<Model<>>(_name+"-OA Model");
-        for (auto &it: this->_vars)
+        for (auto &it: cpy->_vars)
         {
             auto v = it.second;
             if(!OA->has_var(*v)){
                 OA->add_var(v);
             }
         }
-        auto obj=*this->_obj;
+        auto obj=*cpy->_obj;
         if(_objt==minimize){
             OA->min(obj);
         }
@@ -90,7 +90,7 @@ namespace gravity {
             OA->max(obj);
         }
         string cname;
-        for (auto &con: this->_cons_vec)
+        for (auto &con: cpy->_cons_vec)
         {
             if(!con->is_linear()) {
                 if(con->_ctype==eq)
@@ -191,7 +191,7 @@ namespace gravity {
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
-                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+//                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                     Constraint<> Inter_con(*con);
                     
                     if(con->_ctype==leq)
@@ -204,7 +204,7 @@ namespace gravity {
                     }
                 }
             }
-        }
+        //}
         return *Interior.copy();
     }
     
@@ -412,7 +412,7 @@ namespace gravity {
     }
     
     template<>
-    void Model<>::add_outer_app_solution(const Model<>& nonlin)
+    Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
     {
         const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
@@ -448,7 +448,7 @@ namespace gravity {
             if(!con->is_linear()) {
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
                 {
-                    Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                    Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices activeset("active_"+con->_name);
                     auto keys=con->_indices->_keys;
                     for(auto i=0;i<con->get_nb_inst();i++){
@@ -491,28 +491,29 @@ namespace gravity {
                 else
                     if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                     {
-                        Constraint<> OA_sol("OA_cuts_solution_"+con->_name);
+                        Constraint<> OA_sol("OA_cuts_"+con->_name);
                         indices allset("active_"+con->_name);
                         auto keys=con->_indices->_keys;
                         for(auto i=0;i<con->get_nb_inst();i++){
-                            
-                            allset.add((*keys)[i]);
+                            string keyi=(*keys)[i];
+                            allset.add(keyi);
                             
                         }
                         OA_sol=con->get_outer_app(allset);
                         if(con->_ctype==leq) {
-                            add(OA_sol<=0);
+                            add(OA_sol.in(allset)<=0);
                         }
                         else {
-                            add(OA_sol>=0);
+                            add(OA_sol.in(allset)>=0);
                         }
                     }
             }
         }
+        return Ointerior;
     }
     //
     template<>
-    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, Model<>& lin, string name)
+    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, Model<>& lin)
     {
         
         vector<double> xsolution(_nb_vars);
@@ -525,9 +526,7 @@ namespace gravity {
         bool interior_solv=true;
         vector<double> c_val ;
         double c0_val;
-        vector<param<double>> oa_vec_c;
-        param<double> oa_c0;
-        
+        bool oa_cut=true;
         bool convex_region=true;
         //    Ointerior.print();
         
@@ -580,36 +579,22 @@ namespace gravity {
             
             for (auto &con: _cons_vec)
             {
-                oa_vec_c.clear();/** vector of parameters corresponding to coeficients apearing in the OA cut for each symbolic constraint, the vectore entries are ordered according to the smae order they appear in _vars */
                 if(!con->is_linear()) {
-                        indices Inst("Inst");
-                        for(auto i=0;i<con->get_nb_inst();i++){
-                            Inst.add("I"+to_string(i));
-                        }
-                        indices V("V");
-                        for(auto i=0;i<con->_nb_vars;i++){
-                            V.add("V"+to_string(i));
-                        }
-                        indices VI(V, Inst);
-                        
-                    for(auto i=0;i<con->_nb_vars;i++){
-                        param<double> ci("Param"+con->_name+"v"+to_string(i));
-                        ci.in(Inst);
-                        oa_vec_c.push_back(ci);
-                    }
-                    param<double> oa_c0;
-                    oa_c0.in(Inst);
                     for(auto i=0;i<con->get_nb_inst();i++){
+                        auto cname=con->_name;
+                        auto cnb=con->get_nb_inst();
+                        oa_cut=false;
                         con->uneval();
                         c0_val=0;
                         c_val.resize(con->_nb_vars,0);
-                        auto cname=con->_name;
+                       // auto cname=con->_name;
                         auto con_interior=interior.get_constraint(cname);
                         xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                         xcurrent=con->get_x(i);
                         con->uneval();
                         if(con->is_active(i,active_tol_sol)){
                             con->get_outer_coef(i, c_val, c0_val);
+                            oa_cut=true;
                         }
                         else if(interior_solv && ((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq))){
                             
@@ -639,6 +624,7 @@ namespace gravity {
                                     
                                     
                                     con->get_outer_coef(i, c_val, c0_val);
+                                    oa_cut=true;
                                     //
                                     //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
                                     //                                                    con_oa=con->get_outer_app_insti(i, false);
@@ -651,11 +637,37 @@ namespace gravity {
                             }
                             
                         }
-                        for(auto l=0;l<con->_nb_vars;l++)
-                        {
-                            oa_vec_c[l].set_val("I"+to_string(i), c_val[l]);
+                        if(oa_cut){
+                            auto con_lin=lin.get_constraint("OA_cuts_"+con->_name);
+                            con_lin->_indices->add(to_string(con_lin->get_nb_instances()));
+                            auto count=0;
+                            for(auto l: *(con_lin->_lterms)){
+                                auto l_lterm=l.second;
+                                auto name=l.first;
+                                 auto coef = l_lterm._coef;
+                                if (coef->is_function()) {
+                                    auto f_cst = *((func<>*)(coef.get()));
+                                }
+                                else if(coef->is_param()) {
+                                    auto p_cst = *((param<>*)(coef.get()));
+                                    DebugOn(p_cst._indices->_keys->size());
+                                    
+                                    p_cst.add_val(to_string(p_cst._indices->_keys->size()), c_val[count]);
+                                    
+                                    DebugOn(p_cst._indices->_keys->size());
+                                    
+                                }
+                                else if(coef->is_number()) {
+                                    auto p_cst = *((constant<>*)(coef.get()));
+                                
+                            }
+                                auto param= l_lterm._p;
+                                auto parkeys=param->_indices->_keys;
+                                param->_indices->add_ref((*parkeys)[param->get_id_inst(i)]);
+                                count++;
                         }
-                        oa_c0.set_val("I"+to_string(i), c0_val);
+                            //Set value of the constant!!!
+                        }
                         con->set_x(i, xcurrent);
                         xcurrent.clear();
                         xinterior.clear();
@@ -664,17 +676,7 @@ namespace gravity {
                     
                     
                 
-                Constraint<> OA_iter("OA_iter"+con->_name);
-                OA_iter=con->get_OA_symbolic(oa_vec_c, oa_c0, Inst);
-                if(con->_ctype==leq){
-                    lin.add(OA_iter <= 0);
-                    //                             OA_iter.print();
-                }
-                else{
-                    
-                    lin.add(OA_iter >= 0);
-                    //                            OA_iter.print();
-                }
+            
                 
             }
             }
