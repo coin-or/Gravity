@@ -641,27 +641,26 @@ namespace gravity {
                             auto con_lin=lin.get_constraint("OA_cuts_"+con->_name);
                             con_lin->_indices->add(to_string(con_lin->get_nb_instances()));
                             auto count=0;
-                            for(auto l: *(con_lin->_lterms)){
-                                auto l_lterm=l.second;
+                            for(auto &l: *(con_lin->_lterms)){
                                 auto name=l.first;
-                                 auto coef = l_lterm._coef;
+                                 auto coef = l.second._coef;
                                 if (coef->is_function()) {
                                     auto f_cst = *((func<>*)(coef.get()));
                                 }
                                 else if(coef->is_param()) {
-                                    auto p_cst = *((param<>*)(coef.get()));
-                                    DebugOn(p_cst._indices->_keys->size());
+                                    auto p_cst = ((param<>*)(coef.get()));
+                                    DebugOn(p_cst->_indices->_keys->size());
                                     
-                                    p_cst.add_val(to_string(p_cst._indices->_keys->size()), c_val[count]);
+                                    p_cst->add_val(to_string(p_cst->_indices->_keys->size()), c_val[count]);
                                     
-                                    DebugOn(p_cst._indices->_keys->size());
+                                    DebugOn(p_cst->_indices->_keys->size());
                                     
                                 }
                                 else if(coef->is_number()) {
                                     auto p_cst = *((constant<>*)(coef.get()));
                                 
                             }
-                                auto param= l_lterm._p;
+                                auto param= l.second._p;
                                 auto parkeys=param->_indices->_keys;
                                 param->_indices->add_ref((*parkeys)[param->get_id_inst(i)]);
                                 count++;
