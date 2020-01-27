@@ -581,15 +581,15 @@ namespace gravity {
             for (auto &con: _cons_vec)
             {
                 if(!con->is_linear()) {
+                    auto cname=con->_name;
+                    auto con_lin_name="OA_cuts_"+con->_name;
+                    if(lin._cons_name.find(con_lin_name)!=lin._cons_name.end()){
+                        add_new=false;
+                    }
+                    else{
+                        add_new=true;
+                    }
                     for(auto i=0;i<con->get_nb_inst();i++){
-                        auto cname=con->_name;
-                        auto con_lin_name="OA_cuts_"+con->_name;
-                        if(lin._cons_name.find(con_lin_name)!=lin._cons_name.end()){
-                            add_new=false;
-                        }
-                        else{
-                            add_new=true;
-                        }
                         oa_cut=false;
                         con->uneval();
                         c0_val=0;
@@ -669,9 +669,8 @@ namespace gravity {
                             auto count=0;
                             for(auto &l: *(con_lin->_lterms)){
                                 auto name=l.first;
-                                 auto coef = l.second._coef;
-                                if(coef->is_param()) {
-                                    auto p_cst = ((param<>*)(coef.get()));
+                                if(l.second._coef->is_param()) {
+                                    auto p_cst = ((param<>*)(l.second._coef.get()));
                                     DebugOn(p_cst->_indices->_keys->size());
                                     
                                     p_cst->add_val(to_string(p_cst->_indices->_keys->size()), c_val[count]);
@@ -689,6 +688,10 @@ namespace gravity {
                                 count++;
                         }
                             //Set value of the constant!!!
+
+                                 auto co_cst = ((func<>*)(con_lin->_cst.get()));
+                                 co_cst->_val->push_back(c0_val);
+                                 DebugOn("a"<<endl);
                         }
                         con->set_x(i, xcurrent);
                         xcurrent.clear();
