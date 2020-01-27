@@ -463,7 +463,7 @@ int main (int argc, char * argv[])
     }
     
     /***************** OUTER APPROXIMATION BEFORE RUN *****************/
-    auto SOCPOA = SOCP->buildOA(5,5);
+    auto SOCPOA = SOCP->buildOA();
 //    SOCPOA->print();
     /***************** OUTER APPROXIMATION DONE *****************/
     
