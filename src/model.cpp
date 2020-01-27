@@ -6051,10 +6051,10 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
                 lin_model->print();
                 DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
-                obbt_model=lin_model->copy();
+                obbt_model=lin_model;
             }
             else{
-                obbt_model=relaxed_model->copy();
+                obbt_model=relaxed_model;
             }
             /**/
             terminate=false;
@@ -6150,7 +6150,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                     
                                 }
                                 modelk->reindex();
-//                                modelk->print();
+                                modelk->print();
                                 if(fixed_point[mname]==false){
                                     batch_models.push_back(modelk);
                                 }
