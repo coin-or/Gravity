@@ -528,6 +528,7 @@ namespace gravity {
         double c0_val;
         bool oa_cut=true;
         bool convex_region=true;
+        bool add_new=false;
         //    Ointerior.print();
         
         
@@ -582,7 +583,13 @@ namespace gravity {
                 if(!con->is_linear()) {
                     for(auto i=0;i<con->get_nb_inst();i++){
                         auto cname=con->_name;
-                        auto cnb=con->get_nb_inst();
+                        auto con_lin_name="OA_cuts_"+con->_name;
+                        if(lin._cons_name.find(con_lin_name)!=lin._cons_name.end()){
+                            add_new=false;
+                        }
+                        else{
+                            add_new=true;
+                        }
                         oa_cut=false;
                         con->uneval();
                         c0_val=0;
@@ -593,8 +600,16 @@ namespace gravity {
                         xcurrent=con->get_x(i);
                         con->uneval();
                         if(con->is_active(i,active_tol_sol)){
+                            if(add_new){
+                                Constraint<> OA_cut(con_lin_name);
+                                OA_cut=con->get_outer_app_insti(i);
+                                lin.add(OA_cut);
+                                add_new=false;
+                            }
+                            else{
                             con->get_outer_coef(i, c_val, c0_val);
                             oa_cut=true;
+                            }
                         }
                         else if(interior_solv && ((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq))){
                             
@@ -622,9 +637,16 @@ namespace gravity {
                                     //                                                    DebugOn(c_val[l]<<"\t");
                                     //                                                DebugOn(c0_val<<endl);
                                     
-                                    
+                                    if(add_new){
+                                        Constraint<> OA_cut(con_lin_name);
+                                        OA_cut=con->get_outer_app_insti(i);
+                                        lin.add(OA_cut);
+                                        add_new=false;
+                                    }
+                                    else{
                                     con->get_outer_coef(i, c_val, c0_val);
                                     oa_cut=true;
+                                    }
                                     //
                                     //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
                                     //                                                    con_oa=con->get_outer_app_insti(i, false);
@@ -644,10 +666,7 @@ namespace gravity {
                             for(auto &l: *(con_lin->_lterms)){
                                 auto name=l.first;
                                  auto coef = l.second._coef;
-                                if (coef->is_function()) {
-                                    auto f_cst = *((func<>*)(coef.get()));
-                                }
-                                else if(coef->is_param()) {
+                                if(coef->is_param()) {
                                     auto p_cst = ((param<>*)(coef.get()));
                                     DebugOn(p_cst->_indices->_keys->size());
                                     
@@ -656,13 +675,11 @@ namespace gravity {
                                     DebugOn(p_cst->_indices->_keys->size());
                                     
                                 }
-                                else if(coef->is_number()) {
-                                    auto p_cst = *((constant<>*)(coef.get()));
-                                
-                            }
-                                auto param= l.second._p;
-                                auto parkeys=param->_indices->_keys;
-                                param->_indices->add_ref((*parkeys)[param->get_id_inst(i)]);
+//                                else {
+//                                    throw invalid_argument("Coefficient must be parameter");
+//                                }
+                                auto parkeys=l.second._p->_indices->_keys;
+                                l.second._p->_indices->add_ref((*parkeys)[l.second._p->get_id_inst(i)]);
                                 count++;
                         }
                             //Set value of the constant!!!
