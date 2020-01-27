@@ -601,8 +601,10 @@ namespace gravity {
                         con->uneval();
                         if(con->is_active(i,active_tol_sol)){
                             if(add_new){
+                                indices activeset("activeset");
+                                activeset.add((*con->_indices->_keys)[i]);
                                 Constraint<> OA_cut(con_lin_name);
-                                OA_cut=con->get_outer_app_insti(i);
+                                OA_cut=con->get_outer_app(activeset);
                                 lin.add(OA_cut);
                                 add_new=false;
                             }
@@ -638,8 +640,10 @@ namespace gravity {
                                     //                                                DebugOn(c0_val<<endl);
                                     
                                     if(add_new){
+                                        indices activeset("activeset");
+                                        activeset.add((*con->_indices->_keys)[i]);
                                         Constraint<> OA_cut(con_lin_name);
-                                        OA_cut=con->get_outer_app_insti(i);
+                                        OA_cut=con->get_outer_app(activeset);
                                         lin.add(OA_cut);
                                         add_new=false;
                                     }
@@ -679,7 +683,9 @@ namespace gravity {
 //                                    throw invalid_argument("Coefficient must be parameter");
 //                                }
                                 auto parkeys=l.second._p->_indices->_keys;
-                                l.second._p->_indices->add_ref((*parkeys)[l.second._p->get_id_inst(i)]);
+//                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
+                                auto v = con->get_var(l.second._p->_name);
+                                l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
                                 count++;
                         }
                             //Set value of the constant!!!
