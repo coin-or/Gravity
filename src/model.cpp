@@ -6149,7 +6149,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                     
                                 }
                                 modelk->reindex();
-                                modelk->print();
+//                                modelk->print();
                                 if(fixed_point[mname]==false){
                                     batch_models.push_back(modelk);
                                 }
