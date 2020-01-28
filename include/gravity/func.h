@@ -752,10 +752,14 @@ namespace gravity {
             //                    p->index_in(ids);
             //                }
             //            }
-            _indices = make_shared<indices>(ids);
+            _indices = make_shared<indices>(ids.deep_copy());
             _dim[0] = std::max(_dim[0], ids.size());
             if(_expr){// TODO take care of nonlinear part
                 _expr->in(ids);
+            }
+            if(_cst->is_function()){
+                auto rhs_f = static_pointer_cast<func<type>>(_cst);
+                rhs_f->index_in(ids);
             }
             return *this;
         }
@@ -1321,7 +1325,15 @@ namespace gravity {
             }
             res += f_xstar*scale_fact;
             res.index_in(idx);
-            //            merge_vars(res);
+            if(!res._cst->is_zero() && res._cst->is_function()){
+            param<type> rhs(_name+"rhs");
+                auto rhs_f = static_pointer_cast<func<type>>(res._cst);
+                rhs_f->eval_all();
+                rhs = *rhs_f;
+                res._cst = rhs.copy();
+            }
+            //            merge_vars(r
+//                es);
             
             //            for(auto &it: *_vars){
             //                auto v = it.second.first;

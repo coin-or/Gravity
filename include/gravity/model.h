@@ -708,6 +708,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
+                c->allocate_mem();
                 nb_inst = c->get_nb_instances();
                 if (nb_inst==0) {
                     continue;
@@ -4291,12 +4292,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void reset() {
             for(auto& c_p :_cons)
             {
-                c_p.second->uneval();
+//                c_p.second->uneval();
+                c_p.second->_new = true;
+                c_p.second->_dfdx->clear();
             }
-            for(auto &v_p: _vars)
-            {
-                v_p.second->reset_bounds();
-            }
+//            for(auto &v_p: _vars)
+//            {
+//                v_p.second->reset_bounds();
+//            }
         }
         
         /* Build the interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or if they are linked in a nonlinear fashion in the objective

@@ -45,6 +45,7 @@ var<type> var<type>::deep_copy() const{
     res._num_partns = make_shared<int>(*_num_partns);
     res._lb = make_shared<func<type>>(*_lb);
     res._ub = make_shared<func<type>>(*_ub);
+    res._lift=_lift;
     return res;
 }
 

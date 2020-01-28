@@ -5951,7 +5951,7 @@ typename std::enable_if<is_same<T,double>::value>::type*>
 std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
     int total_iter=0, global_iter=1;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
-    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize);
     double lower_bound_init = get<3>(status);
     double upper_bound_init = get<4>(status);
     total_iter += get<1>(status);
@@ -6149,7 +6149,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                     
                                 }
                                 modelk->reindex();
-                                modelk->print();
+//                                modelk->print();
                                 if(fixed_point[mname]==false){
                                     batch_models.push_back(modelk);
                                 }
@@ -6268,7 +6268,9 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                         }
                                         else
                                         {
+//                                            model->print();
                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                            
                                         }
                                     }
                                     batch_models.clear();
@@ -6283,7 +6285,9 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 {    solver_time= get_wall_time()-solver_time_start;
                     
                     //this->print();
-                    
+//                    auto new_obbt = *obbt_model;
+//                    obbt_model = new_obbt.copy();
+                    obbt_model->reset();
                     obbt_model->reset_constrs();
                     obbt_model->reset_lifted_vars_bounds();
                     obbt_model->reindex();
