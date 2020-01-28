@@ -6032,16 +6032,17 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
         upper_bound_init=this->get_obj_val();
         gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+        if(this->_status==0){
+            auto obj = *relaxed_model->_obj;
+            Constraint<type> obj_ub("obj_ub");
+            obj_ub = obj - upper_bound_init;
+            relaxed_model->add(obj_ub<=0);
+        }
         auto lin_model=relaxed_model->buildOA();
         if ((upper_bound_init-lower_bound_init)>=abs_tol || (upper_bound_init-lower_bound_init)/(std::abs(upper_bound_init)+zero_tol)>=rel_tol)
         {
             /* Add the upper bound constraint on the objective */
-            if(this->_status==0){
-                auto obj = *relaxed_model->_obj;
-                Constraint<type> obj_ub("obj_ub");
-                obj_ub = obj - upper_bound_init;
-                relaxed_model->add(obj_ub<=0);
-            }
+    
             if(linearize){
                 interior_model=lin_model->add_outer_app_solution(*relaxed_model);
                 solver<> LB_solver(lin_model,lb_solver_type);
@@ -6263,7 +6264,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                             }
                                             if(linearize){
                                                 model->get_solution(obbt_solution);
-                                                relaxed_model->add_iterative(interior_model, obbt_solution, *obbt_model);
+                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
                                             }
                                         }
                                         else
@@ -6282,7 +6283,9 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 
                 //Check if OBBT has converged, can check every gap_count_int intervals
                 if(iter%gap_count_int==0)
-                {    solver_time= get_wall_time()-solver_time_start;
+                {
+                    solver_time= get_wall_time()-solver_time_start;
+                    
                     
                     //this->print();
 //                    auto new_obbt = *obbt_model;
@@ -6291,6 +6294,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                     obbt_model->reset_constrs();
                     obbt_model->reset_lifted_vars_bounds();
                     obbt_model->reindex();
+                    obbt_model->print();
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
                     if(obbt_model->_status==0)
