@@ -6262,10 +6262,13 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                     
                                                 }
                                             }
-                                            if(linearize){
-                                                model->get_solution(obbt_solution);
-                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
-                                            }
+                                                if(linearize && !fixed_point[model->get_name()]){
+                                                    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
+                                                    model->get_solution(obbt_solution);
+                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
+                                                    }
+                                                }
+                                            
                                         }
                                         else
                                         {
