@@ -191,7 +191,7 @@ namespace gravity {
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
-//                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                     Constraint<> Inter_con(*con);
                     
                     if(con->_ctype==leq)
@@ -204,7 +204,7 @@ namespace gravity {
                     }
                 }
             }
-        //}
+        }
         return *Interior.copy();
     }
     
@@ -435,7 +435,7 @@ namespace gravity {
         bool scale=false;
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
-        modelI.run(output=0, tol);
+        modelI.run(output=5, tol);
         //    Ointerior.print();
         
         if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
@@ -550,21 +550,31 @@ namespace gravity {
                 c0_val=0;
                 c_val.resize(con->_nb_vars,0);
                 // auto cname=con->_name;
-                auto con_interior=interior.get_constraint(cname);
-//                con->uneval();
-//                con->eval_all();
-                xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                 xcurrent=con->get_x(i);
                 con->uneval();
                 con->eval_all();
                 if(con->is_active(i,active_tol_sol)){
                     oa_cut=true;
                 }
-                else if(interior_solv && ((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq))){
-                    auto res_search=con->binary_line_search(xinterior, i);
-                    if(res_search){
-                        oa_cut=true;
+                else
+                {   con->uneval();
+                    if((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq)){
+                    //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
+                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                        auto con_interior=interior.get_constraint(cname);
+                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                        auto res_search=con->binary_line_search(xinterior, i);
+                        if(res_search){
+                            oa_cut=true;
+                        }
                     }
+                    else{
+                        if (con->is_convex()){
+                        oa_cut=true;
+                        }
+                    }
+                    
+                }
                 }
                 if(oa_cut){
                         convex_region=true;
