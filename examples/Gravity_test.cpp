@@ -370,10 +370,10 @@ TEST_CASE("hard nlp") {
 //    LB->scale_coefs(coef_scale);
     LB->print();
 //    M.print();
-    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();
@@ -1246,6 +1246,10 @@ TEST_CASE("testing multithread solve"){
     auto ACOPF2 = build_ACOPF(grid2,ACPOL);
     auto models = {ACOPF1, ACOPF2};
     /* run in parallel */
+//    solver<> OPF1(ACOPF1,ipopt);
+//    solver<> OPF2(ACOPF2,ipopt);
+//    OPF1.run(0,tol);
+//    OPF2.run(0,tol);
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
     CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-3);
     CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-3);
@@ -1967,12 +1971,12 @@ TEST_CASE("testing SDP-BT"){
     }
     grid.readgrid(fname);
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3, nb_threads=1;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     auto nonlin_obj=true, current=true;
     auto SDP= build_SDPOPF(grid, current, nonlin_obj);
-    auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     auto lower_bound = SDP->get_obj_val();
     auto lower_bound_init = get<3>(res);
     auto upper_bound = OPF->get_obj_val();

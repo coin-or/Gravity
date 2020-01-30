@@ -617,7 +617,16 @@ namespace gravity {
                             }
                             else{
                                 con->get_outer_coef(i, c_val, c0_val);
-                                oa_cut=true;
+                                vector<int> coefs;
+                                for (auto j = 0; j<c_val.size(); j++) {
+                                    coefs.push_back(1e3*c_val[j]);
+                                }
+                                coefs.push_back(1e3*c0_val);
+                                if(_OA_cuts[con->_id].insert(coefs).second)
+                                    oa_cut=true;
+//                                else {
+//                                    DebugOn("discarded OA cut");
+//                                }
                             }
                             //
                             //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
@@ -633,7 +642,7 @@ namespace gravity {
                     nb_added_cuts++;
                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
                     auto nb_inst = con_lin->get_nb_instances();
-                    con_lin->_indices->add(to_string(nb_inst));
+                    con_lin->_indices->add("inst_"+to_string(nb_inst));
                     con_lin->_dim[0] = con_lin->_indices->size();
                     auto count=0;
                     for(auto &l: *(con_lin->_lterms)){
@@ -642,10 +651,9 @@ namespace gravity {
                             auto p_cst = ((param<>*)(l.second._coef.get()));
                             //                                    DebugOn(p_cst->_indices->_keys->size());
                             
-                            p_cst->add_val(to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                            p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
                             
                             //                                    DebugOn(p_cst->_indices->_keys->size());
-                            
                         }
                         else {
                             throw invalid_argument("Coefficient must be parameter");
@@ -659,7 +667,7 @@ namespace gravity {
                     //Set value of the constant!!!
                     if(con_lin->_cst->is_param()){
                         auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                        co_cst->add_val(to_string(co_cst->_indices->_keys->size()), c0_val);
+                        co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
                     }
                     else if(con_lin->_cst->is_function()){
                         auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
@@ -667,11 +675,9 @@ namespace gravity {
                             throw invalid_argument("function should be a param");
                         }
                         auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                        p->add_val(to_string(p->_indices->_keys->size()), c0_val);
-                        rhs_f->_indices->add(to_string(nb_inst));
+                        p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
+                        rhs_f->_indices->add("inst_"+to_string(nb_inst));
                         rhs_f->_dim[0] = rhs_f->_indices->size();
-                        
-                        
                     }
                     //                            DebugOn("a"<<endl);
                 }
@@ -690,7 +696,7 @@ namespace gravity {
     
     
     set_solution(xsolution);
-    DebugOn("Number of added OA cuts = " << nb_added_cuts << endl);
+    DebugOff("Number of added OA cuts = " << nb_added_cuts << endl);
     //OA_iter.print();
 }
     
