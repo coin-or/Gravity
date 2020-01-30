@@ -558,7 +558,7 @@ namespace gravity {
                 }
                 else
                 {   con->uneval();
-                    if((con->eval(i) >= active_tol && con->_ctype==leq) || (con->eval(i) <= -active_tol && con->_ctype==geq)){
+                    if((con->eval(i) > active_tol && con->_ctype==leq) || (con->eval(i) < -active_tol && con->_ctype==geq)){
                     //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                         auto con_interior=interior.get_constraint(cname);
