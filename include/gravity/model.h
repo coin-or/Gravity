@@ -200,8 +200,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
-        
-        void merge_vars(const shared_ptr<expr<type>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
+        map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
+         template<typename T=type>
+        void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
                 case uexp_c:{
                     auto ue = (uexpr<type>*)e.get();
@@ -232,7 +233,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          Subfunction of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
          @param[in] f function to merge variables and parameters with.
          */
-        void merge_vars(const shared_ptr<func<type>>& f, bool share_bounds = false){
+        template<typename T=type>
+        void merge_vars(const shared_ptr<Constraint<T>>& f, bool share_bounds = false){
             for (auto &pair:*f->_lterms) {
                 auto p = pair.second._p;
                 if (p->is_var()) {
@@ -241,6 +243,39 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     if(share_bounds)
                         p->share_bounds(_vars.at(pid));
                 }
+                else if(p->_name.find("-lb")!=string::npos || p->_name.find("-ub")!=string::npos){
+                    auto it = _params_name.insert({p->get_name(true,true), p});
+                    if(it.second){
+                        p->set_vec_id(_params.size());
+                        _params[_params.size()] = p;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p->share_vals(it.first->second);
+                        p->set_vec_id(pid);
+                    }
+                }
+                auto coef = pair.second._coef;
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("-lb")!=string::npos || p_cst->_name.find("-ub")!=string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
+                    }
+                }
+                
             }
             for (auto &pair:*f->_qterms) {
                 auto coef = pair.second._coef;
@@ -252,11 +287,54 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     if(share_bounds)
                         p1->share_bounds(_vars.at(pid1));
                 }
+                else if(p1->_name.find("-lb")!=string::npos || p1->_name.find("-ub")!=string::npos){
+                    auto it = _params_name.insert({p1->get_name(true,true), p1});
+                    if(it.second){
+                        p1->set_vec_id(_params.size());
+                        _params[_params.size()] = p1;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p1->share_vals(it.first->second);
+                        p1->set_vec_id(pid);
+                    }
+                }
                 if (p2->is_var()) {
                     auto pid2 = *p2->_vec_id;
                     p2->share_vals(_vars.at(pid2));
                     if(share_bounds)
                         p2->share_bounds(_vars.at(pid2));
+                }
+                else if(p2->_name.find("-lb")!=string::npos || p2->_name.find("-ub")!=string::npos){
+                    auto it = _params_name.insert({p2->get_name(true,true), p2});
+                    if(it.second){
+                        p2->set_vec_id(_params.size());
+                        _params[_params.size()] = p2;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p2->share_vals(it.first->second);
+                        p2->set_vec_id(pid);
+                    }
+                }
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("-lb")!=string::npos || p_cst->_name.find("-ub")!=string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
+                    }
                 }
             }
             for (auto &pair:*f->_pterms) {
@@ -268,6 +346,195 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                         ppi.first->share_vals(_vars.at(pid));
                         if(share_bounds)
                             ppi.first->share_bounds(_vars.at(pid));
+                    }
+                    else if(p->_name.find("-lb")!=string::npos || p->_name.find("-ub")!=string::npos){
+                        auto it = _params_name.insert({p->get_name(true,true), p});
+                        if(it.second){
+                            p->set_vec_id(_params.size());
+                            _params[_params.size()] = p;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p->share_vals(_params.at(pid));
+                            p->set_vec_id(pid);
+                        }
+                    }
+                }
+                auto coef = pair.second._coef;
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("-lb")!=string::npos || p_cst->_name.find("-ub")!=string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
+                    }
+                }
+            }
+            if (f->_expr) {
+                merge_vars(f->_expr, share_bounds);
+            }
+        }
+        
+        /**
+         Subfunction of embed(func_&& f). Merge variables and parameters with f. If a variable x in f exists in the current funtion, x will now point to the same variable appearing in current function.
+         @param[in] f function to merge variables and parameters with.
+         */
+        template<typename T=type>
+        void merge_vars(const shared_ptr<func<T>>& f, bool share_bounds = false){
+            for (auto &pair:*f->_lterms) {
+                auto p = pair.second._p;
+                if (p->is_var()) {
+                    auto pid = *p->_vec_id;
+                    p->share_vals(_vars.at(pid));
+                    if(share_bounds)
+                        p->share_bounds(_vars.at(pid));
+                }
+                else  if(p->_name.find("xstar")==string::npos){
+                    auto it = _params_name.insert({p->get_name(true,true), p});
+                    if(it.second){
+                        p->set_vec_id(_params.size());
+                        _params[_params.size()] = p;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p->share_vals(it.first->second);
+                        p->set_vec_id(pid);
+                    }
+                }
+                auto coef = pair.second._coef;
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("xstar")==string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
+                    }
+                }
+                
+            }
+            for (auto &pair:*f->_qterms) {
+                auto coef = pair.second._coef;
+                auto p1 = pair.second._p->first;
+                auto p2 = pair.second._p->second;
+                if (p1->is_var()) {
+                    auto pid1 = *p1->_vec_id;
+                    p1->share_vals(_vars.at(pid1));
+                    if(share_bounds)
+                        p1->share_bounds(_vars.at(pid1));
+                }
+                else  if(p1->_name.find("xstar")==string::npos){
+                    auto it = _params_name.insert({p1->get_name(true,true), p1});
+                    if(it.second){
+                        p1->set_vec_id(_params.size());
+                        _params[_params.size()] = p1;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p1->share_vals(it.first->second);
+                        p1->set_vec_id(pid);
+                    }
+                }
+                if (p2->is_var()) {
+                    auto pid2 = *p2->_vec_id;
+                    p2->share_vals(_vars.at(pid2));
+                    if(share_bounds)
+                        p2->share_bounds(_vars.at(pid2));
+                }
+                else  if(p2->_name.find("xstar")==string::npos){
+                    auto it = _params_name.insert({p2->get_name(true,true), p2});
+                    if(it.second){
+                        p2->set_vec_id(_params.size());
+                        _params[_params.size()] = p2;
+                    }
+                    else {
+                        auto pid = *it.first->second->_vec_id;
+                        p2->share_vals(it.first->second);
+                        p2->set_vec_id(pid);
+                    }
+                }
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("xstar")==string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
+                    }
+                }
+            }
+            for (auto &pair:*f->_pterms) {
+                auto list = pair.second._l;
+                for (auto &ppi: *list) {
+                    auto p = ppi.first;
+                    if (p->is_var()) {
+                        auto pid = *p->_vec_id;
+                        ppi.first->share_vals(_vars.at(pid));
+                        if(share_bounds)
+                            ppi.first->share_bounds(_vars.at(pid));
+                    }
+                    else  if(p->_name.find("xstar")==string::npos){
+                        auto it = _params_name.insert({p->get_name(true,true), p});
+                        if(it.second){
+                            p->set_vec_id(_params.size());
+                            _params[_params.size()] = p;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p->share_vals(_params.at(pid));
+                            p->set_vec_id(pid);
+                        }
+                    }
+                }
+                auto coef = pair.second._coef;
+                if (coef->is_function()) {
+                    auto f_cst = static_pointer_cast<func<type>>(coef);
+                    merge_vars(f_cst);
+                }
+                else if(coef->is_param()) {
+                    auto p_cst = static_pointer_cast<param<type>>(coef);
+                    if(p_cst->_name.find("xstar")==string::npos){
+                        auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
+                        if(it.second){
+                            p_cst->set_vec_id(_params.size());
+                            _params[_params.size()] = p_cst;
+                        }
+                        else {
+                            auto pid = *it.first->second->_vec_id;
+                            p_cst->share_vals(it.first->second);
+                            p_cst->set_vec_id(pid);
+                        }
                     }
                 }
             }
@@ -457,8 +724,6 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
-            v._lb->eval_all();
-            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
@@ -470,6 +735,32 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
                 else {
                     newv = v.pcopy();
+                }
+                if(!v._lift){
+                    auto lb_param = v._lb->_params->begin()->second.first;
+                    auto ub_param = v._ub->_params->begin()->second.first;
+                    auto it = _params_name.insert({lb_param->get_name(true,true), lb_param});
+                    if(it.second){
+                        lb_param->set_vec_id(_params.size());
+                        _params[_params.size()] = lb_param;
+                    }
+                    else{
+                        throw invalid_argument("bound param with same name");
+                    }
+                    it = _params_name.insert({ub_param->get_name(true,true), ub_param});
+                    if(it.second){
+                        ub_param->set_vec_id(_params.size());
+                        _params[_params.size()] = ub_param;
+                    }
+                    else{
+                        throw invalid_argument("bound param with same name");
+                    }
+                    v._lb->_val = static_pointer_cast<param<T>>(lb_param)->_val;
+                    v._ub->_val = static_pointer_cast<param<T>>(ub_param)->_val;
+                }
+                else {
+                    merge_vars(v._lb);
+                    merge_vars(v._ub);
                 }
                 _vars_name[name] = newv;
                 _vars[v.get_vec_id()] = newv;
@@ -486,11 +777,35 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             auto name = v._name.substr(0,v._name.find_first_of("."));
             //            auto name = v._name;
             v._name = name;
-            v._lb->eval_all();
-            v._ub->eval_all();
             if (_vars_name.count(v._name)==0) {
                 v.set_id(_nb_vars);
                 v.set_vec_id(_vars.size());
+                if(!v._lift){
+                    auto lb_param = v._lb->_params->begin()->second.first;
+                    auto ub_param = v._ub->_params->begin()->second.first;
+                    auto it = _params_name.insert({lb_param->get_name(true,true), lb_param});
+                    if(it.second){
+                        lb_param->set_vec_id(_params.size());
+                        _params[_params.size()] = lb_param;
+                    }
+                    else{
+                        throw invalid_argument("bound param with same name");
+                    }
+                    it = _params_name.insert({ub_param->get_name(true,true), ub_param});
+                    if(it.second){
+                        ub_param->set_vec_id(_params.size());
+                        _params[_params.size()] = ub_param;
+                    }
+                    else{
+                        throw invalid_argument("bound param with same name");
+                    }
+                    v._lb->_val = static_pointer_cast<param<T>>(lb_param)->_val;
+                    v._ub->_val = static_pointer_cast<param<T>>(ub_param)->_val;
+                }
+                else {
+                    merge_vars(v._lb);
+                    merge_vars(v._ub);
+                }
                 shared_ptr<param_> newv;
                 if (!v._indices) {
                     Warning("WARNING adding unindexed variable to model: " << name << endl);
@@ -503,6 +818,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 _vars_name[name] = newv;
                 _vars[v.get_vec_id()] = newv;
                 _nb_vars += newv->get_dim();
+                //                merge_vars(v._lb);
+                //                merge_vars(v._ub);
             }
         };
         
@@ -6957,7 +7274,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false);
+        std::tuple<bool,int,double,double,double,bool> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false);
         
         /* Run Optimality Based Bound Tightening
         @param[in] relaxed_model a convex relaxtion of the current model
@@ -6965,7 +7282,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false);
+        std::tuple<bool,int,double,double,double,bool> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false);
         
         
 //        void add_on_off(var<>& v, var<bool>& on){

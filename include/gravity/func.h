@@ -1274,7 +1274,7 @@ namespace gravity {
             }
             
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            param<type> f_xstar("f_xstar");
+            param<type> f_xstar("f_xstar_"+_name);
             f_xstar = cpy;
             f_xstar._indices->filter_refs(keep);
             for(auto &it: *cpy._vars){
@@ -1282,7 +1282,7 @@ namespace gravity {
                 param<type> xstar("xstar_"+v->_name);
                 xstar.in(*v->_indices);
                 xstar.copy_vals(v);
-                param<type> df_xstar("df_xstar"+v->_name);
+                param<type> df_xstar("df_xstar_"+v->_name);
                 auto df = *compute_derivative(*v);
                 df.uneval();
                 df.eval_all();
@@ -1326,7 +1326,7 @@ namespace gravity {
             res += f_xstar*scale_fact;
             res.index_in(idx);
             if(!res._cst->is_zero() && res._cst->is_function()){
-            param<type> rhs(_name+"rhs");
+                param<type> rhs("xstar_rhs_"+_name);
                 auto rhs_f = static_pointer_cast<func<type>>(res._cst);
                 rhs_f->eval_all();
                 rhs = *rhs_f;

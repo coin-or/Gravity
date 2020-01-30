@@ -178,15 +178,15 @@ int main (int argc, char * argv[]) {
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
     if(!linearize){
         auto nonlin_obj=true;
-        current=false;
+//        current=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads=4,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=10, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
@@ -194,10 +194,10 @@ int main (int argc, char * argv[]) {
         SDP->print_constraints_stats(1e-6);
     }
     else{
-        current=false;
+//        current=false;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads=4,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=10, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
