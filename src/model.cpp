@@ -6048,14 +6048,14 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     
             if(linearize){
                 auto lin_model=relaxed_model->buildOA();
+                interior_model=lin_model->add_outer_app_solution(*relaxed_model);
+                obbt_model=lin_model;
                 solver<> LB_solver(lin_model,lb_solver_type);
                 LB_solver.run(output = 5, lb_solver_tol);
                 lower_bound_init=lin_model->get_obj_val();
                 auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
                 lin_model->print();
                 DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
-                obbt_model=lin_model;
-                interior_model=lin_model->add_outer_app_solution(*relaxed_model);
             }
             /**/
             terminate=false;
@@ -6326,6 +6326,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                         relaxed_model->_obj->set_val(lower_bound);
                         close=true;
                         terminate=true;
+                        obbt_model->print();
                     }
                 }
                 
