@@ -46,7 +46,7 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     
-    bool linearize=true;
+    bool linearize=false;
     
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -186,7 +186,7 @@ int main (int argc, char * argv[]) {
         auto nonlin_obj=true;
 //        current=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=10, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
@@ -197,7 +197,7 @@ int main (int argc, char * argv[]) {
 //        current=false;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=10, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
         lower_bound = SDP->get_obj_val();
         lower_bound_init = get<3>(res);
         total_iter=get<1>(res);
