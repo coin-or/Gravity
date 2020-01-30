@@ -6263,12 +6263,12 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                     
                                                 }
                                             }
-                                                if(linearize && !fixed_point[model->get_name()]){
-                                                    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
+                                            if(linearize && !fixed_point[model->get_name()]){
+                                                if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                     model->get_solution(obbt_solution);
                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
-                                                    }
                                                 }
+                                            }
                                             
                                         }
                                         else
@@ -6430,6 +6430,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 #endif
             
         }
+        relaxed_model->_obj->set_val(lower_bound);
     }
     else
     {
@@ -6441,7 +6442,6 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     std::get<3>(res) = lower_bound_init;
     std::get<4>(res) = upper_bound_init;
     std::get<5>(res) = avg;
-    relaxed_model->_obj->set_val(lower_bound);
     return res;
 }
 
