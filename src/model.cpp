@@ -5948,7 +5948,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
+    std::tuple<bool,int,double,double,double,double,double,double> res;
     int total_iter=0, global_iter=1;
     int output;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
@@ -5996,8 +5997,14 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     }
     time_end = get_wall_time();
     total_time = time_end - time_start;
-    total_iter=get<1>(status);
-    total_time=get<2>(status);
+    get<0>(res)=get<0>(status);
+    get<1>(res)=total_iter;
+    get<2>(res)=total_time;
+    get<3>(res)=get<3>(status);
+    get<4>(res)=get<4>(status);
+    get<5>(res)=get<5>(status);
+    get<6>(res)=get<6>(status);
+    get<7>(res)=get<7>(status);
     lower_bound_nonlin_init=get<3>(status);
     upper_bound_init=get<5>(status);
     DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
@@ -6008,7 +6015,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     auto lower_bound_final=obbt_model->get_obj_val();
     auto gap_final = 100*(upper_bound_init - lower_bound_final)/std::abs(upper_bound_init);
     DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
-    return status;
+    return res;
 }
 
 template <typename type>
@@ -6464,9 +6471,9 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 
 
 
-template std::tuple<bool,int,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
+    template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
     
-template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
+    template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
