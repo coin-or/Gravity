@@ -5950,9 +5950,23 @@ template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
 std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
     int total_iter=0, global_iter=1;
+    int output;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
+    
+    solver<> UB_solver(*this,ub_solver_type);
+    UB_solver.run(output = 5, ub_solver_tol);
+    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
-    LBnonlin_solver.run(5, lb_solver_tol);
+    LBnonlin_solver.run(output = 5, lb_solver_tol);
+    if(relaxed_model->_status==0)
+    {
+        if(this->_status==0){
+            auto obj = *relaxed_model->_obj;
+            Constraint<type> obj_ub("obj_ub");
+            obj_ub = obj - this->get_obj_val();
+            relaxed_model->add(obj_ub<=0);
+        }
+    }
     shared_ptr<Model<>> obbt_model=relaxed_model;
     Model<> interior_model;
     if(linearize){
@@ -5960,11 +5974,14 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
         interior_model=lin_model->add_outer_app_solution(*relaxed_model);
         obbt_model=lin_model;
     }
+
+
+
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
     double lower_bound_init = get<3>(status);
     double upper_bound_init = get<4>(status);
     total_iter += get<1>(status);
-    auto lower_bound=relaxed_model->get_obj_val();
+    auto lower_bound=obbt_model->get_obj_val();
     auto gap = (upper_bound_init - lower_bound)/std::abs(upper_bound_init);
     while(get<1>(status)>1 && (gap > rel_tol || (upper_bound_init-lower_bound)>abs_tol)){
         if(total_iter>= max_iter)
@@ -5973,6 +5990,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
         total_iter += get<1>(status);
         if(get<1>(status)>0)
             global_iter++;
+        obbt_model->print();
         
     }
     time_end = get_wall_time();
@@ -6027,29 +6045,16 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
     double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
     shared_ptr<map<string,size_t>> p_map;
     /* Running upper and lower bound solvers */
-    solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 5, ub_solver_tol);
-    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
-    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
-    LBnonlin_solver.run(output = 5, lb_solver_tol);
-    DebugOn("Lower bound = "<<relaxed_model->get_obj_val()<<endl);
     vector<double> obbt_solution(relaxed_model->_nb_vars);
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
     if(relaxed_model->_status==0)
     {
         /* Check if gap is already not zero at root node */
         lower_bound_nonlin_init=relaxed_model->get_obj_val();
-        lower_bound_init = lower_bound_nonlin_init;
+        lower_bound_init = obbt_model->get_obj_val();
         upper_bound_init=this->get_obj_val();
         gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
-        if(this->_status==0){
-            auto obj = *relaxed_model->_obj;
-            Constraint<type> obj_ub("obj_ub");
-            obj_ub = obj - upper_bound_init;
-            relaxed_model->add(obj_ub<=0);
-            obbt_model->add(obj_ub<=0);
-        }
         if ((upper_bound_init-lower_bound_init)>=abs_tol || (upper_bound_init-lower_bound_init)/(std::abs(upper_bound_init)+zero_tol)>=rel_tol)
         {
             /* Add the upper bound constraint on the objective */
@@ -6058,7 +6063,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                 LB_solver.run(output = 5, lb_solver_tol);
                 lower_bound_init=obbt_model->get_obj_val();
                 auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
-                obbt_model->print();
+               // obbt_model->print();
                 DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
             }
     
@@ -6203,11 +6208,9 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                 objk=std::min(objk+range_tol, boundk1);
                                                 
                                             }
-                                            if(std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel)
+                                            if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                             {//do not close intervals to OBBT before finishing at least one full iteration over all variables
-                                                if(iter>3)
                                                     fixed_point[model->get_name()]=true;
-                                                
                                             }
                                             else
                                             {
@@ -6269,11 +6272,12 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                                                     
                                                 }
                                             }
-                                            if(linearize && !fixed_point[model->get_name()]){
-                                                if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
+                                            if(linearize){
+                                            //if(linearize && !fixed_point[model->get_name()]){
+                                                //if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                     model->get_solution(obbt_solution);
                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
-                                                }
+                                                //}
                                             }
                                             
                                         }
@@ -6329,7 +6333,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                         DebugOn("Upper bound = " << to_string(upper_bound_init) << "."<<endl);
                         DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
                         DebugOn("Time\t"<<solver_time<<endl);
-                        relaxed_model->_obj->set_val(lower_bound);
+                       // relaxed_model->_obj->set_val(lower_bound);
                         close=true;
                         terminate=true;
                         obbt_model->print();

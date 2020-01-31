@@ -558,7 +558,8 @@ namespace gravity {
                 }
                 else
                 {   con->uneval();
-                    if((con->eval(i) > active_tol && con->_ctype==leq) || (con->eval(i) < -active_tol && con->_ctype==geq)){
+                    auto fk=con->eval(i);
+                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                     //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                         auto con_interior=interior.get_constraint(cname);
@@ -617,12 +618,12 @@ namespace gravity {
                             }
                             else{
                                 con->get_outer_coef(i, c_val, c0_val);
-                                vector<int> coefs;
-                                for (auto j = 0; j<c_val.size(); j++) {
-                                    coefs.push_back(1e3*c_val[j]);
-                                }
-                                coefs.push_back(1e3*c0_val);
-                                if(_OA_cuts[con->_id].insert(coefs).second)
+//                                vector<int> coefs;
+//                                for (auto j = 0; j<c_val.size(); j++) {
+//                                    coefs.push_back(1e3*c_val[j]);
+//                                }
+//                                coefs.push_back(1e3*c0_val);
+//                                if(_OA_cuts[con->_id].insert(coefs).second)
                                     oa_cut=true;
 //                                else {
 //                                    DebugOn("discarded OA cut");
@@ -647,6 +648,9 @@ namespace gravity {
                     auto count=0;
                     for(auto &l: *(con_lin->_lterms)){
                         auto name=l.first;
+                        if(!l.second._sign){
+                            throw invalid_argument("symbolic negative");
+                        }
                         if(l.second._coef->is_param()) {
                             auto p_cst = ((param<>*)(l.second._coef.get()));
                             //                                    DebugOn(p_cst->_indices->_keys->size());
