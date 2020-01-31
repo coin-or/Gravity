@@ -5990,7 +5990,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
         total_iter += get<1>(status);
         if(get<1>(status)>0)
             global_iter++;
-        obbt_model->print();
+//        obbt_model->print();
         
     }
     time_end = get_wall_time();
@@ -6004,7 +6004,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     DebugOn("Number of global iterations = " << global_iter << endl);
     auto gapnl=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
     DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
-    auto lower_bound_final=relaxed_model->get_obj_val();
+    auto lower_bound_final=obbt_model->get_obj_val();
     auto gap_final = 100*(upper_bound_init - lower_bound_final)/std::abs(upper_bound_init);
     DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
     return status;
@@ -6060,7 +6060,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
             /* Add the upper bound constraint on the objective */
             if(linearize){
                 solver<> LB_solver(obbt_model,lb_solver_type);
-                LB_solver.run(output = 5, lb_solver_tol);
+                LB_solver.run(output = 0, lb_solver_tol);
                 lower_bound_init=obbt_model->get_obj_val();
                 auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
                // obbt_model->print();
@@ -6336,7 +6336,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
                        // relaxed_model->_obj->set_val(lower_bound);
                         close=true;
                         terminate=true;
-                        obbt_model->print();
+//                        obbt_model->print();
                     }
                 }
                 
@@ -6389,19 +6389,21 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
             if(!close)
             {
                 
-                obbt_model->reset_constrs();
+//                obbt_model->reset_constrs();
                 solver<> LB_solver(obbt_model,lb_solver_type);
                 LB_solver.run(output = 0, lb_solver_tol);
             }
             
         }
-        
+        else{
+            close=true;
+        }
         if(!close)
         {
 #ifdef USE_MPI
             if(worker_id==0){
 #endif
-                obbt_model->reset_constrs();
+//                obbt_model->reset_constrs();
                 solver<> LB_solver(obbt_model,lb_solver_type);
                 LB_solver.run(output = 0, lb_solver_tol);
                 if(obbt_model->_status==0)
@@ -6441,7 +6443,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt_one_iterati
 #endif
             
         }
-        relaxed_model->_obj->set_val(lower_bound);
+//        relaxed_model->_obj->set_val(lower_bound);
     }
     else
     {
