@@ -169,7 +169,7 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
     
-    double lower_bound=numeric_limits<double>::lowest(), lower_bound_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
+    double lower_bound=numeric_limits<double>::lowest(), lower_bound_nonlin_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
     double solver_time =0;
     int iter=0, total_iter=0;
     
@@ -182,25 +182,25 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
-    linearize=false;
+    linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
 //        current=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-        lower_bound = SDP->get_obj_val();
-        lower_bound_init = get<3>(res);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
         SDP->print_constraints_stats(1e-6);
     }
     else{
-//        current=false;
+        current=false;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
-        lower_bound = SDP->get_obj_val();
-        lower_bound_init = get<3>(res);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=4, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
         SDP->print_constraints_stats(1e-6);
@@ -208,7 +208,7 @@ int main (int argc, char * argv[]) {
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 
     auto upper_bound = OPF->get_obj_val();
-    auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+    auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
     if(worker_id==0){
