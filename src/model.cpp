@@ -5957,6 +5957,7 @@ std::tuple<bool,int,double,double,double,bool> Model<type>::run_obbt(shared_ptr<
     UB_solver.run(output = 5, ub_solver_tol);
     DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+    LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
     LBnonlin_solver.run(output = 5, lb_solver_tol);
     if(relaxed_model->_status==0)
     {
