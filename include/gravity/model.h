@@ -168,7 +168,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         bool                            _built = false; /**< Indicates if this model has been already built. */
         bool                            _first_run = true; /**< Indicates if a solver was ran on this model. */
         
-        bool                            _first_call_gard_obj = true; /**< Indicates if this is the first call to fill_in_grad_obj */
+        bool                            _first_call_grad_obj = true; /**< Indicates if this is the first call to fill_in_grad_obj */
         bool                            _first_call_jac = true; /**< Indicates if this is the first call to fill_in_jac */
         bool                            _first_call_hess = true; /**< Indicates if this is the first call to fill_in_hess */
         Convexity                       _convexity = linear_; /**< Indicates the convexity type of the current model */
@@ -384,6 +384,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if (f->_expr) {
                 merge_vars(f->_expr, share_bounds);
             }
+            if (f->get_cst()->is_function() && !f->get_cst()->func_is_number()) {
+                auto c = static_pointer_cast<func<type>>(f->get_cst());
+                if (c->_expr) {
+                    merge_vars(c->_expr, share_bounds);
+                }
+                merge_vars(c, share_bounds);
+            }
         }
         
         /**
@@ -540,6 +547,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             if (f->_expr) {
                 merge_vars(f->_expr, share_bounds);
+            }
+            if (f->get_cst()->is_function() && !f->get_cst()->func_is_number()) {
+                auto c = static_pointer_cast<func<type>>(f->get_cst());
+                if (c->_expr) {
+                    merge_vars(c->_expr, share_bounds);
+                }
+                merge_vars(c, share_bounds);
             }
         }
         
@@ -1020,7 +1034,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _hess_vals.clear();
             _first_call_jac = true;
             _first_call_hess = true;
-            _first_call_gard_obj = true;
+            _first_call_grad_obj = true;
+            _obj_grad_vals.clear();
+            _nl_funcs_map.clear();
+            _nl_funcs.clear();
             _type = lin_m;
             for(auto& c_p: _cons_name)
             {
@@ -1046,6 +1063,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
                 new_cons[c->_id] = c;
                 _cons_vec.push_back(c);
+                embed(c);
                 new_cid = c->_id+nb_inst;
             }
             _cons = new_cons;
@@ -2796,9 +2814,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for (size_t i = 0; i<_nb_vars; i++) {
                 res[i] = 0;
             }
-            if (_first_call_gard_obj) {
+            if (_first_call_grad_obj) {
                 _obj_grad_vals.resize(_obj->get_nb_vars());
-                _first_call_gard_obj = false;
+                _first_call_grad_obj = false;
             }
             else if (_obj->is_linear()) {
                 //    else if (false) { /* No need to recompute jacobian for linear objectives */
@@ -4628,12 +4646,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         void reset() {
+            _built = false; /**< Indicates if this model has been already built. */
+            _first_run = true; /**< Indicates if a solver was ran on this model. */
+
             for(auto& c_p :_cons)
             {
 //                c_p.second->uneval();
                 c_p.second->_new = true;
                 c_p.second->_dfdx->clear();
             }
+            _obj->_new = true;
+            _obj->_dfdx->clear();
 //            for(auto &v_p: _vars)
 //            {
 //                v_p.second->reset_bounds();
@@ -4995,6 +5018,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             {
                 c_p.second->uneval();
             }
+            _obj->uneval();
 //            for(auto &v_p: _vars)
 //            {
 //                if(v_p.second->is_lifted())
