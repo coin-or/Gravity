@@ -5959,7 +5959,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     std::tuple<bool,int,double,double,double,double,double,double> res;
     int total_iter=0, global_iter=1;
     int output;
-    double total_time =0, time_start = get_wall_time(), time_end = 0;
+    double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol);
     DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
@@ -5968,6 +5968,8 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     LBnonlin_solver.run(output = 5, lb_solver_tol);
     if(relaxed_model->_status==0)
     {
+        lower_bound_nonlin_init = relaxed_model->get_obj_val();
+        DebugOn("Initial lower bound = "<<this->get_obj_val()<<endl);
         if(this->_status==0){
             auto obj = *relaxed_model->_obj;
             Constraint<type> obj_ub("obj_ub");
@@ -5986,13 +5988,12 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 
 
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
-    double lower_bound_nonlin_init = get<3>(status);
-    double upper_bound_init = get<5>(status);
+    double upper_bound = get<5>(status);
 
     total_iter += get<1>(status);
     auto lower_bound=obbt_model->get_obj_val();
-    auto gap = (upper_bound_init - lower_bound)/std::abs(upper_bound_init);
-    while(get<1>(status)>1 && (gap > rel_tol || (upper_bound_init-lower_bound)>abs_tol)){
+    auto gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+    while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
         if(total_iter>= max_iter)
             break;
         status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
@@ -6007,20 +6008,19 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     get<0>(res)=get<0>(status);
     get<1>(res)=total_iter;
     get<2>(res)=total_time;
-    get<3>(res)=get<3>(status);
+    get<3>(res)=lower_bound_nonlin_init;
     get<4>(res)=get<4>(status);
     get<5>(res)=get<5>(status);
     get<6>(res)=get<6>(status);
     get<7>(res)=get<7>(status);
-    lower_bound_nonlin_init=get<3>(status);
-    upper_bound_init=get<5>(status);
+    upper_bound=get<5>(status);
     DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
     DebugOn("Total number of OBBT iterations = " << total_iter << endl);
     DebugOn("Number of global iterations = " << global_iter << endl);
-    auto gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
+    auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
     DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
     auto lower_bound_final=obbt_model->get_obj_val();
-    auto gap_final = 100*(upper_bound_init - lower_bound_final)/std::abs(upper_bound_init);
+    auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
     DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
     return res;
 }
@@ -6062,23 +6062,23 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     shared_ptr<map<string,size_t>> p_map;
     /* Running upper and lower bound solvers */
     vector<double> obbt_solution(relaxed_model->_nb_vars);
-    double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound_init = 0, lower_bound;
+    double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
     if(relaxed_model->_status==0)
     {
         /* Check if gap is already not zero at root node */
         lower_bound_nonlin_init=relaxed_model->get_obj_val();
         lower_bound_init = obbt_model->get_obj_val();
-        upper_bound_init=this->get_obj_val();
-        gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
+        upper_bound=this->get_obj_val();
+        gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
-        if ((upper_bound_init-lower_bound_init)>=abs_tol || (upper_bound_init-lower_bound_init)/(std::abs(upper_bound_init)+zero_tol)>=rel_tol)
+        if ((upper_bound-lower_bound_init)>=abs_tol || (upper_bound-lower_bound_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
         {
             /* Add the upper bound constraint on the objective */
             if(linearize){
                 solver<> LB_solver(obbt_model,lb_solver_type);
                 LB_solver.run(output = 0, lb_solver_tol);
                 lower_bound_init=obbt_model->get_obj_val();
-                auto gaplin=(upper_bound_init-lower_bound_init)/std::abs(upper_bound_init)*100;
+                auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                // obbt_model->print();
                 DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
             }
@@ -6320,7 +6320,8 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     //this->print();
 //                    auto new_obbt = *obbt_model;
 //                    obbt_model = new_obbt.copy();
-                    obbt_model->reset();
+//                    obbt_model->reset();
+//                    obbt_model->initialize_zero();
                     obbt_model->reset_constrs();
                     obbt_model->reset_lifted_vars_bounds();
                     obbt_model->reindex();
@@ -6330,13 +6331,16 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     if(obbt_model->_status==0)
                     {
                         lower_bound=obbt_model->get_obj_val();
-                        auto gap = 100*(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
+                        auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                         DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                         unsigned nb_OA_cuts = 0;
                         for (auto const &iter: relaxed_model->_OA_cuts) {
                             nb_OA_cuts += iter.second.size();
                         }
                         DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                    }
+                    else {
+                        DebugOn("Failed to solve OBBT Model"<<endl);
                     }
                     
                     
@@ -6431,7 +6435,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     //                    this->print_constraints_stats(tol);
                     DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                     lower_bound=obbt_model->get_obj_val();
-                    gap = 100*std::abs(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
+                    gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
                     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
@@ -6470,7 +6474,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     std::get<2>(res) = solver_time;
     std::get<3>(res) = lower_bound_nonlin_init;
     std::get<4>(res) = lower_bound_init;
-    std::get<5>(res) = upper_bound_init;
+    std::get<5>(res) = upper_bound;
     std::get<6>(res) = lower_bound;
     std::get<7>(res) = avg;
     return res;

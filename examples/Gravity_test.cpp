@@ -277,10 +277,10 @@ TEST_CASE("Model.relax()") {
 //    LB->scale_coefs(coef_scale);
     LB->print();
     M.print();
-    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=20, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();

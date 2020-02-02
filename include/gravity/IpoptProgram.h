@@ -51,7 +51,7 @@ public:
         _model->_first_call_jac = true;
         //If quadratic model and we're resolving no need to reset these
         _model->_first_call_hess = true;
-        _model->_first_call_gard_obj = true;
+        _model->_first_call_grad_obj = true;
         return true;
     }
     
