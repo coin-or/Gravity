@@ -303,7 +303,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
         auto o1 = *o1_ptr;
         auto o2 = *o2_ptr;
-        if((o1 != o2) && (o1._name > o2._name) ){
+        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
+//        if((o1 != o2) && (o1._name > o2._name) ){
             o2_ptr = static_pointer_cast<var<type>>(term._p->first);
             o1_ptr = static_pointer_cast<var<type>>(term._p->second);
             o1 = *o1_ptr;
@@ -324,11 +325,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
             ids = combine(*o1._indices,*o2._indices);
             ids.set_name(o1._name+"|"+o2._name);
         }
-        auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
         auto o1_ids = *o1._indices;
         auto o2_ids = *o2._indices;
-        if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-            auto keep_refs = ids.get_unique_refs();
+        auto flat_ids = ids;
+        if(ids.is_matrix_indexed()){/* Flatten matrix indexed sets */
+            flat_ids.flatten();
+            o1_ids.flatten();
+            o2_ids.flatten();
+        }
+        auto unique_ids = flat_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+        if(unique_ids.size()!=flat_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+            auto keep_refs = flat_ids.get_unique_refs();
             o1_ids.filter_refs(keep_refs);
             o2_ids.filter_refs(keep_refs);
         }
@@ -2978,7 +2985,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
                 vlift->_ub->update_vars();
                 assert(o1._indices->size()==o2._indices->size());
                 if(added.size()!=o1_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = ids.get_diff_refs(added);
+                    auto keep_refs = flat_ids.get_diff_refs(added);
                     o1_ids.filter_refs(keep_refs);
                     o2_ids.filter_refs(keep_refs);
                 }
@@ -5953,7 +5960,6 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     int total_iter=0, global_iter=1;
     int output;
     double total_time =0, time_start = get_wall_time(), time_end = 0;
-    
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol);
     DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
@@ -5982,6 +5988,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
     double lower_bound_nonlin_init = get<3>(status);
     double upper_bound_init = get<5>(status);
+
     total_iter += get<1>(status);
     auto lower_bound=obbt_model->get_obj_val();
     auto gap = (upper_bound_init - lower_bound)/std::abs(upper_bound_init);
@@ -6051,6 +6058,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     int gap_count_int=1, iter=0;
     int output = 0;
     double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
+    vector<double> ub_sol;
     shared_ptr<map<string,size_t>> p_map;
     /* Running upper and lower bound solvers */
     vector<double> obbt_solution(relaxed_model->_nb_vars);
@@ -6332,13 +6340,13 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     }
                     
                     
-                    if (std::abs(upper_bound_init- lower_bound)<=abs_tol && ((upper_bound_init- lower_bound))/(std::abs(upper_bound_init)+zero_tol)<=rel_tol)
+                    if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                     {
                         DebugOn("Gap closed at iter "<< iter<<endl);
                         DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                        gap = 100*std::abs(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
+                        gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
                         DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-                        DebugOn("Upper bound = " << to_string(upper_bound_init) << "."<<endl);
+                        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
                         DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
                         DebugOn("Time\t"<<solver_time<<endl);
                        // relaxed_model->_obj->set_val(lower_bound);
@@ -6425,7 +6433,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     lower_bound=obbt_model->get_obj_val();
                     gap = 100*std::abs(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
                     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-                    DebugOn("Upper bound = " << to_string(upper_bound_init) << "."<<endl);
+                    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
                     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
                     DebugOn("Time\t"<<solver_time<<endl);
                     
