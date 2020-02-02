@@ -303,8 +303,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
         auto o1 = *o1_ptr;
         auto o2 = *o2_ptr;
-        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
-//        if((o1 != o2) && (o1._name > o2._name) ){
+//        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
+        if((o1 != o2) && (o1._name > o2._name) ){
             o2_ptr = static_pointer_cast<var<type>>(term._p->first);
             o1_ptr = static_pointer_cast<var<type>>(term._p->second);
             o1 = *o1_ptr;
@@ -6320,11 +6320,12 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     //this->print();
 //                    auto new_obbt = *obbt_model;
 //                    obbt_model = new_obbt.copy();
-//                    obbt_model->reset();
+                    obbt_model->reset();
 //                    obbt_model->initialize_zero();
                     obbt_model->reset_constrs();
                     obbt_model->reset_lifted_vars_bounds();
                     obbt_model->reindex();
+                    
 //                    obbt_model->print();
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
