@@ -4438,6 +4438,24 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
         };
         
+        void copy_bounds(const shared_ptr<Model<type>>& relaxation){
+            for (auto &vpr: relaxation->_vars) {
+                auto it = _vars.find(vpr.first);
+                if (it != _vars.end()){
+                    it->second->copy_bounds(vpr.second);
+                }
+            }
+        }
+        
+        void copy_solution(const shared_ptr<Model<type>>& relaxation){
+            for (auto &vpr: relaxation->_vars) {
+                auto it = _vars.find(vpr.first);
+                if (it != _vars.end()){
+                    it->second->copy_vals(vpr.second);
+                }
+            }
+        }
+        
         /** Initialize all variables using random value in bounds drawn from a uniform distribution
         */
         void initialize_uniform(){
@@ -4601,6 +4619,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          */
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         void get_solution(vector<double>& x) const{
+            if(x.size()!=get_nb_vars()){
+                x.resize(_nb_vars);
+            }
             for(auto& v_p: _vars){
                 v_p.second->get_solution(x);
             }
