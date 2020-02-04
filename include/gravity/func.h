@@ -3677,7 +3677,7 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(*f._indices);
+                _indices = make_shared<indices>(f._indices->deep_copy());
             }
             else {
                 _indices = nullptr;
