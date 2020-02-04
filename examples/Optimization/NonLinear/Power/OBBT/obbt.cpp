@@ -190,7 +190,7 @@ int main (int argc, char * argv[]) {
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 

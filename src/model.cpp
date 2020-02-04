@@ -303,8 +303,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
         auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
         auto o1 = *o1_ptr;
         auto o2 = *o2_ptr;
-//        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
-        if((o1 != o2) && (o1._name > o2._name) ){
+        if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
+//        if((o1 != o2) && (o1.get_name(false,false) > o2.get_name(false,false)) ){
             o2_ptr = static_pointer_cast<var<type>>(term._p->first);
             o1_ptr = static_pointer_cast<var<type>>(term._p->second);
             o1 = *o1_ptr;
@@ -6065,6 +6065,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         /* Check if gap is already not zero at root node */
         lower_bound_nonlin_init=relaxed_model->get_obj_val();
         lower_bound_init = obbt_model->get_obj_val();
+        lower_bound = lower_bound_init;
         upper_bound=this->get_obj_val();
         get_solution(ub_sol);/* store current solution */
         gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
@@ -6326,11 +6327,10 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 //                    obbt_model = new_obbt.copy();
                     if(linearize){
                         obbt_model->reset();
-                        obbt_model->reset_constrs();
-                        obbt_model->reset_lifted_vars_bounds();
                         obbt_model->reindex();
                     }
-                    
+                    obbt_model->reset_constrs();
+                    obbt_model->reset_lifted_vars_bounds();
 //                    obbt_model->print();
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     if(!linearize)
