@@ -303,7 +303,8 @@ namespace gravity {
             auto o2_ptr = static_pointer_cast<var<type>>(term._p->second);
             auto o1 = *o1_ptr;
             auto o2 = *o2_ptr;
-            if((o1 != o2) && (o1._name > o2._name) ){
+            if((o1 != o2) && (o1._indices->_keys->at(0) > o2._indices->_keys->at(0)) ){
+                //        if((o1 != o2) && (o1.get_name(false,false) > o2.get_name(false,false)) ){
                 o2_ptr = static_pointer_cast<var<type>>(term._p->first);
                 o1_ptr = static_pointer_cast<var<type>>(term._p->second);
                 o1 = *o1_ptr;
@@ -324,11 +325,17 @@ namespace gravity {
                 ids = combine(*o1._indices,*o2._indices);
                 ids.set_name(o1._name+"|"+o2._name);
             }
-            auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
             auto o1_ids = *o1._indices;
             auto o2_ids = *o2._indices;
-            if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                auto keep_refs = ids.get_unique_refs();
+            auto flat_ids = ids;
+            if(ids.is_matrix_indexed()){/* Flatten matrix indexed sets */
+                flat_ids.flatten();
+                o1_ids.flatten();
+                o2_ids.flatten();
+            }
+            auto unique_ids = flat_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+            if(unique_ids.size()!=flat_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                auto keep_refs = flat_ids.get_unique_refs();
                 o1_ids.filter_refs(keep_refs);
                 o2_ids.filter_refs(keep_refs);
             }
@@ -2978,7 +2985,7 @@ namespace gravity {
                     vlift->_ub->update_vars();
                     assert(o1._indices->size()==o2._indices->size());
                     if(added.size()!=o1_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                        auto keep_refs = ids.get_diff_refs(added);
+                        auto keep_refs = flat_ids.get_diff_refs(added);
                         o1_ids.filter_refs(keep_refs);
                         o2_ids.filter_refs(keep_refs);
                     }
@@ -5944,88 +5951,83 @@ namespace gravity {
         lifted._dim[1] = c._dim[1];
         return lifted;
     }
-    
-    template <typename type>
-    template<typename T,
-    typename std::enable_if<is_same<T,double>::value>::type*>
-    std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
-        std::tuple<bool,int,double,double,double,double,double,double> res;
-        int total_iter=0, global_iter=1;
-        int output;
-        double total_time =0, time_start = get_wall_time(), time_end = 0;
-        
-        solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(output = 5, ub_solver_tol);
-        DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
-        solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+
+template <typename type>
+template<typename T,
+typename std::enable_if<is_same<T,double>::value>::type*>
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
+    std::tuple<bool,int,double,double,double,double,double,double> res;
+    int total_iter=0, global_iter=1;
+    int output;
+    double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
+    solver<> UB_solver(*this,ub_solver_type);
+    UB_solver.run(output = 5, ub_solver_tol);
+    DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
+    solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+    if(!linearize)
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        LBnonlin_solver.run(output = 4, lb_solver_tol);
-        if(relaxed_model->_status==0)
-        {
-            if(this->_status==0){
-                auto obj = *relaxed_model->_obj;
-                Constraint<type> obj_ub("obj_ub");
-                obj_ub = obj - this->get_obj_val();
-                relaxed_model->add(obj_ub<=0);
-            }
-        }
-        shared_ptr<Model<>> obbt_model=relaxed_model;
-        Model<> interior_model;
-        if(linearize){
-            auto lin_model=relaxed_model->buildOA();
-            interior_model=lin_model->add_outer_app_solution(*relaxed_model);
-            obbt_model=lin_model;
-        }
-        
-        
-        
-        auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
-        double lower_bound_nonlin_init = get<3>(status);
-        double upper_bound_init = get<5>(status);
-        total_iter += get<1>(status);
-        auto lower_bound=get<6>(status);
-        auto gap = (upper_bound_init - lower_bound)/std::abs(upper_bound_init);
-        while(get<1>(status)>1 && (gap > rel_tol || (upper_bound_init-lower_bound)>abs_tol)){
-            if(total_iter>= max_iter)
-                break;
-            status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
-            total_iter += get<1>(status);
-            if(get<1>(status)>0)
-                global_iter++;
-            lower_bound=get<6>(status);
-            gap = (upper_bound_init - lower_bound)/std::abs(upper_bound_init);
-            //        obbt_model->print();
-            
-        }
-        time_end = get_wall_time();
-        total_time = time_end - time_start;
-        get<0>(res)=get<0>(status);
-        get<1>(res)=total_iter;
-        get<2>(res)=total_time;
-        get<3>(res)=get<3>(status);
-        get<4>(res)=get<4>(status);
-        get<5>(res)=get<5>(status);
-        get<6>(res)=get<6>(status);
-        get<7>(res)=get<7>(status);
-        lower_bound_nonlin_init=get<3>(status);
-        upper_bound_init=get<5>(status);
-        DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
-        DebugOn("Total number of OBBT iterations = " << total_iter << endl);
-        DebugOn("Number of global iterations = " << global_iter << endl);
-        auto gapnl=(upper_bound_init-lower_bound_nonlin_init)/std::abs(upper_bound_init)*100;
-        DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
-        auto lower_bound_final=obbt_model->get_obj_val();
-        auto gap_final = 100*(upper_bound_init - lower_bound_final)/std::abs(upper_bound_init);
-        DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
-        return res;
+    else
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+    LBnonlin_solver.run(output = 5, lb_solver_tol);
+    if(relaxed_model->_status==0)
+    {
+        lower_bound_nonlin_init = relaxed_model->get_obj_val();
+        DebugOn("Initial lower bound = "<<this->get_obj_val()<<endl);
     }
-    
-    template <typename type>
-    template<typename T,
-    typename std::enable_if<is_same<T,double>::value>::type*>
-    std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model) {
+    shared_ptr<Model<>> obbt_model=relaxed_model;
+    Model<> interior_model;
+    if(linearize){
+        auto lin_model=relaxed_model->buildOA();
+        interior_model=lin_model->add_outer_app_solution(*relaxed_model);
+        obbt_model=lin_model;
+    }
+
+
+
+    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
+    double upper_bound = get<5>(status);
+
+    total_iter += get<1>(status);
+    auto lower_bound=obbt_model->get_obj_val();
+    auto gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+    while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
+        if(total_iter>= max_iter)
+            break;
+        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
+        total_iter += get<1>(status);
+        if(get<1>(status)>0)
+            global_iter++;
+//        obbt_model->print();
         
-        std::tuple<bool,int,double, double, double, double, double, double> res;
+    }
+    time_end = get_wall_time();
+    total_time = time_end - time_start;
+    get<0>(res)=get<0>(status);
+    get<1>(res)=total_iter;
+    get<2>(res)=total_time;
+    get<3>(res)=lower_bound_nonlin_init;
+    get<4>(res)=get<4>(status);
+    get<5>(res)=get<5>(status);
+    get<6>(res)=get<6>(status);
+    get<7>(res)=get<7>(status);
+    upper_bound=get<5>(status);
+    DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
+    DebugOn("Total number of OBBT iterations = " << total_iter << endl);
+    DebugOn("Number of global iterations = " << global_iter << endl);
+    auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
+    DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
+    auto lower_bound_final=obbt_model->get_obj_val();
+    auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
+    DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
+    return res;
+}
+
+template <typename type>
+template<typename T,
+typename std::enable_if<is_same<T,double>::value>::type*>
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model) {
+    
+    std::tuple<bool,int,double, double, double, double, double, double> res;
 #ifdef USE_MPI
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -6356,62 +6358,74 @@ namespace gravity {
                             }
                         }
                     }
-                    
                     //Check if OBBT has converged, can check every gap_count_int intervals
                     if(iter%gap_count_int==0)
                     {
                         solver_time= get_wall_time()-solver_time_start;
-                        
-                        
-                        //this->print();
-                        //                    auto new_obbt = *obbt_model;
-                        //                    obbt_model = new_obbt.copy();
+                    if(linearize){
                         obbt_model->reset();
-                        obbt_model->reset_constrs();
-                        obbt_model->reset_lifted_vars_bounds();
                         obbt_model->reindex();
-                        //                    obbt_model->print();
-                        solver<> LB_solver(obbt_model,lb_solver_type);
-                        LB_solver.run(output = 0, lb_solver_tol);
-                        if(obbt_model->_status==0)
-                        {
-                            lower_bound=obbt_model->get_obj_val();
-                            auto gap = 100*(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
-                            DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                            unsigned nb_OA_cuts = 0;
-                            for (auto const &iter: relaxed_model->_OA_cuts) {
-                                nb_OA_cuts += iter.second.size();
-                            }
-                            DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
-                            
+                    }
+                    obbt_model->reset_constrs();
+                    obbt_model->reset_lifted_vars_bounds();
+//                    obbt_model->print();
+                    solver<> LB_solver(obbt_model,lb_solver_type);
+                    if(!linearize)
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                    else
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+                    LB_solver.run(output = 0, lb_solver_tol);
+                    if(obbt_model->_status==0)
+                    {
+                        lower_bound=obbt_model->get_obj_val();
+                        auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+                        DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                        unsigned nb_OA_cuts = 0;
+                        for (auto const &iter: relaxed_model->_OA_cuts) {
+                            nb_OA_cuts += iter.second.size();
                         }
-                        
-                        
-                        if (std::abs(upper_bound_init- lower_bound)<=abs_tol && ((upper_bound_init- lower_bound))/(std::abs(upper_bound_init)+zero_tol)<=rel_tol)
-                        {
-                            DebugOn("Gap closed at iter "<< iter<<endl);
-                            DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                            gap = 100*std::abs(upper_bound_init - lower_bound)/std::abs(upper_bound_init);
-                            DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-                            DebugOn("Upper bound = " << to_string(upper_bound_init) << "."<<endl);
-                            DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-                            DebugOn("Time\t"<<solver_time<<endl);
-                            // relaxed_model->_obj->set_val(lower_bound);
-                            close=true;
-                            terminate=true;
-                            //                        obbt_model->print();
+                        DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                        DebugOn("Updating bounds on original problem and resolving"<<endl);
+                        this->copy_bounds(obbt_model);
+                        this->copy_solution(obbt_model);
+                        solver<> UB_solver(*this,ub_solver_type);
+                        UB_solver.run(output = 0, ub_solver_tol);
+                        auto new_ub = get_obj_val();
+                        if(new_ub<=upper_bound){
+                            upper_bound = new_ub;
+                            get_solution(ub_sol);
+                            DebugOn("Found a better feasible point!"<<endl);
+                            DebugOn("New upper bound = "<< upper_bound << endl);
+                            auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
+                            ub->set_val(upper_bound);
+                        }
+                        else {
+                            set_solution(ub_sol);
+                            _obj->set_val(upper_bound);
                         }
                     }
+                    else {
+                        DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
+                    }
                     
-                    if(break_flag==true)
+                    
+                    if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                     {
-                        DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
-                        DebugOn("Iterations\t"<<iter<<endl);
-                        
-                        break;
+                        DebugOn("Gap closed at iter "<< iter<<endl);
+                        DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
+                        gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
+                        DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+                        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                        DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
+                        DebugOn("Time\t"<<solver_time<<endl);
+                       // relaxed_model->_obj->set_val(lower_bound);
+                        close=true;
+                        terminate=true;
+//                        obbt_model->print();
                     }
                     solver_time= get_wall_time()-solver_time_start;
                     DebugOn("Solved Fixed Point iteration " << iter << endl);
+                }
                 }
                 
                 vector<double> interval_gap;
@@ -6498,7 +6512,17 @@ namespace gravity {
                         DebugOn("Terminate\t"<<terminate<<endl);
                     }
                     
-                    
+
+                    DebugOff("\nLower bound = " << " " << to_string(obbt_model->get_obj_val()) << " " <<endl);
+                    DebugOff("Solution Print"<<endl);
+                    //                    SDP->print_solution();
+                    //                    this->print_constraints_stats(tol);
+                    DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
+                    lower_bound=obbt_model->get_obj_val();
+                    gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
+                    DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
+                    DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                    DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
                     DebugOn("Time\t"<<solver_time<<endl);
                     DebugOn("Iterations\t"<<iter<<endl);
 #ifdef USE_MPI
@@ -6522,10 +6546,8 @@ namespace gravity {
         std::get<7>(res) = avg;
         return res;
     }
-    
-    
-    
-    
+
+
     template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
     
     template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);

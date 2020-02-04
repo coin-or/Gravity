@@ -660,6 +660,16 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                             //                                    DebugOn(p_cst->_indices->_keys->size());
                         }
                         else {
+//                            auto f = static_pointer_cast<func<>>(l.second._coef);
+//                            if(!f->func_is_param()){
+//                                throw invalid_argument("function should be a param");
+//                            }
+//                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+//                            f->_indices->add("inst_"+to_string(p->_indices->_keys->size()));
+//                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c_val[count]);
+//                            f->_dim[0] = f->_indices->size();
+//                            f->uneval();
+//                            f->allocate_mem();
                             throw invalid_argument("Coefficient must be parameter");
                         }
                         auto parkeys=l.second._p->_indices->_keys;

@@ -163,120 +163,130 @@ TEST_CASE("Variable Scaling") {
     CHECK(std::abs(M_scale.get_obj_val()-obj_val) < 1e-3);
 }
 
-//TEST_CASE("Model.relax()") {
-//    Model<> M("Test");
-//    param<> lb("x_lb");
-//    lb = {100,1000,1000,10,10,10,10,10};
-//    param<> ub("x_lb");
-//    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
-//    var<> x("x",lb,ub);
-//    auto x_ids = indices("x_ids");
-//    x_ids = range(1,8);
-//    M.add(x.in(x_ids));
-//
-//    indices x_mat("x_mat"), x_mat_RLT1("x_mat_RLT1"), x_mat_RLT2("x_mat_RLT2"), x_mat_RLT3("x_mat_RLT3");
-//
-//    param<> A("A");
-//    A.in(x_ids);
-//    A._indices->add_in_row(0, "1");
-//    A._indices->add_in_row(0, "2");
-//    x_mat.add_in_row(0, "4");
-//    x_mat.add_in_row(0, "6");
-//    x_mat_RLT1.add_in_row(0, "1");
-//    x_mat_RLT1.add_in_row(0, "1");
-//    x_mat_RLT2.add_in_row(0, "2");
-//    x_mat_RLT2.add_in_row(0, "2");
-//    x_mat_RLT3.add_in_row(0, "3");
-//    x_mat_RLT3.add_in_row(0, "3");
-//    A.set_val("1", 0.0025);A.set_val("2", 0.0025);
-//    A._indices->add_in_row(1, "3");
-//    A._indices->add_in_row(1, "4");
-//    A._indices->add_in_row(1, "5");
-//    x_mat.add_in_row(1, "5");
-//    x_mat.add_in_row(1, "4");
-//    x_mat.add_in_row(1, "7");
-//    x_mat_RLT1.add_in_row(1, "1");
-//    x_mat_RLT1.add_in_row(1, "1");
-//    x_mat_RLT1.add_in_row(1, "1");
-//    x_mat_RLT2.add_in_row(1, "2");
-//    x_mat_RLT2.add_in_row(1, "2");
-//    x_mat_RLT2.add_in_row(1, "2");
-//    x_mat_RLT3.add_in_row(1, "3");
-//    x_mat_RLT3.add_in_row(1, "3");
-//    x_mat_RLT3.add_in_row(1, "3");
-//    A.set_val("3", 0.0025);A.set_val("4", -0.0025);A.set_val("5", 0.0025);
-//    A._indices->add_in_row(2, "6");
-//    A._indices->add_in_row(2, "7");
-//    x_mat.add_in_row(2, "8");
-//    x_mat.add_in_row(2, "5");
-//    x_mat_RLT1.add_in_row(2, "1");
-//    x_mat_RLT1.add_in_row(2, "1");
-//    x_mat_RLT2.add_in_row(2, "2");
-//    x_mat_RLT2.add_in_row(2, "2");
-//    x_mat_RLT3.add_in_row(2, "3");
-//    x_mat_RLT3.add_in_row(2, "3");
-//    A.set_val("6", 0.01);A.set_val("7", -0.01);
-//
-//    Constraint<> LinCons("LinCons");
-//    LinCons = A*x.in(x_mat);
-//    M.add(LinCons.in(range(1,3)) <= 1);
-//
-//    Constraint<> RLT("RLT");
-//    RLT = A*x.in(x_mat_RLT1)*x.in(x_mat);
-//    M.add(RLT.in(range(1,3)) <= 1);
-//    M.print();
-//    /*
-//    Constraint<> C1("C1");
-//    C1 = 0.0025*(x[4] + x[6]);
-//    M.add(C1 <= 1);
-//
-//    Constraint<> C2("C2");
-//    C2 = 0.0025*(x[5] - x[4] + x[7]);
-//    M.add(C2 <= 1);
-//
-//    Constraint<> C3("C3");
-//    C3 = 0.01*(x[8]-x[5]);
-//    M.add(C3 <= 1);
-//    */
-//
-//
-//    Constraint<> C4("C4");
-//    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
-//    M.add(C4 <= 83333.333);
-//    Constraint<> C5("C5");
-//    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
-//    M.add(C5 <= 0);
-//    Constraint<> C6("C6");
-//    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
-//    M.add(C6 <= 0);
-//
-//
-//    M.min(x[1]+x[2]+x[3]);
-//
-////    M.scale_vars(100);
-////    double coef_scale = 100;
-////    M.scale_coefs(coef_scale);
-//    M.print();
-//
-//    auto determinant_level = 1;
-//    bool add_Kim_Kojima = false, add_SDP_3d = false;
-//    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
-//
-////    LB->print();
-////    LB->scale_vars(100);
-////    LB->print();
-////    double coef_scale = 100;
-////    LB->scale_coefs(coef_scale);
+TEST_CASE("Model.relax()") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    auto x_ids = indices("x_ids");
+    x_ids = range(1,8);
+    M.add(x.in(x_ids));
+
+    indices x_mat("x_mat"), x_mat_RLT1("x_mat_RLT1"), x_mat_RLT2("x_mat_RLT2"), x_mat_RLT3("x_mat_RLT3");
+
+    param<> A("A");
+    A.in(x_ids);
+    A._indices->add_in_row(0, "1");
+    A._indices->add_in_row(0, "2");
+    x_mat.add_in_row(0, "4");
+    x_mat.add_in_row(0, "6");
+    x_mat_RLT1.add_in_row(0, "1");
+    x_mat_RLT1.add_in_row(0, "1");
+    x_mat_RLT2.add_in_row(0, "2");
+    x_mat_RLT2.add_in_row(0, "2");
+    x_mat_RLT3.add_in_row(0, "3");
+    x_mat_RLT3.add_in_row(0, "3");
+    A.set_val("1", 0.0025);A.set_val("2", 0.0025);
+    A._indices->add_in_row(1, "3");
+    A._indices->add_in_row(1, "4");
+    A._indices->add_in_row(1, "5");
+    x_mat.add_in_row(1, "5");
+    x_mat.add_in_row(1, "4");
+    x_mat.add_in_row(1, "7");
+    x_mat_RLT1.add_in_row(1, "1");
+    x_mat_RLT1.add_in_row(1, "1");
+    x_mat_RLT1.add_in_row(1, "1");
+    x_mat_RLT2.add_in_row(1, "2");
+    x_mat_RLT2.add_in_row(1, "2");
+    x_mat_RLT2.add_in_row(1, "2");
+    x_mat_RLT3.add_in_row(1, "3");
+    x_mat_RLT3.add_in_row(1, "3");
+    x_mat_RLT3.add_in_row(1, "3");
+    A.set_val("3", 0.0025);A.set_val("4", -0.0025);A.set_val("5", 0.0025);
+    A._indices->add_in_row(2, "6");
+    A._indices->add_in_row(2, "7");
+    x_mat.add_in_row(2, "8");
+    x_mat.add_in_row(2, "5");
+    x_mat_RLT1.add_in_row(2, "1");
+    x_mat_RLT1.add_in_row(2, "1");
+    x_mat_RLT2.add_in_row(2, "2");
+    x_mat_RLT2.add_in_row(2, "2");
+    x_mat_RLT3.add_in_row(2, "3");
+    x_mat_RLT3.add_in_row(2, "3");
+    A.set_val("6", 0.01);A.set_val("7", -0.01);
+
+    Constraint<> LinCons("LinCons");
+    LinCons = A*x.in(x_mat);
+    M.add(LinCons.in(range(1,3)) <= 1);
+
+    Constraint<> RLT1("RLT1");
+    RLT1 = A*x.in(x_mat_RLT1)*x.in(x_mat) - x.in(x.repeat_id(3,0));
+    M.add(RLT1.in(range(1,3)) <= 0);
+    
+    Constraint<> RLT2("RLT2");
+    RLT2 = A*x.in(x_mat_RLT2)*x.in(x_mat) - x.in(x.repeat_id(3,1));
+    M.add(RLT2.in(range(1,3)) <= 0);
+    
+    Constraint<> RLT3("RLT3");
+    RLT3 = A*x.in(x_mat_RLT3)*x.in(x_mat) - x.in(x.repeat_id(3,2));
+    M.add(RLT3.in(range(1,3)) <= 0);
+    
+    /*
+    Constraint<> C1("C1");
+    C1 = 0.0025*(x[4] + x[6]);
+    M.add(C1 <= 1);
+
+    Constraint<> C2("C2");
+    C2 = 0.0025*(x[5] - x[4] + x[7]);
+    M.add(C2 <= 1);
+
+    Constraint<> C3("C3");
+    C3 = 0.01*(x[8]-x[5]);
+    M.add(C3 <= 1);
+    */
+
+
+    Constraint<> C4("C4");
+    C4 = 100*x[1] - x[1]*x[6] + 833.33252*x[4];
+    M.add(C4 <= 83333.333);
+    Constraint<> C5("C5");
+    C5 = x[2]*x[4] - x[2]*x[7] - 1250*x[4] + 1250*x[5];
+    M.add(C5 <= 0);
+    Constraint<> C6("C6");
+    C6 = x[3]*x[5] - x[3]*x[8] - 2500*x[5] + 1250000;
+    M.add(C6 <= 0);
+
+
+    M.min(x[1]+x[2]+x[3]);
+
+//    M.scale_vars(100);
+//    double coef_scale = 100;
+//    M.scale_coefs(coef_scale);
+    M.print();
+
+    auto determinant_level = 1;
+    bool add_Kim_Kojima = false, add_SDP_3d = false;
+    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+
 //    LB->print();
-////    M.print();
-//    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4;
-//    unsigned max_iter=1, nb_threads = thread::hardware_concurrency();
-//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//    M.run_obbt(LB, max_time, max_iter, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    LB->print_constraints_stats(1e-6);
-////    LB->print_nonzero_constraints(1e-6);
+//    LB->scale_vars(100);
 //    LB->print();
-//}
+//    double coef_scale = 100;
+//    LB->scale_coefs(coef_scale);
+    LB->print();
+//    M.print();
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    LB->print_constraints_stats(1e-6);
+//    LB->print_nonzero_constraints(1e-6);
+    LB->print();
+    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
+    CHECK(final_gap<1);
+}
 
 TEST_CASE("hard nlp") {
     Model<> M("Test");
@@ -1251,8 +1261,8 @@ TEST_CASE("testing multithread solve"){
 //    OPF1.run(0,tol);
 //    OPF2.run(0,tol);
     run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-3);
-    CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-3);
+    CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-2);
+    CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-2);
     CHECK(ACOPF1->is_feasible(tol));
     ACOPF1->print_solution();
     auto Mc = ACOPF1->build_McCormick();
