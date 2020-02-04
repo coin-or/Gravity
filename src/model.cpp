@@ -5964,18 +5964,15 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     UB_solver.run(output = 5, ub_solver_tol);
     DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
-    LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+    if(!linearize)
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+    else
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
     LBnonlin_solver.run(output = 5, lb_solver_tol);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val();
         DebugOn("Initial lower bound = "<<this->get_obj_val()<<endl);
-        if(this->_status==0){
-            auto obj = *relaxed_model->_obj;
-            Constraint<type> obj_ub("obj_ub");
-            obj_ub = obj - this->get_obj_val();
-            relaxed_model->add(obj_ub<=0);
-        }
     }
     shared_ptr<Model<>> obbt_model=relaxed_model;
     Model<> interior_model;
@@ -6069,6 +6066,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         lower_bound_nonlin_init=relaxed_model->get_obj_val();
         lower_bound_init = obbt_model->get_obj_val();
         upper_bound=this->get_obj_val();
+        get_solution(ub_sol);/* store current solution */
         gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
         if ((upper_bound-lower_bound_init)>=abs_tol || (upper_bound-lower_bound_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
@@ -6166,6 +6164,12 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                                 auto modelk = obbt_model->copy();
                                 mname=vname+"|"+key+"|"+dir;
                                 modelk->set_name(mname);
+                                param<> ub("ub");
+                                ub = this->get_obj_val();
+                                auto obj = *obbt_model->_obj;
+                                Constraint<type> obj_ub("obj|ub");
+                                obj_ub = obj - ub;
+                                modelk->add(obj_ub<=0);
                                 vark=modelk->template get_var<T>(vname);
                                 vark.initialize_midpoint();
                                 if(dir=="LB")
@@ -6320,14 +6324,19 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     //this->print();
 //                    auto new_obbt = *obbt_model;
 //                    obbt_model = new_obbt.copy();
-                    obbt_model->reset();
-//                    obbt_model->initialize_zero();
-                    obbt_model->reset_constrs();
-                    obbt_model->reset_lifted_vars_bounds();
-                    obbt_model->reindex();
+                    if(linearize){
+                        obbt_model->reset();
+                        obbt_model->reset_constrs();
+                        obbt_model->reset_lifted_vars_bounds();
+                        obbt_model->reindex();
+                    }
                     
 //                    obbt_model->print();
                     solver<> LB_solver(obbt_model,lb_solver_type);
+                    if(!linearize)
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                    else
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
                     LB_solver.run(output = 0, lb_solver_tol);
                     if(obbt_model->_status==0)
                     {
@@ -6339,9 +6348,27 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                             nb_OA_cuts += iter.second.size();
                         }
                         DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                        DebugOn("Updating bounds on original problem and resolving"<<endl);
+                        this->copy_bounds(obbt_model);
+                        this->copy_solution(obbt_model);
+                        solver<> UB_solver(*this,ub_solver_type);
+                        UB_solver.run(output = 0, ub_solver_tol);
+                        auto new_ub = get_obj_val();
+                        if(new_ub<=upper_bound){
+                            upper_bound = new_ub;
+                            get_solution(ub_sol);
+                            DebugOn("Found a better feasible point!"<<endl);
+                            DebugOn("New upper bound = "<< upper_bound << endl);
+                            auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
+                            ub->set_val(upper_bound);
+                        }
+                        else {
+                            set_solution(ub_sol);
+                            _obj->set_val(upper_bound);
+                        }
                     }
                     else {
-                        DebugOn("Failed to solve OBBT Model"<<endl);
+                        DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
                     }
                     
                     

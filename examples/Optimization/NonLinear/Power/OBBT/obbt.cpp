@@ -37,7 +37,7 @@ int main (int argc, char * argv[]) {
     string sdp_kim_s="yes";
     string threads_s="1";
     
-    string lazy_s = "no";
+    string lazy_s = "no", linearize_s = "no";
     string orig_s = "no";
     bool lazy_bool = false;
     bool add_original=false;
@@ -46,7 +46,7 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     
-    bool linearize=true;
+    bool linearize=false;
     
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -65,6 +65,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
+    opt.add_option("linear", "linear", "Linearize relaxation using OA cuts, default = no", linearize_s);
     opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -93,6 +94,10 @@ int main (int argc, char * argv[]) {
     if (lazy_s.compare("no")==0) {
         lazy_bool = false;
     }
+    linearize_s = opt["linear"];
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
+    }
     
     current_s = opt["l"];
     if (current_s.compare("no")==0) {
@@ -116,10 +121,17 @@ int main (int argc, char * argv[]) {
     
     auto max_time = op::str2double(opt["t"]);
 #else
-    if(argc==4){
+    if(argc>=4){
         fname=argv[1];
         time_s=argv[2];
         sdp_kim_s=argv[3];
+        
+    }
+    if(argc>4){
+        linearize_s=argv[4];
+    }
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
     }
     //    else{
     //        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -178,11 +190,10 @@ int main (int argc, char * argv[]) {
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
-    linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
 //        current=false;
@@ -198,7 +209,7 @@ int main (int argc, char * argv[]) {
         current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=4, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
