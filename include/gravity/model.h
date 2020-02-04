@@ -384,6 +384,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             if (f->_expr) {
                 merge_vars(f->_expr, share_bounds);
             }
+            if (f->get_cst()->is_function() && !f->get_cst()->func_is_number()) {
+                auto c = static_pointer_cast<func<type>>(f->get_cst());
+                merge_vars(c, share_bounds);
+            }
         }
         
         /**
@@ -540,6 +544,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             if (f->_expr) {
                 merge_vars(f->_expr, share_bounds);
+            }
+            if (f->get_cst()->is_function() && !f->get_cst()->func_is_number()) {
+                auto c = static_pointer_cast<func<type>>(f->get_cst());
+                merge_vars(c, share_bounds);
             }
         }
         
