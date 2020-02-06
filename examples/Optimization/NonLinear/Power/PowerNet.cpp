@@ -2047,9 +2047,9 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     
 }
 
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, bool sdp_kim)
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, bool sdp_kim, double upper_bound)
 {
-    bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, add_original=false, convexify=true;
+    bool relax, sdp_cuts = true,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     num_bags = atoi(num_bags_s.c_str());
@@ -2171,9 +2171,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     var<>  Wii("Wii", w_min, w_max);
     SDPOPF->add(Wii.in(nodes),R_Wij.in(node_pairs_chord),Im_Wij.in(node_pairs_chord));
     
-    add_original=false;
+    add_original=true;
     if(add_original)
     {
+  
+        
         var<>  R_Vi("R_Vi", -1*v_max, v_max);
         var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
         
@@ -2182,9 +2184,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         R_Vi.initialize_all(1);
         Im_Vi.set_lb((grid.ref_bus),0);
         Im_Vi.set_ub((grid.ref_bus),0);
-        //
-        //        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
-        //        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
+        
+//        R_Vi.set_lb((grid.ref_bus),v_min(grid.ref_bus).eval());
+//        R_Vi.set_ub((grid.ref_bus),v_max(grid.ref_bus).eval());
         
         
         var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij");
@@ -2194,13 +2196,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         Constraint<Cpx> Linking_Wij("Linking_Wij");
         Linking_Wij = Wij - Vi*conj(Vj);
-        SDPOPF->add(Linking_Wij.in(node_pairs_chord)==0, convexify, "on/off", false);
+        SDPOPF->add(Linking_Wij.in(node_pairs_chord)==0, convexify);
         
         Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
         
         Constraint<Cpx> Linking_Wi("Linking_Wi");
         Linking_Wi = Wii - Vi*conj(Vi);
-        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify,  "on/off", false);
+        SDPOPF->add(Linking_Wi.in(nodes)==0, convexify);
         
         //        if(!grid._tree)
         //        {
@@ -2266,6 +2268,10 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         SDPOPF->min(obj);
         
+        
+//        Constraint<> obj_UB("obj_UB");
+//        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-1.0;
+//        SDPOPF->add(obj_UB.in(range(0,0))<=0);
         //        Constraint<> obj_UB("obj_UB");
         //        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         //        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
@@ -2279,6 +2285,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         auto obj=(product(c1,Pg) + product(c2,etag) + sum(c0));
         SDPOPF->min(obj);
+        
+        
+  
         
         
         //        Constraint<> obj_UB("obj_UB");

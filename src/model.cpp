@@ -5981,9 +5981,7 @@ namespace gravity {
             interior_model=lin_model->add_outer_app_solution(*relaxed_model);
             obbt_model=lin_model;
         }
-        
-        
-        
+
         auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
         double upper_bound = get<5>(status);
         
@@ -6082,6 +6080,12 @@ namespace gravity {
                     // obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                 }
+                param<> ub("ub");
+                ub = this->get_obj_val();
+                auto obj = *obbt_model->_obj;
+                Constraint<type> obj_ub("obj|ub");
+                obj_ub = obj - ub;
+                obbt_model->add(obj_ub<=0);
                 
                 
                 /**/
@@ -6168,12 +6172,6 @@ namespace gravity {
                                     mname=vname+"|"+key+"|"+dir;
                                     if(fixed_point[mname]==false){
                                         batch_models[batch_model_count]->set_name(mname);
-                                        param<> ub("ub");
-                                        ub = this->get_obj_val();
-                                        auto obj = *obbt_model->_obj;
-                                        Constraint<type> obj_ub("obj|ub");
-                                        obj_ub = obj - ub;
-                                        batch_models[batch_model_count]->add(obj_ub<=0);
                                         vark=batch_models[batch_model_count]->template get_var<T>(vname);
                                         vark.initialize_midpoint();
                                         if(dir=="LB")
@@ -6374,24 +6372,31 @@ namespace gravity {
                             lower_bound=obbt_model->get_obj_val();
                             auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                             DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                            if(linearize){
                             unsigned nb_OA_cuts = 0;
                             for (auto const &iter: relaxed_model->_OA_cuts) {
                                 nb_OA_cuts += iter.second.size();
                             }
                             DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                            }
                             DebugOn("Updating bounds on original problem and resolving"<<endl);
                             this->copy_bounds(obbt_model);
                             this->copy_solution(obbt_model);
                             solver<> UB_solver(*this,ub_solver_type);
                             UB_solver.run(output = 0, ub_solver_tol);
                             auto new_ub = get_obj_val();
-                            if(new_ub<=upper_bound){
+                            if(new_ub<upper_bound){
                                 upper_bound = new_ub;
                                 get_solution(ub_sol);
                                 DebugOn("Found a better feasible point!"<<endl);
                                 DebugOn("New upper bound = "<< upper_bound << endl);
                                 auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
                                 ub->set_val(upper_bound);
+                                for(auto &mod:batch_models){
+                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                                    ub->set_val(upper_bound);
+                                    mod->reset_constrs();
+                                }
                             }
                             else {
                                 set_solution(ub_sol);
