@@ -752,10 +752,14 @@ namespace gravity {
             //                    p->index_in(ids);
             //                }
             //            }
-            _indices = make_shared<indices>(ids);
+            _indices = make_shared<indices>(ids.deep_copy());
             _dim[0] = std::max(_dim[0], ids.size());
             if(_expr){// TODO take care of nonlinear part
                 _expr->in(ids);
+            }
+            if(_cst->is_function()){
+                auto rhs_f = static_pointer_cast<func<type>>(_cst);
+                rhs_f->index_in(ids);
             }
             return *this;
         }
@@ -1270,7 +1274,7 @@ namespace gravity {
             }
             
             func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
-            param<type> f_xstar("f_xstar");
+            param<type> f_xstar("f_xstar_"+_name);
             f_xstar = cpy;
             f_xstar._indices->filter_refs(keep);
             for(auto &it: *cpy._vars){
@@ -1278,11 +1282,16 @@ namespace gravity {
                 param<type> xstar("xstar_"+v->_name);
                 xstar.in(*v->_indices);
                 xstar.copy_vals(v);
-                param<type> df_xstar("df_xstar"+v->_name);
+                param<type> df_xstar("df_xstar_"+v->_name);
                 auto df = *compute_derivative(*v);
                 df.uneval();
                 df.eval_all();
-                df_xstar.in(*cpy._indices);
+                indices df_xstar_ind("df_xstar"+v->_name+"_ind");
+                for(auto key:*(cpy._indices->_keys)){
+                    df_xstar_ind.add(key);
+                }
+                    
+                df_xstar.in(df_xstar_ind);
                 df_xstar.copy_vals(df);
                 df_xstar._indices->filter_refs(keep);
                 for(auto key:*(df_xstar._indices->_keys)){
@@ -1316,7 +1325,15 @@ namespace gravity {
             }
             res += f_xstar*scale_fact;
             res.index_in(idx);
-            //            merge_vars(res);
+            if(!res._cst->is_zero() && res._cst->is_function()){
+                param<type> rhs("xstar_rhs_"+_name);
+                auto rhs_f = static_pointer_cast<func<type>>(res._cst);
+                rhs_f->eval_all();
+                rhs = *rhs_f;
+                res._cst = rhs.copy();
+            }
+            //            merge_vars(r
+//                es);
             
             //            for(auto &it: *_vars){
             //                auto v = it.second.first;
@@ -3505,7 +3522,7 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(*f._indices);
+                _indices = make_shared<indices>(f._indices->deep_copy());
             }
             else {
                 _indices = nullptr;
@@ -3660,7 +3677,7 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(*f._indices);
+                _indices = make_shared<indices>(f._indices->deep_copy());
             }
             else {
                 _indices = nullptr;

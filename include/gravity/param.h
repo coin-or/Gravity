@@ -1166,11 +1166,15 @@ namespace gravity {
             return it->second;
         }
 
+        /* Add a new key to _keys and will update _ids*/
         size_t add_val(const string& key, type val) {
             if(!_indices){
                 _indices = make_shared<indices>();
             }
-            auto index = param_::_indices->size();
+            if(_indices->is_matrix_indexed()){
+                throw invalid_argument("Cannot call add_val on matrix indexed sets, call add_in_row()");
+            }
+            auto index = param_::_indices->_keys->size();
             auto pp = param_::_indices->_keys_map->insert(make_pair<>(key,index));
             if (pp.second) {//new index inserted
                 _val->resize(std::max(_val->size(),index+1));
@@ -1180,11 +1184,17 @@ namespace gravity {
                 _val->at(index) = val;
                 _off.resize(max(_off.size(),index+1), false);
                 update_range(val);
+                if(_indices->_ids){
+                    _indices->_ids->at(0).push_back(index);
+                }
                 return index;
             }
             else {
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
                 set_val(key,val);
+                if(_indices->_ids){
+                    _indices->_ids->at(0).push_back(pp.first->second);
+                }
                 return pp.first->second;
             }
         }

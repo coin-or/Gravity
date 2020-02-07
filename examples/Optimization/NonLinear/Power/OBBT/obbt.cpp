@@ -34,12 +34,14 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
+    string sdp_kim_s="yes";
     string threads_s="1";
     
-    string lazy_s = "no";
+    string lazy_s = "no", linearize_s = "no";
     string orig_s = "no";
     bool lazy_bool = false;
     bool add_original=false;
+    bool sdp_kim=true;
     SolverType solv_type = ipopt;
     const double tol = 1e-6;
     string mehrotra = "no";
@@ -63,6 +65,7 @@ int main (int argc, char * argv[]) {
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
+    opt.add_option("linear", "linear", "Linearize relaxation using OA cuts, default = no", linearize_s);
     opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
@@ -91,6 +94,10 @@ int main (int argc, char * argv[]) {
     if (lazy_s.compare("no")==0) {
         lazy_bool = false;
     }
+    linearize_s = opt["linear"];
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
+    }
     
     current_s = opt["l"];
     if (current_s.compare("no")==0) {
@@ -114,9 +121,17 @@ int main (int argc, char * argv[]) {
     
     auto max_time = op::str2double(opt["t"]);
 #else
-    if(argc==3){
+    if(argc>=4){
         fname=argv[1];
         time_s=argv[2];
+        sdp_kim_s=argv[3];
+        
+    }
+    if(argc>4){
+        linearize_s=argv[4];
+    }
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
     }
     //    else{
     //        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
@@ -125,6 +140,13 @@ int main (int argc, char * argv[]) {
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
+    if (sdp_kim_s.compare("no")==0) {
+        sdp_kim = false;
+    }
+    else {
+        sdp_kim = true;
+    }
+    
     
     
 #endif
@@ -159,57 +181,45 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
     
-    double lower_bound=numeric_limits<double>::lowest(), lower_bound_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
+    double lower_bound=numeric_limits<double>::lowest(), lower_bound_nonlin_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
     double solver_time =0;
     int iter=0, total_iter=0;
     
-    bool terminate=false, xb_true=false;
+    bool terminate=false, xb_true=false;    
     
     
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
     if(!linearize){
         auto nonlin_obj=true;
-        auto SDP= build_SDPOPF(grid, current, nonlin_obj);
-        auto res=OPF->run_obbt(SDP,max_time,max_iter,nb_threads,ub_solver_type,lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-        lower_bound = SDP->get_obj_val();
-        lower_bound_init = get<3>(res);
+        current=true;
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
         SDP->print_constraints_stats(1e-6);
     }
     else{
+        current=false;
         auto nonlin_obj=false;
-        auto SDP=build_SDPOPF(grid, current, nonlin_obj);
-        solver<> SDPLB(SDP, lb_solver_type);
-        SDPLB.run(output = 5, lb_solver_tol);
-        auto solver_time1= get_wall_time();
-        auto SDPOA=SDP->buildOA(5, 5);
-        DebugOn(grid._name<<endl);
-        DebugOn("Number of variables "<< SDP->_nb_vars<<endl);
-        DebugOn("Number of constraints orginal lower bound "<< SDP->_nb_cons<<endl);
-        DebugOn("Number of symbolic constraints orginal lower bound "<< SDP->_cons_name.size()<<endl );
-        DebugOn("Number of variables linear problem "<< SDPOA->_nb_vars<<endl);
-        DebugOn("Number of constraints linear problem "<< SDPOA->_nb_cons<<endl);
-        DebugOn("Number of symbolic constraints linear problem "<< SDPOA->_cons_name.size()<<endl );
-        
-        auto    solver_time2= get_wall_time();
-        auto buildtime=solver_time2-solver_time1;
-        DebugOn("build time "<<buildtime<<endl);
-        auto res=OPF->run_obbt(SDPOA, max_time, max_iter, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-        lower_bound = SDPOA->get_obj_val();
-        lower_bound_init = get<3>(res);
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
+        SDP->print_constraints_stats(1e-6);
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 
     auto upper_bound = OPF->get_obj_val();
-    auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+    auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
     if(worker_id==0){
