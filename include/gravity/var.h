@@ -366,23 +366,31 @@ namespace gravity {
             bool first_time_indexing = this->_indices==nullptr;
             res.param<type>::operator=(param<type>::in(vec1, forward<Args>(args)...));//TODO assert lb dim = res dim
             res._type = var_c;
-            if(first_time_indexing){
-                if(_lb->func_is_number()){
-                    param<type> lb(this->_name+"-lb");
-                    lb.index_in(*res._indices);
-                    lb.set_val(_lb->eval());
-                    *this->_lb = lb;
-                }
-                if(_ub->func_is_number()){
-                    param<type> ub(this->_name+"-ub");
-                    ub.index_in(*res._indices);
-                    ub.set_val(_ub->eval());
-                    *this->_ub = ub;
-                }
-                _lb->index_in(*res._indices);
-                _ub->index_in(*res._indices);
+            if(first_time_indexing){/* Create a parameter for each bound and assign it the bounds values. This is important for bound tightening algorithms. */
                 _lb->allocate_mem();
                 _ub->allocate_mem();
+                _lb->eval_all();
+                _ub->eval_all();
+                if(!_lift){
+                    param<type> lb(this->get_name(true,true)+"-lb");
+                    lb.index_in(*res._indices);
+                    lb.copy_vals(*_lb);
+                    *this->_lb = lb;
+                    param<type> ub(this->get_name(true,true)+"-ub");
+                    ub.index_in(*res._indices);
+                    ub.copy_vals(*_ub);
+                    *this->_ub = ub;
+                    _lb->_val = lb._val;
+                    _ub->_val = ub._val;
+                    _lb->_evaluated = true;
+                    _ub->_evaluated = true;
+                }
+                else {
+                    _lb->index_in(*res._indices);
+                    _ub->index_in(*res._indices);
+                    _lb->allocate_mem();
+                    _ub->allocate_mem();
+                }
                 res._lb = _lb;
                 res._ub = _ub;
             }
@@ -820,7 +828,7 @@ namespace gravity {
             var in(const space& s){
                 set_size(s._dim);
                 if(s._dim.size()==1){ /* We can afford to build indices since this is a 1-d set */
-                    this->_indices = make_shared<indices>(range(0,s._dim[0]-1));
+                    return this->in(range(0,s._dim[0]-1));
                 }
                 _lb->set_size(s._dim);
                 _ub->set_size(s._dim);

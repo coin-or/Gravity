@@ -43,8 +43,11 @@ var<type> var<type>::deep_copy() const{
     res.param<type>::operator=(this->param<type>::deep_copy());
     res.constant_::set_type(var_c);
     res._num_partns = make_shared<int>(*_num_partns);
-    res._lb = make_shared<func<type>>(*_lb);
-    res._ub = make_shared<func<type>>(*_ub);
+    res._lb = make_shared<func<type>>();
+    res._ub = make_shared<func<type>>();
+    res._lb->deep_copy(*_lb);
+    res._ub->deep_copy(*_ub);
+    res._lift=_lift;
     return res;
 }
 
@@ -204,6 +207,8 @@ type    var<type>::get_ub(size_t i) const {
     
     template<typename type>
     param<type>    var<type>::get_lb() const {
+        if(!_lift)
+            return *static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
         param<type> lb(this->_name+"_lb");
         _lb->eval_all();
         if(!_lb->func_is_number()){
@@ -296,6 +301,8 @@ shared_ptr<param<type>>    var<type>::get_square_ub() const{
     
     template<typename type>
     param<type>    var<type>::get_ub() const {
+        if(!_lift)
+            return *static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
         param<type> ub(this->_name+"_ub");
         _ub->eval_all();
         if(!_ub->func_is_number()){
@@ -413,7 +420,7 @@ template<typename type> void   var<type>::set_lb(type val) {
         _lb->_evaluated = true;
     }
     else {
-        *_lb = constant<type>(val);
+        _lb->set_val(val);
         param<type>::_range->first = val;
     }
 }
@@ -461,7 +468,7 @@ template<typename type> void   var<type>::set_ub(type val) {
         _ub->_evaluated = true;
     }
     else {
-        *_ub = constant<type>(val);
+        _ub->set_val(val);
         param<type>::_range->second = val;
     }
 }
