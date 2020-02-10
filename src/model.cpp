@@ -6392,8 +6392,6 @@ namespace gravity {
                                 get_solution(ub_sol);
                                 DebugOn("Found a better feasible point!"<<endl);
                                 DebugOn("New upper bound = "<< upper_bound << endl);
-                                auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
-                                ub->set_val(upper_bound);
                                 for(auto &mod:batch_models){
                                     auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
                                     ub->set_val(upper_bound);
