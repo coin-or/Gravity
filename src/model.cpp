@@ -5972,7 +5972,7 @@ namespace gravity {
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
-            DebugOn("Initial lower bound = "<<this->get_obj_val()<<endl);
+            DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
         shared_ptr<Model<>> obbt_model=relaxed_model;
         Model<> interior_model;
