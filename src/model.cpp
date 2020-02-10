@@ -6080,12 +6080,6 @@ namespace gravity {
                     // obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                 }
-                param<> ub("ub");
-                ub = this->get_obj_val();
-                auto obj = *obbt_model->_obj;
-                Constraint<type> obj_ub("obj|ub");
-                obj_ub = obj - ub;
-                obbt_model->add(obj_ub<=0);
                 
                 
                 /**/
@@ -6172,6 +6166,14 @@ namespace gravity {
                                     mname=vname+"|"+key+"|"+dir;
                                     if(fixed_point[mname]==false){
                                         batch_models[batch_model_count]->set_name(mname);
+                                        if(batch_models[batch_model_count]->_cons_name.count("obj|ub")==0){
+                                            param<> ub("ub");
+                                            ub = this->get_obj_val();
+                                            auto obj = *obbt_model->_obj;
+                                            Constraint<type> obj_ub("obj|ub");
+                                            obj_ub = obj - ub;
+                                            batch_models[batch_model_count]->add(obj_ub<=0);
+                                        }
                                         vark=batch_models[batch_model_count]->template get_var<T>(vname);
                                         vark.initialize_midpoint();
                                         if(dir=="LB")
