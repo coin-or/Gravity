@@ -5961,8 +5961,9 @@ namespace gravity {
         int output;
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(output = 5, ub_solver_tol);
+        UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
+        relaxed_model->print();
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
         if(!linearize)
             LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6049,7 +6050,7 @@ namespace gravity {
         bool break_flag=false, time_limit = false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
-        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6;
+        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, subproblem_tol=1e-6;
         int gap_count_int=1, iter=0;
         int output = 0;
         int batch_model_count=0;
@@ -6175,7 +6176,7 @@ namespace gravity {
                                             batch_models[batch_model_count]->add(obj_ub<=0);
                                         }
                                         vark=batch_models[batch_model_count]->template get_var<T>(vname);
-                                        vark.initialize_midpoint();
+                                       // vark.initialize_midpoint();
                                         if(dir=="LB")
                                         {
                                             batch_models[batch_model_count]->min(vark(key));
@@ -6194,9 +6195,9 @@ namespace gravity {
                                     {
                                         double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                        run_MPI(batch_models,lb_solver_type,lb_solver_tol,nb_threads,"ma27",2000,2000, false,true);
+                                        run_MPI(batch_models,lb_solver_type,subproblem_tol,nb_threads,"ma27",2000,2000, false,true);
 #else
-                                        run_parallel(batch_models,lb_solver_type,lb_solver_tol,nb_threads, 2000);
+                                        run_parallel(batch_models,lb_solver_type,subproblem_tol,nb_threads, 2000);
 #endif
                                         double batch_time_end = get_wall_time();
                                         auto batch_time = batch_time_end - batch_time_start;
@@ -6382,26 +6383,26 @@ namespace gravity {
                             DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
                             }
                             DebugOn("Updating bounds on original problem and resolving"<<endl);
-                            this->copy_bounds(obbt_model);
-                            this->copy_solution(obbt_model);
-                            solver<> UB_solver(*this,ub_solver_type);
-                            UB_solver.run(output = 0, ub_solver_tol);
-                            auto new_ub = get_obj_val();
-                            if(new_ub<upper_bound){
-                                upper_bound = new_ub;
-                                get_solution(ub_sol);
-                                DebugOn("Found a better feasible point!"<<endl);
-                                DebugOn("New upper bound = "<< upper_bound << endl);
-                                for(auto &mod:batch_models){
-                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-                                    ub->set_val(upper_bound);
-                                    mod->reset_constrs();
-                                }
-                            }
-                            else {
-                                set_solution(ub_sol);
-                                _obj->set_val(upper_bound);
-                            }
+//                            this->copy_bounds(obbt_model);
+//                            this->copy_solution(obbt_model);
+//                            solver<> UB_solver(*this,ub_solver_type);
+//                            UB_solver.run(output = 0, ub_solver_tol);
+//                            auto new_ub = get_obj_val();
+//                            if(new_ub<upper_bound){
+//                                upper_bound = new_ub;
+//                                get_solution(ub_sol);
+//                                DebugOn("Found a better feasible point!"<<endl);
+//                                DebugOn("New upper bound = "<< upper_bound << endl);
+//                                for(auto &mod:batch_models){
+//                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+//                                    ub->set_val(upper_bound);
+//                                    mod->reset_constrs();
+//                                }
+//                            }
+//                            else {
+//                                set_solution(ub_sol);
+//                                _obj->set_val(upper_bound);
+//                            }
                         }
                         else {
                             DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
