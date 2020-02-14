@@ -5963,7 +5963,6 @@ namespace gravity {
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
-        relaxed_model->print();
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
         if(!linearize)
             LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6126,7 +6125,7 @@ namespace gravity {
                     
                 }
                 solver_time= get_wall_time()-solver_time_start;
-                for(auto i=0;i<nb_total_threads;i++){
+                for(auto i=0;i<nb_threads;i++){
                     auto modelk = obbt_model->copy();
                     batch_models.push_back(modelk);
                 }
@@ -6420,6 +6419,8 @@ namespace gravity {
                             }
                         }
                         else{
+//                            obbt_model->print();
+//                            batch_models[nb_total_threads-1]->print();
                             relaxed_model->copy_bounds(obbt_model);
                             relaxed_model->reset_constrs();
                             solver<> LB_solver(relaxed_model,lb_solver_type);
