@@ -5967,8 +5967,8 @@ namespace gravity {
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
         if(!linearize)
             LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        else
-            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+//        else
+//            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
         LBnonlin_solver.run(output = 5, lb_solver_tol);
         if(relaxed_model->_status==0)
         {
@@ -6363,50 +6363,79 @@ namespace gravity {
                         }
                         obbt_model->reset_constrs();
                         obbt_model->reset_lifted_vars_bounds();
-                        //                    obbt_model->print();
-                        solver<> LB_solver(obbt_model,lb_solver_type);
-                        if(!linearize)
+                        //obbt_model->print();
+                     
+                        if(!linearize){
+                            solver<> LB_solver(obbt_model,lb_solver_type);
                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                        else
+                            LB_solver.run(output = 0, lb_solver_tol);
+                            if(obbt_model->_status==0)
+                            {
+                                lower_bound=obbt_model->get_obj_val();
+                                auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+                                DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                if(linearize){
+                                    unsigned nb_OA_cuts = 0;
+                                    for (auto const &iter: relaxed_model->_OA_cuts) {
+                                        nb_OA_cuts += iter.second.size();
+                                    }
+                                    DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                                }
+                                DebugOn("Updating bounds on original problem and resolving"<<endl);
+                                //                            this->copy_bounds(obbt_model);
+                                //                            this->copy_solution(obbt_model);
+                                //                            solver<> UB_solver(*this,ub_solver_type);
+                                //                            UB_solver.run(output = 0, ub_solver_tol);
+                                //                            auto new_ub = get_obj_val();
+                                //                            if(new_ub<upper_bound){
+                                //                                upper_bound = new_ub;
+                                //                                get_solution(ub_sol);
+                                //                                DebugOn("Found a better feasible point!"<<endl);
+                                //                                DebugOn("New upper bound = "<< upper_bound << endl);
+                                //                                for(auto &mod:batch_models){
+                                //                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                                //                                    ub->set_val(upper_bound);
+                                //                                    mod->reset_constrs();
+                                //                                }
+                                //                            }
+                                //                            else {
+                                //                                set_solution(ub_sol);
+                                //                                _obj->set_val(upper_bound);
+                                //                            }
+                            }
+                            else {
+                                DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
+                            }
+                        }
+                        else{
+                            relaxed_model->copy_bounds(obbt_model);
+                            relaxed_model->reset_constrs();
+                            relaxed_model->reset_lifted_vars_bounds();
+                            DebugOn("relaxed model"<<endl);
+                            relaxed_model->print();
+                            DebugOn("obbt model"<<endl);
+                            obbt_model->print();
+                            solver<> LB_solver(relaxed_model,lb_solver_type);
                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-                        LB_solver.run(output = 0, lb_solver_tol);
-                        if(obbt_model->_status==0)
-                        {
-                            lower_bound=obbt_model->get_obj_val();
-                            auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                            DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                            if(linearize){
-                            unsigned nb_OA_cuts = 0;
-                            for (auto const &iter: relaxed_model->_OA_cuts) {
-                                nb_OA_cuts += iter.second.size();
-                            }
-                            DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
-                            }
-                            DebugOn("Updating bounds on original problem and resolving"<<endl);
-//                            this->copy_bounds(obbt_model);
-//                            this->copy_solution(obbt_model);
-//                            solver<> UB_solver(*this,ub_solver_type);
-//                            UB_solver.run(output = 0, ub_solver_tol);
-//                            auto new_ub = get_obj_val();
-//                            if(new_ub<upper_bound){
-//                                upper_bound = new_ub;
-//                                get_solution(ub_sol);
-//                                DebugOn("Found a better feasible point!"<<endl);
-//                                DebugOn("New upper bound = "<< upper_bound << endl);
-//                                for(auto &mod:batch_models){
-//                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-//                                    ub->set_val(upper_bound);
-//                                    mod->reset_constrs();
-//                                }
-//                            }
-//                            else {
-//                                set_solution(ub_sol);
-//                                _obj->set_val(upper_bound);
-//                            }
+                            LB_solver.run(output = 0, lb_solver_tol);
+                            if(relaxed_model->_status==0)
+                            {
+                                lower_bound=relaxed_model->get_obj_val();
+                                auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+                                DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                if(linearize){
+                                    unsigned nb_OA_cuts = 0;
+                                    for (auto const &iter: relaxed_model->_OA_cuts) {
+                                        nb_OA_cuts += iter.second.size();
+                                    }
+                                    DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                                }
                         }
-                        else {
-                            DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
+                            else {
+                                DebugOn("Failed to solve OBBT Model " << relaxed_model->_name <<endl);
+                            }
                         }
+                       
                         
                         
                         if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
