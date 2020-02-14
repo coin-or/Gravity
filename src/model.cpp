@@ -5968,7 +5968,7 @@ namespace gravity {
             LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
 //        else
 //            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-        LBnonlin_solver.run(output = 5, lb_solver_tol);
+        LBnonlin_solver.run(output = 0, lb_solver_tol);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
@@ -6125,7 +6125,7 @@ namespace gravity {
                     
                 }
                 solver_time= get_wall_time()-solver_time_start;
-                for(auto i=0;i<nb_threads;i++){
+                for(auto i=0;i<nb_total_threads;i++){
                     auto modelk = obbt_model->copy();
                     batch_models.push_back(modelk);
                 }
