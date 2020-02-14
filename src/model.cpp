@@ -5987,12 +5987,14 @@ namespace gravity {
         double upper_bound = get<5>(status);
         
         total_iter += get<1>(status);
-        auto lower_bound=obbt_model->get_obj_val();
+        auto lower_bound=get<6>(status);
         auto gap = (upper_bound - lower_bound)/std::abs(upper_bound);
         while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
             if(total_iter>= max_iter)
                 break;
             status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
+            lower_bound=get<6>(status);
+            gap = (upper_bound - lower_bound)/std::abs(upper_bound);
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
@@ -6015,7 +6017,7 @@ namespace gravity {
         DebugOn("Number of global iterations = " << global_iter << endl);
         auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
-        auto lower_bound_final=obbt_model->get_obj_val();
+        auto lower_bound_final=get<6>(status);
         auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
         DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
         return res;
@@ -6324,9 +6326,19 @@ namespace gravity {
                                                         //if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                         model->get_solution(obbt_solution);
                                                         relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
+                                                        
+                                                        for (auto con: obbt_model->_cons_vec){
+                                                            if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                                                for(auto &mod:batch_models){
+                                                                    if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                                    mod->remove(con->_name);
+                                                                    }
+                                                                    mod->add(*con);
+                                                                }
+                                                            }
                                                         //}
+                                                        }
                                                     }
-                                                    
                                                 }
                                                 else
                                                 {
@@ -6410,14 +6422,9 @@ namespace gravity {
                         else{
                             relaxed_model->copy_bounds(obbt_model);
                             relaxed_model->reset_constrs();
-                            relaxed_model->reset_lifted_vars_bounds();
-                            DebugOn("relaxed model"<<endl);
-                            relaxed_model->print();
-                            DebugOn("obbt model"<<endl);
-                            obbt_model->print();
                             solver<> LB_solver(relaxed_model,lb_solver_type);
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-                            LB_solver.run(output = 0, lb_solver_tol);
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                            LB_solver.run(output = 5, lb_solver_tol);
                             if(relaxed_model->_status==0)
                             {
                                 lower_bound=relaxed_model->get_obj_val();
@@ -6442,7 +6449,7 @@ namespace gravity {
                         {
                             DebugOn("Gap closed at iter "<< iter<<endl);
                             DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                            gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
+                            gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                             DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
                             DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
                             DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);

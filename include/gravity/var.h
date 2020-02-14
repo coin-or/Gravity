@@ -1026,16 +1026,16 @@ namespace gravity {
             this->_range->second = _ub->_range->second;
         }
         
-        template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
+       // template<typename T=type, typename=enable_if<is_arithmetic<T>::value>>
         void copy_bounds(const shared_ptr<param_>& p){
             auto dim = p->get_dim();
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
             }
-            _lb->reset();
-            _ub->reset();
-            _lb->_val->resize(dim);
-            _ub->_val->resize(dim);
+//            _lb->reset();
+//            _ub->reset();
+//            _lb->_val->resize(dim);
+//            _ub->_val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
                 _lb->_val->at(i) = p->get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));

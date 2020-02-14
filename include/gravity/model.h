@@ -4455,7 +4455,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for (auto &vpr: relaxation->_vars) {
                 auto it = _vars.find(vpr.first);
                 if (it != _vars.end()){
-                    it->second->copy_bounds(vpr.second);
+                   it->second->copy_bounds(vpr.second);
                 }
             }
         }
