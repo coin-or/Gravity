@@ -6386,13 +6386,6 @@ namespace gravity {
                                 lower_bound=obbt_model->get_obj_val();
                                 auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                 DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                if(linearize){
-                                    unsigned nb_OA_cuts = 0;
-                                    for (auto const &iter: relaxed_model->_OA_cuts) {
-                                        nb_OA_cuts += iter.second.size();
-                                    }
-                                    DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
-                                }
                                 DebugOn("Updating bounds on original problem and resolving"<<endl);
                                 //                            this->copy_bounds(obbt_model);
                                 //                            this->copy_solution(obbt_model);

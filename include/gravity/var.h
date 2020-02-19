@@ -1034,8 +1034,8 @@ namespace gravity {
             }
 //            _lb->reset();
 //            _ub->reset();
-//            _lb->_val->resize(dim);
-//            _ub->_val->resize(dim);
+            _lb->_val->resize(dim);
+            _ub->_val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
                 _lb->_val->at(i) = p->get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));
