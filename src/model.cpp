@@ -5969,6 +5969,7 @@ namespace gravity {
 //        else
 //            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
         LBnonlin_solver.run(output = 0, lb_solver_tol);
+        relaxed_model->print();
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
@@ -6079,7 +6080,7 @@ namespace gravity {
                     LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
-                    // obbt_model->print();
+                     obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                 }
                 
@@ -6324,7 +6325,7 @@ namespace gravity {
                                                         //if(linearize && !fixed_point[model->get_name()]){
                                                         //if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                         model->get_solution(obbt_solution);
-                                                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model);
+                                                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->get_name());
                                                         
                                                         for (auto con: obbt_model->_cons_vec){
                                                             if(con->_name.find("OA_cuts_")!=std::string::npos){
@@ -6341,7 +6342,7 @@ namespace gravity {
                                                 }
                                                 else
                                                 {
-                                                    //                                            model->print();
+                                                                                             model->print();
                                                     DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                                     
                                                 }
@@ -6419,7 +6420,7 @@ namespace gravity {
                             }
                         }
                         else{
-//                            obbt_model->print();
+                            obbt_model->print();
 //                            batch_models[nb_total_threads-1]->print();
                             relaxed_model->copy_bounds(obbt_model);
                             relaxed_model->reset_constrs();

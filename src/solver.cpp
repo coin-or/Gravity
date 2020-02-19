@@ -95,9 +95,7 @@ shared_ptr<Model<type>> Model<type>::buildOA()
         if(!con->is_linear()) {
             if(con->_ctype==eq)
             {
-                DebugOn("Exception: Equality constraint is not currently supported"<<endl);
-                DebugOn("Throw exception" <<endl);
-                
+                throw invalid_argument("Equality constraint is not currently supported");
             }
         }
         else
@@ -370,7 +368,7 @@ void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
         auto x_ids = indices(D,*x->_indices);
         auto y_ids = indices(D,*y->_indices);
         
-        Constraint<> OA_uniform("OA_cuts_uniform "+con._name);
+        Constraint<> OA_uniform("OA_uniform "+con._name);
         func<> xval =x->get_lb().from_ith(1,x_ids)+dc.from_ith(0,UniDI)*(x->get_ub().from_ith(1,x_ids)-x->get_lb().from_ith(1,x_ids));
         
         OA_uniform=(2*x->from_ith(1,x_ids)*xval -xval*xval-y->from_ith(1,y_ids));
@@ -491,6 +489,7 @@ Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
             else
                 if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                 {
+                    //add_outer_app_uniform(5, *con);
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices allset("active_"+con->_name);
                     auto keys=con->_indices->_keys;
@@ -513,7 +512,7 @@ Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
 }
 //
 template<>
-void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin)
+void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname)
 {
     
     vector<double> xsolution(_nb_vars);
@@ -521,7 +520,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     vector<double> xcurrent, xres;
     get_solution(xsolution);
     set_solution(obbt_solution);
-    const double active_tol=1e-6,active_tol_sol=1e-8;
+    const double active_tol=1e-3,active_tol_sol=1e-10;
     
     bool interior_solv=true;
     vector<double> c_val ;
@@ -531,10 +530,19 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     bool add_new=false;
     int nb_added_cuts = 0;
     //    Ointerior.print();
-    
+    auto mname=modelname;
+    string vkname,keyk,dirk;
+    std::size_t pos = mname.find("|");
+    vkname.assign(mname, 0, pos);
+    mname=mname.substr(pos+1);
+    pos=mname.find("|");
+    keyk.assign(mname, 0, pos);
+    dirk=mname.substr(pos+1);
+    auto vk=this->template get_var<double>(vkname);
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear()) {
+            if(con->has_sym_var(vk)){
             auto cname=con->_name;
             auto con_lin_name="OA_cuts_"+con->_name;
             if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
@@ -546,10 +554,15 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
             //            con->uneval();
             //            con->eval_all();
             for(auto i=0;i<con->get_nb_inst();i++){
+//                auto vck=con->_vars->at(vkname).first;
+//                auto posv=vck->get_id_inst(i);
+//                auto keyv=(*vck->_indices->_keys)[posv];
+//                DebugOn(keyv<<" "<<keyk<<endl);
+//                if(keyv==keyk){
                 oa_cut=false;
                 c0_val=0;
                 c_val.resize(con->_nb_vars,0);
-                // auto cname=con->_name;
+                auto cname=con->_name;
                 xcurrent=con->get_x(i);
                 con->uneval();
                 con->eval_all();
@@ -571,6 +584,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                         }
                         else{
                             if (con->is_convex()){
+                              //  DebugOn(con->_name<<" "<<con->is_convex()<<" "<<con->is_rotated_soc()<<" "<<con->check_soc()<<endl);
                                 oa_cut=true;
                             }
                         }
@@ -642,6 +656,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                 if(oa_cut){
                     nb_added_cuts++;
                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
+//                    DebugOn("added "<<con->_name<<endl);
                     auto nb_inst = con_lin->get_nb_instances();
                     con_lin->_indices->add("inst_"+to_string(nb_inst));
                     con_lin->_dim[0] = con_lin->_indices->size();
@@ -700,11 +715,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                 xinterior.clear();
                 xres.clear();
             }
-            
-            
-            
-            
-            
+        }
         }
     }
     
@@ -751,7 +762,7 @@ shared_ptr<Model<type>> Model<type>::build_model_IIS()
     
     
     
-    DebugOn("N"<<n<<endl);
+   // DebugOn("N"<<n<<endl);
     // param<> eta_length("eta_length");
     //  eta_length.set_val(n);
     
