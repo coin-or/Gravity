@@ -222,7 +222,7 @@ int main (int argc, char * argv[]) {
     auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
-    if(worker_id==0){        
+    if(worker_id==0){
         ofstream fout(result_name.c_str());
         fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
