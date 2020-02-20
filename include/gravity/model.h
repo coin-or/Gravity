@@ -6257,8 +6257,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
         void add_outer_app_active(const Model<type>& nonlin, int nb_perturb);
         Model<type> add_outer_app_solution(const Model<type>& nonlin);
-        void add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, std::string model_name);
-        
+        void add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, std::string model_name,int& oacuts);
+        int num_obbt_prob(){
+            int count=0;
+            for(auto &v:_vars){
+                if(!v.second->is_lifted())
+                count+=v.second->get_dim();
+            }
+            return count;
+        }
         
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
         //INPUT: an SOC constraint to satisfy at equality, number of desired partitions, another number of partitions if the original SOC constraint involves more than 3 variables (we need to seperate that into different SOC constraints), use_lambda option for using the lambda formulation to activate the hyperplanes where the default is the on/off formulation

@@ -6052,7 +6052,7 @@ namespace gravity {
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
         const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, subproblem_tol=1e-6;
-        int gap_count_int=1, iter=0;
+        int gap_count_int=1, iter=0, oacuts=0;
         int output = 0;
         int batch_model_count=0;
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
@@ -6075,12 +6075,15 @@ namespace gravity {
             {
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
+                    DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                      //obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
+                    oacuts=obbt_model->_nb_cons;
+                    DebugOn("Initial number of constraints "<<oacuts<<endl);
                 }
                 
                 
@@ -6324,7 +6327,7 @@ namespace gravity {
                                                         //if(linearize && !fixed_point[model->get_name()]){
                                                         //if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                         model->get_solution(obbt_solution);
-                                                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->get_name());
+                                                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->get_name(), oacuts);
                                                         
                                                         for (auto con: obbt_model->_cons_vec){
                                                             if(con->_name.find("OA_cuts_")!=std::string::npos){

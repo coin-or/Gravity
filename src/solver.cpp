@@ -512,7 +512,7 @@ Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
 }
 //
 template<>
-void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname)
+void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts)
 {
     
     vector<double> xsolution(_nb_vars);
@@ -721,7 +721,8 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     
     
     set_solution(xsolution);
-    DebugOff("Number of added OA cuts = " << nb_added_cuts << endl);
+    nb_oacuts+=nb_added_cuts;
+    DebugOn("Number of constraints in linear model = " << nb_oacuts << endl);
     //OA_iter.print();
 }
 
