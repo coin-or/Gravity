@@ -489,7 +489,7 @@ Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
             else
                 if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                 {
-                    add_outer_app_uniform(5, *con);
+                    //add_outer_app_uniform(5, *con);
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices allset("active_"+con->_name);
                     auto keys=con->_indices->_keys;
@@ -520,7 +520,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     vector<double> xcurrent, xres;
     get_solution(xsolution);
     set_solution(obbt_solution);
-    const double active_tol=1e-3,active_tol_sol=1e-10;
+    const double active_tol=1e-2,active_tol_sol=1e-10;
     
     bool interior_solv=true;
     vector<double> c_val ;
