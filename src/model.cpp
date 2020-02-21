@@ -5998,7 +5998,6 @@ namespace gravity {
             if(get<1>(status)>0)
                 global_iter++;
             //        obbt_model->print();
-            break;
             
         }
         time_end = get_wall_time();
@@ -6339,8 +6338,11 @@ namespace gravity {
                                                                     mod->add(*con);
                                                                 }
                                                             }
-                                                            //}
-                                                        }
+                                                            }
+                                                        //}
+//                                                         for(auto &con: obbt_model->_cons_vec){
+//                                                             DebugOn(con->_name<<endl);
+//                                                         }
                                                     }
                                                 }
                                                 else
@@ -6457,24 +6459,26 @@ namespace gravity {
                             terminate=true;
                             //                        obbt_model->print();
                         }
-                        if(iter==1){
-                            obbt_model->print();
-                            DebugOn("Number of constraints "<<obbt_model->_nb_cons);
-                            DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size());
+                       // if(iter==1){
+                            //obbt_model->print();
+                            DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
+                            DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                             for(auto &con: obbt_model->_cons_vec){
+                                if(con->_name.find("OA_cuts")!=std::string::npos){
+                                DebugOn(con->_name<<" ");
                             auto nb_inst = con->get_nb_instances();
                              for(auto &l: *(con->_lterms)){
                                 if(l.second._coef->is_param()) {
                                     auto p_cst = ((param<>*)(l.second._coef.get()));
-                                    DebugOn(p_cst->_indices->_keys->size());
+                                    DebugOn(p_cst->_indices->size()<<" ");
                                     
                                     //                                    DebugOn(p_cst->_indices->_keys->size());
                                 }
                                 else {
                                     throw invalid_argument("Coefficient must be parameter");
                                 }
-                                auto parkeys=l.second._p->_indices->_keys;
-                                 DebugOn(parkeys->size());
+                                auto parkeys=l.second._p->_indices;
+                                 DebugOn(parkeys->size()<<" ");
                                  break;
                              }
                                 if(con->_cst->is_param()){
@@ -6486,11 +6490,12 @@ namespace gravity {
                                         throw invalid_argument("function should be a param");
                                     }
                                     auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                    DebugOn(p->_indices->_keys->size()<<endl);
+                                    DebugOn(p->_indices->size()<<endl);
                                 }
+                            }
                         }
-                            break;
-                    }
+                           // break;
+                    //}
                     }
                     if(break_flag==true)
                     {

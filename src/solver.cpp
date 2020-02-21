@@ -520,7 +520,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     vector<double> xcurrent, xres;
     get_solution(xsolution);
     set_solution(obbt_solution);
-    const double active_tol=1e-2,active_tol_sol=1e-10;
+    const double active_tol=1e-3,active_tol_sol=1e-10;
     
     bool interior_solv=true;
     vector<double> c_val ;
@@ -632,12 +632,12 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                         }
                         else{
                             con->get_outer_coef(i, c_val, c0_val);
-                            vector<int> coefs;
-                            for (auto j = 0; j<c_val.size(); j++) {
-                                coefs.push_back(1e3*c_val[j]);
-                            }
-                            coefs.push_back(1e3*c0_val);
-                            if(_OA_cuts[con->_id].insert(coefs).second)
+//                            vector<int> coefs;
+//                            for (auto j = 0; j<c_val.size(); j++) {
+//                                coefs.push_back(1e3*c_val[j]);
+//                            }
+//                            coefs.push_back(1e3*c0_val);
+//                            if(_OA_cuts[con->_id].insert(coefs).second)
                                 oa_cut=true;
                             //                                else {
                             //                                    DebugOn("discarded OA cut");

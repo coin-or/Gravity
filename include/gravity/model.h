@@ -2002,9 +2002,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             if (_cons_name.count(c.get_name())==0) {
                 auto newc = make_shared<Constraint<type>>(c);
-                for (auto &vp: *newc->_vars) {
-                    _v_in_cons[vp.second.first->_name].insert(newc);
-                }
+//                for (auto &vp: *newc->_vars) {
+//                    _v_in_cons[vp.second.first->_name].insert(newc);
+//                }
                 newc->_val = c._val;
                 newc->check_soc();
                 newc->check_rotated_soc();
