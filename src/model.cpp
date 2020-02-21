@@ -5998,6 +5998,7 @@ namespace gravity {
             if(get<1>(status)>0)
                 global_iter++;
             //        obbt_model->print();
+            break;
             
         }
         time_end = get_wall_time();
@@ -6456,8 +6457,41 @@ namespace gravity {
                             terminate=true;
                             //                        obbt_model->print();
                         }
+                        if(iter==1){
+                            obbt_model->print();
+                            DebugOn("Number of constraints "<<obbt_model->_nb_cons);
+                            DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size());
+                            for(auto &con: obbt_model->_cons_vec){
+                            auto nb_inst = con->get_nb_instances();
+                             for(auto &l: *(con->_lterms)){
+                                if(l.second._coef->is_param()) {
+                                    auto p_cst = ((param<>*)(l.second._coef.get()));
+                                    DebugOn(p_cst->_indices->_keys->size());
+                                    
+                                    //                                    DebugOn(p_cst->_indices->_keys->size());
+                                }
+                                else {
+                                    throw invalid_argument("Coefficient must be parameter");
+                                }
+                                auto parkeys=l.second._p->_indices->_keys;
+                                 DebugOn(parkeys->size());
+                                 break;
+                             }
+                                if(con->_cst->is_param()){
+                                    auto co_cst = ((param<>*)(con->_cst.get()));
+                                }
+                                else if(con->_cst->is_function()){
+                                    auto rhs_f = static_pointer_cast<func<>>(con->_cst);
+                                    if(!rhs_f->func_is_param()){
+                                        throw invalid_argument("function should be a param");
+                                    }
+                                    auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+                                    DebugOn(p->_indices->_keys->size()<<endl);
+                                }
+                        }
+                            break;
                     }
-                    
+                    }
                     if(break_flag==true)
                     {
                         DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
