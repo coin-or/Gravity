@@ -529,6 +529,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
     bool convex_region=true;
     bool add_new=false;
     int nb_added_cuts = 0;
+    string keyv;
     //    Ointerior.print();
     auto mname=modelname;
     string vkname,keyk,dirk;
@@ -554,11 +555,17 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
             //            con->uneval();
             //            con->eval_all();
             for(auto i=0;i<con->get_nb_inst();i++){
-//                auto vck=con->_vars->at(vkname).first;
-//                auto posv=vck->get_id_inst(i);
-//                auto keyv=(*vck->_indices->_keys)[posv];
-//                DebugOn(keyv<<" "<<keyk<<endl);
-//                if(keyv==keyk){
+                auto vck=con->_vars->at(vkname).first;
+                auto posv=vck->get_id_inst(i);
+               // if(!vck->is_indexed()){
+                keyv=(*vck->_indices->_keys)[posv];
+//                }
+//                else{
+//
+//                =(*vck->_indices->_ids)[posv];
+//                }
+                DebugOn(keyv<<" "<<keyk<<endl);
+                if(keyv==keyk){
                 oa_cut=false;
                 c0_val=0;
                 c_val.resize(con->_nb_vars,0);
@@ -714,6 +721,7 @@ void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                 xcurrent.clear();
                 xinterior.clear();
                 xres.clear();
+            }
             }
         }
         }
