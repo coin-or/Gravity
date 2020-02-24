@@ -5961,7 +5961,7 @@ namespace gravity {
         int output;
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
         double gap_new=-999, gap=0;
-        const double gap_tol=1e-1;
+        const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
