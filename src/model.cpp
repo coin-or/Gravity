@@ -5960,6 +5960,8 @@ namespace gravity {
         int total_iter=0, global_iter=1;
         int output;
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
+        double gap_new, gap;
+        const double gap_tol=1e-1;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
@@ -5987,16 +5989,22 @@ namespace gravity {
         
         total_iter += get<1>(status);
         auto lower_bound=get<6>(status);
-        auto gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+        gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+        
         while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
             if(total_iter>= max_iter)
                 break;
             status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
             lower_bound=get<6>(status);
-            gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+            gap_new = (upper_bound - lower_bound)/std::abs(upper_bound);
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
+            if(std::abs(gap_new-gap)<=gap_tol){
+                gap=gap_new;
+                break;
+            }
+            gap=gap_new;
             //        obbt_model->print();
             
         }
@@ -6463,37 +6471,6 @@ namespace gravity {
                             //obbt_model->print();
                             DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
                             DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
-                            for(auto &con: obbt_model->_cons_vec){
-                                if(con->_name.find("OA_cuts")!=std::string::npos){
-                                DebugOn(con->_name<<" ");
-                            auto nb_inst = con->get_nb_instances();
-                             for(auto &l: *(con->_lterms)){
-                                if(l.second._coef->is_param()) {
-                                    auto p_cst = ((param<>*)(l.second._coef.get()));
-                                    DebugOn(p_cst->_indices->size()<<" ");
-                                    
-                                    //                                    DebugOn(p_cst->_indices->_keys->size());
-                                }
-                                else {
-                                    throw invalid_argument("Coefficient must be parameter");
-                                }
-                                auto parkeys=l.second._p->_indices;
-                                 DebugOn(parkeys->size()<<" ");
-                                 break;
-                             }
-                                if(con->_cst->is_param()){
-                                    auto co_cst = ((param<>*)(con->_cst.get()));
-                                }
-                                else if(con->_cst->is_function()){
-                                    auto rhs_f = static_pointer_cast<func<>>(con->_cst);
-                                    if(!rhs_f->func_is_param()){
-                                        throw invalid_argument("function should be a param");
-                                    }
-                                    auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                    DebugOn(p->_indices->size()<<endl);
-                                }
-                            }
-                        }
                            // break;
                     //}
                     }
