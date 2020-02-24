@@ -5960,7 +5960,7 @@ namespace gravity {
         int total_iter=0, global_iter=1;
         int output;
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
-        double gap_new, gap;
+        double gap_new=-999, gap=0;
         const double gap_tol=1e-1;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
