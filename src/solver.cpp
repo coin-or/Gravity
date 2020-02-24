@@ -177,28 +177,46 @@ namespace gravity {
             auto v = it.second;
             Interior.add_var(v);
         }
+        indices ind_eta("ind_eta");
+        vector<indices> ind_eta_vec;
+        for (auto &con: _cons_vec)
+        {
+            if(!con->is_linear()) {
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    indices ind_eta_c("ind_eta_c");
+                    for(auto i=0;i<con->get_nb_instances();i++){
+                    ind_eta.add(con->_name+to_string(i));
+                    ind_eta_c.add(con->_name+to_string(i));
+                    }
+                    ind_eta_vec.push_back(ind_eta_c);
+                }
+            }
+        }
+                    
         var<> eta_int("eta_interior", -1, 0);
-        Interior.add(eta_int);
+        Interior.add(eta_int.in(ind_eta));
         
         /* Objective */
-        Interior.min(eta_int);
+        Interior.min(sum(eta_int));
         
         /* Constraints */
-        
+        int count=0;
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    auto ind=ind_eta_vec[count++];
+                    
                     Constraint<> Inter_con(*con);
                     
                     if(con->_ctype==leq)
                     {
-                        Interior.add(Inter_con<=eta_int);
+                        Interior.add(Inter_con<=eta_int.in(ind));
                     }
                     else  if(con->_ctype==geq)
                     {
-                        Interior.add(Inter_con>=-1*eta_int);
+                        Interior.add(Inter_con>=-1*eta_int.in(ind));
                     }
                 }
             }
@@ -433,6 +451,7 @@ namespace gravity {
         bool scale=false;
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
+        //Ointerior.print();
         modelI.run(output=5, tol);
         //    Ointerior.print();
         
