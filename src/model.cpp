@@ -6000,10 +6000,10 @@ namespace gravity {
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
-            if(std::abs(gap_new-gap)<=gap_tol){
-                gap=gap_new;
-                break;
-            }
+    //            if(std::abs(gap_new-gap)<=gap_tol){
+    //                gap=gap_new;
+    //                break;
+    //            }
             gap=gap_new;
             //        obbt_model->print();
             
@@ -6060,7 +6060,7 @@ namespace gravity {
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
         const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, subproblem_tol=1e-6;
-        int gap_count_int=1, iter=0, oacuts=0;
+        int gap_count_int=1, iter=0, oacuts=0, oacuts_init=0;
         int output = 0;
         int batch_model_count=0;
         double solver_time =0, solver_time_end, gapnl,gap, solver_time_start = get_wall_time();
@@ -6091,6 +6091,7 @@ namespace gravity {
                     //obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                     oacuts=obbt_model->_nb_cons;
+                    oacuts_init=oacuts;
                     DebugOn("Initial number of constraints "<<oacuts<<endl);
                 }
                 
@@ -6443,7 +6444,8 @@ namespace gravity {
                                     for (auto const &iter: relaxed_model->_OA_cuts) {
                                         nb_OA_cuts += iter.second.size();
                                     }
-                                    DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
+                                    DebugOn("Number of OA cuts = "<<nb_OA_cuts<<endl);
+                                    DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                 }
                             }
                             else {

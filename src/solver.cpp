@@ -539,7 +539,7 @@ namespace gravity {
         vector<double> xcurrent, xres;
         get_solution(xsolution);
         set_solution(obbt_solution);
-        const double active_tol=1e-3,active_tol_sol=1e-10;
+        const double active_tol=1e-6,active_tol_sol=1e-10;
         
         bool interior_solv=true;
         vector<double> c_val ;
@@ -554,6 +554,7 @@ namespace gravity {
         string vkname,keyk,dirk;
         std::size_t pos = mname.find("|");
         vkname.assign(mname, 0, pos);
+      //  DebugOn("vkname "<<vkname<<endl);
         mname=mname.substr(pos+1);
         pos=mname.find("|");
         keyk.assign(mname, 0, pos);
@@ -588,7 +589,7 @@ namespace gravity {
                                 auto posv=(vck->_indices->_ids->at(0))[i];
                                 keyv=(*vck->_indices->_keys)[posv];
                             }
-                            //DebugOn(keyv<<" "<<keyk<<endl);
+                           // DebugOn(vkname<<""<<keyv<<" "<<keyk<<endl);
                             if(keyv==keyk){
                                 oa_cut=false;
                                 c0_val=0;
@@ -663,12 +664,12 @@ namespace gravity {
                                         }
                                         else{
                                             con->get_outer_coef(i, c_val, c0_val);
-                                            //                            vector<int> coefs;
-                                            //                            for (auto j = 0; j<c_val.size(); j++) {
-                                            //                                coefs.push_back(1e3*c_val[j]);
-                                            //                            }
-                                            //                            coefs.push_back(1e3*c0_val);
-                                            //                            if(_OA_cuts[con->_id].insert(coefs).second)
+                                                                        vector<int> coefs;
+                                                                        for (auto j = 0; j<c_val.size(); j++) {
+                                                                            coefs.push_back(1e3*c_val[j]);
+                                                                        }
+                                                                        coefs.push_back(1e3*c0_val);
+                                                                        if(_OA_cuts[con->_id].insert(coefs).second)
                                             oa_cut=true;
                                             //                                else {
                                             //                                    DebugOn("discarded OA cut");

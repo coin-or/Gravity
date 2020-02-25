@@ -2049,7 +2049,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, bool sdp_kim, double upper_bound)
 {
-    bool relax, sdp_cuts = true,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
+    bool relax, sdp_cuts = true,  llnc=true, lazy_bool = false, add_original=true, convexify=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     num_bags = atoi(num_bags_s.c_str());
