@@ -192,6 +192,7 @@ int main (int argc, char * argv[]) {
     auto OPF=build_ACOPF(grid, ACRECT);
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
+    int oacuts=0, oacuts_init=0;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
     if(!linearize){
@@ -214,6 +215,8 @@ int main (int argc, char * argv[]) {
         lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
+        oacuts=get<8>(res);
+        oacuts_init=get<9>(res);
         SDP->print_constraints_stats(1e-6);
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
@@ -224,7 +227,7 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     if(worker_id==0){
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<otal_time<<"\t"endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
     }
