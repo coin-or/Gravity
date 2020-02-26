@@ -6341,16 +6341,6 @@ namespace gravity {
                                                                 relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->get_name(), oacuts);
 //                                                            }
 //                                                        }
-                                                        for (auto con: obbt_model->_cons_vec){
-                                                            if(con->_name.find("OA_cuts_")!=std::string::npos){
-                                                                for(auto &mod:batch_models){
-                                                                    if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
-                                                                        mod->remove(con->_name);
-                                                                    }
-                                                                    mod->add(*con);
-                                                                }
-                                                            }
-                                                        }
                                                     }
                                                 }
                                                 else
@@ -6363,8 +6353,18 @@ namespace gravity {
                                             }
                                         }
                                         for(auto &mod:batch_models){
+                                            for (auto con: obbt_model->_cons_vec){
+                                                if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                                        if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                            mod->remove(con->_name);
+                                                        }
+                                                        mod->add(*con);
+                                                }
+                                            }
                                             mod->reset_constrs();
                                             mod->reset_lifted_vars_bounds();
+                                            mod->reset();
+                                            mod->reindex();
                                         }
                                         batch_model_count=0;
                                     }
@@ -6446,15 +6446,19 @@ namespace gravity {
                                     DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                 obbt_model->get_solution(obbt_solution);
                                 relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                                for (auto con: obbt_model->_cons_vec){
-                                    if(con->_name.find("OA_cuts_")!=std::string::npos){
-                                        for(auto &mod:batch_models){
+                                for(auto &mod:batch_models){
+                                    for (auto con: obbt_model->_cons_vec){
+                                        if(con->_name.find("OA_cuts_")!=std::string::npos){
                                             if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
                                                 mod->remove(con->_name);
                                             }
                                             mod->add(*con);
                                         }
                                     }
+                                    mod->reset_constrs();
+                                    mod->reset_lifted_vars_bounds();
+                                    mod->reset();
+                                    mod->reindex();
                                 }
                             }
                             else {
@@ -6463,9 +6467,6 @@ namespace gravity {
                                 DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
                             }
                         }
-                        
-                        
-                        
                         if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                         {
                             DebugOn("Gap closed at iter "<< iter<<endl);
@@ -6533,7 +6534,7 @@ namespace gravity {
                 avg=sum/num_var;
                 
                 DebugOn("Average interval reduction\t"<<avg<<endl);
-                obbt_model->print();
+                //obbt_model->print();
                 
                 if(!close)
                 {
@@ -6547,6 +6548,10 @@ namespace gravity {
                         }
                     }
                     else{
+                        obbt_model->reset();
+                        obbt_model->reindex();
+                        obbt_model->reset_constrs();
+                        obbt_model->reset_lifted_vars_bounds();
 //                        relaxed_model->copy_bounds(obbt_model);
 //                        relaxed_model->reset_constrs();
                         solver<> LB_solver(obbt_model,lb_solver_type);
@@ -6593,7 +6598,7 @@ namespace gravity {
                             DebugOn("Lower bounding problem status = " << obbt_model->_status <<endl);
                         }
                         else{
-                            DebugOn("Lower bounding problem status = " << relaxed_model->_status <<endl);
+                            DebugOn("Lower bounding problem status = " << obbt_model->_status <<endl);
                         }
                         DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
                     }
