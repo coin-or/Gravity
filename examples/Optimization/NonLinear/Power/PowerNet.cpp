@@ -2236,9 +2236,22 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     //    var<> eta("eta", 0, 1);
     //    SDPOPF->add(eta.in(range(0,0)));
     
-    var<> etag("etag", pg_min_sq, pg_max_sq);
+  
+    
+    func<double> prod_b1 = (Pg.get_lb()*Pg.get_lb()).in(gens);
+    func<double> prod_b2 = (Pg.get_lb()*Pg.get_ub()).in(gens);
+    func<double> prod_b3 = (Pg.get_ub()*Pg.get_ub()).in(gens);
+    
+    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens), func<double>());
+    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens),prod_b3).in(gens);
+    
+    var<> etag("etag", lb, ub);
+    etag._lift=true;
+
     if(!nonlin_obj){
+
         SDPOPF->add(etag.in(gens));
+        
     }
     
     

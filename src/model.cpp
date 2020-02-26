@@ -6085,6 +6085,7 @@ namespace gravity {
             {
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
+                    //obbt_model->print();
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     oacuts=obbt_model->_nb_cons;
                     DebugOn("Initial constraints after add_outer_app_solution"<<oacuts<<endl);
@@ -6094,9 +6095,9 @@ namespace gravity {
                         o*=1.1;
                     }
                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-//                    relaxed_model->get_solution(obbt_solution);
+                    relaxed_model->get_solution(obbt_solution);
 //                    for(auto &o:obbt_solution){
-//                        o*=1.02;
+//                        o*=1.2;
 //                    }
 //                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
                     obbt_model->reindex();
