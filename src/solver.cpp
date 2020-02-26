@@ -182,6 +182,7 @@ namespace gravity {
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
+                if(con->_name!="SOC_convex"||true){
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                     indices ind_eta_c("ind_eta_c");
                     for(auto i=0;i<con->get_nb_instances();i++){
@@ -192,7 +193,7 @@ namespace gravity {
                 }
             }
         }
-                    
+        }
         var<> eta_int("eta_interior", -1, 0);
         Interior.add(eta_int.in(ind_eta));
         
@@ -205,6 +206,7 @@ namespace gravity {
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
+                if(con->_name!="SOC_convex"||true){
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                     auto ind=ind_eta_vec[count++];
                     
@@ -220,6 +222,7 @@ namespace gravity {
                     }
                 }
             }
+        }
         }
         return *Interior.copy();
     }
@@ -430,7 +433,7 @@ namespace gravity {
     template<>
     Model<> Model<>::add_outer_app_solution(const Model<>& nonlin)
     {
-        const double active_tol=1e-6,active_tol_sol=1e-8, perturb_dist=1e-1;
+        const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1;
         vector<double> xsolution(_nb_vars);
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
@@ -452,7 +455,7 @@ namespace gravity {
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
         //Ointerior.print();
-        modelI.run(output=5, tol);
+        modelI.run(output=0, tol);
         //    Ointerior.print();
         
         if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
@@ -463,6 +466,7 @@ namespace gravity {
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
+                if(con->_name!="SOC_convex"||true){
                 if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
                 {
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
@@ -526,6 +530,7 @@ namespace gravity {
                         }
                     }
             }
+            }
         }
         return Ointerior;
     }
@@ -539,7 +544,7 @@ namespace gravity {
         vector<double> xcurrent, xres;
         get_solution(xsolution);
         set_solution(obbt_solution);
-        const double active_tol=1e-6,active_tol_sol=1e-10;
+        const double active_tol=1e-6,active_tol_sol=1e-12;
         
         bool interior_solv=true;
         vector<double> c_val ;
@@ -550,8 +555,12 @@ namespace gravity {
         int nb_added_cuts = 0;
         string keyv;
         //    Ointerior.print();
-        auto mname=modelname;
+
         string vkname,keyk,dirk;
+        var<> vk;
+        shared_ptr<param_> vck;
+        if(modelname!="allvar"){
+        auto mname=modelname;
         std::size_t pos = mname.find("|");
         vkname.assign(mname, 0, pos);
       //  DebugOn("vkname "<<vkname<<endl);
@@ -559,13 +568,22 @@ namespace gravity {
         pos=mname.find("|");
         keyk.assign(mname, 0, pos);
         dirk=mname.substr(pos+1);
-        auto vk=this->template get_var<double>(vkname);
-        shared_ptr<param_> vck;
+        vk=this->template get_var<double>(vkname);
+        }
+        bool var_found=false, key_found=false;
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
-                if(con->has_sym_var(vk)){
+                var_found=false;
+                if(modelname=="allvar"){
+                    var_found=true;
+                }
+                else if(con->has_sym_var(vk)){
+                    var_found=true;
+                }
+                if(var_found){
                     auto cname=con->_name;
+                    if(cname!="SOC_convex"||true){
                     auto con_lin_name="OA_cuts_"+con->_name;
                     if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
                         add_new=false;
@@ -578,7 +596,12 @@ namespace gravity {
 
                         auto cnb_inst=con->get_nb_inst();
                         for(auto i=0;i<cnb_inst;i++){
+                            key_found=false;
                             for(auto &v: *con->_vars){
+                                if(modelname=="allvar"){
+                                    key_found=true;
+                                }
+                                else{
                                 if(v.second.first->_vec_id==vk._vec_id){
                                     vck=con->_vars->at(v.first).first;
                             if(!vck->is_indexed()){
@@ -589,8 +612,13 @@ namespace gravity {
                                 auto posv=(vck->_indices->_ids->at(0))[i];
                                 keyv=(*vck->_indices->_keys)[posv];
                             }
+                                    if(keyv==keyk){
+                                        key_found=true;
+                                    }
+                                }
+                                }
                            // DebugOn(vkname<<""<<keyv<<" "<<keyk<<endl);
-                            if(keyv==keyk){
+                            if(key_found){
                                 oa_cut=false;
                                 c0_val=0;
                                 c_val.resize(con->_nb_vars,0);
@@ -752,7 +780,7 @@ namespace gravity {
             }
                     }
                 }
-            }
+        }
         
         
         set_solution(xsolution);

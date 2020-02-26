@@ -6428,27 +6428,39 @@ namespace gravity {
                         else{
                             //obbt_model->print();
                             //                            batch_models[nb_total_threads-1]->print();
-                            relaxed_model->copy_bounds(obbt_model);
-                            relaxed_model->reset_constrs();
-                            solver<> LB_solver(relaxed_model,lb_solver_type);
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+//                            relaxed_model->copy_bounds(obbt_model);
+//                            relaxed_model->reset_constrs();
+                            solver<> LB_solver(obbt_model,ipopt);
+                            //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                             LB_solver.run(output = 0, lb_solver_tol);
-                            if(relaxed_model->_status==0)
+                            if(obbt_model->_status==0)
                             {
-                                lower_bound=relaxed_model->get_obj_val();
+                                lower_bound=obbt_model->get_obj_val();
                                 auto gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                 DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                if(linearize){
                                     unsigned nb_OA_cuts = 0;
                                     for (auto const &iter: relaxed_model->_OA_cuts) {
                                         nb_OA_cuts += iter.second.size();
                                     }
                                     DebugOn("Number of OA cuts = "<<nb_OA_cuts<<endl);
                                     DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
+                                obbt_model->get_solution(obbt_solution);
+                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                                for (auto con: obbt_model->_cons_vec){
+                                    if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                        for(auto &mod:batch_models){
+                                            if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                mod->remove(con->_name);
+                                            }
+                                            mod->add(*con);
+                                        }
+                                    }
                                 }
                             }
                             else {
-                                DebugOn("Failed to solve OBBT Model " << relaxed_model->_name <<endl);
+//                                obbt_model->print();
+//                                batch_models[nb_total_threads-1]->print();
+                                DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
                             }
                         }
                         
@@ -6521,6 +6533,7 @@ namespace gravity {
                 avg=sum/num_var;
                 
                 DebugOn("Average interval reduction\t"<<avg<<endl);
+                obbt_model->print();
                 
                 if(!close)
                 {
@@ -6534,13 +6547,13 @@ namespace gravity {
                         }
                     }
                     else{
-                        relaxed_model->copy_bounds(obbt_model);
-                        relaxed_model->reset_constrs();
-                        solver<> LB_solver(relaxed_model,lb_solver_type);
-                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+//                        relaxed_model->copy_bounds(obbt_model);
+//                        relaxed_model->reset_constrs();
+                        solver<> LB_solver(obbt_model,lb_solver_type);
+                       // LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                         LB_solver.run(output = 0, lb_solver_tol);
                         if(relaxed_model->_status==0){
-                            lower_bound=relaxed_model->get_obj_val();
+                            lower_bound=obbt_model->get_obj_val();
                         }
                     }
                 }
@@ -6557,7 +6570,8 @@ namespace gravity {
                     //                obbt_model->reset_constrs();
                     //                    solver<> LB_solver(obbt_model,lb_solver_type);
                     //                    LB_solver.run(output = 0, lb_solver_tol);
-                    if((obbt_model->_status==0 && !linearize)||(relaxed_model->_status==0 && linearize))
+                   // if((obbt_model->_status==0 && !linearize)||(relaxed_model->_status==0 && linearize))
+                    if(obbt_model->_status==0)
                     {
                         
                         DebugOff("\nLower bound = " << " " << to_string(lower_bound) << " " <<endl);
