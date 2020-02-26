@@ -6086,15 +6086,28 @@ namespace gravity {
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
+                    oacuts=obbt_model->_nb_cons;
+                    DebugOn("Initial constraints after add_outer_app_solution"<<oacuts<<endl);
+                    oacuts_init=obbt_model->_nb_cons;
+                    relaxed_model->get_solution(obbt_solution);
+                    for(auto &o:obbt_solution){
+                        o*=1.1;
+                    }
+                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+//                    relaxed_model->get_solution(obbt_solution);
+//                    for(auto &o:obbt_solution){
+//                        o*=1.02;
+//                    }
+//                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                    obbt_model->reindex();
+                    obbt_model->reset();
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                     //obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
-                    oacuts=obbt_model->_nb_cons;
-                    oacuts_init=oacuts;
-                    DebugOn("Initial number of constraints "<<oacuts<<endl);
+                    DebugOn("Initial number of constraints after perturb"<<oacuts<<endl);
                 }
                 
                 
@@ -6483,6 +6496,7 @@ namespace gravity {
                         }
                         // if(iter==1){
                         //obbt_model->print();
+                        obbt_model->reindex();
                         DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
                         DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                         // break;

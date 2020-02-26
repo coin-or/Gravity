@@ -596,8 +596,8 @@ namespace gravity {
 
                         auto cnb_inst=con->get_nb_inst();
                         for(auto i=0;i<cnb_inst;i++){
-                            key_found=false;
                             for(auto &v: *con->_vars){
+                                key_found=false;
                                 if(modelname=="allvar"){
                                     key_found=true;
                                 }
