@@ -635,6 +635,9 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     for (size_t i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
         c2.add_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
+        if(atof(word.c_str())*pow(bMVA,2)!=0){
+            gensc2_pos.add(to_string(i));
+        }
         file >> word;
         c1.add_val(to_string(i),atof(word.c_str())*bMVA);
         file >> word;
@@ -2142,6 +2145,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     auto cc=grid.cc.in(arcs);
     auto dd=grid.dd.in(arcs);
     auto ch_half=grid.ch_half.in(arcs);
+    auto gens_c2pos=grid.gensc2_pos;
     
     
     
@@ -2250,7 +2254,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 
     if(!nonlin_obj){
 
-        SDPOPF->add(etag.in(gens));
+        SDPOPF->add(etag.in(gens_c2pos));
         
     }
     
@@ -2292,11 +2296,11 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     else
     {
         Constraint<> obj_cost("obj_cost");
-        obj_cost=etag-pow(Pg,2);
-        SDPOPF->add(obj_cost.in(gens)>=0);
+        obj_cost=etag-pow(Pg.in(gens_c2pos),2);
+        SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
         
         
-        auto obj=(product(c1,Pg) + product(c2,etag) + sum(c0));
+        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
         SDPOPF->min(obj);
         
         

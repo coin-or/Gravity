@@ -204,6 +204,7 @@ public:
     //    indices typical_days = time("week");
     indices Nt, Nt_load, Nt_no_load, Et, Gt, exist_Gt, exist_Bt, exist_Et, pot_Et, pot_Gt, pot_Bt, Bt, Bt1, Gt1, Wt, PVt, PV_pot_t, pot_gen, pot_batt, pot_edges ;
     indices Et_opt, Gt_opt, Bt_opt, Bt1_opt, Wt_opt, PVt_opt;
+    indices gensc2_pos=indices("gensc2_pos");
     
     
     /** Investment Binary Variables */
@@ -301,6 +302,8 @@ public:
     indices out_arcs_per_node() const;
     indices in_arcs_per_node() const;
     void update_pij_bounds();
+    
+    
     
     unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);

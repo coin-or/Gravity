@@ -6071,6 +6071,7 @@ namespace gravity {
         /* Running upper and lower bound solvers */
         vector<double> obbt_solution(relaxed_model->_nb_vars);
         double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
+        int obbt_subproblem_count=0;
         if(relaxed_model->_status==0)
         {
             /* Check if gap is already not zero at root node */
@@ -6088,14 +6089,14 @@ namespace gravity {
                     //obbt_model->print();
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     oacuts=obbt_model->_nb_cons;
-                    DebugOn("Initial constraints after add_outer_app_solution"<<oacuts<<endl);
+                    DebugOn("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
                     oacuts_init=obbt_model->_nb_cons;
                     relaxed_model->get_solution(obbt_solution);
                     for(auto &o:obbt_solution){
                         o*=1.1;
                     }
                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                    relaxed_model->get_solution(obbt_solution);
+//                    relaxed_model->get_solution(obbt_solution);
 //                    for(auto &o:obbt_solution){
 //                        o*=1.2;
 //                    }
@@ -6106,9 +6107,8 @@ namespace gravity {
                     LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
-                    //obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
-                    DebugOn("Initial number of constraints after perturb"<<oacuts<<endl);
+                    DebugOn("Initial number of constraints after perturb "<<oacuts<<endl);
                 }
                 
                 
@@ -6222,6 +6222,8 @@ namespace gravity {
                                     /* When batch models has reached size of nb_threads or when at the last key of last variable */
                                     if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                     {
+                                        obbt_subproblem_count+=batch_model_count;
+                                        
                                         double batch_time_start = get_wall_time();
 #ifdef USE_MPI
                                         run_MPI(batch_models,lb_solver_type,subproblem_tol,nb_threads,"ma27",2000,2000, false,true);
@@ -6378,7 +6380,6 @@ namespace gravity {
                                             mod->reset_constrs();
                                             mod->reset_lifted_vars_bounds();
                                             mod->reset();
-                                            mod->reindex();
                                         }
                                         batch_model_count=0;
                                     }
@@ -6549,6 +6550,7 @@ namespace gravity {
                 avg=sum/num_var;
                 
                 DebugOn("Average interval reduction\t"<<avg<<endl);
+                DebugOn("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
                 //obbt_model->print();
                 
                 if(!close)
