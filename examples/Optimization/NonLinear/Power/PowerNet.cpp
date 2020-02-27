@@ -2242,12 +2242,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
   
     
-    func<double> prod_b1 = (Pg.get_lb()*Pg.get_lb()).in(gens);
-    func<double> prod_b2 = (Pg.get_lb()*Pg.get_ub()).in(gens);
-    func<double> prod_b3 = (Pg.get_ub()*Pg.get_ub()).in(gens);
+    func<double> prod_b1 = (Pg.get_lb().in(gens_c2pos)*Pg.in(gens_c2pos).get_lb().in(gens_c2pos)).in(gens_c2pos);
+    func<double> prod_b2 = (Pg.get_lb().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
+    func<double> prod_b3 = (Pg.get_ub().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
     
-    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens), func<double>());
-    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens),prod_b3).in(gens);
+    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens_c2pos), func<double>());
+    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens_c2pos),prod_b3).in(gens_c2pos);
     
     var<> etag("etag", lb, ub);
     etag._lift=true;
