@@ -6097,11 +6097,16 @@ namespace gravity {
                         o*=1.1;
                     }
                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-//                    relaxed_model->get_solution(obbt_solution);
-//                    for(auto &o:obbt_solution){
-//                        o*=1.2;
-//                    }
-//                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                    relaxed_model->get_solution(obbt_solution);
+                    for(auto &o:obbt_solution){
+                        o*=1.15;
+                    }
+                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                    relaxed_model->get_solution(obbt_solution);
+                    for(auto &o:obbt_solution){
+                        o*=1.2;
+                    }
+                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
                     obbt_model->reindex();
                     obbt_model->reset();
                     solver<> LB_solver(obbt_model,lb_solver_type);
