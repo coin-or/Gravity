@@ -5994,8 +5994,10 @@ namespace gravity {
         auto lower_bound=get<6>(status);
         gap = (upper_bound - lower_bound)/std::abs(upper_bound);
         
-        while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
+        while((gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
             if(total_iter>= max_iter)
+                break;
+            if(get<1>(status)==1 && max_iter>1)
                 break;
             oacuts=get<8>(status);
             status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init);
@@ -6023,7 +6025,7 @@ namespace gravity {
         get<5>(res)=get<5>(status);
         get<6>(res)=get<6>(status);
         get<7>(res)=get<7>(status);
-        get<8>(res)=oacuts;
+        get<8>(res)=get<8>(status);
         get<9>(res)=oacuts_init;
         upper_bound=get<5>(status);
         DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
