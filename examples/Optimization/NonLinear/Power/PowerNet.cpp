@@ -2151,12 +2151,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     auto SDPOPF = make_shared<Model<>>("SDP-OPF Model");
     
-    /** Variables */
-    /* Power generation variables */
-    var<> Pg("Pg", pg_min, pg_max);
-    var<> Qg ("Qg", qg_min, qg_max);
-    SDPOPF->add(Pg.in(gens),Qg.in(gens));
-    
+    /* Real part of Wij = ViVj */
+    var<>  R_Wij("R_Wij", wr_min, wr_max);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
+    /* Magnitude of Wii = Vi^2 */
+    var<>  Wii("Wii", w_min, w_max);
+    SDPOPF->add(Im_Wij.in(node_pairs_chord), R_Wij.in(node_pairs_chord),Wii.in(nodes));
     
     var<> Pf_from("Pf_from", pf_from_min,pf_from_max);
     var<> Qf_from("Qf_from", qf_from_min,qf_from_max);
@@ -2167,13 +2168,19 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     //Pf_to._off=pf_to_min._off;
     
-    /* Real part of Wij = ViVj */
-    var<>  R_Wij("R_Wij", wr_min, wr_max);
-    /* Imaginary part of Wij = ViVj */
-    var<>  Im_Wij("Im_Wij", wi_min, wi_max);
-    /* Magnitude of Wii = Vi^2 */
-    var<>  Wii("Wii", w_min, w_max);
-    SDPOPF->add(Wii.in(nodes),R_Wij.in(node_pairs_chord),Im_Wij.in(node_pairs_chord));
+    var<> lij("lij", lij_min,lij_max);
+    var<> lji("lji", lji_min,lji_max);
+    if(current){
+        SDPOPF->add(lij.in(arcs));
+        SDPOPF->add(lji.in(arcs));
+    }
+    
+    /** Variables */
+    /* Power generation variables */
+    var<> Pg("Pg", pg_min, pg_max);
+    var<> Qg ("Qg", qg_min, qg_max);
+    SDPOPF->add(Pg.in(gens),Qg.in(gens));
+    
     
 //    add_original=true;
     if(add_original)
@@ -2234,8 +2241,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.0);
     
-    var<> lij("lij", lij_min,lij_max);
-    var<> lji("lji", lji_min,lji_max);
+
     //
     //    var<> eta("eta", 0, 1);
     //    SDPOPF->add(eta.in(range(0,0)));
@@ -2259,10 +2265,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     }
     
     
-    if(current){
-        SDPOPF->add(lij.in(arcs));
-        SDPOPF->add(lji.in(arcs));
-    }
+
     
     
     

@@ -6125,9 +6125,9 @@ namespace gravity {
                 
                 /**/
                 terminate=false;
-                for(auto &it:obbt_model->_vars_name)
+                for(auto &it:obbt_model->_vars)
                 {
-                    string vname=it.first;
+                    string vname=(*it.second)._name;
                     v=obbt_model->template get_var<double>(vname);
                     auto v_keys=v.get_keys();
                     auto v_key_map=v.get_keys_map();
@@ -6472,6 +6472,14 @@ namespace gravity {
                                     DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                 obbt_model->get_solution(obbt_solution);
                                 relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                                for(auto &o:obbt_solution){
+                                    o*=1.1;
+                                }
+                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+                                for(auto &o:obbt_solution){
+                                    o*=1.15;
+                                }
+                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
                                 for(auto &mod:batch_models){
                                     for (auto con: obbt_model->_cons_vec){
                                         if(con->_name.find("OA_cuts_")!=std::string::npos){
@@ -6484,7 +6492,6 @@ namespace gravity {
                                     mod->reset_constrs();
                                     mod->reset_lifted_vars_bounds();
                                     mod->reset();
-                                    mod->reindex();
                                 }
                             }
                             else {
