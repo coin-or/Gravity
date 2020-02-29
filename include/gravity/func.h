@@ -1056,7 +1056,7 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                if(v->_name==var_name){
+                if(v->get_name(true,true)==var_name){
                     continue;
                 }
                 if(v->_is_vector)

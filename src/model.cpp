@@ -6097,25 +6097,19 @@ namespace gravity {
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     DebugOn("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
                     
-                    relaxed_model->get_solution(obbt_solution);
-                    for(auto &o:obbt_solution){
-                        o*=1.1;
-                    }
-                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                    relaxed_model->get_solution(obbt_solution);
-                    for(auto &o:obbt_solution){
-                        o*=1.15;
-                    }
-                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                    relaxed_model->get_solution(obbt_solution);
-                    for(auto &o:obbt_solution){
-                        o*=1.2;
-                    }
-                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+//                    relaxed_model->get_solution(obbt_solution);
+//                    for(auto &o:obbt_solution){
+//                        auto temp=o;
+//                        o*=1.1;
+//                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
+//                        o=temp;
+//                    }
                     obbt_model->reindex();
                     obbt_model->reset();
-                    solver<> LB_solver(obbt_model,lb_solver_type);
-                    LB_solver.run(output = 0, lb_solver_tol);
+                   // obbt_model->print();
+                    solver<> LB_solver(obbt_model, lb_solver_type);
+                    LB_solver.set_option("bound_relax_factor", 1e-11);
+                    LB_solver.run(output = 5, 1e-9);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
@@ -6457,7 +6451,7 @@ namespace gravity {
 //                            relaxed_model->copy_bounds(obbt_model);
 //                            relaxed_model->reset_constrs();
                             solver<> LB_solver(obbt_model,ipopt);
-                            //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                             LB_solver.run(output = 0, lb_solver_tol);
                             if(obbt_model->_status==0)
                             {
@@ -6471,14 +6465,6 @@ namespace gravity {
                                     DebugOn("Number of OA cuts = "<<nb_OA_cuts<<endl);
                                     DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                 obbt_model->get_solution(obbt_solution);
-                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                                for(auto &o:obbt_solution){
-                                    o*=1.1;
-                                }
-                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                                for(auto &o:obbt_solution){
-                                    o*=1.15;
-                                }
                                 relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
                                 for(auto &mod:batch_models){
                                     for (auto con: obbt_model->_cons_vec){
