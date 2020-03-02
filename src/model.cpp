@@ -6007,10 +6007,10 @@ namespace gravity {
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
-            //            if(std::abs(gap_new-gap)<=gap_tol){
-            //                gap=gap_new;
-            //                break;
-            //            }
+            if(std::abs(gap_new-gap)<=gap_tol){
+                gap=gap_new;
+                break;
+            }
             gap=gap_new;
             //        obbt_model->print();
             
