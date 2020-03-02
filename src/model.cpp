@@ -6108,8 +6108,8 @@ namespace gravity {
                     obbt_model->reset();
                    // obbt_model->print();
                     solver<> LB_solver(obbt_model, lb_solver_type);
-                    LB_solver.set_option("bound_relax_factor", 1e-11);
-                    LB_solver.run(output = 5, 1e-9);
+                    LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                    LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
                     auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
