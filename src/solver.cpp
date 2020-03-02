@@ -645,13 +645,13 @@ namespace gravity {
                                                 }
                                                 else{
                                                     con->get_outer_coef(i, c_val, c0_val);
-                                                                                                        vector<int> coefs;
-                                                                                                        for (auto k = 0; k<c_val.size(); k++) {
-                                                                                                            coefs.push_back(1e3*c_val[k]);
-                                                                                                        }
-                                                                                                        coefs.push_back(1e3*c0_val);
-                                                                                                        if(_OA_cuts[con->_id].insert(coefs).second)
-                                                    oa_cut=true;
+                                                    vector<int> coefs;
+                                                    for (auto k = 0; k<c_val.size(); k++) {
+                                                        coefs.push_back(1e3*c_val[k]);
+                                                    }
+                                                    coefs.push_back(1e3*c0_val);
+                                                    if(_OA_cuts[con->_id].insert(coefs).second)
+                                                        oa_cut=true;
                                                 }
                                             }
                                         }
