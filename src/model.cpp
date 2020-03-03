@@ -6359,7 +6359,7 @@ namespace gravity {
 //                                                        if(linearize && !fixed_point[model->get_name()]){
 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                                 model->get_solution(obbt_solution);
-                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->get_name(), oacuts);
+                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
 //                                                            }
 //                                                        }
                                                     }

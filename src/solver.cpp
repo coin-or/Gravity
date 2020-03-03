@@ -552,7 +552,7 @@ namespace gravity {
         DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=3;
+        int nb_perturb=1;
         int count_var=0;
         if(interior){
             for (auto &con: nonlin._cons_vec)
@@ -592,14 +592,14 @@ namespace gravity {
                                         oa_cut=false;
                                         c0_val=0;
                                         c_val.resize(con->_nb_vars,0);
-                                        v->set_double_val(posv, std::max(xcurrent[count_var]*(1 - j*perturb_dist), lb_v)); /** Perturbed point with negative epsilon */
+                                        v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 - j*perturb_dist), lb_v),ub_v)); /** Perturbed point with negative epsilon */
                                         con->uneval();
                                         fk=con->eval(i);
                                         if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                                             outer=true;
                                         }
                                         if(!outer){
-                                            v->set_double_val(posv, std::min(xcurrent[count_var]*(1 + j*perturb_dist),ub_v)); /** Perturbed point with positive epsilon */
+                                            v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 + j*perturb_dist), lb_v),ub_v)); /** Perturbed point with positive epsilon */
                                             con->uneval();
                                             fk=con->eval(i);
                                             if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
@@ -658,10 +658,10 @@ namespace gravity {
                                                     con->get_outer_coef(i, c_val, c0_val);
                                                     vector<int> coefs;
                                                     for (auto k = 0; k<c_val.size(); k++) {
-                                                        coefs.push_back(1e3*c_val[k]);
+                                                        coefs.push_back(1e5*c_val[k]);
                                                     }
-                                                    coefs.push_back(1e3*c0_val);
-                                                    if(_OA_cuts[con->_id].insert(coefs).second)
+                                                    coefs.push_back(1e5*c0_val);
+                                                    if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                         oa_cut=true;
                                                 }
                                             }
@@ -721,7 +721,7 @@ namespace gravity {
             }
         }
         reindex();
-        DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
+        DebugOn("Number of constraints in linear model after perturb"<<_nb_cons<<endl);
         return Ointerior;
     }
     //
@@ -884,10 +884,10 @@ namespace gravity {
                                                 con->get_outer_coef(i, c_val, c0_val);
                                                 vector<int> coefs;
                                                 for (auto j = 0; j<c_val.size(); j++) {
-                                                    coefs.push_back(1e3*c_val[j]);
+                                                    coefs.push_back(1e5*c_val[j]);
                                                 }
-                                                coefs.push_back(1e3*c0_val);
-                                                if(_OA_cuts[con->_id].insert(coefs).second)
+                                                coefs.push_back(1e5*c0_val);
+                                                if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                     oa_cut=true;
                                                 //                                else {
                                                 //                                    DebugOn("discarded OA cut");
@@ -964,6 +964,7 @@ namespace gravity {
                                     xcurrent.clear();
                                     xinterior.clear();
                                     xres.clear();
+                                    break;
                                 }
                             }
                         }
