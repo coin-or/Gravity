@@ -6232,7 +6232,7 @@ namespace gravity {
                                         
                                         double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                        run_MPI(batch_models,lb_solver_type,subproblem_tol,nb_threads,"ma27",2000,2000, false,true);
+                                        run_MPI(batch_models,lb_solver_type,subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
 #else
                                         run_parallel(batch_models,lb_solver_type,subproblem_tol,nb_threads, 2000);
 #endif
