@@ -613,7 +613,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         gens.push_back(g);
         bus->_gen.push_back(g);
         if(status!=1 || !bus->_active) {
-            DebugOff("INACTIVE GENERATOR!\n" << name << endl);
+            DebugOn("INACTIVE GENERATOR!\n" << name << endl);
             g->_active = false;
         }
         index++;
@@ -636,7 +636,10 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
         c2.add_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
         if(atof(word.c_str())*pow(bMVA,2)!=0){
-            gensc2_pos.add(to_string(i));
+            auto gname=gens[gen_counter]->_name;
+            if(gens[gen_counter]->_active){
+                gensc2_pos.add(gname);
+            }
         }
         file >> word;
         c1.add_val(to_string(i),atof(word.c_str())*bMVA);
