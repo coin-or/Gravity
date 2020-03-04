@@ -6079,7 +6079,7 @@ namespace gravity {
         vector<double> obbt_solution(relaxed_model->_nb_vars);
         double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
         int obbt_subproblem_count=0;
-        double active_tol=0.1;
+        double active_tol=0.2;
         if(relaxed_model->_status==0)
         {
             /* Check if gap is already not zero at root node */
