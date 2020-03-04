@@ -182,7 +182,7 @@ namespace gravity {
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
-                if(con->_name!="SOC_convex"||true){
+                if(con->_name!="SOC_convex"){
                     if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                         indices ind_eta_c("ind_eta_c");
                         for(auto i=0;i<con->get_nb_instances();i++){
@@ -206,7 +206,7 @@ namespace gravity {
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
-                if(con->_name!="SOC_convex"||true){
+                if(con->_name!="SOC_convex"){
                     if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                         auto ind=ind_eta_vec[count++];
                         
@@ -469,7 +469,7 @@ namespace gravity {
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
-                if(con->_name!="SOC_convex"||true){
+                if(con->_name!="SOC_convex"){
                     if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
                     {
                         Constraint<> OA_sol("OA_cuts_"+con->_name);
@@ -558,7 +558,7 @@ namespace gravity {
             for (auto &con: nonlin._cons_vec)
             {
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
-                    if(con->_name!="SOC_convex"||true){
+                    if(con->_name!="SOC_convex"){
                         auto con_lin_name="OA_cuts_"+con->_name;
                         if(_cons_name.find(con_lin_name)!=_cons_name.end()){
                             add_new=false;
@@ -773,7 +773,7 @@ namespace gravity {
                 }
                 if(var_found){
                     auto cname=con->_name;
-                    if(cname!="SOC_convex"||true){
+                    if(cname!="SOC_convex"){
                         auto con_lin_name="OA_cuts_"+con->_name;
                         if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
                             add_new=false;
