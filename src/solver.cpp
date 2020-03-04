@@ -726,7 +726,7 @@ namespace gravity {
     }
     //
     template<>
-    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts)
+    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol)
     {
         
         vector<double> xsolution(_nb_vars);
@@ -734,7 +734,7 @@ namespace gravity {
         vector<double> xcurrent, xres;
         get_solution(xsolution);
         set_solution(obbt_solution);
-        const double active_tol=1e-6,active_tol_sol=1e-12;
+        const double active_tol_sol=1e-12;
         
         bool interior_solv=true;
         vector<double> c_val ;
