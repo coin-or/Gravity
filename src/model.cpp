@@ -5986,8 +5986,8 @@ namespace gravity {
             oacuts_init=lin_model->_nb_cons;
             oacuts=lin_model->_nb_cons;
         }
-        
-        auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init);
+        int run_obbt_iter=1;
+        auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter);
         double upper_bound = get<5>(status);
         
         total_iter += get<1>(status);
@@ -6000,17 +6000,19 @@ namespace gravity {
             if(get<1>(status)==1 && max_iter>1)
                 break;
             oacuts=get<8>(status);
-            status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init);
+            run_obbt_iter++;
+            status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter);
+        
             
             lower_bound=get<6>(status);
             gap_new = (upper_bound - lower_bound)/std::abs(upper_bound);
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
-            if(std::abs(gap_new-gap)<=gap_tol){
-                gap=gap_new;
-                break;
-            }
+//            if(std::abs(gap_new-gap)<=gap_tol){
+//                gap=gap_new;
+//                break;
+//            }
             gap=gap_new;
             //        obbt_model->print();
             
@@ -6042,7 +6044,7 @@ namespace gravity {
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<T,double>::value>::type*>
-    std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, int oacuts, int oacuts_init) {
+    std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter) {
         
         std::tuple<bool,int,double, double, double, double, double, double, int, int> res;
 #ifdef USE_MPI
@@ -6079,7 +6081,13 @@ namespace gravity {
         vector<double> obbt_solution(relaxed_model->_nb_vars);
         double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
         int obbt_subproblem_count=0;
-        double active_tol=0.2;
+        double active_tol;
+        if(run_obbt_iter==1){
+            active_tol=0.1;
+        }
+        else{
+            active_tol=1e-6;
+        }
         if(relaxed_model->_status==0)
         {
             /* Check if gap is already not zero at root node */
@@ -6107,7 +6115,6 @@ namespace gravity {
 //                    }
                     obbt_model->reindex();
                     obbt_model->reset();
-                   // obbt_model->print();
                     solver<> LB_solver(obbt_model, lb_solver_type);
                     LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                     LB_solver.run(output = 0, lb_solver_tol);
@@ -6362,7 +6369,12 @@ namespace gravity {
 //                                                        if(linearize && !fixed_point[model->get_name()]){
 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                                 model->get_solution(obbt_solution);
-                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                                        if(run_obbt_iter==1){
+                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->_name, oacuts, active_tol);
+                                                        }
+                                                        else{
+                                                            relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                                        }
 //                                                            }
 //                                                        }
                                                     }
@@ -6667,7 +6679,7 @@ namespace gravity {
     
     template std::tuple<bool,int,double,double,double,double,double,double,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
     
-    template std::tuple<bool,int,double,double,double,double,double,double,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init);
+    template std::tuple<bool,int,double,double,double,double,double,double,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter);
     
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
