@@ -6083,10 +6083,10 @@ namespace gravity {
         int obbt_subproblem_count=0;
         double active_tol;
         if(run_obbt_iter==1){
-            active_tol=0.1;
+            active_tol=1e-3;
         }
         else{
-            active_tol=1e-6;
+            active_tol=lb_solver_tol;
         }
         if(relaxed_model->_status==0)
         {
