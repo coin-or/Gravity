@@ -12,7 +12,7 @@
 
 <p align="center"> Created by Hassan Hijazi. </p>
 
-<H2 align="center"> www.allinsights.io/gravity </H2>
+<H2 align="center"> www.gravityopt.com </H2>
 
 
 
@@ -60,7 +60,7 @@ The figure compares Gravity, [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index
 
 The figure below compares model build time between Gravity and [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index.html) on the [PGLIB](https://github.com/power-grid-lib/pglib-opf) benchmarks.
 
-![Model Build Time on ACOPF](https://static.wixstatic.com/media/c6cff5_7d8e39d464b647fe98ee7f74d57f289d~mv2.png/v1/fill/w_894,h_535,al_c,usm_0.66_1.00_0.01/c6cff5_7d8e39d464b647fe98ee7f74d57f289d~mv2.png)
+![Model Build Time on ACOPF](https://static.wixstatic.com/media/c6cff5_27ee822625f24072b01110748c6f3923~mv2.jpg)
 
 -----------
 Performance Profile on Inverse Ising Model
@@ -70,4 +70,4 @@ Performance Profile on Inverse Ising Model
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
 
 
-Click [here](https://www.allinsights.io/numerical-results) for more details.
+Click [here](www.gravityopt.com) for more details.

@@ -132,8 +132,19 @@ void Net::add_node(Node* node) {
     nodes.push_back(node);
 }
 
+void Net::add_node(Node* node, size_t pos) {
+    if (!nodeID.insert(pair<string,Node*>(node->_name, node)).second) {
+        cerr << "ERROR: adding the same node twice!";
+    }
+    nodes.resize(pos+1);
+    nodes[pos] = node;
+}
+
 Node* Net::get_node(string name) const{
-    return nodeID.find(name)->second;
+    auto it = nodeID.find(name);
+    if(it==nodeID.end())
+        return nullptr;
+    return it->second;
 }
 
 /* returns the undirected arc formed by node n1 and n2 */
@@ -219,10 +230,10 @@ bool Net::add_arc(Arc* a) {
     string src, dest, key;
     src = a->_src->_name;
     dest = a->_dest->_name;
-    if (src == dest){
-        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
-        
-    }
+//    if (src == dest){
+//        throw invalid_argument ("It is now allowed to make a node self connected in gravity. \n");
+//        
+//    }
     
     
     key.clear();
@@ -553,7 +564,7 @@ void Net::get_tree_decomp_bags() {
         bag.first += "," +n->_name;
         sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
         sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_id < b->_id;});
-        
+    
         // update clone_graph and construct chordal extension.
         for (int i = 0; i < bag_copy.second.size(); i++) {
             u = bag_copy.second.at(i);
@@ -577,6 +588,7 @@ void Net::get_tree_decomp_bags() {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
+                DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
             }
         }
         if(unique_bags.insert(bag).second==true){
@@ -607,39 +619,195 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
     map<string,vector<Node*>> unique_bags;
     vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
-        if(bag_copy.second.size()==3){
-            if(unique_bags.insert(bag_copy).second){
-                res.push_back(bag_copy);
-            }
-        }
-        else if(bag_copy.second.size()>3){
+        if(bag_copy.second.size()>=3){
             DebugOff("Decomposing bigger bag into 3d bags\n");
             
             for (auto i = 0; i<bag_copy.second.size()-2; i++) {
                 for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
                     for (auto k = j+1; k<bag_copy.second.size(); k++) {
                         pair<string,vector<Node*>> new_bag;
+                        map<size_t, Node*> ordered_names;
+                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
                         string key;
-                        new_bag.second.push_back(bag_copy.second[i]);
-                        key += bag_copy.second[i]->_name + ",";
-                        new_bag.second.push_back(bag_copy.second[j]);
-                        key += bag_copy.second[j]->_name + ",";
-                        new_bag.second.push_back(bag_copy.second[k]);
-                        key += bag_copy.second[k]->_name;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
                         new_bag.first = key;
-                        DebugOff("new bag = {");
-                        //                        for (int i=0; i<new_bag.size();     i++) {
-                        //                            cout << new_bag.at(i)->_name << " ";
-                        //                        }
-                        DebugOff("}" << endl);
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
+                            if(print_bags){
+                                DebugOn("new bag = { ");
+                                for (int i=0; i<new_bag.second.size();     i++) {
+                                    DebugOn(new_bag.second.at(i)->_name << " ");
+                                }
+                                DebugOn("}" << endl);
+                            }
                         }
                     }
                 }
             }
         }
     }
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
+    return res;
+}
+void Net::pool_get_tree_decomp_bags() {
+    Node* n = nullptr;
+    Node* u = nullptr;
+    Node* nn = nullptr;
+    Arc* arc = nullptr;
+    map<string,vector<Node*>> unique_bags;
+    string name="";
+    Net* graph_clone = clone_undirected(); //
+    int nb = 0;
+    unsigned max_size = 0;
+    
+    /** cliques with less than 1 nodes are useless for us.*/
+    while (graph_clone->nodes.size()> 2) {
+        sort(graph_clone->nodes.begin(), graph_clone->nodes.end(),node_compare);
+        
+        // last element has the minimum fill-in.
+        n = graph_clone->nodes.back();
+        if(!n->_active) {
+            graph_clone->remove_end_node();
+            continue;
+        }
+        Debug(n->_name << endl);
+        Debug(graph_clone->nodes.size() << endl);
+        pair<string,vector<Node*>> bag_copy;
+        pair<string,vector<Node*>> bag;
+        DebugOff("new bag = { ");
+        for (auto nn: n->get_neighbours()) {
+            if(!nn.second->_active) continue;
+            bag_copy.second.push_back(nn.second);
+            bag_copy.first += "," +nn.first;
+            bag.second.push_back(get_node(nn.second->_name)); // Note it takes original node.
+            bag.first += "," +nn.first;
+            DebugOff(nn.second->_name << ", ");
+        }
+        DebugOff(n->_name << "}\n");
+        graph_clone->remove_end_node();
+        bag_copy.second.push_back(n);
+        bag_copy.first += "," +n->_name;
+        bag.second.push_back(get_node(n->_name)); // node in this graph
+        bag.first += "," +n->_name;
+        sort(bag_copy.second.begin(), bag_copy.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
+        sort(bag.second.begin(), bag.second.end(), [](const Node* a, const Node* b) -> bool{return a->_name < b->_name;});
+        for(auto it=bag.second.begin();it!=bag.second.end();it++){
+            if(next(it)!=bag.second.end()){
+                bag.first+=(*it)->_name+",";
+            }
+            else{
+                bag.first+=(*it)->_name;
+            }
+        }
+        for(auto it=bag_copy.second.begin();it!=bag_copy.second.end();it++){
+            if(next(it)!=bag_copy.second.end()){
+                bag_copy.first+=(*it)->_name+",";
+            }
+            else{
+                bag_copy.first+=(*it)->_name;
+            }
+        }
+        
+        
+        // update clone_graph and construct chordal extension.
+        for (int i = 0; i < bag_copy.second.size(); i++) {
+            u = bag_copy.second.at(i);
+            for (int j = i+1; j<bag_copy.second.size(); j++) {
+                nn = bag_copy.second.at(j);
+                if (u->is_connected(nn)) {
+                    if(get_arc(u,nn) && !get_arc(u,nn)->_active) {
+                        Arc* off_arc = get_arc(u,nn);
+                        off_arc->_imaginary = true;
+                        off_arc->_free = true;
+                    }
+                    continue;
+                }
+                name = to_string((int) graph_clone->arcs.size()+1);
+                arc = new Arc(name);
+                
+                arc->_id = arcs.size();
+                arc->_src = u;
+                arc->_dest = nn;
+                arc->_imaginary = true;
+                arc->_free = true;
+                arc->connect();
+                graph_clone->add_undirected_arc(arc);
+                //DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
+            }
+        }
+        if(unique_bags.insert(bag).second==true){
+            _bags.push_back(bag); // bag original
+            if (bag.second.size()==3) {
+                nb++;
+            }
+        }
+        
+        if (bag_copy.second.size()>max_size) {
+            max_size = bag_copy.second.size();
+        }
+        delete n;
+    }
+    
+    
+    DebugOn("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Max clique size = " << max_size << endl);
+    if(max_size==2){
+        this->_tree = true;
+    }
+    
+    delete graph_clone;
+    
+}
+
+std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_bags){
+    map<string,vector<Node*>> unique_bags;
+    vector<pair<string,vector<Node*>>> res;
+    for (auto &bag_copy:_bags) {
+        if(bag_copy.second.size()>=3){
+            DebugOff("Decomposing bigger bag into 3d bags\n");
+            
+            for (auto i = 0; i<bag_copy.second.size()-2; i++) {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        map<int, Node*> ordered_names;
+                        ordered_names[0] = bag_copy.second[i];
+                        ordered_names[1] = bag_copy.second[j];
+                        ordered_names[2] = bag_copy.second[k];
+                        string key;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
+                        new_bag.first = key;
+                        if(unique_bags.insert(new_bag).second){
+                            res.push_back(new_bag);
+                            if(print_bags){
+                                DebugOn("new bag = { ");
+                                for (int i=0; i<new_bag.second.size();     i++) {
+                                    DebugOn(new_bag.second.at(i)->_name << " ");
+                                }
+                                DebugOn("}" << endl);
+                            }
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
+    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
 
@@ -683,16 +851,16 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
 //}
 
 /** Return the vector of arcs ignoring parallel lines **/
-indices Net::get_bus_pairs(){
-    if(!bus_pairs.empty()){
-        return bus_pairs;
+indices Net::get_node_pairs(){
+    if(!node_pairs.empty()){
+        return node_pairs;
     }
     for (auto a: arcs) {
         if (!a->_parallel) {
-            bus_pairs.add(a->_src->_name+","+a->_dest->_name);
+            node_pairs.add(a->_src->_name+","+a->_dest->_name);
         }
     }
-    return bus_pairs;
+    return node_pairs;
 }
 
 vector<Path*> Net::get_cycle_basis(){
@@ -1071,6 +1239,12 @@ Net::~Net() {
     }
 }
 
+void Net::print() const{
+    for(const Node* n:nodes){
+        n->print();
+    }
+}
+
 /* Combines the src node with the path p to form a cycle */
 void Net::combine(Node* src, Path* p){
     p->nodes.insert(p->nodes.begin(), src);
@@ -1208,7 +1382,7 @@ void Net::combine(Node* src, Path* p){
 //}
 
 
-//std::vector<gravity::index_pair*> Net::get_bus_pairs_all(){
+//std::vector<gravity::index_pair*> Net::get_node_pairs_all(){
 //    vector<gravity::index_pair*> res;
 //    string ni, nj;
 //    for(int i = 0; i < nodes.size()-1; i++) {
@@ -1220,3 +1394,116 @@ void Net::combine(Node* src, Path* p){
 //    }
 //    return res;
 //}
+
+vector<indices> Net::pool_get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+    vector<indices> res;
+    indices likeq("likeq");
+    indices likey("likey");
+    auto pairs_from = indices(nodes);
+    pairs_from.set_name("pairs_from");
+    auto pairs_to = indices(nodes);
+    pairs_to.set_name("pairs_to");
+//    if(!this->node_pairs_chord.empty()){
+//        return this->node_pairs_chord;
+//    }
+    map<string,pair<Node*,Node*>> unique_pairs;
+    map<string,int> likenames;
+    string key;
+    
+    for (auto &bag: bags) {
+        for (size_t i = 0; i< bag.second.size()-1; i++) {
+            if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
+           
+                auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                auto name1=bag.second[i]->_name.substr(0, bag.second[i]->_name.find_first_of("["));
+                auto name2=bag.second[i+1]->_name.substr(0, bag.second[i+1]->_name.find_first_of("["));
+                if(name1==name2 && name1=="q" && !likeq.has_key(name)){
+                    likeq.add(name);
+                }
+                if(name1==name2 && name1=="y" && !likey.has_key(name)){
+                    likey.add(name);
+                }
+                node_pairs_chord.add(name);
+                pairs_from.add_ref(bag.second[i]->_name);
+                pairs_to.add_ref(bag.second[i+1]->_name);
+            }
+        }
+        /* Loop back pair */
+        if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
+            auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+            auto name1=bag.second[0]->_name.substr(0, bag.second[0]->_name.find_first_of("["));
+            auto name2=bag.second[bag.second.size()-1]->_name.substr(0, bag.second[bag.second.size()-1]->_name.find_first_of("["));
+            if(name1==name2 && name1=="q" && !likeq.has_key(name)){
+                likeq.add(name);
+            }
+            if(name1==name2 && name1=="y" && !likey.has_key(name)){
+                likey.add(name);
+            }
+            node_pairs_chord.add(name);
+            pairs_from.add_ref(bag.second[0]->_name);
+            pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
+        }
+    }
+    res.push_back(node_pairs_chord);
+    res.push_back(likeq);
+    res.push_back(likey);
+    res.push_back(pairs_from);
+    res.push_back(pairs_to);
+    return res;
+}
+
+
+
+vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+    vector<indices> res;
+    auto pairs = indices("pairs_chordal");
+    auto pairs_from = indices(nodes);
+    pairs_from.set_name("pairs_chordal_from");
+    auto pairs_to = indices(nodes);
+    pairs_to.set_name("pairs_chordal_to");
+//    if(!this->node_pairs_chord.empty()){
+//        return this->node_pairs_chord;
+//    }
+    map<string,pair<Node*,Node*>> unique_pairs;
+    map<string,int> likenames;
+    string key;
+    
+    for (auto &bag: bags) {
+        for (size_t i = 0; i< bag.second.size()-1; i++) {
+            if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
+           
+                if(bag.second[i]->_name <= bag.second[i+1]->_name){
+                    auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[i]->_name);
+                    pairs_to.add_ref(bag.second[i+1]->_name);
+                }
+                else {
+                    auto name = bag.second[i+1]->_name + "," + bag.second[i]->_name;
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[i+1]->_name);
+                    pairs_to.add_ref(bag.second[i]->_name);
+                }
+            }
+        }
+        /* Loop back pair */
+        if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
+            if(bag.second[0]->_name <= bag.second[bag.second.size()-1]->_name){
+                auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+                pairs.add(name);
+                pairs_from.add_ref(bag.second[0]->_name);
+                pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
+            }
+            else {
+                auto name = bag.second[bag.second.size()-1]->_name + "," + bag.second[0]->_name;
+                pairs.add(name);
+                pairs_from.add_ref(bag.second[bag.second.size()-1]->_name);
+                pairs_to.add_ref(bag.second[0]->_name);
+            }
+        }
+    }
+    res.push_back(pairs);
+    res.push_back(pairs_from);
+    res.push_back(pairs_to);
+    return res;
+}

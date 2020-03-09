@@ -34,19 +34,24 @@ int main (int argc, char * argv[]) {
     
     string current_s = "yes";
     string time_s = "1000";
-    string threads_s="12";
+    string sdp_kim_s="yes";
+    string threads_s="1";
     
-    string lazy_s = "no";
+    string lazy_s = "no", linearize_s = "no";
     string orig_s = "no";
     bool lazy_bool = false;
     bool add_original=false;
+    bool sdp_kim=true;
     SolverType solv_type = ipopt;
     const double tol = 1e-6;
     string mehrotra = "no";
     
+    bool linearize=false;
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-
+    
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    
+    
 #ifdef USE_OPT_PARSER
     
     //create a OptionParser with options
@@ -55,19 +60,20 @@ int main (int argc, char * argv[]) {
                    "shows option help");//No option means Default values which may be seen above using option strings
     opt.add_option("f", "file", "Input file name", fname);
     opt.add_option("t", "time", "Time limit, defaut 60 secs", time_s);
-    opt.add_option("threads", "threads", "Number of threads, defaut 24", threads_s);
+    opt.add_option("threads", "threads", "Number of threads, defaut 1", threads_s);
     opt.add_option("s", "solver", "Solvers: ipopt/cplex/gurobi, default = ipopt", solver_str);
     opt.add_option("b", "numbags", "Number of bags per iteration", num_bags_s);
     opt.add_option("l", "", "add current constraints", current_s); //Adds loss from of true and if true also adds loss_to in a lazy fasion
     opt.add_option("lz", "lazy", "Generate 3d SDP cuts in a lazy fashion, default = no", lazy_s);
+    opt.add_option("linear", "linear", "Linearize relaxation using OA cuts, default = no", linearize_s);
     opt.add_option("o", "original", "add original variables and linking constraints", orig_s);
     // parse the options and verify that all went well. If not, errors and help will be shown
     bool correct_parsing = opt.parse_options(argc, argv);
-
+    
     if (!correct_parsing) {
         return EXIT_FAILURE;
     }
-
+    
     fname = opt["f"];
     bool has_help = op::str2bool(opt["h"]);
     if (has_help) {
@@ -75,6 +81,7 @@ int main (int argc, char * argv[]) {
         exit(0);
     }
     solver_str = opt["s"];
+    threads_s = opt["threads"];
     if (solver_str.compare("gurobi")==0) {
         solv_type = gurobi;
     }
@@ -87,7 +94,11 @@ int main (int argc, char * argv[]) {
     if (lazy_s.compare("no")==0) {
         lazy_bool = false;
     }
-
+    linearize_s = opt["linear"];
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
+    }
+    
     current_s = opt["l"];
     if (current_s.compare("no")==0) {
         current = false;
@@ -95,7 +106,7 @@ int main (int argc, char * argv[]) {
     else {
         current = true;
     }
-
+    
     orig_s = opt["o"];
     if (orig_s.compare("no")==0) {
         add_original = false;
@@ -104,28 +115,43 @@ int main (int argc, char * argv[]) {
         add_original = true;
     }
     num_bags = atoi(opt["b"].c_str());
-
-
+    
+    
     //    double max_time = 40;
-
+    
     auto max_time = op::str2double(opt["t"]);
 #else
-    if(argc==3){
-    fname=argv[1];
-    time_s=argv[2];
+    if(argc>=4){
+        fname=argv[1];
+        time_s=argv[2];
+        sdp_kim_s=argv[3];
+        
     }
-    else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-        time_s="3600";
+    if(argc>4){
+        linearize_s=argv[4];
     }
+    if (linearize_s.compare("yes")==0) {
+        linearize = true;
+    }
+    //    else{
+    //        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    //        time_s="3600";
+    //    }
     current=true;
     
-    auto max_time=std::stod(time_s);
+    auto max_time=std::atoi(time_s.c_str());
+    if (sdp_kim_s.compare("no")==0) {
+        sdp_kim = false;
+    }
+    else {
+        sdp_kim = true;
+    }
+    
     
     
 #endif
-    
-    auto nb_threads=std::stod(threads_s);
+    current=true;
+    auto nb_threads=std::atoi(threads_s.c_str());
     
     cout << "\nnum bags = " << num_bags << endl;
     
@@ -137,136 +163,83 @@ int main (int argc, char * argv[]) {
     auto arcs = indices(grid.arcs);
     auto v_max = grid.v_max.in(nodes);
     auto bags_3d=grid.decompose_bags_3d();
-    auto bus_pairs = grid.get_bus_pairs();
-    auto bus_pairs_chord = grid.get_bus_pairs_chord(bags_3d);
+    auto node_pairs = grid.get_node_pairs();
+    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     
     auto c1 = grid.c1.in(grid.gens);
     auto c2 = grid.c2.in(grid.gens);
     auto c0 = grid.c0.in(grid.gens);
     
- 
-
+    
+    
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
-
-   // int nb_threads = thread::hardware_concurrency();
+    
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
-
     
-    double gap=999, gapnl=999;
-    double lower_bound=-99999;
+    double lower_bound=numeric_limits<double>::lowest(), lower_bound_nonlin_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
     double solver_time =0;
-    int iter=0;
-    unsigned max_iter=1000;
-    unsigned precision=0;
+    int iter=0, total_iter=0;
     
-    bool terminate=false;
+    bool terminate=false, xb_true=false;    
+    
+    
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    solver<> OPFUB(OPF, solv_type);
-    OPFUB.run(output = 0, tol);
-//    OPF->print_solution();
-    double upper_bound=OPF->get_obj_val();
-   
-    auto SDP= build_SDPOPF(grid, current, upper_bound);
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    unsigned max_iter=1e3;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
-    
-    
-    
-//    SDP->print();
-
-    solver<> SDPLB(SDP,solv_type);
-    //DebugOn("Lower bounding ipopt"<<endl);
-    double solver_time_start=get_wall_time();
-    SDPLB.run(output = 0, tol);
-    double solver_time_end=get_wall_time();
-    double solver_time_lb=solver_time_end-solver_time_start;
-  //  SDP->print();
-//    SDP->print_solution();
-    
-    if(SDP->_status==0 || SDP->_status==1)
-    {
-    lower_bound=SDP->get_obj_val()*upper_bound;
-    
-     gapnl = 100*(upper_bound - lower_bound)/upper_bound;
-    DebugOn("Initial Gap nonlinear = " << to_string(gapnl) << "%."<<endl);
-    
-        std::pair<bool,double> ub;
-        ub.first=true;
-        ub.second=upper_bound;
-    
-       auto res=SDP->run_obbt(max_time, max_iter, ub, precision);
-        lower_bound=SDP->get_obj_val()*upper_bound;
-        gap=100*(upper_bound - lower_bound)/upper_bound;
-        
-        terminate=std::get<0>(res);
-        iter=std::get<1>(res);
-        solver_time=std::get<2>(res);
-        
-        
-//                var<>  R_Vi("R_Vi", -1*v_max, v_max);
-//                var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
-//
-//
-//                    SDP->add(R_Vi.in(nodes),Im_Vi.in(nodes));
-//
-////        Im_Vi.set_lb((grid.ref_bus),0);
-////        Im_Vi.set_ub((grid.ref_bus),0);
-//                    R_Vi.initialize_all(1);
-//
-//       auto R_Wij=SDP->get_var<double>("R_Wij");
-//       auto Im_Wij=SDP->get_var<double>("Im_Wij");
-//       auto Wii=SDP->get_var<double>("Wii");
-//
-//                var<Cpx> Vi("Vi"), Vj("Vj"), Wij("Wij"), Wi("Wi");
-//                Vi.real_imag(R_Vi.from(bus_pairs_chord), Im_Vi.from(bus_pairs_chord));
-//                Vj.real_imag(R_Vi.to(bus_pairs_chord), Im_Vi.to(bus_pairs_chord));
-//                Wij.real_imag(R_Wij.in(bus_pairs_chord), Im_Wij.in(bus_pairs_chord));
-//                Wi.set_real(Wii);
-//
-//
-//                Constraint<Cpx> Linking_Wij("Linking_Wij");
-//                Linking_Wij = Wij - Vi*conj(Vj);
-//                SDP->add(Linking_Wij.in(bus_pairs_chord)==0);
-//
-//        Vi.real_imag(R_Vi.in(nodes), Im_Vi.in(nodes));
-//
-//        Constraint<Cpx> Linking_Wi("Linking_Wi");
-//        Linking_Wi = Wi - Vi*conj(Vi);
-//        SDP->add(Linking_Wi.in(nodes)==0);
-//
-
-////        SDP->print();
-
-//        SDP->reindex();
-//        solver<> SDPUB(SDP,solv_type);
-//        DebugOn("Upper bounding ipopt"<<endl);
-//        SDPUB.run(output = 5, tol);
-//
-//         DebugOn("Upper bound new= " << SDP->get_obj_val() <<endl);
-//         DebugOn("Upper bound old= " << upper_bound <<endl);
-
-    
+    if(!linearize){
+        auto nonlin_obj=true;
+        current=true;
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
+        total_iter=get<1>(res);
+        total_time=get<2>(res);
+        SDP->print_constraints_stats(1e-6);
     }
-
+    else{
+        current=false;
+        auto nonlin_obj=false;
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
+        total_iter=get<1>(res);
+        total_time=get<2>(res);
+        SDP->print_constraints_stats(1e-6);
+    }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
+
+    auto upper_bound = OPF->get_obj_val();
+    auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
+    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
     if(worker_id==0){
-
-    	ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
+        
+        
+        
+        
+        ofstream fout(result_name.c_str());
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
         DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
         fout.close();
-     }
+    }
     MPI_Finalize();
 #else
-	ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gapnl<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<gap<<"\t"<<terminate<<"\t"<<iter<<"\t"<<std::setprecision(5)<<solver_time<<"\t"<<std::setprecision(5)<<solver_time_lb<<endl;
-        fout.close();
+    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl);
+    
+    
+    ofstream fout(result_name.c_str());
+     fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<endl;
+    fout.close();
 #endif
     
     return 0;
