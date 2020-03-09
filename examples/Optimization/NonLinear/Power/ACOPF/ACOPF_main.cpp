@@ -62,7 +62,7 @@ int main (int argc, char * argv[])
     DebugOn("nb active buses = " << nb_buses << endl);
     
     /** Sets */
-    auto bus_pairs = grid.get_bus_pairs();
+    auto node_pairs = grid.get_node_pairs();
     auto nodes = indices(grid.nodes);
     auto arcs = indices(grid.arcs);
     auto gens = indices(grid.gens);
@@ -87,8 +87,8 @@ int main (int argc, char * argv[])
     auto as = grid.as.in(arcs);
     auto ch = grid.ch.in(arcs);
     auto tr = grid.tr.in(arcs);
-    auto th_min = grid.th_min.in(bus_pairs);
-    auto th_max = grid.th_max.in(bus_pairs);
+    auto th_min = grid.th_min.in(node_pairs);
+    auto th_max = grid.th_max.in(node_pairs);
     auto g_ft = grid.g_ft.in(arcs);
     auto g_ff = grid.g_ff.in(arcs);
     auto g_tt = grid.g_tt.in(arcs);
@@ -100,8 +100,8 @@ int main (int argc, char * argv[])
     auto S_max = grid.S_max.in(arcs);
     auto v_max = grid.v_max.in(nodes);
     auto v_min = grid.v_min.in(nodes);
-    auto tan_th_min = grid.tan_th_min.in(bus_pairs);
-    auto tan_th_max = grid.tan_th_max.in(bus_pairs);
+    auto tan_th_min = grid.tan_th_min.in(node_pairs);
+    auto tan_th_max = grid.tan_th_max.in(node_pairs);
     
     PowerModelType pmt = ACPOL;
     if(mtype=="ACRECT") pmt = ACRECT;
@@ -267,21 +267,21 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     Constraint<> PAD_LB("PAD_LB");
     if (polar) {
-        PAD_UB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_UB -= th_max;
-        PAD_LB = theta.from(bus_pairs) - theta.to(bus_pairs);
+        PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_LB -= th_min;
     }
     else {
-        DebugOff("Number of bus_pairs = " << bus_pairs.size() << endl);
-        PAD_UB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
-        PAD_UB -= tan_th_max*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
+        DebugOff("Number of node_pairs = " << node_pairs.size() << endl);
+        PAD_UB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs);
+        PAD_UB -= tan_th_max*(vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs));
 
-        PAD_LB = vi.from(bus_pairs)*vr.to(bus_pairs) - vr.from(bus_pairs)*vi.to(bus_pairs);
-        PAD_LB -= tan_th_min*(vr.from(bus_pairs)*vr.to(bus_pairs) + vi.from(bus_pairs)*vi.to(bus_pairs));
+        PAD_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs);
+        PAD_LB -= tan_th_min*(vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs));
     }
-        ACOPF.add(PAD_UB.in(bus_pairs) <= 0);
-        ACOPF.add(PAD_LB.in(bus_pairs) >= 0);
+        ACOPF.add(PAD_UB.in(node_pairs) <= 0);
+        ACOPF.add(PAD_LB.in(node_pairs) >= 0);
     
     
     /*  Thermal Limit Constraints */
@@ -294,7 +294,7 @@ int main (int argc, char * argv[])
     Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to -= pow(S_max,2);
     ACOPF.add(Thermal_Limit_to.in(arcs) <= 0);
-//    ACOPF.print();
+    ACOPF.print();
 //    ACOPF.initialize_uniform();
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();

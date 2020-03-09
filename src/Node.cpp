@@ -64,6 +64,13 @@ void Node::addArc(Arc* a){
     branches.push_back(a);
 }
 
+void Node::print() const{
+    cout << _name << "\tList of connected lines: ";
+    for (const Arc* a:branches) {
+        cout << "(" << a->_src->_name<< "," << a->_dest->_name << ") ";
+    }
+    cout << endl;
+}
 
 /*
  @brief Find and remove incident arc from list of branches

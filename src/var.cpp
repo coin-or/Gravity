@@ -43,8 +43,11 @@ var<type> var<type>::deep_copy() const{
     res.param<type>::operator=(this->param<type>::deep_copy());
     res.constant_::set_type(var_c);
     res._num_partns = make_shared<int>(*_num_partns);
-    res._lb = make_shared<func<type>>(*_lb);
-    res._ub = make_shared<func<type>>(*_ub);
+    res._lb = make_shared<func<type>>();
+    res._ub = make_shared<func<type>>();
+    res._lb->deep_copy(*_lb);
+    res._ub->deep_copy(*_ub);
+    res._lift=_lift;
     return res;
 }
 
@@ -59,6 +62,7 @@ template<typename type> var<type>& var<type>::operator=(const var<type>& v) {
     _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
+    _original_vars = v._original_vars;
     return *this;
 };
 
@@ -73,6 +77,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     _in_SOC_partn=v._in_SOC_partn;
     _num_partns = v._num_partns;
     _cur_partn = v._cur_partn;
+    _original_vars = move(v._original_vars);
     return *this;
 };
 
@@ -202,21 +207,107 @@ type    var<type>::get_ub(size_t i) const {
     
     template<typename type>
     param<type>    var<type>::get_lb() const {
+        if(!_lift)
+            return *static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
         param<type> lb(this->_name+"_lb");
         _lb->eval_all();
-        lb.index_in(*this->_indices);
+        if(!_lb->func_is_number()){
+            lb.index_in(*this->_indices);
+        }
         lb._val = _lb->_val;
         lb._range = _lb->_range;
         lb._dim[0] = _lb->_dim[0];
         lb._dim[1] = _lb->_dim[1];
         return lb;
     };
+
+
+/* If this is a lifted variable lifted(xy)= xy, return the lowerbound on x*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_lb1() const{
+        assert(_lift);
+        auto lson = static_pointer_cast<func<type>>(_lb->_expr->get_lson());
+        auto rson = static_pointer_cast<func<type>>(lson->_expr->get_rson());
+        /* prod_b2 = (lb1*ub2);*/
+        for (auto p_it: *rson->_params) {
+            if (p_it.first.find("lb") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
+//ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),prod_b3);
+template<typename type>
+shared_ptr<param<type>>    var<type>::get_square_lb() const{
+    assert(_lift);
+    auto lson = static_pointer_cast<func<type>>(_ub->_expr->get_lson());
+    auto lson2 = static_pointer_cast<func<type>>(lson->_expr->get_lson());
+    return static_pointer_cast<param<type>>(lson2->_params->begin()->second.first);
+}
+
+template<typename type>
+shared_ptr<param<type>>    var<type>::get_square_ub() const{
+    assert(_lift);
+    auto rson = static_pointer_cast<func<type>>(_ub->_expr->get_rson());
+    return static_pointer_cast<param<type>>(rson->_params->begin()->second.first);
+}
+
+/* If this is a lifted variable lifted(xy)= xy, return the lowerbound on y*/
+    template<typename type>
+    shared_ptr<param<type>> var<type>::get_bilinear_lb2() const{
+        assert(_lift);
+        auto rson = static_pointer_cast<func<type>>(_lb->_expr->get_rson());
+        auto lson = static_pointer_cast<func<type>>(rson->_expr->get_lson());
+        /* prod_b3 = (ub1*lb2);*/
+        for (auto p_it: *lson->_params) {
+            if (p_it.first.find("lb") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(xy)= xy, return the upperbound on x*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_ub1() const{
+        assert(_lift);
+        auto rson = static_pointer_cast<func<type>>(_lb->_expr->get_rson());
+        auto lson = static_pointer_cast<func<type>>(rson->_expr->get_lson());
+        /* prod_b3 = (ub1*lb2);*/
+        for (auto p_it: *lson->_params) {
+            if (p_it.first.find("ub") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
+
+/* If this is a lifted variable lifted(xy)= xy, return the upperbound on y*/
+    template<typename type>
+    shared_ptr<param<type>>    var<type>::get_bilinear_ub2() const{
+        assert(_lift);
+        auto lson = static_pointer_cast<func<type>>(_lb->_expr->get_lson());
+        auto rson = static_pointer_cast<func<type>>(lson->_expr->get_rson());
+        /* prod_b2 = (lb1*ub2);*/
+        for (auto p_it: *rson->_params) {
+            if (p_it.first.find("ub") != string::npos) {
+                return static_pointer_cast<param<type>>(p_it.second.first);
+            }
+        }
+        return nullptr;
+    }
     
     template<typename type>
     param<type>    var<type>::get_ub() const {
+        if(!_lift)
+            return *static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
         param<type> ub(this->_name+"_ub");
         _ub->eval_all();
-        ub.index_in(*this->_indices);
+        if(!_ub->func_is_number()){
+            ub.index_in(*this->_indices);
+        }
         ub._val = _ub->_val;
         ub._range = _ub->_range;
         ub._dim[0] = _ub->_dim[0];
@@ -329,7 +420,7 @@ template<typename type> void   var<type>::set_lb(type val) {
         _lb->_evaluated = true;
     }
     else {
-        *_lb = constant<type>(val);
+        _lb->set_val(val);
         param<type>::_range->first = val;
     }
 }
@@ -377,7 +468,7 @@ template<typename type> void   var<type>::set_ub(type val) {
         _ub->_evaluated = true;
     }
     else {
-        *_ub = constant<type>(val);
+        _ub->set_val(val);
         param<type>::_range->second = val;
     }
 }

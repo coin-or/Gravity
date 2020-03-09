@@ -128,7 +128,7 @@ public:
     param<double> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
     param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max, cc, dd; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
     param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, bt = param<>("bt"), cht= param<>("cht"), ch_half=param<>("ch_half"), cht_half=param<>("cht_half"), rty=param<>("rty"), ity=param<>("ity"); /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
-    param<Cpx> Y, Ych,T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max;
+    param<Cpx> Y, Ych,T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max, Smax = param<Cpx>("Smax");
     
     /** Set of all diesel generators */
     std::vector<Gen*> gens;
@@ -245,7 +245,7 @@ public:
     /** Accessors */
     string get_ref_bus();
     unsigned get_nb_active_gens() const;
-    unsigned get_nb_active_bus_pairs() const;
+    unsigned get_nb_active_node_pairs() const;
     unsigned get_nb_active_arcs() const;
     unsigned get_nb_active_nodes() const;
     void time_expand(unsigned T); /* < Time expansion of the grid parameters */
@@ -256,15 +256,15 @@ public:
     void save_all_sol(const string& fname);
     
     /** get set indexed by bus pairs in the chordal extension */
-    gravity::indices get_bus_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
+    gravity::indices get_node_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     
-    gravity::indices get_bus_pairs_chord_bags(std::vector<pair<string,vector<Node*>>> bags);
+    gravity::indices get_node_pairs_chord_bags(std::vector<pair<string,vector<Node*>>> bags);
     
-    gravity::indices get_ref_bus_pairs_from();
+    gravity::indices get_ref_node_pairs_from();
     
-    gravity::indices get_ref_bus_pairs_to();
+    gravity::indices get_ref_node_pairs_to();
     
-    gravity::indices bus_pairs_no_line_charge();
+    gravity::indices node_pairs_no_line_charge();
     
     gravity::indices arcs_inductive_only();
     
@@ -272,7 +272,7 @@ public:
     
     gravity::indices arcs_line_charge();
     
-    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_bus_pairs_ijkl();
+    pair<pair<indices,indices>,pair<indices,indices>> get_pairsof_node_pairs_ijkl();
     
     void update_ref_bus();
     
@@ -315,7 +315,7 @@ public:
 };
 
 shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, double upper_bound=1E8);
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, bool nonlin_obj=true, bool sdp_kim=true, double upper_bound=1E8);
 shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss_from=false, double upper_bound=1E8, double lower_bound=0);
 shared_ptr<Model<>> build_SDPOPF_linear(PowerNet& grid, double upper_bound=1E8);
 
