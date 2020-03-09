@@ -63,6 +63,7 @@ namespace gravity {
         _rson = rson;
         this->_type = bexp_c;
         this->_to_str = to_str();
+        this->_range = make_shared<pair<type,type>>();
         if(otype==product_){
             this->_dim[0] = _lson->_dim[0];
             this->_dim[1] = _rson->_dim[1];
