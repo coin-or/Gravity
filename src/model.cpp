@@ -6083,7 +6083,7 @@ namespace gravity {
         int obbt_subproblem_count=0;
         double active_tol;
         if(run_obbt_iter==1){
-            active_tol=1e-1;
+            active_tol=1e-3;
         }
         else{
             active_tol=lb_solver_tol;
@@ -6593,7 +6593,7 @@ namespace gravity {
 //                        relaxed_model->copy_bounds(obbt_model);
 //                        relaxed_model->reset_constrs();
                         solver<> LB_solver(obbt_model,lb_solver_type);
-                       // LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                         LB_solver.run(output = 0, lb_solver_tol);
                         if(relaxed_model->_status==0){
                             lower_bound=obbt_model->get_obj_val();
