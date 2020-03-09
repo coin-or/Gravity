@@ -207,7 +207,7 @@ int main (int argc, char * argv[]) {
         SDP->print_constraints_stats(1e-6);
     }
     else{
-        current=false;
+        current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, true);
