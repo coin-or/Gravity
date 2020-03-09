@@ -33,11 +33,14 @@ namespace gravity {
         Convexity                              _all_convexity = linear_; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign = zero_; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
 
-        shared_ptr<pair<type,type>>            _range = make_shared<pair<type,type>>(); /**< (Min,Max) values of expression **/
-        string                                 _to_str = "noname"; /**< A string representation of the expression */
+        shared_ptr<pair<type,type>>            _range; /**< (Min,Max) values of expression **/
+        string                                 _to_str; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
-        
+        virtual shared_ptr<constant_> get_lson() const {return nullptr;};
+        virtual shared_ptr<constant_> get_rson() const {return nullptr;};
+        virtual void scale_coefs(double unit){};
+        virtual void scale_vars(double unit){};
         virtual void uneval(){};
         virtual void update_double_index(){};
         void propagate_dim(size_t d){
@@ -97,6 +100,30 @@ namespace gravity {
         void update_double_index(){
             _son->update_double_index();
         }
+        
+//        template<typename T=type,
+//        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+//        void scale_vars(double unit){
+//            if(_son->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_son);
+//                f->scale_vars(unit);
+//            }
+//            else{
+//                /* TODO: param or var cases */
+//            }
+//        };
+//
+//        template<typename T=type,
+//        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+//        void scale_coefs(double unit){
+//            if(_son->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_son);
+//                f->scale_coefs(unit);
+//            }
+//            else{
+//                /* TODO: param or var cases */
+//            }
+//        };
         
         void uneval(){
             _son->uneval();
@@ -196,6 +223,7 @@ namespace gravity {
         
         uexpr(){
             this->_type = uexp_c;
+	    this->_range = make_shared<pair<type,type>>();
         }
         
         void print() {
@@ -314,7 +342,12 @@ namespace gravity {
         
         bexpr(){
             this->_type = bexp_c;
+	    this->_to_str = "noname";
+	    this->_range = make_shared<pair<type,type>>();
         }
+        
+        shared_ptr<constant_> get_lson() const {return _lson;};
+        shared_ptr<constant_> get_rson() const {return _rson;};
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         bexpr(const bexpr<T2>& exp){ /**< Copy constructor from binary expression tree */
@@ -376,6 +409,40 @@ namespace gravity {
             //        return (_otype == c._otype && equals(_lson,c._lson) && equals(_rson,c._rson));
             return (this->_to_str.compare(c._to_str)==0);
         }
+        
+//        void scale_vars(double unit){
+//            if(_lson->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_lson);
+//                f->scale_vars(unit);
+//            }
+//            else {
+//                /* TODO: param/var cases */
+//            }
+//            if(_rson->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_rson);
+//                f->scale_vars(unit);
+//            }
+//            else {
+//                /* TODO: param/var cases */
+//            }
+//        };
+        
+//        void scale_coefs(double unit){
+//            if(_lson->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_lson);
+//                f->scale_coefs(unit);
+//            }
+//            else {
+//                /* TODO: param/var cases */
+//            }
+//            if(_rson->is_function()){
+//                auto f = static_pointer_cast<func<type>>(_rson);
+//                f->scale_coefs(unit);
+//            }
+//            else {
+//                /* TODO: param/var cases */
+//            }
+//        };
         
         void in(const indices& ids){
             if(_lson->is_function()){
