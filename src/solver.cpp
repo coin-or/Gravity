@@ -182,15 +182,13 @@ namespace gravity {
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
-                if(con->_name!="SOC_convex"){
-                    if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                        indices ind_eta_c("ind_eta_c");
-                        for(auto i=0;i<con->get_nb_instances();i++){
-                            ind_eta.add(con->_name+to_string(i));
-                            ind_eta_c.add(con->_name+to_string(i));
-                        }
-                        ind_eta_vec.push_back(ind_eta_c);
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    indices ind_eta_c("ind_eta_c");
+                    for(auto i=0;i<con->get_nb_instances();i++){
+                        ind_eta.add(con->_name+to_string(i));
+                        ind_eta_c.add(con->_name+to_string(i));
                     }
+                    ind_eta_vec.push_back(ind_eta_c);
                 }
             }
         }
@@ -206,20 +204,18 @@ namespace gravity {
         {
             if(!con->is_linear()) {
                 /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
-                if(con->_name!="SOC_convex"){
-                    if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
-                        auto ind=ind_eta_vec[count++];
-                        
-                        Constraint<> Inter_con(*con);
-                        
-                        if(con->_ctype==leq)
-                        {
-                            Interior.add(Inter_con<=eta_int.in(ind));
-                        }
-                        else  if(con->_ctype==geq)
-                        {
-                            Interior.add(Inter_con>=-1*eta_int.in(ind));
-                        }
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                    auto ind=ind_eta_vec[count++];
+                    
+                    Constraint<> Inter_con(*con);
+                    
+                    if(con->_ctype==leq)
+                    {
+                        Interior.add(Inter_con<=eta_int.in(ind));
+                    }
+                    else  if(con->_ctype==geq)
+                    {
+                        Interior.add(Inter_con>=-1*eta_int.in(ind));
                     }
                 }
             }
@@ -469,84 +465,82 @@ namespace gravity {
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
-                if(con->_name!="SOC_convex"){
-                    if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
-                    {
-                        Constraint<> OA_sol("OA_cuts_"+con->_name);
-                        indices activeset("active_"+con->_name);
-                        auto keys=con->_indices->_keys;
-                        for(auto i=0;i<con->get_nb_inst();i++){
-                            //                    con->uneval();
-                            /** Generate an OA cut if constraint is active or if it has a convex representation */
-                            //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                            convex_region=true;
-                            if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                            {
-                                
-                                xres=con->get_x(i);
-                                con->uneval();
-                                auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                if(soc1<=0 && soc2<=0 && soc3<=0){
-                                    convex_region=true;
-                                }
-                                else{
-                                    convex_region=false;
-                                }
-                            }
+                if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
+                {
+                    Constraint<> OA_sol("OA_cuts_"+con->_name);
+                    indices activeset("active_"+con->_name);
+                    auto keys=con->_indices->_keys;
+                    for(auto i=0;i<con->get_nb_inst();i++){
+                        //                    con->uneval();
+                        /** Generate an OA cut if constraint is active or if it has a convex representation */
+                        //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
+                        convex_region=true;
+                        if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+                        {
                             
-                            if(convex_region){
-                                
-                                if(con->is_active(i,active_tol_sol)){
-                                    
-                                    activeset.add((*keys)[i]);
-                                }
+                            xres=con->get_x(i);
+                            con->uneval();
+                            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                            if(soc1<=0 && soc2<=0 && soc3<=0){
+                                convex_region=true;
+                            }
+                            else{
+                                convex_region=false;
                             }
                         }
-                        OA_sol=con->get_outer_app(activeset);
-                        if(con->_ctype==leq) {
-                            add(OA_sol.in(activeset)<=0);
-                        }
-                        else {
-                            add(OA_sol.in(activeset)>=0);
+                        
+                        if(convex_region){
+                            
+                            if(con->is_active(i,active_tol_sol)){
+                                
+                                activeset.add((*keys)[i]);
+                            }
                         }
                     }
-                    else
-                        if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
-                        {
-                            //add_outer_app_uniform(5, *con);
-                            //Need to reset after this
-                            Constraint<> OA_sol("OA_cuts_"+con->_name);
-                            indices allset("active_"+con->_name);
-                            auto keys=con->_indices->_keys;
-                            for(auto i=0;i<con->get_nb_inst();i++){
-                                string keyi=(*keys)[i];
-                                allset.add(keyi);
-                                
-                            }
-                            OA_sol=con->get_outer_app(allset);
-                            if(con->_ctype==leq) {
-                                add(OA_sol.in(allset)<=0);
-                            }
-                            else {
-                                add(OA_sol.in(allset)>=0);
-                            }
-                        }
+                    OA_sol=con->get_outer_app(activeset);
+                    if(con->_ctype==leq) {
+                        add(OA_sol.in(activeset)<=0);
+                    }
+                    else {
+                        add(OA_sol.in(activeset)>=0);
+                    }
                 }
+                else
+                    if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
+                    {
+                        //add_outer_app_uniform(5, *con);
+                        //Need to reset after this
+                        Constraint<> OA_sol("OA_cuts_"+con->_name);
+                        indices allset("active_"+con->_name);
+                        auto keys=con->_indices->_keys;
+                        for(auto i=0;i<con->get_nb_inst();i++){
+                            string keyi=(*keys)[i];
+                            allset.add(keyi);
+                            
+                        }
+                        OA_sol=con->get_outer_app(allset);
+                        if(con->_ctype==leq) {
+                            add(OA_sol.in(allset)<=0);
+                        }
+                        else {
+                            add(OA_sol.in(allset)>=0);
+                        }
+                    }
             }
         }
-//        for (auto &con: nonlin._cons_vec)
-//        {
-//            if(!con->is_linear()) {
-//                if(con->_name!="SOC_convex"){
-//                        if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
-//                        {
-//                            add_outer_app_uniform(10, *con);
-//                        }
-//                }
-//            }
-//        }
+        //        for (auto &con: nonlin._cons_vec)
+        //        {
+        //            if(!con->is_linear()) {
+        //                if(con->_name!="SOC_convex"){
+        //                        if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
+        //                        {
+        //                            add_outer_app_uniform(10, *con);
+        //                        }
+        //                }
+        //            }
+        //        }
         nonlin.set_solution(xsolution);
         reindex();
         DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
@@ -558,164 +552,162 @@ namespace gravity {
             for (auto &con: nonlin._cons_vec)
             {
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
-                    if(con->_name!="SOC_convex"){
-                        auto con_lin_name="OA_cuts_"+con->_name;
-                        if(_cons_name.find(con_lin_name)!=_cons_name.end()){
-                            add_new=false;
-                        }
-                        else{
-                            add_new=true;
-                        }
-                        auto cnb_inst=con->get_nb_inst();
-                        for(auto i=0;i<cnb_inst;i++){
-                            auto cname=con->_name;
-                            xcurrent=con->get_x(i);
-                            count_var=0;
-                            for(auto &it: *(con->_vars))
+                    auto con_lin_name="OA_cuts_"+con->_name;
+                    if(_cons_name.find(con_lin_name)!=_cons_name.end()){
+                        add_new=false;
+                    }
+                    else{
+                        add_new=true;
+                    }
+                    auto cnb_inst=con->get_nb_inst();
+                    for(auto i=0;i<cnb_inst;i++){
+                        auto cname=con->_name;
+                        xcurrent=con->get_x(i);
+                        count_var=0;
+                        for(auto &it: *(con->_vars))
+                        {
+                            auto v = it.second.first;
+                            auto vname=v->_name;
+                            if(v->_is_vector)
                             {
-                                auto v = it.second.first;
-                                auto vname=v->_name;
-                                if(v->_is_vector)
+                                DebugOn("Exception: Vector variables are not currently supported"<<endl);
+                                DebugOn("Throw exception" <<endl);
+                                break;
+                            }
+                            else
+                            {
+                                posv=v->get_id_inst(i);
+                                auto ub_v=v->get_double_ub(posv);
+                                auto lb_v=v->get_double_lb(posv);
+                                for(auto j=1;j<=nb_perturb;j++)
                                 {
-                                    DebugOn("Exception: Vector variables are not currently supported"<<endl);
-                                    DebugOn("Throw exception" <<endl);
-                                    break;
-                                }
-                                else
-                                {
-                                    posv=v->get_id_inst(i);
-                                    auto ub_v=v->get_double_ub(posv);
-                                    auto lb_v=v->get_double_lb(posv);
-                                    for(auto j=1;j<=nb_perturb;j++)
-                                    {
-                                        outer=false;
-                                        oa_cut=false;
-                                        c0_val=0;
-                                        c_val.resize(con->_nb_vars,0);
-                                        v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 - j*perturb_dist), lb_v),ub_v)); /** Perturbed point with negative epsilon */
+                                    outer=false;
+                                    oa_cut=false;
+                                    c0_val=0;
+                                    c_val.resize(con->_nb_vars,0);
+                                    v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 - j*perturb_dist), lb_v),ub_v)); /** Perturbed point with negative epsilon */
+                                    con->uneval();
+                                    fk=con->eval(i);
+                                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                                        outer=true;
+                                    }
+                                    if(!outer){
+                                        v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 + j*perturb_dist), lb_v),ub_v)); /** Perturbed point with positive epsilon */
                                         con->uneval();
                                         fk=con->eval(i);
                                         if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                                             outer=true;
                                         }
-                                        if(!outer){
-                                            v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 + j*perturb_dist), lb_v),ub_v)); /** Perturbed point with positive epsilon */
-                                            con->uneval();
-                                            fk=con->eval(i);
-                                            if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                                outer=true;
-                                            }
+                                    }
+                                    if(outer){
+                                        // DebugOn("outer"<<endl);
+                                        auto con_interior=Ointerior.get_constraint(cname);
+                                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                                        xres=con->get_x(i);
+                                        //                                            for(auto n=0;n<xres.size();n++){
+                                        //                                                DebugOn(xinterior[n]<<"\t"<<xres[n]<<"\t");
+                                        //                                            }
+                                        // DebugOn(endl);
+                                        auto res_search=con->binary_line_search(xinterior, i);
+                                        if(res_search){
+                                            oa_cut=true;
                                         }
-                                        if(outer){
-                                           // DebugOn("outer"<<endl);
-                                            auto con_interior=Ointerior.get_constraint(cname);
-                                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                                    }
+                                    if(oa_cut){
+                                        //DebugOn("oacut"<<endl);
+                                        convex_region=true;
+                                        oa_cut=false;
+                                        if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+                                        {
+                                            
                                             xres=con->get_x(i);
-//                                            for(auto n=0;n<xres.size();n++){
-//                                                DebugOn(xinterior[n]<<"\t"<<xres[n]<<"\t");
-//                                            }
-                                           // DebugOn(endl);
-                                            auto res_search=con->binary_line_search(xinterior, i);
-                                            if(res_search){
-                                                oa_cut=true;
+                                            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                            if(soc1<=0 && soc2<=0 && soc3<=0){
+                                                convex_region=true;
+                                            }
+                                            else{
+                                                convex_region=false;
                                             }
                                         }
-                                        if(oa_cut){
-                                             //DebugOn("oacut"<<endl);
-                                            convex_region=true;
-                                            oa_cut=false;
-                                            if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                            {
-                                                
-                                                xres=con->get_x(i);
-                                                auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                                auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                                auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                                if(soc1<=0 && soc2<=0 && soc3<=0){
-                                                    convex_region=true;
-                                                }
-                                                else{
-                                                    convex_region=false;
-                                                }
-                                            }
-                                            if(convex_region){
-                                                if(add_new){
-                                                    nb_added_cuts++;
-                                                    indices activeset("active_"+con->_name);
-                                                    activeset.add((*con->_indices->_keys)[i]);
-                                                    Constraint<> OA_cut(con_lin_name);
-                                                    OA_cut=con->get_outer_app(activeset);
-                                                    if(con->_ctype==leq) {
-                                                        add(OA_cut.in(activeset)<=0);
-                                                    }
-                                                    else {
-                                                        add(OA_cut.in(activeset)>=0);
-                                                    }
-                                                    add_new=false;
-                                                    oa_cut=false;
-                                                }
-                                                else{
-                                                    con->get_outer_coef(i, c_val, c0_val);
-                                                    vector<int> coefs;
-                                                    for (auto k = 0; k<c_val.size(); k++) {
-                                                        coefs.push_back(1e5*c_val[k]);
-                                                    }
-                                                    coefs.push_back(1e5*c0_val);
-                                                    if(_OA_cuts[con->_id*100+i].insert(coefs).second)
-                                                        oa_cut=true;
-                                                }
-                                            }
-                                        }
-                                        if(oa_cut){
-                                            //DebugOn("adding inst"<<endl);
-                                            nb_added_cuts++;
-                                            auto con_lin=get_constraint("OA_cuts_"+con->_name);
-                                            auto nb_inst = con_lin->get_nb_instances();
-                                            con_lin->_indices->add("inst_"+to_string(nb_inst));
-                                            con_lin->_dim[0] = con_lin->_indices->size();
-                                            auto count=0;
-                                            for(auto &l: *(con_lin->_lterms)){
-                                                auto name=l.first;
-                                                if(!l.second._sign){
-                                                    throw invalid_argument("symbolic negative");
-                                                }
-                                                if(l.second._coef->is_param()) {
-                                                    auto p_cst = ((param<>*)(l.second._coef.get()));
-                                                    p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                                        if(convex_region){
+                                            if(add_new){
+                                                nb_added_cuts++;
+                                                indices activeset("active_"+con->_name);
+                                                activeset.add((*con->_indices->_keys)[i]);
+                                                Constraint<> OA_cut(con_lin_name);
+                                                OA_cut=con->get_outer_app(activeset);
+                                                if(con->_ctype==leq) {
+                                                    add(OA_cut.in(activeset)<=0);
                                                 }
                                                 else {
-                                                    throw invalid_argument("Coefficient must be parameter");
+                                                    add(OA_cut.in(activeset)>=0);
                                                 }
-                                                auto parkeys=l.second._p->_indices->_keys;
-                                                auto varc = con->get_var(l.second._p->_name);
-                                                l.second._p->_indices->add_ref((*parkeys)[varc->get_id_inst(i)]);
-                                                count++;
+                                                add_new=false;
+                                                oa_cut=false;
                                             }
-                                            //Set value of the constant!!!
-                                            if(con_lin->_cst->is_param()){
-                                                auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                                co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
-                                            }
-                                            else if(con_lin->_cst->is_function()){
-                                                auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                                if(!rhs_f->func_is_param()){
-                                                    throw invalid_argument("function should be a param");
+                                            else{
+                                                con->get_outer_coef(i, c_val, c0_val);
+                                                vector<int> coefs;
+                                                for (auto k = 0; k<c_val.size(); k++) {
+                                                    coefs.push_back(1e5*c_val[k]);
                                                 }
-                                                auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                                p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
-                                                rhs_f->_indices->add("inst_"+to_string(nb_inst));
-                                                rhs_f->_dim[0] = rhs_f->_indices->size();
+                                                coefs.push_back(1e5*c0_val);
+                                                if(_OA_cuts[con->_id*100+i].insert(coefs).second)
+                                                    oa_cut=true;
                                             }
                                         }
-                                        con->set_x(i, xcurrent);
-                                        xres.clear();
                                     }
+                                    if(oa_cut){
+                                        //DebugOn("adding inst"<<endl);
+                                        nb_added_cuts++;
+                                        auto con_lin=get_constraint("OA_cuts_"+con->_name);
+                                        auto nb_inst = con_lin->get_nb_instances();
+                                        con_lin->_indices->add("inst_"+to_string(nb_inst));
+                                        con_lin->_dim[0] = con_lin->_indices->size();
+                                        auto count=0;
+                                        for(auto &l: *(con_lin->_lterms)){
+                                            auto name=l.first;
+                                            if(!l.second._sign){
+                                                throw invalid_argument("symbolic negative");
+                                            }
+                                            if(l.second._coef->is_param()) {
+                                                auto p_cst = ((param<>*)(l.second._coef.get()));
+                                                p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                                            }
+                                            else {
+                                                throw invalid_argument("Coefficient must be parameter");
+                                            }
+                                            auto parkeys=l.second._p->_indices->_keys;
+                                            auto varc = con->get_var(l.second._p->_name);
+                                            l.second._p->_indices->add_ref((*parkeys)[varc->get_id_inst(i)]);
+                                            count++;
+                                        }
+                                        //Set value of the constant!!!
+                                        if(con_lin->_cst->is_param()){
+                                            auto co_cst = ((param<>*)(con_lin->_cst.get()));
+                                            co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
+                                        }
+                                        else if(con_lin->_cst->is_function()){
+                                            auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+                                            if(!rhs_f->func_is_param()){
+                                                throw invalid_argument("function should be a param");
+                                            }
+                                            auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+                                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
+                                            rhs_f->_indices->add("inst_"+to_string(nb_inst));
+                                            rhs_f->_dim[0] = rhs_f->_indices->size();
+                                        }
+                                    }
+                                    con->set_x(i, xcurrent);
+                                    xres.clear();
                                 }
-                                count_var++;
                             }
-                            xcurrent.clear();
-                            xinterior.clear();
+                            count_var++;
                         }
+                        xcurrent.clear();
+                        xinterior.clear();
                     }
                 }
             }
@@ -773,199 +765,197 @@ namespace gravity {
                 }
                 if(var_found){
                     auto cname=con->_name;
-                    if(cname!="SOC_convex"){
-                        auto con_lin_name="OA_cuts_"+con->_name;
-                        if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
-                            add_new=false;
-                        }
-                        else{
-                            add_new=true;
-                        }
-                        //            con->uneval();
-                        //            con->eval_all();
-                        
-                        auto cnb_inst=con->get_nb_inst();
-                        for(auto i=0;i<cnb_inst;i++){
-                            for(auto &v: *con->_vars){
-                                key_found=false;
-                                if(modelname=="allvar"){
-                                    key_found=true;
+                    auto con_lin_name="OA_cuts_"+con->_name;
+                    if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
+                        add_new=false;
+                    }
+                    else{
+                        add_new=true;
+                    }
+                    //            con->uneval();
+                    //            con->eval_all();
+                    
+                    auto cnb_inst=con->get_nb_inst();
+                    for(auto i=0;i<cnb_inst;i++){
+                        for(auto &v: *con->_vars){
+                            key_found=false;
+                            if(modelname=="allvar"){
+                                key_found=true;
+                            }
+                            else{
+                                if(v.second.first->_vec_id==vk._vec_id){
+                                    vck=con->_vars->at(v.first).first;
+                                    if(!vck->is_indexed()){
+                                        auto posv=vck->get_id_inst(i);
+                                        keyv=(*vck->_indices->_keys)[posv];
+                                    }
+                                    else{
+                                        auto posv=(vck->_indices->_ids->at(0))[i];
+                                        keyv=(*vck->_indices->_keys)[posv];
+                                    }
+                                    if(keyv==keyk){
+                                        key_found=true;
+                                    }
                                 }
-                                else{
-                                    if(v.second.first->_vec_id==vk._vec_id){
-                                        vck=con->_vars->at(v.first).first;
-                                        if(!vck->is_indexed()){
-                                            auto posv=vck->get_id_inst(i);
-                                            keyv=(*vck->_indices->_keys)[posv];
+                            }
+                            // DebugOn(vkname<<""<<keyv<<" "<<keyk<<endl);
+                            if(key_found){
+                                oa_cut=false;
+                                c0_val=0;
+                                c_val.resize(con->_nb_vars,0);
+                                auto cname=con->_name;
+                                xcurrent=con->get_x(i);
+                                con->uneval();
+                                con->eval_all();
+                                if(con->is_active(i,active_tol_sol)){
+                                    oa_cut=true;
+                                }
+                                else
+                                {   con->uneval();
+                                    auto fk=con->eval(i);
+                                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                                        //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
+                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                                            auto con_interior=interior.get_constraint(cname);
+                                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                                            auto res_search=con->binary_line_search(xinterior, i);
+                                            if(res_search){
+                                                oa_cut=true;
+                                            }
                                         }
                                         else{
-                                            auto posv=(vck->_indices->_ids->at(0))[i];
-                                            keyv=(*vck->_indices->_keys)[posv];
+                                            if (con->is_convex()){
+                                                //  DebugOn(con->_name<<" "<<con->is_convex()<<" "<<con->is_rotated_soc()<<" "<<con->check_soc()<<endl);
+                                                oa_cut=true;
+                                            }
                                         }
-                                        if(keyv==keyk){
-                                            key_found=true;
-                                        }
+                                        
                                     }
                                 }
-                                // DebugOn(vkname<<""<<keyv<<" "<<keyk<<endl);
-                                if(key_found){
+                                if(oa_cut){
+                                    convex_region=true;
                                     oa_cut=false;
-                                    c0_val=0;
-                                    c_val.resize(con->_nb_vars,0);
-                                    auto cname=con->_name;
-                                    xcurrent=con->get_x(i);
-                                    con->uneval();
-                                    con->eval_all();
-                                    if(con->is_active(i,active_tol_sol)){
-                                        oa_cut=true;
-                                    }
-                                    else
-                                    {   con->uneval();
-                                        auto fk=con->eval(i);
-                                        if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                            //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
-                                            if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                                                auto con_interior=interior.get_constraint(cname);
-                                                xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                                                auto res_search=con->binary_line_search(xinterior, i);
-                                                if(res_search){
-                                                    oa_cut=true;
-                                                }
-                                            }
-                                            else{
-                                                if (con->is_convex()){
-                                                    //  DebugOn(con->_name<<" "<<con->is_convex()<<" "<<con->is_rotated_soc()<<" "<<con->check_soc()<<endl);
-                                                    oa_cut=true;
-                                                }
-                                            }
-                                            
-                                        }
-                                    }
-                                    if(oa_cut){
-                                        convex_region=true;
-                                        oa_cut=false;
+                                    
+                                    if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
+                                    {
                                         
-                                        if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                        {
-                                            
-                                            xres=con->get_x(i);
-                                            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                            if(soc1<=0 && soc2<=0 && soc3<=0){
-                                                convex_region=true;
-                                            }
-                                            else{
-                                                convex_region=false;
-                                            }
+                                        xres=con->get_x(i);
+                                        auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+                                        auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+                                        auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+                                        if(soc1<=0 && soc2<=0 && soc3<=0){
+                                            convex_region=true;
                                         }
-                                        if(convex_region){
-                                            //                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
-                                            //                                                for(auto l=0;l<c_val.size();l++)
-                                            //                                                    DebugOn(c_val[l]<<"\t");
-                                            //                                                DebugOn(c0_val<<endl);
-                                            
-                                            if(add_new){
-                                                nb_added_cuts++;
-                                                indices activeset("active_"+con->_name);
-                                                activeset.add((*con->_indices->_keys)[i]);
-                                                Constraint<> OA_cut(con_lin_name);
-                                                OA_cut=con->get_outer_app(activeset);
-                                                if(con->_ctype==leq) {
-                                                    lin->add(OA_cut.in(activeset)<=0);
-                                                }
-                                                else {
-                                                    lin->add(OA_cut.in(activeset)>=0);
-                                                }
-                                                add_new=false;
-                                                oa_cut=false;
-                                            }
-                                            else{
-                                                con->get_outer_coef(i, c_val, c0_val);
-                                                vector<int> coefs;
-                                                for (auto j = 0; j<c_val.size(); j++) {
-                                                    coefs.push_back(1e5*c_val[j]);
-                                                }
-                                                coefs.push_back(1e5*c0_val);
-                                                if(_OA_cuts[con->_id*100+i].insert(coefs).second)
-                                                    oa_cut=true;
-                                                //                                else {
-                                                //                                    DebugOn("discarded OA cut");
-                                                //                                }
-                                            }
-                                            //
-                                            //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
-                                            //                                                    con_oa=con->get_outer_app_insti(i, false);
-                                            //                                                    if(con->_ctype==geq)
-                                            //                                                        add(con_oa>=0);
-                                            //                                                    else
-                                            //                                                        add(con_oa<=0);
+                                        else{
+                                            convex_region=false;
                                         }
-                                        
                                     }
-                                    if(oa_cut){
-                                        nb_added_cuts++;
-                                        auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
-                                        //                    DebugOn("added "<<con->_name<<endl);
-                                        auto nb_inst = con_lin->get_nb_instances();
-                                        con_lin->_indices->add("inst_"+to_string(nb_inst));
-                                        con_lin->_dim[0] = con_lin->_indices->size();
-                                        auto count=0;
-                                        for(auto &l: *(con_lin->_lterms)){
-                                            auto name=l.first;
-                                            if(!l.second._sign){
-                                                throw invalid_argument("symbolic negative");
-                                            }
-                                            if(l.second._coef->is_param()) {
-                                                auto p_cst = ((param<>*)(l.second._coef.get()));
-                                                //                                    DebugOn(p_cst->_indices->_keys->size());
-                                                
-                                                p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
-                                                
-                                                //                                    DebugOn(p_cst->_indices->_keys->size());
+                                    if(convex_region){
+                                        //                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
+                                        //                                                for(auto l=0;l<c_val.size();l++)
+                                        //                                                    DebugOn(c_val[l]<<"\t");
+                                        //                                                DebugOn(c0_val<<endl);
+                                        
+                                        if(add_new){
+                                            nb_added_cuts++;
+                                            indices activeset("active_"+con->_name);
+                                            activeset.add((*con->_indices->_keys)[i]);
+                                            Constraint<> OA_cut(con_lin_name);
+                                            OA_cut=con->get_outer_app(activeset);
+                                            if(con->_ctype==leq) {
+                                                lin->add(OA_cut.in(activeset)<=0);
                                             }
                                             else {
-                                                //                            auto f = static_pointer_cast<func<>>(l.second._coef);
-                                                //                            if(!f->func_is_param()){
-                                                //                                throw invalid_argument("function should be a param");
-                                                //                            }
-                                                //                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                                                //                            f->_indices->add("inst_"+to_string(p->_indices->_keys->size()));
-                                                //                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c_val[count]);
-                                                //                            f->_dim[0] = f->_indices->size();
-                                                //                            f->uneval();
-                                                //                            f->allocate_mem();
-                                                throw invalid_argument("Coefficient must be parameter");
+                                                lin->add(OA_cut.in(activeset)>=0);
                                             }
-                                            auto parkeys=l.second._p->_indices->_keys;
-                                            //                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
-                                            auto v = con->get_var(l.second._p->_name);
-                                            l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
-                                            count++;
+                                            add_new=false;
+                                            oa_cut=false;
                                         }
-                                        //Set value of the constant!!!
-                                        if(con_lin->_cst->is_param()){
-                                            auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                            co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
-                                        }
-                                        else if(con_lin->_cst->is_function()){
-                                            auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                            if(!rhs_f->func_is_param()){
-                                                throw invalid_argument("function should be a param");
+                                        else{
+                                            con->get_outer_coef(i, c_val, c0_val);
+                                            vector<int> coefs;
+                                            for (auto j = 0; j<c_val.size(); j++) {
+                                                coefs.push_back(1e5*c_val[j]);
                                             }
-                                            auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
-                                            rhs_f->_indices->add("inst_"+to_string(nb_inst));
-                                            rhs_f->_dim[0] = rhs_f->_indices->size();
+                                            coefs.push_back(1e5*c0_val);
+                                            if(_OA_cuts[con->_id*100+i].insert(coefs).second)
+                                                oa_cut=true;
+                                            //                                else {
+                                            //                                    DebugOn("discarded OA cut");
+                                            //                                }
                                         }
-                                        //                            DebugOn("a"<<endl);
+                                        //
+                                        //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
+                                        //                                                    con_oa=con->get_outer_app_insti(i, false);
+                                        //                                                    if(con->_ctype==geq)
+                                        //                                                        add(con_oa>=0);
+                                        //                                                    else
+                                        //                                                        add(con_oa<=0);
                                     }
-                                    con->set_x(i, xcurrent);
-                                    xcurrent.clear();
-                                    xinterior.clear();
-                                    xres.clear();
-                                    break;
+                                    
                                 }
+                                if(oa_cut){
+                                    nb_added_cuts++;
+                                    auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
+                                    //                    DebugOn("added "<<con->_name<<endl);
+                                    auto nb_inst = con_lin->get_nb_instances();
+                                    con_lin->_indices->add("inst_"+to_string(nb_inst));
+                                    con_lin->_dim[0] = con_lin->_indices->size();
+                                    auto count=0;
+                                    for(auto &l: *(con_lin->_lterms)){
+                                        auto name=l.first;
+                                        if(!l.second._sign){
+                                            throw invalid_argument("symbolic negative");
+                                        }
+                                        if(l.second._coef->is_param()) {
+                                            auto p_cst = ((param<>*)(l.second._coef.get()));
+                                            //                                    DebugOn(p_cst->_indices->_keys->size());
+                                            
+                                            p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                                            
+                                            //                                    DebugOn(p_cst->_indices->_keys->size());
+                                        }
+                                        else {
+                                            //                            auto f = static_pointer_cast<func<>>(l.second._coef);
+                                            //                            if(!f->func_is_param()){
+                                            //                                throw invalid_argument("function should be a param");
+                                            //                            }
+                                            //                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                                            //                            f->_indices->add("inst_"+to_string(p->_indices->_keys->size()));
+                                            //                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c_val[count]);
+                                            //                            f->_dim[0] = f->_indices->size();
+                                            //                            f->uneval();
+                                            //                            f->allocate_mem();
+                                            throw invalid_argument("Coefficient must be parameter");
+                                        }
+                                        auto parkeys=l.second._p->_indices->_keys;
+                                        //                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
+                                        auto v = con->get_var(l.second._p->_name);
+                                        l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
+                                        count++;
+                                    }
+                                    //Set value of the constant!!!
+                                    if(con_lin->_cst->is_param()){
+                                        auto co_cst = ((param<>*)(con_lin->_cst.get()));
+                                        co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
+                                    }
+                                    else if(con_lin->_cst->is_function()){
+                                        auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+                                        if(!rhs_f->func_is_param()){
+                                            throw invalid_argument("function should be a param");
+                                        }
+                                        auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+                                        p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
+                                        rhs_f->_indices->add("inst_"+to_string(nb_inst));
+                                        rhs_f->_dim[0] = rhs_f->_indices->size();
+                                    }
+                                    //                            DebugOn("a"<<endl);
+                                }
+                                con->set_x(i, xcurrent);
+                                xcurrent.clear();
+                                xinterior.clear();
+                                xres.clear();
+                                break;
                             }
                         }
                     }
