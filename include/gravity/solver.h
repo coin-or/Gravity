@@ -380,10 +380,13 @@ namespace gravity {
                 {
 #ifdef USE_CPLEX
                     try{
+                        if(_model->_type!=lin_m && _model->_type!=quad_m ){
+                            throw invalid_argument("Only linear and quadratic models are supported by CPLEX");
+                        }
                         auto cplex_prog = (CplexProgram*)(_prog.get());
                         cplex_prog->_output = output;
                         cplex_prog->prepare_model();
-                        optimal = cplex_prog->solve(relax,mipgap);
+                        optimal = cplex_prog->solve(output, relax, tol, mipgap);
                         
                         return_status = optimal ? 0 : -1;
                     }

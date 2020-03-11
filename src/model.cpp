@@ -5966,7 +5966,7 @@ namespace gravity {
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
        // relaxed_model->print();
-        solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
+        solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         // if(!linearize)
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         //        else

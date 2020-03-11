@@ -713,7 +713,7 @@ namespace gravity {
             }
         }
         reindex();
-        DebugOn("Number of constraints in linear model after perturb"<<_nb_cons<<endl);
+        DebugOn("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
         return Ointerior;
     }
     //

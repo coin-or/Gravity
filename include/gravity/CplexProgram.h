@@ -45,7 +45,7 @@ public:
         return *_cplex_model;
     }
     
-    bool solve(bool relax=false, double mipgap = 0.01);
+    bool solve(int output=0, bool relax=false, double tol=1e-6, double mipgap=0.01);
     void prepare_model();
     void relax_model();
     void warm_start();
