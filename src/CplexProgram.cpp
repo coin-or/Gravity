@@ -131,7 +131,7 @@ bool CplexProgram::solve(int output, bool relax,double tol, double mipgap) {
             }
         }
 //        cplex.setParam(IloCplex::Param::OptimalityTarget, 2);
-//        cplex.setParam(IloCplex::Param::Threads, 1);
+          cplex.setParam(IloCplex::Param::Threads, 1);
 //        cplex.setParam(IloCplex::BarDisplay, 0);
 //        cplex.setParam(IloCplex::AdvInd, 1);
 
@@ -142,11 +142,12 @@ bool CplexProgram::solve(int output, bool relax,double tol, double mipgap) {
 //        cplex.setParam(IloCplex::RelaxPreInd,0);
 //        cplex.setParam(IloCplex::PreslvNd,-1);
 
-//        cplex.setParam(IloCplex::Param::RootAlgorithm,4);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, tol);
-        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, tol);
-        cplex.setParam(IloCplex::EpGap, mipgap ); //stopping criterion MIPgap
-        cplex.setParam(IloCplex::Param::ParamDisplay, 0);
+      //  cplex.setParam(IloCplex::Param::RootAlgorithm,2);
+//        cplex.setParam(IloCplex::RootAlg, 2);
+//        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, tol);
+//        cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, tol);
+//        cplex.setParam(IloCplex::EpGap, mipgap ); //stopping criterion MIPgap
+//        cplex.setParam(IloCplex::Param::ParamDisplay, 0);
 //        cplex.setParam(IloCplex::PreInd, 1);
 //        cplex.setParam(IloCplex::MIPDisplay, 2);
         
@@ -188,10 +189,10 @@ bool CplexProgram::solve(int output, bool relax,double tol, double mipgap) {
         else if(cplex.getStatus() == IloAlgorithm::Optimal){
             return_status = 100;
         }
-        _cplex_env->out() << "Solution status: " << cplex.getStatus() << endl;
+       // _cplex_env->out() << "Solution status: " << cplex.getStatus() << endl;
 
         // Print results
-        _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
+       // _cplex_env->out() << "Cost:" << cplex.getObjValue() << endl;
 
         // set the optimal value.
         _model->_obj->set_val(cplex.getObjValue());

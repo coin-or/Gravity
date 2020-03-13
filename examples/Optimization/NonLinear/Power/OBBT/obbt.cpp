@@ -193,7 +193,7 @@ int main (int argc, char * argv[]) {
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0;
-    SolverType ub_solver_type = ipopt, lb_solver_type = cplex;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
@@ -204,7 +204,7 @@ int main (int argc, char * argv[]) {
         lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
         total_time=get<2>(res);
-        SDP->print_constraints_stats(1e-6);
+        //SDP->print_constraints_stats(1e-6);
     }
     else{
         current=true;
@@ -217,7 +217,7 @@ int main (int argc, char * argv[]) {
         total_time=get<2>(res);
         oacuts=get<8>(res);
         oacuts_init=get<9>(res);
-        SDP->print_constraints_stats(1e-6);
+        //SDP->print_constraints_stats(1e-6);
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 

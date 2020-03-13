@@ -6019,6 +6019,7 @@ namespace gravity {
         }
         time_end = get_wall_time();
         total_time = time_end - time_start;
+        obbt_model->print_constraints_stats(1e-6);
         get<0>(res)=get<0>(status);
         get<1>(res)=total_iter;
         get<2>(res)=total_time;
@@ -6253,6 +6254,7 @@ namespace gravity {
                                                 /* Update bounds only if the model status is solved to optimal */
                                                 if(model->_status==0)
                                                 {
+                                                    //model->print_constraints_stats(1e-6);
                                                     mkname=model->get_name();
                                                     std::size_t pos = mkname.find("|");
                                                     vkname.assign(mkname, 0, pos);
@@ -6370,7 +6372,7 @@ namespace gravity {
 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                                 model->get_solution(obbt_solution);
                                                         if(run_obbt_iter==1){
-                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->_name, oacuts, active_tol);
+                                                            relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->_name, oacuts, active_tol);
                                                         }
                                                         else{
                                                             relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
@@ -6405,6 +6407,12 @@ namespace gravity {
                                     }
                                 }
                             }
+                        }
+                        if(solver_time>=max_time)
+                        {
+                            break_flag=true;
+                            time_limit = true;
+                            break;
                         }
                     }
                     
@@ -6574,7 +6582,7 @@ namespace gravity {
                 DebugOn("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
                 //obbt_model->print();
                 
-                if(!close)
+                if(!close || linearize)
                 {
                     
                     //                obbt_model->reset_constrs();

@@ -386,7 +386,7 @@ namespace gravity {
                         auto cplex_prog = (CplexProgram*)(_prog.get());
                         cplex_prog->_output = output;
                         cplex_prog->prepare_model();
-                        optimal = cplex_prog->solve(output, relax, tol, mipgap);
+                        optimal = cplex_prog->solve(output=0, relax, tol, mipgap);
                         
                         return_status = optimal ? 0 : -1;
                     }
