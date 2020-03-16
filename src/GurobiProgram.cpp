@@ -171,9 +171,9 @@ void GurobiProgram::fill_in_grb_vmap(){
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second.get();
-        if (!v->_new) {
-            continue;
-        }
+//        if (!v->_new) {
+//            continue;
+//        }
         v->_new = false;
         auto idx = v->get_id();
         switch (v->get_intype()) {
@@ -250,9 +250,9 @@ void GurobiProgram::create_grb_constraints(){
     double coeff;    
     for(auto& p: _model->_cons){
         auto c = p.second;
-        if (!c->_new && c->_all_satisfied) {
-            continue;
-        }
+//        if (!c->_new && c->_all_satisfied) {
+//            continue;
+//        }
         c->_new = false;
         if (c->is_nonlinear()) {
             throw invalid_argument("Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n");
@@ -390,9 +390,9 @@ void GurobiProgram::set_grb_objective(){
     GRBVar gvar1, gvar2;
     int objt;
     double coeff;
-    if (!_model->_obj->_new) {
-        return;
-    }
+//    if (!_model->_obj->_new) {
+//        return;
+//    }
     _model->_obj->_new = false;
     if (_model->_objt == minimize) objt = GRB_MINIMIZE;
     else objt = GRB_MAXIMIZE;
