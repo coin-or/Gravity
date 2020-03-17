@@ -43,7 +43,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env = new GRBEnv();
-    grb_env->set(GRB_IntParam_Presolve,0);
+    //grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
@@ -76,11 +76,13 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax, double mipgap){
+bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
 //    print_constraints();
     if (relax) relax_model();
 //    relax_model();
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->optimize();

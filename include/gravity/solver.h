@@ -366,7 +366,7 @@ namespace gravity {
                         grb_prog->_output = output;
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
-                        optimal = grb_prog->solve(relax,mipgap);
+                        optimal = grb_prog->solve(output, relax, tol, mipgap);
                         return_status = optimal ? 0 : -1;
                     }catch(GRBException e) {
                         cerr << "\nError code = " << e.getErrorCode() << endl;
