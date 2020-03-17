@@ -8,13 +8,13 @@ GurobiProgram::GurobiProgram(){
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
 //    grb_env->set(GRB_IntParam_Threads,1);
-       grb_env->set(GRB_IntParam_Presolve,0);
-      grb_env->set(GRB_IntParam_NumericFocus,3);
-     grb_env->set(GRB_IntParam_NonConvex,2);
+//       grb_env->set(GRB_IntParam_Presolve,0);
+//      grb_env->set(GRB_IntParam_NumericFocus,3);
+//     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,1);
+    grb_env->set(GRB_IntParam_OutputFlag,0);
 //    grb_mod = new GRBModel(*grb_env);
     grb_mod = NULL;
 }
@@ -22,18 +22,18 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env = new GRBEnv();
-    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
-    grb_env->set(GRB_IntParam_Presolve,0);
-    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+//    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_NumericFocus,3);
+//    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,1);
+    grb_env->set(GRB_IntParam_OutputFlag,0);
     grb_mod = new GRBModel(*grb_env);
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
@@ -48,13 +48,13 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
-    grb_env->set(GRB_IntParam_Presolve,0);
-    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+//    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_NumericFocus,3);
+//    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,1);
+    grb_env->set(GRB_IntParam_OutputFlag,0);
     grb_mod = new GRBModel(*grb_env);
 //    grb_env->set(GRB_IntParam_OutputFlag,2);
 //    _model = m;
@@ -100,7 +100,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //        }
 //    }
     _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
-    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
+//    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
     if (grb_mod->get(GRB_IntAttr_IsMIP)) {
         cout.setf(ios::fixed);
         cout.precision(3);
@@ -122,7 +122,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write("gurobiprint.lp");
 //    print_constraints();
 }
 void GurobiProgram::update_model(){
@@ -419,7 +419,7 @@ void GurobiProgram::set_grb_objective(){
         }
     for (auto& it1: _model->_obj->get_qterms()) {
         if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
-            assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
+//            assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
             for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
                 for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
                     coeff = _model->_obj->eval(it1.second._coef,i,j);
