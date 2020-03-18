@@ -48,6 +48,13 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
+#else
+    if(argc==2){
+        fname=argv[1];
+    }
+    else{
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    }
 #endif
     double total_time_start = get_wall_time();
     PowerNet grid;

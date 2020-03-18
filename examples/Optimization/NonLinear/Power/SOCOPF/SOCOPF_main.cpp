@@ -55,6 +55,13 @@ int main (int argc, char * argv[])
     else if(solver_str.compare("cplex")==0) {
         use_cplex = true;
     }
+#else
+    if(argc==2){
+        fname=argv[1];
+    }
+    else{
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    }
 #endif
     double total_time_start = get_wall_time();
     PowerNet grid;
@@ -224,7 +231,7 @@ int main (int argc, char * argv[])
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
-        SOCOPF.run(output, tol=1e-6);
+        SOCOPF.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

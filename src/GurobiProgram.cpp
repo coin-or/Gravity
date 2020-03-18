@@ -419,7 +419,6 @@ void GurobiProgram::set_grb_objective(){
         }
     for (auto& it1: _model->_obj->get_qterms()) {
         if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
-            assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
             for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
                 for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
                     coeff = _model->_obj->eval(it1.second._coef,i,j);
