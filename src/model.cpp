@@ -5985,7 +5985,10 @@ namespace gravity {
             obbt_model=lin_model;
             oacuts_init=lin_model->_nb_cons;
             oacuts=lin_model->_nb_cons;
+            //solver<> s(lin_model, gurobi);
+            //s.run(0, 1e-6);
         }
+        
         int run_obbt_iter=1;
         auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter);
         double upper_bound = get<5>(status);

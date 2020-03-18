@@ -28,6 +28,7 @@ public:
     void update_model();
     void update_solution();
     void relax_model();
+    void warm_start();
 
     void fill_in_grb_vmap();
     void create_grb_constraints();

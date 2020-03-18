@@ -14,7 +14,7 @@ GurobiProgram::GurobiProgram(){
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,0);
+    grb_env->set(GRB_IntParam_OutputFlag,1);
 //    grb_mod = new GRBModel(*grb_env);
     grb_mod = NULL;
 }
@@ -33,7 +33,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,0);
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
@@ -54,9 +54,9 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
-    grb_env->set(GRB_IntParam_OutputFlag,0);
+    grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
-//    grb_env->set(GRB_IntParam_OutputFlag,2);
+//    grb_env->set(GRB_IntParam_ƒFlag,2);
 //    _model = m;
     m->fill_in_maps();
     m->compute_funcs();
@@ -85,8 +85,10 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap){
     grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
+    grb_mod->set(GRB_IntParam_Method, 1);
+    warm_start();
     grb_mod->optimize();
-//    grb_mod->write("~/mod.mps");
+    //grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
         return false;
@@ -124,7 +126,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-//    grb_mod->write("gurobiprint.lp");
+    grb_mod->write("gurobiprint.mps");
 //    print_constraints();
 }
 void GurobiProgram::update_model(){
@@ -160,6 +162,23 @@ void GurobiProgram::update_solution(){
     }
 }
 
+void GurobiProgram::warm_start(){
+    GRBVar gvar;
+    param_* v;
+    double value;
+    for(auto& v_p: _model->_vars)
+    {
+        v = v_p.second.get();
+        auto idx = v->get_id();
+        auto dim = v->_dim[0];
+        for (auto i = 0; i < dim; i++) {
+            auto vid = idx + i;
+            v->get_double_val(i,value);
+            _grb_vars.at(vid).set(GRB_DoubleAttr_PStart, value);
+        }
+    }
+}
+
 void GurobiProgram::relax_model(){
     GRBVar* gvars = grb_mod->getVars();
     for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
@@ -184,6 +203,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                
                 }
                 break;
             }
