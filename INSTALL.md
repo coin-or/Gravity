@@ -85,4 +85,3 @@ This will install all the models found under `Gravity/examples`.
 
 The corresponding binaries will then appear under `Gravity/bin/Release`.
 
-All executables can be called with the flag --help or -h to get help on running instructions.
