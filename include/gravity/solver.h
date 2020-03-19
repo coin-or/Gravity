@@ -265,9 +265,9 @@ namespace gravity {
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
                         mu_init = std::exp(-1)/std::exp(2);
-                        DebugOff("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
-//                        iapp->Options()->SetStringValue("warm_start_init_point", "yes");
+                        iapp->Options()->SetStringValue("warm_start_init_point", "yes");
+                        DebugOn("Using Warm Start\n");
                     }
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
