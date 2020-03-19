@@ -4579,9 +4579,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         void fill_in_duals(double* lambda, double* z_L, double* z_U){
             for (auto &cp: _cons) {
-                if(cp.second->_new){
-                    continue;
-                }
+//                if(cp.second->_new){
+//                    continue;
+//                }
                 size_t idx = 0;
                 //        for (size_t inst = 0; inst < cp.second->get_nb_inst(); inst++) {
                 //            if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
@@ -4589,8 +4589,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 //            }
                 //
                 //        }
-                idx = 0;
-                for (size_t inst = 0; inst < cp.second->_dual.size(); inst++) {
+//                idx = 0;
+                auto nb_ins = cp.second->get_nb_inst();
+                for (size_t inst = 0; inst < nb_ins; inst++) {
                     if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                         auto index = cp.second->_id + idx++;
                         lambda[index] = cp.second->_dual[inst];
@@ -4602,9 +4603,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             for (auto &vp: _vars) {
-                if(vp.second->_new){
-                    continue;
-                }
+//                if(vp.second->_new){
+//                    continue;
+//                }
                 auto nb_inst = vp.second->get_dim();
                 auto vid = vp.second->get_id();
                 for (size_t inst = 0; inst < nb_inst; inst++) {
