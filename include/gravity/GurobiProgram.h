@@ -23,7 +23,7 @@ public:
     ~GurobiProgram();
     void reset_model();
 
-    bool solve(int output=0, bool relax = false, double tol=1e-6, double mipgap = 0.01);
+    bool solve(int output=0, bool relax = false, double tol=1e-6, double mipgap = 0.01, bool gurobi_crossover=false);
     void prepare_model();
     void update_model();
     void update_solution();

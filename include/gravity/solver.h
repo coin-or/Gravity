@@ -183,34 +183,46 @@ namespace gravity {
         //@}
         void set_model(gravity::Model<type>& m);
         int run(bool relax){
-            return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6);
+            return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6, false);
         }
         int run(int output, type tol , const string& lin_solver){
-            return run(output, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, 1e+6);
+            return run(output, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, 1e+6, false);
         }
         
         int run(type tol , double time_limit){
-            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit);
+            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit, false);
+        }
+        
+        int run(type tol , double time_limit, bool gurobi_croosover){
+            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit, gurobi_croosover);
+        }
+        
+        int run(type tol , bool gurobi_croosover){
+            return run(5, tol, 10000, 1e-6, true, {false,""}, 1e+6, gurobi_croosover);
+        }
+        
+        int run(int output, type tol , bool gurobi_croosover){
+            return run(output, tol, 10000, 1e-6, true, {false,""}, 1e+6, gurobi_croosover);
         }
         
         //OPF.run(tol,time_limit,"ma97");
         int run(type tol , double time_limit, const string& lin_solver){
-            return run(5, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
+            return run(5, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, time_limit, false);
         }
         
         int run(int output, type tol , const string& lin_solver, int max_iter){
-            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, 1e6);
+            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, 1e6, false);
         }
         
         int run(int output, type tol , double time_limit, const string& lin_solver, int max_iter){
-            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
+            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit, false);
         }
         
         int run(int output=5, type tol=1e-6 , int max_iter=2000){
-            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
+            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6, false);
         }
         /* run model */
-        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
+        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit, bool gurobi_crossover){
             int return_status = -1, dyn_max_iter = 20;
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
@@ -366,7 +378,7 @@ namespace gravity {
                         grb_prog->_output = output;
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
-                        optimal = grb_prog->solve(output, relax, tol, mipgap);
+                        optimal = grb_prog->solve(output, relax, tol, mipgap, gurobi_crossover);
                         return_status = optimal ? 0 : -1;
                     }catch(GRBException e) {
                         cerr << "\nError code = " << e.getErrorCode() << endl;
