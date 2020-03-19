@@ -11,7 +11,7 @@ GurobiProgram::GurobiProgram(){
 //       grb_env->set(GRB_IntParam_Presolve,0);
 //      grb_env->set(GRB_IntParam_NumericFocus,3);
 //     grb_env->set(GRB_IntParam_NonConvex,2);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -30,7 +30,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
 //    grb_env->set(GRB_IntParam_NonConvex,2);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -51,7 +51,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
 //    grb_env->set(GRB_IntParam_NonConvex,2);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -81,13 +81,26 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap){
 //    print_constraints();
     if (relax) relax_model();
 //    relax_model();
+    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
+    //grb_mod->set(GRB_IntParam_ScaleFlag, 2);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
-    grb_mod->set(GRB_IntParam_Method, 1);
-    warm_start();
+    grb_mod->set(GRB_IntParam_Method, 2);
+    grb_mod->set(GRB_IntParam_Crossover, 0);
+    //grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    //warm_start();
     grb_mod->optimize();
+    //cout<<"Status "<<grb_mod->get(GRB_IntAttr_Status)<<endl;
+
+    // cout<<"BoundVio "<<grb_mod->get(GRB_DoubleAttr_BoundVio)<<endl;
+    // cout<<"BoundSVio "<<grb_mod->get(GRB_DoubleAttr_BoundSVio)<<endl;
+    // cout<<"ConstrVio "<<grb_mod->get(GRB_DoubleAttr_ConstrVio)<<endl;
+    // cout<<"ConstrSVio "<<grb_mod->get(GRB_DoubleAttr_ConstrSVio)<<endl;
+    // cout<<"ConstrResidual "<<grb_mod->get(GRB_DoubleAttr_ConstrResidual)<<endl;
+    // cout<<"ConstrSResidual "<<grb_mod->get(GRB_DoubleAttr_ConstrSResidual)<<endl;
+ 
     //grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
@@ -126,7 +139,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-    grb_mod->write("gurobiprint.mps");
+    //grb_mod->write("gurobiprint.mps");
 //    print_constraints();
 }
 void GurobiProgram::update_model(){
