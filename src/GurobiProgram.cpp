@@ -81,8 +81,9 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    print_constraints();
     if (relax) relax_model();
 //    relax_model();
-    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
-    grb_mod->set(GRB_IntParam_ScaleFlag, 2);
+    
+    grb_mod->set(GRB_DoubleParam_BarConvTol, tol);
+   // grb_mod->set(GRB_IntParam_ScaleFlag, 2);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
