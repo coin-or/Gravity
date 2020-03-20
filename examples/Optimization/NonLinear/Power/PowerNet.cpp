@@ -801,9 +801,9 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         qf_to_max.add_val(name, arc->limit);
         qf_to_min.add_val(name, (arc->limit)*(-1));
         lij_min.add_val(name, 0);
-        lij_max.add_val(name, pow(arc->tr,2)*pow(arc->limit, 2)/pow(bus_s->vbound.min,2));
+        lij_max.add_val(name, pow(arc->tr,2)*pow(arc->limit, 2)/(pow(bus_s->vbound.min,2)*(pow(arc->b,2)+pow(arc->g,2))));
         lji_min.add_val(name, 0);
-        lji_max.add_val(name, pow(arc->limit, 2)/pow(bus_d->vbound.min,2));
+        lji_max.add_val(name, pow(arc->limit, 2)/(pow(bus_d->vbound.min,2)*(pow(arc->b,2)+pow(arc->g,2))));
         Iij_min.add_val(name, (-1)*(arc->tr)*(arc->limit)/(bus_s->vbound.min));
         Iij_max.add_val(name, (arc->tr)*(arc->limit)/(bus_s->vbound.min));
         
@@ -2592,12 +2592,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
         Constraint<Cpx> I_from("I_from");
-        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*L_from;
+        I_from=(Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_from;
         SDPOPF->add_real(I_from.in(arcs)==0);
         
         
         Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2))/(pow(g,2)+pow(b,2));
         //SDPOPF->add(I_from_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_from_Pf.in(arcs)==0, true, "on/off", false);
         
@@ -2605,12 +2605,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         L_to.set_real(lji.in(arcs));
         
         Constraint<Cpx> I_to("I_to");
-        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*L_to;
+        I_to=pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_to;
         //SDPOPF->add_real(I_to.in(arcs_I_to)==0);
         SDPOPF->add_real(I_to.in(arcs)==0);
         
         Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
+        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2))/(pow(g,2)+pow(b,2));
         //SDPOPF->add(I_to_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_to_Pf.in(arcs)==0, true, "on/off", false);
         
