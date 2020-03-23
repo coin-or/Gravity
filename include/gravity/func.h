@@ -1343,6 +1343,87 @@ namespace gravity {
             return res;
         }
         
+        func<type> get_outer_app(const indices& idx, double scale_fact){
+            const double zero_tol=1e-8;
+            double t;
+            auto cpy = *this;
+            auto keep = this->_indices->get_common_refs(idx);
+            
+            for(auto &it: *cpy._vars){
+                auto v = it.second.first;
+                if(!v->_is_vector){
+                    v->_indices->filter_refs(keep);
+                }
+            }
+            
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar_"+_name);
+            f_xstar = cpy;
+            f_xstar._indices->filter_refs(keep);
+            for(auto &it: *cpy._vars){
+                auto v = it.second.first;
+                param<type> xstar("xstar_"+v->_name);
+                xstar.in(*v->_indices);
+                xstar.copy_vals(v);
+                param<type> df_xstar("df_xstar_"+v->_name);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                df.eval_all();
+                indices df_xstar_ind("df_xstar"+v->_name+"_ind");
+                for(auto key:*(cpy._indices->_keys)){
+                    df_xstar_ind.add(key);
+                }
+                
+                df_xstar.in(df_xstar_ind);
+                df_xstar.copy_vals(df);
+                df_xstar._indices->filter_refs(keep);
+                for(auto key:*(df_xstar._indices->_keys)){
+                    t=(df_xstar.eval(key))*scale_fact;
+                    df_xstar.set_val(key, t);
+                }
+                switch (v->get_intype()) {
+                    case binary_:
+                        
+                        res += df_xstar*(*static_pointer_cast<var<bool>>(v));
+                        break;
+                    case short_:
+                        res += df_xstar*(*static_pointer_cast<var<short>>(v));
+                        break;
+                    case integer_:
+                        res += df_xstar*(*static_pointer_cast<var<int>>(v));
+                        break;
+                    case float_:
+                        res += df_xstar*(*static_pointer_cast<var<float>>(v));
+                        break;
+                        break;
+                    case double_:
+                        res += df_xstar*(*static_pointer_cast<var<double>>(v));
+                        break;
+                    default:
+                        break;
+                }
+                
+                res -= df_xstar*xstar;
+            }
+            res += f_xstar*scale_fact;
+            res.index_in(idx);
+            if(!res._cst->is_zero() && res._cst->is_function()){
+                param<type> rhs("xstar_rhs_"+_name);
+                auto rhs_f = static_pointer_cast<func<type>>(res._cst);
+                rhs_f->eval_all();
+                rhs = *rhs_f;
+                res._cst = rhs.copy();
+            }
+            //            merge_vars(r
+            //                es);
+            
+            //            for(auto &it: *_vars){
+            //                auto v = it.second.first;
+            //                auto vname=v->_name;
+            //                DebugOn(vname<<endl);
+            //            }
+            return res;
+        }
         
         
         

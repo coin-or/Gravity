@@ -446,7 +446,7 @@ namespace gravity {
         int output=0;
         double tol=1e-8;
         bool convex_region=true;
-        bool scale=false;
+        double scale=1.0;
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
         //Ointerior.print();
@@ -469,6 +469,13 @@ namespace gravity {
                 {
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices activeset("active_"+con->_name);
+                    if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
+                        scale=1e3;
+                    }
+                    else
+                    {
+                        scale=1;
+                    }
                     auto keys=con->_indices->_keys;
                     for(auto i=0;i<con->get_nb_inst();i++){
                         //                    con->uneval();
@@ -499,7 +506,7 @@ namespace gravity {
                             }
                         }
                     }
-                    OA_sol=con->get_outer_app(activeset);
+                    OA_sol=con->get_outer_app(activeset, scale);
                     if(con->_ctype==leq) {
                         add(OA_sol.in(activeset)<=0);
                     }
@@ -520,7 +527,7 @@ namespace gravity {
                             allset.add(keyi);
                             
                         }
-                        OA_sol=con->get_outer_app(allset);
+                        OA_sol=con->get_outer_app(allset, 1.0);
                         if(con->_ctype==leq) {
                             add(OA_sol.in(allset)<=0);
                         }
@@ -551,6 +558,13 @@ namespace gravity {
         if(interior){
             for (auto &con: nonlin._cons_vec)
             {
+                if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
+                    scale=1e3;
+                }
+                else
+                {
+                    scale=1;
+                }
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
                     auto con_lin_name="OA_cuts_"+con->_name;
                     if(_cons_name.find(con_lin_name)!=_cons_name.end()){
@@ -637,7 +651,7 @@ namespace gravity {
                                                 indices activeset("active_"+con->_name);
                                                 activeset.add((*con->_indices->_keys)[i]);
                                                 Constraint<> OA_cut(con_lin_name);
-                                                OA_cut=con->get_outer_app(activeset);
+                                                OA_cut=con->get_outer_app(activeset, scale);
                                                 if(con->_ctype==leq) {
                                                     add(OA_cut.in(activeset)<=0);
                                                 }
@@ -674,7 +688,7 @@ namespace gravity {
                                             }
                                             if(l.second._coef->is_param()) {
                                                 auto p_cst = ((param<>*)(l.second._coef.get()));
-                                                p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                                                p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]*scale);
                                             }
                                             else {
                                                 throw invalid_argument("Coefficient must be parameter");
@@ -687,7 +701,7 @@ namespace gravity {
                                         //Set value of the constant!!!
                                         if(con_lin->_cst->is_param()){
                                             auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                            co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
+                                            co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val*scale);
                                         }
                                         else if(con_lin->_cst->is_function()){
                                             auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
@@ -695,7 +709,7 @@ namespace gravity {
                                                 throw invalid_argument("function should be a param");
                                             }
                                             auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
+                                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val*scale);
                                             rhs_f->_indices->add("inst_"+to_string(nb_inst));
                                             rhs_f->_dim[0] = rhs_f->_indices->size();
                                         }
@@ -736,6 +750,7 @@ namespace gravity {
         bool add_new=false;
         int nb_added_cuts = 0;
         string keyv;
+        double scale=1;
         //    Ointerior.print();
         
         string vkname,keyk,dirk;
@@ -774,7 +789,13 @@ namespace gravity {
                     }
                     //            con->uneval();
                     //            con->eval_all();
-                    
+                    if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
+                        scale=1e3;
+                    }
+                    else
+                    {
+                        scale=1;
+                    }
                     auto cnb_inst=con->get_nb_inst();
                     for(auto i=0;i<cnb_inst;i++){
                         for(auto &v: *con->_vars){
@@ -861,7 +882,7 @@ namespace gravity {
                                             indices activeset("active_"+con->_name);
                                             activeset.add((*con->_indices->_keys)[i]);
                                             Constraint<> OA_cut(con_lin_name);
-                                            OA_cut=con->get_outer_app(activeset);
+                                            OA_cut=con->get_outer_app(activeset, scale);
                                             if(con->_ctype==leq) {
                                                 lin->add(OA_cut.in(activeset)<=0);
                                             }
@@ -911,7 +932,7 @@ namespace gravity {
                                             auto p_cst = ((param<>*)(l.second._coef.get()));
                                             //                                    DebugOn(p_cst->_indices->_keys->size());
                                             
-                                            p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]);
+                                            p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]*scale);
                                             
                                             //                                    DebugOn(p_cst->_indices->_keys->size());
                                         }
@@ -937,7 +958,7 @@ namespace gravity {
                                     //Set value of the constant!!!
                                     if(con_lin->_cst->is_param()){
                                         auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                        co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val);
+                                        co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val*scale);
                                     }
                                     else if(con_lin->_cst->is_function()){
                                         auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
@@ -945,7 +966,7 @@ namespace gravity {
                                             throw invalid_argument("function should be a param");
                                         }
                                         auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                        p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val);
+                                        p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val*scale);
                                         rhs_f->_indices->add("inst_"+to_string(nb_inst));
                                         rhs_f->_dim[0] = rhs_f->_indices->size();
                                     }

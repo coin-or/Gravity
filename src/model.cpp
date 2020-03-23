@@ -6131,6 +6131,7 @@ namespace gravity {
                     }
                 }
                 if(obbt_model->_status==0){
+                    //obbt_model->print();
                     /**/
                     terminate=false;
                     for(auto &it:obbt_model->_vars)
