@@ -2591,10 +2591,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         W.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
         
         
-        Constraint<Cpx> I_from("I_from");
-        I_from=1.0/(pow(g,2)+pow(b,2))*((Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_from);
-        SDPOPF->add_real(I_from.in(arcs)==0);
+//        Constraint<Cpx> I_from("I_from");
+//        I_from=1.0/(pow(g,2)+pow(b,2))*((Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_from);
+//        SDPOPF->add_real(I_from.in(arcs)==0);
         
+        Constraint<Cpx> I_from("I_from");
+        I_from=((Y+Ych)*(conj(Y)+conj(Ych))*Wii.from(arcs)-T*Y*(conj(Y)+conj(Ych))*conj(W)-conj(T)*conj(Y)*(Y+Ych)*W+pow(tr,2)*Y*conj(Y)*Wii.to(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_from);
+        SDPOPF->add_real(I_from.in(arcs)==0);
         
         Constraint<> I_from_Pf("I_from_Pf");
         I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2))/(pow(g,2)+pow(b,2));
@@ -2605,7 +2608,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         L_to.set_real(lji.in(arcs));
         
         Constraint<Cpx> I_to("I_to");
-        I_to=1.0/(pow(g,2)+pow(b,2))*(pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_to);
+        I_to=(pow(tr,2)*(Y+Ych)*(conj(Y)+conj(Ych))*Wii.to(arcs)-conj(T)*Y*(conj(Y)+conj(Ych))*W-T*conj(Y)*(Y+Ych)*conj(W)+Y*conj(Y)*Wii.from(arcs)-pow(tr,2)*(pow(g,2)+pow(b,2))*L_to);
         //SDPOPF->add_real(I_to.in(arcs_I_to)==0);
         SDPOPF->add_real(I_to.in(arcs)==0);
         
@@ -2616,7 +2619,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
-    
+    SDPOPF->scale_coefs(1e3);
     return SDPOPF;
     
 }
