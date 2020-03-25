@@ -2251,25 +2251,17 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
   
     
-    func<double> prod_b1 = (Pg.get_lb().in(gens_c2pos)*Pg.in(gens_c2pos).get_lb().in(gens_c2pos)).in(gens_c2pos);
-    func<double> prod_b2 = (Pg.get_lb().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
-    func<double> prod_b3 = (Pg.get_ub().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
-    
-    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens_c2pos), func<double>());
-    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens_c2pos),prod_b3).in(gens_c2pos);
-    
-    var<> etag("etag", lb, ub);
-    etag._lift=true;
+//    func<double> prod_b1 = (Pg.get_lb().in(gens_c2pos)*Pg.in(gens_c2pos).get_lb().in(gens_c2pos)).in(gens_c2pos);
+//    func<double> prod_b2 = (Pg.get_lb().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
+//    func<double> prod_b3 = (Pg.get_ub().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
+//
+//    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens_c2pos), func<double>());
+//    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens_c2pos),prod_b3).in(gens_c2pos);
+//
+//    var<> etag("etag", lb, ub);
+//    etag._lift=true;
 
-    if(!nonlin_obj){
-
-        SDPOPF->add(etag.in(gens_c2pos));
-        
-    }
-    
-    
-
-    
+    var<>etag("etag", 0, 3100);
     
     
     //    func<> obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
@@ -2301,15 +2293,30 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     }
     else
     {
+      //  SDPOPF->add(etag.in(gens_c2pos));
+//        Constraint<> obj_cost("obj_cost");
+//        obj_cost=etag-pow(Pg.in(gens_c2pos),2);
+//        SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
+//
+//
+//        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
+//        SDPOPF->min(obj);
+        
+        
+        SDPOPF->add(etag.in(range(0,0)));
+        
         Constraint<> obj_cost("obj_cost");
-        obj_cost=etag-pow(Pg.in(gens_c2pos),2);
-        SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
+        obj_cost-=etag.in(range(0,0));
+        //using for loop here only as vector variqbles are not supported in linearize routine
+        for (auto &key:*gens_c2pos._keys){
+            obj_cost+=c2(key)*pow(Pg(key),2);
+        }
+       // obj_cost=etag(0)-product(c2.in(gens_c2pos),pow(Pg.in(gens_c2pos),2));
+        SDPOPF->add(obj_cost.in(range(0,0))<=0);
         
-        
-        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
+        auto obj=(product(c1,Pg) + etag + sum(c0));
         SDPOPF->min(obj);
-        
-        
+
   
         
         
@@ -2600,7 +2607,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         SDPOPF->add_real(I_from.in(arcs)==0);
         
         Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij*Wii.from(arcs)*(pow(g,2)+pow(b,2))-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
+        I_from_Pf=(pow(g,2)+pow(b,2))*lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         //SDPOPF->add(I_from_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_from_Pf.in(arcs)==0, true, "on/off", false);
         
@@ -2613,13 +2620,14 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         SDPOPF->add_real(I_to.in(arcs)==0);
         
         Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)*(pow(g,2)+pow(b,2))-(pow(Pf_to,2) + pow(Qf_to, 2));
+        I_to_Pf=(pow(g,2)+pow(b,2))*lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2));
         //SDPOPF->add(I_to_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_to_Pf.in(arcs)==0, true, "on/off", false);
         
         
     }
     SDPOPF->scale_coefs(1e3);
+    SDPOPF->print();
     return SDPOPF;
     
 }

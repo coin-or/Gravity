@@ -584,8 +584,7 @@ namespace gravity {
                             auto vname=v->_name;
                             if(v->_is_vector)
                             {
-                                DebugOn("Exception: Vector variables are not currently supported"<<endl);
-                                DebugOn("Throw exception" <<endl);
+                                throw invalid_argument("vector variables are not supported");
                                 break;
                             }
                             else
