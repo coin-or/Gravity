@@ -5971,7 +5971,7 @@ namespace gravity {
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         //        else
         //            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-        LBnonlin_solver.run(output = 5, lb_solver_tol);
+        LBnonlin_solver.run(output = 0, lb_solver_tol);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
@@ -6131,7 +6131,7 @@ namespace gravity {
                     }
                 }
                 if(obbt_model->_status==0){
-                    obbt_model->print();
+                    //obbt_model->print();
                     /**/
                     terminate=false;
                     for(auto &it:obbt_model->_vars)
