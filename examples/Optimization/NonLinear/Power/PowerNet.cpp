@@ -2260,8 +2260,15 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //
 //    var<> etag("etag", lb, ub);
 //    etag._lift=true;
+    
+    double etag_ub=0.0, etag_lb=0.0;
+    //using for loop here only as vector variqbles are not supported in linearize routine
+    for (auto &key:*gens_c2pos._keys){
+        etag_ub+=c2.eval(key)*pg_max_sq.eval(key);
+        etag_lb+=c2.eval(key)*pg_min_sq.eval(key);
+    }
 
-    var<>etag("etag", 0, 3100);
+    var<>etag("etag", etag_lb, etag_ub);
     
     
     //    func<> obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
@@ -2626,8 +2633,13 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
+<<<<<<< HEAD
     SDPOPF->scale_coefs(1e3);
     SDPOPF->print();
+=======
+    //SDPOPF->scale_coefs(1e3);
+    //SDPOPF->print();
+>>>>>>> 8c3d7d703ece090a63d1e02610061b01c6cb6f74
     return SDPOPF;
     
 }
