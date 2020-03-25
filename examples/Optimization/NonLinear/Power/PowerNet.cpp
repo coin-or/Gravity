@@ -2600,7 +2600,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         SDPOPF->add_real(I_from.in(arcs)==0);
         
         Constraint<> I_from_Pf("I_from_Pf");
-        I_from_Pf=lij*Wii.from(arcs)-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2))/(pow(g,2)+pow(b,2));
+        I_from_Pf=lij*Wii.from(arcs)*(pow(g,2)+pow(b,2))-pow(tr,2)*(pow(Pf_from,2) + pow(Qf_from,2));
         //SDPOPF->add(I_from_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_from_Pf.in(arcs)==0, true, "on/off", false);
         
@@ -2613,7 +2613,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         SDPOPF->add_real(I_to.in(arcs)==0);
         
         Constraint<> I_to_Pf("I_to_Pf");
-        I_to_Pf=lji*Wii.to(arcs)-(pow(Pf_to,2) + pow(Qf_to, 2))/(pow(g,2)+pow(b,2));
+        I_to_Pf=lji*Wii.to(arcs)*(pow(g,2)+pow(b,2))-(pow(Pf_to,2) + pow(Qf_to, 2));
         //SDPOPF->add(I_to_Pf.in(arcs)<=0, true);
         SDPOPF->add(I_to_Pf.in(arcs)==0, true, "on/off", false);
         
