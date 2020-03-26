@@ -5965,13 +5965,13 @@ namespace gravity {
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
-        // relaxed_model->print();
+        relaxed_model->print();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         // if(!linearize)
-        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1.2e-2);
         //        else
-        //            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-        LBnonlin_solver.run(output = 0, lb_solver_tol);
+        //LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+        LBnonlin_solver.run(output = 0 , lb_solver_tol);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
