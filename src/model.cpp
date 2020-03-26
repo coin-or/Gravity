@@ -6280,10 +6280,10 @@ namespace gravity {
                                                             boundk1=vk.get_lb(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
                                                             if(objk>=0){
-                                                                objk=std::max(objk*(1-subproblem_tol/range_tol), boundk1);
+                                                                objk=std::max(objk*(1-subproblem_tol), boundk1);
                                                             }
                                                             else{
-                                                                objk=std::max(objk*(1+subproblem_tol/range_tol), boundk1);
+                                                                objk=std::max(objk*(1+subproblem_tol), boundk1);
                                                             }
                                                         }
                                                         else
@@ -6291,10 +6291,10 @@ namespace gravity {
                                                             boundk1=vk.get_ub(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
                                                              if(objk>=0){
-                                                                 objk=std::min(objk*(1+subproblem_tol/range_tol), boundk1);
+                                                                 objk=std::min(objk*(1+subproblem_tol), boundk1);
                                                              }
                                                              else{
-                                                                objk=std::max(objk*(1-subproblem_tol/range_tol), boundk1);
+                                                                objk=std::min(objk*(1-subproblem_tol), boundk1);
                                                              }
                                                             
                                                         }
