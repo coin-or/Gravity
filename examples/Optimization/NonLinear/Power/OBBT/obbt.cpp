@@ -221,7 +221,7 @@ int main (int argc, char * argv[]) {
         oacuts_init=get<9>(res);
         //SDP->print_constraints_stats(1e-6);
     }
-    string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
+   string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 
     auto upper_bound = OPF->get_obj_val();
     auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);

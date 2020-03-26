@@ -2633,13 +2633,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
-<<<<<<< HEAD
     SDPOPF->scale_coefs(1e3);
-    SDPOPF->print();
-=======
-    //SDPOPF->scale_coefs(1e3);
     //SDPOPF->print();
->>>>>>> 8c3d7d703ece090a63d1e02610061b01c6cb6f74
     return SDPOPF;
     
 }
