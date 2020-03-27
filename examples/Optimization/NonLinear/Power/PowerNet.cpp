@@ -2250,102 +2250,33 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.0);
     
+    func<double> prod_b1 = (Pg.get_lb().in(gens_c2pos)*Pg.in(gens_c2pos).get_lb().in(gens_c2pos)).in(gens_c2pos);
+    func<double> prod_b2 = (Pg.get_lb().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
+    func<double> prod_b3 = (Pg.get_ub().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
 
-    //
-    //    var<> eta("eta", 0, 1);
-    //    SDPOPF->add(eta.in(range(0,0)));
-    
-  
-    
-//    func<double> prod_b1 = (Pg.get_lb().in(gens_c2pos)*Pg.in(gens_c2pos).get_lb().in(gens_c2pos)).in(gens_c2pos);
-//    func<double> prod_b2 = (Pg.get_lb().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
-//    func<double> prod_b3 = (Pg.get_ub().in(gens_c2pos)*Pg.get_ub().in(gens_c2pos)).in(gens_c2pos);
-//
-//    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens_c2pos), func<double>());
-//    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens_c2pos),prod_b3).in(gens_c2pos);
-//
-//    var<> etag("etag", lb, ub);
-//    etag._lift=true;
-    
-    double etag_ub=0.0, etag_lb=0.0;
-    //using for loop here only as vector variqbles are not supported in linearize routine
-    for (auto &key:*gens_c2pos._keys){
-        etag_ub+=c2.eval(key)*pg_max_sq.eval(key);
-        etag_lb+=c2.eval(key)*pg_min_sq.eval(key);
-    }
+    func<double> lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2), prod_b3).in(gens_c2pos), func<double>());
+    func<double> ub = gravity::max(gravity::max(prod_b1,prod_b2).in(gens_c2pos),prod_b3).in(gens_c2pos);
 
-    var<>etag("etag", etag_lb, etag_ub);
-    
-    
-    //    func<> obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
-    //    SDPOPF->min(obj);
-    
-    //func<> obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
-    //SDPOPF->min(eta);
-    
-    /**  Objective */
+    var<> etag("etag", lb, ub);
+    etag._lift=true;
     
     
     if(nonlin_obj)
     {
-        //    Constraint<> obj_UB("obj_UB");
-        //    obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta*upper_bound;
-        //    SDPOPF->add(obj_UB.in(range(0,0))<=0);
-        
-        
         auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         SDPOPF->min(obj);
-        
-        
-//        Constraint<> obj_UB("obj_UB");
-//        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-1.0;
-//        SDPOPF->add(obj_UB.in(range(0,0))<=0);
-        //        Constraint<> obj_UB("obj_UB");
-        //        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
-        //        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
+
     }
     else
     {
-      //  SDPOPF->add(etag.in(gens_c2pos));
-//        Constraint<> obj_cost("obj_cost");
-//        obj_cost=etag-pow(Pg.in(gens_c2pos),2);
-//        SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
-//
-//
-//        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
-//        SDPOPF->min(obj);
-        
-        
-        SDPOPF->add(etag.in(range(0,0)));
-        
+        SDPOPF->add(etag.in(gens_c2pos));
         Constraint<> obj_cost("obj_cost");
-        obj_cost-=etag.in(range(0,0));
-        //using for loop here only as vector variqbles are not supported in linearize routine
-        for (auto &key:*gens_c2pos._keys){
-            obj_cost+=c2(key)*pow(Pg(key),2);
-        }
-       // obj_cost=etag(0)-product(c2.in(gens_c2pos),pow(Pg.in(gens_c2pos),2));
-        SDPOPF->add(obj_cost.in(range(0,0))<=0);
-        
+        obj_cost=etag-pow(Pg.in(gens_c2pos),2);
+        SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
 
-        auto obj=(product(c1,Pg) + etag + sum(c0));
+        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
         SDPOPF->min(obj);
 
-  
-        
-        
-        //        Constraint<> obj_UB("obj_UB");
-        //        obj_UB=(product(c1,Pg) + product(c2,etag) + sum(c0));
-        //        SDPOPF->add(obj_UB.in(range(0,0))<=upper_bound);
-        
-        
-        
-        
-        //        Constraint<> obj_UB("obj_UB");
-        //        obj_UB=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound-eta;
-        //        SDPOPF->add(obj_UB.in(range(0,0))==0, convexify, "on/off", false);
-        //
-        //    }
     }
     
     /** Constraints */
