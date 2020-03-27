@@ -474,7 +474,7 @@ namespace gravity {
                     }
                     else
                     {
-                        scale=1;
+                        scale=1e3;
                     }
                     auto keys=con->_indices->_keys;
                     for(auto i=0;i<con->get_nb_inst();i++){
@@ -563,7 +563,7 @@ namespace gravity {
                 }
                 else
                 {
-                    scale=1;
+                    scale=1e3;
                 }
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
                     auto con_lin_name="OA_cuts_"+con->_name;
@@ -793,7 +793,7 @@ namespace gravity {
                     }
                     else
                     {
-                        scale=1;
+                        scale=1e3;
                     }
                     auto cnb_inst=con->get_nb_inst();
                     for(auto i=0;i<cnb_inst;i++){

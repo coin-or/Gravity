@@ -2609,7 +2609,6 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         Ych.set_imag(ch_half.in(arcs));
         Ych_sq.set_imag(ch_half_sq.in(arcs));
         
-        
         L_from.set_real(lij.in(arcs));
         W.real_imag(R_Wij.in_pairs(arcs), Im_Wij.in_pairs(arcs));
         
@@ -2642,7 +2641,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
-    //SDPOPF->scale_coefs(1e3);
+    SDPOPF->scale_coefs(1e3);
     //SDPOPF->print();
     return SDPOPF;
     
