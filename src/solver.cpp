@@ -527,7 +527,7 @@ namespace gravity {
                             allset.add(keyi);
                             
                         }
-                        OA_sol=con->get_outer_app(allset, 1.0);
+                        OA_sol=con->get_outer_app(allset, scale);
                         if(con->_ctype==leq) {
                             add(OA_sol.in(allset)<=0);
                         }
