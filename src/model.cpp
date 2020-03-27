@@ -6131,7 +6131,7 @@ namespace gravity {
                     }
                 }
                 if(obbt_model->_status==0){
-                    obbt_model->print();
+                    //obbt_model->print();
                     /**/
                     terminate=false;
                     for(auto &it:obbt_model->_vars)
@@ -6480,7 +6480,7 @@ namespace gravity {
                                 //                            batch_models[nb_total_threads-1]->print();
                                 //                            relaxed_model->copy_bounds(obbt_model);
                                 //                            relaxed_model->reset_constrs();
-                                solver<> LB_solver(obbt_model,ipopt);
+                                solver<> LB_solver(obbt_model,lb_solver_type);
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                 LB_solver.run(output = 0, lb_solver_tol, true);
                                 if(obbt_model->_status==0)
