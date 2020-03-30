@@ -6279,13 +6279,13 @@ namespace gravity {
                                                         {
                                                             boundk1=vk.get_lb(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                                objk=std::max(objk-range_tol*10, boundk1);
+                                                            objk=std::max(objk-std::abs(objk*subproblem_tol*10), boundk1);
                                                         }
                                                         else
                                                         {
                                                             boundk1=vk.get_ub(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                                 objk=std::min(objk+range_tol*10, boundk1);
+                                                            objk=std::min(objk+std::abs(objk*subproblem_tol*10), boundk1);
                                                         }
                                                         if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                         {//do not close intervals to OBBT before finishing at least one full iteration over all variables
