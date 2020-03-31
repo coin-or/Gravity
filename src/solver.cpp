@@ -470,11 +470,11 @@ namespace gravity {
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices activeset("active_"+con->_name);
                     if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                        scale=1e3;
+                        scale=1e0;
                     }
                     else
                     {
-                        scale=1e3;
+                        scale=1e0;
                     }
                     auto keys=con->_indices->_keys;
                     for(auto i=0;i<con->get_nb_inst();i++){
@@ -559,11 +559,11 @@ namespace gravity {
             for (auto &con: nonlin._cons_vec)
             {
                 if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                    scale=1e3;
+                    scale=1e0;
                 }
                 else
                 {
-                    scale=1e3;
+                    scale=1e0;
                 }
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
                     auto con_lin_name="OA_cuts_"+con->_name;
@@ -789,11 +789,11 @@ namespace gravity {
                     //            con->uneval();
                     //            con->eval_all();
                     if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                        scale=1e3;
+                        scale=1e0;
                     }
                     else
                     {
-                        scale=1e3;
+                        scale=1e0;
                     }
                     auto cnb_inst=con->get_nb_inst();
                     for(auto i=0;i<cnb_inst;i++){

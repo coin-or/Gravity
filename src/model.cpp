@@ -5968,7 +5968,7 @@ namespace gravity {
         //relaxed_model->print();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         // if(!linearize)
-        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1.2e-2);
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         //        else
         //LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
         LBnonlin_solver.run(output = 0 , lb_solver_tol);
@@ -6022,7 +6022,7 @@ namespace gravity {
         }
         time_end = get_wall_time();
         total_time = time_end - time_start;
-        obbt_model->print_constraints_stats(1e-6);
+        obbt_model->print_constraints_stats(1e-8);
         get<0>(res)=get<0>(status);
         get<1>(res)=total_iter;
         get<2>(res)=total_time;
@@ -6279,13 +6279,13 @@ namespace gravity {
                                                         {
                                                             boundk1=vk.get_lb(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                            objk=std::max(objk-std::abs(objk*subproblem_tol*10), boundk1);
+                                                            objk=std::max(objk-range_tol, boundk1);
                                                         }
                                                         else
                                                         {
                                                             boundk1=vk.get_ub(keyk);
                                                             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                            objk=std::min(objk+std::abs(objk*subproblem_tol*10), boundk1);
+                                                            objk=std::min(objk+range_tol, boundk1);
                                                         }
                                                         if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                         {//do not close intervals to OBBT before finishing at least one full iteration over all variables
