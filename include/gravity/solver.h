@@ -82,6 +82,7 @@ namespace gravity {
         map<string,string>                        _str_options;
         map<string,int>                           _int_options;
         map<string,double>                        _double_options;
+        map<string,bool>                          _bool_options;
         
         /** Constructor */
         //@{
@@ -112,6 +113,10 @@ namespace gravity {
             _double_options[option] = val;
         }
         
+        void set_option(const string& option, const bool& val){
+            _bool_options[option] = val;
+        }
+        
         unsigned get_nb_iterations(){
             return _nb_iterations;
         };
@@ -132,6 +137,7 @@ namespace gravity {
                     *_model->_obj *= -1;
                 }
                 _prog = make_shared<IpoptProgram<type>>(_model);
+                _bool_options["check_violation"] = false;
 #else
                 ipoptNotAvailable();
 #endif
@@ -140,6 +146,7 @@ namespace gravity {
             {
 #ifdef USE_GUROBI
                 _prog = make_shared<GurobiProgram>(_model);
+                _bool_options["gurobi_crossover"] = false;
 #else
                 gurobiNotAvailable();
 #endif
@@ -183,48 +190,36 @@ namespace gravity {
         //@}
         void set_model(gravity::Model<type>& m);
         int run(bool relax){
-            return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6, false);
+            return run(5, 1e-6, 10000, 1e-6, relax, {false,""}, 1e+6);
         }
         int run(int output, type tol , const string& lin_solver){
-            return run(output, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, 1e+6, false);
+            return run(output, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, 1e+6);
         }
         
         int run(type tol , double time_limit){
-            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit, false);
-        }
-        
-        int run(type tol , double time_limit, bool gurobi_croosover){
-            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit, gurobi_croosover);
-        }
-        
-        int run(type tol , bool gurobi_croosover){
-            return run(5, tol, 10000, 1e-6, true, {false,""}, 1e+6, gurobi_croosover);
-        }
-        
-        int run(int output, type tol , bool gurobi_croosover){
-            return run(output, tol, 10000, 1e-6, true, {false,""}, 1e+6, gurobi_croosover);
+            return run(5, tol, 10000, 1e-6, true, {false,""}, time_limit);
         }
         
         //OPF.run(tol,time_limit,"ma97");
         int run(type tol , double time_limit, const string& lin_solver){
-            return run(5, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, time_limit, false);
+            return run(5, tol, 10000, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
         }
         
         int run(int output, type tol , const string& lin_solver, int max_iter){
-            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, 1e6, false);
+            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, 1e6);
         }
         
         int run(int output, type tol , double time_limit, const string& lin_solver, int max_iter){
-            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit, false);
+            return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
         }
         
         int run(int output=5, type tol=1e-6 , int max_iter=2000){
-            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6, false);
+            return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
         /* run model */
-        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit, bool gurobi_crossover){
+        int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit ){
             int return_status = -1, dyn_max_iter = 20;
-            bool violated_constraints = true, optimal = true;
+            bool violated_constraints = true, optimal = true, solver_violated=false;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
                 if (_stype==ipopt) {
@@ -378,7 +373,7 @@ namespace gravity {
                         grb_prog->_output = output;
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
-                        optimal = grb_prog->solve(output, relax, tol, mipgap, gurobi_crossover);
+                        optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
                     }catch(GRBException e) {
                         cerr << "\nError code = " << e.getErrorCode() << endl;
@@ -508,8 +503,10 @@ namespace gravity {
 #endif
                 }
                 if (optimal) {
-                    violated_constraints = _model->has_violated_constraints(tol);
-                    if (violated_constraints) {
+                    auto res=_model->has_violated_constraints(tol);
+                    violated_constraints = res.first;
+                    solver_violated=res.second;
+                    if (violated_constraints||(_stype==ipopt && solver_violated && _bool_options["check_violation"])) {
                         _model->reindex();
                         //                        _model->print();
                         //                        _model->print_symbolic();
@@ -524,9 +521,15 @@ namespace gravity {
                         //                _model->print();
                     }
                 }
-                //        if(_stype!=ipopt) {
-                //            violated_constraints = false;
-                //        }
+                        if(_stype==ipopt && solver_violated && _bool_options["check_violation"]) {
+                            violated_constraints = true;
+                            if(_double_options.find("bound_relax_factor")!=_double_options.end()){
+                            _double_options["bound_relax_factor"]=_double_options["bound_relax_factor"]*0.1;
+                            }
+                            else{
+                                _double_options["bound_relax_factor"]=tol*0.01;
+                            }
+                        }
                 nb_it++;
             }
             if (nb_it>1) {

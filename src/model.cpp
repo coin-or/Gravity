@@ -5963,6 +5963,7 @@ namespace gravity {
         double gap_new=-999, gap=0;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
+        UB_solver.set_option("bound_relax_factor", ub_solver_tol*1e-3);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         //relaxed_model->print();
@@ -6123,8 +6124,14 @@ namespace gravity {
                     obbt_model->reindex();
                     obbt_model->reset();
                     solver<> LB_solver(obbt_model, lb_solver_type);
-                    LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
-                    LB_solver.run(output = 0, lb_solver_tol, true);
+                    if(lb_solver_type==ipopt){
+                        LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
+                        LB_solver.set_option("check_violation", true);
+                    }
+                    else if(lb_solver_type==gurobi){
+                        LB_solver.set_option("gurobi_crossover", true);
+                    }
+                    LB_solver.run(output = 0, lb_solver_tol);
                     if(obbt_model->_status==0){
                         //obbt_model->print_constraints_stats(1e-6);
                         lower_bound_init=obbt_model->get_obj_val();
@@ -6487,8 +6494,14 @@ namespace gravity {
                                 //                            relaxed_model->copy_bounds(obbt_model);
                                 //                            relaxed_model->reset_constrs();
                                 solver<> LB_solver(obbt_model,lb_solver_type);
-                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
-                                LB_solver.run(output = 0, lb_solver_tol, true);
+                                if(lb_solver_type==ipopt){
+                                    LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
+                                    LB_solver.set_option("check_violation", true);
+                                }
+                                else if(lb_solver_type==gurobi){
+                                    LB_solver.set_option("gurobi_crossover", true);
+                                }
+                                LB_solver.run(output = 0, lb_solver_tol);
                                 if(obbt_model->_status==0)
                                 {
                                     lower_bound=obbt_model->get_obj_val();
@@ -6618,8 +6631,15 @@ namespace gravity {
                             //                        relaxed_model->copy_bounds(obbt_model);
                             //                        relaxed_model->reset_constrs();
                             solver<> LB_solver(obbt_model,lb_solver_type);
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
-                            LB_solver.run(output = 0, lb_solver_tol, true);
+                            if(lb_solver_type==ipopt){
+                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
+                                LB_solver.set_option("check_violation", true);
+                            }
+                            else if(lb_solver_type==gurobi){
+                                LB_solver.set_option("gurobi_crossover", true);
+                            }
+                            LB_solver.run(output = 0, lb_solver_tol);
+                            
                             if(relaxed_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val();
                             }

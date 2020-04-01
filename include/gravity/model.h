@@ -2505,7 +2505,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        bool has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
+        std::pair<bool,bool> has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
             //    if (!_has_lazy) {
             //        return false;
             //    }
@@ -2515,6 +2515,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             double diff = 0;
             shared_ptr<Constraint<type>> c = nullptr;
             bool violated = false;
+            bool solver_violated=false;
+            std::pair<bool,bool> res;
             for(auto& c_p: _cons_name)
             {
                 c = c_p.second;
@@ -2542,6 +2544,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+                                    solver_violated=true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
                                 //                        c->_violated[inst] = true;
@@ -2570,6 +2573,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+                                    solver_violated=true;
 //                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
@@ -2603,6 +2607,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                     c->_lazy[inst] = false;
                                 }
                                 else {
+                                    solver_violated=true;
 //                                    violated = true;
                                     //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
                                 }
@@ -2635,7 +2640,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             auto nb_ineq = get_nb_ineq();
             DebugOff("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
             DebugOff("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
-            return violated;
+            res.first=violated;
+            res.second=solver_violated;
+            return res;
         }
         
         
@@ -2665,7 +2672,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                 }
             }
-            feasible = feasible && !has_violated_constraints(tol);
+            feasible = feasible && !has_violated_constraints(tol).first;
             return feasible;
         }
         
