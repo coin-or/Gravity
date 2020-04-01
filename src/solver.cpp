@@ -429,7 +429,7 @@ namespace gravity {
     template<>
     Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     {
-        const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1;
+        const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1, zero_tol=1e-6;
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
         double fk;
@@ -469,13 +469,6 @@ namespace gravity {
                 {
                     Constraint<> OA_sol("OA_cuts_"+con->_name);
                     indices activeset("active_"+con->_name);
-                    if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                        scale=1e0;
-                    }
-                    else
-                    {
-                        scale=1e0;
-                    }
                     auto keys=con->_indices->_keys;
                     for(auto i=0;i<con->get_nb_inst();i++){
                         //                    con->uneval();
@@ -514,8 +507,30 @@ namespace gravity {
                         add(OA_sol.in(activeset)>=0);
                     }
                 }
-                else
-                    if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
+                else if(con->is_quadratic() && con->_lterms->size()==1 && con->_qterms->size()==1 && con->_qterms->begin()->second._p->first==con->_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
+                {
+                    double xval;
+                    auto x=static_pointer_cast<var<double>>(con->_qterms->begin()->second._p->first);
+                    Constraint<> OA_sol("OA_cuts_"+con->_name);
+                    indices allset("active_"+con->_name);
+                    auto keys=con->_indices->_keys;
+                     for(auto i=0;i<con->get_nb_inst();i++){
+                         posv=x->get_id_inst(i);
+                         x->get_double_val(posv, xval);
+                         if(std::abs(xval)>=zero_tol){
+                             string keyi=(*keys)[i];
+                             allset.add(keyi);
+                         }
+                     }
+                    OA_sol=con->get_outer_app(allset, scale);
+                    if(con->_ctype==leq) {
+                        add(OA_sol.in(allset)<=0);
+                    }
+                    else {
+                        add(OA_sol.in(allset)>=0);
+                    }
+                }
+                    else if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
                     {
                         //add_outer_app_uniform(5, *con);
                         //Need to reset after this
@@ -537,17 +552,6 @@ namespace gravity {
                     }
             }
         }
-        //        for (auto &con: nonlin._cons_vec)
-        //        {
-        //            if(!con->is_linear()) {
-        //                if(con->_name!="SOC_convex"){
-        //                        if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
-        //                        {
-        //                            add_outer_app_uniform(10, *con);
-        //                        }
-        //                }
-        //            }
-        //        }
         nonlin.set_solution(xsolution);
         reindex();
         DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
@@ -558,13 +562,6 @@ namespace gravity {
         if(interior){
             for (auto &con: nonlin._cons_vec)
             {
-                if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                    scale=1e0;
-                }
-                else
-                {
-                    scale=1e0;
-                }
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
                     auto con_lin_name="OA_cuts_"+con->_name;
                     if(_cons_name.find(con_lin_name)!=_cons_name.end()){
@@ -663,7 +660,11 @@ namespace gravity {
                                             else{
                                                 con->get_outer_coef(i, c_val, c0_val);
                                                 vector<int> coefs;
+                                                scale=1.0;
                                                 for (auto k = 0; k<c_val.size(); k++) {
+                                                    if(c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
+                                                        scale=1e3;
+                                                    }
                                                     coefs.push_back(1e5*c_val[k]);
                                                 }
                                                 coefs.push_back(1e5*c0_val);
@@ -727,6 +728,7 @@ namespace gravity {
         }
         reindex();
         DebugOn("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
+        //set_solution(xsolution);
         return Ointerior;
     }
     //
@@ -739,7 +741,7 @@ namespace gravity {
         vector<double> xcurrent, xres;
         get_solution(xsolution);
         set_solution(obbt_solution);
-        const double active_tol_sol=1e-12;
+        const double active_tol_sol=1e-12, zero_tol=1e-6;
         
         bool interior_solv=true;
         vector<double> c_val ;
@@ -749,7 +751,7 @@ namespace gravity {
         bool add_new=false;
         int nb_added_cuts = 0;
         string keyv;
-        double scale=1;
+        double scale=1.0;
         //    Ointerior.print();
         
         string vkname,keyk,dirk;
@@ -785,15 +787,6 @@ namespace gravity {
                     }
                     else{
                         add_new=true;
-                    }
-                    //            con->uneval();
-                    //            con->eval_all();
-                    if(con->_name=="SDP_3D"||con->_name=="SOC_convex"){
-                        scale=1e0;
-                    }
-                    else
-                    {
-                        scale=1e0;
                     }
                     auto cnb_inst=con->get_nb_inst();
                     for(auto i=0;i<cnb_inst;i++){
@@ -895,6 +888,9 @@ namespace gravity {
                                             con->get_outer_coef(i, c_val, c0_val);
                                             vector<int> coefs;
                                             for (auto j = 0; j<c_val.size(); j++) {
+                                                if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                                    scale=1e3;
+                                                }
                                                 coefs.push_back(1e5*c_val[j]);
                                             }
                                             coefs.push_back(1e5*c0_val);

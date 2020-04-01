@@ -5997,7 +5997,7 @@ namespace gravity {
         auto lower_bound=get<6>(status);
         gap = (upper_bound - lower_bound)/std::abs(upper_bound);
         
-        while((gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
+        while((gap > rel_tol || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
             if(total_iter>= max_iter)
                 break;
             if(get<1>(status)==1 && max_iter>1)
@@ -6029,7 +6029,12 @@ namespace gravity {
         get<3>(res)=lower_bound_nonlin_init;
         get<4>(res)=get<4>(status);
         get<5>(res)=get<5>(status);
-        get<6>(res)=get<6>(status);
+        if(obbt_model->_status==0){
+            get<6>(res)=get<6>(status);
+        }
+        else{
+            get<6>(res)=numeric_limits<double>::min();
+        }
         get<7>(res)=get<7>(status);
         get<8>(res)=get<8>(status);
         get<9>(res)=oacuts_init;
@@ -6039,9 +6044,11 @@ namespace gravity {
         DebugOn("Number of global iterations = " << global_iter << endl);
         auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
-        auto lower_bound_final=get<6>(status);
-        auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
-        DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
+        if(obbt_model->_status==0){
+            auto lower_bound_final=get<6>(status);
+            auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
+            DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
+        }
         return res;
     }
     
@@ -6074,7 +6081,7 @@ namespace gravity {
         bool break_flag=false, time_limit = false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
-        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, subproblem_tol=1e-6;
+        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
         int gap_count_int=1, iter=0;
         int output = 0;
         int batch_model_count=0;
@@ -6096,31 +6103,23 @@ namespace gravity {
         {
             /* Check if gap is already not zero at root node */
             lower_bound_nonlin_init=relaxed_model->get_obj_val();
-            lower_bound_init = obbt_model->get_obj_val();
-            lower_bound = lower_bound_init;
+            lower_bound_init = lower_bound_nonlin_init;
+            lower_bound = lower_bound_nonlin_init;
             upper_bound=this->get_obj_val();
             get_solution(ub_sol);/* store current solution */
             gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
             DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
-            if ((upper_bound-lower_bound_init)>=abs_tol || (upper_bound-lower_bound_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
+            if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
             {
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
                     //obbt_model->print();
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     DebugOn("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
-                    
-                    //                    relaxed_model->get_solution(obbt_solution);
-                    //                    for(auto &o:obbt_solution){
-                    //                        auto temp=o;
-                    //                        o*=1.1;
-                    //                        relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts);
-                    //                        o=temp;
-                    //                    }
                     obbt_model->reindex();
                     obbt_model->reset();
                     solver<> LB_solver(obbt_model, lb_solver_type);
-                    LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                    LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
                     LB_solver.run(output = 0, lb_solver_tol, true);
                     if(obbt_model->_status==0){
                         //obbt_model->print_constraints_stats(1e-6);
@@ -6131,7 +6130,7 @@ namespace gravity {
                     }
                 }
                 if(obbt_model->_status==0){
-                    //obbt_model->print();
+                    obbt_model->print();
                     /**/
                     terminate=false;
                     for(auto &it:obbt_model->_vars)
@@ -6246,9 +6245,9 @@ namespace gravity {
                                             
                                             double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                            run_MPI(batch_models,lb_solver_type,subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
+                                            run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
 #else
-                                            run_parallel(batch_models,lb_solver_type,subproblem_tol,nb_threads, 2000);
+                                            run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
                                             double batch_time_end = get_wall_time();
                                             auto batch_time = batch_time_end - batch_time_start;
@@ -6376,7 +6375,7 @@ namespace gravity {
                                                             //                                                        if(linearize && !fixed_point[model->get_name()]){
                                                             //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                             model->get_solution(obbt_solution);
-                                                            if(run_obbt_iter==1){
+                                                            if(run_obbt_iter==1 && iter<=8){
                                                                 relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->_name, oacuts, active_tol);
                                                             }
                                                             else{
@@ -6442,7 +6441,7 @@ namespace gravity {
                             
                             if(!linearize){
                                 solver<> LB_solver(obbt_model,lb_solver_type);
-                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
                                 LB_solver.run(output = 0, lb_solver_tol);
                                 if(obbt_model->_status==0)
                                 {
@@ -6481,7 +6480,7 @@ namespace gravity {
                                 //                            relaxed_model->copy_bounds(obbt_model);
                                 //                            relaxed_model->reset_constrs();
                                 solver<> LB_solver(obbt_model,lb_solver_type);
-                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
                                 LB_solver.run(output = 0, lb_solver_tol, true);
                                 if(obbt_model->_status==0)
                                 {
@@ -6606,7 +6605,7 @@ namespace gravity {
                             //                        relaxed_model->copy_bounds(obbt_model);
                             //                        relaxed_model->reset_constrs();
                             solver<> LB_solver(obbt_model,lb_solver_type);
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
                             LB_solver.run(output = 0, lb_solver_tol, true);
                             if(relaxed_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val();
