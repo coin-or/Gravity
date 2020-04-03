@@ -117,7 +117,7 @@ namespace gravity {
         };
         
         void init(){
-            if (_stype==ipopt) {
+            if (_stype==ipopt || _stype==restartSQP) {
 #ifdef USE_IPOPT
                 _model->replace_integers();
                 SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
@@ -316,7 +316,12 @@ namespace gravity {
                     _model->fill_in_maps();
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
-                    status = iapp->OptimizeTNLP(tmp);
+                    if(_stype==restartSQP){
+                        /* Code for calling new restartSQP solver @Andreas. */
+                    }
+                    else {
+                        status = iapp->OptimizeTNLP(tmp);
+                    }
                     if (IsValid(iapp->Statistics())) {
                         SmartPtr<SolveStatistics> stats = iapp->Statistics();
                         _nb_iterations = stats->IterationCount();
