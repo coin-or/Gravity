@@ -138,6 +138,7 @@ namespace gravity {
                 }
                 _prog = make_shared<IpoptProgram<type>>(_model);
                 _bool_options["check_violation"] = false;
+                _bool_options["check_det"] = false;
 #else
                 ipoptNotAvailable();
 #endif

@@ -432,7 +432,7 @@ namespace gravity {
         const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1, zero_tol=1e-6;
         vector<double> xactive, xcurrent, xinterior, xres, xtest;
         bool interior=false;
-        double fk;
+        double fk, fkk;
         double rhs_tol = 0;
         bool outer;
         int count=0;
@@ -479,7 +479,6 @@ namespace gravity {
                         {
                             
                             xres=con->get_x(i);
-                            con->uneval();
                             auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
                             auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
                             auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
@@ -492,7 +491,8 @@ namespace gravity {
                         }
                         
                         if(convex_region){
-                            
+                            con->uneval();
+                            con->eval_all();
                             if(con->is_active(i,active_tol_sol)){
                                 
                                 activeset.add((*keys)[i]);
@@ -629,7 +629,8 @@ namespace gravity {
                                         oa_cut=false;
                                         if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                         {
-                                            
+                                            con->uneval();
+                                            fkk=con->eval(i);
                                             xres=con->get_x(i);
                                             auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
                                             auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
@@ -728,7 +729,7 @@ namespace gravity {
         }
         reindex();
         DebugOn("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
-        //set_solution(xsolution);
+        set_solution(xsolution);
         return Ointerior;
     }
     //
