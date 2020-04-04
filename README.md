@@ -43,10 +43,6 @@ First, you will need to install an IDE, I recommend to choose among the followin
 [<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) | 
 [<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
 
-The model below was implemented in Xcode:
-
-![cover-example](media/Kapture_Stable_Set.gif)
-
 
 Some Numerical Results:
 -----------
