@@ -1063,6 +1063,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _cons = new_cons;
             _nb_cons = get_nb_cons();
             embed(_obj);
+            _first_run = true;
         }
         
         
