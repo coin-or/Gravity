@@ -6073,6 +6073,7 @@ namespace gravity {
             {
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
+                    obbt_model->_first_run = true;
                     solver<> LB_solver(obbt_model,lb_solver_type);
                     LB_solver.run(output = 0, lb_solver_tol);
                     lower_bound_init=obbt_model->get_obj_val();
@@ -6360,6 +6361,7 @@ namespace gravity {
                         }
                         obbt_model->reset_constrs();
                         obbt_model->reset_lifted_vars_bounds();
+                        obbt_model->_first_run = true;
                         //                    obbt_model->print();
                         solver<> LB_solver(obbt_model,lb_solver_type);
                         if(!linearize)
