@@ -6246,8 +6246,6 @@ namespace gravity {
                                                 Constraint<type> obj_ub("obj|ub");
                                                 obj_ub = obj - ub;
                                                 batch_models[batch_model_count]->add(obj_ub<=0);
-                                                batch_models[0]->print();
-                                                DebugOn("printed"<<endl);
                                             }
                                             vark=batch_models[batch_model_count]->template get_var<T>(vname);
                                             // vark.initialize_midpoint();

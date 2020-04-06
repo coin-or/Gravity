@@ -196,7 +196,7 @@ int main (int argc, char * argv[]) {
     //solv_type=gurobi;
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective=true;
-    linearize=true;
+  //  linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
