@@ -16,6 +16,9 @@ option(Gurobi "Link to GUROBI libraries" OFF)
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" OFF)
 
+# Find RestartSQP (optional)
+option(SQP "Link to RestartSQP libraries" OFF)
+
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
 
@@ -65,6 +68,18 @@ if (Ipopt)
 	include_directories(${IPOPT_INCLUDE_DIRS}/..)
 	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 endif()
+
+
+# Find Ipopt.
+if (SQP)
+        message(STATUS "Enable RestartSQP")
+        add_definitions(-DUSE_SQP)
+        find_package(SQP REQUIRED)
+        include_directories(${SQP_INCLUDE_DIRS}/..)
+        set(LIBS ${LIBS} ${SQP_LIBRARIES})
+endif()
+
+
 
 # Find xlnt
 if (Xlnt)

@@ -36,6 +36,10 @@ using Ipopt::TNLP;
 using Ipopt::ApplicationReturnStatus;
 using Ipopt::SolveStatistics;
 #endif
+#ifdef USE_SQP
+#include <RestartSQP/LazySqpSolver.hpp>
+#include <RestartSQP/SqpIpoptNlp.hpp>
+#endif
 #ifdef USE_GUROBI
 #include <gravity/GurobiProgram.h>
 #endif
@@ -63,6 +67,8 @@ void cplexNotAvailable();
 void bonminNotAvailable();
 
 void ipoptNotAvailable();
+
+void SQPNotAvailable();
 
 void mosekNotAvailable();
 
@@ -317,7 +323,26 @@ namespace gravity {
                     
                     SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
                     if(_stype==restartSQP){
-                        /* Code for calling new restartSQP solver @Andreas. */
+                        /* Code for calling new restartSQP solver @AndreasWaechter. */
+#ifdef USE_SQP
+                        using namespace RestartSqp;
+                        shared_ptr<SqpIpoptNlp> sqp_nlp = make_shared<SqpIpoptNlp>(tmp, _model->get_name());
+                        auto num_initial_constraints = _model->get_nb_cons_with_lazy();
+                        /* Create an array with the indices of the constraints that should be considered in the beginning.  Constraints are counted starting from 1. */
+                        int* constraint_indices = new int[num_initial_constraints];
+                        /* Get an SQP solver object that can do the lazy constraint generation */
+                        _model->fill_nonlazy_constr_ids(constraint_indices);
+                        LazySqpSolver lazy_sqp_solver;
+                        lazy_sqp_solver.optimize_nlp(sqp_nlp, num_initial_constraints, constraint_indices);
+                        delete [] constraint_indices;
+                        
+                        /* Get the exit status of the last SQP solve */
+                        SqpSolverExitStatus exit_flag = lazy_sqp_solver.get_exit_flag();
+                        
+                        status = (Ipopt::ApplicationReturnStatus) exit_flag;
+#else
+                        SQPNotAvailable();
+#endif
                     }
                     else {
                         status = iapp->OptimizeTNLP(tmp);

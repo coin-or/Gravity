@@ -874,6 +874,34 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return n;
         };
         
+        void fill_nonlazy_constr_ids(int* constr_ids) const{
+            size_t idx = 0;
+            for (auto &cp:_cons) {
+                if(!*cp.second->_all_lazy){
+                    for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
+                        constr_ids[idx]=idx+1;
+                        idx++;
+                    }
+                }
+                else {
+                    for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
+                        if (!cp.second->_lazy[i]) {
+                            constr_ids[idx]=idx+1;
+                        }
+                        idx++;
+                    }
+                }
+            }
+        }
+        
+        size_t get_nb_cons_with_lazy() const{
+            size_t n = 0;
+            for (auto &cp:_cons) {
+                n += cp.second->get_nb_inst();
+            }
+            return n;
+        };
+        
         
         size_t get_nb_ineq() const{
             size_t n = 0;

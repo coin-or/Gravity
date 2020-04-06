@@ -41,6 +41,13 @@ void ipoptNotAvailable()
     exit(1);
 }
 
+void SQPNotAvailable()
+{
+    cerr << "Can't use RestartSQP as a solver: this version of Gravity "
+    "was compiled without RestartSQP support." << endl;
+    exit(1);
+}
+
 
 void mosekNotAvailable()
 {
