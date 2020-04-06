@@ -221,7 +221,7 @@ namespace gravity {
             bool violated_constraints = true, optimal = true;
             unsigned nb_it = 0;
             while(violated_constraints && optimal){
-                if (_stype==ipopt) {
+                if (_stype==ipopt || _stype==restartSQP) {
 #ifdef USE_IPOPT
                     auto nb_eq = _model->get_nb_eq();
                     auto nb_vars = _model->get_nb_vars();
