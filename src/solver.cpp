@@ -643,6 +643,7 @@ namespace gravity {
                                             }
                                         }
                                         if(convex_region){
+                                            scale=1.0;
                                             if(add_new){
                                                 nb_added_cuts++;
                                                 indices activeset("active_"+con->_name);
@@ -661,10 +662,9 @@ namespace gravity {
                                             else{
                                                 con->get_outer_coef(i, c_val, c0_val);
                                                 vector<int> coefs;
-                                                scale=1.0;
                                                 for (auto k = 0; k<c_val.size(); k++) {
                                                     if(c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
-                                                        scale=1e3;
+                                                        scale=1.0e3;
                                                     }
                                                     coefs.push_back(1e5*c_val[k]);
                                                 }
@@ -869,7 +869,7 @@ namespace gravity {
                                         //                                                for(auto l=0;l<c_val.size();l++)
                                         //                                                    DebugOn(c_val[l]<<"\t");
                                         //                                                DebugOn(c0_val<<endl);
-                                        
+                                        scale=1.0;
                                         if(add_new){
                                             nb_added_cuts++;
                                             indices activeset("active_"+con->_name);
@@ -890,7 +890,7 @@ namespace gravity {
                                             vector<int> coefs;
                                             for (auto j = 0; j<c_val.size(); j++) {
                                                 if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-                                                    scale=1e3;
+                                                    scale=1.0e3;
                                                 }
                                                 coefs.push_back(1e5*c_val[j]);
                                             }

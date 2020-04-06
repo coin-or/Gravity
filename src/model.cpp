@@ -5963,7 +5963,7 @@ namespace gravity {
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.set_option("bound_relax_factor", ub_solver_tol*1e-3);
+        UB_solver.set_option("bound_relax_factor", ub_solver_tol*1e-2);
         UB_solver.set_option("check_violation", true);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
@@ -5976,7 +5976,7 @@ namespace gravity {
             relaxed_model->min(obj);
             ub_scale_value=1.0;
         }
-        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-3);
+        LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         LBnonlin_solver.set_option("check_violation", true);
         //        else
         //LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
@@ -6246,6 +6246,8 @@ namespace gravity {
                                                 Constraint<type> obj_ub("obj|ub");
                                                 obj_ub = obj - ub;
                                                 batch_models[batch_model_count]->add(obj_ub<=0);
+                                                batch_models[0]->print();
+                                                DebugOn("printed"<<endl);
                                             }
                                             vark=batch_models[batch_model_count]->template get_var<T>(vname);
                                             // vark.initialize_midpoint();
