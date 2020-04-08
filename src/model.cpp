@@ -5963,8 +5963,6 @@ namespace gravity {
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.set_option("bound_relax_factor", ub_solver_tol*1e-2);
-        UB_solver.set_option("check_violation", true);
         UB_solver.run(output = 0, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         ub_scale_value=this->get_obj_val();
@@ -6269,7 +6267,13 @@ namespace gravity {
                                             
                                             double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                            run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
+                                        
+                                            if(linearize{
+                                                run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
+                                            }
+                                            else{
+                                                run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, false,true);
+                                               }
 #else
                                             run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
