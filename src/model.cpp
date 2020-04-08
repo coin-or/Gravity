@@ -6268,7 +6268,7 @@ namespace gravity {
                                             double batch_time_start = get_wall_time();
 #ifdef USE_MPI
                                         
-                                            if(linearize{
+                                            if(linearize){
                                                 run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
                                             }
                                             else{
