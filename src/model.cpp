@@ -6426,6 +6426,7 @@ namespace gravity {
                                                 }
                                             }
                                             for(auto &mod:batch_models){
+                                                if(linearize){
                                                 for (auto con: obbt_model->_cons_vec){
                                                     if(con->_name.find("OA_cuts_")!=std::string::npos){
                                                         if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
@@ -6434,9 +6435,10 @@ namespace gravity {
                                                         mod->add(*con);
                                                     }
                                                 }
+                                                mod->reset();
+                                                }
                                                 mod->reset_constrs();
                                                 mod->reset_lifted_vars_bounds();
-                                                mod->reset();
                                             }
                                             batch_model_count=0;
                                         }
@@ -6479,7 +6481,7 @@ namespace gravity {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                    DebugOn("Updating bounds on original problem and resolving"<<endl);
+                                    //DebugOn("Updating bounds on original problem and resolving"<<endl);
                                     //                            this->copy_bounds(obbt_model);
                                     //                            this->copy_solution(obbt_model);
                                     //                            solver<> UB_solver(*this,ub_solver_type);
