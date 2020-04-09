@@ -6301,8 +6301,8 @@ namespace gravity {
                                                         vk=obbt_model->template get_var<T>(vkname);
                                                         var_key_k=vkname+"|"+keyk;
                                                         if(linearize){
-                                                        model->_obj->uneval();
-                                                        model->_obj->eval();
+                                                            model->_obj->uneval();
+                                                            model->_obj->eval();
                                                         }
                                                         objk=model->get_obj_val();
                                                         auto update_lb=false;
