@@ -6106,12 +6106,7 @@ namespace gravity {
         int obbt_subproblem_count=0;
         double active_tol;
         double gap_old;
-        if(run_obbt_iter==1){
-            active_tol=0.1;
-        }
-        else{
-            active_tol=1e-6;
-        }
+        bool share_all, share_obj;
         if(this->_status==0){
             upper_bound=this->get_obj_val();
         if(relaxed_model->_status==0)
@@ -6126,6 +6121,14 @@ namespace gravity {
             DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
             if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
             {
+                if(linearize){
+                    share_all=true;
+                    share_obj=false;
+                }
+                else{
+                    share_all=false;
+                    share_obj=true;
+                }
                 /* Add the upper bound constraint on the objective */
                 if(linearize){
                     //obbt_model->print();
@@ -6149,6 +6152,12 @@ namespace gravity {
                         gap_old=gaplin;
                         DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                         DebugOn("Initial number of constraints after perturb "<<oacuts<<endl);
+                    }
+                    if(run_obbt_iter==1){
+                        active_tol=0.1;
+                    }
+                    else{
+                        active_tol=1e-6;
                     }
                 }
                 if(obbt_model->_status==0){
@@ -6267,13 +6276,7 @@ namespace gravity {
                                             
                                             double batch_time_start = get_wall_time();
 #ifdef USE_MPI
-                                        
-                                            if(linearize){
-                                                run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, true,false);
-                                            }
-                                            else{
-                                                run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, false,true);
-                                               }
+                                            run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
                                             run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
