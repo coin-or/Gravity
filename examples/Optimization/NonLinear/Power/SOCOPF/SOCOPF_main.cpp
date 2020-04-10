@@ -21,7 +21,7 @@ int main (int argc, char * argv[])
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0", lin_solver="mumps";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case24_ieee_rts__api.m";
     
     string path = argv[0];
     string solver_str="ipopt";
@@ -60,7 +60,7 @@ int main (int argc, char * argv[])
         fname=argv[1];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname=string(prj_dir)+"/data_sets/Power/pglib_opf_case24_ieee_rts__api.m";
     }
     if(argc>=3){
         lin_solver=argv[2];
@@ -187,7 +187,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_from.in(arcs));
+    SOCP.add_sqp_lazy(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
@@ -236,6 +236,7 @@ int main (int argc, char * argv[])
         SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);
+        SOCP.print_constraints_stats(tol);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
