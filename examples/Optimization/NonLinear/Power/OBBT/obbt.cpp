@@ -181,7 +181,7 @@ int main (int argc, char * argv[]) {
     nb_total_threads *= nb_workers;
 #endif
     
-    double lower_bound=numeric_limits<double>::lowest(), lower_bound_nonlin_init=numeric_limits<double>::lowest(),total_time=numeric_limits<double>::lowest(), avg=0;
+    double lower_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min(), avg=0;
     double solver_time =0;
     int iter=0, total_iter=0;
     

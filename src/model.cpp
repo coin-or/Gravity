@@ -5959,7 +5959,7 @@ namespace gravity {
         std::tuple<bool,int,double,double,double,double,double,double,int,int> res;
         int total_iter=0, global_iter=1;
         int output, oacuts_init=0, oacuts=0;
-        double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
+        double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::min();
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
@@ -6459,14 +6459,14 @@ namespace gravity {
                         if(iter%gap_count_int==0)
                         {
                             solver_time= get_wall_time()-solver_time_start;
-                            if(active_tol>lb_solver_tol){
-                                active_tol*=0.1;
-                            }
                             
                             //this->print();
                             //                    auto new_obbt = *obbt_model;
                             //                    obbt_model = new_obbt.copy();
                             if(linearize){
+                                if(active_tol>lb_solver_tol){
+                                    active_tol*=0.1;
+                                }
                                 obbt_model->reset();
                                 obbt_model->reindex();
                             }
@@ -6477,6 +6477,7 @@ namespace gravity {
                             if(!linearize){
                                 solver<> LB_solver(obbt_model,lb_solver_type);
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                                LB_solver.set_option("check_violation", true);
                                 LB_solver.run(output = 0, lb_solver_tol);
                                 if(obbt_model->_status==0)
                                 {
@@ -6641,6 +6642,8 @@ namespace gravity {
                         //                obbt_model->reset_constrs();
                         if(!linearize){
                             solver<> LB_solver(obbt_model,lb_solver_type);
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                            LB_solver.set_option("check_violation", true);
                             LB_solver.run(output = 0, lb_solver_tol);
                             if(obbt_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
@@ -6663,7 +6666,7 @@ namespace gravity {
                             }
                             LB_solver.run(output = 0, lb_solver_tol);
                             
-                            if(relaxed_model->_status==0){
+                            if(obbt_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                             }
                         }
