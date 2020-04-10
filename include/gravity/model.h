@@ -887,8 +887,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
                         if (!cp.second->_sqp_lazy[i]) {
                             constr_ids[idx]=idx;
+                            idx++;
                         }
-                        idx++;
                     }
                 }
             }
@@ -897,7 +897,16 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         size_t get_nb_cons_with_lazy() const{
             size_t n = 0;
             for (auto &cp:_cons) {
-                n += cp.second->get_nb_inst();
+                if(cp.second->_sqp_lazy.size()==0){
+                    n += cp.second->get_nb_inst();
+                }
+                else {
+                    for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
+                        if (!cp.second->_sqp_lazy[i]) {
+                            n++;
+                        }
+                    }
+                }
             }
             return n;
         };

@@ -187,7 +187,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-    SOCP.add_sqp_lazy(Thermal_Limit_from.in(arcs));
+    SOCP.add(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
@@ -232,7 +232,7 @@ int main (int argc, char * argv[])
     }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,ipopt);
+        solver<> SOCOPF(SOCP,restartSQP);
         SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);

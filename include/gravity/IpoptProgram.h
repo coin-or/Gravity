@@ -45,8 +45,10 @@ public:
         n = (Index)_model->get_nb_vars();
         m = (Index)_model->get_nb_cons();
         nnz_jac_g = (Index)_model->get_nb_nnz_g();
+        DebugOn("Number of nnz in Jacobian = " << nnz_jac_g << endl);
         _model->_jac_vals.resize(nnz_jac_g,0);
         nnz_h_lag = (Index)_model->get_nb_nnz_h();
+        DebugOn("Number of nnz in Hessian = " << nnz_h_lag << endl);
         _model->_first_call_jac = true;
         //If quadratic model and we're resolving no need to reset these
         _model->_first_call_hess = true;
