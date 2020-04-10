@@ -232,7 +232,7 @@ int main (int argc, char * argv[])
     }
     else {
 //        SOCP.print();
-        solver<> SOCOPF(SOCP,restartSQP);
+        solver<> SOCOPF(SOCP,ipopt);
         SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);

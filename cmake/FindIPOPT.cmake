@@ -17,6 +17,14 @@ find_library(IPOPT_LIBRARY
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
 )
+
+find_library(HSL_LIBRARY 
+        libcoinhsl.dylib
+        HINTS /usr/local/lib
+        HINTS ${IPOPT_ROOT_DIR}/lib
+        HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
+)
+
 elseif(UNIX)
 find_library(IPOPT_LIBRARY 
 	libipopt.so
@@ -24,6 +32,14 @@ find_library(IPOPT_LIBRARY
 	HINTS ${IPOPT_ROOT_DIR}/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 )
+
+find_library(HSL_LIBRARY 
+	libcoinhsl.so
+	HINTS /usr/local/lib
+	HINTS ${IPOPT_ROOT_DIR}/lib
+	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
+)
+
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -32,7 +48,7 @@ find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_INCLUDE_
 if(IPOPT_FOUND)
 	message("—- Found Ipopt under ${IPOPT_INCLUDE_DIR}")
     set(IPOPT_INCLUDE_DIRS ${IPOPT_INCLUDE_DIR})
-    set(IPOPT_LIBRARIES ${IPOPT_LIBRARY})
+    set(IPOPT_LIBRARIES ${IPOPT_LIBRARY} ${HSL_LIBRARY})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(IPOPT_LIBRARIES "${IPOPT_LIBRARIES};m;pthread")
     endif(CMAKE_SYSTEM_NAME STREQUAL "Linux")

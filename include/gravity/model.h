@@ -877,16 +877,16 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void fill_nonlazy_constr_ids(int* constr_ids) const{
             size_t idx = 0;
             for (auto &cp:_cons) {
-                if(!*cp.second->_all_lazy){
+                if(cp.second->_sqp_lazy.size()==0){
                     for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
-                        constr_ids[idx]=idx+1;
+                        constr_ids[idx]=idx;
                         idx++;
                     }
                 }
                 else {
                     for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
-                        if (!cp.second->_lazy[i]) {
-                            constr_ids[idx]=idx+1;
+                        if (!cp.second->_sqp_lazy[i]) {
+                            constr_ids[idx]=idx;
                         }
                         idx++;
                     }
@@ -1452,6 +1452,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             add_constraint(c,convexify, method_type, split);
         }
         
+        void add_sqp_lazy(Constraint<type>& c){
+            if (c.get_dim()==0) {
+                return;
+            }
+            c.make_sqp_lazy();
+            add_constraint(c, false);
+            _has_lazy = true;
+        }
         
         void add_lazy(Constraint<type>& c, bool convexify = false){
             if (c.get_dim()==0) {

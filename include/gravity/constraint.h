@@ -25,6 +25,7 @@ public:
     vector<bool>                _active;
     shared_ptr<bool>            _all_lazy;
     vector<bool>                _lazy;
+    vector<bool>                _sqp_lazy;
     bool                        _all_satisfied = true;
     vector<bool>                _violated;
     param<double>               _onCoef; /** Coefficient vector for on in on/off constraints */
@@ -140,6 +141,10 @@ public:
         _lazy.resize(this->get_nb_instances(),true);
     }
     
+    void make_sqp_lazy() {
+        _sqp_lazy.resize(this->get_nb_inst(),true);
+    }
+    
     
     Constraint& in(const vector<Node*>& vec) {
         this->func<type>::in(vec);
@@ -174,6 +179,7 @@ public:
         _active = c._active;
         this->_all_lazy = make_shared<bool>(*c._all_lazy);
         _lazy = c._lazy;
+        _sqp_lazy = c._sqp_lazy;
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
@@ -192,6 +198,7 @@ public:
         _active = c._active;
         _all_lazy = c._all_lazy;
         _lazy = c._lazy;
+        _sqp_lazy = c._sqp_lazy;
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
@@ -228,6 +235,7 @@ public:
         _active = c._active;
         _all_lazy = c._all_lazy;
         _lazy = c._lazy;
+        _sqp_lazy = c._sqp_lazy;
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;

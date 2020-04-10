@@ -37,8 +37,8 @@ using Ipopt::ApplicationReturnStatus;
 using Ipopt::SolveStatistics;
 #endif
 #ifdef USE_SQP
-#include <RestartSQP/LazySqpSolver.hpp>
-#include <RestartSQP/SqpIpoptNlp.hpp>
+#include <restartsqp/LazySqpSolver.hpp>
+#include <restartsqp/SqpIpoptTNlp.hpp>
 #endif
 #ifdef USE_GUROBI
 #include <gravity/GurobiProgram.h>
@@ -524,25 +524,18 @@ namespace gravity {
                 }
                 if (optimal) {
                     violated_constraints = _model->has_violated_constraints(tol);
-                    if (violated_constraints) {
-                        _model->reindex();
-                        //                        _model->print();
-                        //                        _model->print_symbolic();
-                        //                Constraint obj_cstr("obj_cstr_"+to_string(nb_it));
-                        //                obj_cstr += _model->_obj - _model->_obj_ub;
-                        //                if (_model->_objt==minimize) {
-                        //                    _model->add(obj_cstr <= 0);
-                        //                }
-                        //                else {
-                        //                    _model->add(obj_cstr >= 0);
-                        //                }
-                        //                _model->print();
+                    if (violated_constraints && _stype!=restartSQP) {
+                        if(_stype==ipopt) { /* Ipopt's lazy constraints, some lazy constraints have been added, reindex and solve */
+                            _model->reindex();
+                            nb_it++;
+                        }
+                        else {
+                            violated_constraints = false;
+                            DebugOn("Gravity has identified some violated constraints:" << endl);
+                            _model->print_constraints_stats(tol);
+                        }
                     }
                 }
-                //        if(_stype!=ipopt) {
-                //            violated_constraints = false;
-                //        }
-                nb_it++;
             }
             if (nb_it>1) {
                 DebugOn(endl << "####################" << endl);

@@ -66,6 +66,7 @@ if (Ipopt)
 	add_definitions(-DUSE_IPOPT)
 	find_package(IPOPT REQUIRED)
 	include_directories(${IPOPT_INCLUDE_DIRS}/..)
+	include_directories(${IPOPT_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 endif()
 
