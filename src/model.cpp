@@ -6591,7 +6591,7 @@ namespace gravity {
                         }
                         solver_time= get_wall_time()-solver_time_start;
                         DebugOn("Solved Fixed Point iteration " << iter << endl);
-                        if(gap_old-gap<gap_tol){
+                        if(linearize && (gap_old-gap<gap_tol) && run_obbt_iter==1){
                             DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
                             break;
                         }
