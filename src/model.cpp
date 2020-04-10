@@ -6641,10 +6641,10 @@ namespace gravity {
                         
                         //                obbt_model->reset_constrs();
                         if(!linearize){
-                            solver<> LB_solver(obbt_model,lb_solver_type);
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                            LB_solver.set_option("check_violation", true);
-                            LB_solver.run(output = 0, lb_solver_tol);
+//                            solver<> LB_solver(obbt_model,lb_solver_type);
+//                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+//                            LB_solver.set_option("check_violation", true);
+//                            LB_solver.run(output = 0, lb_solver_tol);
                             if(obbt_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                             }
