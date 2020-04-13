@@ -2128,11 +2128,14 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          */
         template<typename T1>
         void update_convexity(const func<T1>& f){
+            if(f.is_linear()){
+                return;
+            }
             if(_convexity==linear_){
-                if ((_objt==minimize && f.is_convex()) || (_objt==maximize && f.is_concave())) {
+                if (((_objt==minimize || f._is_constraint) && f.is_convex()) || ((_objt==maximize || f._is_constraint) && f.is_concave())) {
                     _convexity = convex_;
                 }
-                else if ((_objt==minimize && f.is_concave()) || (_objt==maximize && f.is_convex())) {
+                else if (((_objt==minimize || f._is_constraint) && f.is_concave()) || ((_objt==maximize || f._is_constraint) && f.is_convex())) {
                     _convexity = concave_;
                 }
                 else {
@@ -2140,12 +2143,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             else if(_convexity==convex_){
-                if (!((_objt==minimize && f.is_convex()) || (_objt==maximize && f.is_concave()))) {
+                if (!(((_objt==minimize || f._is_constraint) && f.is_convex()) || ((_objt==maximize || f._is_constraint) && f.is_concave()))) {
                     _convexity = undet_;
                 }
             }
             else if(_convexity==concave_){
-                if (!((_objt==minimize && f.is_concave()) || (_objt==maximize && f.is_convex()))) {
+                if (!(((_objt==minimize || f._is_constraint) && f.is_concave()) || ((_objt==maximize || f._is_constraint) && f.is_convex()))) {
                     _convexity = undet_;
                 }
             }
@@ -4533,26 +4536,26 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             for(auto& c_p :_cons)
             {
                 c = c_p.second;
-                //        c->print();
+//                        c->print();
                 if (c->_new) {
                     c->compute_derivatives();
-                    //            if (_type==nlin_m) {
-                    for (auto &df_p:*c->get_dfdx()) {
-                        auto df = static_pointer_cast<func<type>>(df_p.second);
-                        DebugOff(df->to_str() << endl);
-                        for (auto &df2_p:*df_p.second->get_dfdx()) {
-                            if (df2_p.second->get_expr() || _type==nlin_m) {
-                                df2_p.second = embed(df2_p.second);
+                    if (_type==nlin_m) {
+                        for (auto &df_p:*c->get_dfdx()) {
+                            auto df = static_pointer_cast<func<type>>(df_p.second);
+                            DebugOff(df->to_str() << endl);
+                            for (auto &df2_p:*df_p.second->get_dfdx()) {
+                                if (df2_p.second->get_expr() || _type==nlin_m) {
+                                    df2_p.second = embed(df2_p.second);
+                                }
+                            }
+                            if (df->get_expr() || _type==nlin_m) {
+                                df_p.second = embed(df);
+                            }
+                            else {
+                                embed(df);
                             }
                         }
-                        if (df->get_expr() || _type==nlin_m) {
-                            df_p.second = embed(df);
-                        }
-                        else {
-                            embed(df);
-                        }
                     }
-                    //            }
                     if (!c->is_linear()) {
                         
                         for (auto &vi_p: c->get_vars()) {
@@ -5119,6 +5122,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 ue->_son = f_p.first->second;
                             }
                         }
@@ -5167,6 +5173,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 be->_lson = f_p.first->second;
                             }
                         }
@@ -5211,6 +5220,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 //                f->_val->resize(f->get_nb_inst());
                             }
                             else {
+                                if(f->_dfdx->size()>0) {
+                                    f_p.first->second->_dfdx = f->_dfdx;
+                                }
                                 be->_rson = f_p.first->second;
                             }
                         }
@@ -5322,10 +5334,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 //                    *f_p.first->second = *f;
                 //                }
                 
-                //                else if (f->_dfdx->size()>0) {
-                //                    *f_p.first->second = *f;
-                
-                //                }
+                else if (f->_dfdx->size()>0) {
+                    f_p.first->second->_dfdx = f->_dfdx;
+
+                }
                 //        f_p.first->second->allocate_mem();
                 return f_p.first->second;
             }

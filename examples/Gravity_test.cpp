@@ -23,6 +23,7 @@ using namespace std;
 using namespace gravity;
 
 
+
 TEST_CASE("testing param, var anf func copy operators") {
     indices ids("ids");
     ids.add("key1", "key2");
@@ -1572,7 +1573,7 @@ TEST_CASE("Alpine issue") {
     relax.add_McCormick("y12", y12, y1, y2);
     relax.add_McCormick("y34", y34, y3, y4);
     relax.add_McCormick("y1234", y1234, y12, y34);
-    
+    CHECK(relax.is_convex());
     relax.print_symbolic();
     solver<> s2(relax,ipopt);
     s2.run();
@@ -1994,6 +1995,32 @@ TEST_CASE("testing SDP-BT"){
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
     CHECK(gap_init>10);
     CHECK(final_gap<1);
+}
+
+TEST_CASE("Second Derivative Of One Constraint Equals First Derivative Of Another") {
+    Model<> mod;
+    
+    var<double> t1("t1", -1.0, 1.0); mod.add_var(t1); t1.initialize_all(0.0);
+    var<double> t2("t2", -1.0, 1.0); mod.add_var(t2); t2.initialize_all(0.0);
+    
+    Constraint<double> c1("c1");
+    c1 += cos(t1 - t2);
+    c1 == 0.0;
+    mod.add_constraint(c1);
+    
+    Constraint<double> c2("c2");
+    c2 += sin(t1 - t2);
+    c2 == 0.0;
+    mod.add_constraint(c2);
+    
+    mod.min(t1 + t2);
+    
+    mod.print();
+    
+    solver<> s(mod, ipopt);
+    s.run();
+    
+    mod.print();
 }
 
 #ifdef USE_MPI
