@@ -348,7 +348,7 @@ int main (int argc, char * argv[]) {
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij.in(node_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(node_pairs);
-    SDP.add(PAD_UB.in(node_pairs));
+    SDP.add_sqp_lazy(PAD_UB.in(node_pairs));
     
     
     Constraint<> PAD_LB("PAD_LB");
@@ -458,17 +458,18 @@ int main (int argc, char * argv[]) {
     
     double solver_time_start;
     
-    solver<> SDPOPF(SDP,solv_type);
+//    solver<> SDPOPF(SDP,solv_type);
+    solver<> SDPOPF(SDP,solv_type=restartSQP);
     solver_time_start = get_wall_time();
     
-    SDPOPF.run(output = 5, tol = 1e-6);
+    SDPOPF.run(output = 5, tol = 1e-8);
     double solver_time_end = get_wall_time();
     double solver_time=solver_time_end-solver_time_start;
     double gap=999, lower_bound=999;
     // SDP.print_solution();
     // SDP.print();
     SDP.print_constraints_stats(tol);
-    SDP.print_nonzero_constraints(tol,true);
+//    SDP.print_nonzero_constraints(tol,true);
     if(SDP._status==0)
     {
         lower_bound = SDP.get_obj_val()*upper_bound;
@@ -483,7 +484,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    SDP.print();
+//    SDP.print();
     string result_name=string(prj_dir)+"/results_SDP/"+grid._name+".txt";
     
     ofstream fout(result_name.c_str());

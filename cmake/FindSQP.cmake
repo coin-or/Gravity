@@ -14,6 +14,7 @@ find_path(RestartSQP_INCLUDE_DIR
 	NAMES LazySqpSolver.hpp 
 	HINTS /usr/local/include
 	HINTS ${RestartSQP_ROOT_DIR}/include/RestartSQP
+	HINTS ${RestartSQP_ROOT_DIR}/../include/restartsqp
 	HINTS ${RestartSQP_ROOT_DIR}/include/restartsqp
 )
 
@@ -31,13 +32,13 @@ find_library(QORE_LIBRARY
         qore
         HINTS /usr/local/lib
         HINTS third_party/QORE/lib
-        HINTS ${QORE_ROOT_DIR}/build/lib
+        HINTS ${QORE_ROOT_DIR}/test_build/lib
         HINTS ${QORE_ROOT_DIR}/lib
         HINTS ${QORE_ROOT_DIR}/build/lib/Release
 )
 
 find_library(RestartSQP_LIBRARY 
-	libRestartSQP.a
+	librestartsqp.a
 	HINTS /usr/local/lib
 	HINTS ${RestartSQP_ROOT_DIR}/lib
 	HINTS ${RestartSQP_ROOT_DIR}-build/lib

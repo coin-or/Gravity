@@ -875,18 +875,19 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         };
         
         void fill_nonlazy_constr_ids(int* constr_ids) const{
-            size_t idx = 0;
+            size_t idx = 0, inst = 0;
             for (auto &cp:_cons) {
+                inst = 0;
                 if(cp.second->_sqp_lazy.size()==0){
                     for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
-                        constr_ids[idx]=idx;
+                        constr_ids[idx]=cp.second->_id+inst++;
                         idx++;
                     }
                 }
                 else {
                     for (size_t i = 0; i<cp.second->get_nb_inst(); i++) {
                         if (!cp.second->_sqp_lazy[i]) {
-                            constr_ids[idx]=idx;
+                            constr_ids[idx]=cp.second->_id+inst++;
                             idx++;
                         }
                     }
