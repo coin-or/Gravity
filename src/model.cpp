@@ -6513,8 +6513,6 @@ namespace gravity {
                                 }
                             }
                             else{
-                                //obbt_model->print();
-                                //                            batch_models[nb_total_threads-1]->print();
                                 //                            relaxed_model->copy_bounds(obbt_model);
                                 //                            relaxed_model->reset_constrs();
                                 solver<> LB_solver(obbt_model,lb_solver_type);
