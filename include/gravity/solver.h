@@ -119,7 +119,7 @@ namespace gravity {
         
         unsigned get_nb_iterations(){
             return _nb_iterations;
-        };
+        }
         
         void init(){
             if (_stype==ipopt) {
@@ -138,7 +138,6 @@ namespace gravity {
                 }
                 _prog = make_shared<IpoptProgram<type>>(_model);
                 _bool_options["check_violation"] = false;
-                _bool_options["check_det"] = false;
 #else
                 ipoptNotAvailable();
 #endif
@@ -258,16 +257,16 @@ namespace gravity {
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
                     //            iapp->Options()->SetNumericValue("gamma_phi", 1e-8);
                     //            iapp->Options()->SetNumericValue("gamma_theta", 1e-4);
-//                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
-//                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
-//                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
+                    //                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
+                    //                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
+                    //                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
                     //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
                     iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-1);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
-//                    iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
                     //            iapp->Options()->SetNumericValue("obj_scaling_factor", 1e-2);
                     /** Hot start if already solved */
@@ -289,7 +288,7 @@ namespace gravity {
                     //            iapp->Options()->SetNumericValue("ma27_la_init_factor", 20);
                     //            iapp->Options()->SetNumericValue("ma27_meminc_factor", 3);
                     //            iapp->Options()->SetStringValue("ma57_automatic_scaling", "yes");
-//                    iapp->Options()->SetStringValue("derivative_test", "second-order");
+                    //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("derivative_test_perturbation", 1e-6);
                     //                        iapp->Options()->SetNumericValue("print_level", 10);
                     
@@ -521,17 +520,17 @@ namespace gravity {
                         //                }
                         //                _model->print();
                     }
-                }
-                        if(_stype==ipopt && solver_violated && _bool_options["check_violation"]) {
-                            violated_constraints = true;
-                            if(_double_options.find("bound_relax_factor")!=_double_options.end()){
+                    if(_stype==ipopt && solver_violated && _bool_options["check_violation"]) {
+                        violated_constraints = true;
+                        if(_double_options.find("bound_relax_factor")!=_double_options.end()){
                             _double_options["bound_relax_factor"]=_double_options["bound_relax_factor"]*0.1;
-                            }
-                            else{
-                                _double_options["bound_relax_factor"]=tol*0.01;
-                            }
                         }
-                nb_it++;
+                        else{
+                            _double_options["bound_relax_factor"]=tol*0.01;
+                        }
+                    }
+                    nb_it++;
+                }
             }
             if (nb_it>1) {
                 DebugOn(endl << "####################" << endl);
@@ -558,15 +557,15 @@ namespace gravity {
         return return_status;
     }
     
-//    template<typename type>
-//    int run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", unsigned max_iter = 1e6){
-//        return run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
-//    }
+    //    template<typename type>
+    //    int run_parallel(const initializer_list<shared_ptr<gravity::Model<type>>>& models, gravity::SolverType stype = ipopt, type tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", unsigned max_iter = 1e6){
+    //        return run_parallel(vector<shared_ptr<gravity::Model<type>>>(models), stype, tol, nr_threads, lin_solver, max_iter);
+    //    }
     
-
-
+    
+    
     /* Runs models stored in the vector in parallel, using solver of stype and tolerance tol */
-//run_parallel,ref(vec),stype,tol,nr_threads,lin_solver,max_iter);
+    //run_parallel,ref(vec),stype,tol,nr_threads,lin_solver,max_iter);
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6);
     
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
