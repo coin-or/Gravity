@@ -6575,9 +6575,11 @@ namespace gravity {
                             }
                             // if(iter==1){
                             //obbt_model->print();
-                            obbt_model->reindex();
-                            DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
-                            DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
+                            if(linearize){
+                                obbt_model->reindex();
+                                DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
+                                DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
+                            }
                             // break;
                             //}
                         }
