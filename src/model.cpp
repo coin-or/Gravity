@@ -5964,7 +5964,7 @@ namespace gravity {
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
-        DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
+        DebugOff("Upper bound = "<<this->get_obj_val()<<endl);
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         if(scale_objective){
@@ -5979,7 +5979,7 @@ namespace gravity {
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
-            DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+            DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
         shared_ptr<Model<>> obbt_model=relaxed_model;
         Model<> interior_model;
@@ -6002,11 +6002,11 @@ namespace gravity {
         while((gap > rel_tol || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
             auto time=get_wall_time()-time_start;
             if(time>=max_time){
-                DebugOn("Maximum time exceeded"<<endl);
+                DebugOff("Maximum time exceeded"<<endl);
                 break;
             }
             if(total_iter>= max_iter){
-                DebugOn("Maximum iterations exceeded"<<endl);
+                DebugOff("Maximum iterations exceeded"<<endl);
                 break;
             }
             if(get<1>(status)==1 && max_iter>1)
@@ -6025,7 +6025,7 @@ namespace gravity {
         }
         time_end = get_wall_time();
         total_time = time_end - time_start;
-        obbt_model->print_constraints_stats(1e-8);
+        //obbt_model->print_constraints_stats(1e-8);
         get<0>(res)=get<0>(status);
         get<1>(res)=total_iter;
         get<2>(res)=total_time;
@@ -6037,15 +6037,15 @@ namespace gravity {
         get<8>(res)=get<8>(status);
         get<9>(res)=oacuts_init;
         upper_bound=get<5>(status);
-        DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
-        DebugOn("Total number of OBBT iterations = " << total_iter << endl);
-        DebugOn("Number of global iterations = " << global_iter << endl);
+        DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
+        DebugOff("Total number of OBBT iterations = " << total_iter << endl);
+        DebugOff("Number of global iterations = " << global_iter << endl);
         auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
-        DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
+        DebugOff("Initial gap = "<<gapnl<<"%"<<endl);
         if(obbt_model->_status==0){
             auto lower_bound_final=get<6>(status);
             auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
-            DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
+            DebugOff("Final gap = " << to_string(gap_final) << "%."<<endl);
         }
         return res;
     }
@@ -6102,7 +6102,7 @@ namespace gravity {
             get_solution(ub_sol);/* store current solution */
             gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
             gap_old=gapnl;
-            DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+            DebugOff("Initial nolinear gap = "<<gapnl<<"%"<<endl);
             /* Check if gap is already not zero at root node */
             if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
             {
@@ -6115,8 +6115,8 @@ namespace gravity {
                     share_obj=true;
                 }
                 if(linearize){
-                    DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
-                    DebugOn("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
+                    DebugOff("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
+                    DebugOff("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
                     obbt_model->reindex();
                     obbt_model->reset();
                     solver<> LB_solver(obbt_model, lb_solver_type);
@@ -6132,8 +6132,8 @@ namespace gravity {
                         lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                         auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                         gap_old=gaplin;
-                        DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
-                        DebugOn("Initial number of constraints after perturb "<<oacuts<<endl);
+                        DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
+                        DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                     }
                     if(run_obbt_iter==1){
                         active_tol=0.1;
@@ -6260,7 +6260,7 @@ namespace gravity {
 #endif
                                             double batch_time_end = get_wall_time();
                                             auto batch_time = batch_time_end - batch_time_start;
-                                            DebugOn("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                            DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                             auto model_count=0;
                                             for (auto &model:batch_models)
                                             {
@@ -6334,7 +6334,7 @@ namespace gravity {
                                                             //If original interval is itself smaller than range_tol, do not have to reset interval
                                                             if(interval_original[var_key_k]>=range_tol)
                                                             {
-                                                                DebugOn("Entered reset");
+                                                                DebugOff("Entered reset");
                                                                 //Mid is the midpoint of interval
                                                                 mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
                                                                 left=mid-range_tol/2.0;
@@ -6455,8 +6455,8 @@ namespace gravity {
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                    DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                    //DebugOn("Updating bounds on original problem and resolving"<<endl);
+                                    DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                    //DebugOff("Updating bounds on original problem and resolving"<<endl);
                                     //                            this->copy_bounds(obbt_model);
                                     //                            this->copy_solution(obbt_model);
                                     //                            solver<> UB_solver(*this,ub_solver_type);
@@ -6498,13 +6498,13 @@ namespace gravity {
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                    DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                    DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                                     unsigned nb_OA_cuts = 0;
                                     for (auto const &iter: relaxed_model->_OA_cuts) {
                                         nb_OA_cuts += iter.second.size();
                                     }
-                                    DebugOn("Number of OA cuts = "<<nb_OA_cuts<<endl);
-                                    DebugOn("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
+                                    DebugOff("Number of OA cuts = "<<nb_OA_cuts<<endl);
+                                    DebugOff("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                     obbt_model->get_solution(obbt_solution);
                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                     for(auto &mod:batch_models){
@@ -6529,31 +6529,31 @@ namespace gravity {
                             }
                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                             {
-                                DebugOn("Gap closed at iter "<< iter<<endl);
-                                DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
+                                DebugOff("Gap closed at iter "<< iter<<endl);
+                                DebugOff("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                                 gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-                                DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                                DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-                                DebugOn("Time\t"<<solver_time<<endl);
+                                DebugOff("Final Gap = " << to_string(gap) << "%."<<endl);
+                                DebugOff("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                                DebugOff("Lower bound = " << to_string(lower_bound) << "."<<endl);
+                                DebugOff("Time\t"<<solver_time<<endl);
                                 close=true;
                                 terminate=true;
                             }
                             if(linearize){
-                                DebugOn("Number of constraints "<<obbt_model->_nb_cons<<endl);
-                                DebugOn("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
+                                DebugOff("Number of constraints "<<obbt_model->_nb_cons<<endl);
+                                DebugOff("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                             }
                         }
                         if(break_flag==true)
                         {
-                            DebugOn("Maximum Time Exceeded\t"<<max_time<<endl);
-                            DebugOn("Iterations\t"<<iter<<endl);
+                            DebugOff("Maximum Time Exceeded\t"<<max_time<<endl);
+                            DebugOff("Iterations\t"<<iter<<endl);
                             break;
                         }
                         solver_time= get_wall_time()-solver_time_start;
-                        DebugOn("Solved Fixed Point iteration " << iter << endl);
+                        DebugOff("Solved Fixed Point iteration " << iter << endl);
                         if(linearize && (gap_old-gap<gap_tol) && run_obbt_iter==1){
-                            DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
+                            DebugOff("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
                             break;
                         }
                         gap_old=gap;
@@ -6593,8 +6593,8 @@ namespace gravity {
                     }
                     avg=sum/num_var;
                     
-                    DebugOn("Average interval reduction\t"<<avg<<endl);
-                    DebugOn("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
+                    DebugOff("Average interval reduction\t"<<avg<<endl);
+                    DebugOff("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
         
                     if(!close || linearize)
                     {
@@ -6641,30 +6641,30 @@ namespace gravity {
                     {
                         DebugOff("\nLower bound = " << " " << to_string(lower_bound) << " " <<endl);
                         DebugOff("Solution Print"<<endl);
-                        DebugOn("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
+                        DebugOff("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                         gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
-                        DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
-                        DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                        DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-                        DebugOn("Time\t"<<solver_time<<endl);
+                        DebugOff("Final Gap = " << to_string(gap) << "%."<<endl);
+                        DebugOff("Upper bound = " << to_string(upper_bound) << "."<<endl);
+                        DebugOff("Lower bound = " << to_string(lower_bound) << "."<<endl);
+                        DebugOff("Time\t"<<solver_time<<endl);
                     }
                     else
                     {
-                        DebugOn("Initial Gap = " << to_string(gapnl) << "%."<<endl);
-                        DebugOn("Lower bounding problem status = " << obbt_model->_status <<endl);
-                        DebugOn("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
+                        DebugOff("Initial Gap = " << to_string(gapnl) << "%."<<endl);
+                        DebugOff("Lower bounding problem status = " << obbt_model->_status <<endl);
+                        DebugOff("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
                         lower_bound=numeric_limits<double>::min();
                     }
                     if(time_limit){
-                        DebugOn("Reached Time limit!"<<endl);
+                        DebugOff("Reached Time limit!"<<endl);
                     }
                     else {
-                        DebugOn("Terminate\t"<<terminate<<endl);
+                        DebugOff("Terminate\t"<<terminate<<endl);
                     }
                     
                     
-                    DebugOn("Time\t"<<solver_time<<endl);
-                    DebugOn("Iterations\t"<<iter<<endl);
+                    DebugOff("Time\t"<<solver_time<<endl);
+                    DebugOff("Iterations\t"<<iter<<endl);
 #ifdef USE_MPI
                 }
 #endif

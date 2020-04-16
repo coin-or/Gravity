@@ -332,7 +332,7 @@ namespace gravity {
                         *_model->_obj *= -1;
                         _model->_obj->_val->at(0) *= -1;
                     }
-                    DebugOn("Return status = " << status << endl);
+                    DebugOff("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
