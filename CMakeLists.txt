@@ -10,11 +10,16 @@ option(Debug "Turn on debug mode" OFF)
 # Coverage
 option(Cov "Turn on coverage" OFF)
 
+find_package(Python3 COMPONENTS Development NumPy)
+
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" OFF)
+
+# Find LASlib (optional)
+option(LASlib "Link to LASlib libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -56,6 +61,17 @@ if (OpenMPI)
 #   include_directories(${OpenMPI_INCLUDE_DIRS})
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
+
+
+# Find LASlib.
+if (LASlib)
+        message(STATUS "Enable LASlib")
+        add_definitions(-DUSE_LASlib)
+        find_package(LASlib REQUIRED)
+        include_directories(${LASlib_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${LASlib_LIBRARIES})
+endif()
+
 
 # Find Ipopt.
 if (Ipopt)
@@ -212,6 +228,7 @@ include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
 # Include ML dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
+include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/LiDAR/LASlib)
 
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
