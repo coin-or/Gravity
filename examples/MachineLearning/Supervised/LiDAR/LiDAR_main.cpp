@@ -76,6 +76,7 @@ int main (int argc, char * argv[])
     LASreadOpener lasreadopener;
     lasreadopener.set_file_name(LiDAR_file1.c_str());
     lasreadopener.set_populate_header(TRUE);
+    param<> x1("x1"), x2("x2"), y1("x1"), y2("x2"), z1("x1"), z2("x2");
     int xdim1=0, ydim1=0, zdim1=0;
     if (!lasreadopener.active())
     {
@@ -94,7 +95,7 @@ int main (int argc, char * argv[])
         
         xdim1 = ceil(lasreader->header.max_x*grid_step - lasreader->header.min_x*grid_step);
         ydim1 = ceil(lasreader->header.max_y*grid_step - lasreader->header.min_y*grid_step);
-        zdim1 = ceil(lasreader->header.max_z*grid_step - lasreader->header.min_z*grid_step);
+        zdim1 = ceil(lasreader->header.max_z*100*grid_step - lasreader->header.min_z*100*grid_step);
         ground_z = floor(lasreader->header.min_z);
         DebugOn("Number of points = " << lasreader->npoints << endl);
         DebugOn("min x axis = " << lasreader->header.min_x << endl);
@@ -108,14 +109,14 @@ int main (int argc, char * argv[])
         
         
         int nb_dots; /* Number of measurements inside cell */
-        int xpos, ypos, z, min_z, max_z, av_z;
+        int xpos, ypos, zpos, z, min_z, max_z, av_z;
         pair<int,int> pos;
         size_t nb_pts = 0;
         tuple<int,int,int,int> cell; /* <min_z,max_z,av_z> */
         while (lasreader->read_point())
         {
 //            if(nb_pts==0){
-//                DebugOn("(" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
+//                DebugOn(to_string_with_precision(lasreader->point.get_gps_time(),10) << ": (" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
 //                return 0;
 //            }
             xpos = floor((lasreader->point.get_x()*grid_step - lasreader->header.min_x*grid_step));
@@ -127,7 +128,8 @@ int main (int argc, char * argv[])
             }
             
             pos = make_pair(xpos,ypos);
-            z = lasreader->point.get_Z();
+//            z = lasreader->point.get_Z();
+            z = floor((lasreader->point.get_z()*100*grid_step - lasreader->header.min_z*100*grid_step));
             cell = make_tuple(1,z,z,z);
             DebugOff("new z value = " << z << endl);
             DebugOff("fractional z value = " << lasreader->point.get_z() << endl);
@@ -173,10 +175,13 @@ int main (int argc, char * argv[])
             max_z = get<2>(cell.second);
             av_z = get<3>(cell.second);
             x_vec1.push_back(cell.first.first);
+            x1.add_val(cell.first.first);
             y_vec1.push_back(cell.first.second);
+            y1.add_val(cell.first.second);
             z_vec1.push_back(av_z);
             zmin_vec1.push_back(min_z);
             zmax_vec1.push_back(max_z);
+            z1.add_val(max_z);
             if(max_nb_dots<nb_dots)
                 max_nb_dots = nb_dots;
             av_nb_dots += nb_dots;
@@ -240,7 +245,6 @@ int main (int argc, char * argv[])
         DebugOn("dimension in y axis = " << ydim2 << endl);
         DebugOn("dimension in z axis = " << zdim2 << endl);
         
-        
         int nb_dots; /* Number of measurements inside cell */
         int xpos, ypos, z, min_z, max_z, av_z;
         pair<int,int> pos;
@@ -261,7 +265,8 @@ int main (int argc, char * argv[])
             }
             
             pos = make_pair(xpos,ypos);
-            z = lasreader->point.get_Z();
+//            z = lasreader->point.get_Z();
+            z = floor((lasreader->point.get_z()*100*grid_step - lasreader->header.min_z*100*grid_step));
             cell = make_tuple(1,z,z,z);
             DebugOff("new z value = " << z << endl);
             DebugOff("fractional z value = " << lasreader->point.get_z() << endl);
@@ -307,10 +312,13 @@ int main (int argc, char * argv[])
             max_z = get<2>(cell.second);
             av_z = get<3>(cell.second);
             x_vec2.push_back(cell.first.first);
+            x2.add_val(cell.first.first);
             y_vec2.push_back(cell.first.second);
+            y2.add_val(cell.first.second);
             z_vec2.push_back(av_z);
             zmin_vec2.push_back(min_z);
             zmax_vec2.push_back(max_z);
+            z2.add_val(max_z);
             if(max_nb_dots<nb_dots)
                 max_nb_dots = nb_dots;
             av_nb_dots += nb_dots;
@@ -344,35 +352,45 @@ int main (int argc, char * argv[])
     }
     double alpha = 0, beta = 0, gamma = 0; /* alpha = yaw, beta = pitch and gamma = roll */
 //    alpha = -0.55;
-    beta = 68*pi/180.;
-//    gamma = 60*pi/180.;
+//    alpha = 30.*pi/180.;
+//    beta = 3.*pi/180.;
+//    gamma = 30.*pi/180.;
     x_combined.resize(x_vec1.size()+x_vec2.size());
     y_combined.resize(x_combined.size());
     z_combined.resize(x_combined.size());
     zmin_combined.resize(x_combined.size());
     zmax_combined.resize(x_combined.size());
+    double shifted_x, shifted_y, shifted_z;
     for (auto i = 0; i< x_vec1.size(); i++) {
-//        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + z_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-//        y_combined[i] = x_vec1[i]*sin(alpha)*cos(beta) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + z_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        x_combined[i] = x_vec1[i];
-        y_combined[i] = y_vec1[i];
+//        shifted_x = x_vec1[i] - xdim1/2;
+//        shifted_y = y_vec1[i] - ydim1/2;
+//        shifted_z = zmax_vec1[i] - zdim1/2;
+//        x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+//        y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+//        zmax_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + zmax_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        y_combined[i] = x_vec1[i]*sin(alpha)*cos(beta) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + zmax_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+        zmax_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
+//        x_combined[i] = x_vec1[i];
+//        y_combined[i] = y_vec1[i];
         z_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + z_vec1[i]*(cos(beta)*cos(gamma));
         zmin_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmin_vec1[i]*(cos(beta)*cos(gamma));
-        zmax_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
+        
     }
     /* Moving to second flight line assumed to be in opposite direction, pitch (beta) is not affected by drone direction */
 //    alpha *= -1;
 //    gamma *= -1;
-    beta *= -1;
-    for (auto i = 0; i< x_vec2.size(); i++) {
-//        x_combined[x_vec1.size()+i] = x_vec2[i]*cos(alpha)*cos(beta) + y_vec2[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + z_vec2[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-//        y_combined[x_vec1.size()+i] = x_vec2[i]*sin(alpha)*cos(beta) + y_vec2[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + z_vec2[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        x_combined[x_vec1.size()+i] = x_vec2[i];
-        y_combined[x_vec1.size()+i] = y_vec2[i];
-        z_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + z_vec2[i]*(cos(beta)*cos(gamma));
-        zmin_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + zmin_vec2[i]*(cos(beta)*cos(gamma));
-        zmax_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + zmax_vec2[i]*(cos(beta)*cos(gamma))-180;
-    }
+//    beta *= -1;
+//    for (auto i = 0; i< x_vec2.size(); i++) {
+////        x_combined[x_vec1.size()+i] = x_vec2[i]*cos(alpha)*cos(beta) + y_vec2[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + z_vec2[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+////        y_combined[x_vec1.size()+i] = x_vec2[i]*sin(alpha)*cos(beta) + y_vec2[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + z_vec2[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+//        x_combined[x_vec1.size()+i] = x_vec2[i];
+//        y_combined[x_vec1.size()+i] = y_vec2[i];
+//        zmax_combined[x_vec1.size()+i] = zmax_vec2[i];
+//        z_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + z_vec2[i]*(cos(beta)*cos(gamma));
+//        zmin_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + zmin_vec2[i]*(cos(beta)*cos(gamma));
+////        zmax_combined[x_vec1.size()+i] = x_vec2[i]*(-sin(beta)) + y_vec2[i]*(cos(beta)*sin(gamma)) + zmax_vec2[i]*(cos(beta)*cos(gamma));
+//    }
     namespace plt = matplotlibcpp;
 //    std::vector<std::vector<double>> x, y, z;
 //    for (int i = 0; i <= xdim;  i++) {
