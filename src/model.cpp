@@ -6111,8 +6111,8 @@ namespace gravity {
                     share_obj=false;
                 }
                 else{
-                    share_all=false;
-                    share_obj=true;
+                    share_all=true;
+                    share_obj=false;
                 }
                 if(linearize){
                     DebugOff("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
@@ -6277,10 +6277,10 @@ namespace gravity {
                                                         dirk=mkname.substr(pos+1);
                                                         vk=obbt_model->template get_var<T>(vkname);
                                                         var_key_k=vkname+"|"+keyk;
-                                                        if(linearize){
+                                                        //if(linearize){
                                                             model->_obj->uneval();
                                                             model->_obj->eval();
-                                                        }
+                                                        //}
                                                         objk=model->get_obj_val();
                                                         auto update_lb=false;
                                                         auto update_ub=false;
