@@ -5973,7 +5973,7 @@ namespace gravity {
             ub_scale_value=1.0;
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        LBnonlin_solver.set_option("check_violation", true);;
+        LBnonlin_solver.set_option("check_violation", true);
         LBnonlin_solver.run(output = 0 , lb_solver_tol);
 
         if(relaxed_model->_status==0)
@@ -6321,7 +6321,6 @@ namespace gravity {
                                                                 vk.set_lb(keyk, temp);
                                                                 update_lb=true;
                                                                 update_ub=true;
-                                                                
                                                             }
                                                             else if(!vk._lift){
                                                                 fixed_point[model->get_name()]=false;
