@@ -5974,7 +5974,7 @@ namespace gravity {
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         LBnonlin_solver.set_option("check_violation", true);;
-        LBnonlin_solver.run(output = 0 , lb_solver_tol);
+        LBnonlin_solver.run(output = 5 , lb_solver_tol);
 
         if(relaxed_model->_status==0)
         {
