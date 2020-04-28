@@ -6291,9 +6291,9 @@ namespace gravity {
                                                             	model->_obj->uneval();
                                                             	model->_obj->eval();
                                                        		if(worker_id==0 && std::abs(objk-model->get_obj_val()>1e-6)){
-									DebugOn("Model : " << model->get_name() << endl);
-									DebugOn("Var " << vkname << " value : " << vk.eval(keyk) << endl);
-									DebugOn("Objective mismatch after MPI send_all, objk = " << objk << " computed objective = " << model->get_obj_val() << endl);
+									DebugOn("model : " << model->get_name() << endl);
+									DebugOn("var " << vkname << " value : " << vk.eval(keyk) << endl);
+									DebugOn("objective mismatch after MPI send_all, objk = " << objk << " computed objective = " << model->get_obj_val() << endl);
 								}
 							}
                                                         auto update_lb=false;
@@ -6470,7 +6470,9 @@ namespace gravity {
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                    DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+				    if(worker_id==0){
+                                    	DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+				    }
                                     //DebugOff("Updating bounds on original problem and resolving"<<endl);
                                     //                            this->copy_bounds(obbt_model);
                                     //                            this->copy_solution(obbt_model);

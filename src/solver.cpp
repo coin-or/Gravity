@@ -1102,7 +1102,7 @@ namespace gravity {
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
             auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
-            DebugOn("I have " << nb_workers_ << " workers" << endl);
+            DebugOff("I have " << nb_workers_ << " workers" << endl);
             DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
             std::vector<size_t> limits = bounds(nb_workers_, models.size());
             DebugOff("I will be splitting " << models.size() << " tasks ");
