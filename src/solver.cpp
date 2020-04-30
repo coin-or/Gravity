@@ -1155,11 +1155,11 @@ namespace gravity {
                     }
                 }
             }
-            else if(share_all && !share_all_obj){
+            else if(share_all){
                 /* We will send the solution of successful models */
                 send_solution_all(models,limits);
             }
-            else if(share_all_obj){
+            if(share_all_obj){
                 /* We will send the objective value of successful models */
                 send_obj_all(models,limits);
             }

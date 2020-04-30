@@ -251,7 +251,7 @@ namespace gravity {
                     //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
-                    //iapp->Options()->SetStringValue("honor_original_bounds", "no");
+                    iapp->Options()->SetStringValue("honor_original_bounds", "no");
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
@@ -276,6 +276,7 @@ namespace gravity {
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
+		    iapp->Options()->SetStringValue("sb", "yes");
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
@@ -623,48 +624,29 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-        MPI_Request send_reqs[nb_workers_*models.size()];
-        if(worker_id+1<limits.size()){
-            DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to all workers " << endl);
-            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                auto model = models[i];
-                if(model->_status==0){
-                    auto nb_vars = model->get_nb_vars();
-                    vector<double> solution;
-                    solution.resize(nb_vars);
-                    model->get_solution(solution);
-                    for (auto w_id = 0; w_id<nb_workers; w_id++) {
-                        if (worker_id == w_id){
-                            continue;
-                        }
-                        DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                        MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
-                        DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
-                    }
-                }
-            }
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-        DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solutions broadcasted by the other workers " << endl);
+        DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
+	DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
-            if (worker_id == w_id){
-                continue;
-            }
             if(w_id+1<limits.size()){
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     auto model = models[i];
                     if(model->_status==0){
                         auto nb_vars = model->get_nb_vars();
-                        vector<double> solution;
-                        solution.resize(nb_vars);
-                        DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                        MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                        DebugOff("I'm worker ID: " << worker_id <<", I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                        model->set_solution(solution);
+			vector<double> solution;
+			solution.resize(nb_vars);
+			if(worker_id==w_id){
+			  model->get_solution(solution);
+			}
+			DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+			MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
+			if(worker_id!=w_id){
+                          model->set_solution(solution);
+			}
                     }
                 }
             }
         }
+	MPI_Barrier(MPI_COMM_WORLD);	
     }
     
     /** Send model objective value to all workers
@@ -677,40 +659,20 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-        MPI_Request send_reqs[nb_workers_*models.size()];
-        if(worker_id+1<limits.size()){
-            DebugOff("I'm worker ID: " << worker_id << ", I will be sending my objective value to all workers " << endl);
-            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                auto model = models[i];
-                if(model->_status==0){
-                    for (auto w_id = 0; w_id<nb_workers; w_id++) {
-                        if (worker_id == w_id){
-                            continue;
-                        }
-                        DebugOff("I'm worker ID: " << worker_id << ", I finished loading objective value of task " << i << endl);
-                        MPI_Isend(&model->_obj->_val->at(0), 1, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
-                        DebugOff("I'm worker ID: " << worker_id << ", I finished sending objective value of task " << i << "to worker " << w_id << endl);
-                    }
-                }
-            }
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-        DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the objective value broadcasted by the other workers " << endl);
+	DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
+        DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
-            if (worker_id == w_id){
-                continue;
-            }
             if(w_id+1<limits.size()){
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     auto model = models[i];
                     if(model->_status==0){
-                        DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the objective value of task " << i << " broadcasted by worker " << w_id << endl);
-                        MPI_Recv(&model->_obj->_val->at(0), 1, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                        DebugOff("I'm worker ID: " << worker_id <<", I received the objective value of task " << i << " broadcasted by worker " << w_id << endl);
+                        DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                        MPI_Bcast(&model->_obj->_val->at(0), 1, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                     }
                 }
             }
         }
+	MPI_Barrier(MPI_COMM_WORLD);
     }
     
     
