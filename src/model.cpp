@@ -5974,7 +5974,7 @@ namespace gravity {
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         LBnonlin_solver.set_option("check_violation", true);;
-        LBnonlin_solver.run(output = 5 , lb_solver_tol);
+        LBnonlin_solver.run(output = 0 , lb_solver_tol);
 
         if(relaxed_model->_status==0)
         {
@@ -6064,6 +6064,13 @@ namespace gravity {
         int nb_total_threads = nb_threads; /** Used when MPI is ON to multiply with the number of workers */
 #ifdef USE_MPI
         nb_total_threads *= nb_workers;
+	/* Split models into equal loads */
+            DebugOff("I have " << nb_workers << " workers" << endl);
+            DebugOff("I will be using  " << nb_total_threads << " thread(s) in total" << endl);
+            std::vector<size_t> limits = bounds(nb_workers, nb_total_threads);
+            DebugOff("I will be splitting " << nb_total_threads << " tasks ");
+            DebugOff("among " << nb_workers << " worker(s)" << endl);
+            DebugOff("limits size = " << limits.size() << endl);
 #endif
         vector<shared_ptr<Model<>>> batch_models;
         map<string, bool> fixed_point;
@@ -6112,7 +6119,7 @@ namespace gravity {
                 }
                 else{
                     share_all=true;
-                    share_obj=false;
+                    share_obj=true;
                 }
                 if(linearize){
                     DebugOff("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
@@ -6262,6 +6269,7 @@ namespace gravity {
                                             auto batch_time = batch_time_end - batch_time_start;
                                             DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                             auto model_count=0;
+					    int model_id = 0;
                                             for (auto &model:batch_models)
                                             {
                                                 if(model_count<batch_model_count){
@@ -6277,11 +6285,17 @@ namespace gravity {
                                                         dirk=mkname.substr(pos+1);
                                                         vk=obbt_model->template get_var<T>(vkname);
                                                         var_key_k=vkname+"|"+keyk;
-                                                        //if(linearize){
-                                                            model->_obj->uneval();
-                                                            model->_obj->eval();
-                                                        //}
                                                         objk=model->get_obj_val();
+                                                        //if(linearize){
+                                                        if(model_id < limits[worker_id] || model_id >= limits[worker_id+1]){
+                                                            	model->_obj->uneval();
+                                                            	model->_obj->eval();
+                                                       		if(worker_id==0 && std::abs(objk-model->get_obj_val())>1e-6){
+									DebugOn("Model : " << model->get_name() << endl);
+									DebugOn("Var " << vkname << " value : " << vk.eval(keyk) << endl);
+									DebugOn("Objective mismatch after MPI send_all, objk = " << objk << " computed objective = " << model->get_obj_val() << endl);
+								}
+							}
                                                         auto update_lb=false;
                                                         auto update_ub=false;
                                                         if(dirk=="LB")
@@ -6402,6 +6416,7 @@ namespace gravity {
                                                     }
                                                     model_count++;
                                                 }
+						model_id++;
                                             }
                                             for(auto &mod:batch_models){
                                                 if(linearize){
@@ -6455,8 +6470,8 @@ namespace gravity {
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                    DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                    DebugOff("Updating bounds on original problem and resolving"<<endl);
+                                    DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                    //DebugOff("Updating bounds on original problem and resolving"<<endl);
                                     //                            this->copy_bounds(obbt_model);
                                     //                            this->copy_solution(obbt_model);
                                     //                            solver<> UB_solver(*this,ub_solver_type);
@@ -6581,7 +6596,7 @@ namespace gravity {
                             if( in_orig_model)
                             {
                                 var_ub.uneval();
-                                if((var_ub.eval(key)-v.get_lb(key)) <0.000 || (var_ub.eval(key)-v.get_ub(key))>0.000){
+                                if((var_ub.eval(key)-v.get_lb(key)) < - 1e-6 || (var_ub.eval(key)-v.get_ub(key))>1e-6){
                                     xb_true=false;
                                     DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
                                 }

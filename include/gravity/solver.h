@@ -251,7 +251,7 @@ namespace gravity {
                     //                    iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
                     iapp->Options()->SetNumericValue("tol", tol);
                     iapp->Options()->SetIntegerValue("print_level", output);
-                    //iapp->Options()->SetStringValue("honor_original_bounds", "no");
+                    iapp->Options()->SetStringValue("honor_original_bounds", "no");
                     /** Bonmin options */
                     //            iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     //            iapp->Options()->SetStringValue("mu_oracle", "probing");
@@ -276,6 +276,7 @@ namespace gravity {
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
+		    iapp->Options()->SetStringValue("sb", "yes");
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
@@ -630,6 +631,7 @@ namespace gravity {
                 auto model = models[i];
                 if(model->_status==0){
                     auto nb_vars = model->get_nb_vars();
+		    DebugOff("Sending nb vars = " << nb_vars << endl);
                     vector<double> solution;
                     solution.resize(nb_vars);
                     model->get_solution(solution);
@@ -638,7 +640,7 @@ namespace gravity {
                             continue;
                         }
                         DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                        MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
+                        MPI_Isend(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[i*(nb_workers_-1)+w_id]);
                         DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << "to worker " << w_id << endl);
                     }
                 }
@@ -655,6 +657,7 @@ namespace gravity {
                     auto model = models[i];
                     if(model->_status==0){
                         auto nb_vars = model->get_nb_vars();
+			DebugOff("Receving nb vars = " << nb_vars << endl);
                         vector<double> solution;
                         solution.resize(nb_vars);
                         DebugOff("I'm worker ID: " << worker_id <<", I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
@@ -687,8 +690,10 @@ namespace gravity {
                         if (worker_id == w_id){
                             continue;
                         }
+			model->_obj->uneval();
+			model->_obj->eval();
                         DebugOff("I'm worker ID: " << worker_id << ", I finished loading objective value of task " << i << endl);
-                        MPI_Isend(&model->_obj->_val->at(0), 1, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[(worker_id+1)*i]);
+                        MPI_Isend(&model->_obj->_val->at(0), 1, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, &send_reqs[i*(nb_workers_-1)+w_id]);
                         DebugOff("I'm worker ID: " << worker_id << ", I finished sending objective value of task " << i << "to worker " << w_id << endl);
                     }
                 }

@@ -258,7 +258,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 auto coef = pair.second._coef;
                 if (coef->is_function()) {
                     auto f_cst = static_pointer_cast<func<type>>(coef);
-                    merge_vars(f_cst);
+                    merge_vars(f_cst, share_bounds);
                 }
                 else if(coef->is_param()) {
                     auto p_cst = static_pointer_cast<param<type>>(coef);
@@ -319,7 +319,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
                 if (coef->is_function()) {
                     auto f_cst = static_pointer_cast<func<type>>(coef);
-                    merge_vars(f_cst);
+                    merge_vars(f_cst, share_bounds);
                 }
                 else if(coef->is_param()) {
                     auto p_cst = static_pointer_cast<param<type>>(coef);
@@ -363,7 +363,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 auto coef = pair.second._coef;
                 if (coef->is_function()) {
                     auto f_cst = static_pointer_cast<func<type>>(coef);
-                    merge_vars(f_cst);
+                    merge_vars(f_cst, share_bounds);
                 }
                 else if(coef->is_param()) {
                     auto p_cst = static_pointer_cast<param<type>>(coef);
@@ -5228,7 +5228,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         
         shared_ptr<func<type>> embed(const shared_ptr<func<type>>& f, bool insert_in_map = true){/**<  Transfer all variables and parameters to the model. */
             f->allocate_mem();
-            merge_vars(f);
+            merge_vars(f,true);
             //            return f;
             DebugOff(f->to_str() << endl);
             for (auto &p_t: f->get_lterms()) {

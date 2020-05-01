@@ -1102,7 +1102,7 @@ namespace gravity {
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
             auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
-            DebugOff("I have " << nb_workers_ << " workers" << endl);
+            DebugOn("I have " << nb_workers_ << " workers" << endl);
             DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
             std::vector<size_t> limits = bounds(nb_workers_, models.size());
             DebugOff("I will be splitting " << models.size() << " tasks ");
@@ -1155,11 +1155,11 @@ namespace gravity {
                     }
                 }
             }
-            else if(share_all && !share_all_obj){
+            else if(share_all){
                 /* We will send the solution of successful models */
                 send_solution_all(models,limits);
             }
-            else if(share_all_obj){
+            if(share_all_obj){
                 /* We will send the objective value of successful models */
                 send_obj_all(models,limits);
             }
