@@ -1146,13 +1146,14 @@ namespace gravity {
      *                                              @share_all_obj propagate only objective values and model status to all workers
      *
      */
-    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false){
+    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
         MPI_Request send_reqs[nb_workers_*models.size()];
-        
+        std::string msname, mname, vname, key, dir;
+	var<> var;
         if(objective_models.size()!=0){
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, objective_models.size());
@@ -1172,7 +1173,8 @@ namespace gravity {
                     throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
                 DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
-                auto vec = vector<shared_ptr<gravity::Model<double>>>();
+                int count=0;
+		auto vec = vector<shared_ptr<gravity::Model<double>>>();
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                     msname=objective_models[i];
                     mname=msname;
@@ -1182,18 +1184,18 @@ namespace gravity {
                     pos=msname.find("|");
                     key.assign(msname, 0, pos);
                     dir=msname.substr(pos+1);
-                    var=models[i]->get_var<double>(vname);
+                    var=models[count]->get_var<double>(vname);
                     if(dir=="LB")
                     {
-                        models[s]->min(var(key));
+                        models[count]->min(var(key));
                     }
                     else
                     {
-                        models[s]->max(var(key));
+                        models[count]->max(var(key));
                         
                     }
-                    models[s]->reindex();
-                    vec.push_back(models[i]);
+                    models[count]->reindex();
+                    vec.push_back(models[count++]);
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
             }
