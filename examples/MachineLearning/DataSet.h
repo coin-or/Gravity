@@ -13,6 +13,128 @@
 using namespace std;
 //using namespace nanoflann;
 
+class UAVPoint;
+
+class LidarPoint {
+public:
+    int                                                    _hour = 0;
+    int                                                    _minutes = 0;
+    int                                                    _seconds = 0;
+    double                                                 _unix_time = 0;
+    double                                                 _x = 0;
+    double                                                 _y = 0;
+    double                                                 _z = 0;
+    LidarPoint*                                            _next = nullptr;/*< Next scanned point */
+    LidarPoint*                                            _prev = nullptr;/*< Previous scanned point */
+    UAVPoint*                                              _uav_pt = nullptr;/*< UAV point corresponding to this Lidar point */
+    
+    LidarPoint(){};
+    
+    LidarPoint(const LidarPoint& p){
+        *this = p;
+    };
+    
+    LidarPoint(const double& gps_time, const double& x, const double& y, const double& z){
+        _unix_time = gps_time + 315964800 - 18; /* 18 leap seconds since 1980 */
+        time_t unixtimestamp = _unix_time;
+        struct tm *tmp = gmtime(&unixtimestamp);
+        _hour = tmp->tm_hour;
+        _minutes = tmp->tm_min;
+        _seconds = tmp->tm_sec;
+//        printf("%02d:%02d:%02d\n", tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+        _x = x;
+        _y = y;
+        _z = z;
+    }
+    
+    LidarPoint& operator=(const LidarPoint& p){
+        _hour = p._hour;
+        _minutes = p._minutes;
+        _seconds = p._seconds;
+        _unix_time = p._unix_time;
+        _x = p._x;
+        _y = p._y;
+        _z = p._z;
+        _next = p._next;
+        _prev = p._prev;
+        return *this;
+    }
+};
+
+class UAVPoint {
+public:
+    int                                                    _hour = 0;
+    int                                                    _minutes = 0;
+    int                                                    _seconds = 0;
+    double                                                 _unix_time = 0;
+    double                                                 _latitude = 0;
+    double                                                 _x = 0;
+    double                                                 _y = 0;
+    double                                                 _longitude = 0;
+    double                                                 _height = 0;
+    UAVPoint*                                              _next = nullptr;/*< Next scanned point */
+    UAVPoint*                                              _prev = nullptr;/*< Previous scanned point */
+    vector<LidarPoint*>                                    _LidarPts;/*< Lidar points corresponding to this UAV point */
+    
+    UAVPoint(){};
+    UAVPoint(const UAVPoint& p){
+        *this = p;
+    };
+    
+    UAVPoint& operator=(const UAVPoint& p){
+        _unix_time = p._unix_time;
+        _x = p._x;
+        _y = p._y;
+        _latitude = p._latitude;
+        _longitude = p._longitude;
+        _height = p._height;
+        _next = p._next;
+        _prev = p._prev;
+        return *this;
+    }
+    
+    void set_unix_time(const double& t){
+        _unix_time = t;
+        time_t unixtimestamp = _unix_time;
+        struct tm *tmp = gmtime(&unixtimestamp);
+        _hour = tmp->tm_hour;
+        _minutes = tmp->tm_min;
+        _seconds = tmp->tm_sec;
+//        printf("%02d:%02d:%02d\n", tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+    }
+};
+
+class Frame {
+public:
+    double                                  _unix_time;
+    shared_ptr<vector<LidarPoint*>>         _lidar_points;
+    UAVPoint*                               _uav_point;
+    
+    
+    Frame(const double& time){
+        _unix_time = time;
+        _lidar_points = make_shared<vector<LidarPoint*>>();
+    }
+    
+    Frame(const Frame& f){
+        *this = f;
+    }
+    
+    Frame& operator=(const Frame& f){
+        _unix_time = f._unix_time;
+        _lidar_points = f._lidar_points;
+        _uav_point = f._uav_point;
+        return *this;
+    }
+    
+    void add_lidar_point(const LidarPoint& p){
+        _lidar_points->push_back((LidarPoint*)(&p));
+    }
+    
+    void add_UAV_point(const UAVPoint& p){
+        _uav_point = (UAVPoint*)(&p);
+    }
+};
 
 template<typename type = float>
 class Feature {
@@ -51,7 +173,7 @@ public:
         }
     };
     
-    DataPoint operator=(const DataPoint& p){
+    DataPoint& operator=(const DataPoint& p){
         delete [] _features;
         _nbf = p._nbf;
         _class = p._class;
@@ -62,7 +184,7 @@ public:
         return *this;
     }
     
-    DataPoint operator=(DataPoint&& p){
+    DataPoint& operator=(DataPoint&& p){
         delete [] _features;
         _nbf = p._nbf;
         _class = p._class;
@@ -145,6 +267,7 @@ public:
         return *this;
     }
 };
+
 
 
 
