@@ -1153,14 +1153,14 @@ namespace gravity {
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
         MPI_Request send_reqs[nb_workers_*models.size()];
         
-        if(models.size()!=0){
+        if(objective_models.size()!=0){
             /* Split models into equal loads */
-            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
-            auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
+            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, objective_models.size());
+            auto nb_threads_per_worker = std::min((size_t)nr_threads, objective_models.size());
             DebugOff("I have " << nb_workers_ << " workers" << endl);
             DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
-            std::vector<size_t> limits = bounds(nb_workers_, models.size());
-            DebugOff("I will be splitting " << models.size() << " tasks ");
+            std::vector<size_t> limits = bounds(nb_workers_, objective_models.size());
+            DebugOff("I will be splitting " << objective_models.size() << " tasks ");
             DebugOff("among " << nb_workers_ << " worker(s)" << endl);
             DebugOff("limits size = " << limits.size() << endl);
             for (size_t i = 0; i < limits.size(); ++i) {
@@ -1197,6 +1197,8 @@ namespace gravity {
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
             }
+            sol_status.resize(objective_models.size());
+            sol_obj.resize(objective_models.size());
             send_status_new(models,limits, sol_status);
             MPI_Barrier(MPI_COMM_WORLD);
             if(share_all_obj){
