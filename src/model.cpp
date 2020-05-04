@@ -6065,12 +6065,12 @@ namespace gravity {
 #ifdef USE_MPI
         nb_total_threads *= nb_workers;
         /* Split models into equal loads */
-        DebugOff("I have " << nb_workers << " workers" << endl);
-        DebugOff("I will be using  " << nb_total_threads << " thread(s) in total" << endl);
+        DebugOn("I have " << nb_workers << " workers" << endl);
+        DebugOn("I will be using  " << nb_total_threads << " thread(s) in total" << endl);
         std::vector<size_t> limits = bounds(nb_workers, nb_total_threads);
-        DebugOff("I will be splitting " << nb_total_threads << " tasks ");
-        DebugOff("among " << nb_workers << " worker(s)" << endl);
-        DebugOff("limits size = " << limits.size() << endl);
+        DebugOn("I will be splitting " << nb_total_threads << " tasks ");
+        DebugOn("among " << nb_workers << " worker(s)" << endl);
+        DebugOn("limits size = " << limits.size() <<" Initial" endl);
 #endif
         vector<shared_ptr<Model<>>> batch_models;
         vector<string> objective_models;
@@ -6235,6 +6235,7 @@ namespace gravity {
                                         {
                                             mname=vname+"|"+key+"|"+dir;
                                             if(fixed_point[mname]==false){
+                                                if(batch_model_count<nb_threads){
                                                 batch_models[batch_model_count]->set_name(mname);
                                                 /* Add the upper bound constraint on the objective */
                                                 if(batch_models[batch_model_count]->_cons_name.count("obj|ub")==0){
@@ -6244,6 +6245,7 @@ namespace gravity {
                                                     Constraint<type> obj_ub("obj|ub");
                                                     obj_ub = obj - ub;
                                                     batch_models[batch_model_count]->add(obj_ub<=0);
+                                                }
                                                 }
 //Use in set_objective in run_MPI or parallel
  //                                               vark=batch_models[batch_model_count]->template get_var<T>(vname);
@@ -6268,6 +6270,7 @@ namespace gravity {
                                                 obbt_subproblem_count+=batch_model_count;
                                                 
                                                 double batch_time_start = get_wall_time();
+                                                DebugOn("about to run mpi"<<endl);
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
