@@ -6073,11 +6073,14 @@ namespace gravity {
         DebugOff("limits size = " << limits.size() << endl);
 #endif
         vector<shared_ptr<Model<>>> batch_models;
+        vector<string> objective_models;
+        vector<double> sol_obj;
+        vector<bool> sol_status;
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
         string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
         string vname;
-        string mname, mkname, vkname, keyk, dirk;
+        string mname, mkname, msname, vkname, keyk, dirk;
         string var_vp_key, vp_key_lb, vp_key_ub;
         string dir_array[2]={"LB", "UB"};
         var<> vark, vk, v, var_ub;
@@ -6109,7 +6112,7 @@ namespace gravity {
                 get_solution(ub_sol);/* store current solution */
                 gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
                 gap_old=gapnl;
-                DebugOff("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+                DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
                 /* Check if gap is already not zero at root node */
                 if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
                 {
@@ -6190,7 +6193,7 @@ namespace gravity {
                             
                         }
                         solver_time= get_wall_time()-solver_time_start;
-                        for(auto i=0;i<nb_total_threads;i++){
+                        for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
                             batch_models.push_back(modelk);
                         }
@@ -6242,17 +6245,22 @@ namespace gravity {
                                                     obj_ub = obj - ub;
                                                     batch_models[batch_model_count]->add(obj_ub<=0);
                                                 }
-                                                vark=batch_models[batch_model_count]->template get_var<T>(vname);
-                                                if(dir=="LB")
-                                                {
-                                                    batch_models[batch_model_count]->min(vark(key));
-                                                }
-                                                else
-                                                {
-                                                    batch_models[batch_model_count]->max(vark(key));
-                                                    
-                                                }
-                                                batch_models[batch_model_count++]->reindex();
+//Use in set_objective in run_MPI or parallel
+ //                                               vark=batch_models[batch_model_count]->template get_var<T>(vname);
+//                                                if(dir=="LB")
+//                                                {
+//                                                    batch_models[batch_model_count]->min(vark(key));
+//                                                }
+//                                                else
+//                                                {
+//                                                    batch_models[batch_model_count]->max(vark(key));
+//
+//                                                }
+//                                                batch_models[batch_model_count++]->reindex();
+                                                
+                                                objective_models.push_back(mname);
+                                                batch_model_count++;
+                                                
                                             }
                                             /* When batch models has reached size of nb_threads or when at the last key of last variable */
                                             if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
@@ -6263,20 +6271,20 @@ namespace gravity {
 #ifdef USE_MPI
                                                 run_MPI(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
-                                                run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 auto batch_time = batch_time_end - batch_time_start;
                                                 DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                                 auto model_count=0;
                                                 int model_id = 0;
-                                                for (auto &model:batch_models)
+                                                for (auto s=0;s<batch_model_count;s++)
                                                 {
-                                                    if(model_count<batch_model_count){
                                                         /* Update bounds only if the model status is solved to optimal */
-                                                        if(model->_status==0)
+                                                        if(sol_status[s]==0)
                                                         {
-                                                            mkname=model->get_name();
+                                                            msname=objective_models[s];
+                                                            mkname=msname;
                                                             std::size_t pos = mkname.find("|");
                                                             vkname.assign(mkname, 0, pos);
                                                             mkname=mkname.substr(pos+1);
@@ -6285,11 +6293,12 @@ namespace gravity {
                                                             dirk=mkname.substr(pos+1);
                                                             vk=obbt_model->template get_var<T>(vkname);
                                                             var_key_k=vkname+"|"+keyk;
-                                                            if(linearize){
-                                                                model->_obj->uneval();
-                                                                model->_obj->eval();
-                                                            }
-                                                            objk=model->get_obj_val();
+// Linearize has to be worked out
+//                                                            if(linearize){
+//                                                                model->_obj->uneval();
+//                                                                model->_obj->eval();
+//                                                            }
+                                                            objk=sol_obj[s];
 #ifdef USE_MPI
                                                             if(share_all && share_obj && (model_id < limits[worker_id] || model_id >= limits[worker_id+1])){
                                                                 model->_obj->uneval();
@@ -6317,7 +6326,7 @@ namespace gravity {
                                                             }
                                                             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                             {//do not close intervals to OBBT before finishing at least one full iteration over all variables
-                                                                fixed_point[model->get_name()]=true;
+                                                                fixed_point[msname]=true;
                                                             }
                                                             else
                                                             {
@@ -6342,7 +6351,7 @@ namespace gravity {
                                                                     update_ub=true;
                                                                 }
                                                                 else if(!vk._lift){
-                                                                    fixed_point[model->get_name()]=false;
+                                                                    fixed_point[msname]=false;
                                                                     terminate=false;
                                                                 }
                                                             }
@@ -6399,6 +6408,7 @@ namespace gravity {
                                                                     }
                                                                 }
                                                             }
+                                                            /* Need to support linearize
                                                             if(linearize){
                                                                 //                                                        if(linearize && !fixed_point[model->get_name()]){
                                                                 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
@@ -6411,15 +6421,13 @@ namespace gravity {
                                                                 }
                                                                 //                                                            }
                                                                 //                                                        }
-                                                            }
+                                                            }*/
                                                         }
                                                         else
                                                         {
                                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                                             
                                                         }
-                                                        model_count++;
-                                                    }
                                                     model_id++;
                                                 }
                                                 for(auto &mod:batch_models){
@@ -6438,6 +6446,9 @@ namespace gravity {
                                                     mod->reset_lifted_vars_bounds();
                                                 }
                                                 batch_model_count=0;
+                                                objective_models.clear();
+                                                sol_status.clear();
+                                                sol_obj.clear();
                                             }
                                         }
                                     }
