@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     double grid_step = 1;
-    map<pair<int,int>,tuple<double,double,double,double>> grid1, grid2; /* Grid with all cells where <x,y> is the key and <nb_measurements, min_z, max_z, av_z> is the cell data */
+    map<pair<int,int>,tuple<double,double,double,double,UAVPoint*>> grid1, grid2; /* Grid with all cells where <x,y> is the key and <nb_measurements, min_z, max_z, av_z> is the cell data */
     int ground_z = 0;
     string log_level="0";
     string LiDAR_file1 = string(prj_dir)+"/data_sets/LiDAR/test1.las";
@@ -124,7 +124,7 @@ int main (int argc, char * argv[])
         throw invalid_argument("ERROR: no input specified\n");
     }
     vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
-    vector<double> uav_x_combined,uav_y_combined,uav_z_combined;
+    vector<double> x_shift,y_shift,z_shift;
     vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
     set<double> timestamps;
     while (lasreadopener.active())
@@ -157,7 +157,7 @@ int main (int argc, char * argv[])
         double z, min_z, max_z, av_z;
         pair<int,int> pos;
         size_t nb_pts = 0;
-        tuple<double,double,double,double> cell; /* <min_z,max_z,av_z> */
+        tuple<double,double,double,double,UAVPoint*> cell; /* <min_z,max_z,av_z> */
         /* Now get rid of the first points
         lasreader->read_point();
         auto gps_time = lasreader->point.get_gps_time();
@@ -189,7 +189,7 @@ int main (int argc, char * argv[])
             auto frame_ptr = frames.insert(make_pair(LidarPoints.back()._unix_time*10+(nb_pts%10), Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
             frame_ptr.first->second.add_lidar_point(LidarPoints.back());
             if(frame_ptr.second){
-                DebugOn("Frame with missing UAV point at " << LidarPoints.back()._unix_time*10+(nb_pts%10) << " : " << LidarPoints.back()._hour << ":" << LidarPoints.back()._minutes << ":" << LidarPoints.back()._seconds << endl);
+                throw invalid_argument("Frame with missing UAV point at " + to_string(LidarPoints.back()._unix_time*10+(nb_pts%10)));
             }
             else{
                 LidarPoints.back()._uav_pt = frame_ptr.first->second._uav_point;
@@ -207,7 +207,7 @@ int main (int argc, char * argv[])
 //            ypos -= frame_ptr.first->second._uav_point->_y;
 //            z -= frame_ptr.first->second._uav_point->_height;
             pos = make_pair(xpos,ypos);
-            cell = make_tuple(1,z,z,z);
+            cell = make_tuple(1,z,z,z,frame_ptr.first->second._uav_point);
             DebugOff("new z value = " << z << endl);
             DebugOff("fractional z value = " << lasreader->point.get_z() << endl);
             DebugOff("z range = " << grid_maxz[pos] - grid_minz[pos] << endl << endl);
@@ -253,12 +253,15 @@ int main (int argc, char * argv[])
             max_z = get<2>(cell.second);
             av_z = get<3>(cell.second);
             x_vec1.push_back(cell.first.first);
+            x_shift.push_back(get<4>(cell.second)->_x);
             x1.add_val(cell.first.first);
             y_vec1.push_back(cell.first.second);
+            y_shift.push_back(get<4>(cell.second)->_y);
             y1.add_val(cell.first.second);
             z_vec1.push_back(av_z);
             zmin_vec1.push_back(min_z);
             zmax_vec1.push_back(max_z);
+            z_shift.push_back(get<4>(cell.second)->_height);
             z1.add_val(max_z);
             if(max_nb_dots<nb_dots)
                 max_nb_dots = nb_dots;
@@ -466,23 +469,26 @@ int main (int argc, char * argv[])
     zmax_combined.resize(x_combined.size());
     double shifted_x, shifted_y, shifted_z;
     for (auto i = 0; i< x_vec1.size(); i++) {
-//        shifted_x = x_vec1[i] - xdim1/2;
-//        shifted_y = y_vec1[i] - ydim1/2;
-//        shifted_z = zmax_vec1[i] - zdim1/2;
-//        x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-//        y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-//        zmax_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + zmax_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-        y_combined[i] = x_vec1[i]*sin(alpha)*cos(beta) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + zmax_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        zmax_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
+        shifted_x = x_vec1[i] - x_shift[i];
+        shifted_y = y_vec1[i] - y_shift[i];
+        shifted_z = zmax_vec1[i] - z_shift[i];
+        x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+        zmax_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+        x_combined[i] += x_shift[i];
+        y_combined[i] += y_shift[i];
+        zmax_combined[i] += z_shift[i];
+//        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + zmax_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+//        y_combined[i] = x_vec1[i]*sin(alpha)*cos(beta) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + zmax_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+//        zmax_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
 //        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*sin(alpha)*cos(beta) + zmax_vec1[i]*(-sin(beta));
 //        y_combined[i] = x_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + zmax_vec1[i]*(cos(beta)*sin(gamma));
 //        zmax_combined[i] = x_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma)) + y_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
 
 //        x_combined[i] = x_vec1[i];
 //        y_combined[i] = y_vec1[i];
-        z_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + z_vec1[i]*(cos(beta)*cos(gamma));
-        zmin_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmin_vec1[i]*(cos(beta)*cos(gamma));
+//        z_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + z_vec1[i]*(cos(beta)*cos(gamma));
+//        zmin_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmin_vec1[i]*(cos(beta)*cos(gamma));
         
     }
     /* Moving to second flight line assumed to be in opposite direction, pitch (beta) is not affected by drone direction */
