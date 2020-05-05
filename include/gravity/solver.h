@@ -694,7 +694,7 @@ namespace gravity {
             if(w_id+1<limits.size()){
                 count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    model = models[count++];
+                    auto model = models[count++];
                     if(model->_status==0){
                         if(worker_id==w_id){
                             sol_obj[i]=model->_obj->_val->at(0);
