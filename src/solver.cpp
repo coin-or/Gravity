@@ -1173,7 +1173,7 @@ namespace gravity {
                 }
                 DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
                 int count=0;
-		auto vec = vector<shared_ptr<gravity::Model<double>>>();
+                auto vec = vector<shared_ptr<gravity::Model<double>>>();
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                     msname=objective_models[i];
                     mname=msname;
