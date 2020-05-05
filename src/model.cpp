@@ -6070,7 +6070,7 @@ namespace gravity {
         std::vector<size_t> limits = bounds(nb_workers, nb_total_threads);
         DebugOn("I will be splitting " << nb_total_threads << " tasks ");
         DebugOn("among " << nb_workers << " worker(s)" << endl);
-        DebugOn("limits size = " << limits.size() <<" Initial" endl);
+        DebugOn("limits size intial = " << limits.size() << endl);
 #endif
         vector<shared_ptr<Model<>>> batch_models;
         vector<string> objective_models;

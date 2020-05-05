@@ -1200,11 +1200,11 @@ namespace gravity {
             }
             sol_status.resize(objective_models.size());
             sol_obj.resize(objective_models.size());
-            send_status_new(vec,limits, sol_status);
+            send_status_new(models,limits, sol_status);
             MPI_Barrier(MPI_COMM_WORLD);
             if(share_all_obj){
                 /* We will send the objective value of successful models */
-                send_obj_all_new(vec,limits, sol_obj);
+                send_obj_all_new(models,limits, sol_obj);
             }
         }
         MPI_Barrier(MPI_COMM_WORLD);
