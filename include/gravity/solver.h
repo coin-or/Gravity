@@ -603,11 +603,13 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-        DebugOn("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
+        int count=0;
+        DebugOn("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
+                count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    auto model = models[i];
+                    auto model = models[count++];
                     if(worker_id==w_id){
                         sol_status[i]=model->_status;
                     }
@@ -685,12 +687,14 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
+        int count=0;
         DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
+                count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    auto model = models[i];
+                    model = models[count++];
                     if(model->_status==0){
                         if(worker_id==w_id){
                             sol_obj[i]=model->_obj->_val->at(0);
