@@ -1157,21 +1157,21 @@ namespace gravity {
             /* Split models into equal loads */
             auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, objective_models.size());
             auto nb_threads_per_worker = std::min((size_t)nr_threads, objective_models.size());
-            DebugOn("I have " << nb_workers_ << " workers" << endl);
-            DebugOn("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
+            DebugOff("I have " << nb_workers_ << " workers" << endl);
+            DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
             std::vector<size_t> limits = bounds(nb_workers_, objective_models.size());
-            DebugOn("I will be splitting " << objective_models.size() << " tasks ");
-            DebugOn("among " << nb_workers_ << " worker(s)" << endl);
-            DebugOn("limits size = " << limits.size() << endl);
+            DebugOff("I will be splitting " << objective_models.size() << " tasks ");
+            DebugOff("among " << nb_workers_ << " worker(s)" << endl);
+            DebugOff("limits size = " << limits.size() << endl);
             for (size_t i = 0; i < limits.size(); ++i) {
-                DebugOn("limits[" << i << "] = " << limits[i] << endl);
+                DebugOff("limits[" << i << "] = " << limits[i] << endl);
             }
             if(worker_id+1<limits.size()){
                 /* Launch all threads in parallel */
                 if(limits[worker_id] == limits[worker_id+1]){
                     throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
-                DebugOn("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
                 int count=0;
                 auto vec = vector<shared_ptr<gravity::Model<double>>>();
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {

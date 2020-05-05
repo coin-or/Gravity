@@ -604,7 +604,7 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         int count=0;
-        DebugOn("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
+        DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
                 count=0;
@@ -613,7 +613,7 @@ namespace gravity {
                     if(worker_id==w_id){
                         sol_status[i]=model->_status;
                     }
-                    DebugOn("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                    DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
                     MPI_Bcast(&sol_status[i], 1, MPI_INT, w_id, MPI_COMM_WORLD);
                 }
             }

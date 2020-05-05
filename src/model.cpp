@@ -6065,12 +6065,12 @@ namespace gravity {
 #ifdef USE_MPI
         nb_total_threads *= nb_workers;
         /* Split models into equal loads */
-        DebugOn("I have " << nb_workers << " workers" << endl);
-        DebugOn("I will be using  " << nb_total_threads << " thread(s) in total" << endl);
+        DebugOff("I have " << nb_workers << " workers" << endl);
+        DebugOff("I will be using  " << nb_total_threads << " thread(s) in total" << endl);
         std::vector<size_t> limits = bounds(nb_workers, nb_total_threads);
-        DebugOn("I will be splitting " << nb_total_threads << " tasks ");
-        DebugOn("among " << nb_workers << " worker(s)" << endl);
-        DebugOn("limits size intial = " << limits.size() << endl);
+        DebugOff("I will be splitting " << nb_total_threads << " tasks ");
+        DebugOff("among " << nb_workers << " worker(s)" << endl);
+        DebugOff("limits size intial = " << limits.size() << endl);
 #endif
         vector<shared_ptr<Model<>>> batch_models;
         vector<string> objective_models;
