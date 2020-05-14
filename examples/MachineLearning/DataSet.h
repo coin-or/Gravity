@@ -72,6 +72,9 @@ public:
     double                                                 _y = 0;
     double                                                 _longitude = 0;
     double                                                 _height = 0;
+    double                                                 _roll = 0;
+    double                                                 _pitch = 0;
+    double                                                 _yaw = 0;
     UAVPoint*                                              _next = nullptr;/*< Next scanned point */
     UAVPoint*                                              _prev = nullptr;/*< Previous scanned point */
     vector<LidarPoint*>                                    _LidarPts;/*< Lidar points corresponding to this UAV point */
@@ -88,6 +91,9 @@ public:
         _latitude = p._latitude;
         _longitude = p._longitude;
         _height = p._height;
+        _roll = p._roll;
+        _pitch = p._pitch;
+        _yaw = p._yaw;
         _next = p._next;
         _prev = p._prev;
         return *this;
