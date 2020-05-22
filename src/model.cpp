@@ -5964,7 +5964,7 @@ namespace gravity {
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
-        DebugOff("Upper bound = "<<this->get_obj_val()<<endl);
+        DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         if(scale_objective){
@@ -6109,6 +6109,7 @@ namespace gravity {
                 lower_bound_nonlin_init=relaxed_model->get_obj_val()*upper_bound/ub_scale_value;
                 lower_bound_init = lower_bound_nonlin_init;
                 lower_bound = lower_bound_nonlin_init;
+                DebugOn("Lower bound "<<lower_bound<<endl);
                 get_solution(ub_sol);/* store current solution */
                 gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
                 gap_old=gapnl;
@@ -6152,6 +6153,7 @@ namespace gravity {
                             active_tol=1e-6;
                         }
                     }
+                    int count_var=0;
                     if(obbt_model->_status==0){
                         terminate=false;
                         for(auto &it:obbt_model->_vars)
@@ -6183,7 +6185,7 @@ namespace gravity {
                                     fixed_point[key_ub]=true;
                                     DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
                                 }
-                                
+                                count_var++;
                                 interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
                                 ub_original[var_key]=v.get_ub(key);
                                 lb_original[var_key]=v.get_lb(key);
@@ -6192,6 +6194,7 @@ namespace gravity {
                             }
                             
                         }
+                        DebugOn("count var "<<count_var<<endl);
                         solver_time= get_wall_time()-solver_time_start;
                         for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
@@ -6268,9 +6271,9 @@ namespace gravity {
                                             if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                             {
                                                 obbt_subproblem_count+=batch_model_count;
+                                                DebugOn("osc "<<obbt_subproblem_count<<endl);
                                                 
                                                 double batch_time_start = get_wall_time();
-                                                DebugOn("about to run mpi"<<endl);
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else

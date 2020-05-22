@@ -1193,13 +1193,15 @@ namespace gravity {
                         models[count]->max(var(key));
                         
                     }
+                    models[count]->set_name(mname);
                     models[count]->reindex();
                     vec.push_back(models[count++]);
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
             }
-            sol_status.resize(objective_models.size());
-            sol_obj.resize(objective_models.size());
+            sol_status.resize(objective_models.size(),0);
+            sol_obj.resize(objective_models.size(),0);
+            MPI_Barrier(MPI_COMM_WORLD);
             send_status_new(models,limits, sol_status);
             MPI_Barrier(MPI_COMM_WORLD);
             if(share_all_obj){
