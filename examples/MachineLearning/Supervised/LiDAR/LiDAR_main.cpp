@@ -109,6 +109,7 @@ int main (int argc, char * argv[])
         auto frame_ptr = frames.insert(make_pair(UAVPoints[i]._unix_time, Frame(UAVPoints[i]._unix_time)));
         frame_ptr.first->second.add_UAV_point(UAVPoints[i]);
     }
+    DebugOn("Read " << n << "UAV points" << endl);
 //    LiDAR_file = "/Users/l297598/Downloads/PostPost_DAG4_lidar_LDRD_Reserve_20200326_LAS_and_ANPP_files/Roll_Pitch_Yaw_automation_2020_03_26/3.ins_postpost_SGZ_DAG4_L_2_2019_07_31_18_combined_LDRD_Reserve_20200326_Frames_2130_2222_RPY_1.375_0.9_-0.55_NoKin_adc.las";
 //   LiDAR_file = "/Users/l297598/Downloads/PostPost_DAG4_lidar_LDRD_Reserve_20200326_LAS_and_ANPP_files/Roll_Pitch_Yaw_automation_2020_03_26/1.raw_postpost_SGZ_DAG4_L_2_2019_07_31_18_combined_LDRD_Reserve_20200326_Frames_2130_2222_RPY_0_0_0_NoKin_adc.las";
 //    LiDAR_file = "/Users/l297598/Downloads/PostPost_DAG4_lidar_LDRD_Reserve_20200326_LAS_and_ANPP_files/Roll_Pitch_Yaw_automation_2020_03_26/6.ins_postpost_SGZ_DAG4_L_2_2019_07_31_18_combined_LDRD_Reserve_20200326_Frames_2130_2222_and_2511_2587_RPY_1.375_0.9_-0.55_NoKin_adc.las";
@@ -123,6 +124,8 @@ int main (int argc, char * argv[])
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
+    param<> x_uav("x_uav"), y_uav("y_uav"), z_uav("z_uav");
+    param<> pre_x("pre_x"), pre_y("pre_y"), pre_z("pre_z");
     int xdim1=0, ydim1=0, zdim1=0;
     if (!lasreadopener.active())
     {
@@ -132,6 +135,7 @@ int main (int argc, char * argv[])
     vector<double> x_vec2,y_vec2,z_vec2,zmin_vec2,zmax_vec2;
     vector<double> x_shift1,y_shift1,z_shift1;
     vector<double> x_shift2,y_shift2,z_shift2;
+    vector<double> x_shift,y_shift,z_shift;
     vector<double> uav_roll1,uav_pitch1,uav_yaw1;
     vector<double> uav_roll2,uav_pitch2,uav_yaw2;
     vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
@@ -148,7 +152,9 @@ int main (int argc, char * argv[])
         ydim1 = ceil(lasreader->header.max_y*grid_step - lasreader->header.min_y*grid_step);
 //        zdim1 = ceil(lasreader->header.max_z*100*grid_step - lasreader->header.min_z*100*grid_step);
         ground_z = floor(lasreader->header.min_z);
+        size_t nb_pts_per_frame = lasreader->npoints/frames.size()+1;
         DebugOn("Number of points = " << lasreader->npoints << endl);
+        DebugOn("Number of points per frame = " <<  nb_pts_per_frame << endl);
         DebugOn("min x axis = " << lasreader->header.min_x << endl);
         DebugOn("max x axis = " << lasreader->header.max_x << endl);
         DebugOn("min y axis = " << lasreader->header.min_y << endl);
@@ -175,6 +181,7 @@ int main (int argc, char * argv[])
             lasreader->read_point();
         }
          */
+        auto frames_it = frames.begin();
         while (lasreader->read_point())
         {
             if(nb_pts==0){
@@ -195,7 +202,10 @@ int main (int argc, char * argv[])
             timestamps.insert(lasreader->point.get_gps_time()+1./(nb_pts%10));
             DebugOff("GPS time = " << to_string_with_precision(lasreader->point.get_gps_time(),24) << endl);
             LidarPoints.push_back(LidarPoint(lasreader->point.get_gps_time(),xpos,ypos,z));
-            auto frame_ptr = frames.insert(make_pair(LidarPoints.back()._unix_time*10+(nb_pts%10), Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
+            if(nb_pts>=nb_pts_per_frame && nb_pts%nb_pts_per_frame==0 && next(frames_it)!=frames.end()){
+                frames_it++;
+            }
+            auto frame_ptr = frames.insert(make_pair(frames_it->first, Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
             frame_ptr.first->second.add_lidar_point(LidarPoints.back());
             if(frame_ptr.second){
                 throw invalid_argument("Frame with missing UAV point at " + to_string(LidarPoints.back()._unix_time*10+(nb_pts%10)));
@@ -280,16 +290,19 @@ int main (int argc, char * argv[])
             av_z = get<3>(cell.second);
             x_vec1.push_back(cell.first.first);
             x_shift1.push_back(get<4>(cell.second)->_x);
+            x_shift.push_back(get<4>(cell.second)->_x);
             x_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_x);
             x1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.first);
             y_vec1.push_back(cell.first.second);
             y_shift1.push_back(get<4>(cell.second)->_y);
+            y_shift.push_back(get<4>(cell.second)->_y);
             y_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_y);
             y1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.second);
             z_vec1.push_back(av_z);
             zmin_vec1.push_back(min_z);
             zmax_vec1.push_back(max_z);
             z_shift1.push_back(get<4>(cell.second)->_height);
+            z_shift.push_back(get<4>(cell.second)->_height);
             z_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_height);
             z1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), max_z);
             uav_roll1.push_back(get<4>(cell.second)->_roll);
@@ -346,7 +359,9 @@ int main (int argc, char * argv[])
         xdim1 = ceil(lasreader->header.max_x*grid_step - lasreader->header.min_x*grid_step);
         ydim1 = ceil(lasreader->header.max_y*grid_step - lasreader->header.min_y*grid_step);
         ground_z = floor(lasreader->header.min_z);
+        auto nb_pts_per_frame = lasreader->npoints/frames.size();
         DebugOn("Number of points = " << lasreader->npoints << endl);
+        DebugOn("Number of points per frame = " <<  nb_pts_per_frame << endl);
         DebugOn("min x axis = " << lasreader->header.min_x << endl);
         DebugOn("max x axis = " << lasreader->header.max_x << endl);
         DebugOn("min y axis = " << lasreader->header.min_y << endl);
@@ -369,6 +384,7 @@ int main (int argc, char * argv[])
          lasreader->read_point();
          }
          */
+        auto frames_it = frames.begin();
         while (lasreader->read_point())
         {
             if(nb_pts==0){
@@ -389,7 +405,11 @@ int main (int argc, char * argv[])
             timestamps.insert(lasreader->point.get_gps_time()+1./(nb_pts%10));
             DebugOff("GPS time = " << to_string_with_precision(lasreader->point.get_gps_time(),24) << endl);
             LidarPoints.push_back(LidarPoint(lasreader->point.get_gps_time(),xpos,ypos,z));
-            auto frame_ptr = frames.insert(make_pair(LidarPoints.back()._unix_time*10+(nb_pts%10), Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
+            if(nb_pts>=nb_pts_per_frame && nb_pts%nb_pts_per_frame==0 && next(frames_it)!=frames.end()){
+                frames_it++;
+            }
+            auto frame_ptr = frames.insert(make_pair(frames_it->first, Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
+//            auto frame_ptr = frames.insert(make_pair(LidarPoints.back()._unix_time*10+(nb_pts%10), Frame(LidarPoints.back()._unix_time*10+(nb_pts%10))));
             frame_ptr.first->second.add_lidar_point(LidarPoints.back());
             if(frame_ptr.second){
                 throw invalid_argument("Frame with missing UAV point at " + to_string(LidarPoints.back()._unix_time*10+(nb_pts%10)));
@@ -474,16 +494,19 @@ int main (int argc, char * argv[])
             av_z = get<3>(cell.second);
             x_vec2.push_back(cell.first.first);
             x_shift2.push_back(get<4>(cell.second)->_x);
+            x_shift.push_back(get<4>(cell.second)->_x);
             x_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_x);
             x2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.first);
             y_vec2.push_back(cell.first.second);
             y_shift2.push_back(get<4>(cell.second)->_y);
+            y_shift.push_back(get<4>(cell.second)->_y);
             y_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_y);
             y2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.second);
             z_vec2.push_back(av_z);
             zmin_vec2.push_back(min_z);
             zmax_vec2.push_back(max_z);
             z_shift2.push_back(get<4>(cell.second)->_height);
+            z_shift.push_back(get<4>(cell.second)->_height);
             z_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_height);
             z2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), max_z);
             uav_roll2.push_back(get<4>(cell.second)->_roll);
@@ -593,115 +616,201 @@ int main (int argc, char * argv[])
 
 
     using namespace gravity;
-    Model<> M("Lidar");
-    var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
-    var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
-    var<> x_diff("x_diff"), y_diff("y_diff"), z_diff("z_diff");
-//    var<> sin_yaw1("yaw", -1, 1), sin_pitch1("pitch", -1, 1), sin_roll1("roll", -1, 1);
-//    var<> sin_yaw2("yaw", -1, 1), sin_pitch2("pitch", -0.1, 0.1), roll2("roll", -0.1, 0.1);
-    
-    var<> yaw1("yaw1", -0.2, 0.2), pitch1("pitch1", -0.2, 0.2), roll1("roll1", -0.2, 0.2);
-    var<> yaw2("yaw2", -0.2, 0.2), pitch2("pitch2", -0.2, 0.2), roll2("roll2", -0.2, 0.2);
-//    var<> yaw1("yaw1"), pitch1("pitch1"), roll1("roll1");
-//    var<> yaw2("yaw2"), pitch2("pitch2"), roll2("roll2");
-    M.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
-    M.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
-    yaw1 = 0.1; yaw2 = -0.1; pitch1 = 0.1; pitch2 = 0.1; roll1 = 0.1; roll2 = -0.1;
-//    yaw1 = -0.01; roll1 = 0.001; pitch1 = 0.001;
-//    pitch1 = 0.017;
-    M.add(new_x1.in(cells), new_y1.in(cells), new_z1.in(cells));
-    M.add(new_x2.in(cells), new_y2.in(cells), new_z2.in(cells));
-    M.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
-    
-//    Constraint<> x_norm("x_norm");
-//    x_norm += x_diff - pow((new_x1 - new_x2),2);
-//    M.add(x_norm.in(cells)>=0);
-//
-//    Constraint<> y_norm("y_norm");
-//    y_norm += y_diff - pow((new_y1 - new_y2),2);
-//    M.add(y_norm.in(cells)>=0);
-//
-//    Constraint<> z_norm("z_norm");
-//    z_norm += z_diff - pow((new_z1 - new_z2),2);
-//    M.add(z_norm.in(cells)>=0);
-    
-    Constraint<> x_abs1("x_abs1");
-    x_abs1 += x_diff - (new_x1 - new_x2);
-    M.add(x_abs1.in(cells)>=0);
-    
-    Constraint<> x_abs2("x_abs2");
-    x_abs2 += x_diff - (new_x2 - new_x1);
-    M.add(x_abs2.in(cells)>=0);
-    
-    
-    Constraint<> y_abs1("y_abs1");
-    y_abs1 += y_diff - (new_y1 - new_y2);
-    M.add(y_abs1.in(cells)>=0);
-    
-    Constraint<> y_abs2("y_abs2");
-    y_abs2 += y_diff - (new_y2 - new_y1);
-    M.add(y_abs2.in(cells)>=0);
-    
-    Constraint<> z_abs1("z_abs1");
-    z_abs1 += z_diff - (new_z1 - new_z2);
-    M.add(z_abs1.in(cells)>=0);
-    
-    Constraint<> z_abs2("z_abs2");
-    z_abs2 += z_diff - (new_z2 - new_z1);
-    M.add(z_abs2.in(cells)>=0);
-    
-    auto ids = yaw1.repeat_id(cells.size());
-    
-    /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
-    Constraint<> x_rot1("x_rot1");
-    x_rot1 += new_x1 + x_uav1.in(cells);
-    x_rot1 -= (x1.in(cells)-x_uav1.in(cells))*cos(yaw1.in(ids))*cos(pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) - sin(yaw1.in(ids))*cos(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) + sin(yaw1.in(ids))*sin(roll1.in(ids)));
-    M.add(x_rot1.in(cells)==0);
-    
-    Constraint<> x_rot2("x_rot2");
-    x_rot2 += new_x2 + x_uav2.in(cells);
-    x_rot2 -= (x2.in(cells)-x_uav2.in(cells))*cos(yaw2.in(ids))*cos(pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(yaw2.in(ids))*sin(pitch2.in(ids))*sin(roll2.in(ids)) - sin(yaw2.in(ids))*cos(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(yaw2.in(ids))*sin(pitch2.in(ids))*cos(roll2.in(ids)) + sin(yaw2.in(ids))*sin(roll2.in(ids)));
-    M.add(x_rot2.in(cells)==0);
-    
-    Constraint<> y_rot1("y_rot1");
-    y_rot1 += new_y1 + y_uav1.in(cells);
-    y_rot1 -= (x1.in(cells)-x_uav1.in(cells))*sin(yaw1.in(ids))*cos(pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) + cos(yaw1.in(ids))*cos(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) - cos(yaw1.in(ids))*sin(roll1.in(ids)));
-    M.add(y_rot1.in(cells)==0);
-    
-    Constraint<> y_rot2("y_rot2");
-    y_rot2 += new_y2 + y_uav2.in(cells);
-    y_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(yaw2.in(ids))*cos(pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(sin(yaw2.in(ids))*sin(pitch2.in(ids))*sin(roll2.in(ids)) + cos(yaw2.in(ids))*cos(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(sin(yaw2.in(ids))*sin(pitch2.in(ids))*cos(roll2.in(ids)) - cos(yaw2.in(ids))*sin(roll2.in(ids)));
-    M.add(y_rot2.in(cells)==0);
-    
-    
-    Constraint<> z_rot1("z_rot1");
-    z_rot1 += new_z1 + z_uav1.in(cells);
-    z_rot1 -= (x1.in(cells)-x_uav1.in(cells))*sin(-1*pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(cos(pitch1.in(ids))*sin(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(cos(pitch1.in(ids))*cos(roll1.in(ids)));
-    M.add(z_rot1.in(cells)==0);
-    
-    Constraint<> z_rot2("z_rot2");
-    z_rot2 += new_z2 + z_uav2.in(cells);
-    z_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(-1*pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(pitch2.in(ids))*sin(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(pitch2.in(ids))*cos(roll2.in(ids)));
-    M.add(z_rot2.in(cells)==0);
-    
-    M.min(sum(z_diff)/nb_overlap);
-    
-//    M.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
-    
-//    M.print();
-    
-    solver<> S(M,ipopt);
-    S.run();
-//    M.print_solution();
-    
     double roll_1 = 0, pitch_1 = 0, yaw_1 = 0;
     double roll_2 = 0, pitch_2 = 0, yaw_2 = 0;
-    pitch_1 = pitch1.eval();
-    roll_1 = roll1.eval();
-    yaw_1 = yaw1.eval();
-    pitch_2 = pitch2.eval();
-    roll_2 = roll2.eval();
-    yaw_2 = yaw2.eval();
+
+    bool solve_lidar = true;
+    if (solve_lidar) {
+        Model<> M("Lidar");
+        var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+        var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
+        var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+        var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
+        var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
+
+    //    var<> sin_yaw1("yaw", -1, 1), sin_pitch1("pitch", -1, 1), sin_roll1("roll", -1, 1);
+    //    var<> sin_yaw2("yaw", -1, 1), sin_pitch2("pitch", -0.1, 0.1), roll2("roll", -0.1, 0.1);
+        
+    //
+    //    var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
+    //    var<> yaw2("yaw2", 0, 0), pitch2("pitch2", 0, 0), roll2("roll2", 0, 0);
+
+    //    var<> abs_yaw1("abs_yaw1", 0, 0.1), abs_pitch1("abs_pitch1", 0, 0.1), abs_roll1("abs_roll1", 0, 0.1);
+    //    var<> abs_yaw2("abs_yaw2", 0, 0.2), abs_pitch2("abs_pitch2", 0, 0.2), abs_roll2("abs_roll2", 0, 0.2);
+    //    var<> yaw1("yaw1"), pitch1("pitch1"), roll1("roll1");
+    //    var<> yaw2("yaw2"), pitch2("pitch2"), roll2("roll2");
+        M.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
+        M.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
+    //    M.add(abs_yaw1.in(R(1)),abs_pitch1.in(R(1)),abs_roll1.in(R(1)));
+    //    M.add(abs_yaw2.in(R(1)),abs_pitch2.in(R(1)),abs_roll2.in(R(1)));
+    //    yaw1 = 0.1; yaw2 = -0.1; pitch1 = 0.1; pitch2 = 0.1; roll1 = 0.1; roll2 = -0.1;
+    //    yaw1 = -0.01; roll1 = 0.001; pitch1 = 0.001;
+    //    pitch1 = 0.017;
+        M.add(new_x1.in(cells), new_y1.in(cells), new_z1.in(cells));
+        M.add(new_x2.in(cells), new_y2.in(cells), new_z2.in(cells));
+    //    M.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
+        M.add(z_diff.in(cells));
+
+        Constraint<> Equal_pitch("Equal_pitch");
+        Equal_pitch += pitch1 + pitch2;
+        M.add(Equal_pitch==0);
+        
+        Constraint<> Equal_roll("Equal_roll");
+        Equal_roll += roll1 + roll2;
+        M.add(Equal_roll==0);
+        
+    //    Constraint<> x_norm("x_norm");
+    //    x_norm += x_diff - pow((new_x1 - new_x2),2);
+    //    M.add(x_norm.in(cells)>=0);
+    //
+    //    Constraint<> y_norm("y_norm");
+    //    y_norm += y_diff - pow((new_y1 - new_y2),2);
+    //    M.add(y_norm.in(cells)>=0);
+    //
+    //    Constraint<> z_norm("z_norm");
+    //    z_norm += z_diff - pow((new_z1 - new_z2),2);
+    //    M.add(z_norm.in(cells)>=0);
+        
+    //    Constraint<> yaw_abs1("yaw_abs1");
+    //    yaw_abs1 += abs_yaw1 - yaw2;
+    //    M.add(yaw_abs1 >= 0);
+    //
+    //    Constraint<> yaw_abs2("yaw_abs2");
+    //    yaw_abs2 += abs_yaw1 + yaw2;
+    //    M.add(yaw_abs2 >= 0);
+    //
+    //
+    //    Constraint<> roll_abs1("roll_abs1");
+    //    roll_abs1 += abs_roll1 - roll2;
+    //    M.add(roll_abs1 >= 0);
+    //
+    //    Constraint<> roll_abs2("roll_abs2");
+    //    roll_abs2 += abs_roll1 + roll2;
+    //    M.add(roll_abs2 >= 0);
+    //
+    //    Constraint<> pitch_abs1("pitch_abs1");
+    //    pitch_abs1 += abs_pitch1 - pitch2;
+    //    M.add(pitch_abs1 >= 0);
+    //
+    //    Constraint<> pitch_abs2("pitch_abs2");
+    //    pitch_abs2 += abs_pitch1 + pitch2;
+    //    M.add(pitch_abs2 >= 0);
+        
+        
+    //    Constraint<> x_abs1("x_abs1");
+    //    x_abs1 += x_diff - (new_x1 - new_x2);
+    //    M.add(x_abs1.in(cells)>=0);
+    //
+    //    Constraint<> x_abs2("x_abs2");
+    //    x_abs2 += x_diff - (new_x2 - new_x1);
+    //    M.add(x_abs2.in(cells)>=0);
+        
+        
+    //    Constraint<> y_abs1("y_abs1");
+    //    y_abs1 += y_diff - (new_y1 - new_y2);
+    //    M.add(y_abs1.in(cells)>=0);
+    //
+    //    Constraint<> y_abs2("y_abs2");
+    //    y_abs2 += y_diff - (new_y2 - new_y1);
+    //    M.add(y_abs2.in(cells)>=0);
+        
+        Constraint<> z_abs1("z_abs1");
+        z_abs1 += z_diff - (new_z1 - new_z2);
+        M.add(z_abs1.in(cells)>=0);
+        
+        Constraint<> z_abs2("z_abs2");
+        z_abs2 += z_diff - (new_z2 - new_z1);
+        M.add(z_abs2.in(cells)>=0);
+        
+        auto ids = yaw1.repeat_id(cells.size());
+        
+        /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+        Constraint<> x_rot1("x_rot1");
+        x_rot1 += new_x1 - x_uav1.in(cells);
+        x_rot1 -= (x1.in(cells)-x_uav1.in(cells))*cos(yaw1.in(ids))*cos(pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) - sin(yaw1.in(ids))*cos(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) + sin(yaw1.in(ids))*sin(roll1.in(ids)));
+        M.add(x_rot1.in(cells)==0);
+
+    //    Constraint<> x_rot2("x_rot2");
+    //    x_rot2 += new_x2 + x_uav2.in(cells);
+    //    x_rot2 -= (x2.in(cells)-x_uav2.in(cells))*cos(yaw1.in(ids))*cos(pitch1.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) - sin(yaw1.in(ids))*cos(roll1.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) + sin(yaw1.in(ids))*sin(roll1.in(ids)));
+    //    M.add(x_rot2.in(cells)==0);
+        
+        Constraint<> x_rot2("x_rot2");
+        x_rot2 += new_x2 - x_uav2.in(cells);
+        x_rot2 -= (x2.in(cells)-x_uav2.in(cells))*cos(yaw2.in(ids))*cos(pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(yaw2.in(ids))*sin(pitch2.in(ids))*sin(roll2.in(ids)) - sin(yaw2.in(ids))*cos(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(yaw2.in(ids))*sin(pitch2.in(ids))*cos(roll2.in(ids)) + sin(yaw2.in(ids))*sin(roll2.in(ids)));
+        M.add(x_rot2.in(cells)==0);
+        
+        Constraint<> y_rot1("y_rot1");
+        y_rot1 += new_y1 - y_uav1.in(cells);
+        y_rot1 -= (x1.in(cells)-x_uav1.in(cells))*sin(yaw1.in(ids))*cos(pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) + cos(yaw1.in(ids))*cos(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) - cos(yaw1.in(ids))*sin(roll1.in(ids)));
+        M.add(y_rot1.in(cells)==0);
+        
+        Constraint<> y_rot2("y_rot2");
+        y_rot2 += new_y2 - y_uav2.in(cells);
+        y_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(yaw2.in(ids))*cos(pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(sin(yaw2.in(ids))*sin(pitch2.in(ids))*sin(roll2.in(ids)) + cos(yaw2.in(ids))*cos(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(sin(yaw2.in(ids))*sin(pitch2.in(ids))*cos(roll2.in(ids)) - cos(yaw2.in(ids))*sin(roll2.in(ids)));
+        M.add(y_rot2.in(cells)==0);
+        
+    //    Constraint<> y_rot2("y_rot2");
+    //    y_rot2 += new_y2 + y_uav2.in(cells);
+    //    y_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(yaw1.in(ids))*cos(pitch1.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*sin(roll1.in(ids)) + cos(yaw1.in(ids))*cos(roll1.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(sin(yaw1.in(ids))*sin(pitch1.in(ids))*cos(roll1.in(ids)) - cos(yaw1.in(ids))*sin(roll1.in(ids)));
+    //    M.add(y_rot2.in(cells)==0);
+        
+        
+        Constraint<> z_rot1("z_rot1");
+        z_rot1 += new_z1 - z_uav1.in(cells);
+        z_rot1 -= (x1.in(cells)-x_uav1.in(cells))*sin(-1*pitch1.in(ids)) + (y1.in(cells)-y_uav1.in(cells))*(cos(pitch1.in(ids))*sin(roll1.in(ids))) + (z1.in(cells)-z_uav1.in(cells))*(cos(pitch1.in(ids))*cos(roll1.in(ids)));
+        M.add(z_rot1.in(cells)==0);
+        
+        Constraint<> z_rot2("z_rot2");
+        z_rot2 += new_z2 - z_uav2.in(cells);
+        z_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(-1*pitch2.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(pitch2.in(ids))*sin(roll2.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(pitch2.in(ids))*cos(roll2.in(ids)));
+        M.add(z_rot2.in(cells)==0);
+        
+    //    Constraint<> z_rot2("z_rot2");
+    //    z_rot2 += new_z2 + z_uav2.in(cells);
+    //    z_rot2 -= (x2.in(cells)-x_uav2.in(cells))*sin(-1*pitch1.in(ids)) + (y2.in(cells)-y_uav2.in(cells))*(cos(pitch1.in(ids))*sin(roll1.in(ids))) + (z2.in(cells)-z_uav2.in(cells))*(cos(pitch1.in(ids))*cos(roll1.in(ids)));
+    //    M.add(z_rot2.in(cells)==0);
+        
+    //    M.min(sum(z_diff)/nb_overlap);
+        
+        M.min(sum(z_diff)/nb_overlap);
+        
+    //    M.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
+        
+    //    M.print();
+        
+        solver<> S(M,ipopt);
+        S.run();
+        
+        
+        for (int i = 0; i<500; i++) {
+            pre_x.add_val(x_rot1.eval(i));
+            pre_y.add_val(y_rot1.eval(i));
+            pre_z.add_val(z_rot1.eval(i));
+            x_uav.add_val(x_uav1.eval(i));
+            y_uav.add_val(y_uav1.eval(i));
+            z_uav.add_val(z_uav1.eval(i));
+        }
+        for (int i = 0; i<500; i++) {
+            pre_x.add_val(x_rot2.eval(i));
+            pre_y.add_val(y_rot2.eval(i));
+            pre_z.add_val(z_rot2.eval(i));
+            x_uav.add_val(x_uav2.eval(i));
+            y_uav.add_val(y_uav2.eval(i));
+            z_uav.add_val(z_uav2.eval(i));
+        }
+//    M.print_solution();
+    
+        pitch_1 = pitch1.eval();
+        roll_1 = roll1.eval();
+        yaw_1 = yaw1.eval();
+    //    pitch_2 = pitch1.eval();
+    //    roll_2 = roll1.eval();
+    //    yaw_2 = yaw1.eval();
+        pitch_2 = pitch2.eval();
+        roll_2 = roll2.eval();
+        yaw_2 = yaw2.eval();
+    }
     DebugOn("Pitch1 = " << pitch_1*180/pi << endl);
     DebugOn("Roll1 = " << roll_1*180/pi << endl);
     DebugOn("Yaw1 = " << yaw_1*180/pi << endl);
@@ -729,12 +838,13 @@ int main (int argc, char * argv[])
     //    alpha = -30.*pi/180.;
     //    beta = 30.*pi/180.;
     //    gamma = 30.*pi/180.;
-    x_combined.resize(x_vec1.size()+x_vec2.size());
+    auto tot_pts = x_vec1.size()+x_vec2.size();
+    x_combined.resize(tot_pts);
 //    x_combined.resize(x_vec1.size());
-    y_combined.resize(x_combined.size());
-    z_combined.resize(x_combined.size());
-    zmin_combined.resize(x_combined.size());
-    zmax_combined.resize(x_combined.size());
+    y_combined.resize(tot_pts);
+    z_combined.resize(tot_pts);
+    zmin_combined.resize(tot_pts);
+    zmax_combined.resize(tot_pts);
     double shifted_x, shifted_y, shifted_z;
     gamma = roll_1;
     beta = pitch_1;
@@ -752,6 +862,7 @@ int main (int argc, char * argv[])
         x_combined[i] += x_shift1[i];
         y_combined[i] += y_shift1[i];
         zmax_combined[i] += z_shift1[i];
+        
         //        x_combined[i] = x_vec1[i]*cos(alpha)*cos(beta) + y_vec1[i]*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + zmax_vec1[i]*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
         //        y_combined[i] = x_vec1[i]*sin(alpha)*cos(beta) + y_vec1[i]*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + zmax_vec1[i]*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
         //        zmax_combined[i] = x_vec1[i]*(-sin(beta)) + y_vec1[i]*(cos(beta)*sin(gamma)) + zmax_vec1[i]*(cos(beta)*cos(gamma));
@@ -787,42 +898,94 @@ int main (int argc, char * argv[])
             zmax_combined[x_vec1.size()+i] += z_shift2[i];
         }
     
+    bool solve_post = false;
+    double post_roll = 0, post_pitch = 0, post_yaw = 0;
+    if(solve_post) {
+        tot_pts = pre_x.get_dim();
+        indices all_pts("all_pts");
+        all_pts = range(1, tot_pts);
+        DebugOn("all_pts.size() = " << all_pts.size()<< endl);
+        DebugOn("tot_pts = " << tot_pts << endl);
+        Model<> MPost("MPost");
+        var<> new_x("new_x"), new_y("new_y"), new_z("new_z");
+        var<> zmax("zmax"), zmin("zmin");
+        
+        var<> yaw("yaw", -0.1, 0.1), pitch("pitch", -0.1, 0.1), roll("roll", -0.1, 0.1);
+        MPost.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
+        MPost.add(new_x.in(all_pts), new_y.in(all_pts), new_z.in(all_pts));
+        MPost.add(zmax.in(R(1)), zmin.in(R(1)));
+        
+        auto z_ids = zmax.repeat_id(tot_pts);
+        
+//        Constraint<> z_max("z_max");
+//        z_max += zmax.in(z_ids) - new_z;
+//        MPost.add(z_max.in(all_pts)>=0);
+//
+//        Constraint<> z_min("z_min");
+//        z_min += zmin.in(z_ids) - new_z;
+//        MPost.add(z_min.in(all_pts)<=0);
+        
+        auto ids = yaw.repeat_id(tot_pts);
+        
+        /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+        Constraint<> x_rot("x_rot");
+        x_rot += new_x - x_uav;
+        x_rot -= (pre_x - x_uav)*cos(yaw.in(ids))*cos(pitch.in(ids)) + (pre_y)*(cos(yaw.in(ids))*sin(pitch.in(ids))*sin(roll.in(ids)) - sin(yaw.in(ids))*cos(roll.in(ids))) + (pre_z - z_uav)*(cos(yaw.in(ids))*sin(pitch.in(ids))*cos(roll.in(ids)) + sin(yaw.in(ids))*sin(roll.in(ids)));
+        MPost.add(x_rot.in(all_pts)==0);
+        
+        Constraint<> y_rot("y_rot");
+        y_rot += new_y - y_uav;
+        y_rot -= (pre_x - x_uav)*sin(yaw.in(ids))*cos(pitch.in(ids)) + (pre_y - y_uav)*(sin(yaw.in(ids))*sin(pitch.in(ids))*sin(roll.in(ids)) + cos(yaw.in(ids))*cos(roll.in(ids))) + (pre_z - z_uav)*(sin(yaw.in(ids))*sin(pitch.in(ids))*cos(roll.in(ids)) - cos(yaw.in(ids))*sin(roll.in(ids)));
+        MPost.add(y_rot.in(all_pts)==0);
+        
+        Constraint<> z_rot("z_rot");
+        z_rot += new_z - z_uav;
+        z_rot -= (pre_x - x_uav)*sin(-1*pitch.in(ids)) + (pre_y - y_uav)*(cos(pitch.in(ids))*sin(roll.in(ids))) + (pre_z - z_uav)*(cos(pitch.in(ids))*cos(roll.in(ids)));
+        MPost.add(z_rot.in(all_pts)==0);
+        
+//        MPost.min(zmax - zmin);
+        MPost.min(norm2(new_z - 1255));
+//        MPost.print();
+        
+        solver<> S(MPost,ipopt);
+        S.run();
+        post_roll = roll.eval();
+        post_pitch = pitch.eval();
+        post_yaw = yaw.eval();
+        
+    }
+    if(post_roll!=0 || post_pitch!=0 || post_yaw!=0){
+        gamma = post_roll;
+        beta = post_pitch;
+        alpha = post_yaw;
+        for (auto i = 0; i< x_combined.size(); i++) {
+            shifted_x = x_combined[i] - x_shift[i];
+            shifted_y = y_combined[i] - y_shift[i];
+            shifted_z = zmax_combined[i] - z_shift[i];
+            x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+            y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+            zmax_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+            x_combined[i] += x_shift[i];
+            y_combined[i] += y_shift[i];
+            zmax_combined[i] += z_shift[i];
+        }
+    }
+    DebugOn("Post-Pitch = " << post_pitch*180/pi << endl);
+    DebugOn("Post-Roll = " << post_roll*180/pi << endl);
+    DebugOn("Post-Yaw = " << post_yaw*180/pi << endl);
+
+    
+    
+    
     namespace plt = matplotlibcpp;
-    //    std::vector<std::vector<double>> x, y, z;
-    //    for (int i = 0; i <= xdim;  i++) {
-    //        std::vector<double> x_row, y_row, z_row;
-    //        for (int j = 0; j <= ydim; j++) {
-    //            auto it = grid.find(make_pair(i, j));
-    //            if(it!=grid.end()){
-    //                x_row.push_back(i);
-    //                y_row.push_back(j);
-    //                z_row.push_back(get<3>(it->second));
-    //            }
-    //            else{
-    //                x_row.push_back(i);
-    //                y_row.push_back(j);
-    //                z_row.push_back(min_z);
-    //            }
-    //        }
-    //        x.push_back(x_row);
-    //        y.push_back(y_row);
-    //        z.push_back(z_row);
-    //    }
+   
     std::map<std::string, std::string> keywords, keywords2;
-    //    keywords["marker"] = ",";
     keywords["marker"] = "s";
     keywords["linestyle"] = "None";
     keywords["ms"] = "0.05";
-    //    keywords["useOffset"] = "False";
-    //    keywords["markerfacecolor"] = "(1, 1, 0, 0.5)";
-    //    keywords["color"] = "orange";
-    //    plt::scatter(x_vec, y_vec, z_vec);
-    //    plt::scatter(x_vec, y_vec, zmin_vec);
-    //    plt::scatter(x_vec, y_vec, zmax_vec);
-    //    plt::scatter(x_vec, y_vec, zmax_vec, keywords);
-    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-    //    plt::plot3(uav_x1, uav_y1, uav_z1, x_combined, y_combined, zmax_combined, keywords);
-    //    plt::plot3(uav_x, uav_y, uav_z, x_combined, y_combined, zmax_combined, keywords);
+//    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+    plt::plot3(uav_x1, uav_y1, uav_z1, x_combined, y_combined, zmax_combined, keywords);
+//        plt::plot3(uav_x, uav_y, uav_z, x_combined, y_combined, zmax_combined, keywords);
     keywords2["marker"] = "s";
     keywords2["ms"] = "0.1";
     //    plt::plot3(uav_x1, uav_y1, uav_z1, uav_x, uav_y, uav_z, keywords2);
@@ -832,6 +995,39 @@ int main (int argc, char * argv[])
     // Enable legend.
     //    plt::legend();
     plt::show();
+    
+    DebugOn("Saving new las file");
+//    LASreadOpener lasreadopener_final;
+//    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
+//    lasreadopener_final.set_populate_header(TRUE);
+//    LASreader* lasreader = lasreadopener_final.open();
+    LASheader lasheader;
+    lasheader.global_encoding = 1;
+    lasheader.x_scale_factor = 0.01;
+    lasheader.y_scale_factor = 0.01;
+    lasheader.z_scale_factor = 0.01;
+    lasheader.x_offset =  500000.0;
+    lasheader.y_offset = 4100000.0;
+    lasheader.z_offset = 0.0;
+    lasheader.point_data_format = 1;
+    lasheader.point_data_record_length = 28;
+    
+    LASwriteOpener laswriteopener;
+    laswriteopener.set_file_name("corrected.las");
+    LASwriter* laswriter = laswriteopener.open(&lasheader);
+    LASpoint laspoint;
+    laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+    for (auto i = 0; i< x_combined.size(); i++) {
+        laspoint.set_x(x_combined[i]);
+        laspoint.set_y(y_combined[i]);
+        laspoint.set_z(zmax_combined[i]);
+        laswriter->write_point(&laspoint);
+        laswriter->update_inventory(&laspoint);
+    }
+    laswriter->update_header(&lasheader, TRUE);
+    laswriter->close();
+    delete laswriter;
+
     
     return 0;
 }
