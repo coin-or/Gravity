@@ -169,7 +169,7 @@ int main (int argc, char * argv[]) {
     double lower_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
 
     auto OPF=build_ACOPF(grid, ACRECT);
-    OPF->print();
+    //OPF->print();
     double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
     unsigned max_iter=1e3;

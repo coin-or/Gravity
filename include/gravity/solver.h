@@ -609,8 +609,8 @@ namespace gravity {
             if(w_id+1<limits.size()){
                 count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    auto model = models[count++];
                     if(worker_id==w_id){
+                        auto model = models[count++];
                         sol_status[i]=model->_status;
                     }
                     DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
@@ -694,17 +694,17 @@ namespace gravity {
             if(w_id+1<limits.size()){
                 count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    auto model = models[count++];
-                    if(model->_status==0){
                         if(worker_id==w_id){
+                            auto model = models[count++];
+                            if(model->_status==0){
                             sol_obj[i]=model->_obj->_val->at(0);
+                        }
                         }
                         DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
                         MPI_Bcast(&sol_obj[i], 1, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                     }
                 }
             }
-        }
         MPI_Barrier(MPI_COMM_WORLD);
     }
     

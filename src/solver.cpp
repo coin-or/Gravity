@@ -1175,7 +1175,7 @@ namespace gravity {
                 int count=0;
                 auto vec = vector<shared_ptr<gravity::Model<double>>>();
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                    msname=objective_models[i];
+                    msname=objective_models.at(i);
                     mname=msname;
                     std::size_t pos = msname.find("|");
                     vname.assign(msname, 0, pos);
@@ -1199,8 +1199,8 @@ namespace gravity {
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
             }
-            sol_status.resize(objective_models.size(),0);
-            sol_obj.resize(objective_models.size(),0);
+            sol_status.resize(objective_models.size(),-1);
+            sol_obj.resize(objective_models.size(),-1.0);
             MPI_Barrier(MPI_COMM_WORLD);
             send_status_new(models,limits, sol_status);
             MPI_Barrier(MPI_COMM_WORLD);

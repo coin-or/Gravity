@@ -6154,6 +6154,7 @@ namespace gravity {
                         }
                     }
                     int count_var=0;
+                    int count_skip=0;
                     if(obbt_model->_status==0){
                         terminate=false;
                         for(auto &it:obbt_model->_vars)
@@ -6171,6 +6172,7 @@ namespace gravity {
                                 if(v._lift){
                                     fixed_point[key_lb]=true;
                                     fixed_point[key_ub]=true;
+                                    count_skip+=2;
                                     DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
                                 }
                                 else{
@@ -6183,6 +6185,7 @@ namespace gravity {
                                 {
                                     fixed_point[key_lb]=true;
                                     fixed_point[key_ub]=true;
+                                    count_skip+=2;
                                     DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
                                 }
                                 count_var++;
@@ -6199,7 +6202,18 @@ namespace gravity {
                         for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
                             batch_models.push_back(modelk);
-                        }
+                                batch_models.at(i)->set_name(to_string(i));
+                                /* Add the upper bound constraint on the objective */
+                                if(batch_models.at(i)->_cons_name.count("obj|ub")==0){
+                                    param<> ub("ub");
+                                    ub = ub_scale_value;
+                                    auto obj = *obbt_model->_obj;
+                                    Constraint<type> obj_ub("obj|ub");
+                                    obj_ub = obj - ub;
+                                    batch_models.at(i)->add(obj_ub<=0);
+                                }
+                            }
+                        DebugOn("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
                             iter++;
@@ -6228,6 +6242,7 @@ namespace gravity {
                                     {
                                         fixed_point[key_lb]=true;
                                         fixed_point[key_ub]=true;
+                                        DebugOn("made true"<<endl);
                                         
                                     }
                                     /* Add to batch if not reached fixed point, or if we're at the last key of the last variable */
@@ -6238,18 +6253,7 @@ namespace gravity {
                                         {
                                             mname=vname+"|"+key+"|"+dir;
                                             if(fixed_point[mname]==false){
-                                                if(batch_model_count<nb_threads){
-                                                batch_models[batch_model_count]->set_name(mname);
-                                                /* Add the upper bound constraint on the objective */
-                                                if(batch_models[batch_model_count]->_cons_name.count("obj|ub")==0){
-                                                    param<> ub("ub");
-                                                    ub = ub_scale_value;
-                                                    auto obj = *obbt_model->_obj;
-                                                    Constraint<type> obj_ub("obj|ub");
-                                                    obj_ub = obj - ub;
-                                                    batch_models[batch_model_count]->add(obj_ub<=0);
-                                                }
-                                                }
+
 //Use in set_objective in run_MPI or parallel
  //                                               vark=batch_models[batch_model_count]->template get_var<T>(vname);
 //                                                if(dir=="LB")
@@ -6287,9 +6291,9 @@ namespace gravity {
                                                 for (auto s=0;s<batch_model_count;s++)
                                                 {
                                                         /* Update bounds only if the model status is solved to optimal */
-                                                        if(sol_status[s]==0)
+                                                        if(sol_status.at(s)==0)
                                                         {
-                                                            msname=objective_models[s];
+                                                            msname=objective_models.at(s);
                                                             mkname=msname;
                                                             std::size_t pos = mkname.find("|");
                                                             vkname.assign(mkname, 0, pos);
@@ -6304,7 +6308,7 @@ namespace gravity {
 //                                                                model->_obj->uneval();
 //                                                                model->_obj->eval();
 //                                                            }
-                                                            objk=sol_obj[s];
+                                                            objk=sol_obj.at(s);
 //#ifdef USE_MPI
                                                             //if(share_all && share_obj && (model_id < limits[worker_id] || model_id >= limits[worker_id+1])){
                                                             //    model->_obj->uneval();
