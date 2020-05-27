@@ -20,8 +20,7 @@ using namespace gravity;
 /* main */
 int main (int argc, char * argv[]) {
 #ifdef USE_MPI
-    //auto err_init = MPI_Init(nullptr,nullptr);
-    auto err_init = MPI_Init_thread(nullptr,nullptr, MPI_THREAD_FUNNELED, nullptr);    
+    auto err_init = MPI_Init(nullptr,nullptr);
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -180,7 +179,7 @@ int main (int argc, char * argv[]) {
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=24, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
         total_iter=get<1>(res);
