@@ -6197,7 +6197,7 @@ namespace gravity {
                             }
                             
                         }
-                        DebugOn("count var "<<count_var<<endl);
+                        DebugOff("count var "<<count_var<<endl);
                         solver_time= get_wall_time()-solver_time_start;
                         for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
@@ -6213,7 +6213,7 @@ namespace gravity {
                                     batch_models.at(i)->add(obj_ub<=0);
                                 }
                             }
-                        DebugOn("created model array"<<endl);
+                        DebugOff("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
                             iter++;
@@ -6242,7 +6242,7 @@ namespace gravity {
                                     {
                                         fixed_point[key_lb]=true;
                                         fixed_point[key_ub]=true;
-                                        DebugOn("made true"<<endl);
+                                        DebugOff("made true"<<endl);
                                         
                                     }
                                     /* Add to batch if not reached fixed point, or if we're at the last key of the last variable */
@@ -6275,7 +6275,7 @@ namespace gravity {
                                             if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                             {
                                                 obbt_subproblem_count+=batch_model_count;
-                                                DebugOn("osc "<<obbt_subproblem_count<<endl);
+                                                DebugOff("osc "<<obbt_subproblem_count<<endl);
                                                 
                                                 double batch_time_start = get_wall_time();
 #ifdef USE_MPI
