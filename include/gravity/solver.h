@@ -613,9 +613,9 @@ namespace gravity {
                         auto model = models[count++];
                         sol_status[i]=model->_status;
                     }
-                    DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                    MPI_Bcast(&sol_status[i], 1, MPI_INT, w_id, MPI_COMM_WORLD);
                 }
+                    DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                    MPI_Bcast(&sol_status[limits[w_id]], count, MPI_INT, w_id, MPI_COMM_WORLD);
             }
         }
         MPI_Barrier(MPI_COMM_WORLD);
@@ -700,9 +700,9 @@ namespace gravity {
                             sol_obj[i]=model->_obj->_val->at(0);
                         }
                         }
+                }
                         DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                        MPI_Bcast(&sol_obj[i], 1, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-                    }
+                        MPI_Bcast(&sol_obj[limits[w_id]], count, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                 }
             }
         MPI_Barrier(MPI_COMM_WORLD);

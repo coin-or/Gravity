@@ -6076,6 +6076,9 @@ namespace gravity {
         vector<string> objective_models;
         vector<double> sol_obj;
         vector<int> sol_status;
+        if(linearize){
+            vector<vector<double>> sol_val;
+        }
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
         string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
@@ -6278,6 +6281,8 @@ namespace gravity {
                                                 DebugOff("osc "<<obbt_subproblem_count<<endl);
                                                 
                                                 double batch_time_start = get_wall_time();
+                                                sol_status.resize(objective_models.size(),-1);
+                                                sol_obj.resize(objective_models.size(),-1.0);
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
