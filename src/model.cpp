@@ -6281,8 +6281,8 @@ namespace gravity {
                                                 DebugOff("osc "<<obbt_subproblem_count<<endl);
                                                 
                                                 double batch_time_start = get_wall_time();
-                                                sol_status.resize(objective_models.size(),-1);
-                                                sol_obj.resize(objective_models.size(),-1.0);
+                                                sol_status.resize(batch_model_count,-1);
+                                                sol_obj.resize(batch_model_count,-1.0);
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else

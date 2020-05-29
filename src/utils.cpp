@@ -248,6 +248,9 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     }
 //    for(size_t i=1;i<=reminder;++i)
 //        bnd.at(i)+=1;
+    if(bnd.back()!=mem){
+        DebugOn("Error in computing limits");
+    }
     return bnd;
 }
 
