@@ -224,9 +224,10 @@ namespace gravity {
     }
     
     /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter){
+    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<std::vector<double>>& sol_val, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, bool linearize){
         std::vector<thread> threads;
         std::vector<bool> feasible;
+        std::vector<double> obbt_solution(models[0]->_nb_vars);
         std::string mname, msname,vname, key, dir;
         var<> var;
         if(models.size()==0){
@@ -273,8 +274,15 @@ namespace gravity {
         }
         int count=0;
         for(auto &m:models){
+            if(count<objective_models.size()){
             sol_status.at(count)=m->_status;
-            sol_obj.at(count++)=m->get_obj_val();
+            sol_obj.at(count)=m->get_obj_val();
+            if(linearize){
+            m->get_solution(obbt_solution);
+            sol_val.at(count)=obbt_solution;
+            }
+            count++;
+            }
         }
         return 0;
     }
@@ -1147,7 +1155,7 @@ namespace gravity {
      *                                              @share_all_obj propagate only objective values and model status to all workers
      *
      */
-    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
+    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<std::vector<double>>& sol_val, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);

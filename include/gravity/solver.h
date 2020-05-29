@@ -571,9 +571,9 @@ namespace gravity {
     
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
     
-    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype=ipopt, double tol=1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6);
+    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<std::vector<double>>& sol_val, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype=ipopt, double tol=1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, bool linearize=false);
     
-    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter);
+    int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<std::vector<double>>& sol_val, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, bool linearize);
     
     
 #ifdef USE_MPI
@@ -721,7 +721,7 @@ namespace gravity {
      */
     int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
-    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
+    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<std::vector<double>>& sol_val, const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     
 #endif
 }

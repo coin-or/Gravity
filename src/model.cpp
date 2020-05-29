@@ -6076,9 +6076,7 @@ namespace gravity {
         vector<string> objective_models;
         vector<double> sol_obj;
         vector<int> sol_status;
-        if(linearize){
-            vector<vector<double>> sol_val;
-        }
+        vector<vector<double>> sol_val;
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
         string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
@@ -6283,10 +6281,13 @@ namespace gravity {
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
                                                 sol_obj.resize(batch_model_count,-1.0);
+                                                if(linearize){
+                                                    sol_val.resize(batch_model_count);
+                                                }
 #ifdef USE_MPI
-                                                run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
+                                                run_MPI_new(objective_models, sol_obj, sol_status,sol_val,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status,sol_val, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, linearize); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 auto batch_time = batch_time_end - batch_time_start;
@@ -6423,20 +6424,19 @@ namespace gravity {
                                                                     }
                                                                 }
                                                             }
-                                                            /* Need to support linearize
                                                             if(linearize){
                                                                 //                                                        if(linearize && !fixed_point[model->get_name()]){
                                                                 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
-                                                                model->get_solution(obbt_solution);
+                                                                obbt_solution=sol_val.at(s);
                                                                 if(run_obbt_iter==1){
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, model->_name, oacuts, active_tol);
+                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
                                                                 }
                                                                 else{
                                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                                                 }
                                                                 //                                                            }
                                                                 //                                                        }
-                                                            }*/
+                                                            }
                                                         }
                                                         else
                                                         {
