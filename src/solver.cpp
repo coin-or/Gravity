@@ -1200,7 +1200,7 @@ namespace gravity {
                 }
                 run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
             }
-            MPI_Barrier(MPI_COMM_WORLD);
+            //MPI_Barrier(MPI_COMM_WORLD);
             send_status_new(models,limits, sol_status);
             //MPI_Barrier(MPI_COMM_WORLD);
             if(share_all_obj){
@@ -1208,7 +1208,7 @@ namespace gravity {
                 send_obj_all_new(models,limits, sol_obj);
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);
         
     }

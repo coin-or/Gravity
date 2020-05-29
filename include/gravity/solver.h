@@ -276,7 +276,7 @@ namespace gravity {
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
-		    iapp->Options()->SetStringValue("sb", "yes");
+                    iapp->Options()->SetStringValue("sb", "yes");
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
@@ -575,7 +575,7 @@ namespace gravity {
     
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter);
     
-   
+    
 #ifdef USE_MPI
     
     template<typename type>
@@ -590,8 +590,8 @@ namespace gravity {
             if(w_id+1<limits.size()){
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     auto model = models[i];
-                        DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                        MPI_Bcast(&model->_status, 1, MPI_INT, w_id, MPI_COMM_WORLD);
+                    DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                    MPI_Bcast(&model->_status, 1, MPI_INT, w_id, MPI_COMM_WORLD);
                 }
             }
         }
@@ -608,14 +608,14 @@ namespace gravity {
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
                 count=0;
-                for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    if(worker_id==w_id){
+                if(worker_id==w_id){
+                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                         auto model = models[count++];
                         sol_status[i]=model->_status;
                     }
                 }
-                    DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                    MPI_Bcast(&sol_status[limits[w_id]], count, MPI_INT, w_id, MPI_COMM_WORLD);
+                DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                MPI_Bcast(&sol_status[limits[w_id]], (limits[w_id+1]-limits[w_id]), MPI_INT, w_id, MPI_COMM_WORLD);
             }
         }
         MPI_Barrier(MPI_COMM_WORLD);
@@ -632,28 +632,28 @@ namespace gravity {
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
         DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
-	DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
+        DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     auto model = models[i];
                     if(model->_status==0){
                         auto nb_vars = model->get_nb_vars();
-			vector<double> solution;
-			solution.resize(nb_vars);
-			if(worker_id==w_id){
-			  model->get_solution(solution);
-			}
-			DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-			MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-			if(worker_id!=w_id){
-                          model->set_solution(solution);
-			}
+                        vector<double> solution;
+                        solution.resize(nb_vars);
+                        if(worker_id==w_id){
+                            model->get_solution(solution);
+                        }
+                        DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                        MPI_Bcast(&solution[0], nb_vars, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
+                        if(worker_id!=w_id){
+                            model->set_solution(solution);
+                        }
                     }
                 }
             }
         }
-	MPI_Barrier(MPI_COMM_WORLD);	
+        MPI_Barrier(MPI_COMM_WORLD);	
     }
     
     /** Send model objective value to all workers
@@ -666,7 +666,7 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-	DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
+        DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
@@ -679,7 +679,7 @@ namespace gravity {
                 }
             }
         }
-	MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
     }
     template<typename type>
     void send_obj_all_new(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits, vector<double>& sol_obj){
@@ -693,18 +693,18 @@ namespace gravity {
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
                 count=0;
-                for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                        if(worker_id==w_id){
-                            auto model = models[count++];
-                            if(model->_status==0){
+                if(worker_id==w_id){
+                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                        auto model = models[count++];
+                        if(model->_status==0){
                             sol_obj[i]=model->_obj->_val->at(0);
                         }
-                        }
+                    }
                 }
-                        DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                        MPI_Bcast(&sol_obj[limits[w_id]], count, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-                }
+                DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
+                MPI_Bcast(&sol_obj[limits[w_id]], (limits[w_id+1]-limits[w_id]), MPI_DOUBLE, w_id, MPI_COMM_WORLD);
             }
+        }
         MPI_Barrier(MPI_COMM_WORLD);
     }
     
