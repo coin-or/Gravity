@@ -669,9 +669,9 @@ namespace gravity {
                 count=0;
                 for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                     if(worker_id==w_id){
-                        status=model[count]->_status;
+                        status=models[count]->_status;
                         if(status==0){
-                            model[count]->get_solution(solution);
+                            models[count]->get_solution(solution);
                             sol_val.at(i)=solution;
                         }
                         else{
