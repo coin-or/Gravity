@@ -6120,7 +6120,7 @@ namespace gravity {
                 {
                     if(linearize){
                         share_all=true;
-                        share_obj=false;
+                        share_obj=true;
                     }
                     else{
                         share_all=false;
@@ -6254,20 +6254,6 @@ namespace gravity {
                                         {
                                             mname=vname+"|"+key+"|"+dir;
                                             if(fixed_point[mname]==false){
-
-//Use in set_objective in run_MPI or parallel
- //                                               vark=batch_models[batch_model_count]->template get_var<T>(vname);
-//                                                if(dir=="LB")
-//                                                {
-//                                                    batch_models[batch_model_count]->min(vark(key));
-//                                                }
-//                                                else
-//                                                {
-//                                                    batch_models[batch_model_count]->max(vark(key));
-//
-//                                                }
-//                                                batch_models[batch_model_count++]->reindex();
-                                                
                                                 objective_models.push_back(mname);
                                                 batch_model_count++;
                                                 
@@ -6309,23 +6295,9 @@ namespace gravity {
                                                             dirk=mkname.substr(pos+1);
                                                             vk=obbt_model->template get_var<T>(vkname);
                                                             var_key_k=vkname+"|"+keyk;
-// Linearize has to be worked out
-//                                                            if(linearize){
-//                                                                model->_obj->uneval();
-//                                                                model->_obj->eval();
-//                                                            }
+
                                                             objk=sol_obj.at(s);
-//#ifdef USE_MPI
-                                                            //if(share_all && share_obj && (model_id < limits[worker_id] || model_id >= limits[worker_id+1])){
-                                                            //    model->_obj->uneval();
-                                                              //  model->_obj->eval();
-                                                                //if(worker_id==0 && std::abs(objk-model->get_obj_val()>1e-6)){
-                                                                  //  DebugOn("model : " << model->get_name() << endl);
-                                                                    //DebugOn("var " << vkname << " value : " << vk.eval(keyk) << endl);
-                                                                    //DebugOn("objective mismatch after MPI send_all, objk = " << objk << " computed objective = " << model->get_obj_val() << endl);
-                                                                //}
-                                                           // }
-//#endif
+
                                                             auto update_lb=false;
                                                             auto update_ub=false;
                                                             if(dirk=="LB")
