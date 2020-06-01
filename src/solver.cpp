@@ -1215,6 +1215,10 @@ namespace gravity {
                 /* We will send the objective value of successful models */
                 send_obj_all_new(models,limits, sol_obj);
             }
+            if(share_all){
+                /* We will send the objective value of successful models */
+                send_solution_all_new(models,limits, sol_val);
+            }
         }
         //MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);

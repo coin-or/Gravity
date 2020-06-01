@@ -656,6 +656,35 @@ namespace gravity {
         MPI_Barrier(MPI_COMM_WORLD);	
     }
     
+    template<typename type>
+    void send_solution_all_new(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits, std::vector<std::vector<double>>& sol_val){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        int count,status,nb_vars;
+        nb_vars=models[0]->_nb_vars
+        std::vector<double> solution(models[0]->_nb_vars);
+        for (auto w_id = 0; w_id<nb_workers; w_id++) {
+            if(w_id+1<limits.size()){
+                count=0;
+                for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                    if(worker_id==w_id){
+                        status=model[count]->_status;
+                        if(status==0){
+                            model[count]->get_solution(solution);
+                            sol_val.at(i)=solution;
+                        }
+                        else{
+                            sol_val.at(i)[0]=0;
+                        }
+                        count++;
+                    }
+                    MPI_Bcast(&sol_val.at(i)[0], nb_vars, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
+                }
+            }
+        }
+    }
+    
     /** Send model objective value to all workers
      @models vector of models with stored solutions
      @limits vector specifying which models are assigned to which workers

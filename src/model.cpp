@@ -6141,7 +6141,7 @@ namespace gravity {
                         }
                         LB_solver.run(output = 0, lb_solver_tol);
                         if(obbt_model->_status==0){
-                            lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
+                            lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                             auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                             gap_old=gaplin;
                             DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
@@ -6281,13 +6281,13 @@ namespace gravity {
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
                                                 sol_obj.resize(batch_model_count,-1.0);
-                                                if(linearize){
+                                                if(share_all){
                                                     sol_val.resize(batch_model_count);
                                                 }
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,sol_val,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status,sol_val, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, linearize); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status,sol_val, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, share_all); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 auto batch_time = batch_time_end - batch_time_start;
