@@ -662,7 +662,7 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         int count,status,nb_vars;
-        nb_vars=models[0]->_nb_vars
+        nb_vars=models[0]->_nb_vars;
         std::vector<double> solution(models[0]->_nb_vars);
         for (auto w_id = 0; w_id<nb_workers; w_id++) {
             if(w_id+1<limits.size()){
