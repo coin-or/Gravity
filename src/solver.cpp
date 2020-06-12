@@ -620,7 +620,7 @@ namespace gravity {
         DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=1;
+        int nb_perturb=0;
         int count_var=0;
         if(interior){
             for (auto &con: nonlin._cons_vec)
@@ -797,16 +797,15 @@ namespace gravity {
     }
     //
     template<>
-    void Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol)
+    bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol)
     {
-        
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
         vector<double> xcurrent, xres;
         get_solution(xsolution);
         set_solution(obbt_solution);
         const double active_tol_sol=1e-12, zero_tol=1e-6;
-        
+        bool constr_viol=false;
         bool interior_solv=true;
         vector<double> c_val ;
         double c0_val;
@@ -816,7 +815,6 @@ namespace gravity {
         int nb_added_cuts = 0;
         string keyv;
         double scale=1.0;
-        //    Ointerior.print();
         
         string vkname,keyk,dirk;
         var<> vk;
@@ -825,7 +823,6 @@ namespace gravity {
             auto mname=modelname;
             std::size_t pos = mname.find("|");
             vkname.assign(mname, 0, pos);
-            //  DebugOn("vkname "<<vkname<<endl);
             mname=mname.substr(pos+1);
             pos=mname.find("|");
             keyk.assign(mname, 0, pos);
@@ -875,7 +872,6 @@ namespace gravity {
                                     }
                                 }
                             }
-                            // DebugOn(vkname<<""<<keyv<<" "<<keyk<<endl);
                             if(key_found){
                                 oa_cut=false;
                                 c0_val=0;
@@ -891,6 +887,7 @@ namespace gravity {
                                 {   con->uneval();
                                     auto fk=con->eval(i);
                                     if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                                        constr_viol=true;
                                         //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                                             auto con_interior=interior.get_constraint(cname);
@@ -902,7 +899,6 @@ namespace gravity {
                                         }
                                         else{
                                             if (con->is_convex()){
-                                                //  DebugOn(con->_name<<" "<<con->is_convex()<<" "<<con->is_rotated_soc()<<" "<<con->check_soc()<<endl);
                                                 oa_cut=true;
                                             }
                                         }
@@ -928,10 +924,6 @@ namespace gravity {
                                         }
                                     }
                                     if(convex_region){
-                                        //                                                con->get_outer_coef(i, c_val, c0_val); /* Get the coefficients of the OA cut corresponding to instance i and store them in c_val and c0_val */
-                                        //                                                for(auto l=0;l<c_val.size();l++)
-                                        //                                                    DebugOn(c_val[l]<<"\t");
-                                        //                                                DebugOn(c0_val<<endl);
                                         scale=1.0;
                                         if(add_new){
                                             nb_added_cuts++;
@@ -960,24 +952,13 @@ namespace gravity {
                                             coefs.push_back(1e5*c0_val);
                                             if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                 oa_cut=true;
-                                            //                                else {
-                                            //                                    DebugOn("discarded OA cut");
-                                            //                                }
                                         }
-                                        //
-                                        //                                                    Constraint<> con_oa(con->_name+to_string(i)+vname+to_string(j));
-                                        //                                                    con_oa=con->get_outer_app_insti(i, false);
-                                        //                                                    if(con->_ctype==geq)
-                                        //                                                        add(con_oa>=0);
-                                        //                                                    else
-                                        //                                                        add(con_oa<=0);
                                     }
                                     
                                 }
                                 if(oa_cut){
                                     nb_added_cuts++;
                                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
-                                    //                    DebugOn("added "<<con->_name<<endl);
                                     auto nb_inst = con_lin->get_nb_instances();
                                     con_lin->_indices->add("inst_"+to_string(nb_inst));
                                     con_lin->_dim[0] = con_lin->_indices->size();
@@ -989,11 +970,7 @@ namespace gravity {
                                         }
                                         if(l.second._coef->is_param()) {
                                             auto p_cst = ((param<>*)(l.second._coef.get()));
-                                            //                                    DebugOn(p_cst->_indices->_keys->size());
-                                            
                                             p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]*scale);
-                                            
-                                            //                                    DebugOn(p_cst->_indices->_keys->size());
                                         }
                                         else {
                                             //                            auto f = static_pointer_cast<func<>>(l.second._coef);
@@ -1014,7 +991,7 @@ namespace gravity {
                                         l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
                                         count++;
                                     }
-                                    //Set value of the constant!!!
+                                    //Set value of the constant
                                     if(con_lin->_cst->is_param()){
                                         auto co_cst = ((param<>*)(con_lin->_cst.get()));
                                         co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val*scale);
@@ -1029,7 +1006,6 @@ namespace gravity {
                                         rhs_f->_indices->add("inst_"+to_string(nb_inst));
                                         rhs_f->_dim[0] = rhs_f->_indices->size();
                                     }
-                                    //                            DebugOn("a"<<endl);
                                 }
                                 con->set_x(i, xcurrent);
                                 xcurrent.clear();
@@ -1047,7 +1023,7 @@ namespace gravity {
         set_solution(xsolution);
         nb_oacuts+=nb_added_cuts;
         DebugOn("Number of constraints in linear model = " << nb_oacuts << endl);
-        //OA_iter.print();
+        return(constr_viol);
     }
     
     
@@ -1217,7 +1193,7 @@ namespace gravity {
             }
             if(share_all){
                 /* We will send the objective value of successful models */
-                send_solution_all_new(models,limits, sol_val);
+                send_solution_all_new(models,limits,sol_status, sol_val);
             }
         }
         //MPI_Barrier(MPI_COMM_WORLD);

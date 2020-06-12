@@ -6100,7 +6100,7 @@ namespace gravity {
         vector<double> obbt_solution(relaxed_model->_nb_vars);
         double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
         int obbt_subproblem_count=0;
-        double active_tol;
+        double active_tol=1e-6;
         double gap_old;
         bool share_all, share_obj;
         if(this->_status==0){
@@ -6139,7 +6139,30 @@ namespace gravity {
                         else if(lb_solver_type==gurobi){
                             LB_solver.set_option("gurobi_crossover", true);
                         }
-                        LB_solver.run(output = 0, lb_solver_tol);
+                        bool constr_viol=true;
+                        int lin_count=0;
+                        while (constr_viol && lin_count<=20 && active_tol>=1e-10){
+                            solver<> LB_solver(obbt_model, lb_solver_type);
+                            LB_solver.run(output = 0, lb_solver_tol);
+                            if(obbt_model->_status==0){
+                                lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                                auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
+                                gap_old=gaplin;
+                                DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
+                                obbt_model->get_solution(obbt_solution);
+                                constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                obbt_model->reindex();
+                                obbt_model->reset();
+                                if(!constr_viol){
+                                    active_tol=active_tol*0.1;
+                                    constr_viol=true;
+                                }
+                            }
+                            else{
+                                break;
+                            }
+                            lin_count++;
+                        }
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                             auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
@@ -6148,7 +6171,7 @@ namespace gravity {
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                         }
                         if(run_obbt_iter==1){
-                            active_tol=0.1;
+                            active_tol=1e-3;
                         }
                         else{
                             active_tol=1e-6;
@@ -6269,6 +6292,9 @@ namespace gravity {
                                                 sol_obj.resize(batch_model_count,-1.0);
                                                 if(share_all){
                                                     sol_val.resize(batch_model_count);
+                                                    for(auto &v:sol_val){
+                                                        v.resize(batch_models[0]->_nb_vars);
+                                                    }
                                                 }
 #ifdef USE_MPI
                                                 run_MPI_new(objective_models, sol_obj, sol_status,sol_val,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
@@ -6401,7 +6427,7 @@ namespace gravity {
                                                                 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                                 obbt_solution=sol_val.at(s);
                                                                 if(run_obbt_iter==1){
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
+                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                                                 }
                                                                 else{
                                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);

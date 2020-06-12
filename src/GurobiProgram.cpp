@@ -7,7 +7,7 @@ GurobiProgram::GurobiProgram(){
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-//    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Threads,1);
 //       grb_env->set(GRB_IntParam_Presolve,0);
 //      grb_env->set(GRB_IntParam_NumericFocus,3);
 //     grb_env->set(GRB_IntParam_NonConvex,2);
@@ -26,7 +26,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-    //    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
 //    grb_env->set(GRB_IntParam_NonConvex,2);
@@ -47,7 +47,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_DoubleParam_TimeLimit,7200);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-    //    grb_env->set(GRB_IntParam_Threads,1);
+        grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
 //    grb_env->set(GRB_IntParam_NonConvex,2);

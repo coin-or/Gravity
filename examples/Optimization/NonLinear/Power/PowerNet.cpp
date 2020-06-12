@@ -166,7 +166,7 @@ void PowerNet::update_pij_bounds()
                 Pg_sum_min=0;
                 Pg_sum_max=0;
                 pload=pl(n->_name).eval();
-                qload=pl(n->_name).eval();
+                qload=ql(n->_name).eval();
                 if(((Bus*)n)->get_out().size()>=1)
                 {
                     arc_name=((Bus*)n)->get_out()[0]->_name;
@@ -187,6 +187,7 @@ void PowerNet::update_pij_bounds()
                     }
                     //Check if required at all if(((Bus*)n)->gs()>=0)
                     
+                    if(((Bus*)n)->gs()>=0){
                     shunt_wmax=((Bus*)n)->gs()*w_max(n->_name).eval();
                     shunt_wmin=((Bus*)n)->gs()*w_min(n->_name).eval();
                     
@@ -204,6 +205,7 @@ void PowerNet::update_pij_bounds()
                         pf_to_min.add_val(arc_name,p_min);
                         p_max=std::min(Pg_sum_max-pload-shunt_wmin, pf_to_max(arc_name).eval());
                         pf_to_max.add_val(arc_name,p_max);
+                    }
                     }
                 }
                 else
@@ -279,29 +281,29 @@ void PowerNet::update_pij_bounds()
             qf_from_min.add_val(arc_name,std::max(qf_to_max(arc_name).eval()*(-1), qf_from_min(arc_name).eval()));
         }
         
-        if(g(arc_name).eval()==0 && b(arc_name).eval()<=0)
+        if(g(arc_name).eval()==0 && b(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
             //Set flag to closed for pf_to
             auto p_map=pf_to_min.get_keys_map();
             auto key_pos=p_map->at(arc_name);
             pf_to_min._off[key_pos]=true;
-            if(pf_from_min(arc_name).eval()>=0 )
+            if(pf_from_min(arc_name).eval()>=0)
             {
                 th_min.add_val(bus_pair_name, std::max(0.0, th_min(bus_pair_name).eval()));
                 wi_min.add_val(bus_pair_name, std::max(0.0, wi_min(bus_pair_name).eval()));
             }
-            if(pf_from_max(arc_name).eval()<=0 )
+            if(pf_from_max(arc_name).eval()<=0)
             {
                 th_max.add_val(bus_pair_name, std::min(0.0, th_max(bus_pair_name).eval()));
                 wi_max.add_val(bus_pair_name, std::min(0.0, wi_max(bus_pair_name).eval()));
                 
             }
-            if(pf_to_min(arc_name).eval()>=0 )
+            if(pf_to_min(arc_name).eval()>=0)
             {
                 th_max.add_val(bus_pair_name, std::min(0.0, th_max(bus_pair_name).eval()));
                 wi_max.add_val(bus_pair_name, std::min(0.0, wi_max(bus_pair_name).eval()));
             }
-            if(pf_to_max(arc_name).eval()<=0 )
+            if(pf_to_max(arc_name).eval()<=0)
             {
                 th_min.add_val(bus_pair_name, std::max(0.0, th_min(bus_pair_name).eval()));
                 wi_min.add_val(bus_pair_name, std::max(0.0, wi_min(bus_pair_name).eval()));
@@ -2092,7 +2094,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    //grid.update_pij_bounds();
+    grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2175,7 +2177,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    //Pf_to._off=pf_to_min._off;
+    Pf_to._off=pf_to_min._off;
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
