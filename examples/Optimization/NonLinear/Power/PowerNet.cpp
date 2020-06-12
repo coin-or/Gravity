@@ -2094,7 +2094,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     auto gen_nodes = grid.gens_per_node();
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
-    grid.update_pij_bounds();
+    //grid.update_pij_bounds();
     
     /* Grid Parameters */
     auto pg_min = grid.pg_min.in(gens);
@@ -2177,7 +2177,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     
     SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
-    Pf_to._off=pf_to_min._off;
+    //Pf_to._off=pf_to_min._off;
     
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);

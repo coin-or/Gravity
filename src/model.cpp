@@ -6131,18 +6131,17 @@ namespace gravity {
                         DebugOff("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
                         obbt_model->reindex();
                         obbt_model->reset();
-                        solver<> LB_solver(obbt_model, lb_solver_type);
-                        if(lb_solver_type==ipopt){
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                            LB_solver.set_option("check_violation", true);
-                        }
-                        else if(lb_solver_type==gurobi){
-                            LB_solver.set_option("gurobi_crossover", true);
-                        }
                         bool constr_viol=true;
                         int lin_count=0;
                         while (constr_viol && lin_count<=20 && active_tol>=1e-10){
                             solver<> LB_solver(obbt_model, lb_solver_type);
+                            if(lb_solver_type==ipopt){
+                                LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                               // LB_solver.set_option("check_violation", true);
+                            }
+                            else if(lb_solver_type==gurobi){
+                                LB_solver.set_option("gurobi_crossover", true);
+                            }
                             LB_solver.run(output = 0, lb_solver_tol);
                             if(obbt_model->_status==0){
                                 lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
@@ -6171,7 +6170,7 @@ namespace gravity {
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                         }
                         if(run_obbt_iter==1){
-                            active_tol=1e-3;
+                            active_tol=0.1;
                         }
                         else{
                             active_tol=1e-6;
@@ -6427,7 +6426,7 @@ namespace gravity {
                                                                 //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
                                                                 obbt_solution=sol_val.at(s);
                                                                 if(run_obbt_iter==1){
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
                                                                 }
                                                                 else{
                                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);

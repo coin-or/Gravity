@@ -620,7 +620,7 @@ namespace gravity {
         DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=0;
+        int nb_perturb=1;
         int count_var=0;
         if(interior){
             for (auto &con: nonlin._cons_vec)
