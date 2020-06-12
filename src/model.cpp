@@ -6170,7 +6170,7 @@ namespace gravity {
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                         }
                         if(run_obbt_iter==1){
-                            active_tol=0.1;
+                            active_tol=1e-3;
                         }
                         else{
                             active_tol=1e-6;
