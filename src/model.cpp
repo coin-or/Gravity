@@ -6110,11 +6110,11 @@ namespace gravity {
                 lower_bound_nonlin_init=relaxed_model->get_obj_val()*upper_bound/ub_scale_value;
                 lower_bound_init = lower_bound_nonlin_init;
                 lower_bound = lower_bound_nonlin_init;
-                DebugOn("Lower bound "<<lower_bound<<endl);
+                DebugOff("Lower bound "<<lower_bound<<endl);
                 get_solution(ub_sol);/* store current solution */
                 gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
                 gap_old=gapnl;
-                DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+                DebugOff("Initial nolinear gap = "<<gapnl<<"%"<<endl);
                 /* Check if gap is already not zero at root node */
                 if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
                 {
@@ -6147,7 +6147,7 @@ namespace gravity {
                                 lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                 auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                                 gap_old=gaplin;
-                                DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
+                                DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
                                 obbt_model->get_solution(obbt_solution);
                                 constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                 obbt_model->reindex();
@@ -6170,7 +6170,7 @@ namespace gravity {
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                         }
                         if(run_obbt_iter==1){
-                            active_tol=1e-3;
+                            active_tol=1e-1;
                         }
                         else{
                             active_tol=1e-6;
@@ -6329,13 +6329,13 @@ namespace gravity {
                                                             {
                                                                 boundk1=vk.get_lb(keyk);
                                                                 //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                                objk=std::max(objk-range_tol, boundk1);
+                                                                objk=std::max(objk-range_tol*10, boundk1);
                                                             }
                                                             else
                                                             {
                                                                 boundk1=vk.get_ub(keyk);
                                                                 //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                                objk=std::min(objk+range_tol, boundk1);
+                                                                objk=std::min(objk+range_tol*10, boundk1);
                                                             }
                                                             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                             {//do not close intervals to OBBT before finishing at least one full iteration over all variables

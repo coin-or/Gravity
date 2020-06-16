@@ -92,7 +92,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     if(!gurobi_crossover){
     grb_mod->set(GRB_IntParam_Crossover, 0);
     }
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
     //warm_start();
     //grb_mod->write("gurobiprint.lp");
     grb_mod->optimize();

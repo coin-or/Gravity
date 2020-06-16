@@ -617,7 +617,7 @@ namespace gravity {
         }
         nonlin.set_solution(xsolution);
         reindex();
-        DebugOn("Number of constraints in linear model "<<_nb_cons<<endl);
+        DebugOff("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
         int nb_perturb=1;
@@ -791,7 +791,7 @@ namespace gravity {
             }
         }
         reindex();
-        DebugOn("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
+        DebugOff("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
         set_solution(xsolution);
         return Ointerior;
     }
@@ -1022,7 +1022,7 @@ namespace gravity {
         
         set_solution(xsolution);
         nb_oacuts+=nb_added_cuts;
-        DebugOn("Number of constraints in linear model = " << nb_oacuts << endl);
+        DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
         return(constr_viol);
     }
     
