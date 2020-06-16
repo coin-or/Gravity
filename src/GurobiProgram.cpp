@@ -1,66 +1,73 @@
 #include <gravity/GurobiProgram.h>
 
-GurobiProgram::GurobiProgram(){
-//    model = m;
-    grb_env = new GRBEnv();
-//    grb_env->set(GRB_IntParam_Presolve,0);
-    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
-//    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-    grb_env->set(GRB_IntParam_Threads,1);
-//       grb_env->set(GRB_IntParam_Presolve,0);
-//      grb_env->set(GRB_IntParam_NumericFocus,3);
-//     grb_env->set(GRB_IntParam_NonConvex,2);
-    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
-    
-    grb_env->set(GRB_IntParam_OutputFlag,1);
-//    grb_mod = new GRBModel(*grb_env);
-    grb_mod = NULL;
-}
+//GurobiProgram::GurobiProgram(){
+////    model = m;
+//    grb_env = new GRBEnv();
+////    grb_env->set(GRB_IntParam_Presolve,0);
+//    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+//    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+////    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+//    grb_env->set(GRB_IntParam_Threads,1);
+////       grb_env->set(GRB_IntParam_Presolve,0);
+////      grb_env->set(GRB_IntParam_NumericFocus,3);
+////     grb_env->set(GRB_IntParam_NonConvex,2);
+//    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+//     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+//
+//    grb_env->set(GRB_IntParam_OutputFlag,1);
+////    grb_mod = new GRBModel(*grb_env);
+//    grb_mod = NULL;
+//}
 
 
 GurobiProgram::GurobiProgram(Model<>* m) {
-    grb_env = new GRBEnv();
-//    grb_env->set(GRB_IntParam_Presolve,0);
-    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
-    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-    grb_env->set(GRB_IntParam_Threads,1);
-//    grb_env->set(GRB_IntParam_Presolve,0);
-//    grb_env->set(GRB_IntParam_NumericFocus,3);
-//    grb_env->set(GRB_IntParam_NonConvex,2);
-    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
-    
-    grb_env->set(GRB_IntParam_OutputFlag,1);
-    grb_mod = new GRBModel(*grb_env);
+    try{
+        grb_env = new GRBEnv();
+    //    grb_env->set(GRB_IntParam_Presolve,0);
+        //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+        grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+        //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+        grb_env->set(GRB_IntParam_Threads,1);
+    //    grb_env->set(GRB_IntParam_Presolve,0);
+    //    grb_env->set(GRB_IntParam_NumericFocus,3);
+    //    grb_env->set(GRB_IntParam_NonConvex,2);
+        //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+        grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+        
+        grb_env->set(GRB_IntParam_OutputFlag,1);
+        grb_mod = new GRBModel(*grb_env);
+    }
+    catch(GRBException e) {
+        cerr << "\nWas not able to create Gurobi environment or model, Error code = " << e.getErrorCode() << endl;
+        cerr << e.getMessage() << endl;
+        exit(-1);
+    }
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
 }
 
-GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
-    grb_env = new GRBEnv();
-    //grb_env->set(GRB_IntParam_Presolve,0);
-    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
-    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-        grb_env->set(GRB_IntParam_Threads,1);
-//    grb_env->set(GRB_IntParam_Presolve,0);
-//    grb_env->set(GRB_IntParam_NumericFocus,3);
-//    grb_env->set(GRB_IntParam_NonConvex,2);
-    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
-    
-    grb_env->set(GRB_IntParam_OutputFlag,1);
-    grb_mod = new GRBModel(*grb_env);
-//    grb_env->set(GRB_IntParam_ƒFlag,2);
-//    _model = m;
-    m->fill_in_maps();
-    m->compute_funcs();
-}
+//GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
+//    grb_env = new GRBEnv();
+//    //grb_env->set(GRB_IntParam_Presolve,0);
+//    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+//    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+//    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+//        grb_env->set(GRB_IntParam_Threads,1);
+////    grb_env->set(GRB_IntParam_Presolve,0);
+////    grb_env->set(GRB_IntParam_NumericFocus,3);
+////    grb_env->set(GRB_IntParam_NonConvex,2);
+//    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+//    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+//
+//    grb_env->set(GRB_IntParam_OutputFlag,1);
+//    grb_mod = new GRBModel(*grb_env);
+////    grb_env->set(GRB_IntParam_ƒFlag,2);
+////    _model = m;
+//    m->fill_in_maps();
+//    m->compute_funcs();
+//}
 
 
 GurobiProgram::~GurobiProgram() {
@@ -70,7 +77,7 @@ GurobiProgram::~GurobiProgram() {
 }
 
 void GurobiProgram::reset_model(){
-    if (grb_mod != NULL) delete grb_mod;
+    if (grb_mod) delete grb_mod;
     _grb_vars.clear();
 //    grb_env->set(GRB_IntParam_OutputFlag,_output);
     grb_mod = new GRBModel(*grb_env);
@@ -95,7 +102,14 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
     //warm_start();
     //grb_mod->write("gurobiprint.lp");
-    grb_mod->optimize();
+    try{
+        grb_mod->optimize();
+    }
+    catch(GRBException e) {
+        cerr << "\nWas not able to optimize Gurobi model, Error code = " << e.getErrorCode() << endl;
+        cerr << e.getMessage() << endl;
+        exit(-1);
+    }
     //cout<<"Status "<<grb_mod->get(GRB_IntAttr_Status)<<endl;
 
     // cout<<"BoundVio "<<grb_mod->get(GRB_DoubleAttr_BoundVio)<<endl;
