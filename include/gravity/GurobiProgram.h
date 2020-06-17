@@ -11,10 +11,11 @@ using namespace gravity;
 class GurobiProgram: public Program<>{
 private:
 
+public:
     GRBModel* grb_mod;
     GRBEnv* grb_env;
     vector<GRBVar> _grb_vars; /** Mapping variables to Gurobi variables */
-public:
+
     Model<>*    _model;
     int         _output;
     GurobiProgram();

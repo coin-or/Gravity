@@ -86,6 +86,20 @@ namespace gravity {
         
         /** Constructor */
         //@{
+        ~solver(){
+            if(_stype==gurobi)
+            {
+#ifdef USE_GUROBI
+                auto grb_prog = static_pointer_cast<GurobiProgram>(_prog);
+                delete grb_prog->grb_mod;
+                delete grb_prog->grb_env;
+                grb_prog->grb_mod = nullptr;
+                grb_prog->grb_env = nullptr;
+#else
+                gurobiNotAvailable();
+#endif
+            }
+        }
         solver();
         
         solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
