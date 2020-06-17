@@ -7419,7 +7419,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     class Program{
     public:
         //        virtual void update_model(){};
-        virtual ~Program();
+        virtual ~Program(){};
         string _status;
     };
     
