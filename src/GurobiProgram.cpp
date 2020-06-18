@@ -1,4 +1,6 @@
 #include <gravity/GurobiProgram.h>
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
 
 //GurobiProgram::GurobiProgram(){
 ////    model = m;
@@ -21,26 +23,32 @@
 
 
 GurobiProgram::GurobiProgram(Model<>* m) {
-    try{
-        grb_env = new GRBEnv();
-    //    grb_env->set(GRB_IntParam_Presolve,0);
-        //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-        grb_env->set(GRB_DoubleParam_TimeLimit,7200);
-        //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-        grb_env->set(GRB_IntParam_Threads,1);
-    //    grb_env->set(GRB_IntParam_Presolve,0);
-    //    grb_env->set(GRB_IntParam_NumericFocus,3);
-    //    grb_env->set(GRB_IntParam_NonConvex,2);
-        //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-        grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
-        
-        grb_env->set(GRB_IntParam_OutputFlag,1);
-        grb_mod = new GRBModel(*grb_env);
-    }
-    catch(GRBException e) {
-        cerr << "\nWas not able to create Gurobi environment or model, Error code = " << e.getErrorCode() << endl;
-        cerr << e.getMessage() << endl;
-        exit(-1);
+    bool found_token = false;
+    while (!found_token) {
+        try{
+            grb_env = new GRBEnv();
+        //    grb_env->set(GRB_IntParam_Presolve,0);
+            //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+            grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+            //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+            grb_env->set(GRB_IntParam_Threads,1);
+        //    grb_env->set(GRB_IntParam_Presolve,0);
+        //    grb_env->set(GRB_IntParam_NumericFocus,3);
+        //    grb_env->set(GRB_IntParam_NonConvex,2);
+            //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+            
+            grb_env->set(GRB_IntParam_OutputFlag,1);
+            grb_mod = new GRBModel(*grb_env);
+            found_token = true;
+        }
+        catch(GRBException e) {
+//            cerr << "\nWas not able to create Gurobi environment or model, Error code = " << e.getErrorCode() << endl;
+//            cerr << e.getMessage() << endl;
+//            exit(-1);
+            found_token = false;
+            this_thread::sleep_for (chrono::seconds(1));
+        }
     }
     //    grb_env->set(GRB_IntParam_OutputFlag,2);
     _model = m;
