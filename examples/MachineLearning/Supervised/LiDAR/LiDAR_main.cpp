@@ -22,9 +22,10 @@ int main (int argc, char * argv[])
 {
     int output = 0;
     double tol = 1e-6;
+    bool optimize = true;
     double solver_time_end, total_time_end, solve_time, total_time;
-    double grid_step = 1;
-    map<pair<int,int>,tuple<int,double,double,double,UAVPoint*>> grid1, grid2, grid; /* Grid with all cells where <x,y> is the key and <nb_measurements, min_z, max_z, av_z> is the cell data */
+    int grid_step = 1;
+    map<pair<double,double>,tuple<int,double,double,double,UAVPoint*>> grid1, grid2, grid; /* Grid with all cells where <x,y> is the key and <nb_measurements, min_z, max_z, av_z> is the cell data */
     int ground_z = 0;
     string log_level="0";
     string LiDAR_file1 = string(prj_dir)+"/data_sets/LiDAR/test1.las";
@@ -68,6 +69,10 @@ int main (int argc, char * argv[])
         char *p;
         grid_step =  strtol(argv[4], &p, 10);
     }
+    if(argc>5){
+        char *p;
+        optimize =  (strtol(argv[5], &p, 10)!=0);
+    }
 #endif
     rapidcsv::Document  GPS_data(GPS_file);
     int n = GPS_data.GetRowCount();
@@ -77,8 +82,8 @@ int main (int argc, char * argv[])
     vector<double> uav_x, uav_y, uav_z;
     vector<double> uav_x1, uav_y1, uav_z1;
     for (int i = 0; i< n-1; i++) { // Input iterator
-        UAVPoints[i]._x = GPS_data.GetCell<double>("UtmPos_X", i);
-        UAVPoints[i]._y = GPS_data.GetCell<double>("UtmPos_Y", i);
+        UAVPoints[i]._x = (GPS_data.GetCell<double>("UtmPos_X", i));
+        UAVPoints[i]._y = (GPS_data.GetCell<double>("UtmPos_Y", i));
         UAVPoints[i]._latitude = GPS_data.GetCell<double>("AbsPos_Y", i);
         UAVPoints[i]._longitude = GPS_data.GetCell<double>("AbsPos_X", i);
         UAVPoints[i]._height = GPS_data.GetCell<double>("AbsPos_Z", i);
@@ -168,9 +173,9 @@ int main (int argc, char * argv[])
         
         
         int nb_dots; /* Number of measurements inside cell */
-        int xpos, ypos;
+        double xpos, ypos;
         double z, min_z, max_z, av_z;
-        pair<int,int> pos;
+        pair<double,double> pos;
         size_t nb_pts = 0;
         tuple<int,double,double,double,UAVPoint*> cell; /* <nb_dots,min_z,max_z,av_z> */
         /* Now get rid of the first points
@@ -188,8 +193,8 @@ int main (int argc, char * argv[])
                 DebugOn(to_string_with_precision(10.*(lasreader->point.get_gps_time()+315964800. - 18.),24) << ": (" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
 //                return 0;
             }
-            xpos = (round((lasreader->point.get_x()*grid_step)));
-            ypos = (round((lasreader->point.get_y()*grid_step)));
+            xpos = (((lasreader->point.get_x())));
+            ypos = (((lasreader->point.get_y())));
             if (ypos < 0)
             {
                 fprintf(stderr, "ERROR: ypos = %d\n", ypos);
@@ -291,13 +296,13 @@ int main (int argc, char * argv[])
             x_vec1.push_back(cell.first.first);
             x_shift1.push_back(get<4>(cell.second)->_x);
             x_shift.push_back(get<4>(cell.second)->_x);
-            x_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_x);
-            x1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.first);
+            x_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),(get<4>(cell.second)->_x));
+            x1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), (cell.first.first));
             y_vec1.push_back(cell.first.second);
             y_shift1.push_back(get<4>(cell.second)->_y);
             y_shift.push_back(get<4>(cell.second)->_y);
-            y_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_y);
-            y1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.second);
+            y_uav1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),(get<4>(cell.second)->_y));
+            y1.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), (cell.first.second));
             z_vec1.push_back(av_z);
             zmin_vec1.push_back(min_z);
             zmax_vec1.push_back(max_z);
@@ -371,9 +376,9 @@ int main (int argc, char * argv[])
         
         
         int nb_dots; /* Number of measurements inside cell */
-        int xpos, ypos;
+        double xpos, ypos;
         double z, min_z, max_z, av_z;
-        pair<int,int> pos;
+        pair<double,double> pos;
         size_t nb_pts = 0;
         tuple<int,double,double,double,UAVPoint*> cell; /* <nb_dots,min_z,max_z,av_z> */
         /* Now get rid of the first points
@@ -391,8 +396,8 @@ int main (int argc, char * argv[])
                 DebugOn(to_string_with_precision(10.*(lasreader->point.get_gps_time()+315964800. - 18.),24) << ": (" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
                 //                return 0;
             }
-            xpos = (round((lasreader->point.get_x()*grid_step)));
-            ypos = (round((lasreader->point.get_y()*grid_step)));
+            xpos = (((lasreader->point.get_x())));
+            ypos = (((lasreader->point.get_y())));
             if (ypos < 0)
             {
                 fprintf(stderr, "ERROR: ypos = %d\n", ypos);
@@ -495,13 +500,13 @@ int main (int argc, char * argv[])
             x_vec2.push_back(cell.first.first);
             x_shift2.push_back(get<4>(cell.second)->_x);
             x_shift.push_back(get<4>(cell.second)->_x);
-            x_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_x);
-            x2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.first);
+            x_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),(get<4>(cell.second)->_x));
+            x2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), (cell.first.first));
             y_vec2.push_back(cell.first.second);
             y_shift2.push_back(get<4>(cell.second)->_y);
             y_shift.push_back(get<4>(cell.second)->_y);
-            y_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),get<4>(cell.second)->_y);
-            y2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), cell.first.second);
+            y_uav2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second),(get<4>(cell.second)->_y));
+            y2.add_val(to_string(cell.first.first)+","+to_string(cell.first.second), (cell.first.second));
             z_vec2.push_back(av_z);
             zmin_vec2.push_back(min_z);
             zmax_vec2.push_back(max_z);
@@ -548,11 +553,16 @@ int main (int argc, char * argv[])
     double av_nb_dots = 0, av_z_range = 0, max_z_range = 0, z_range = 0, min_z = 0, max_z = 0, av_z = 0;
     indices cells("cells");
     int nb_overlap = 0;
+    bool insert = true;
     for (auto &cell : grid) {
         DebugOff("Cell num " << cell_counter++ << " at [" << cell.first.first << "," << cell.first.second << "]" << endl);
         if(grid1.count(cell.first)>0 && grid2.count(cell.first)){
             nb_overlap++;
-            cells.insert(to_string(cell.first.first) + "," + to_string(cell.first.second));
+//            if(insert){
+            if(nb_overlap%10==1){
+                cells.insert(to_string(cell.first.first) + "," + to_string(cell.first.second));
+            }
+            insert = !insert;
             nb_dots = get<0>(cell.second);
             min_z = get<1>(cell.second);
             max_z = get<2>(cell.second);
@@ -628,6 +638,27 @@ int main (int argc, char * argv[])
         var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
         var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
 
+        if(!optimize){
+//            yaw1.set_lb(-0.25*pi/180);
+//            yaw1.set_ub(-0.25*pi/180);
+//            pitch1.set_lb(0.9*pi/180);
+//            pitch1.set_ub(0.9*pi/180);
+//            roll1.set_lb(1.45*pi/180.);
+//            roll1.set_ub(1.45*pi/180.);
+            yaw1.set_lb(0);
+            yaw1.set_ub(0);
+            pitch1.set_lb(0);
+            pitch1.set_ub(0);
+            roll1.set_lb(0);
+            roll1.set_ub(0);
+
+            yaw2.set_lb(0);
+            yaw2.set_ub(0);
+            pitch2.set_lb(0);
+            pitch2.set_ub(0);
+            roll2.set_lb(0);
+            roll2.set_ub(0);
+        }
     //    var<> sin_yaw1("yaw", -1, 1), sin_pitch1("pitch", -1, 1), sin_roll1("roll", -1, 1);
     //    var<> sin_yaw2("yaw", -1, 1), sin_pitch2("pitch", -0.1, 0.1), roll2("roll", -0.1, 0.1);
         
@@ -648,16 +679,21 @@ int main (int argc, char * argv[])
     //    pitch1 = 0.017;
         M.add(new_x1.in(cells), new_y1.in(cells), new_z1.in(cells));
         M.add(new_x2.in(cells), new_y2.in(cells), new_z2.in(cells));
-    //    M.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
+//        M.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
         M.add(z_diff.in(cells));
 
-        Constraint<> Equal_pitch("Equal_pitch");
-        Equal_pitch += pitch1 + pitch2;
-        M.add(Equal_pitch==0);
-        
-        Constraint<> Equal_roll("Equal_roll");
-        Equal_roll += roll1 + roll2;
-        M.add(Equal_roll==0);
+//        Constraint<> Equal_pitch("Equal_pitch");
+//        Equal_pitch += pitch1 + pitch2;
+//        M.add(Equal_pitch==0);
+//
+//        Constraint<> Equal_roll("Equal_roll");
+//        Equal_roll += roll1 + roll2;
+//        M.add(Equal_roll==0);
+//
+//        Constraint<> Equal_yaw("Equal_yaw");
+//        Equal_yaw += yaw1 - yaw2;
+//        M.add(Equal_yaw==0);
+
         
     //    Constraint<> x_norm("x_norm");
     //    x_norm += x_diff - pow((new_x1 - new_x2),2);
@@ -697,22 +733,22 @@ int main (int argc, char * argv[])
     //    M.add(pitch_abs2 >= 0);
         
         
-    //    Constraint<> x_abs1("x_abs1");
-    //    x_abs1 += x_diff - (new_x1 - new_x2);
-    //    M.add(x_abs1.in(cells)>=0);
-    //
-    //    Constraint<> x_abs2("x_abs2");
-    //    x_abs2 += x_diff - (new_x2 - new_x1);
-    //    M.add(x_abs2.in(cells)>=0);
-        
-        
-    //    Constraint<> y_abs1("y_abs1");
-    //    y_abs1 += y_diff - (new_y1 - new_y2);
-    //    M.add(y_abs1.in(cells)>=0);
-    //
-    //    Constraint<> y_abs2("y_abs2");
-    //    y_abs2 += y_diff - (new_y2 - new_y1);
-    //    M.add(y_abs2.in(cells)>=0);
+//        Constraint<> x_abs1("x_abs1");
+//        x_abs1 += x_diff - (new_x1 - new_x2);
+//        M.add(x_abs1.in(cells)>=0);
+//
+//        Constraint<> x_abs2("x_abs2");
+//        x_abs2 += x_diff - (new_x2 - new_x1);
+//        M.add(x_abs2.in(cells)>=0);
+//
+//
+//        Constraint<> y_abs1("y_abs1");
+//        y_abs1 += y_diff - (new_y1 - new_y2);
+//        M.add(y_abs1.in(cells)>=0);
+//
+//        Constraint<> y_abs2("y_abs2");
+//        y_abs2 += y_diff - (new_y2 - new_y1);
+//        M.add(y_abs2.in(cells)>=0);
         
         Constraint<> z_abs1("z_abs1");
         z_abs1 += z_diff - (new_z1 - new_z2);
@@ -773,9 +809,10 @@ int main (int argc, char * argv[])
         
     //    M.min(sum(z_diff)/nb_overlap);
         
-        M.min(sum(z_diff)/nb_overlap);
+//        M.min(sum(z_diff));
+        M.min(sum(z_diff)/cells.size());
         
-    //    M.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
+//        M.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
         
     //    M.print();
         
@@ -783,22 +820,22 @@ int main (int argc, char * argv[])
         S.run();
         
         
-        for (int i = 0; i<500; i++) {
-            pre_x.add_val(x_rot1.eval(i));
-            pre_y.add_val(y_rot1.eval(i));
-            pre_z.add_val(z_rot1.eval(i));
-            x_uav.add_val(x_uav1.eval(i));
-            y_uav.add_val(y_uav1.eval(i));
-            z_uav.add_val(z_uav1.eval(i));
-        }
-        for (int i = 0; i<500; i++) {
-            pre_x.add_val(x_rot2.eval(i));
-            pre_y.add_val(y_rot2.eval(i));
-            pre_z.add_val(z_rot2.eval(i));
-            x_uav.add_val(x_uav2.eval(i));
-            y_uav.add_val(y_uav2.eval(i));
-            z_uav.add_val(z_uav2.eval(i));
-        }
+//        for (int i = 0; i<500; i++) {
+//            pre_x.add_val(x_rot1.eval(i));
+//            pre_y.add_val(y_rot1.eval(i));
+//            pre_z.add_val(z_rot1.eval(i));
+//            x_uav.add_val(x_uav1.eval(i));
+//            y_uav.add_val(y_uav1.eval(i));
+//            z_uav.add_val(z_uav1.eval(i));
+//        }
+//        for (int i = 0; i<500; i++) {
+//            pre_x.add_val(x_rot2.eval(i));
+//            pre_y.add_val(y_rot2.eval(i));
+//            pre_z.add_val(z_rot2.eval(i));
+//            x_uav.add_val(x_uav2.eval(i));
+//            y_uav.add_val(y_uav2.eval(i));
+//            z_uav.add_val(z_uav2.eval(i));
+//        }
 //    M.print_solution();
     
         pitch_1 = pitch1.eval();
@@ -976,25 +1013,27 @@ int main (int argc, char * argv[])
 
     
     
-    
-    namespace plt = matplotlibcpp;
-   
-    std::map<std::string, std::string> keywords, keywords2;
-    keywords["marker"] = "s";
-    keywords["linestyle"] = "None";
-    keywords["ms"] = "0.05";
-//    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-    plt::plot3(uav_x1, uav_y1, uav_z1, x_combined, y_combined, zmax_combined, keywords);
-//        plt::plot3(uav_x, uav_y, uav_z, x_combined, y_combined, zmax_combined, keywords);
-    keywords2["marker"] = "s";
-    keywords2["ms"] = "0.1";
-    //    plt::plot3(uav_x1, uav_y1, uav_z1, uav_x, uav_y, uav_z, keywords2);
-    //    plt::plot3(uav_x1, uav_y1, uav_z1, keywords);
-    //    plt::plot3(x_vec2, y_vec2, zmax_vec2, keywords);
-    //    plt::colorbar();
-    // Enable legend.
-    //    plt::legend();
-    plt::show();
+    bool plot_data = false;
+    if(plot_data){
+        namespace plt = matplotlibcpp;
+
+        std::map<std::string, std::string> keywords, keywords2;
+        keywords["marker"] = "s";
+        keywords["linestyle"] = "None";
+        keywords["ms"] = "0.05";
+    //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+        plt::plot3(uav_x1, uav_y1, uav_z1, x_combined, y_combined, zmax_combined, keywords);
+    //        plt::plot3(uav_x, uav_y, uav_z, x_combined, y_combined, zmax_combined, keywords);
+        keywords2["marker"] = "s";
+        keywords2["ms"] = "0.1";
+        //    plt::plot3(uav_x1, uav_y1, uav_z1, uav_x, uav_y, uav_z, keywords2);
+        //    plt::plot3(uav_x1, uav_y1, uav_z1, keywords);
+        //    plt::plot3(x_vec2, y_vec2, zmax_vec2, keywords);
+        //    plt::colorbar();
+        // Enable legend.
+        //    plt::legend();
+        plt::show();
+    }
     
     DebugOn("Saving new las file");
 //    LASreadOpener lasreadopener_final;
@@ -1013,7 +1052,7 @@ int main (int argc, char * argv[])
     lasheader.point_data_record_length = 28;
     
     LASwriteOpener laswriteopener;
-    laswriteopener.set_file_name("corrected.las");
+    laswriteopener.set_file_name("corrected.laz");
     LASwriter* laswriter = laswriteopener.open(&lasheader);
     LASpoint laspoint;
     laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);

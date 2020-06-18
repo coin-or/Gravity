@@ -3353,6 +3353,117 @@ double PowerNet::solve_sdpopf(bool loss_from, int output, double tol){
     return SDPOPF->_obj->get_val();
 }
 
+indices PowerNet::get_node_pairs_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts) const{
+     indices ids("node_pairs_cont");
+     for (auto &pair: conts) {
+           for (auto a: arcs) {
+                  if(a->_active && a!=pair.second.first){
+                        ids.insert(pair.first+","+a->_src->_name+","+a->_dest->_name);
+                      }
+                }
+          }
+      return ids;
+}
+
+indices PowerNet::get_conting_arcs(const vector<pair<string,pair<Arc*,Gen*>>>& conts) const{
+    indices ids("arcs_cont");
+    for (auto &pair: conts) {
+        for (auto a: arcs) {
+            if(a->_active && a!=pair.second.first){
+                ids.insert(pair.first+","+a->_name);
+            }
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::gens_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& gens_c) const{
+    indices ids("gens_per_node_c");
+    ids = indices(gens_c);
+    ids._type = matrix_;
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(conts.size()*get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for(auto &pair: conts){
+        for (auto n: nodes) {
+            if (n->_active) {
+                for(auto g: ((Bus*)n)->_gen){
+                    if (!g->_active || g==pair.second.second) {
+                        continue;
+                    }
+                    key = pair.first+","+g->_name;
+                    auto it1 = ids._keys_map->find(key);
+                    if (it1 == ids._keys_map->end()){
+                        throw invalid_argument("In function gens_per_node(), unknown key.");
+                    }
+                    ids._ids->at(inst).push_back(it1->second);
+                }
+                inst++;
+            }
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::in_arcs_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& arcs_c) const{
+    auto ids = indices(arcs_c);
+    ids._type = matrix_;
+    ids.set_name("in_arcs_per_node_c");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(conts.size()*get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for(auto &pair: conts){
+        for (auto n: nodes) {
+            if (n->_active) {
+                for (auto a:n->get_in()) {
+                    if (!a->_active || a==pair.second.first) {
+                        continue;
+                    }
+                    key = pair.first+","+a->_name;
+                    auto it1 = ids._keys_map->find(key);
+                    if (it1 == ids._keys_map->end()){
+                        throw invalid_argument("In function in_arcs_per_node(), unknown key.");
+                    }
+                    ids._ids->at(inst).push_back(it1->second);
+                }
+                inst++;
+            }
+        }
+    }
+    return ids;
+}
+
+indices PowerNet::out_arcs_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& arcs_c) const{
+    auto ids = indices(arcs_c);
+    ids._type = matrix_;
+    ids.set_name("out_arcs_per_node_c");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(conts.size()*get_nb_active_nodes());
+    string key;
+    size_t inst = 0;
+    for(auto &pair: conts){
+        for (auto n: nodes) {
+            if (n->_active) {
+                for (auto a:n->get_out()) {
+                    if (!a->_active || a==pair.second.first) {
+                        continue;
+                    }
+                    key = pair.first+","+a->_name;
+                    auto it1 = ids._keys_map->find(key);
+                    if (it1 == ids._keys_map->end()){
+                        throw invalid_argument("In function out_arcs_per_node(), unknown key.");
+                    }
+                    ids._ids->at(inst).push_back(it1->second);
+                }
+                inst++;
+            }
+        }
+    }
+    return ids;
+}
+
 
 void PowerNet::fill_wbnds(){
     double cos_max_, cos_min_, w_max_, w_min_, wr_max_, wr_min_, sin_max_, sin_min_, wi_max_, wi_min_;
