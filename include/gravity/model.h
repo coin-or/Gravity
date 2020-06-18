@@ -4594,7 +4594,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 for (size_t inst = 0; inst < nb_ins; inst++) {
                     if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                         auto index = cp.second->_id + idx++;
-                        lambda[index] = cp.second->_dual[inst];
+//                        lambda[index] = cp.second->_dual[inst];
                     }
                     //            else
                     //            {

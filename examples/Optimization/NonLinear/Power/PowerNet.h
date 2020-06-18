@@ -302,6 +302,13 @@ public:
     indices in_arcs_per_node() const;
     void update_pij_bounds();
     
+    
+    indices get_node_pairs_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts) const;
+    indices get_conting_arcs(const vector<pair<string,pair<Arc*,Gen*>>>& conts) const;
+    indices gens_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& gens_c) const;
+    indices in_arcs_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& arcs_c) const;
+    indices out_arcs_per_node_cont(const vector<pair<string,pair<Arc*,Gen*>>>& conts, const indices& arcs_c) const;
+    
     unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
     double solve_sdpopf(bool loss_from, int output, double tol);
