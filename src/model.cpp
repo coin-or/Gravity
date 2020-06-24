@@ -5964,7 +5964,6 @@ namespace gravity {
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
-        DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         if(scale_objective){
@@ -5996,9 +5995,9 @@ namespace gravity {
         
         total_iter += get<1>(status);
         auto lower_bound=get<6>(status);
-        gap = (upper_bound - lower_bound)/std::abs(upper_bound);
+        gap = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
         
-        while((gap > rel_tol || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
+        while((gap > rel_tol*100.0 || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
             auto time=get_wall_time()-time_start;
             if(time>=max_time){
                 DebugOff("Maximum time exceeded"<<endl);
@@ -6016,7 +6015,7 @@ namespace gravity {
             
             
             lower_bound=get<6>(status);
-            gap_new = (upper_bound - lower_bound)/std::abs(upper_bound);
+            gap_new = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
             total_iter += get<1>(status);
             if(get<1>(status)>0)
                 global_iter++;
@@ -6113,7 +6112,13 @@ namespace gravity {
                 get_solution(ub_sol);/* store current solution */
                 gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
                 gap_old=gapnl;
-                DebugOff("Initial nolinear gap = "<<gapnl<<"%"<<endl);
+#ifdef USE_MPI
+                if(worker_id==0){
+                    DebugOn("Initial nonlinear Gap = "<<gapnl<<endl);
+                }
+#else
+                DebugOn("Initial nonlinear Gap = "<<gapnl<<endl);
+#endif
                 /* Check if gap is already not zero at root node */
                 if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
                 {
