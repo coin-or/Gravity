@@ -6148,7 +6148,7 @@ namespace gravity {
                                 lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                 auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                                 gap_old=gaplin;
-                                DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
+                                DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
                                 obbt_model->get_solution(obbt_solution);
                                 constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
                                 obbt_model->reset();
@@ -6168,12 +6168,12 @@ namespace gravity {
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                             auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                             gap_old=gaplin;
-                            DebugOn("Initial Number of oa cuts "<<oacuts<<endl);
+                            DebugOff("Initial Number of oa cuts "<<oacuts<<endl);
                             DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
                         }
                         if(run_obbt_iter==1){
-                            active_tol=1e-3;
+                            active_tol=1e-1;
                         }
                         else{
                             active_tol=1e-6;
@@ -6504,7 +6504,7 @@ namespace gravity {
                                         DebugOff("Updating bounds on original problem and resolving"<<endl);
 #ifdef USE_MPI
                                         if(worker_id==0){
-                                            DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                            DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                                         }
 #endif
                                         //DebugOff("Updating bounds on original problem and resolving"<<endl);
@@ -6561,7 +6561,7 @@ namespace gravity {
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             //obbt_model->print();
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
-                                            DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
+                                            DebugOff("Iter linear gap = "<<gap<<"%"<<endl);
                                             obbt_model->get_solution(obbt_solution);
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
                                             obbt_model->reindex();
