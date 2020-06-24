@@ -172,7 +172,7 @@ int main (int argc, char * argv[]) {
     int total_iter;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0;
-    SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     bool scale_objective=true;
     linearize=true;
     if(!linearize){

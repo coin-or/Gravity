@@ -513,7 +513,10 @@ namespace gravity {
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
         //Ointerior.print();
+        modelI.set_option("bound_relax_factor", tol*1e-2);
+        modelI.set_option("check_violation", true);
         modelI.run(output=0, tol);
+    
         
         vector<double> xsolution(_nb_vars);
         nonlin.get_solution(xsolution);
@@ -620,7 +623,7 @@ namespace gravity {
         DebugOff("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=1;
+        int nb_perturb=0;
         int count_var=0;
         if(interior){
             for (auto &con: nonlin._cons_vec)
