@@ -6134,7 +6134,7 @@ namespace gravity {
                         //obbt_model->print();
                         constr_viol=true;
                         lin_count=0;
-                        while (constr_viol && lin_count<=20 && active_root_tol>=lb_solver_tol*10){
+                        while (constr_viol && lin_count<=20 && active_root_tol>=lb_solver_tol){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6332,13 +6332,13 @@ namespace gravity {
                                                             {
                                                                 boundk1=vk.get_lb(keyk);
                                                                 //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                                objk=std::max(objk-range_tol*10, boundk1);
+                                                                objk=std::max(objk-range_tol, boundk1);
                                                             }
                                                             else
                                                             {
                                                                 boundk1=vk.get_ub(keyk);
                                                                 //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                                objk=std::min(objk+range_tol*10, boundk1);
+                                                                objk=std::min(objk+range_tol, boundk1);
                                                             }
                                                             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                             {//do not close intervals to OBBT before finishing at least one full iteration over all variables
@@ -6547,7 +6547,7 @@ namespace gravity {
                                     constr_viol=true;
                                     lin_count=0;
                                     active_root_tol=1e-6;
-                                    while (constr_viol && lin_count<20 && active_root_tol>=lb_solver_tol*10){
+                                    while (constr_viol && lin_count<20 && active_root_tol>=lb_solver_tol){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
