@@ -6171,6 +6171,11 @@ namespace gravity {
                             DebugOff("Initial Number of oa cuts "<<oacuts<<endl);
                             DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
                             DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
+#ifdef USE_MPI
+                            if(worker_id==0){
+                                DebugOn("Gap initial "<<gaplin<<" and cuts initial "<<oacuts<<" and cuts buildoa "<<oacuts_init<<endl);
+                            }
+#endif
                         }
                         if(run_obbt_iter==1){
                             active_tol=1e-1;
@@ -6602,6 +6607,11 @@ namespace gravity {
                                             mod->reset_lifted_vars_bounds();
                                             mod->reset();
                                         }
+#ifdef USE_MPI
+                                        if(worker_id==0){
+                                            DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
+                                        }
+#endif
                                     }
                                     else{
                                         DebugOn("Failed to solve lower bounding problem"<<endl);
