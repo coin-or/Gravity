@@ -5960,20 +5960,31 @@ namespace gravity {
         int total_iter=0, global_iter=1;
         int output, oacuts_init=0, oacuts=0;
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::min();
+#ifdef USE_MPI
+        if(worker_id==0){
+            time_start = get_wall_time();
+        }
+#else
+        time_start = get_wall_time();
+#endif
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 0, ub_solver_tol);
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
+        scale_objective=true;
         if(scale_objective){
             auto obj = *relaxed_model->_obj/ub_scale_value;
             relaxed_model->min(obj);
             ub_scale_value=1.0;
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        LBnonlin_solver.set_option("check_violation", true);
+        //LBnonlin_solver.set_option("check_violation", true);
         LBnonlin_solver.run(output = 0 , lb_solver_tol);
+//        relaxed_model->print();
+//        relaxed_model->print_solution();
+//        exit(0);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
@@ -6021,7 +6032,13 @@ namespace gravity {
                 global_iter++;
             gap=gap_new;
         }
+#ifdef USE_MPI
+        if(worker_id==0){
+            time_end = get_wall_time();
+        }
+#else
         time_end = get_wall_time();
+#endif
         total_time = time_end - time_start;
         //obbt_model->print_constraints_stats(1e-8);
         get<0>(res)=get<0>(status);
@@ -6549,7 +6566,7 @@ namespace gravity {
                                     solver<> LB_solver(obbt_model,lb_solver_type);
                                     if(lb_solver_type==ipopt){
                                         LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                                        LB_solver.set_option("check_violation", true);
+                                        //LB_solver.set_option("check_violation", true);
                                     }
                                     else if(lb_solver_type==gurobi){
                                         LB_solver.set_option("gurobi_crossover", true);
@@ -6561,7 +6578,7 @@ namespace gravity {
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                                            // LB_solver.set_option("check_violation", true);
+                                             LB_solver.set_option("check_violation", true);
                                         }
                                         else if(lb_solver_type==gurobi){
                                             LB_solver.set_option("gurobi_crossover", true);
@@ -6569,6 +6586,11 @@ namespace gravity {
                                         LB_solver.run(output = 0, lb_solver_tol);
                                         if(obbt_model->_status==0){
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                                            if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+                                            {
+                                                close= true;
+                                                break;
+                                            }
                                             //obbt_model->print();
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
                                             DebugOff("Iter linear gap = "<<gap<<"%"<<endl);
@@ -6599,18 +6621,20 @@ namespace gravity {
                                         DebugOff("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
                                       // obbt_model->get_solution(obbt_solution);
                                        // relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
-                                        for(auto &mod:batch_models){
-                                            for (auto con: obbt_model->_cons_vec){
-                                                if(con->_name.find("OA_cuts_")!=std::string::npos){
-                                                    if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
-                                                        mod->remove(con->_name);
+                                        if(!close){
+                                            for(auto &mod:batch_models){
+                                                for (auto con: obbt_model->_cons_vec){
+                                                    if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                                        if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                            mod->remove(con->_name);
+                                                        }
+                                                        mod->add(*con);
                                                     }
-                                                    mod->add(*con);
                                                 }
+                                                mod->reset_constrs();
+                                                mod->reset_lifted_vars_bounds();
+                                                mod->reset();
                                             }
-                                            mod->reset_constrs();
-                                            mod->reset_lifted_vars_bounds();
-                                            mod->reset();
                                         }
 #ifdef USE_MPI
                                         if(worker_id==0){
@@ -6693,7 +6717,7 @@ namespace gravity {
                         DebugOff("Average interval reduction\t"<<avg<<endl);
                         DebugOff("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
                         
-                        if(!close || linearize)
+                        if(!close)
                         {
                             if(!linearize){
                                 if(obbt_model->_status==0){

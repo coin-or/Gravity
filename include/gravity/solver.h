@@ -291,7 +291,7 @@ namespace gravity {
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
                     iapp->Options()->SetStringValue("sb", "yes");
-                    _model->_first_run = false;
+                    //_model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");

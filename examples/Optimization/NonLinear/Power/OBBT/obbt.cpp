@@ -182,8 +182,15 @@ int main (int argc, char * argv[]) {
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
+#ifdef USE_MPI
+        if(worker_id==0){
+            total_iter=get<1>(res);
+            total_time=get<2>(res);
+        }
+#else
         total_iter=get<1>(res);
         total_time=get<2>(res);
+#endif
     }
     else{
         current=true;
@@ -192,10 +199,20 @@ int main (int argc, char * argv[]) {
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
+#ifdef USE_MPI
+        if(worker_id==0){
+            total_iter=get<1>(res);
+            total_time=get<2>(res);
+            oacuts=get<8>(res);
+            oacuts_init=get<9>(res);
+        }
+#else
         total_iter=get<1>(res);
         total_time=get<2>(res);
         oacuts=get<8>(res);
         oacuts_init=get<9>(res);
+#endif
+        
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     
