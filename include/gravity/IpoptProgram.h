@@ -69,13 +69,11 @@ public:
                                          )
     {
         _model->set_x(x);
-//        if(_model->_objt==maximize){
-//            _model->_obj->reverse_sign();
-//        }
         for (auto &cp: _model->_cons_name) {
-            cp.second->_dual.resize(cp.second->_dim[0]);
+            auto nb_ins = cp.second->get_nb_inst();
+            cp.second->_dual.resize(nb_ins);
             auto idx = 0;
-            for (size_t inst = 0; inst < cp.second->_dim[0]; inst++) {
+            for (size_t inst = 0; inst < nb_ins; inst++) {
                 if (!*cp.second->_all_lazy || !cp.second->_lazy[inst]) {
                     cp.second->_dual[inst] = lambda[cp.second->_id + idx++];
                 }
@@ -87,8 +85,8 @@ public:
             vp.second->_l_dual.resize(nb_inst);
             auto vid = vp.second->get_id();
             for (size_t inst = 0; inst < nb_inst; inst++) {
-                vp.second->_u_dual[inst] = z_U[vid + vp.second->get_id_inst(inst)];
-                vp.second->_l_dual[inst] = z_L[vid + vp.second->get_id_inst(inst)];
+                vp.second->_u_dual[inst] = z_U[vid + inst];
+                vp.second->_l_dual[inst] = z_L[vid + inst];
             }
         }
     }

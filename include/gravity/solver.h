@@ -286,12 +286,12 @@ namespace gravity {
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
                         mu_init = std::exp(-1)/std::exp(2);
-                        DebugOff("Using Hot Start!\n");
+                        DebugOn("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
                     }
                     iapp->Options()->SetStringValue("sb", "yes");
-                    //_model->_first_run = false;
+//                    _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
                     
                     //                        iapp->Options()->SetStringValue("hessian_approximation", "limited-memory");
