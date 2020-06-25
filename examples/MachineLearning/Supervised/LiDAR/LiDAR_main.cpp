@@ -559,7 +559,7 @@ int main (int argc, char * argv[])
         if(grid1.count(cell.first)>0 && grid2.count(cell.first)){
             nb_overlap++;
 //            if(insert){
-            if(nb_overlap%10==1){
+            if(nb_overlap%30==1){
                 cells.insert(to_string(cell.first.first) + "," + to_string(cell.first.second));
             }
             insert = !insert;
@@ -635,16 +635,22 @@ int main (int argc, char * argv[])
         var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
         var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
         var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
-        var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
-        var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
+        var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.1, 0.1), roll1("roll1", 0, 0);
+        var<> yaw2("yaw2", 0, 0), pitch2("pitch2", -0.1, 0.1), roll2("roll2", 0, 0);
 
         if(!optimize){
-//            yaw1.set_lb(-0.25*pi/180);
-//            yaw1.set_ub(-0.25*pi/180);
-//            pitch1.set_lb(0.9*pi/180);
-//            pitch1.set_ub(0.9*pi/180);
+//            yaw1.set_lb(0.25*pi/180);
+//            yaw1.set_ub(0.25*pi/180);
+//            pitch1.set_lb(-0.9*pi/180);
+//            pitch1.set_ub(-0.9*pi/180);
 //            roll1.set_lb(1.45*pi/180.);
 //            roll1.set_ub(1.45*pi/180.);
+//            yaw2.set_lb(-0.25*pi/180);
+//            yaw2.set_ub(-0.25*pi/180);
+//            pitch2.set_lb(0.9*pi/180);
+//            pitch2.set_ub(0.9*pi/180);
+//            roll2.set_lb(-1.45*pi/180.);
+//            roll2.set_ub(-1.45*pi/180.);
             yaw1.set_lb(0);
             yaw1.set_ub(0);
             pitch1.set_lb(0);
@@ -682,17 +688,17 @@ int main (int argc, char * argv[])
 //        M.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
         M.add(z_diff.in(cells));
 
-//        Constraint<> Equal_pitch("Equal_pitch");
-//        Equal_pitch += pitch1 + pitch2;
-//        M.add(Equal_pitch==0);
+        Constraint<> Equal_pitch("Equal_pitch");
+        Equal_pitch += pitch1 + pitch2;
+        M.add(Equal_pitch==0);
 //
-//        Constraint<> Equal_roll("Equal_roll");
-//        Equal_roll += roll1 + roll2;
-//        M.add(Equal_roll==0);
-//
-//        Constraint<> Equal_yaw("Equal_yaw");
-//        Equal_yaw += yaw1 - yaw2;
-//        M.add(Equal_yaw==0);
+        Constraint<> Equal_roll("Equal_roll");
+        Equal_roll += roll1 + roll2;
+        M.add(Equal_roll==0);
+
+        Constraint<> Equal_yaw("Equal_yaw");
+        Equal_yaw += yaw1 + yaw2;
+        M.add(Equal_yaw==0);
 
         
     //    Constraint<> x_norm("x_norm");
@@ -1013,7 +1019,7 @@ int main (int argc, char * argv[])
 
     
     
-    bool plot_data = false;
+    bool plot_data = true;
     if(plot_data){
         namespace plt = matplotlibcpp;
 
@@ -1035,37 +1041,40 @@ int main (int argc, char * argv[])
         plt::show();
     }
     
-    DebugOn("Saving new las file");
-//    LASreadOpener lasreadopener_final;
-//    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
-//    lasreadopener_final.set_populate_header(TRUE);
-//    LASreader* lasreader = lasreadopener_final.open();
-    LASheader lasheader;
-    lasheader.global_encoding = 1;
-    lasheader.x_scale_factor = 0.01;
-    lasheader.y_scale_factor = 0.01;
-    lasheader.z_scale_factor = 0.01;
-    lasheader.x_offset =  500000.0;
-    lasheader.y_offset = 4100000.0;
-    lasheader.z_offset = 0.0;
-    lasheader.point_data_format = 1;
-    lasheader.point_data_record_length = 28;
-    
-    LASwriteOpener laswriteopener;
-    laswriteopener.set_file_name("corrected.laz");
-    LASwriter* laswriter = laswriteopener.open(&lasheader);
-    LASpoint laspoint;
-    laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
-    for (auto i = 0; i< x_combined.size(); i++) {
-        laspoint.set_x(x_combined[i]);
-        laspoint.set_y(y_combined[i]);
-        laspoint.set_z(zmax_combined[i]);
-        laswriter->write_point(&laspoint);
-        laswriter->update_inventory(&laspoint);
+    bool save_file = false;
+    if(save_file){
+        DebugOn("Saving new las file");
+    //    LASreadOpener lasreadopener_final;
+    //    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
+    //    lasreadopener_final.set_populate_header(TRUE);
+    //    LASreader* lasreader = lasreadopener_final.open();
+        LASheader lasheader;
+        lasheader.global_encoding = 1;
+        lasheader.x_scale_factor = 0.01;
+        lasheader.y_scale_factor = 0.01;
+        lasheader.z_scale_factor = 0.01;
+        lasheader.x_offset =  500000.0;
+        lasheader.y_offset = 4100000.0;
+        lasheader.z_offset = 0.0;
+        lasheader.point_data_format = 1;
+        lasheader.point_data_record_length = 28;
+        
+        LASwriteOpener laswriteopener;
+        laswriteopener.set_file_name("corrected.laz");
+        LASwriter* laswriter = laswriteopener.open(&lasheader);
+        LASpoint laspoint;
+        laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+        for (auto i = 0; i< x_combined.size(); i++) {
+            laspoint.set_x(x_combined[i]);
+            laspoint.set_y(y_combined[i]);
+            laspoint.set_z(zmax_combined[i]);
+            laswriter->write_point(&laspoint);
+            laswriter->update_inventory(&laspoint);
+        }
+        laswriter->update_header(&lasheader, TRUE);
+        laswriter->close();
+        delete laswriter;
     }
-    laswriter->update_header(&lasheader, TRUE);
-    laswriter->close();
-    delete laswriter;
 
     
     return 0;
