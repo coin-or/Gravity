@@ -5969,6 +5969,7 @@ namespace gravity {
 #endif
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
+        this->print();
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 5, ub_solver_tol);
         ub_scale_value=this->get_obj_val();

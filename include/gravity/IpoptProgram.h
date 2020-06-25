@@ -133,12 +133,12 @@ public:
         if (init_lambda && init_z) {
             _model->fill_in_duals(lambda,z_L,z_U);
         }
-        //    DebugOn("initial point = \n");
-        //    DebugOn("x = [ ");
-        //    for (int i = 0; i<n; i++) {
-        //        DebugOn(to_string(x[i]) << " ");
-        //    }
-        //    DebugOn("]\n");
+            DebugOn("initial point = \n");
+            DebugOn("x = [ ");
+            for (int i = 0; i<n; i++) {
+                DebugOn(to_string(x[i]) << " ");
+            }
+            DebugOn("]\n");
         
         return true;
     }
