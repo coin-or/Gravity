@@ -5963,7 +5963,7 @@ namespace gravity {
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(output = 0, ub_solver_tol);
+        UB_solver.run(output = 5, ub_solver_tol);
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         if(scale_objective){
@@ -5973,12 +5973,13 @@ namespace gravity {
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         LBnonlin_solver.set_option("check_violation", true);
-        LBnonlin_solver.run(output = 0 , lb_solver_tol);
+        LBnonlin_solver.run(output = 5 , lb_solver_tol);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
             DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
+        exit(-1);
         shared_ptr<Model<>> obbt_model=relaxed_model;
         Model<> interior_model;
         if(linearize){
