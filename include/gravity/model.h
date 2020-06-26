@@ -5349,7 +5349,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         
-        void print_solution(int prec=5) const{
+        void print_solution(int prec=30) const{
             print_obj_val(prec);
             for (auto &v_pair:_vars) {
                 auto v = v_pair.second;
@@ -5417,7 +5417,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return size_header;
         }
         
-        void print(int prec = 10){
+        void print(int prec = 30){
             auto size_header = print_properties();
             _obj->print(prec);
             cout << "s.t." << endl;

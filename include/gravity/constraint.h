@@ -335,7 +335,7 @@ public:
         cout << 0 << ";\n";
     };
     
-    void print(int prec = 5){
+    void print(int prec = 30){
         string str;
         str += " " + this->_name;
         if (this->is_constant()) {

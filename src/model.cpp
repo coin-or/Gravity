@@ -5969,9 +5969,9 @@ namespace gravity {
 #endif
         double gap_new=-999, gap=0, ub_scale_value;
         const double gap_tol=rel_tol;
-        this->print();
+        //this->print();
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(output = 5, ub_solver_tol);
+        UB_solver.run(output = 0, ub_solver_tol, "ma27");
         ub_scale_value=this->get_obj_val();
         solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
         scale_objective=true;
@@ -5982,16 +5982,15 @@ namespace gravity {
         }
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
         //LBnonlin_solver.set_option("check_violation", true);
-        LBnonlin_solver.run(output = 5 , lb_solver_tol);
-//        relaxed_model->print();
-//        relaxed_model->print_solution();
-        exit(0);
+        LBnonlin_solver.run(output = 0 , lb_solver_tol, "ma27");
+        //        relaxed_model->print();
+        //        relaxed_model->print_solution();
+        //        exit(0);
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
             DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
-        exit(-1);
         shared_ptr<Model<>> obbt_model=relaxed_model;
         Model<> interior_model;
         if(linearize){
@@ -6162,12 +6161,12 @@ namespace gravity {
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                               // LB_solver.set_option("check_violation", true);
+                                // LB_solver.set_option("check_violation", true);
                             }
                             else if(lb_solver_type==gurobi){
                                 LB_solver.set_option("gurobi_crossover", true);
                             }
-                            LB_solver.run(output = 0, lb_solver_tol);
+                            LB_solver.run(output = 0, lb_solver_tol, "ma27");
                             if(obbt_model->_status==0){
                                 lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                 auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
@@ -6257,17 +6256,17 @@ namespace gravity {
                         for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
                             batch_models.push_back(modelk);
-                                batch_models.at(i)->set_name(to_string(i));
-                                /* Add the upper bound constraint on the objective */
-                                if(batch_models.at(i)->_cons_name.count("obj|ub")==0){
-                                    param<> ub("ub");
-                                    ub = ub_scale_value;
-                                    auto obj = *obbt_model->_obj;
-                                    Constraint<type> obj_ub("obj|ub");
-                                    obj_ub = obj - ub;
-                                    batch_models.at(i)->add(obj_ub<=0);
-                                }
+                            batch_models.at(i)->set_name(to_string(i));
+                            /* Add the upper bound constraint on the objective */
+                            if(batch_models.at(i)->_cons_name.count("obj|ub")==0){
+                                param<> ub("ub");
+                                ub = ub_scale_value;
+                                auto obj = *obbt_model->_obj;
+                                Constraint<type> obj_ub("obj|ub");
+                                obj_ub = obj - ub;
+                                batch_models.at(i)->add(obj_ub<=0);
                             }
+                        }
                         DebugOff("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
@@ -6339,139 +6338,139 @@ namespace gravity {
                                                 int model_id = 0;
                                                 for (auto s=0;s<batch_model_count;s++)
                                                 {
-                                                        /* Update bounds only if the model status is solved to optimal */
-                                                        if(sol_status.at(s)==0)
+                                                    /* Update bounds only if the model status is solved to optimal */
+                                                    if(sol_status.at(s)==0)
+                                                    {
+                                                        msname=objective_models.at(s);
+                                                        mkname=msname;
+                                                        std::size_t pos = mkname.find("|");
+                                                        vkname.assign(mkname, 0, pos);
+                                                        mkname=mkname.substr(pos+1);
+                                                        pos=mkname.find("|");
+                                                        keyk.assign(mkname, 0, pos);
+                                                        dirk=mkname.substr(pos+1);
+                                                        vk=obbt_model->template get_var<T>(vkname);
+                                                        var_key_k=vkname+"|"+keyk;
+                                                        
+                                                        objk=sol_obj.at(s);
+                                                        
+                                                        auto update_lb=false;
+                                                        auto update_ub=false;
+                                                        if(dirk=="LB")
                                                         {
-                                                            msname=objective_models.at(s);
-                                                            mkname=msname;
-                                                            std::size_t pos = mkname.find("|");
-                                                            vkname.assign(mkname, 0, pos);
-                                                            mkname=mkname.substr(pos+1);
-                                                            pos=mkname.find("|");
-                                                            keyk.assign(mkname, 0, pos);
-                                                            dirk=mkname.substr(pos+1);
-                                                            vk=obbt_model->template get_var<T>(vkname);
-                                                            var_key_k=vkname+"|"+keyk;
-
-                                                            objk=sol_obj.at(s);
-
-                                                            auto update_lb=false;
-                                                            auto update_ub=false;
-                                                            if(dirk=="LB")
-                                                            {
-                                                                boundk1=vk.get_lb(keyk);
-                                                                //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                                objk=std::max(objk-range_tol, boundk1);
-                                                            }
-                                                            else
-                                                            {
-                                                                boundk1=vk.get_ub(keyk);
-                                                                //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                                objk=std::min(objk+range_tol, boundk1);
-                                                            }
-                                                            if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
-                                                            {//do not close intervals to OBBT before finishing at least one full iteration over all variables
-                                                                fixed_point[msname]=true;
-                                                            }
-                                                            else
-                                                            {
-                                                                if(dirk=="LB"){
-                                                                    vk.set_lb(keyk, objk);
-                                                                    update_lb=true;
-                                                                }
-                                                                else{
-                                                                    vk.set_ub(keyk, objk);
-                                                                    update_ub=true;
-                                                                }
-                                                                //If crossover in bounds,just exchange them
-                                                                if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                                                                {
-                                                                    fixed_point[var_key_k+"|LB"]=true;
-                                                                    fixed_point[var_key_k+"|UB"]=true;
-                                                                    temp=vk.get_ub(keyk);
-                                                                    tempa=vk.get_lb(keyk);
-                                                                    vk.set_ub(keyk, tempa);
-                                                                    vk.set_lb(keyk, temp);
-                                                                    update_lb=true;
-                                                                    update_ub=true;
-                                                                }
-                                                                else if(!vk._lift){
-                                                                    fixed_point[msname]=false;
-                                                                    terminate=false;
-                                                                }
-                                                            }
-                                                            //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
-                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
-                                                            {
-                                                                //If original interval is itself smaller than range_tol, do not have to reset interval
-                                                                if(interval_original[var_key_k]>=range_tol)
-                                                                {
-                                                                    DebugOff("Entered reset");
-                                                                    //Mid is the midpoint of interval
-                                                                    mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
-                                                                    left=mid-range_tol/2.0;
-                                                                    right=mid+range_tol/2.0;
-                                                                    //If resized interval does not cross original bounds, reset
-                                                                    if(right<=ub_original[var_key_k] && left>=lb_original[var_key_k])
-                                                                    {
-                                                                        vk.set_ub(keyk, right);
-                                                                        vk.set_lb(keyk, left);
-                                                                        update_lb=true;
-                                                                        update_ub=true;
-                                                                    }
-                                                                    //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
-                                                                    else if(right>ub_original[var_key_k])
-                                                                    {
-                                                                        
-                                                                        vk.set_ub(keyk, ub_original[var_key_k]);
-                                                                        vk.set_lb(keyk, ub_original[var_key_k]-range_tol);
-                                                                        update_lb=true;
-                                                                        update_ub=true;
-                                                                    }
-                                                                    //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
-                                                                    else if(left<lb_original[var_key_k])
-                                                                    {
-                                                                        vk.set_lb(keyk, lb_original[var_key_k]);
-                                                                        vk.set_ub(keyk, lb_original[var_key_k]+range_tol);
-                                                                        update_lb=true;
-                                                                        update_ub=true;
-                                                                        
-                                                                    }
-                                                                    //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
-                                                                    //than range_tol
-                                                                    
-                                                                }
-                                                            }
-                                                            if(update_lb||update_ub){
-                                                                for(auto &mod:batch_models){
-                                                                    auto vkmod=mod->template get_var<T>(vkname);
-                                                                    if(update_lb){
-                                                                        vkmod.set_lb(keyk, vk.get_lb(keyk));
-                                                                    }
-                                                                    if(update_ub){
-                                                                        vkmod.set_ub(keyk, vk.get_ub(keyk));
-                                                                    }
-                                                                }
-                                                            }
-                                                            if(linearize){
-                                                                //                                                        if(linearize && !fixed_point[model->get_name()]){
-                                                                //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
-                                                                obbt_solution=sol_val.at(s);
-                                                                if(run_obbt_iter==1){
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
-                                                                }
-                                                                else{
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
-                                                                }
-                                                                //                                                            }
-                                                                //                                                        }
-                                                            }
+                                                            boundk1=vk.get_lb(keyk);
+                                                            //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
+                                                            objk=std::max(objk-range_tol, boundk1);
                                                         }
                                                         else
                                                         {
-                                                            DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                                            
+                                                            boundk1=vk.get_ub(keyk);
+                                                            //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
+                                                            objk=std::min(objk+range_tol, boundk1);
                                                         }
+                                                        if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+                                                        {//do not close intervals to OBBT before finishing at least one full iteration over all variables
+                                                            fixed_point[msname]=true;
+                                                        }
+                                                        else
+                                                        {
+                                                            if(dirk=="LB"){
+                                                                vk.set_lb(keyk, objk);
+                                                                update_lb=true;
+                                                            }
+                                                            else{
+                                                                vk.set_ub(keyk, objk);
+                                                                update_ub=true;
+                                                            }
+                                                            //If crossover in bounds,just exchange them
+                                                            if(vk.get_ub(keyk)<vk.get_lb(keyk))
+                                                            {
+                                                                fixed_point[var_key_k+"|LB"]=true;
+                                                                fixed_point[var_key_k+"|UB"]=true;
+                                                                temp=vk.get_ub(keyk);
+                                                                tempa=vk.get_lb(keyk);
+                                                                vk.set_ub(keyk, tempa);
+                                                                vk.set_lb(keyk, temp);
+                                                                update_lb=true;
+                                                                update_ub=true;
+                                                            }
+                                                            else if(!vk._lift){
+                                                                fixed_point[msname]=false;
+                                                                terminate=false;
+                                                            }
+                                                        }
+                                                        //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
+                                                        if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                                        {
+                                                            //If original interval is itself smaller than range_tol, do not have to reset interval
+                                                            if(interval_original[var_key_k]>=range_tol)
+                                                            {
+                                                                DebugOff("Entered reset");
+                                                                //Mid is the midpoint of interval
+                                                                mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+                                                                left=mid-range_tol/2.0;
+                                                                right=mid+range_tol/2.0;
+                                                                //If resized interval does not cross original bounds, reset
+                                                                if(right<=ub_original[var_key_k] && left>=lb_original[var_key_k])
+                                                                {
+                                                                    vk.set_ub(keyk, right);
+                                                                    vk.set_lb(keyk, left);
+                                                                    update_lb=true;
+                                                                    update_ub=true;
+                                                                }
+                                                                //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
+                                                                else if(right>ub_original[var_key_k])
+                                                                {
+                                                                    
+                                                                    vk.set_ub(keyk, ub_original[var_key_k]);
+                                                                    vk.set_lb(keyk, ub_original[var_key_k]-range_tol);
+                                                                    update_lb=true;
+                                                                    update_ub=true;
+                                                                }
+                                                                //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
+                                                                else if(left<lb_original[var_key_k])
+                                                                {
+                                                                    vk.set_lb(keyk, lb_original[var_key_k]);
+                                                                    vk.set_ub(keyk, lb_original[var_key_k]+range_tol);
+                                                                    update_lb=true;
+                                                                    update_ub=true;
+                                                                    
+                                                                }
+                                                                //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
+                                                                //than range_tol
+                                                                
+                                                            }
+                                                        }
+                                                        if(update_lb||update_ub){
+                                                            for(auto &mod:batch_models){
+                                                                auto vkmod=mod->template get_var<T>(vkname);
+                                                                if(update_lb){
+                                                                    vkmod.set_lb(keyk, vk.get_lb(keyk));
+                                                                }
+                                                                if(update_ub){
+                                                                    vkmod.set_ub(keyk, vk.get_ub(keyk));
+                                                                }
+                                                            }
+                                                        }
+                                                        if(linearize){
+                                                            //                                                        if(linearize && !fixed_point[model->get_name()]){
+                                                            //                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
+                                                            obbt_solution=sol_val.at(s);
+                                                            if(run_obbt_iter==1){
+                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
+                                                            }
+                                                            else{
+                                                                relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                                            }
+                                                            //                                                            }
+                                                            //                                                        }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                                        
+                                                    }
                                                     model_id++;
                                                 }
                                                 for(auto &mod:batch_models){
@@ -6524,7 +6523,7 @@ namespace gravity {
                                     solver<> LB_solver(obbt_model,lb_solver_type);
                                     LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                     LB_solver.set_option("check_violation", true);
-                                    LB_solver.run(output = 0, lb_solver_tol);
+                                    LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                     if(obbt_model->_status==0)
                                     {
                                         lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
@@ -6580,12 +6579,12 @@ namespace gravity {
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                                             LB_solver.set_option("check_violation", true);
+                                            LB_solver.set_option("check_violation", true);
                                         }
                                         else if(lb_solver_type==gurobi){
                                             LB_solver.set_option("gurobi_crossover", true);
                                         }
-                                        LB_solver.run(output = 0, lb_solver_tol);
+                                        LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                         if(obbt_model->_status==0){
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
@@ -6621,8 +6620,8 @@ namespace gravity {
                                         }
                                         DebugOff("Number of OA cuts = "<<nb_OA_cuts<<endl);
                                         DebugOff("Number of OA cuts1 = "<<(oacuts-oacuts_init)<<endl);
-                                      // obbt_model->get_solution(obbt_solution);
-                                       // relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
+                                        // obbt_model->get_solution(obbt_solution);
+                                        // relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                         if(!close){
                                             for(auto &mod:batch_models){
                                                 for (auto con: obbt_model->_cons_vec){
@@ -6675,10 +6674,10 @@ namespace gravity {
                             }
                             solver_time= get_wall_time()-solver_time_start;
                             DebugOff("Solved Fixed Point iteration " << iter << endl);
-//                            if(linearize && (gap_old-gap<gap_tol) && run_obbt_iter==1){
-//                                DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
-//                                break;
-//                            }
+                            //                            if(linearize && (gap_old-gap<gap_tol) && run_obbt_iter==1){
+                            //                                DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
+                            //                                break;
+                            //                            }
                             gap_old=gap;
                         }
                         
@@ -6739,7 +6738,7 @@ namespace gravity {
                                 else if(lb_solver_type==gurobi){
                                     LB_solver.set_option("gurobi_crossover", true);
                                 }
-                                LB_solver.run(output = 0, lb_solver_tol);
+                                LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                 if(obbt_model->_status==0){
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                 }
@@ -6832,6 +6831,7 @@ namespace gravity {
     //    template class Model<Cpx>;
     
 }
+
 
 
 

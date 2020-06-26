@@ -818,6 +818,7 @@ namespace gravity {
         int nb_added_cuts = 0;
         string keyv;
         double scale=1.0;
+        bool near_zero=true;
         
         string vkname,keyk,dirk;
         var<> vk;
@@ -923,7 +924,7 @@ namespace gravity {
                                             convex_region=true;
                                         }
                                         else{
-                                            convex_region=false;
+                                             convex_region=false;
                                         }
                                     }
                                     if(convex_region){
@@ -947,14 +948,23 @@ namespace gravity {
                                             con->get_outer_coef(i, c_val, c0_val);
                                             vector<int> coefs;
                                             for (auto j = 0; j<c_val.size(); j++) {
+                                                near_zero=true;
                                                 if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
                                                     scale=1.0e3;
+                                                }
+                                                if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                                    near_zero=true;
+                                                }
+                                                else{
+                                                    near_zero=false;
                                                 }
                                                 coefs.push_back(1e5*c_val[j]);
                                             }
                                             coefs.push_back(1e5*c0_val);
                                             if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                 oa_cut=true;
+                                            if(near_zero)
+                                                oa_cut=false;
                                         }
                                     }
                                     

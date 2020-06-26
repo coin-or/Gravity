@@ -23,7 +23,9 @@ int main (int argc, char * argv[])
     
     
     
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m", mtype = "ACPOL";
+   // string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string mtype = "ACRECT";
     int output = 0;
     double tol = 1e-6;
     string mehrotra = "no", log_level="0";
@@ -302,8 +304,8 @@ int main (int argc, char * argv[])
 //    ACOPF.initialize_uniform();
     solver<> OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output=5, tol = 1e-6);
-    OPF.run(output=5, tol = 1e-6);
+    OPF.run(output=8, tol = 1e-8);
+    //OPF.run(output=5, tol = 1e-6);
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;

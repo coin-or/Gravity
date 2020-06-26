@@ -1258,7 +1258,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     auto tan_th_min = grid.tan_th_min.in(node_pairs);
     auto tan_th_max = grid.tan_th_max.in(node_pairs);
     
-    grid.update_ref_bus();
+     
     
     bool polar = (pmt==ACPOL);
     if (polar) {
