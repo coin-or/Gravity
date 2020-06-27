@@ -5956,6 +5956,11 @@ namespace gravity {
     template<typename T,
     typename std::enable_if<is_same<T,double>::value>::type*>
     std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective) {
+#ifdef USE_MPI
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
         std::tuple<bool,int,double,double,double,double,double,double,int,int> res;
         int total_iter=0, global_iter=1;
         int output, oacuts_init=0, oacuts=0;
