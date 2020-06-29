@@ -625,7 +625,7 @@ namespace gravity {
         int nb_added_cuts=0;
         int nb_perturb=0;
         int count_var=0;
-        if(interior){
+        if(interior && nb_perturb>0){
             for (auto &con: nonlin._cons_vec)
             {
                 if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
@@ -952,8 +952,11 @@ namespace gravity {
                                             vector<int> coefs;
                                             for (auto j = 0; j<c_val.size(); j++) {
                                                 near_zero=true;
+                                                scale=1.0;
                                                 if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-                                                    scale=1.0e3;
+                                                    if(zero_tol/std::abs(c_val[j])>scale){
+                                                        scale=zero_tol/std::abs(c_val[j]);
+                                                    }
                                                 }
                                                 if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
                                                     near_zero=true;
