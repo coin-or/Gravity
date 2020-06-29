@@ -728,9 +728,12 @@ namespace gravity {
                                             else{
                                                 con->get_outer_coef(i, c_val, c0_val);
                                                 vector<int> coefs;
+                                                scale=1;
                                                 for (auto k = 0; k<c_val.size(); k++) {
                                                     if(c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
-                                                        scale=1.0e3;
+                                                        if(zero_tol/std::abs(c_val[k])>scale){
+                                                            scale=zero_tol/std::abs(c_val[k]);
+                                                        }
                                                     }
                                                     coefs.push_back(1e5*c_val[k]);
                                                 }

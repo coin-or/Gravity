@@ -6580,17 +6580,22 @@ namespace gravity {
                                     constr_viol=true;
                                     lin_count=0;
                                     active_root_tol=1e-6;
+                                    bool gstatus=true;
                                     while (constr_viol && lin_count<20 && active_root_tol>=lb_solver_tol){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                             LB_solver.set_option("check_violation", true);
                                         }
-                                        else if(lb_solver_type==gurobi){
+                                        else if(lb_solver_type==gurobi && gstatus){
                                             LB_solver.set_option("gurobi_crossover", true);
+                                        }
+                                        else if(lb_solver_type==gurobi){
+                                            LB_solver.set_option("gurobi_crossover", false);
                                         }
                                         LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                         if(obbt_model->_status==0){
+                                            gstatus=true;
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                                             {
@@ -6610,7 +6615,7 @@ namespace gravity {
                                             }
                                         }
                                         else{
-                                            break;
+                                            gstatus=false;
                                         }
                                         lin_count++;
                                     }
