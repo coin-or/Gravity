@@ -6320,8 +6320,11 @@ namespace gravity {
                                             if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                             {
                                                 obbt_subproblem_count+=batch_model_count;
-                                                DebugOff("osc "<<obbt_subproblem_count<<endl);
-                                                
+#ifdef USE_MPI
+                                                if(worker_id==0){
+                                                    DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
+                                                }
+#endif
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
                                                 sol_obj.resize(batch_model_count,-1.0);
@@ -6473,8 +6476,13 @@ namespace gravity {
                                                     }
                                                     else
                                                     {
+#ifdef USE_MPI
+                                                        if(worker_id==0){
+                                                            DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                                        }
+#else
                                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                                        
+#endif
                                                     }
                                                     model_id++;
                                                 }
