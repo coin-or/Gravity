@@ -6320,8 +6320,11 @@ namespace gravity {
                                             if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
                                             {
                                                 obbt_subproblem_count+=batch_model_count;
-                                                DebugOff("osc "<<obbt_subproblem_count<<endl);
-                                                
+#ifdef USE_MPI
+                                                if(worker_id==0){
+                                                    DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
+                                                }
+#endif
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
                                                 sol_obj.resize(batch_model_count,-1.0);
@@ -6473,8 +6476,13 @@ namespace gravity {
                                                     }
                                                     else
                                                     {
+#ifdef USE_MPI
+                                                        if(worker_id==0){
+                                                            DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
+                                                        }
+#else
                                                         DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
-                                                        
+#endif
                                                     }
                                                     model_id++;
                                                 }
@@ -6592,6 +6600,11 @@ namespace gravity {
                                         }
                                         else if(lb_solver_type==gurobi){
                                             LB_solver.set_option("gurobi_crossover", false);
+#ifdef USE_MPI
+                                            if(worker_id==0){
+                                                DebugOn("entered crossover false at iter "<<iter<<" and lincount "<<lin_count<<endl);
+                                            }
+#endif
                                         }
                                         LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                         if(obbt_model->_status==0){
@@ -6625,6 +6638,11 @@ namespace gravity {
 					    obbt_model->reindex();
                                             obbt_model->reset();
 					    obbt_model->reset_constrs();
+#ifdef USE_MPI
+                                            if(worker_id==0){
+                                                DebugOn("gstatus is false at iter "<<iter<<" and lincount "<<lin_count<<endl);
+                                            }
+#endif
                                         }
                                         lin_count++;
                                     }
