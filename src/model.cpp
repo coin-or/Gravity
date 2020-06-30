@@ -6600,6 +6600,11 @@ namespace gravity {
                                         }
                                         else if(lb_solver_type==gurobi){
                                             LB_solver.set_option("gurobi_crossover", false);
+#ifdef USE_MPI
+                                            if(worker_id==0){
+                                                DebugOn("entered crossover false at iter "<<iter<<" and lincount "<<lin_count<<endl);
+                                            }
+#endif
                                         }
                                         LB_solver.run(output = 0, lb_solver_tol, "ma27");
                                         if(obbt_model->_status==0){
@@ -6633,6 +6638,11 @@ namespace gravity {
 					    obbt_model->reindex();
                                             obbt_model->reset();
 					    obbt_model->reset_constrs();
+#ifdef USE_MPI
+                                            if(worker_id==0){
+                                                DebugOn("gstatus is false at iter "<<iter<<" and lincount "<<lin_count<<endl);
+                                            }
+#endif
                                         }
                                         lin_count++;
                                     }
