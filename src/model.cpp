@@ -6614,7 +6614,7 @@ namespace gravity {
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
                                             obbt_model->reindex();
                                             obbt_model->reset();
-					    obbt_model->reset_constrs();
+					    //obbt_model->reset_constrs();
                                             if(!constr_viol){
                                                 active_root_tol=active_root_tol*0.1;
                                                 constr_viol=true;
