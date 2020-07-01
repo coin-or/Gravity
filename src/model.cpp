@@ -6618,16 +6618,16 @@ namespace gravity {
                                             //obbt_model->print();
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
 #ifdef USE_MPI
-					    if(worker_id==0){
+                                            if(worker_id==0){
                                             	DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
-					    	DebugOn("lin count "<<lin_count<<endl);
-					    }
+                                                DebugOn("lin count "<<lin_count<<endl);
+                                            }
 #endif
                                             obbt_model->get_solution(obbt_solution);
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
                                             obbt_model->reindex();
                                             obbt_model->reset();
-					    obbt_model->reset_constrs();
+                                            obbt_model->reset_constrs();
                                             if(!constr_viol){
                                                 active_root_tol=active_root_tol*0.1;
                                                 constr_viol=true;
@@ -6635,9 +6635,9 @@ namespace gravity {
                                         }
                                         else{
                                             gstatus=false;
-					    obbt_model->reindex();
+                                            obbt_model->reindex();
                                             obbt_model->reset();
-					    obbt_model->reset_constrs();
+                                            obbt_model->reset_constrs();
 #ifdef USE_MPI
                                             if(worker_id==0){
                                                 DebugOn("gstatus is false at iter "<<iter<<" and lincount "<<lin_count<<endl);
