@@ -803,7 +803,7 @@ namespace gravity {
     }
     //
     template<>
-    bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol)
+    bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, map<string,size_t>& inst_old)
     {
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
@@ -826,6 +826,10 @@ namespace gravity {
         string vkname,keyk,dirk;
         var<> vk;
         shared_ptr<param_> vck;
+        inst_old.clear();
+        for(auto &clin:lin->_cons_vec){
+            inst_old[clin->_name]=clin->get_nb_instances();
+        }
         if(modelname!="allvar"){
             auto mname=modelname;
             std::size_t pos = mname.find("|");

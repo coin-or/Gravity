@@ -390,10 +390,10 @@ namespace gravity {
                         grb_prog->prepare_model();
                         optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
-                        delete grb_prog->grb_mod;
-                        delete grb_prog->grb_env;
-                        grb_prog->grb_mod = nullptr;
-                        grb_prog->grb_env = nullptr;
+//                        delete grb_prog->grb_mod;
+//                        delete grb_prog->grb_env;
+//                        grb_prog->grb_mod = nullptr;
+//                        grb_prog->grb_env = nullptr;
                     }catch(GRBException e) {
                         cerr << "\nError code = " << e.getErrorCode() << endl;
                         cerr << e.getMessage() << endl;

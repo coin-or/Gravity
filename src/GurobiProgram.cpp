@@ -97,7 +97,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     if (relax) relax_model();
 //    relax_model();
     grb_mod->set(GRB_DoubleParam_BarConvTol, tol);
-   // grb_mod->set(GRB_IntParam_ScaleFlag, 2);
+    //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
@@ -105,7 +105,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     //grb_mod->set(GRB_IntParam_NumericFocus, 1);
     grb_mod->set(GRB_IntParam_Method, 2);
     if(!gurobi_crossover){
-    grb_mod->set(GRB_IntParam_Crossover, 0);
+    	grb_mod->set(GRB_IntParam_Crossover, 0);
     }
     grb_mod->set(GRB_IntParam_OutputFlag, 0);
     //warm_start();
