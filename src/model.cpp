@@ -6162,7 +6162,7 @@ namespace gravity {
                         //obbt_model->print();
                         constr_viol=true;
                         lin_count=0;
-                        while (constr_viol && lin_count<=20 && active_root_tol>=lb_solver_tol){
+                        while (constr_viol && lin_count<5 && active_root_tol>=lb_solver_tol){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6204,9 +6204,10 @@ namespace gravity {
                                 DebugOn("Gap initial "<<gaplin<<" and cuts initial "<<oacuts<<" and cuts buildoa "<<oacuts_init<<endl);
                             }
 #endif
+			oacuts_init=oacuts;
                         }
                         if(run_obbt_iter==1){
-                            active_tol=1e-1;
+                            active_tol=1e-6;
                         }
                         else{
                             active_tol=1e-6;
@@ -6524,9 +6525,12 @@ namespace gravity {
                                 //                    auto new_obbt = *obbt_model;
                                 //                    obbt_model = new_obbt.copy();
                                 if(linearize){
-                                    if(active_tol>obbt_subproblem_tol){
+                                    if(active_tol>lb_solver_tol){
                                         active_tol*=0.1;
                                     }
+				    else if(run_obbt_iter>1 && (active_tol==lb_solver_tol)){
+					 active_tol*=0.1;
+				    }
                                     obbt_model->reset();
                                     obbt_model->reindex();
                                 }
@@ -6588,7 +6592,7 @@ namespace gravity {
                                     constr_viol=true;
                                     lin_count=0;
                                     active_root_tol=1e-6;
-                                    while (constr_viol && lin_count<20 && active_root_tol>=lb_solver_tol){
+                                    while (constr_viol && lin_count<5 && active_root_tol>=lb_solver_tol){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
