@@ -96,19 +96,19 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    print_constraints();
     if (relax) relax_model();
 //    relax_model();
-    grb_mod->set(GRB_DoubleParam_BarConvTol, tol);
+    //grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
     //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
-    grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
+    //grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+    //grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+    //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
-    //grb_mod->set(GRB_IntParam_NumericFocus, 1);
-    grb_mod->set(GRB_IntParam_Method, 2);
+    ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
+    grb_mod->set(GRB_IntParam_Method, 0);
     if(!gurobi_crossover){
-    	grb_mod->set(GRB_IntParam_Crossover, 0);
+    	//grb_mod->set(GRB_IntParam_Crossover, 0);
     }
     grb_mod->set(GRB_IntParam_OutputFlag, 0);
-    //warm_start();
+    warm_start();
     //grb_mod->write("gurobiprint.lp");
     try{
         grb_mod->optimize();
