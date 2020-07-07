@@ -1137,6 +1137,96 @@ namespace gravity {
                 }
             }
         }
+        vector<double> get_lb(int inst_i){
+            vector<double> res;
+            size_t posv;
+            double lbv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        lbv=v->get_double_lb(posv);
+                        res.push_back(lbv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    lbv=v->get_double_lb(posv);
+                    res.push_back(lbv);
+                    
+                }
+            }
+            return res;
+        }
+        vector<double> get_ub(int inst_i){
+            vector<double> res;
+            size_t posv;
+            double ubv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        ubv=v->get_double_ub(posv);
+                        res.push_back(ubv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    ubv=v->get_double_ub(posv);
+                    res.push_back(ubv);
+                    
+                }
+            }
+            return res;
+        }
+        bool xval_within_bounds(int inst_i, vector<double> xval){
+            bool success=true;
+            size_t posv;
+            double lbv,ubv;
+            int current=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        lbv=v->get_double_lb(posv);
+                        ubv=v->get_double_ub(posv);
+                        if(xval[current]<lbv||xval[current]>ubv){
+                            success=false;
+                            return success;
+                        }
+                        current++;
+                    }
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    lbv=v->get_double_lb(posv);
+                    ubv=v->get_double_ub(posv);
+                    if(xval[current]<lbv||xval[current]>ubv){
+                        success=false;
+                        return success;
+                    }
+                    current++;
+                }
+            }
+            return success;
+        }
         /** Get a set of active points by uniformly discretizing the variable domain
          @param[in] nb_discr:
          @param[in] nb_inst:

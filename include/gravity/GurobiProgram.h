@@ -30,6 +30,7 @@ public:
     void update_solution();
     void relax_model();
     void warm_start();
+    void update_grb_constraints(std::map<std::string,std::size_t>);
 
     void fill_in_grb_vmap();
     void create_grb_constraints();

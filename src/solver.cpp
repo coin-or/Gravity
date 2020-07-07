@@ -490,6 +490,32 @@ namespace gravity {
     }
     
     template<>
+    bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst){
+        bool violated=false;
+        double const active_tol=1e-6;
+        string lin_cname="OA_cuts_"+cname;
+        int nb_inst;
+        if(_cons_name.find(lin_cname)!=_cons_name.end()){
+            auto con_lin=_cons_name.at(lin_cname);
+            nb_inst=con_lin->get_nb_instances();
+            for(auto i=0;i<nb_inst;i++){
+                if(con_lin->_lazy[i]){
+                    if(con_lin->_indices->_keys->at(i).find("inst_"+to_string(inst)+"_")!=string::npos){
+                        con_lin->set_x(i, x);
+                        con_lin->uneval();
+                        auto fk=con_lin->eval(i);
+                        if((fk > active_tol && con_lin->_ctype==leq) || (fk < -active_tol && con_lin->_ctype==geq)){
+                            violated=true;
+                            return violated;
+                        }
+                    }
+                }
+            }
+        }
+        return violated;
+    }
+    
+    template<>
     Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     {
         const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1, zero_tol=1e-6;
@@ -528,6 +554,9 @@ namespace gravity {
             interior=true;
             //        Ointerior.print_solution();
         }
+        else{
+            DebugOn("Failed to solve interior model"<<endl);
+        }
         for (auto &con: nonlin._cons_vec)
         {
             if(!con->is_linear()) {
@@ -560,18 +589,23 @@ namespace gravity {
                             con->uneval();
                             con->eval_all();
                             if(con->is_active(i,active_tol_sol)){
-                                
                                 activeset.add((*keys)[i]);
                             }
                         }
                     }
                     OA_sol=con->get_outer_app(activeset, scale);
+                    auto oa_sol_inst=OA_sol.get_nb_instances();
+                    for(auto o=0;o<oa_sol_inst;o++){
+                        OA_sol._lazy.push_back(false);
+                    }
+                
                     if(con->_ctype==leq) {
                         add(OA_sol.in(activeset)<=0);
                     }
                     else {
                         add(OA_sol.in(activeset)>=0);
                     }
+                    //OA_sol.print();
                 }
                 else if(con->is_quadratic() && con->_lterms->size()==1 && con->_qterms->size()==1 && con->_qterms->begin()->second._p->first==con->_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
                 {
@@ -589,6 +623,10 @@ namespace gravity {
                          }
                      }
                     OA_sol=con->get_outer_app(allset, scale);
+                    auto oa_sol_inst=OA_sol.get_nb_instances();
+                    for(auto o=0;o<oa_sol_inst;o++){
+                        OA_sol._lazy.push_back(false);
+                    }
                     if(con->_ctype==leq) {
                         add(OA_sol.in(allset)<=0);
                     }
@@ -609,6 +647,10 @@ namespace gravity {
                             
                         }
                         OA_sol=con->get_outer_app(allset, scale);
+                        auto oa_sol_inst=OA_sol.get_nb_instances();
+                        for(auto o=0;o<oa_sol_inst;o++){
+                            OA_sol._lazy.push_back(false);
+                        }
                         if(con->_ctype==leq) {
                             add(OA_sol.in(allset)<=0);
                         }
@@ -735,10 +777,10 @@ namespace gravity {
                                                             scale=zero_tol/std::abs(c_val[k]);
                                                         }
                                                     }
-                                                    coefs.push_back(1e5*c_val[k]);
+                                                  //  coefs.push_back(1e5*c_val[k]);
                                                 }
-                                                coefs.push_back(1e5*c0_val);
-                                                if(_OA_cuts[con->_id*100+i].insert(coefs).second)
+                                               // coefs.push_back(1e5*c0_val);
+                                               // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                     oa_cut=true;
                                             }
                                         }
@@ -750,6 +792,7 @@ namespace gravity {
                                         auto nb_inst = con_lin->get_nb_instances();
                                         con_lin->_indices->add("inst_"+to_string(nb_inst));
                                         con_lin->_dim[0] = con_lin->_indices->size();
+                                        con_lin->_lazy.push_back(false);
                                         auto count=0;
                                         for(auto &l: *(con_lin->_lterms)){
                                             auto name=l.first;
@@ -783,6 +826,7 @@ namespace gravity {
                                             rhs_f->_indices->add("inst_"+to_string(nb_inst));
                                             rhs_f->_dim[0] = rhs_f->_indices->size();
                                         }
+                                        con_lin->eval(nb_inst);
                                     }
                                     con->set_x(i, xcurrent);
                                     xres.clear();
@@ -799,6 +843,7 @@ namespace gravity {
         reindex();
         DebugOff("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
         set_solution(xsolution);
+        //print();
         return Ointerior;
     }
     //
@@ -822,10 +867,15 @@ namespace gravity {
         string keyv;
         double scale=1.0;
         bool near_zero=true;
+        string cname, con_lin_name;
         
         string vkname,keyk,dirk;
         var<> vk;
         shared_ptr<param_> vck;
+//        inst_old.clear();
+//        for(auto &clin:lin->_cons_vec){
+//            inst_old[clin->_name]=clin->get_nb_instances();
+//        }
         if(modelname!="allvar"){
             auto mname=modelname;
             std::size_t pos = mname.find("|");
@@ -848,8 +898,8 @@ namespace gravity {
                     var_found=true;
                 }
                 if(var_found){
-                    auto cname=con->_name;
-                    auto con_lin_name="OA_cuts_"+con->_name;
+                    cname=con->_name;
+                    con_lin_name="OA_cuts_"+con->_name;
                     if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
                         add_new=false;
                     }
@@ -895,14 +945,20 @@ namespace gravity {
                                     auto fk=con->eval(i);
                                     if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                                         constr_viol=true;
-                                        //if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
+                                        //ToDo fix interior status
+                                        DebugOff("status "<< interior._status);
+//                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                                            if(con->xval_within_bounds(i, xcurrent)){
+                                                if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i))){
                                             auto con_interior=interior.get_constraint(cname);
                                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                                             auto res_search=con->binary_line_search(xinterior, i);
                                             if(res_search){
                                                 oa_cut=true;
                                             }
+                                                }
+                                        }
                                         }
                                         else{
                                             if (con->is_convex()){
@@ -938,6 +994,7 @@ namespace gravity {
                                             activeset.add((*con->_indices->_keys)[i]);
                                             Constraint<> OA_cut(con_lin_name);
                                             OA_cut=con->get_outer_app(activeset, scale);
+                                            OA_cut._lazy.push_back(false);
                                             if(con->_ctype==leq) {
                                                 lin->add(OA_cut.in(activeset)<=0);
                                             }
@@ -979,8 +1036,9 @@ namespace gravity {
                                     nb_added_cuts++;
                                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
                                     auto nb_inst = con_lin->get_nb_instances();
-                                    con_lin->_indices->add("inst_"+to_string(nb_inst));
+                                    con_lin->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
                                     con_lin->_dim[0] = con_lin->_indices->size();
+                                    con_lin->_lazy.push_back(true);
                                     auto count=0;
                                     for(auto &l: *(con_lin->_lterms)){
                                         auto name=l.first;
@@ -1024,7 +1082,11 @@ namespace gravity {
                                         p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val*scale);
                                         rhs_f->_indices->add("inst_"+to_string(nb_inst));
                                         rhs_f->_dim[0] = rhs_f->_indices->size();
+                                      //  rhs_f->eval_all();
                                     }
+                                    con_lin->eval_all();
+                                    con_lin->uneval();
+                                    con_lin->eval(nb_inst);
                                 }
                                 con->set_x(i, xcurrent);
                                 xcurrent.clear();
@@ -1044,8 +1106,20 @@ namespace gravity {
         DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
         return(constr_viol);
     }
-    
-    
+    template<>
+    void Model<>::reset_lazy(){
+        for (auto &con: _cons_vec)
+        {
+            if(con->_lazy.size()!=0){
+            auto nb=con->get_nb_instances();
+            for (auto i=0;i<nb;i++){
+                if(con->_lazy[i]){
+                    con->_lazy[i]=false;
+                }
+            }
+        }
+    }
+    }
     
     
     
