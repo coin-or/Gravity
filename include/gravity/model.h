@@ -6260,9 +6260,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
         //template<typename T=type>
         /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
+        bool linearmodel_violates_x(vector<double>& x, string cname, int inst);
         void add_outer_app_active(const Model<type>& nonlin, int nb_perturb);
         Model<type> add_outer_app_solution(Model<type>& nonlin);
-        bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, std::string model_name,int& oacuts, double active_tol, map<string,size_t>& inst_old);
+        bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, std::string model_name,int& oacuts, double active_tol);
+        void reset_lazy();
         int num_obbt_prob(){
             int count=0;
             for(auto &v:_vars){
