@@ -490,9 +490,12 @@ namespace gravity {
     }
     
     template<>
-    bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst){
+    bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst, double tol){
         bool violated=false;
-        double const active_tol=1e-6;
+        double active_tol=1e-6;
+        if(tol<active_tol){
+           // active_tol=tol;
+        }
         string lin_cname="OA_cuts_"+cname;
         int nb_inst;
         if(_cons_name.find(lin_cname)!=_cons_name.end()){
@@ -950,7 +953,7 @@ namespace gravity {
 //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                                             if(con->xval_within_bounds(i, xcurrent)){
-                                                if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i))){
+                                                if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
                                             auto con_interior=interior.get_constraint(cname);
                                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                                             auto res_search=con->binary_line_search(xinterior, i);
@@ -1021,10 +1024,10 @@ namespace gravity {
                                                 else{
                                                     near_zero=false;
                                                 }
-                                                coefs.push_back(1e5*c_val[j]);
+                                                //coefs.push_back(1e5*c_val[j]);
                                             }
-                                            coefs.push_back(1e5*c0_val);
-                                            if(_OA_cuts[con->_id*100+i].insert(coefs).second)
+                                           // coefs.push_back(1e5*c0_val);
+                                           // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
                                                 oa_cut=true;
                                             if(near_zero)
                                                 oa_cut=false;
