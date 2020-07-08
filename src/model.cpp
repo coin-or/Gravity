@@ -6024,7 +6024,9 @@ namespace gravity {
                 DebugOff("Maximum iterations exceeded"<<endl);
                 break;
             }
-            if(get<1>(status)==1 && max_iter>1)
+            if(!linearize && get<1>(status)==1 && max_iter>1)
+                break;
+	     if(linearize && get<1>(status)==1 && run_obbt_iter>=4)
                 break;
             oacuts=get<8>(status);
             run_obbt_iter++;
@@ -6211,9 +6213,13 @@ namespace gravity {
                         if(run_obbt_iter==1){
                             active_tol=1e-1;
                         }
-                        else{
+                        else if(run_obbt_iter<=3){
                             active_tol=1e-6;
                         }
+			else{
+			    active_tol=lb_solver_tol;
+			}
+			
                     }
                     int count_var=0;
                     int count_skip=0;
@@ -6547,7 +6553,7 @@ namespace gravity {
                                     if(run_obbt_iter>=1 && active_tol>lb_solver_tol){
                                         active_tol*=0.1;
                                     }
-                                    else if(run_obbt_iter>1 && (active_tol==lb_solver_tol)){
+                                    else if(run_obbt_iter>1 && (active_tol>=lb_solver_tol*0.1)){
                                         active_tol*=0.1;
                                     }
                                     obbt_model->reset();
@@ -6721,8 +6727,12 @@ namespace gravity {
                             }
                             solver_time= get_wall_time()-solver_time_start;
                             DebugOff("Solved Fixed Point iteration " << iter << endl);
-                                                        if(linearize && (gap_old-gap<0.1) && run_obbt_iter==1){
+                                                        if(linearize && (gap_old-gap<0.1) && run_obbt_iter<=3){
+#ifdef USE_MPI
+                                        if(worker_id==0){
                                                             DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
+}
+#endif
                                                             break;
                                                         }
                             gap_old=gap;
