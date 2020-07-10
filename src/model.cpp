@@ -6165,7 +6165,7 @@ namespace gravity {
                         //obbt_model->print();
                         constr_viol=true;
                         lin_count=0;
-                        while (constr_viol && lin_count<5 && active_root_tol>=lb_solver_tol){
+                        while (constr_viol && lin_count<5){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6186,10 +6186,15 @@ namespace gravity {
                                 obbt_model->reset();
                                 obbt_model->reindex();
                                 obbt_model->reset_constrs();
-                                if(!constr_viol && (active_root_tol>lb_solver_tol)){
+                                if(run_obbt_iter>=4 && (active_root_tol>=1E-9)){
+                                        active_root_tol=active_root_tol*0.1;
+                                    constr_viol=true;
+                                }
+                                else if(!constr_viol && (active_root_tol>lb_solver_tol)){
                                     active_root_tol=active_root_tol*0.1;
                                     constr_viol=true;
                                 }
+				    
                             }
                             else{
                                 break;
@@ -6216,9 +6221,13 @@ namespace gravity {
                         else if(run_obbt_iter<=3){
                             active_tol=1e-6;
                         }
-			else{
+			else if (run_obbt_iter==4){
 			    active_tol=lb_solver_tol;
 			}
+			else if(run_obbt_iter==5)
+				active_tol=1e-9;
+			else
+				active_tol=1e-10;
 			
                     }
                     int count_var=0;
@@ -6505,13 +6514,13 @@ namespace gravity {
                                                                 else{
                                                                     relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
                                                                 }
-                                                                obbt_model->reset_lazy();
                                                             }
                                                             }
                                                             //                                                        }
                                                         }
                                                     }
                                                 }
+						obbt_model->reset_lazy();
                                                 for(auto &mod:batch_models){
                                                     if(linearize){
                                                         for (auto con: obbt_model->_cons_vec){
@@ -6617,7 +6626,7 @@ namespace gravity {
                                     constr_viol=true;
                                     lin_count=0;
                                     active_root_tol=1e-6;
-                                    while (constr_viol && lin_count<5 && active_root_tol>=lb_solver_tol){
+                                    while (constr_viol && lin_count<5){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6651,10 +6660,14 @@ namespace gravity {
                                             obbt_model->reindex();
                                             obbt_model->reset();
                                             obbt_model->reset_constrs();
-                                            if(!constr_viol && (active_root_tol>lb_solver_tol)){
-                                                active_root_tol=active_root_tol*0.1;
-                                                constr_viol=true;
-                                            }
+				 if(run_obbt_iter>=4 && (active_root_tol>=1E-9)){
+                                        active_root_tol=active_root_tol*0.1;
+                                    constr_viol=true;
+                                }
+                                else if(!constr_viol && (active_root_tol>lb_solver_tol)){
+                                    active_root_tol=active_root_tol*0.1;
+                                    constr_viol=true;
+                                }
                                         }
                                         else{
                                             

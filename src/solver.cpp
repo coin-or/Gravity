@@ -952,7 +952,7 @@ namespace gravity {
                                         DebugOff("status "<< interior._status);
 //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                                            if(con->xval_within_bounds(i, xcurrent)){
+                                            if(true || con->xval_within_bounds(i, xcurrent)){
                                                 if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
                                             auto con_interior=interior.get_constraint(cname);
                                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
