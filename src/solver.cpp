@@ -1601,7 +1601,7 @@ namespace gravity {
         
     }
     template<>
-    bool Model<double>::cuts_MPI(vector<shared_ptr<Model<double>>> batch_models, int batch_model_count, const Model<double>& interior_model, shared_ptr<Model<double>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int> sol_status){
+    bool Model<double>::cuts_MPI(vector<shared_ptr<Model<double>>>& batch_models, int batch_model_count, const Model<double>& interior_model, shared_ptr<Model<double>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int>& sol_status){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);

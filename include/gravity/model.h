@@ -6267,7 +6267,7 @@ namespace gravity {
         void generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts);
         void add_cuts_to_model(vector<double>& cuts);
         bool cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol);
-        bool cuts_MPI(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int> sol_status);
+        bool cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int>& sol_status);
         void reset_lazy();
         int num_obbt_prob(){
             int count=0;
