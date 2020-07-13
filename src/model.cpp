@@ -6026,7 +6026,7 @@ namespace gravity {
             }
             if(!linearize && get<1>(status)==1 && max_iter>1)
                 break;
-	     if(linearize && get<1>(status)==1 && run_obbt_iter>=4)
+            if(linearize && get<1>(status)==1 && run_obbt_iter>=4)
                 break;
             oacuts=get<8>(status);
             run_obbt_iter++;
@@ -6099,7 +6099,6 @@ namespace gravity {
         vector<string> objective_models;
         vector<double> sol_obj;
         vector<int> sol_status;
-        vector<vector<double>> sol_val;
         map<string, bool> fixed_point;
         map<string, double> interval_original, interval_new, ub_original, lb_original;
         string var_key,var_key_k,key_lb,key_ub, key_lb_k, key_ub_k;
@@ -6125,7 +6124,7 @@ namespace gravity {
         int obbt_subproblem_count=0;
         double active_root_tol=1e-6, active_tol=1e-6;
         double gap_old;
-        bool share_all, share_obj;
+        bool share_obj;
         map<string, size_t> inst_old;
         if(this->_status==0){
             upper_bound=this->get_obj_val();
@@ -6149,11 +6148,6 @@ namespace gravity {
                 if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
                 {
                     if(linearize){
-                        share_all=true;
-                        share_obj=true;
-                    }
-                    else{
-                        share_all=false;
                         share_obj=true;
                     }
                     if(linearize){
@@ -6216,10 +6210,10 @@ namespace gravity {
                         else if(run_obbt_iter<=3){
                             active_tol=1e-6;
                         }
-			else{
-			    active_tol=lb_solver_tol;
-			}
-			
+                        else{
+                            active_tol=lb_solver_tol;
+                        }
+                        
                     }
                     int count_var=0;
                     int count_skip=0;
@@ -6337,16 +6331,10 @@ namespace gravity {
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
                                                 sol_obj.resize(batch_model_count,-1.0);
-                                                if(share_all){
-                                                    sol_val.resize(batch_model_count);
-                                                    for(auto &v:sol_val){
-                                                        v.resize(batch_models[0]->_nb_vars);
-                                                    }
-                                                }
 #ifdef USE_MPI
-                                                run_MPI_new(objective_models, sol_obj, sol_status,sol_val,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all,share_obj);
+                                                run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_all);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status,sol_val, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, share_all); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000); //run_parallel(batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, 2000);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 auto batch_time = batch_time_end - batch_time_start;
@@ -6483,35 +6471,9 @@ namespace gravity {
                                                     model_id++;
                                                 }
                                                 if(linearize){
-                                                    for (auto s=0;s<batch_model_count;s++)
-                                                    {
-                                                        /* Update bounds only if the model status is solved to optimal */
-                                                        if(sol_status.at(s)==0)
-                                                        {
-                                                            mkname=msname;
-                                                            std::size_t pos = mkname.find("|");
-                                                            vkname.assign(mkname, 0, pos);
-                                                            mkname=mkname.substr(pos+1);
-                                                            pos=mkname.find("|");
-                                                            keyk.assign(mkname, 0, pos);
-                                                            vk=obbt_model->template get_var<T>(vkname);
-                                                            if(!fixed_point[msname]){
-                                                            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
-                                                                obbt_solution=sol_val.at(s);
-                                                                msname=objective_models.at(s);
-                                                                if(run_obbt_iter<=2){
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, msname, oacuts, active_tol);
-                                                                }
-                                                                else{
-                                                                    relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
-                                                                }
-                                                                obbt_model->reset_lazy();
-                                                            }
-                                                            }
-                                                            //                                                        }
-                                                        }
-                                                    }
+                                                    relaxed_model->cuts_parallel(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, fixed_point, range_tol);
                                                 }
+                                                obbt_model->reset_lazy();
                                                 for(auto &mod:batch_models){
                                                     if(linearize){
                                                         for (auto con: obbt_model->_cons_vec){
@@ -6727,14 +6689,14 @@ namespace gravity {
                             }
                             solver_time= get_wall_time()-solver_time_start;
                             DebugOff("Solved Fixed Point iteration " << iter << endl);
-                                                        if(linearize && (gap_old-gap<0.1) && run_obbt_iter<=3){
+                            if(linearize && (gap_old-gap<0.1) && run_obbt_iter<=3){
 #ifdef USE_MPI
-                                        if(worker_id==0){
-                                                            DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
-}
+                                if(worker_id==0){
+                                    DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
+                                }
 #endif
-                                                            break;
-                                                        }
+                                break;
+                            }
                             gap_old=gap;
                         }
                         
