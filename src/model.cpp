@@ -6471,7 +6471,11 @@ namespace gravity {
                                                     model_id++;
                                                 }
                                                 if(linearize){
+#ifdef USE_MPI
+                                                    relaxed_model->cuts_MPI(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, fixed_point, range_tol, sol_status);
+#else
                                                     relaxed_model->cuts_parallel(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, fixed_point, range_tol);
+#endif
                                                 }
                                                 obbt_model->reset_lazy();
                                                 for(auto &mod:batch_models){
