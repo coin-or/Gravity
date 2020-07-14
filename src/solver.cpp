@@ -1605,22 +1605,31 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-        auto nb_workers_ = std::min((size_t)nb_workers, batch_model_count);
+        auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
         std::string msname, mname, vname, key, dir;
         vector<double> obbt_solution, cut_vec;
         int cut_size=0;
         var<> var;
-        if(objective_models.size()!=0){
+        if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
             for (auto w_id = 0; w_id<nb_workers; w_id++) {
                 if(w_id+1<limits.size()){
                     for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                         if(sol_status[i]==0){
                             if(worker_id==w_id){
-                                if(!fixed_point[msname]){
-                                    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
-                                        obbt_solution.resize(m->_nb_vars);
-                                        m->get_solution(obbt_solution);
+                                msname=batch_models[i-limits[w_id]]->_name;
+                                mname=msname;
+                                std::size_t pos = msname.find("|");
+                                vname.assign(msname, 0, pos);
+                                msname=msname.substr(pos+1);
+                                pos=msname.find("|");
+                                key.assign(msname, 0, pos);
+                                dir=msname.substr(pos+1);
+                                var=lin->get_var<double>(vname);
+                                if(!fixed_point[mname]){
+                                    if(std::abs(var.get_ub(key)-var.get_lb(key))>range_tol){
+                                        obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
+                                        batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
                                         if(run_obbt_iter<=2){
                                             generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
@@ -1633,19 +1642,19 @@ namespace gravity {
                                 cut_size=cut_vec.size();
                             }
                             MPI_Bcast(&cut_size, 1, MPI_INT, w_id, MPI_COMM_WORLD);
-                            MPI_Barrier();
+                            MPI_Barrier(MPI_COMM_WORLD);
                             if(worker_id!=w_id){
                                 cut_vec.resize(cut_size);
                             }
                             MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                             lin->add_cuts_to_model(cut_vec);
-                            MPI_Barrier();
+                            MPI_Barrier(MPI_COMM_WORLD);
                         }
                     }
                 }
             }
         }
-        MPI_Barrier();
+        MPI_Barrier(MPI_COMM_WORLD);
         return true;
     }
                     int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
