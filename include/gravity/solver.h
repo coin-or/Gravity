@@ -596,6 +596,7 @@ namespace gravity {
     
 #ifdef USE_MPI
     
+    
     template<typename type>
     void send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
         int worker_id, nb_workers;

@@ -6472,6 +6472,9 @@ namespace gravity {
                                                 }
                                                 if(linearize){
 #ifdef USE_MPI
+                                                    if(worker_id==0){
+                                                        DebugOn("calling cuts_mpi "<<obbt_subproblem_count<<endl);
+                                                    }
                                                     relaxed_model->cuts_MPI(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, fixed_point, range_tol, sol_status);
 #else
                                                     relaxed_model->cuts_parallel(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, fixed_point, range_tol);
