@@ -6327,6 +6327,8 @@ namespace gravity {
                                                 if(worker_id==0){
                                                     DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
                                                 }
+#else
+                                                DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
 #endif
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
@@ -6706,7 +6708,6 @@ namespace gravity {
                             }
                             gap_old=gap;
                         }
-                        
                         vector<double> interval_gap;
                         
                         for(auto &it:obbt_model->_vars_name)

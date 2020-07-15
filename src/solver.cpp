@@ -1290,12 +1290,23 @@ namespace gravity {
                                 if(oa_cut){
                                     nb_added_cuts++;
                                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
-                                    cuts.push_back(con_lin->_id);
+                                    auto count_con=0;
+                                    auto not_found =true;
+                                    for(auto c:lin->_cons_vec){
+                                        if(c->_name=="OA_cuts_"+con->_name){
+                                            not_found=false;
+                                            break;
+                                        }
+                                        count_con++;
+                                    }
+                                    if(!not_found){
+                                    cuts.push_back(count_con);
                                     cuts.push_back(i);
                                     for (auto j = 0; j<c_val.size(); j++) {
                                         cuts.push_back(c_val[j]*scale);
                                     }
                                     cuts.push_back(c0_val*scale);
+                                    }
                                 }
                                 con->set_x(i, xcurrent);
                                 xcurrent.clear();
@@ -1316,12 +1327,18 @@ namespace gravity {
     }
     template<>
     void Model<>::add_cuts_to_model(vector<double>& cuts){
-        int start=0,i;
+        int start=0,i, count_con;
         bool not_found=true;
         while(start!=cuts.size()){
-            for(auto &con_lin:_cons_vec){
-                if (con_lin->_id==cuts[start]){
+            count_con=0;
+            for(count_con=0;count_con<_cons_vec.size();count_con++){
+                if(count_con==cuts[start]){
                     not_found=false;
+                    break;
+                }
+            }
+                if(!not_found){
+                    auto con_lin=_cons_vec.at(count_con);
                     start++;
                     i=cuts[start++];
                     
@@ -1377,7 +1394,6 @@ namespace gravity {
                     con_lin->eval_all();
                     break;
                 }
-            }
             if(not_found){
                 DebugOn("Constraint not found in solver.cpp 1382"<<endl);
                 break;
