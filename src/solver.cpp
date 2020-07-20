@@ -665,7 +665,7 @@ namespace gravity {
         DebugOff("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=0;
+        int nb_perturb=1;
         int count_var=0;
         bool near_zero=false;
         if(interior && nb_perturb>0){
@@ -773,7 +773,7 @@ namespace gravity {
                                                 con->get_outer_coef(i, c_val, c0_val);
                                                 vector<int> coefs;
                                                 scale=1;
-                                                for (auto k = 0; k<c_val.size(); j++) {
+                                                for (auto k = 0; k<c_val.size(); k++) {
                                                     near_zero=true;
                                                     scale=1.0;
                                                     if(c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
@@ -1159,6 +1159,7 @@ namespace gravity {
             vk=this->template get_var<double>(vkname);
         }
         bool var_found=false, key_found=false;
+        int con_pos=0;
         for (auto &con: _cons_vec)
         {
             if(!con->is_linear()) {
@@ -1177,7 +1178,6 @@ namespace gravity {
                     }
                     else{
                         add_new=true;
-                        throw invalid_argument("cut is new");
                     }
                     auto cnb_inst=con->get_nb_inst();
                     for(auto i=0;i<cnb_inst;i++){
@@ -1247,7 +1247,6 @@ namespace gravity {
                                     
                                     if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
                                     {
-                                        
                                         xres=con->get_x(i);
                                         auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
                                         auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
@@ -1261,6 +1260,11 @@ namespace gravity {
                                     }
                                     if(convex_region){
                                         scale=1.0;
+                                        if(add_new){
+                                            oa_cut=true;
+                            
+                                        }
+                                        else{
                                         con->get_outer_coef(i, c_val, c0_val);
                                         vector<int> coefs;
                                         for (auto j = 0; j<c_val.size(); j++) {
@@ -1285,9 +1289,9 @@ namespace gravity {
                                         if(near_zero)
                                             oa_cut=false;
                                     }
+                                    }
                                 }
-                                
-                                if(oa_cut){
+                                if(oa_cut && !add_new){
                                     nb_added_cuts++;
                                     auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
                                     auto count_con=0;
@@ -1308,6 +1312,16 @@ namespace gravity {
                                     cuts.push_back(c0_val*scale);
                                     }
                                 }
+                                else if(oa_cut && add_new){
+                                    cuts.push_back(-1);
+                                    cuts.push_back(con_pos);
+                                    cuts.push_back(i);
+                                    xres=con->get_x(i);
+                                    for(auto &x:xres){
+                                        cuts.push_back(x);
+                                    }
+                                    
+                                }
                                 con->set_x(i, xcurrent);
                                 xcurrent.clear();
                                 xinterior.clear();
@@ -1318,6 +1332,7 @@ namespace gravity {
                     }
                 }
             }
+        con_pos++;
         }
         
         
@@ -1326,10 +1341,48 @@ namespace gravity {
         DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     }
     template<>
-    void Model<>::add_cuts_to_model(vector<double>& cuts){
+    void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin){
         int start=0,i, count_con;
         bool not_found=true;
+        vector<double> res1, res2;
+        string clin="OA_cuts_";
+        int l_clin=clin.length();
         while(start!=cuts.size()){
+            not_found=true;
+            if(cuts[start]==-1){
+                start++;
+                for(count_con=0;count_con<nonlin._cons_vec.size();count_con++){
+                    if(count_con==cuts[start]){
+                        not_found=false;
+                        break;
+                    }
+                }
+                if(!not_found){
+                    start++;
+                    i=cuts[start++];
+                    auto con_nonlin=nonlin._cons_vec.at(count_con);
+                    res1.resize(0);
+                    res2.resize(0);
+                    res1=con_nonlin->get_x(i);
+                    for (auto i=0;i<res1.size();i++){
+                        res2.push_back(cuts[start++]);
+                    }
+                    con_nonlin->set_x(i, res2);
+                    Constraint<> OA_cut("OA_cuts_"+con_nonlin->_name);
+                    indices activeset("active_"+con_nonlin->_name);
+                    activeset.add((*con_nonlin->_indices->_keys)[i]);
+                    OA_cut=con_nonlin->get_outer_app(activeset, 1.0);
+                    OA_cut._lazy.push_back(false);
+                    if(con_nonlin->_ctype==leq) {
+                        add(OA_cut.in(activeset)<=0);
+                    }
+                    else {
+                        add(OA_cut.in(activeset)>=0);
+                    }
+                      con_nonlin->set_x(i, res1);
+                }
+            }
+            else{
             count_con=0;
             for(count_con=0;count_con<_cons_vec.size();count_con++){
                 if(count_con==cuts[start]){
@@ -1339,6 +1392,9 @@ namespace gravity {
             }
                 if(!not_found){
                     auto con_lin=_cons_vec.at(count_con);
+                    auto con_lin_name=con_lin->_name;
+                    auto con_nonlin_name=con_lin_name.substr(l_clin);
+                    auto con_nonlin=nonlin.get_constraint(con_nonlin_name);
                     start++;
                     i=cuts[start++];
                     
@@ -1371,7 +1427,7 @@ namespace gravity {
                         }
                         auto parkeys=l.second._p->_indices->_keys;
                         //                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
-                        auto v = con_lin->get_var(l.second._p->_name);
+                        auto v = con_nonlin->get_var(l.second._p->_name);
                         l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
                         count++;
                     }
@@ -1397,6 +1453,7 @@ namespace gravity {
             if(not_found){
                 DebugOn("Constraint not found in solver.cpp 1382"<<endl);
                 break;
+            }
             }
         }
     }
@@ -1531,11 +1588,11 @@ namespace gravity {
                         cut_vec.resize(0);
                         if(run_obbt_iter<=2){
                             generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                            lin->add_cuts_to_model(cut_vec);
+                            lin->add_cuts_to_model(cut_vec, *this);
                         }
                         else{
                             generate_cuts_iterative(interior_model, obbt_solution, lin, "allvar", oacuts, active_tol, cut_vec);
-                            lin->add_cuts_to_model(cut_vec);
+                            lin->add_cuts_to_model(cut_vec, *this);
                         }
                     }
                 }
@@ -1594,7 +1651,7 @@ namespace gravity {
                                 cut_vec.resize(cut_size, 0);
                             }
                             MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-                            lin->add_cuts_to_model(cut_vec);
+                            lin->add_cuts_to_model(cut_vec, *this);
                             MPI_Barrier(MPI_COMM_WORLD);
                         }
                     }

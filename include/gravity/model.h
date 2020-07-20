@@ -5417,7 +5417,7 @@ namespace gravity {
             return size_header;
         }
         
-        void print(int prec = 30){
+        void print(int prec = 10){
             auto size_header = print_properties();
             _obj->print(prec);
             cout << "s.t." << endl;
@@ -6265,7 +6265,7 @@ namespace gravity {
         Model<type> add_outer_app_solution(Model<type>& nonlin);
         bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, std::string model_name,int& oacuts, double active_tol);
         void generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts);
-        void add_cuts_to_model(vector<double>& cuts);
+        void add_cuts_to_model(vector<double>& cuts, Model<>& nonlin);
         bool cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol);
         bool cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int>& sol_status);
         void reset_lazy();

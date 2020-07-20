@@ -6159,7 +6159,7 @@ namespace gravity {
                         //obbt_model->print();
                         constr_viol=true;
                         lin_count=0;
-                        while (constr_viol && lin_count<5 && active_root_tol>=lb_solver_tol){
+                        while (constr_viol && lin_count<1 && active_root_tol>=lb_solver_tol){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6201,6 +6201,8 @@ namespace gravity {
                             if(worker_id==0){
                                 DebugOn("Gap initial "<<gaplin<<" and cuts initial "<<oacuts<<" and cuts buildoa "<<oacuts_init<<endl);
                             }
+#else
+                                DebugOn("Gap initial "<<gaplin<<" and cuts initial "<<oacuts<<" and cuts buildoa "<<oacuts_init<<endl);
 #endif
                             oacuts_init=oacuts;
                         }
