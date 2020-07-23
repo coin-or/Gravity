@@ -492,6 +492,7 @@ namespace gravity {
         if(tol<active_tol){
             // active_tol=tol;
         }
+        vector<double> xcurr;
         string lin_cname="OA_cuts_"+cname;
         int nb_inst;
         if(_cons_name.find(lin_cname)!=_cons_name.end()){
@@ -500,9 +501,11 @@ namespace gravity {
             for(auto i=0;i<nb_inst;i++){
                 if(con_lin->_lazy[i]){
                     if(con_lin->_indices->_keys->at(i).find("inst_"+to_string(inst)+"_")!=string::npos){
+                        xcurr=con_lin->get_x(i);
                         con_lin->set_x(i, x);
                         con_lin->uneval();
                         auto fk=con_lin->eval(i);
+                        con_lin->set_x(i, xcurr);
                         if((fk > active_tol && con_lin->_ctype==leq) || (fk < -active_tol && con_lin->_ctype==geq)){
                             violated=true;
                             //DebugOn("avoided cut");
@@ -665,7 +668,7 @@ namespace gravity {
         DebugOff("Number of constraints in linear model "<<_nb_cons<<endl);
         bool add_new, oa_cut;
         int nb_added_cuts=0;
-        int nb_perturb=1;
+        int nb_perturb=0;
         int count_var=0;
         bool near_zero=false;
         if(interior && nb_perturb>0){
@@ -1120,7 +1123,7 @@ namespace gravity {
         return(constr_viol);
     }
     template<>
-    void Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts)
+    bool Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts)
     {
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
@@ -1313,6 +1316,7 @@ namespace gravity {
                                     }
                                 }
                                 else if(oa_cut && add_new){
+                                    nb_added_cuts++;
                                     cuts.push_back(-1);
                                     cuts.push_back(con_pos);
                                     cuts.push_back(i);
@@ -1339,17 +1343,21 @@ namespace gravity {
         set_solution(xsolution);
         nb_oacuts+=nb_added_cuts;
         DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
+        return constr_viol;
     }
     template<>
     void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin){
-        int start=0,i, count_con;
-        bool not_found=true;
-        vector<double> res1, res2;
+        int start=0,i, count_con,count_vec, start_orig;
+        bool not_found=true, c_nfound, near_zero;
+        vector<double> res1, res2, c_val;
+        double c0_val, scale;
+        const double zero_tol=1e-6;
         string clin="OA_cuts_";
         int l_clin=clin.length();
         while(start!=cuts.size()){
             not_found=true;
             if(cuts[start]==-1){
+                start_orig=start;
                 start++;
                 for(count_con=0;count_con<nonlin._cons_vec.size();count_con++){
                     if(count_con==cuts[start]){
@@ -1364,10 +1372,58 @@ namespace gravity {
                     res1.resize(0);
                     res2.resize(0);
                     res1=con_nonlin->get_x(i);
-                    for (auto i=0;i<res1.size();i++){
+                    for (auto r=0;r<res1.size();r++){
                         res2.push_back(cuts[start++]);
                     }
                     con_nonlin->set_x(i, res2);
+                    con_nonlin->uneval();
+                    con_nonlin->eval_all();
+                    con_nonlin->eval(i);
+                    auto con_lin_name="OA_cuts_"+con_nonlin->_name;
+                    if(_cons_name.find(con_lin_name)!=_cons_name.end()){
+                        count_vec=0;
+                        c_nfound=true;
+                        for(auto c:_cons_vec){
+                            if(c->_name==con_lin_name){
+                                c_nfound=false;
+                                break;
+                            }
+                            count_vec++;
+                        }
+                        if(!c_nfound){
+                            c0_val=0;
+                            c_val.resize(con_nonlin->_nb_vars,0);
+                            near_zero=true;
+                            scale=1.0;
+                            con_nonlin->get_outer_coef(i, c_val, c0_val);
+                            for (auto j = 0; j<c_val.size(); j++) {
+                                if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                    if(zero_tol/std::abs(c_val[j])>scale){
+                                        scale=zero_tol/std::abs(c_val[j]);
+                                    }
+                                }
+                                if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                    near_zero=true;
+                                }
+                                else{
+                                    near_zero=false;
+                                }
+                                //coefs.push_back(1e5*c_val[j]);
+                            }
+                            if(!near_zero){
+                                start=start_orig;
+                                cuts[start_orig]=count_vec;
+                                cuts[start_orig+1]=i;
+                                for(auto s=1;s<=c_val.size();s++){
+                                    cuts[start_orig+s+1]=c_val[s-1]*scale;
+                                }
+                                cuts[start_orig+c_val.size()+2]=c0_val*scale;
+                                
+                            }
+                            
+                        }
+                    }
+                    else{
                     Constraint<> OA_cut("OA_cuts_"+con_nonlin->_name);
                     indices activeset("active_"+con_nonlin->_name);
                     activeset.add((*con_nonlin->_indices->_keys)[i]);
@@ -1379,7 +1435,10 @@ namespace gravity {
                     else {
                         add(OA_cut.in(activeset)>=0);
                     }
+                    reindex();
+                    }
                       con_nonlin->set_x(i, res1);
+                    
                 }
             }
             else{
@@ -1448,7 +1507,6 @@ namespace gravity {
                         //  rhs_f->eval_all();
                     }
                     con_lin->eval_all();
-                    break;
                 }
             if(not_found){
                 DebugOn("Constraint not found in solver.cpp 1382"<<endl);
@@ -1563,49 +1621,40 @@ namespace gravity {
         return IIS;
     }
     template<>
-    bool Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol){
+    bool Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
         std::vector<double> obbt_solution, cut_vec;
         string msname, mkname, vkname, keyk;
         var<> vk;
+        bool viol=false, viol_g;
         for (auto s=0;s<batch_model_count;s++)
         {
             auto m=batch_models[s];
             /* Update bounds only if the model status is solved to optimal */
             if(m->_status==0)
             {
+                if(vname=="modelname"){
                 msname=m->_name;
-                mkname=msname;
-                std::size_t pos = mkname.find("|");
-                vkname.assign(mkname, 0, pos);
-                mkname=mkname.substr(pos+1);
-                pos=mkname.find("|");
-                keyk.assign(mkname, 0, pos);
-                vk=lin->get_var<double>(vkname);
-                if(!fixed_point[msname]){
-                    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))>range_tol){
+                }
+                else if(vname=="allvar"){
+                    msname="allvar";
+                }
                         obbt_solution.resize(m->_nb_vars);
                         m->get_solution(obbt_solution);
                         cut_vec.resize(0);
-                        if(run_obbt_iter<=2){
-                            generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
                             lin->add_cuts_to_model(cut_vec, *this);
-                        }
-                        else{
-                            generate_cuts_iterative(interior_model, obbt_solution, lin, "allvar", oacuts, active_tol, cut_vec);
-                            lin->add_cuts_to_model(cut_vec, *this);
+                        if(viol || viol_g){
+                            viol=true;
                         }
                     }
-                }
-                //                                                        }
-            }
         }
-        return true;
+        return viol;
     }
     
 #ifdef USE_MPI
     
     template<>
-    bool Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, map<string, bool>& fixed_point, double range_tol, vector<int>& sol_status){
+    bool Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -1614,6 +1663,7 @@ namespace gravity {
         vector<double> obbt_solution, cut_vec;
         int cut_size=0;
         var<> var;
+        bool viol=false, viol_g;
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
             for (auto w_id = 0; w_id<nb_workers; w_id++) {
@@ -1630,19 +1680,21 @@ namespace gravity {
                                 key.assign(msname, 0, pos);
                                 dir=msname.substr(pos+1);
                                 var=lin->get_var<double>(vname);
-                                if(!fixed_point[mname]){
                                     if(std::abs(var.get_ub(key)-var.get_lb(key))>range_tol){
                                         obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
                                         batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
                                         if(run_obbt_iter<=2){
-                                            generate_cuts_iterative(interior_model, obbt_solution, lin, mname, oacuts, active_tol, cut_vec);
+                                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, mname, oacuts, active_tol, cut_vec);
                                         }
                                         else{
-                                            generate_cuts_iterative(interior_model, obbt_solution, lin, "allvar", oacuts, active_tol, cut_vec);
+                                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, "allvar", oacuts, active_tol, cut_vec);
+                                        }
+                                        if(viol || viol_g){
+                                            viol=true;
                                         }
                                     }
-                                }
+
                                 cut_size=cut_vec.size();
                             }
                             MPI_Bcast(&cut_size, 1, MPI_INT, w_id, MPI_COMM_WORLD);
@@ -1658,7 +1710,7 @@ namespace gravity {
                 }
             }
         }
-        return true;
+        return viol;
     }
     
     
