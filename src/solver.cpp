@@ -1623,8 +1623,7 @@ namespace gravity {
     template<>
     bool Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
         std::vector<double> obbt_solution, cut_vec;
-        string msname, mkname, vkname, keyk;
-        var<> vk;
+        string msname;
         bool viol=false, viol_g;
         for (auto s=0;s<batch_model_count;s++)
         {
@@ -1659,10 +1658,9 @@ namespace gravity {
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
-        std::string msname, mname, vname, key, dir;
+        std::string msname;
         vector<double> obbt_solution, cut_vec;
         int cut_size=0;
-        var<> var;
         bool viol=false, viol_g;
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
@@ -1671,29 +1669,19 @@ namespace gravity {
                     for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
                         if(sol_status[i]==0){
                             if(worker_id==w_id){
-                                msname=batch_models[i-limits[w_id]]->_name;
-                                mname=msname;
-                                std::size_t pos = msname.find("|");
-                                vname.assign(msname, 0, pos);
-                                msname=msname.substr(pos+1);
-                                pos=msname.find("|");
-                                key.assign(msname, 0, pos);
-                                dir=msname.substr(pos+1);
-                                var=lin->get_var<double>(vname);
-                                    if(std::abs(var.get_ub(key)-var.get_lb(key))>range_tol){
+                                if(vname=="modelname"){
+                                    msname=batch_models[i-limits[w_id]]->_name;
+                                }
+                                else if(vname=="allvar"){
+                                    msname="allvar";
+                                }
                                         obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
                                         batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
-                                        if(run_obbt_iter<=2){
-                                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, mname, oacuts, active_tol, cut_vec);
-                                        }
-                                        else{
-                                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, "allvar", oacuts, active_tol, cut_vec);
-                                        }
+                                        viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
                                         if(viol || viol_g){
                                             viol=true;
                                         }
-                                    }
 
                                 cut_size=cut_vec.size();
                             }
