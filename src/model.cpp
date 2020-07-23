@@ -6334,7 +6334,7 @@ namespace gravity {
                                                 obbt_subproblem_count+=batch_model_count;
 #ifdef USE_MPI
                                                 if(worker_id==0){
-                                                    DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
+                                                    DebugOff("obbt subproblem count "<<obbt_subproblem_count<<endl);
                                                 }
 #else
                                                 DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
@@ -6343,7 +6343,13 @@ namespace gravity {
                                                 lin_count=0;
                                                 while(viol && lin_count<5){
                                                     if(lin_count>=1){
-                                                    DebugOn("resolving"<<endl;)
+#ifdef USE_MPI
+                                                        if(worker_id==0){
+                                                             DebugOn("resolving"<<endl);
+                                                        }
+#else
+                                                        DebugOn("resolving"<<endl);
+#endif
                                                     }
                                                 double batch_time_start = get_wall_time();
                                                 sol_status.resize(batch_model_count,-1);
