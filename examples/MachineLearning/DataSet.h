@@ -20,6 +20,7 @@ public:
     int                                                    _hour = 0;
     int                                                    _minutes = 0;
     int                                                    _seconds = 0;
+    int                                                    _laser_id = -1;
     double                                                 _unix_time = 0;
     double                                                 _x = 0;
     double                                                 _y = 0;
@@ -33,6 +34,20 @@ public:
     LidarPoint(const LidarPoint& p){
         *this = p;
     };
+    
+    LidarPoint(const int& laser_id, const double& gps_time, const double& x, const double& y, const double& z){
+        _laser_id = laser_id;
+        _unix_time = gps_time + 315964800 - 18; /* 18 leap seconds since 1980 */
+        time_t unixtimestamp = _unix_time;
+        struct tm *tmp = gmtime(&unixtimestamp);
+        _hour = tmp->tm_hour;
+        _minutes = tmp->tm_min;
+        _seconds = tmp->tm_sec;
+        //        printf("%02d:%02d:%02d\n", tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+        _x = x;
+        _y = y;
+        _z = z;
+    }
     
     LidarPoint(const double& gps_time, const double& x, const double& y, const double& z){
         _unix_time = gps_time + 315964800 - 18; /* 18 leap seconds since 1980 */
@@ -48,6 +63,7 @@ public:
     }
     
     LidarPoint& operator=(const LidarPoint& p){
+        _laser_id = p._laser_id;
         _hour = p._hour;
         _minutes = p._minutes;
         _seconds = p._seconds;
@@ -57,12 +73,14 @@ public:
         _z = p._z;
         _next = p._next;
         _prev = p._prev;
+        _uav_pt = p._uav_pt;
         return *this;
     }
 };
 
 class UAVPoint {
 public:
+    int                                                    _frame_id = 0;
     int                                                    _hour = 0;
     int                                                    _minutes = 0;
     int                                                    _seconds = 0;
@@ -85,6 +103,7 @@ public:
     };
     
     UAVPoint& operator=(const UAVPoint& p){
+        _frame_id = p._frame_id;
         _unix_time = p._unix_time;
         _x = p._x;
         _y = p._y;
@@ -96,6 +115,7 @@ public:
         _yaw = p._yaw;
         _next = p._next;
         _prev = p._prev;
+        _LidarPts = p._LidarPts;
         return *this;
     }
     
@@ -112,10 +132,17 @@ public:
 
 class Frame {
 public:
+    int                                     _id = -1;
     double                                  _unix_time;
-    shared_ptr<vector<LidarPoint*>>         _lidar_points;
-    UAVPoint*                               _uav_point;
+    shared_ptr<vector<LidarPoint*>>         _lidar_points = nullptr;
+    UAVPoint*                               _uav_point = nullptr;
     
+    
+    Frame(int frame_id, const double& time){
+        _id = frame_id;
+        _unix_time = time;
+        _lidar_points = make_shared<vector<LidarPoint*>>();
+    }
     
     Frame(const double& time){
         _unix_time = time;
@@ -127,18 +154,19 @@ public:
     }
     
     Frame& operator=(const Frame& f){
+        _id = f._id;
         _unix_time = f._unix_time;
         _lidar_points = f._lidar_points;
         _uav_point = f._uav_point;
         return *this;
     }
     
-    void add_lidar_point(const LidarPoint& p){
-        _lidar_points->push_back((LidarPoint*)(&p));
+    void add_lidar_point(LidarPoint* p){
+        _lidar_points->push_back(p);
     }
     
-    void add_UAV_point(const UAVPoint& p){
-        _uav_point = (UAVPoint*)(&p);
+    void add_UAV_point(UAVPoint* p){
+        _uav_point = p;
     }
 };
 

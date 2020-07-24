@@ -5610,11 +5610,11 @@ namespace gravity {
                     return exp->_coef*res;
                 }
                 case df_abs_:{
-                    if(res == 0)
-                        return 0;
-                    if(res < 0)
+                    if(res > 1e-2)
+                        return exp->_coef;
+                    if(res < -1e-2)
                         return -1*exp->_coef;
-                    return exp->_coef;
+                    return exp->_coef*(2*(std::exp(res*1e3)/(1+std::exp(res*1e3))) - 1)/* from https://math.stackexchange.com/questions/728094/approximate-x-with-a-smooth-function with k = 1e3 */;
                 }
                 case unit_step_:{
                     if(res <= 0)
@@ -5834,11 +5834,11 @@ namespace gravity {
                     return exp->_coef*res;
                 }
                 case df_abs_:{
-                    if(res == 0)
-                        return 0;
-                    if(res < 0)
+                    if(res > 1e-2)
+                        return exp->_coef;
+                    if(res < -1e-2)
                         return -1*exp->_coef;
-                    return exp->_coef;
+                    return exp->_coef*(2*(std::exp(res*1e3)/(1+std::exp(res*1e3))) - 1)/* from https://math.stackexchange.com/questions/728094/approximate-x-with-a-smooth-function with k = 1e3 */;
                 }
                 case unit_step_:{
                     if(res <= 0)
