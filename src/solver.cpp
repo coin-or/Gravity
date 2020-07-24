@@ -1621,10 +1621,11 @@ namespace gravity {
         return IIS;
     }
     template<>
-    bool Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
+    int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
         std::vector<double> obbt_solution, cut_vec;
         string msname;
-        bool viol=false, viol_g;
+        int viol=0;
+        bool viol_g;
         for (auto s=0;s<batch_model_count;s++)
         {
             auto m=batch_models[s];
@@ -1642,8 +1643,8 @@ namespace gravity {
                         cut_vec.resize(0);
                             viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
                             lin->add_cuts_to_model(cut_vec, *this);
-                        if(viol || viol_g){
-                            viol=true;
+                        if(viol==1 || viol_g==true){
+                            viol=1;
                         }
                     }
         }
@@ -1653,7 +1654,7 @@ namespace gravity {
 #ifdef USE_MPI
     
     template<>
-    bool Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname){
+    int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname){
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -1661,7 +1662,8 @@ namespace gravity {
         std::string msname;
         vector<double> obbt_solution, cut_vec;
         int cut_size=0;
-        bool viol=false, viol_g;
+        int viol=0;
+        bool viol_g;
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
             for (auto w_id = 0; w_id<nb_workers; w_id++) {
@@ -1679,20 +1681,23 @@ namespace gravity {
                                         batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
                                         viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                                        if(viol || viol_g){
-                                            viol=true;
+                                        if((viol==0) || (viol_g==true)){
+                                            viol=1;
                                         }
 
                                 cut_size=cut_vec.size();
                             }
+                            MPI_Bcast(&viol, 1, MPI_INT, w_id, MPI_COMM_WORLD);
                             MPI_Bcast(&cut_size, 1, MPI_INT, w_id, MPI_COMM_WORLD);
                             MPI_Barrier(MPI_COMM_WORLD);
+                            if(cut_size!=0){
                             if(worker_id!=w_id){
                                 cut_vec.resize(cut_size, 0);
                             }
                             MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                             lin->add_cuts_to_model(cut_vec, *this);
                             MPI_Barrier(MPI_COMM_WORLD);
+                            }
                         }
                     }
                 }

@@ -6126,7 +6126,7 @@ namespace gravity {
         double gap_old;
         bool share_obj;
         map<string, size_t> inst_old;
-        bool viol;
+        int viol;
         string cut_type;
         vector<int> o_status;
         o_status.push_back(0);
@@ -6339,9 +6339,9 @@ namespace gravity {
 #else
                                                 DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
 #endif
-                                                viol=true;
+                                                viol=1;
                                                 lin_count=0;
-                                                while(viol && lin_count<5){
+                                                while((viol==1) && (lin_count<5)){
                                                     if(lin_count>=1){
 #ifdef USE_MPI
                                                         if(worker_id==0){
