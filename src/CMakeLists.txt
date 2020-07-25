@@ -24,7 +24,7 @@ include_directories(${PROJECT_INCLUDE_DIR})
 # the RPATH to be used when installing, but only if it's not a system directory
 #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:'$ORIGIN/lib'")
 
-file(GLOB HEADERS ${PROJECT_INCLUDE_DIR} *.h)
+file(GLOB HEADERS ${PROJECT_INCLUDE_DIR} *.h *.hpp)
 file(GLOB SOURCES . *.cpp ${PROJECT_INCLUDE_DIR}/gravity/*.h)
 
 if (NOT Ipopt)

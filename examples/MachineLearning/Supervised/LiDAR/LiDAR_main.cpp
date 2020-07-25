@@ -15,9 +15,11 @@
 #include <DataSet.h>
 #include "lasreader.hpp"
 #include "laswriter.hpp"
+#include <gravity/nanoflann.hpp>
+#include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
 using namespace std;
-
+using namespace nanoflann;
 int main (int argc, char * argv[])
 {
     bool show_umbrella = false;
@@ -222,6 +224,8 @@ int main (int argc, char * argv[])
         DebugOn(frames1.size() << " frames in flight line 1" << endl);
         DebugOn(frames2.size() << " frames in flight line 2" << endl);
         DebugOn(LidarPoints.size() << " lidar points read" << endl);
+        
+        vector<vector<double>> point_cloud1, point_cloud2;
         param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
         param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
         param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
@@ -230,7 +234,8 @@ int main (int argc, char * argv[])
             nb_pts_per_frame1 += frame.second->_lidar_points->size();
             int i = 0;
             for (const auto &p: *frame.second->_lidar_points) {
-                if(i%10==0){
+                if(i%100==0){
+                    point_cloud1.push_back({p->_x, p->_y, p->_z});
                     x_vec1.push_back(p->_x);
                     x_shift1.push_back(frame.second->_uav_point->_x);
                     x_uav1.add_val(to_string(idx1),x_shift1.back());
@@ -254,6 +259,7 @@ int main (int argc, char * argv[])
             int i = 0;
             for (auto const &p: *frame.second->_lidar_points) {
                 if(i%100==0){
+                    point_cloud2.push_back({p->_x, p->_y, p->_z});
                     x_vec2.push_back(p->_x);
                     x_shift2.push_back(frame.second->_uav_point->_x);
                     x_uav2.add_val(to_string(idx2),x_shift2.back());
@@ -275,9 +281,24 @@ int main (int argc, char * argv[])
             DebugOn("Average number of points per frame in flight line 1 = " << nb_pts_per_frame1/frames1.size() << endl);
         if(frames2.size()!=0)
             DebugOn("Average number of points per frame in flight line 2 = " << nb_pts_per_frame2/frames2.size() << endl);
-        
         DebugOn("Number of selected points in flight line 1 = " << x_vec1.size() << endl);
         DebugOn("Number of selected points in flight line 2 = " << x_vec2.size() << endl);
+        /* Get k-nearest neighbors for each point in flight line 1 */
+        KDTreeVectorOfVectorsAdaptor<vector<vector<double>>, double>  mat_index(3 /*dim*/, point_cloud2, 10 /* max leaf */ );
+        mat_index.index->buildIndex();
+        // do a knn search
+        const size_t nb_neighbors = 20;
+        std::vector<size_t>   ret_indexes(nb_neighbors);
+        std::vector<double> out_dists_sqr(nb_neighbors);
+        
+        nanoflann::KNNResultSet<double> resultSet(nb_neighbors);
+        
+        resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );        
+        mat_index.index->findNeighbors(resultSet, &point_cloud1[0][0], nanoflann::SearchParams(10));
+        
+        std::cout << "For point (" << point_cloud1.at(0).at(0) << "," <<  point_cloud1.at(0).at(1) << "," << point_cloud1.at(0).at(2) << ")"<< " knnSearch(n="<<nb_neighbors<<"): \n";
+        for (size_t i = 0; i < nb_neighbors; i++)
+            std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << " point = (" << point_cloud2.at(ret_indexes[i]).at(0) << "," <<  point_cloud2.at(ret_indexes[i]).at(1) << "," << point_cloud2.at(ret_indexes[i]).at(2) << ")" << std::endl;
         int n = std::min(x_vec1.size(),x_vec2.size());
         indices N("N");
         N = range(1, n);
