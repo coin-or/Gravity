@@ -36,7 +36,7 @@ inline int nthOccurrence(const std::string& str, const std::string& findMe, int 
 }
 
 namespace gravity{
-#define EPS 0.00001
+//#define EPS 0.00001
 #define Cpx complex<double>
 //#define Real double
 //#define Integer integer  //same name with a boost graph library.
