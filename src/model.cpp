@@ -6517,8 +6517,8 @@ namespace gravity {
 #else
                                                     viol=relaxed_model->cuts_parallel(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, range_tol, cut_type);
 #endif
+  obbt_model->reset_lazy();
                                                 }
-                                                obbt_model->reset_lazy();
                                                 for(auto &mod:batch_models){
                                                     if(linearize){
                                                         for (auto con: obbt_model->_cons_vec){
@@ -6537,11 +6537,15 @@ namespace gravity {
                                          
                                                 sol_status.clear();
                                                 sol_obj.clear();
+#ifdef USE_MPI                                                                                          
+				if(worker_id==0){                                                                                       				auto t=get_wall_time()-solver_time_start;                                                               		       DebugOn("Batch time "<<batch_time<<" nb oa cuts "<<oacuts<<" solver time "<<t<<endl);
+}                                                                                                       
+#endif  
                                                     if(!linearize){
                                                         break;
                                                     }
                                                     lin_count++;
-                                            }
+						}
                                                 batch_model_count=0;
                                                 objective_models.clear();
                                             }
@@ -6554,11 +6558,6 @@ namespace gravity {
                                     time_limit = true;
                                     break;
                                 }
-#ifdef USE_MPI
-if(worker_id==0){
-				DebugOn("Batch time "<<batch_time<<endl<<"nb oa cuts "<<oacuts<<"solver time "<<get_wall_time()<<endl);
-}
-#endif
                             }
                             
                             //Check if OBBT has converged, can check every gap_count_int intervals
@@ -6687,7 +6686,7 @@ if(worker_id==0){
                                     {
 #ifdef USE_MPI
 if(worker_id==0){
-                                DebugOn("Solver time "<<get_wall_time()<<endl<<"nb oa cuts "<<oacuts<<endl);
+                                DebugOn("Solver time "<<(get_wall_time()-solver_time_start)<<endl<<" nb oa cuts "<<oacuts<<endl);
 }
 #endif
                                         lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;

@@ -1681,7 +1681,7 @@ namespace gravity {
                                         batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
                                         viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                                        if((viol==0) || (viol_g==true)){
+                                        if((viol==1) || (viol_g==true)){
                                             viol=1;
                                         }
 
