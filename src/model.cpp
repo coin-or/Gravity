@@ -6007,7 +6007,7 @@ namespace gravity {
         }
         
         int run_obbt_iter=1;
-        auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
+        auto status = run_obbt_one_iteration(relaxed_model, max_time, 2, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
         double upper_bound = get<5>(status);
         
         total_iter += get<1>(status);
@@ -6015,7 +6015,8 @@ namespace gravity {
         gap = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
         
         while((gap > rel_tol*100.0 || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
-            auto time=get_wall_time()-time_start;
+            //MPI_Barrier(MPI_COMM_WORLD);
+	    auto time=get_wall_time()-time_start;
             if(time>=max_time){
                 DebugOff("Maximum time exceeded"<<endl);
                 break;
@@ -6030,7 +6031,7 @@ namespace gravity {
                 break;
             oacuts=get<8>(status);
             run_obbt_iter++;
-            status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
+            status = run_obbt_one_iteration(relaxed_model, max_time, 2, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
             
             
             lower_bound=get<6>(status);
@@ -6272,15 +6273,29 @@ namespace gravity {
                             }
                             
                         }
-                        DebugOff("count var "<<count_var<<endl);
+			#ifdef USE_MPI
+                        MPI_Barrier(MPI_COMM_WORLD);
+                        #endif 
+                        DebugOn("count var "<<count_var<<endl);
                         solver_time= get_wall_time()-solver_time_start;
-                        for(auto i=0;i<nb_threads;i++){
+                        DebugOn(nb_threads<<endl);
+			batch_models.resize(0);
+			for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
                             batch_models.push_back(modelk);
+			    #ifdef USE_MPI
+			    DebugOn("wid "<< worker_id<< " add model at i= "<<i<<endl);
+			    #endif
                             batch_models.at(i)->set_name(to_string(i));
+			    #ifdef USE_MPI
+			    DebugOn("wid "<< worker_id<< " named model at i= "<<i<<endl);
+			    #endif
                             /* Add the upper bound constraint on the objective */
                             if(batch_models.at(i)->_cons_name.count("obj|ub")==0){
-                                param<> ub("ub");
+				#ifdef USE_MPI
+                                DebugOn("wid "<< worker_id<< "in if at i= "<<i<<endl);
+				#endif
+				param<> ub("ub");
                                 ub = ub_scale_value;
                                 auto obj = *obbt_model->_obj;
                                 Constraint<type> obj_ub("obj|ub");
@@ -6288,7 +6303,11 @@ namespace gravity {
                                 batch_models.at(i)->add(obj_ub<=0);
                             }
                         }
-                        DebugOff("created model array"<<endl);
+			#ifdef USE_MPI
+			MPI_Barrier(MPI_COMM_WORLD);
+			#endif
+			objective_models.resize(0);
+                        DebugOn("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
                             iter++;
@@ -6338,7 +6357,7 @@ namespace gravity {
                                                 obbt_subproblem_count+=batch_model_count;
 #ifdef USE_MPI
                                                 if(worker_id==0){
-                                                    DebugOff("obbt subproblem count "<<obbt_subproblem_count<<endl);
+                                                    DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
                                                 }
 #else
                                                 DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
@@ -6368,6 +6387,9 @@ namespace gravity {
                                                 DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                                 auto model_count=0;
                                                 int model_id = 0;
+  #ifdef USE_MPI
+                        MPI_Barrier(MPI_COMM_WORLD);
+                        #endif
                                                 for (auto s=0;s<batch_model_count;s++)
                                                 {
                                                     /* Update bounds only if the model status is solved to optimal */
@@ -6880,6 +6902,16 @@ if(worker_id==0){
             DebugOn("Upper bounding problem not solved to optimality, cannot compute gap"<<endl);
             upper_bound=numeric_limits<double>::min();
         }
+	batch_models.clear();
+	vector<shared_ptr<Model<>>>().swap(batch_models);
+	obbt_solution.clear();
+	vector<double>().swap(obbt_solution);
+	 objective_models.clear();
+        vector<string>().swap(objective_models);
+	sol_status.clear();
+        vector<int>().swap(sol_status);
+	sol_obj.clear();
+	vector<double>().swap(sol_obj);
         std::get<0>(res) = terminate;
         std::get<1>(res) = iter;
         std::get<2>(res) = solver_time;
