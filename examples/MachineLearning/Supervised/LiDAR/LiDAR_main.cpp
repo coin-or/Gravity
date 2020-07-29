@@ -288,6 +288,10 @@ int main (int argc, char * argv[])
         vector<double> uav_x1, uav_y1, uav_z1;
         vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
         vector<double> x_vec2,y_vec2,z_vec2,zmin_vec2,zmax_vec2;
+        vector<double> x_vec1_r,y_vec1_r,z_vec1_r;
+        vector<double> x_vec2_r,y_vec2_r,z_vec2_r;
+        vector<double> x_shift1_r,y_shift1_r,z_shift1_r;
+        vector<double> x_shift2_r,y_shift2_r,z_shift2_r;
         vector<double> x_shift1,y_shift1,z_shift1;
         vector<double> x_shift2,y_shift2,z_shift2;
         vector<double> x_shift,y_shift,z_shift;
@@ -380,7 +384,7 @@ int main (int argc, char * argv[])
             nb_pts_per_frame1 += frame.second->_lidar_points->size();
             int i = 0;
             for (const auto &p: *frame.second->_lidar_points) {
-                if(i%200==0){
+                if(i%100==0){
                 x_vec1.push_back(p->_x);
                 x_shift1.push_back(frame.second->_uav_point->_x);
                 y_vec1.push_back(p->_y);
@@ -409,7 +413,7 @@ int main (int argc, char * argv[])
             nb_pts_per_frame2 += frame.second->_lidar_points->size();
             int i = 0;
             for (auto const &p: *frame.second->_lidar_points) {
-                if(i%200==0){
+                if(i%100==0){
                 x_vec2.push_back(p->_x);
                 x_shift2.push_back(frame.second->_uav_point->_x);
                 y_vec2.push_back(p->_y);
@@ -498,8 +502,16 @@ int main (int argc, char * argv[])
                 x1.add_val(i_str,x_vec1.at(i));
                 y_uav1.add_val(i_str,y_shift1.at(i));
                 y1.add_val(i_str,y_vec1.at(i));
-                z_uav1.add_val(i_str,z_shift1.at(i));
                 z1.add_val(i_str,z_vec1.at(i));
+                z_uav1.add_val(i_str,z_shift1.at(i));
+                if(x_shift1_r.size()==0){
+                    x_shift1_r.push_back(x_shift1.at(i));
+                    x_vec1_r.push_back(x_vec1.at(i));
+                    y_shift1_r.push_back(y_shift1.at(i));
+                    y_vec1_r.push_back(y_vec1.at(i));
+                    z_shift1_r.push_back(z_shift1.at(i));
+                    z_vec1_r.push_back(z_vec1.at(i));
+                }
                 for (auto j = 0; j<m; j++) {
                     auto k = neighbors[i].at(j);
                     auto res = n2_map.find(k);
@@ -512,6 +524,14 @@ int main (int argc, char * argv[])
                         y2.add_val(j_str,y_vec2.at(k));
                         z_uav2.add_val(j_str,z_shift2.at(k));
                         z2.add_val(j_str,z_vec2.at(k));
+                        if(x1.get_dim()==1){
+                            x_shift2_r.push_back(x_shift2.at(k));
+                            x_vec2_r.push_back(x_vec2.at(k));
+                            y_shift2_r.push_back(y_shift2.at(k));
+                            y_vec2_r.push_back(y_vec2.at(k));
+                            z_shift2_r.push_back(z_shift2.at(k));
+                            z_vec2_r.push_back(z_vec2.at(k));
+                        }
                         idx2++;
                     }
                     else {
@@ -521,6 +541,19 @@ int main (int argc, char * argv[])
                 }
                 idx1++;
             }
+        }
+        
+        bool show_reduced = false;
+        if(show_reduced){
+            namespace plt = matplotlibcpp;
+            
+            std::map<std::string, std::string> keywords, keywords2;
+            keywords["marker"] = "s";
+            keywords["linestyle"] = "None";
+            keywords["ms"] = "1";
+            //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+            plt::plot3(x_vec1_r, y_vec1_r, z_vec1_r, x_vec2_r, y_vec2_r, z_vec2_r, keywords);
+            plt::show();
         }
         int n1 = x1.get_dim();
         int n2 = x2.get_dim();
@@ -558,8 +591,8 @@ int main (int argc, char * argv[])
 //            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
             var<> mu("mu", pos_), mu_k("mu_k", pos_), delta("delta", pos_);
 //            var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
-            var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
-//            var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
+//            var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
+            var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
             var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
 //            yaw1 = -0.5*pi/180;
 //            pitch1 = 0.9*pi/180;
@@ -597,9 +630,13 @@ int main (int argc, char * argv[])
             Mu += mu - gravity::min(mu_k.in(Sm1), delta.in(Sm));
             Lidar.add(Mu.in(N1)==0);
 
-            Constraint<> Norm2("Norm2");
-            Norm2 += delta - pow(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs),2) - pow(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs),2) - pow(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs),2);
-            Lidar.add(Norm2.in(Pairs)==0);
+//            Constraint<> Norm2("Norm2");
+//            Norm2 += delta - pow(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs),2) - pow(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs),2) - pow(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs),2);
+//            Lidar.add(Norm2.in(Pairs)==0);
+            
+            Constraint<> Norm1("Norm1");
+            Norm1 += delta - abs(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs)) - abs(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs)) - abs(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
+            Lidar.add(Norm1.in(Pairs)==0);
             
             
 //            Constraint<> z_abs1("z_abs1");
@@ -665,10 +702,10 @@ int main (int argc, char * argv[])
             Lidar.add(z_rot2.in(N2)==0);
 
 //            Lidar.min(sum(mu) + 1e2*pow(yaw1,2) + 1e2*pow(roll1,2) + 1e2*pow(pitch1,2));
-//            Lidar.min(sum(mu) + 1e-2*(pow(yaw1,2) + pow(roll1,2) + pow(pitch1,2)));
+//            Lidar.min(1e3*sum(mu) + (pow(yaw1,2) + pow(roll1,2) + pow(pitch1,2)));
             Lidar.min(sum(mu));
 
-            Lidar.print();
+//            Lidar.print();
 //            Lidar.initialize_zero();
 //            return 0;
             solver<> S(Lidar,ipopt);
@@ -694,6 +731,43 @@ int main (int argc, char * argv[])
         double beta = roll*pi/180;// roll in radians
         double gamma = pitch*pi/180; // pitch in radians
         double alpha = yaw*pi/180; // yaw in radians
+        
+        if(show_reduced){
+            for (auto i = 0; i< x_vec1_r.size(); i++) {
+                shifted_x = x_vec1_r[i] - x_shift1_r[i];
+                shifted_y = y_vec1_r[i] - y_shift1_r[i];
+                shifted_z = z_vec1_r[i] - z_shift1_r[i];
+                x_vec1_r[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+                y_vec1_r[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+                z_vec1_r[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+                x_vec1_r[i] += x_shift1_r[i];
+                y_vec1_r[i] += y_shift1_r[i];
+                z_vec1_r[i] += z_shift1_r[i];
+            }
+            beta *= -1;
+            alpha *= -1;
+            for (auto i = 0; i< x_vec2_r.size(); i++) {
+                shifted_x = x_vec2_r[i] - x_shift2_r[i];
+                shifted_y = y_vec2_r[i] - y_shift2_r[i];
+                shifted_z = z_vec2_r[i] - z_shift2_r[i];
+                x_vec2_r[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+                y_vec2_r[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+                z_vec2_r[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+                x_vec2_r[i] += x_shift2_r[i];
+                y_vec2_r[i] += y_shift2_r[i];
+                z_vec2_r[i] += z_shift2_r[i];
+            }
+            namespace plt = matplotlibcpp;
+            std::map<std::string, std::string> keywords, keywords2;
+            keywords["marker"] = "s";
+            keywords["linestyle"] = "None";
+            keywords["ms"] = "2";
+            plt::plot3(x_vec1_r, y_vec1_r, z_vec1_r, x_vec2_r, y_vec2_r, z_vec2_r, keywords);
+            plt::show();
+            beta *= -1;
+            alpha *= -1;
+        }
+        
         
         auto tot_pts = x_vec1.size()+x_vec2.size();
         x_combined.resize(tot_pts);
@@ -725,7 +799,7 @@ int main (int argc, char * argv[])
             y_combined[x_vec1.size()+i] += y_shift2[i];
             z_combined[x_vec1.size()+i] += z_shift2[i];
         }
-        bool plot_data = true;
+        bool plot_data = false;
         if(plot_data){
             namespace plt = matplotlibcpp;
             
