@@ -6281,27 +6281,22 @@ namespace gravity {
                         DebugOn(nb_threads<<endl);
 			batch_models.resize(0);
 			for(auto i=0;i<nb_threads;i++){
+				                            #ifdef USE_MPI
+                            DebugOn("wid "<< worker_id<< " add model at i= "<<i<<endl);
+                            #endif
                             auto modelk = obbt_model->copy();
+				param<> ub("ub");
+                                ub = ub_scale_value;
+                                auto obj = *modelk->_obj;
+                                Constraint<type> obj_ub("obj|ub");
+                                obj_ub = obj - ub;
+                                modelk->add(obj_ub<=0);
                             batch_models.push_back(modelk);
-			    #ifdef USE_MPI
-			    DebugOn("wid "<< worker_id<< " add model at i= "<<i<<endl);
-			    #endif
-                            batch_models.at(i)->set_name(to_string(i));
+                            //batch_models.at(i)->set_name(to_string(i));
 			    #ifdef USE_MPI
 			    DebugOn("wid "<< worker_id<< " named model at i= "<<i<<endl);
 			    #endif
                             /* Add the upper bound constraint on the objective */
-                            if(batch_models.at(i)->_cons_name.count("obj|ub")==0){
-				#ifdef USE_MPI
-                                DebugOn("wid "<< worker_id<< "in if at i= "<<i<<endl);
-				#endif
-				param<> ub("ub");
-                                ub = ub_scale_value;
-                                auto obj = *obbt_model->_obj;
-                                Constraint<type> obj_ub("obj|ub");
-                                obj_ub = obj - ub;
-                                batch_models.at(i)->add(obj_ub<=0);
-                            }
                         }
 			#ifdef USE_MPI
 			MPI_Barrier(MPI_COMM_WORLD);
