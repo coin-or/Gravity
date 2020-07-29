@@ -15,16 +15,104 @@
 #include <DataSet.h>
 #include "lasreader.hpp"
 #include "laswriter.hpp"
-#include <gravity/nanoflann.hpp>
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
 using namespace std;
-using namespace nanoflann;
+
+/* Return true if two cubes intersect */
+bool intersect(const vector<pair<double,double>>& a, const vector<pair<double,double>>& b) {
+    return (a[0].first <= b[0].second && a[0].second >= b[0].first) &&
+    (a[1].first <= b[1].second && a[1].second >= b[1].first) &&
+    (a[2].first <= b[2].second && a[2].second >= b[2].first);
+}
+
+
+
+/* Return the coordinates of the cube center*/
+tuple<double,double,double> get_center(const vector<pair<double,double>>& cube){
+    double x = 0, y = 0, z = 0;
+    for (int a = 0; a < 2; a++){
+        for (int b = 0; b <2; b++){
+            for (int c = 0; c <2; c++){
+                if(a==1)
+                    x += cube.at(0).first;
+                else
+                    x += cube.at(0).second;
+                if(b==1)
+                    y += cube.at(1).first;
+                else
+                    y += cube.at(1).second;
+                if(c==1)
+                    z += cube.at(2).first;
+                else
+                    z += cube.at(2).second;
+            }
+        }
+    }
+    tuple<double,double,double> res;
+    get<0>(res) = x/8.;
+    get<1>(res) = y/8.;
+    get<2>(res) = z/8.;
+    return res;
+}
+
+/* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
+vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, const vector<double>& ref){
+    double x1 = p[0], y1 = p[1], z1 = p[2], shifted_x, shifted_y, shifted_z, alpha, beta, gamma;
+    double x_ref = ref[0], y_ref = ref[1], z_ref = ref[2];
+    double x_rot1, y_rot1, z_rot1, x_min = numeric_limits<double>::max(), x_max = numeric_limits<double>::lowest(), y_min = numeric_limits<double>::max(), y_max = numeric_limits<double>::lowest(), z_min = numeric_limits<double>::max(), z_max = numeric_limits<double>::lowest();
+    double angles[] = {0, angle, -angle};
+    vector<pair<double,double>> min_max;
+    for (int a = 0; a < 3; a++){
+        for (int b = 0; b <3; b++){
+            for (int c = 0; c <3; c++){
+                shifted_x = x1 - x_ref;
+                shifted_y = y1 - y_ref;
+                shifted_z = z1 - z_ref;
+                alpha = angles[a];
+                beta = angles[b];
+                gamma = angles[c];
+                x_rot1 = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+                y_rot1 = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+                z_rot1 = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+                x_rot1 += x_ref;
+                y_rot1 += y_ref;
+                z_rot1 += z_ref;
+                
+                if(x_min>x_rot1){
+                    x_min = x_rot1;
+                }
+                if(y_min>y_rot1){
+                    y_min = y_rot1;
+                }
+                if(z_min>z_rot1){
+                    z_min = z_rot1;
+                }
+                if(x_max<x_rot1){
+                    x_max = x_rot1;
+                }
+                if(y_max<y_rot1){
+                    y_max = y_rot1;
+                }
+                if(z_max<z_rot1){
+                    z_max = z_rot1;
+                }
+            }
+        }
+    }
+    min_max.push_back({x_min,x_max});
+    min_max.push_back({y_min,y_max});
+    min_max.push_back({z_min,z_max});
+    return min_max;
+}
+
 int main (int argc, char * argv[])
 {
     bool show_umbrella = false;
     if(show_umbrella){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec, y_vec, z_vec;
+        map<string, tuple<int,int,int>> mapping;
+        int x_min_idx, x_max_idx, y_min_idx, y_max_idx, z_min_idx, z_max_idx;
         double x1 = 10;
         double y1 = 10;
         double z1 = 10;
@@ -36,7 +124,7 @@ int main (int argc, char * argv[])
             y_vec0.push_back(a);
             z_vec0.push_back(a);
         }
-        double x_rot1, y_rot1, z_rot1;
+        double x_rot1, y_rot1, z_rot1, x_min = numeric_limits<double>::max(), x_max = numeric_limits<double>::lowest(), y_min = numeric_limits<double>::max(), y_max = numeric_limits<double>::lowest(), z_min = numeric_limits<double>::max(), z_max = numeric_limits<double>::lowest();
         double angles[] = {0, 0.5, -0.5};
         //      list<double> mylist (angles,angles+3);
         for (int a = 0; a < 3; a++){
@@ -52,7 +140,62 @@ int main (int argc, char * argv[])
                     x_vec.push_back(x_rot1);
                     y_vec.push_back(y_rot1);
                     z_vec.push_back(z_rot1);
-                }}}
+                    if(x_min>x_rot1){
+                        x_min = x_rot1;
+                        x_min_idx = x_vec.size()-1;
+                        mapping["x_min"] = {a,b,c};
+                    }
+                    if(y_min>y_rot1){
+                        y_min = y_rot1;
+                        y_min_idx = x_vec.size()-1;
+                        mapping["y_min"] = {a,b,c};
+                    }
+                    if(z_min>z_rot1){
+                        z_min = z_rot1;
+                        z_min_idx = x_vec.size()-1;
+                        mapping["z_min"] = {a,b,c};
+                    }
+                    if(x_max<x_rot1){
+                        x_max = x_rot1;
+                        x_max_idx = x_vec.size()-1;
+                        mapping["x_max"] = {a,b,c};
+                    }
+                    if(y_max<y_rot1){
+                        y_max = y_rot1;
+                        y_max_idx = x_vec.size()-1;
+                        mapping["y_max"] = {a,b,c};
+                    }
+                    if(z_max<z_rot1){
+                        z_max = z_rot1;
+                        z_max_idx = x_vec.size()-1;
+                        mapping["z_max"] = {a,b,c};
+                    }
+                }
+            }
+        }
+        x_vec0.push_back(x_vec.at(x_min_idx));
+        y_vec0.push_back(y_vec.at(x_min_idx));
+        z_vec0.push_back(z_vec.at(x_min_idx));
+        x_vec0.push_back(x_vec.at(x_max_idx));
+        y_vec0.push_back(y_vec.at(x_max_idx));
+        z_vec0.push_back(z_vec.at(x_max_idx));
+        x_vec0.push_back(x_vec.at(y_min_idx));
+        y_vec0.push_back(y_vec.at(y_min_idx));
+        z_vec0.push_back(z_vec.at(y_min_idx));
+        x_vec0.push_back(x_vec.at(y_max_idx));
+        y_vec0.push_back(y_vec.at(y_max_idx));
+        z_vec0.push_back(z_vec.at(y_max_idx));
+        x_vec0.push_back(x_vec.at(z_min_idx));
+        y_vec0.push_back(y_vec.at(z_min_idx));
+        z_vec0.push_back(z_vec.at(z_min_idx));
+        x_vec0.push_back(x_vec.at(z_max_idx));
+        y_vec0.push_back(y_vec.at(z_max_idx));
+        z_vec0.push_back(z_vec.at(z_max_idx));
+        DebugOn("Extreme points mapping:" << endl);
+        for (const auto &triplets: mapping) {
+            DebugOn("(" << angles[get<0>(triplets.second)] << "," << angles[get<1>(triplets.second)] << "," << angles[get<2>(triplets.second)] << ")" << endl);
+        }
+        
         
         angles[1] = 0.1;
         angles[2] = -0.1;
@@ -105,8 +248,10 @@ int main (int argc, char * argv[])
     //    keywords2["ms"] = "0.1";
         
         plt::show();
-//        return 0;
+        return 0;
     }
+    
+
     
     int output = 0;
     double tol = 1e-6;
@@ -159,11 +304,12 @@ int main (int argc, char * argv[])
             if(laser_id!=15){/* Only keep points from Nadir laser */
                 continue;
             }
+            double scale = 1e-2;
             auto frame_id = CSV_data.GetCell<int>(0, i);
             new_uav = (uav_id==0) || (UAVPoints[uav_id-1]->_frame_id != frame_id);
             if(new_uav){
-                auto uav_x1 = CSV_data.GetCell<double>("Track_UTM_E", i);
-                auto uav_y1 = CSV_data.GetCell<double>("Track_UTM_N", i);
+                auto uav_x1 = CSV_data.GetCell<double>("Track_UTM_E", i)*scale;
+                auto uav_y1 = CSV_data.GetCell<double>("Track_UTM_N", i)*scale;
                 if(UAVPoints.size()==2){
                     auto uav_x0 = UAVPoints.back()->_x;
                     auto uav_y0 = UAVPoints.back()->_y;
@@ -189,7 +335,7 @@ int main (int argc, char * argv[])
                 UAVPoints[uav_id]->_frame_id = frame_id;
                 UAVPoints[uav_id]->_x = uav_x1;
                 UAVPoints[uav_id]->_y = uav_y1;
-                UAVPoints[uav_id]->_height = CSV_data.GetCell<double>("Track_UTM_Height", i);
+                UAVPoints[uav_id]->_height = CSV_data.GetCell<double>("Track_UTM_Height", i)*scale;
                 unix_time = CSV_data.GetCell<double>("Time", i);
                 UAVPoints[uav_id]->set_unix_time(unix_time);
                 uav_x.push_back(UAVPoints[uav_id]->_x);
@@ -209,9 +355,9 @@ int main (int argc, char * argv[])
                 uav_id++;
             }
             
-            auto xpos = CSV_data.GetCell<double>("UTM_E", i);
-            auto ypos = CSV_data.GetCell<double>("UTM_N", i);
-            auto zpos = CSV_data.GetCell<double>("UTM_Height", i);
+            auto xpos = CSV_data.GetCell<double>("UTM_E", i)*scale;
+            auto ypos = CSV_data.GetCell<double>("UTM_N", i)*scale;
+            auto zpos = CSV_data.GetCell<double>("UTM_Height", i)*scale;
             LidarPoints.push_back(new LidarPoint(laser_id,unix_time,xpos,ypos,zpos));
             frame_ptr.first->second->add_lidar_point(LidarPoints.back());
             LidarPoints.back()->_uav_pt = frame_ptr.first->second->_uav_point;
@@ -225,7 +371,7 @@ int main (int argc, char * argv[])
         DebugOn(frames2.size() << " frames in flight line 2" << endl);
         DebugOn(LidarPoints.size() << " lidar points read" << endl);
         
-        vector<vector<double>> point_cloud1, point_cloud2;
+        vector<vector<double>> point_cloud1, point_cloud2, uav1, uav2;
         param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
         param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
         param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
@@ -234,21 +380,26 @@ int main (int argc, char * argv[])
             nb_pts_per_frame1 += frame.second->_lidar_points->size();
             int i = 0;
             for (const auto &p: *frame.second->_lidar_points) {
-                if(i%100==0){
-                    point_cloud1.push_back({p->_x, p->_y, p->_z});
-                    x_vec1.push_back(p->_x);
-                    x_shift1.push_back(frame.second->_uav_point->_x);
-                    x_uav1.add_val(to_string(idx1),x_shift1.back());
-                    x1.add_val(to_string(idx1),x_vec1.back());
-                    y_vec1.push_back(p->_y);
-                    y_shift1.push_back(frame.second->_uav_point->_y);
-                    y_uav1.add_val(to_string(idx1),y_shift1.back());
-                    y1.add_val(to_string(idx1),y_vec1.back());
-                    z_vec1.push_back(p->_z);
-                    z_shift1.push_back(frame.second->_uav_point->_height);
-                    z_uav1.add_val(to_string(idx1),z_shift1.back());
-                    z1.add_val(to_string(idx1),z_vec1.back());
-                    idx1++;
+                if(i%200==0){
+                x_vec1.push_back(p->_x);
+                x_shift1.push_back(frame.second->_uav_point->_x);
+                y_vec1.push_back(p->_y);
+                y_shift1.push_back(frame.second->_uav_point->_y);
+                z_vec1.push_back(p->_z);
+                z_shift1.push_back(frame.second->_uav_point->_height);
+                point_cloud1.push_back({p->_x, p->_y, p->_z});
+                uav1.push_back({x_shift1.back(), y_shift1.back(), z_shift1.back()});
+//                if(i%100==0){
+//                    point_cloud1.push_back({p->_x, p->_y, p->_z});
+//                    uav1.push_back({x_shift1.back(), y_shift1.back(), z_shift1.back()});
+//                    x_uav1.add_val(to_string(idx1),x_shift1.back());
+//                    x1.add_val(to_string(idx1),x_vec1.back());
+//                    y_uav1.add_val(to_string(idx1),y_shift1.back());
+//                    y1.add_val(to_string(idx1),y_vec1.back());
+//                    z_uav1.add_val(to_string(idx1),z_shift1.back());
+//                    z1.add_val(to_string(idx1),z_vec1.back());
+//                    idx1++;
+//                }
                 }
                 i++;
             }
@@ -258,22 +409,27 @@ int main (int argc, char * argv[])
             nb_pts_per_frame2 += frame.second->_lidar_points->size();
             int i = 0;
             for (auto const &p: *frame.second->_lidar_points) {
-                if(i%100==0){
-                    point_cloud2.push_back({p->_x, p->_y, p->_z});
-                    x_vec2.push_back(p->_x);
-                    x_shift2.push_back(frame.second->_uav_point->_x);
-                    x_uav2.add_val(to_string(idx2),x_shift2.back());
-                    x2.add_val(to_string(idx2),x_vec2.back());
-                    y_vec2.push_back(p->_y);
-                    y_shift2.push_back(frame.second->_uav_point->_y);
-                    y_uav2.add_val(to_string(idx2),y_shift2.back());
-                    y2.add_val(to_string(idx2),y_vec2.back());
-                    z_vec2.push_back(p->_z);
-                    z_shift2.push_back(frame.second->_uav_point->_height);
-                    z_uav2.add_val(to_string(idx2),z_shift2.back());
-                    z2.add_val(to_string(idx2),z_vec2.back());
-                    idx2++;
+                if(i%200==0){
+                x_vec2.push_back(p->_x);
+                x_shift2.push_back(frame.second->_uav_point->_x);
+                y_vec2.push_back(p->_y);
+                y_shift2.push_back(frame.second->_uav_point->_y);
+                z_vec2.push_back(p->_z);
+                z_shift2.push_back(frame.second->_uav_point->_height);
+                point_cloud2.push_back({p->_x, p->_y, p->_z});
+                uav2.push_back({x_shift2.back(), y_shift2.back(), z_shift2.back()});
                 }
+//                if(i%100==0){
+//                    point_cloud2.push_back({p->_x, p->_y, p->_z});
+//                    uav2.push_back({x_shift2.back(), y_shift2.back(), z_shift2.back()});
+//                    x_uav2.add_val(to_string(idx2),x_shift2.back());
+//                    x2.add_val(to_string(idx2),x_vec2.back());
+//                    y_uav2.add_val(to_string(idx2),y_shift2.back());
+//                    y2.add_val(to_string(idx2),y_vec2.back());
+//                    z_uav2.add_val(to_string(idx2),z_shift2.back());
+//                    z2.add_val(to_string(idx2),z_vec2.back());
+//                    idx2++;
+//                }
                 i++;
             }
         }
@@ -281,125 +437,259 @@ int main (int argc, char * argv[])
             DebugOn("Average number of points per frame in flight line 1 = " << nb_pts_per_frame1/frames1.size() << endl);
         if(frames2.size()!=0)
             DebugOn("Average number of points per frame in flight line 2 = " << nb_pts_per_frame2/frames2.size() << endl);
-        DebugOn("Number of selected points in flight line 1 = " << x_vec1.size() << endl);
-        DebugOn("Number of selected points in flight line 2 = " << x_vec2.size() << endl);
-        /* Get k-nearest neighbors for each point in flight line 1 */
-        KDTreeVectorOfVectorsAdaptor<vector<vector<double>>, double>  mat_index(3 /*dim*/, point_cloud2, 10 /* max leaf */ );
-        mat_index.index->buildIndex();
-        // do a knn search
-        const size_t nb_neighbors = 20;
-        std::vector<size_t>   ret_indexes(nb_neighbors);
-        std::vector<double> out_dists_sqr(nb_neighbors);
+        DebugOn("Number of points in flight line 1 = " << x_vec1.size() << endl);
+        DebugOn("Number of points in flight line 2 = " << x_vec2.size() << endl);
         
-        nanoflann::KNNResultSet<double> resultSet(nb_neighbors);
         
-        resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );        
-        mat_index.index->findNeighbors(resultSet, &point_cloud1[0][0], nanoflann::SearchParams(10));
         
-        std::cout << "For point (" << point_cloud1.at(0).at(0) << "," <<  point_cloud1.at(0).at(1) << "," << point_cloud1.at(0).at(2) << ")"<< " knnSearch(n="<<nb_neighbors<<"): \n";
-        for (size_t i = 0; i < nb_neighbors; i++)
-            std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << " point = (" << point_cloud2.at(ret_indexes[i]).at(0) << "," <<  point_cloud2.at(ret_indexes[i]).at(1) << "," << point_cloud2.at(ret_indexes[i]).at(2) << ")" << std::endl;
-        int n = std::min(x_vec1.size(),x_vec2.size());
-        indices N("N");
-        N = range(1, n);
+        double angle_max = 0.1;
+        int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+        vector<pair<double,double>> min_max1;
+        vector<vector<pair<double,double>>> min_max2(x_vec2.size());
+        vector<int> nb_neighbors(x_vec1.size());
+        map<int,vector<int>> neighbors;
+        /* Compute cube for all points in point cloud 2 */
+        for (auto i = 0; i<x_vec2.size(); i++) {
+            min_max2[i] = get_min_max(angle_max, point_cloud2.at(i), uav2.at(i));
+        }
+        /* Check if cubes intersect */
+        for (auto i = 0; i<x_vec1.size(); i++) {
+            nb_pairs = 0;
+            min_max1 = get_min_max(angle_max, point_cloud1.at(i), uav1.at(i));
+            DebugOn("For point (" << point_cloud1.at(i).at(0) << "," <<  point_cloud1.at(i).at(1) << "," << point_cloud1.at(i).at(2) << "): ");
+            DebugOff("\n neighbors in umbrella : \n");
+            for (size_t j = 0; j < x_vec2.size(); j++){
+                if(intersect(min_max1, min_max2[j])){ /* point is in umbrella */
+                    nb_pairs++;
+                    neighbors[i].push_back(j);
+                    DebugOff("(" << point_cloud2.at(j).at(0) << "," <<  point_cloud2.at(j).at(1) << "," << point_cloud2.at(j).at(2) << ")\n");
+                }
+            }
+            
+            DebugOn("nb points in umbrella = " << nb_pairs << endl);
+            if(nb_pairs>max_nb_pairs)
+                max_nb_pairs = nb_pairs;
+            if(nb_pairs<min_nb_pairs)
+                min_nb_pairs = nb_pairs;
+            av_nb_pairs += nb_pairs;
+            
+            //        std::cout << "For point (" << point_cloud1.at(i).at(0) << "," <<  point_cloud1.at(i).at(1) << "," << point_cloud1.at(i).at(2) << ")"<< " knnSearch(n="<<m<<"): \n";
+            //        for (size_t k = 0; k < m; k++)
+            //            std::cout << "ret_index["<<k<<"]=" << ret_indexes[k] << " out_dist_sqr=" << out_dists_sqr[k] << " point = (" << point_cloud2.at(ret_indexes[k]).at(0) << "," <<  point_cloud2.at(ret_indexes[k]).at(1) << "," << point_cloud2.at(ret_indexes[k]).at(2) << ")" << std::endl;
+            nb_neighbors[i] = nb_pairs;
+        }
+        av_nb_pairs /= x_vec1.size();
+        DebugOn("Min nb of Pairs = " << min_nb_pairs << endl);
+        DebugOn("Max nb of Pairs = " << max_nb_pairs << endl);
+        DebugOn("Average nb of Pairs = " << av_nb_pairs << endl);
+        
+        //        return 0;
+        int m = av_nb_pairs;
+        string i_str, j_str;
+        indices Pairs("Pairs");
+        map<int,int> n2_map;
+        idx1 = 0;
+        idx2 = 0;
+        /* Keep points with neighbors >= m */
+        for (auto i = 0; i<x_vec1.size(); i++) {
+            if(nb_neighbors[i]>=m){
+                i_str = to_string(idx1+1);
+                x_uav1.add_val(i_str,x_shift1.at(i));
+                x1.add_val(i_str,x_vec1.at(i));
+                y_uav1.add_val(i_str,y_shift1.at(i));
+                y1.add_val(i_str,y_vec1.at(i));
+                z_uav1.add_val(i_str,z_shift1.at(i));
+                z1.add_val(i_str,z_vec1.at(i));
+                for (auto j = 0; j<m; j++) {
+                    auto k = neighbors[i].at(j);
+                    auto res = n2_map.find(k);
+                    if(res==n2_map.end()){
+                        n2_map[k] = idx2;
+                        j_str = to_string(idx2+1);
+                        x_uav2.add_val(j_str,x_shift2.at(k));
+                        x2.add_val(j_str,x_vec2.at(k));
+                        y_uav2.add_val(j_str,y_shift2.at(k));
+                        y2.add_val(j_str,y_vec2.at(k));
+                        z_uav2.add_val(j_str,z_shift2.at(k));
+                        z2.add_val(j_str,z_vec2.at(k));
+                        idx2++;
+                    }
+                    else {
+                        j_str = to_string(res->second+1);
+                    }
+                    Pairs.add(i_str+","+j_str);
+                }
+                idx1++;
+            }
+        }
+        int n1 = x1.get_dim();
+        int n2 = x2.get_dim();
+        DebugOn("n1 = " << n1 << endl);
+        DebugOn("n2 = " << n2 << endl);
+        indices N1("N1"),N2("N2");
+        N1 = range(1,n1);
+        N2 = range(1,n2);
+        indices M("M");
+        M = range(1,m);
+
+        DebugOn("Total size of Pairs = " << Pairs.size() << endl);
+        
+        
+        indices NM("NM");
+        NM = indices(N1,M);
+        indices S1("S1"), S2("S2"), Sm1("Sm1"), S2m2("S2m2"), S3m1("S3m1"), Sm("Sm"), K("K");
+        S1 = indices(N1, range(1,1));
+        S2 = indices(N1, range(2,2));
+        Sm = indices(N1, range(m,m));
+        Sm1 = indices(N1, range(m-1,m-1));
+        S2m2 = indices(N1, range(2,m-2));
+        S3m1 = indices(N1, range(3,m-1));
+        K = indices(N1,range(2,m-1));
+        
+        
+        
+        
+        double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
         bool solve_lidar = true;
         if (solve_lidar) {
-            Model<> M("Lidar");
+            Model<> Lidar("Lidar");
             var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
             var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
-            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+//            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+            var<> mu("mu", pos_), mu_k("mu_k", pos_), delta("delta", pos_);
+//            var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
             var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
+//            var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
             var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
-            
-            M.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
-            M.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
-            M.add(new_x1.in(N), new_y1.in(N), new_z1.in(N));
-            M.add(new_x2.in(N), new_y2.in(N), new_z2.in(N));
-            M.add(x_diff.in(N), y_diff.in(N), z_diff.in(N));
+//            yaw1 = -0.5*pi/180;
+//            pitch1 = 0.9*pi/180;
+//            roll1 = 1.375*pi/180;
+            Lidar.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
+            Lidar.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
+            Lidar.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+            Lidar.add(new_x2.in(N2), new_y2.in(N2), new_z2.in(N2));
+//            Lidar.add(x_diff.in(NM), y_diff.in(NM), z_diff.in(NM));
+            Lidar.add(delta.in(NM));
+            Lidar.add(mu.in(N1));
+            Lidar.add(mu_k.in(K));
 
             Constraint<> Equal_pitch("Equal_pitch");
             Equal_pitch += pitch1 - pitch2;
-            M.add(Equal_pitch==0);
+            Lidar.add(Equal_pitch==0);
 
             Constraint<> Opp_roll("Opp_roll");
             Opp_roll += roll1 + roll2;
-            M.add(Opp_roll==0);
+            Lidar.add(Opp_roll==0);
 
             Constraint<> Opp_yaw("Opp_yaw");
             Opp_yaw += yaw1 + yaw2;
-            M.add(Opp_yaw==0);
+            Lidar.add(Opp_yaw==0);
 
-
-            Constraint<> z_abs1("z_abs1");
-            z_abs1 += z_diff - (new_z1 - new_z2);
-            M.add(z_abs1.in(N)>=0);
-
-            Constraint<> z_abs2("z_abs2");
-            z_abs2 += z_diff - (new_z2 - new_z1);
-            M.add(z_abs2.in(N)>=0);
+            Constraint<> Mu_2("Mu_2");
+            Mu_2 += mu_k.in(S2) - gravity::min(delta.in(S1), delta.in(S2));
+            Lidar.add(Mu_2.in(S2)==0);
             
-            Constraint<> x_abs1("x_abs1");
-            x_abs1 += x_diff - (new_x1 - new_x2);
-            M.add(x_abs1.in(N)>=0);
-    
-            Constraint<> x_abs2("x_abs2");
-            x_abs2 += x_diff - (new_x2 - new_x1);
-            M.add(x_abs2.in(N)>=0);
-    
-    
-            Constraint<> y_abs1("y_abs1");
-            y_abs1 += y_diff - (new_y1 - new_y2);
-            M.add(y_abs1.in(N)>=0);
-    
-            Constraint<> y_abs2("y_abs2");
-            y_abs2 += y_diff - (new_y2 - new_y1);
-            M.add(y_abs2.in(N)>=0);
+            Constraint<> Mu_k("Mu_k");
+            Mu_k += mu_k.in(S3m1) - gravity::min(mu_k.in(S2m2), delta.in(S3m1));
+            Lidar.add(Mu_k.in(S3m1)==0);
+            
+            Constraint<> Mu("Mu");
+            Mu += mu - gravity::min(mu_k.in(Sm1), delta.in(Sm));
+            Lidar.add(Mu.in(N1)==0);
 
-            auto ids = yaw1.repeat_id(n);
+            Constraint<> Norm2("Norm2");
+            Norm2 += delta - pow(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs),2) - pow(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs),2) - pow(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs),2);
+            Lidar.add(Norm2.in(Pairs)==0);
+            
+            
+//            Constraint<> z_abs1("z_abs1");
+//            z_abs1 += z_diff - (new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
+//            Lidar.add(z_abs1.in(Pairs)>=0);
+//
+//            Constraint<> z_abs2("z_abs2");
+//            z_abs2 += z_diff - (new_z2.in_ignore_ith(1, 0, Pairs) - new_z1.in_ignore_ith(1, 1, Pairs));
+//            Lidar.add(z_abs2.in(Pairs)>=0);
+//
+//            Constraint<> x_abs1("x_abs1");
+//            x_abs1 += x_diff - (new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs));
+//            Lidar.add(x_abs1.in(Pairs)>=0);
+//
+//            Constraint<> x_abs2("x_abs2");
+//            x_abs2 += x_diff - (new_x2.in_ignore_ith(0, 1, Pairs) - new_x1.in_ignore_ith(1, 1, Pairs));
+//            Lidar.add(x_abs2.in(Pairs)>=0);
+//
+//
+//            Constraint<> y_abs1("y_abs1");
+//            y_abs1 += y_diff - (new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs));
+//            Lidar.add(y_abs1.in(Pairs)>=0);
+//
+//            Constraint<> y_abs2("y_abs2");
+//            y_abs2 += y_diff - (new_y2.in_ignore_ith(0, 1, Pairs) - new_y1.in_ignore_ith(1, 1, Pairs));
+//            Lidar.add(y_abs2.in(Pairs)>=0);
+
+            auto ids1 = yaw1.repeat_id(n1);
 
             /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
             Constraint<> x_rot1("x_rot1");
-            x_rot1 += new_x1 - x_uav1.in(N);
-            x_rot1 -= (x1.in(N)-x_uav1.in(N))*cos(yaw1.in(ids))*cos(roll1.in(ids)) + (y1.in(N)-y_uav1.in(N))*(cos(yaw1.in(ids))*sin(roll1.in(ids))*sin(pitch1.in(ids)) - sin(yaw1.in(ids))*cos(pitch1.in(ids))) + (z1.in(N)-z_uav1.in(N))*(cos(yaw1.in(ids))*sin(roll1.in(ids))*cos(pitch1.in(ids)) + sin(yaw1.in(ids))*sin(pitch1.in(ids)));
-            M.add(x_rot1.in(N)==0);
+            x_rot1 += new_x1 - x_uav1.in(N1);
+            x_rot1 -= (x1.in(N1)-x_uav1.in(N1))*cos(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) - sin(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) + sin(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+            Lidar.add(x_rot1.in(N1)==0);
 
+            auto ids2 = yaw2.repeat_id(n2);
+            
             Constraint<> x_rot2("x_rot2");
-            x_rot2 += new_x2 - x_uav2.in(N);
-            x_rot2 -= (x2.in(N)-x_uav2.in(N))*cos(yaw2.in(ids))*cos(roll2.in(ids)) + (y2.in(N)-y_uav2.in(N))*(cos(yaw2.in(ids))*sin(roll2.in(ids))*sin(pitch2.in(ids)) - sin(yaw2.in(ids))*cos(pitch2.in(ids))) + (z2.in(N)-z_uav2.in(N))*(cos(yaw2.in(ids))*sin(roll2.in(ids))*cos(pitch2.in(ids)) + sin(yaw2.in(ids))*sin(pitch2.in(ids)));
-            M.add(x_rot2.in(N)==0);
+            x_rot2 += new_x2 - x_uav2.in(N2);
+            x_rot2 -= (x2.in(N2)-x_uav2.in(N2))*cos(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) - sin(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) + sin(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+            Lidar.add(x_rot2.in(N2)==0);
 
 
             Constraint<> y_rot1("y_rot1");
-            y_rot1 += new_y1 - y_uav1.in(N);
-            y_rot1 -= (x1.in(N)-x_uav1.in(N))*sin(yaw1.in(ids))*cos(roll1.in(ids)) + (y1.in(N)-y_uav1.in(N))*(sin(yaw1.in(ids))*sin(roll1.in(ids))*sin(pitch1.in(ids)) + cos(yaw1.in(ids))*cos(pitch1.in(ids))) + (z1.in(N)-z_uav1.in(N))*(sin(yaw1.in(ids))*sin(roll1.in(ids))*cos(pitch1.in(ids)) - cos(yaw1.in(ids))*sin(pitch1.in(ids)));
-            M.add(y_rot1.in(N)==0);
+            y_rot1 += new_y1 - y_uav1.in(N1);
+            y_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) + cos(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) - cos(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+            Lidar.add(y_rot1.in(N1)==0);
 
             Constraint<> y_rot2("y_rot2");
-            y_rot2 += new_y2 - y_uav2.in(N);
-            y_rot2 -= (x2.in(N)-x_uav2.in(N))*sin(yaw2.in(ids))*cos(roll2.in(ids)) + (y2.in(N)-y_uav2.in(N))*(sin(yaw2.in(ids))*sin(roll2.in(ids))*sin(pitch2.in(ids)) + cos(yaw2.in(ids))*cos(pitch2.in(ids))) + (z2.in(N)-z_uav2.in(N))*(sin(yaw2.in(ids))*sin(roll2.in(ids))*cos(pitch2.in(ids)) - cos(yaw2.in(ids))*sin(pitch2.in(ids)));
-            M.add(y_rot2.in(N)==0);
+            y_rot2 += new_y2 - y_uav2.in(N2);
+            y_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) + cos(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) - cos(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+            Lidar.add(y_rot2.in(N2)==0);
 
             Constraint<> z_rot1("z_rot1");
-            z_rot1 += new_z1 - z_uav1.in(N);
-            z_rot1 -= (x1.in(N)-x_uav1.in(N))*sin(-1*roll1.in(ids)) + (y1.in(N)-y_uav1.in(N))*(cos(roll1.in(ids))*sin(pitch1.in(ids))) + (z1.in(N)-z_uav1.in(N))*(cos(roll1.in(ids))*cos(pitch1.in(ids)));
-            M.add(z_rot1.in(N)==0);
+            z_rot1 += new_z1 - z_uav1.in(N1);
+            z_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(-1*roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(roll1.in(ids1))*sin(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(roll1.in(ids1))*cos(pitch1.in(ids1)));
+            Lidar.add(z_rot1.in(N1)==0);
 
 
             Constraint<> z_rot2("z_rot2");
-            z_rot2 += new_z2 - z_uav2.in(N);
-            z_rot2 -= (x2.in(N)-x_uav2.in(N))*sin(-1*roll2.in(ids)) + (y2.in(N)-y_uav2.in(N))*(cos(roll2.in(ids))*sin(pitch2.in(ids))) + (z2.in(N)-z_uav2.in(N))*(cos(roll2.in(ids))*cos(pitch2.in(ids)));
-            M.add(z_rot2.in(N)==0);
+            z_rot2 += new_z2 - z_uav2.in(N2);
+            z_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(-1*roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(roll2.in(ids2))*sin(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(roll2.in(ids2))*cos(pitch2.in(ids2)));
+            Lidar.add(z_rot2.in(N2)==0);
 
-            M.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
+//            Lidar.min(sum(mu) + 1e2*pow(yaw1,2) + 1e2*pow(roll1,2) + 1e2*pow(pitch1,2));
+//            Lidar.min(sum(mu) + 1e-2*(pow(yaw1,2) + pow(roll1,2) + pow(pitch1,2)));
+            Lidar.min(sum(mu));
 
-            M.print();
-
-            solver<> S(M,ipopt);
+            Lidar.print();
+//            Lidar.initialize_zero();
+//            return 0;
+            solver<> S(Lidar,ipopt);
+//            S.set_option("tol", 1e-10);
+//            S.run(5,1e-10);
             S.run();
+            DebugOn("Pitch1 = " << pitch1.eval()*180/pi << endl);
+            DebugOn("Roll1 = " << roll1.eval()*180/pi << endl);
+            DebugOn("Yaw1 = " << yaw1.eval()*180/pi << endl);
+            DebugOn("Pitch2 = " << pitch2.eval()*180/pi << endl);
+            DebugOn("Roll2 = " << roll2.eval()*180/pi << endl);
+            DebugOn("Yaw2 = " << yaw2.eval()*180/pi << endl);
+            roll_1 = roll1.eval()*180/pi;
+            pitch_1 = pitch1.eval()*180/pi;
+            yaw_1 = yaw1.eval()*180/pi;
+//            return 0;
         }
         
         /* Adjusting the data */
-        double roll = 1.375, pitch = 0.9, yaw = -0.5; /* In degrees */
+//        double roll = 1.375, pitch = 0.9, yaw = -0.5; /* In degrees */
+        double roll = roll_1, pitch = pitch_1, yaw = yaw_1; /* In degrees */
         double shifted_x, shifted_y, shifted_z;
         double beta = roll*pi/180;// roll in radians
         double gamma = pitch*pi/180; // pitch in radians
