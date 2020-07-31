@@ -5998,7 +5998,7 @@ namespace gravity {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
             DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
-
+        
         shared_ptr<Model<>> obbt_model=relaxed_model->copy();
         obbt_model->_status=relaxed_model->_status;
         Model<> interior_model;
@@ -6292,11 +6292,11 @@ namespace gravity {
                             param<> ub("ub");
                             ub = ub_scale_value;
                             auto obj = *modelk->_obj;
-			   if(modelk->_cons_name.count("obj|ub")==0){
-                            Constraint<type> obj_ub("obj|ub");
-                            obj_ub = obj - ub;
-                            modelk->add(obj_ub<=0);
-			    }
+                            if(modelk->_cons_name.count("obj|ub")==0){
+                                Constraint<type> obj_ub("obj|ub");
+                                obj_ub = obj - ub;
+                                modelk->add(obj_ub<=0);
+                            }
                             batch_models.push_back(modelk);
                             batch_models.at(i)->set_name(to_string(i));
                         }
