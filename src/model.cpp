@@ -5998,9 +5998,9 @@ namespace gravity {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
             DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
-        
-        shared_ptr<Model<>> obbt_model=relaxed_model->copy();
-        obbt_model->_status=relaxed_model->_status;
+        shared_ptr<Model<>> obbt_model=relaxed_model;
+       // shared_ptr<Model<>> obbt_model=relaxed_model->copy();
+        //obbt_model->_status=relaxed_model->_status;
         Model<> interior_model;
         if(linearize){
             auto lin_model=relaxed_model->buildOA();
@@ -6291,7 +6291,7 @@ namespace gravity {
                             auto modelk = obbt_model->copy();
                             param<> ub("ub");
                             ub = ub_scale_value;
-                            auto obj = *modelk->_obj;
+                            auto obj = *obbt_model->_obj;
                             if(modelk->_cons_name.count("obj|ub")==0){
                                 Constraint<type> obj_ub("obj|ub");
                                 obj_ub = obj - ub;
