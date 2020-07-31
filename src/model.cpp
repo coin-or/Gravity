@@ -6118,7 +6118,7 @@ namespace gravity {
         var<> vark, vk, v, var_ub;
         double boundk1, objk, left, right, mid, temp, tempa;
         bool terminate=false;
-        bool break_flag=false, time_limit = false, close=false, constr_viol;
+        bool break_flag=false, time_limit = false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
         const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6, gap_tol=0.1;
@@ -6135,7 +6135,7 @@ namespace gravity {
         double gap_old;
         bool share_obj;
         map<string, size_t> inst_old;
-        int viol;
+        int viol, constr_viol;
         double batch_time;
         string cut_type;
         vector<int> o_status;
@@ -6178,9 +6178,9 @@ namespace gravity {
                         obbt_model->reindex();
                         obbt_model->reset_constrs();
                         //obbt_model->print();
-                        constr_viol=true;
+                        constr_viol=1;
                         lin_count=0;
-                        while (constr_viol && lin_count<5){
+                        while (constr_viol==1 && lin_count<5){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6287,29 +6287,19 @@ namespace gravity {
                         DebugOn("count var "<<count_var<<endl);
                         solver_time= get_wall_time()-solver_time_start;
                         DebugOn(nb_threads<<endl);
-                        batch_models.resize(0);
                         for(auto i=0;i<nb_threads;i++){
-#ifdef USE_MPI
-                            DebugOn("wid "<< worker_id<< " add model at i= "<<i<<endl);
-#endif
                             auto modelk = obbt_model->copy();
                             param<> ub("ub");
                             ub = ub_scale_value;
                             auto obj = *modelk->_obj;
+			   if(modelk->_cons_name.count("obj|ub")==0){
                             Constraint<type> obj_ub("obj|ub");
                             obj_ub = obj - ub;
                             modelk->add(obj_ub<=0);
+			    }
                             batch_models.push_back(modelk);
-                            //batch_models.at(i)->set_name(to_string(i));
-#ifdef USE_MPI
-                            DebugOn("wid "<< worker_id<< " named model at i= "<<i<<endl);
-#endif
-                            /* Add the upper bound constraint on the objective */
+                            batch_models.at(i)->set_name(to_string(i));
                         }
-#ifdef USE_MPI
-                        MPI_Barrier(MPI_COMM_WORLD);
-#endif
-                        objective_models.resize(0);
                         DebugOn("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
@@ -6656,10 +6646,10 @@ namespace gravity {
                                     else if(lb_solver_type==gurobi){
                                         LB_solver.set_option("gurobi_crossover", true);
                                     }
-                                    constr_viol=true;
+                                    constr_viol=1;
                                     lin_count=0;
                                     active_root_tol=1e-6;
-                                    while (constr_viol && lin_count<5){
+                                    while ((constr_viol==1) && (lin_count<5)){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6906,15 +6896,6 @@ namespace gravity {
             upper_bound=numeric_limits<double>::min();
         }
         batch_models.clear();
-        vector<shared_ptr<Model<>>>().swap(batch_models);
-        obbt_solution.clear();
-        vector<double>().swap(obbt_solution);
-        objective_models.clear();
-        vector<string>().swap(objective_models);
-        sol_status.clear();
-        vector<int>().swap(sol_status);
-        sol_obj.clear();
-        vector<double>().swap(sol_obj);
         std::get<0>(res) = terminate;
         std::get<1>(res) = iter;
         std::get<2>(res) = solver_time;
