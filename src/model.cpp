@@ -5987,7 +5987,7 @@ namespace gravity {
         }
         
         LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        //LBnonlin_solver.set_option("check_violation", true);
+        LBnonlin_solver.set_option("check_violation", true);
         LBnonlin_solver.run(output = 0 , lb_solver_tol, "ma27");
         //        relaxed_model->print();
         //        relaxed_model->print_solution();
@@ -5998,9 +5998,9 @@ namespace gravity {
             lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
             DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
         }
-        shared_ptr<Model<>> obbt_model=relaxed_model;
-       // shared_ptr<Model<>> obbt_model=relaxed_model->copy();
-        //obbt_model->_status=relaxed_model->_status;
+        //shared_ptr<Model<>> obbt_model=relaxed_model;
+       	shared_ptr<Model<>> obbt_model=relaxed_model->copy();
+        obbt_model->_status=relaxed_model->_status;
         Model<> interior_model;
         if(linearize){
             auto lin_model=relaxed_model->buildOA();
@@ -6011,7 +6011,7 @@ namespace gravity {
         }
         
         int run_obbt_iter=1;
-        auto status = run_obbt_one_iteration(relaxed_model, max_time, 2, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
+        auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
         double upper_bound = get<5>(status);
         
         total_iter += get<1>(status);
@@ -6035,7 +6035,7 @@ namespace gravity {
                 break;
             oacuts=get<8>(status);
             run_obbt_iter++;
-            status = run_obbt_one_iteration(relaxed_model, max_time, 2, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
+            status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value);
             
             
             lower_bound=get<6>(status);
@@ -6281,17 +6281,14 @@ namespace gravity {
                             }
                             
                         }
-#ifdef USE_MPI
-                        MPI_Barrier(MPI_COMM_WORLD);
-#endif
-                        DebugOn("count var "<<count_var<<endl);
+                        //DebugOn("count var "<<count_var<<endl);
                         solver_time= get_wall_time()-solver_time_start;
-                        DebugOn(nb_threads<<endl);
+                        //DebugOn(nb_threads<<endl);
                         for(auto i=0;i<nb_threads;i++){
                             auto modelk = obbt_model->copy();
                             param<> ub("ub");
                             ub = ub_scale_value;
-                            auto obj = *obbt_model->_obj;
+                            auto obj = *modelk->_obj;
                             if(modelk->_cons_name.count("obj|ub")==0){
                                 Constraint<type> obj_ub("obj|ub");
                                 obj_ub = obj - ub;
@@ -6300,7 +6297,7 @@ namespace gravity {
                             batch_models.push_back(modelk);
                             batch_models.at(i)->set_name(to_string(i));
                         }
-                        DebugOn("created model array"<<endl);
+                        //DebugOn("created model array"<<endl);
                         while(solver_time<=max_time && !terminate && iter<max_iter)
                         {
                             iter++;
