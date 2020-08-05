@@ -1123,7 +1123,7 @@ namespace gravity {
         return(constr_viol);
     }
     template<>
-    bool Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts)
+    int Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts)
     {
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
@@ -1131,7 +1131,7 @@ namespace gravity {
         get_solution(xsolution);
         set_solution(obbt_solution);
         const double active_tol_sol=1e-12, zero_tol=1e-6;
-        bool constr_viol=false;
+        int constr_viol=0;
         bool interior_solv=true;
         vector<double> c_val ;
         double c0_val;
@@ -1220,7 +1220,7 @@ namespace gravity {
                                 {   con->uneval();
                                     auto fk=con->eval(i);
                                     if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                        constr_viol=true;
+                                        constr_viol=1;
                                         //ToDo fix interior status
                                         DebugOff("status "<< interior._status);
                                         //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
@@ -1624,8 +1624,7 @@ namespace gravity {
     int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
         std::vector<double> obbt_solution, cut_vec;
         string msname;
-        int viol=0;
-        bool viol_g;
+        int viol=0, viol_i=0;
         for (auto s=0;s<batch_model_count;s++)
         {
             auto m=batch_models[s];
@@ -1641,12 +1640,44 @@ namespace gravity {
                         obbt_solution.resize(m->_nb_vars);
                         m->get_solution(obbt_solution);
                         cut_vec.resize(0);
-                            viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                            viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
                             lin->add_cuts_to_model(cut_vec, *this);
-                        if(viol==1 || viol_g==true){
+                        if(viol==1 || viol_i==1){
                             viol=1;
                         }
                     }
+        }
+        return viol;
+    }
+    template<>
+    int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list){
+        std::vector<double> obbt_solution, cut_vec;
+        string msname;
+        int viol=0, viol_i=0;
+        for (auto s=0;s<batch_model_count;s++)
+        {
+            auto m=batch_models[s];
+            /* Update bounds only if the model status is solved to optimal */
+            if(m->_status==0)
+            {
+                if(vname=="modelname"){
+                    msname=m->_name;
+                }
+                else if(vname=="allvar"){
+                    msname="allvar";
+                }
+                obbt_solution.resize(m->_nb_vars);
+                m->get_solution(obbt_solution);
+                cut_vec.resize(0);
+                viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                lin->add_cuts_to_model(cut_vec, *this);
+                if(viol_i==1){
+                    repeat_list.push_back(m->_name);
+                }
+                if(viol==1 || viol_i==1){
+                    viol=1;
+                }
+            }
         }
         return viol;
     }
@@ -1661,9 +1692,10 @@ namespace gravity {
         auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
         std::string msname;
         vector<double> obbt_solution, cut_vec;
+        vector<int> bcast_array;
+        bcast_array.resize(3,0);
         int cut_size=0;
-        int viol=0;
-        bool viol_g;
+        int viol=0, viol_i=0;
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
             for (auto w_id = 0; w_id<nb_workers; w_id++) {
@@ -1680,16 +1712,21 @@ namespace gravity {
                                         obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
                                         batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                         cut_vec.resize(0);
-                                        viol_g=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                                        if((viol==1) || (viol_g==true)){
+                                        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                                        if((viol==1) || (viol_i==1)){
                                             viol=1;
                                         }
 
                                 cut_size=cut_vec.size();
+                                bcast_array[0]=viol;
+                                bcast_array[1]=cut_size;
+                                bcase_array[2]=oacuts;
                             }
-                            MPI_Bcast(&viol, 1, MPI_INT, w_id, MPI_COMM_WORLD);
-                            MPI_Bcast(&cut_size, 1, MPI_INT, w_id, MPI_COMM_WORLD);
+                            MPI_Bcast(&bcast_array, 3, MPI_INT, w_id, MPI_COMM_WORLD);
                             MPI_Barrier(MPI_COMM_WORLD);
+                            viol=bcast_array[0];
+                            cut_size=bcast_array[1];
+                            oacuts=bcast_array[2];
                             if(cut_size!=0){
                             if(worker_id!=w_id){
                                 cut_vec.resize(cut_size, 0);
@@ -1697,6 +1734,68 @@ namespace gravity {
                             MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
                             lin->add_cuts_to_model(cut_vec, *this);
                             MPI_Barrier(MPI_COMM_WORLD);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return viol;
+    }
+    
+    template<>
+    int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
+        std::string msname;
+        vector<double> obbt_solution, cut_vec;
+        int cut_size=0;
+        int viol=0, viol_i=0;
+        vector<int> bcast_array;
+        bcast_array.resize(3,0);
+        if(batch_model_count!=0){
+            std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
+            for (auto w_id = 0; w_id<nb_workers; w_id++) {
+                if(w_id+1<limits.size()){
+                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                        if(sol_status[i]==0){
+                            if(worker_id==w_id){
+                                if(vname=="modelname"){
+                                    msname=batch_models[i-limits[w_id]]->_name;
+                                }
+                                else if(vname=="allvar"){
+                                    msname="allvar";
+                                }
+                                obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
+                                batch_models[i-limits[w_id]]->get_solution(obbt_solution);
+                                cut_vec.resize(0);
+                                viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                                cut_size=cut_vec.size();
+                                bcast_array[0]=viol;
+                                bcast_array[1]=cut_size;
+                                bcase_array[2]=oacuts;
+                            }
+                            MPI_Bcast(&bcast_array, 3, MPI_INT, w_id, MPI_COMM_WORLD);
+                            MPI_Barrier(MPI_COMM_WORLD);
+                            viol=bcast_array[0];
+                            cut_size=bcast_array[1];
+                            oacuts=bcast_array[2];
+                            MPI_Barrier(MPI_COMM_WORLD);
+                            if((viol==1) || (viol_i==1)){
+                                viol=1;
+                            }
+                            if(viol_i==1){
+                                repeat_list.push_back(batch_models[i-limits[w_id]]->_name);
+                            }
+                            if(cut_size!=0){
+                                if(worker_id!=w_id){
+                                    cut_vec.resize(cut_size, 0);
+                                }
+                                MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
+                                lin->add_cuts_to_model(cut_vec, *this);
+                                MPI_Barrier(MPI_COMM_WORLD);
                             }
                         }
                     }
