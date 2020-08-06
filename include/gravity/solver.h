@@ -637,7 +637,7 @@ namespace gravity {
                 MPI_Bcast(&sol_status[limits[w_id]], (limits[w_id+1]-limits[w_id]), MPI_INT, w_id, MPI_COMM_WORLD);
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);
     }
     
     /** Send model solutions to all workers
@@ -747,7 +747,7 @@ namespace gravity {
                 MPI_Bcast(&sol_obj[limits[w_id]], (limits[w_id+1]-limits[w_id]), MPI_DOUBLE, w_id, MPI_COMM_WORLD);
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);
     }
     
     /** Runs models stored in the vector in parallel using MPI
