@@ -624,19 +624,20 @@ namespace gravity {
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
         int count=0;
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
-        for (auto w_id = 0; w_id<nb_workers; w_id++) {
-            if(w_id+1<limits.size()){
-                count=0;
-                if(worker_id==w_id){
-                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                        auto model = models[count++];
-                        sol_status[i]=model->_status;
-                    }
+            if(worker_id+1<limits.size()){
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    auto model = models[i-limits[worker_id]];
+                    sol_status[i]=model->_status;
                 }
-                DebugOff("I'm worker ID: " << worker_id << "I will call MPI_Bcasr with i = " << i << " and w_id =  " << w_id << endl);
-                MPI_Bcast(&sol_status[limits[w_id]], (limits[w_id+1]-limits[w_id]), MPI_INT, w_id, MPI_COMM_WORLD);
             }
+        std::vector<int> d, counts;
+        for(auto l=limits.begin()+1;l!=limits.end();l++){
+            counts.push_back(*l-*(l-1));
+            d.push_back(*(l-1));
         }
+        
+        MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                       &sol_status[0], &counts[0], &d[0], MPI_INT, MPI_COMM_WORLD);
         //MPI_Barrier(MPI_COMM_WORLD);
     }
     
@@ -741,11 +742,11 @@ namespace gravity {
                 }
             }
         std::vector<int> d, counts;
-        for(auto l=limits.begin()+1;l!=limits.end();limits++){
-            counts.push_back(*l-*[l-1]);
+        for(auto l=limits.begin()+1;l!=limits.end();l++){
+            counts.push_back(*l-*(l-1));
+            d.push_back(*(l-1));
         }
-        d=limits;
-        d.pop_back();
+
         
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &sol_obj[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);

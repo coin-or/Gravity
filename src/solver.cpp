@@ -487,12 +487,12 @@ namespace gravity {
     }
     template<>
     bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst, double tol){
-        #ifdef USE_MPI
-	int worker_id, nb_workers;
+#ifdef USE_MPI
+        int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);        
-	#endif
-	bool violated=false;
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
+        bool violated=false;
         double active_tol=1e-6;
         if(tol<active_tol){
             // active_tol=tol;
@@ -513,10 +513,10 @@ namespace gravity {
                         con_lin->set_x(i, xcurr);
                         if((fk > active_tol && con_lin->_ctype==leq) || (fk < -active_tol && con_lin->_ctype==geq)){
                             violated=true;
-			    #ifdef USE_MPI
-			    if(worker_id==0)
-                            DebugOn("avoided fcut"<<endl);
-			    #endif
+#ifdef USE_MPI
+                            if(worker_id==0)
+                                DebugOn("avoided fcut"<<endl);
+#endif
                             return violated;
                         }
                     }
@@ -1136,9 +1136,11 @@ namespace gravity {
         vector<double> xsolution(_nb_vars);
         vector<double> xinterior(_nb_vars);
         vector<double> xcurrent, xres;
-	int worker_id, nb_workers;
+#ifdef USE_MPI
+        int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
         get_solution(xsolution);
         set_solution(obbt_solution);
         const double active_tol_sol=1e-12, zero_tol=1e-6;
@@ -1236,8 +1238,8 @@ namespace gravity {
                                         DebugOff("status "<< interior._status);
                                         //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                                            if(con->xval_within_bounds(i, xcurrent)){
-                                                if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
+                                            if(true){
+                                                if(true){
                                                     auto con_interior=interior.get_constraint(cname);
                                                     xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                                                     auto res_search=con->binary_line_search(xinterior, i);
@@ -1246,13 +1248,13 @@ namespace gravity {
                                                     }
                                                 }
                                             }
-					    else{
-							#ifdef USE_MPI
-							if(worker_id==0)
-							DebugOn("avoided xcut "<<endl);
-							#endif
-						}
-
+                                            else{
+#ifdef USE_MPI
+                                                if(worker_id==0)
+                                                    DebugOn("avoided xcut "<<endl);
+#endif
+                                            }
+                                            
                                         }
                                         else{
                                             if (con->is_convex()){
@@ -1283,33 +1285,33 @@ namespace gravity {
                                         scale=1.0;
                                         if(add_new){
                                             oa_cut=true;
-                            
+                                            
                                         }
                                         else{
-                                        con->get_outer_coef(i, c_val, c0_val);
-                                        vector<int> coefs;
-                                        for (auto j = 0; j<c_val.size(); j++) {
-                                            near_zero=true;
-                                            scale=1.0;
-                                            if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-                                                if(zero_tol/std::abs(c_val[j])>scale){
-                                                    scale=zero_tol/std::abs(c_val[j]);
-                                                }
-                                            }
-                                            if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                            con->get_outer_coef(i, c_val, c0_val);
+                                            vector<int> coefs;
+                                            for (auto j = 0; j<c_val.size(); j++) {
                                                 near_zero=true;
+                                                scale=1.0;
+                                                if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                                    if(zero_tol/std::abs(c_val[j])>scale){
+                                                        scale=zero_tol/std::abs(c_val[j]);
+                                                    }
+                                                }
+                                                if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+                                                    near_zero=true;
+                                                }
+                                                else{
+                                                    near_zero=false;
+                                                }
+                                                //coefs.push_back(1e5*c_val[j]);
                                             }
-                                            else{
-                                                near_zero=false;
-                                            }
-                                            //coefs.push_back(1e5*c_val[j]);
+                                            // coefs.push_back(1e5*c0_val);
+                                            // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
+                                            oa_cut=true;
+                                            if(near_zero)
+                                                oa_cut=false;
                                         }
-                                        // coefs.push_back(1e5*c0_val);
-                                        // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
-                                        oa_cut=true;
-                                        if(near_zero)
-                                            oa_cut=false;
-                                    }
                                     }
                                 }
                                 if(oa_cut && !add_new){
@@ -1325,12 +1327,12 @@ namespace gravity {
                                         count_con++;
                                     }
                                     if(!not_found){
-                                    cuts.push_back(count_con);
-                                    cuts.push_back(i);
-                                    for (auto j = 0; j<c_val.size(); j++) {
-                                        cuts.push_back(c_val[j]*scale);
-                                    }
-                                    cuts.push_back(c0_val*scale);
+                                        cuts.push_back(count_con);
+                                        cuts.push_back(i);
+                                        for (auto j = 0; j<c_val.size(); j++) {
+                                            cuts.push_back(c_val[j]*scale);
+                                        }
+                                        cuts.push_back(c0_val*scale);
                                     }
                                 }
                                 else if(oa_cut && add_new){
@@ -1354,7 +1356,7 @@ namespace gravity {
                     }
                 }
             }
-        con_pos++;
+            con_pos++;
         }
         
         
@@ -1364,7 +1366,7 @@ namespace gravity {
         return constr_viol;
     }
     template<>
-    void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin){
+    void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacuts){
         int start=0,i, count_con,count_vec, start_orig;
         bool not_found=true, c_nfound, near_zero;
         vector<double> res1, res2, c_val;
@@ -1442,31 +1444,31 @@ namespace gravity {
                         }
                     }
                     else{
-                    Constraint<> OA_cut("OA_cuts_"+con_nonlin->_name);
-                    indices activeset("active_"+con_nonlin->_name);
-                    activeset.add((*con_nonlin->_indices->_keys)[i]);
-                    OA_cut=con_nonlin->get_outer_app(activeset, 1.0);
-                    OA_cut._lazy.push_back(false);
-                    if(con_nonlin->_ctype==leq) {
-                        add(OA_cut.in(activeset)<=0);
+                        Constraint<> OA_cut("OA_cuts_"+con_nonlin->_name);
+                        indices activeset("active_"+con_nonlin->_name);
+                        activeset.add((*con_nonlin->_indices->_keys)[i]);
+                        OA_cut=con_nonlin->get_outer_app(activeset, 1.0);
+                        OA_cut._lazy.push_back(false);
+                        if(con_nonlin->_ctype==leq) {
+                            add(OA_cut.in(activeset)<=0);
+                        }
+                        else {
+                            add(OA_cut.in(activeset)>=0);
+                        }
+                        reindex();
                     }
-                    else {
-                        add(OA_cut.in(activeset)>=0);
-                    }
-                    reindex();
-                    }
-                      con_nonlin->set_x(i, res1);
+                    con_nonlin->set_x(i, res1);
                     
                 }
             }
             else{
-            count_con=0;
-            for(count_con=0;count_con<_cons_vec.size();count_con++){
-                if(count_con==cuts[start]){
-                    not_found=false;
-                    break;
+                count_con=0;
+                for(count_con=0;count_con<_cons_vec.size();count_con++){
+                    if(count_con==cuts[start]){
+                        not_found=false;
+                        break;
+                    }
                 }
-            }
                 if(!not_found){
                     auto con_lin=_cons_vec.at(count_con);
                     auto con_lin_name=con_lin->_name;
@@ -1525,11 +1527,12 @@ namespace gravity {
                         //  rhs_f->eval_all();
                     }
                     con_lin->eval_all();
+                    oacuts++;
                 }
-            if(not_found){
-                DebugOn("Constraint not found in solver.cpp 1382"<<endl);
-                break;
-            }
+                if(not_found){
+                    DebugOn("Constraint not found in solver.cpp 1382"<<endl);
+                    break;
+                }
             }
         }
     }
@@ -1642,35 +1645,7 @@ namespace gravity {
     int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
         std::vector<double> obbt_solution, cut_vec;
         string msname;
-        int viol=0, viol_i=0;
-        for (auto s=0;s<batch_model_count;s++)
-        {
-            auto m=batch_models[s];
-            /* Update bounds only if the model status is solved to optimal */
-            if(m->_status==0)
-            {
-                if(vname=="modelname"){
-                msname=m->_name;
-                }
-                else if(vname=="allvar"){
-                    msname="allvar";
-                }
-                        obbt_solution.resize(m->_nb_vars);
-                        m->get_solution(obbt_solution);
-                        cut_vec.resize(0);
-                            viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                            lin->add_cuts_to_model(cut_vec, *this);
-                        if(viol==1 || viol_i==1){
-                            viol=1;
-                        }
-                    }
-        }
-        return viol;
-    }
-    template<>
-    int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list){
-        std::vector<double> obbt_solution, cut_vec;
-        string msname;
+        int added_cuts=0;
         int viol=0, viol_i=0;
         for (auto s=0;s<batch_model_count;s++)
         {
@@ -1688,7 +1663,37 @@ namespace gravity {
                 m->get_solution(obbt_solution);
                 cut_vec.resize(0);
                 viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                lin->add_cuts_to_model(cut_vec, *this);
+                lin->add_cuts_to_model(cut_vec, *this, added_cuts);
+                if(viol==1 || viol_i==1){
+                    viol=1;
+                }
+            }
+        }
+        return viol;
+    }
+    template<>
+    int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list){
+        std::vector<double> obbt_solution, cut_vec;
+        string msname;
+        int added_cuts=0;
+        int viol=0, viol_i=0;
+        for (auto s=0;s<batch_model_count;s++)
+        {
+            auto m=batch_models[s];
+            /* Update bounds only if the model status is solved to optimal */
+            if(m->_status==0)
+            {
+                if(vname=="modelname"){
+                    msname=m->_name;
+                }
+                else if(vname=="allvar"){
+                    msname="allvar";
+                }
+                obbt_solution.resize(m->_nb_vars);
+                m->get_solution(obbt_solution);
+                cut_vec.resize(0);
+                viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                lin->add_cuts_to_model(cut_vec, *this, added_cuts);
                 if(viol_i==1){
                     repeat_list.push_back(m->_name);
                 }
@@ -1712,69 +1717,9 @@ namespace gravity {
         vector<double> obbt_solution, cut_vec;
         vector<int> bcast_array;
         bcast_array.resize(3,0);
+        int added_cuts=0;
         int cut_size=0;
         int viol=0, viol_i=0;
-        if(batch_model_count!=0){
-            std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
-            for (auto w_id = 0; w_id<nb_workers; w_id++) {
-                if(w_id+1<limits.size()){
-                    for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                        if(sol_status[i]==0){
-                            if(worker_id==w_id){
-                                if(vname=="modelname"){
-                                    msname=batch_models[i-limits[w_id]]->_name;
-                                }
-                                else if(vname=="allvar"){
-                                    msname="allvar";
-                                }
-                                        obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
-                                        batch_models[i-limits[w_id]]->get_solution(obbt_solution);
-                                        cut_vec.resize(0);
-                                        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                                        if((viol==1) || (viol_i==1)){
-                                            viol=1;
-                                        }
-
-                                cut_size=cut_vec.size();
-                                bcast_array[0]=viol;
-                                bcast_array[1]=cut_size;
-                                bcast_array[2]=oacuts;
-                            }
-                            MPI_Bcast(&bcast_array[0], 3, MPI_INT, w_id, MPI_COMM_WORLD);
-                            MPI_Barrier(MPI_COMM_WORLD);
-                            viol=bcast_array[0];
-                            cut_size=bcast_array[1];
-                            oacuts=bcast_array[2];
-                            if(cut_size!=0){
-                            if(worker_id!=w_id){
-                                cut_vec.resize(cut_size, 0);
-                            }
-                            MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-                            lin->add_cuts_to_model(cut_vec, *this);
-                            MPI_Barrier(MPI_COMM_WORLD);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return viol;
-    }
-    
-    template<>
-    int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list){
-        int worker_id, nb_workers;
-        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-        auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
-        std::string msname;
-        vector<double> obbt_solution, cut_vec;
-        int cut_size=0;
-        int viol=0, viol_i=0;
-	double t_start=0, t=0, tb_time=0, t1, t2;
-        vector<int> bcast_array;
-        bcast_array.resize(3,0);
-	t_start=get_wall_time();
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
             for (auto w_id = 0; w_id<nb_workers; w_id++) {
@@ -1792,49 +1737,93 @@ namespace gravity {
                                 batch_models[i-limits[w_id]]->get_solution(obbt_solution);
                                 cut_vec.resize(0);
                                 viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                                if((viol==1) || (viol_i==1)){
+                                    viol=1;
+                                }
+                                
                                 cut_size=cut_vec.size();
-                                bcast_array[0]=viol_i;
+                                bcast_array[0]=viol;
                                 bcast_array[1]=cut_size;
                                 bcast_array[2]=oacuts;
                             }
-			    t1=get_wall_time();
                             MPI_Bcast(&bcast_array[0], 3, MPI_INT, w_id, MPI_COMM_WORLD);
-                            	t2=get_wall_time();
-				tb_time+=t2-t1;			   
-                            viol_i=bcast_array[0];
+                            MPI_Barrier(MPI_COMM_WORLD);
+                            viol=bcast_array[0];
                             cut_size=bcast_array[1];
                             oacuts=bcast_array[2];
-                            if((viol==1) || (viol_i==1)){
-                                viol=1;
-                            }
-                            if(viol_i==1){
-                                repeat_list.push_back(batch_models[i-limits[w_id]]->_name);
-                            }
                             if(cut_size!=0){
                                 if(worker_id!=w_id){
                                     cut_vec.resize(cut_size, 0);
                                 }
-                            	t1=get_wall_time();                                 
-			    MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-				t2=get_wall_time();                                                 
-                                tb_time+=t2-t1;
-                            if(worker_id==0){                                                
-				DebugOn("entered add broad "<<endl);                                                               
-			}
-
-				lin->add_cuts_to_model(cut_vec, *this);
-                                //MPI_Barrier(MPI_COMM_WORLD);
-
+                                MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
+                                lin->add_cuts_to_model(cut_vec, *this, added_cuts);
+                                MPI_Barrier(MPI_COMM_WORLD);
                             }
                         }
                     }
                 }
             }
         }
-		t=get_wall_time();                                                               
-		DebugOn(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);               
-MPI_Barrier(MPI_COMM_WORLD);         
-return viol;
+        return viol;
+    }
+    
+    template<>
+    int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
+        std::string msname;
+        vector<double> obbt_solution, cut_vec, cut_array_w, cut_array_allw;
+        int cut_size=0;
+        int viol=0;
+        int oacuts_old=oacuts;
+        double t_start=0, t=0, tb_time=0, t1, t2;
+        vector<int> cut_size_vec.resize(nb_workers, 0), d;
+        t_start=get_wall_time();
+        if(batch_model_count!=0){
+            std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
+            if(worker_id+1<limits.size()){
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    if(sol_status[i]==0){
+                        if(vname=="modelname"){
+                            msname=batch_models[i-limits[worker_id]]->_name;
+                        }
+                        else if(vname=="allvar"){
+                            msname="allvar";
+                        }
+                        obbt_solution.resize(batch_models[i-limits[worker_id]]->_nb_vars);
+                        batch_models[i-limits[worker_id]]->get_solution(obbt_solution);
+                        cut_vec.resize(0);
+                        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                        batch_models[i-limits[worker_id]]->set_solution(obbt_solution);
+                        for(&c:cut_vec){
+                            cut_array_w.push_back(c);
+                        }
+                    }
+                }
+                cut_size=cut_array_w.size();
+            }
+            MPI_Allgather(&cut_size, 1, MPI_INT, &cut_size_vec[0], 1, MPI_INT, MPI_COMM_WORLD);
+            cut_all_size=0;
+            c_old=-cut_size_vec[0];
+            for(&c:cut_size_vec){
+                if((viol==0) || c>0){
+                    viol=1;
+                }
+                cut_all_size+=c;
+                d.push_back(c_old+c);
+                c_old+=c;
+            }
+            cut_array_allw.resize(cut_all_size);
+            MPI_Allgatherv(&cut_array_w[0], cut_size_vec[worker_id], MPI_DOUBLE,
+                           &cut_array_allw[0], &cut_size_vec[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
+            oacuts_old=oacuts;
+            lin->add_cuts_to_model(cut_array_allw, *this, oacuts);
+        }
+        DebugOn(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);
+        MPI_Barrier(MPI_COMM_WORLD);
+        return viol;
     }
     
     
@@ -1909,90 +1898,90 @@ return viol;
                 send_obj_all_new(models,limits, sol_obj);
             }
         }
-     //   MPI_Barrier(MPI_COMM_WORLD);
+        //   MPI_Barrier(MPI_COMM_WORLD);
         return max(err_rank, err_size);
         
     }
-                    int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
-                        int worker_id, nb_workers;
-                        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-                        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-                        auto nb_workers_ = std::min((size_t)nb_workers, models.size());
-                        MPI_Request send_reqs[nb_workers_*models.size()];
-                        
-                        if(models.size()!=0){
-                            /* Split models into equal loads */
-                            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
-                            auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
-                            DebugOff("I have " << nb_workers_ << " workers" << endl);
-                            DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
-                            std::vector<size_t> limits = bounds(nb_workers_, models.size());
-                            DebugOff("I will be splitting " << models.size() << " tasks ");
-                            DebugOff("among " << nb_workers_ << " worker(s)" << endl);
-                            DebugOff("limits size = " << limits.size() << endl);
-                            for (size_t i = 0; i < limits.size(); ++i) {
-                                DebugOff("limits[" << i << "] = " << limits[i] << endl);
-                            }
-                            if(worker_id+1<limits.size()){
-                                /* Launch all threads in parallel */
-                                if(limits[worker_id] == limits[worker_id+1]){
-                                    throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
-                                }
-                                DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
-                                auto vec = vector<shared_ptr<gravity::Model<double>>>();
-                                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                                    vec.push_back(models[i]);
-                                }
-                                run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
-                            }
-                            send_status(models,limits);
-                            MPI_Barrier(MPI_COMM_WORLD);
-                            if(!share_all && !share_all_obj){/* Only share solution with worker 0 */
-                                if (worker_id == 0){
-                                    DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
-                                    for (auto w_id = 1; w_id<nb_workers_; w_id++) {
-                                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                                            auto model = models[i];
-                                            auto nb_vars = model->get_nb_vars();
-                                            vector<double> solution;
-                                            solution.resize(nb_vars);
-                                            DebugOff("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                                            DebugOff("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
-                                            model->set_solution(solution);
-                                        }
-                                    }
-                                }
-                                else {
-                                    DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
-                                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                                        auto model = models[i];
-                                        auto nb_vars = model->get_nb_vars();
-                                        vector<double> solution;
-                                        solution.resize(nb_vars);
-                                        model->get_solution(solution);
-                                        DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
-                                        MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
-                                        DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
-                                    }
-                                }
-                            }
-                            else if(share_all){
-                                /* We will send the solution of successful models */
-                                send_solution_all(models,limits);
-                            }
-                            if(share_all_obj){
-                                /* We will send the objective value of successful models */
-                                send_obj_all(models,limits);
-                            }
-                        }
-                        MPI_Barrier(MPI_COMM_WORLD);
-                        return max(err_rank, err_size);
-                    }
-                    void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
-                        run_MPI(vector<shared_ptr<gravity::Model<double>>>(models), stype, tol, nr_threads, lin_solver);}
-#endif
-                    template shared_ptr<Model<double>> Model<double>::buildOA();
-                    template Model<double> Model<double>::build_model_interior() const;
-                    template shared_ptr<Model<double>> Model<double>::build_model_IIS();
+    int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        auto nb_workers_ = std::min((size_t)nb_workers, models.size());
+        MPI_Request send_reqs[nb_workers_*models.size()];
+        
+        if(models.size()!=0){
+            /* Split models into equal loads */
+            auto nb_total_threads_ = std::min((size_t)nr_threads*nb_workers, models.size());
+            auto nb_threads_per_worker = std::min((size_t)nr_threads, models.size());
+            DebugOff("I have " << nb_workers_ << " workers" << endl);
+            DebugOff("I will be using  " << nb_total_threads_ << " thread(s) in total" << endl);
+            std::vector<size_t> limits = bounds(nb_workers_, models.size());
+            DebugOff("I will be splitting " << models.size() << " tasks ");
+            DebugOff("among " << nb_workers_ << " worker(s)" << endl);
+            DebugOff("limits size = " << limits.size() << endl);
+            for (size_t i = 0; i < limits.size(); ++i) {
+                DebugOff("limits[" << i << "] = " << limits[i] << endl);
+            }
+            if(worker_id+1<limits.size()){
+                /* Launch all threads in parallel */
+                if(limits[worker_id] == limits[worker_id+1]){
+                    throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
                 }
+                DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+                auto vec = vector<shared_ptr<gravity::Model<double>>>();
+                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                    vec.push_back(models[i]);
+                }
+                run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
+            }
+            send_status(models,limits);
+            MPI_Barrier(MPI_COMM_WORLD);
+            if(!share_all && !share_all_obj){/* Only share solution with worker 0 */
+                if (worker_id == 0){
+                    DebugOff("I'm the main worker, I'm waiting for the solutions broadcasted by the other workers " << endl);
+                    for (auto w_id = 1; w_id<nb_workers_; w_id++) {
+                        for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
+                            auto model = models[i];
+                            auto nb_vars = model->get_nb_vars();
+                            vector<double> solution;
+                            solution.resize(nb_vars);
+                            DebugOff("I'm the main worker, I'm waiting for the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            MPI_Recv(&solution[0], nb_vars, MPI_DOUBLE, w_id, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                            DebugOff("I'm the main worker, I received the solution of task " << i << " broadcasted by worker " << w_id << endl);
+                            model->set_solution(solution);
+                        }
+                    }
+                }
+                else {
+                    DebugOff("I'm worker ID: " << worker_id << ", I will be sending my solutions to main worker " << endl);
+                    for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                        auto model = models[i];
+                        auto nb_vars = model->get_nb_vars();
+                        vector<double> solution;
+                        solution.resize(nb_vars);
+                        model->get_solution(solution);
+                        DebugOff("I'm worker ID: " << worker_id << ", I finished loading solution of task " << i << endl);
+                        MPI_Send(&solution[0], nb_vars, MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
+                        DebugOff("I'm worker ID: " << worker_id << ", I finished sending solution of task " << i << endl);
+                    }
+                }
+            }
+            else if(share_all){
+                /* We will send the solution of successful models */
+                send_solution_all(models,limits);
+            }
+            if(share_all_obj){
+                /* We will send the objective value of successful models */
+                send_obj_all(models,limits);
+            }
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        return max(err_rank, err_size);
+    }
+    void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
+        run_MPI(vector<shared_ptr<gravity::Model<double>>>(models), stype, tol, nr_threads, lin_solver);}
+#endif
+    template shared_ptr<Model<double>> Model<double>::buildOA();
+    template Model<double> Model<double>::build_model_interior() const;
+    template shared_ptr<Model<double>> Model<double>::build_model_IIS();
+}

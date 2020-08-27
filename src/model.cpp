@@ -6355,7 +6355,7 @@ namespace gravity {
 #endif
                                                 viol=1;
                                                 lin_count=0;
-                                                while((viol==1) && (lin_count<5)){
+                                                while((viol==1) && (lin_count<4)){
                                                     if(lin_count>=1){
 #ifdef USE_MPI
                                                         if(worker_id==0){
@@ -6386,7 +6386,7 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                             }   
 #endif
                     
-				for (auto s=0;s<batch_model_count;s++)
+                                                    for (auto s=0;s<batch_model_count;s++)
                                                     {
                                                         /* Update bounds only if the model status is solved to optimal */
                                                         if(sol_status.at(s)==0)
@@ -6570,7 +6570,7 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                     sol_obj.clear();
                                                     auto t=get_wall_time()-solver_time_start;
 #ifdef USE_MPI                                                                                          
-                                                                                                                                                       		       DebugOn(endl<<endl<<"wid "<<worker_id<<" Batch "<<batch_time<<" cuts "<<oacuts<<" time "<<t<<endl);
+                                                                                                                                                DebugOn(endl<<endl<<"wid "<<worker_id<<" Batch "<<batch_time<<" cuts "<<oacuts<<" time "<<t<<endl);
 #else
                                                     DebugOn("Batch time "<<batch_time<<" nb oa cuts "<<oacuts<<" solver time "<<t<<endl);
 #endif  
@@ -6612,9 +6612,6 @@ MPI_Barrier(MPI_COMM_WORLD);
                                 //                    obbt_model = new_obbt.copy();
                                 if(linearize){
                                     if(run_obbt_iter>=1 && active_tol>lb_solver_tol){
-                                        active_tol*=0.1;
-                                    }
-                                    else if(run_obbt_iter>1 && (active_tol>=lb_solver_tol*0.1)){
                                         active_tol*=0.1;
                                     }
                                     obbt_model->reset();
