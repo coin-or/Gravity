@@ -6122,6 +6122,7 @@ namespace gravity {
         bool break_flag=false, time_limit = false, close=false;
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
+        vector<double> interval_gap;
         const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6, gap_tol=0.1;
         int gap_count_int=1, iter=0;
         int output = 0;
@@ -6571,6 +6572,33 @@ namespace gravity {
                                                     if(!linearize){
                                                         break;
                                                     }
+                        interval_gap.clear();
+                        sum=0; 
+                        num_var=0;
+                        for(auto &it:obbt_model->_vars_name)
+                        {
+                            string vname=it.first;
+                            v=obbt_model->template get_var<double>(vname);
+                            auto v_keys=v.get_keys();
+                            for(auto &key: *v_keys)
+                            { num_var++;
+                                var_key=vname+"|"+ key;
+                                interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
+                                interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
+                                sum+=interval_gap.back();
+                            }
+                            
+                        }
+                        if(sum/num_var<=0.01){
+                            #ifdef USE_MPI
+                            if(worker_id==0){
+                                DebugOn("breaking due to too little interval improvement");
+                            }
+                            #else
+                                DebugOn("breaking due to too little interval improvement");
+                            #endif
+                                                        break;
+                        }
                                                     lin_count++;
                                                 }
                                                // DebugOn("Repeat_list "<<repeat_list.size()<<endl);
@@ -6669,6 +6697,7 @@ namespace gravity {
                                     constr_viol=1;
                                     lin_count=0;
                                     active_root_tol=1e-6;
+                                    auto gap_temp=gap_old;
                                     while ((constr_viol==1) && (lin_count<5)){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
@@ -6682,6 +6711,17 @@ namespace gravity {
                                         if(obbt_model->_status==0){
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
+                                            if(gap_temp-gap<=0.01){
+                                                 #ifdef USE_MPI
+                            if(worker_id==0){
+                                DebugOn("breaking due to too little gap improvement");
+                            }
+                            #else
+                                DebugOn("breaking due to too little gap improvement");
+                            #endif
+                            break;
+                                            }
+                                            gap_temp=gap;
                                             //obbt_model->print();
 #ifdef USE_MPI
                                             if(worker_id==0){
@@ -6793,8 +6833,10 @@ namespace gravity {
                             }
                             gap_old=gap;
                         }
-                        vector<double> interval_gap;
                         
+                        interval_gap.cleat();
+                        sum=0;
+                        num_var=0;
                         for(auto &it:obbt_model->_vars_name)
                         {
                             string vname=it.first;
