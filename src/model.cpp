@@ -6363,14 +6363,14 @@ namespace gravity {
                                                         }
 #else
                                                         DebugOn("resolving"<<endl);
-                                                        obbt_subproblem_count+=batch_model_count;
+                                                       // obbt_subproblem_count+=batch_model_count;
 #endif
                                                     }
                                                     double batch_time_start = get_wall_time();
                                                     sol_status.resize(batch_model_count,-1);
                                                     sol_obj.resize(batch_model_count,-1.0);
 #ifdef USE_MPI
-MPI_Barrier(MPI_COMM_WORLD);
+                                                    MPI_Barrier(MPI_COMM_WORLD);
                                                     run_MPI_new(objective_models, sol_obj, sol_status,batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_obj);
 #else
                                                     run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000);
@@ -6380,10 +6380,10 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                     DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
                                                     auto model_count=0;
                                                     int model_id = 0;
-                                #ifdef USE_MPI
-                                                            if(worker_id==0){
+#ifdef USE_MPI
+                                                    if(worker_id==0){
                                                               DebugOn("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
-                                                            }   
+                                                    }
 #endif
                     
                                                     for (auto s=0;s<batch_model_count;s++)
@@ -6544,14 +6544,8 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                         DebugOn("Repeat_list "<<repeat_list.size()<<endl);
 #endif
                                                     }
-#ifdef USE_MPI
-                                                            if(worker_id==0){
-                                                              //DebugOn("time before copy "<<get_wall_time()-solver_time_start<<endl);
-                                                            }
-#endif
-
                                                     for(auto &mod:batch_models){
-                                                        if(linearize && repeat_list.size()>0){
+                                                        if(linearize){
                                                             for (auto con: obbt_model->_cons_vec){
                                                                 if(con->_name.find("OA_cuts_")!=std::string::npos){
                                                                     if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
@@ -6570,7 +6564,7 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                     sol_obj.clear();
                                                     auto t=get_wall_time()-solver_time_start;
 #ifdef USE_MPI                                                                                          
-                                                                                                                                                DebugOn(endl<<endl<<"wid "<<worker_id<<" Batch "<<batch_time<<" cuts "<<oacuts<<" time "<<t<<endl);
+                                                    DebugOn(endl<<endl<<"wid "<<worker_id<<" Batch "<<batch_time<<" cuts "<<oacuts<<" time "<<t<<endl);
 #else
                                                     DebugOn("Batch time "<<batch_time<<" nb oa cuts "<<oacuts<<" solver time "<<t<<endl);
 #endif  
@@ -6583,9 +6577,9 @@ MPI_Barrier(MPI_COMM_WORLD);
                                                 repeat_list.clear();
                                                 objective_models.clear();
                                                 if(linearize){
-                                                for(auto &r:repeat_list){
-                                                    objective_models.push_back(r);
-                                                }
+                                                    for(auto &r:repeat_list){
+                                                        objective_models.push_back(r);
+                                                    }
                                                 batch_model_count=repeat_list.size();
                                                 repeat_list.clear();
                                                 }

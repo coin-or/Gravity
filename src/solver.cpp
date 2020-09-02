@@ -1693,6 +1693,7 @@ namespace gravity {
                 m->get_solution(obbt_solution);
                 cut_vec.resize(0);
                 viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+                m->set_solution(obbt_solution);
                 lin->add_cuts_to_model(cut_vec, *this, added_cuts);
                 if(viol_i==1){
                     repeat_list.push_back(m->_name);
