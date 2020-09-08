@@ -1776,10 +1776,11 @@ namespace gravity {
         std::string msname;
         vector<double> obbt_solution, cut_vec, cut_array_w, cut_array_allw;
         int cut_size=0;
-        int viol=0;
+        int viol=0, viol_i, c_old;
         int oacuts_old=oacuts;
         double t_start=0, t=0, tb_time=0, t1, t2;
-        vector<int> cut_size_vec.resize(nb_workers, 0), d;
+        vector<int> cut_size_vec, d;
+	cut_size_vec.resize(nb_workers, 0);
         t_start=get_wall_time();
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
@@ -1794,33 +1795,42 @@ namespace gravity {
                         }
                         obbt_solution.resize(batch_models[i-limits[worker_id]]->_nb_vars);
                         batch_models[i-limits[worker_id]]->get_solution(obbt_solution);
-                        cut_vec.resize(0);
+                        cut_vec.clear();
                         viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
                         batch_models[i-limits[worker_id]]->set_solution(obbt_solution);
-                        for(&c:cut_vec){
+                        for(auto &c:cut_vec){
                             cut_array_w.push_back(c);
                         }
                     }
                 }
                 cut_size=cut_array_w.size();
             }
+	    t1=get_wall_time();
             MPI_Allgather(&cut_size, 1, MPI_INT, &cut_size_vec[0], 1, MPI_INT, MPI_COMM_WORLD);
-            cut_all_size=0;
-            c_old=-cut_size_vec[0];
-            for(&c:cut_size_vec){
-                if((viol==0) || c>0){
+            t2=get_wall_time();
+	    tb_time+=t2-t1;
+	    int cut_all_size=0;
+            c_old=0;
+	    d.push_back(0);
+            for(auto &c:cut_size_vec){
+                if((viol==0) && c>0){
                     viol=1;
                 }
                 cut_all_size+=c;
                 d.push_back(c_old+c);
                 c_old+=c;
             }
+	    d.pop_back();
             cut_array_allw.resize(cut_all_size);
-            MPI_Allgatherv(&cut_array_w[0], cut_size_vec[worker_id], MPI_DOUBLE,
+            t1=get_wall_time();
+	    MPI_Allgatherv(&cut_array_w[0], cut_size_vec[worker_id], MPI_DOUBLE,
                            &cut_array_allw[0], &cut_size_vec[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
-            oacuts_old=oacuts;
+            t2=get_wall_time();                                                               
+            tb_time+=t2-t1;
+	    oacuts=oacuts_old;
             lin->add_cuts_to_model(cut_array_allw, *this, oacuts);
         }
+	t=get_wall_time();
         DebugOn(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);
         MPI_Barrier(MPI_COMM_WORLD);
         return viol;

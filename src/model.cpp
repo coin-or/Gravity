@@ -6551,7 +6551,7 @@ MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
                                                     for(auto &mod:batch_models){
-                                                        if(linearize && repeat_list.size()>0){
+                                                        if(linearize){
                                                             for (auto con: obbt_model->_cons_vec){
                                                                 if(con->_name.find("OA_cuts_")!=std::string::npos){
                                                                     if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
