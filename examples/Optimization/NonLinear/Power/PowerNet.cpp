@@ -160,7 +160,7 @@ void PowerNet::update_pij_bounds()
     for (auto n: nodes) {
         if(n->get_degree()==1)
         {
-            Debug("Degree 1 node "<<n->_name<<endl);
+            DebugOff("Degree 1 node "<<n->_name<<endl);
             if (n->_active)
             {
                 Pg_sum_min=0;
@@ -210,7 +210,7 @@ void PowerNet::update_pij_bounds()
                 }
                 else
                 {
-                    Debug("No gen for node " <<n->_name<<endl);
+                    DebugOff("No gen for node " <<n->_name<<endl);
                     if(((Bus*)n)->gs()==0)
                     {
                         
@@ -263,7 +263,7 @@ void PowerNet::update_pij_bounds()
         Bus* bus_d = (Bus*)(a->_dest);
         auto bus_pair_name = bus_s->_name + "," + bus_d->_name;
         
-        Debug("Arc name\t" <<arc_name<<endl);
+        DebugOff("Arc name\t" <<arc_name<<endl);
         if(pf_from_max(arc_name).eval()<=0 && tr(arc_name).eval()==1 && as(arc_name).eval()==0)
         {
             pf_to_min.add_val(arc_name,std::max(pf_from_max(arc_name).eval()*(-1), pf_to_min(arc_name).eval()));
@@ -510,7 +510,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         status = atoi(word.c_str());
         if (status==3) {
             ref_bus = name;
-            Debug("Ref bus = " << ref_bus << endl);
+            DebugOff("Ref bus = " << ref_bus << endl);
         }
         file >> ws >> word;
         pl.add_val(name,atof(word.c_str())/bMVA);
@@ -549,7 +549,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         this->Net::add_node(bus);
         if (status>=4) {
-            Debug("INACTIVE NODE!\n" << name << endl);
+            DebugOff("INACTIVE NODE!\n" << name << endl);
         }
         file >> word;
     }
@@ -615,7 +615,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         gens.push_back(g);
         bus->_gen.push_back(g);
         if(status!=1 || !bus->_active) {
-            Debug("INACTIVE GENERATOR!\n" << name << endl);
+            DebugOff("INACTIVE GENERATOR!\n" << name << endl);
             g->_active = false;
         }
         index++;
@@ -692,12 +692,12 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >> word;
         arc->r = atof(word.c_str());
         if(arc->r==0){
-            Debug("Branch with zero resistance: " << arc->_name << endl);
+            DebugOff("Branch with zero resistance: " << arc->_name << endl);
         }
         file >> word;
         arc->x = atof(word.c_str());
         if(arc->x==0){
-            Debug("Branch with zero reactance: " << arc->_name << endl);
+            DebugOff("Branch with zero reactance: " << arc->_name << endl);
         }
         res = pow(arc->r,2) + pow(arc->x,2);
         
@@ -735,7 +735,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
-            Debug("Angle bounds are equal to zero. Setting them to -+60");
+            DebugOff("Angle bounds are equal to zero. Setting them to -+60");
             arc->tbound.min = -60.*pi/180.;
             arc->tbound.max = 60.*pi/180.;
             
@@ -819,7 +819,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         if(arc->status != 1 || !bus_s->_active || !bus_d->_active) {
             arc->_active = false;
-            Debug("INACTIVE ARC!\n" << arc->_name << endl);
+            DebugOff("INACTIVE ARC!\n" << arc->_name << endl);
         }
         arc->connect();
         add_arc(arc);
@@ -1262,10 +1262,10 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     bool polar = (pmt==ACPOL);
     if (polar) {
-        Debug("Using polar model\n");
+        DebugOff("Using polar model\n");
     }
     else {
-        Debug("Using rectangular model\n");
+        DebugOff("Using rectangular model\n");
     }
     auto ACOPF = make_shared<Model<>>("AC-OPF Model");
     /** Variables */
@@ -1469,9 +1469,9 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
-    Debug("nb active gens = " << nb_gen << endl);
-    Debug("nb active lines = " << nb_lines << endl);
-    Debug("nb active buses = " << nb_buses << endl);
+    DebugOff("nb active gens = " << nb_gen << endl);
+    DebugOff("nb active lines = " << nb_lines << endl);
+    DebugOff("nb active buses = " << nb_buses << endl);
     
     /** Sets */
     auto bags_3d=grid.decompose_bags_3d();
@@ -1682,8 +1682,8 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
         auto bag_size = bags_3d.size();
-        Debug("\nNum of bags = " << bag_size << endl);
-        Debug("Adding 3d determinant polynomial cuts\n");
+        DebugOff("\nNum of bags = " << bag_size << endl);
+        DebugOff("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
@@ -1834,7 +1834,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
         func<> thetaij_m;
         thetaij_m=max(min(theta_ij.get_ub().in(node_pairs), th_max.in(node_pairs)),(max(theta_ij.get_lb().in(node_pairs), th_min.in(node_pairs)))*(-1));
         thetaij_m.eval_all();
-        Debug("thetaij_m");
+        DebugOff("thetaij_m");
         thetaij_m.print();
         
         Constraint<> sinenvup("sinenvup");
@@ -2076,9 +2076,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     auto nb_gen = grid.get_nb_active_gens();
     auto nb_lines = grid.get_nb_active_arcs();
     auto nb_buses = grid.get_nb_active_nodes();
-    Debug("nb active gens = " << nb_gen << endl);
-    Debug("nb active lines = " << nb_lines << endl);
-    Debug("nb active buses = " << nb_buses << endl);
+    DebugOff("nb active gens = " << nb_gen << endl);
+    DebugOff("nb active lines = " << nb_lines << endl);
+    DebugOff("nb active buses = " << nb_buses << endl);
     
     /** Sets */
     auto bags_3d=grid.decompose_bags_3d();
@@ -2285,8 +2285,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
         auto bag_size = bags_3d.size();
-        Debug("\nNum of bags = " << bag_size << endl);
-        Debug("Adding 3d determinant polynomial cuts\n");
+        DebugOff("\nNum of bags = " << bag_size << endl);
+        DebugOff("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
@@ -2308,7 +2308,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
             }
             else {
                 SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
-                Debug("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+                DebugOff("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
             }
         }
         else{
@@ -2616,9 +2616,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //    auto nb_gen = grid.get_nb_active_gens();
 //    auto nb_lines = grid.get_nb_active_arcs();
 //    auto nb_buses = grid.get_nb_active_nodes();
-//    Debug("nb active gens = " << nb_gen << endl);
-//    Debug("nb active lines = " << nb_lines << endl);
-//    Debug("nb active buses = " << nb_buses << endl);
+//    DebugOff("nb active gens = " << nb_gen << endl);
+//    DebugOff("nb active lines = " << nb_lines << endl);
+//    DebugOff("nb active buses = " << nb_buses << endl);
 //
 //    /** Sets */
 //    auto node_pairs = grid.get_node_pairs();
@@ -2741,8 +2741,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //    //      Constraint<> SDPD("SDPD");
 //    if(!grid._tree && grid.add_3d_nlin && sdp_cuts)
 //    {
-//        Debug("\nNum of bags = " << bag_size << endl);
-//        Debug("Adding 3d determinant polynomial cuts\n");
+//        DebugOff("\nNum of bags = " << bag_size << endl);
+//        DebugOff("Adding 3d determinant polynomial cuts\n");
 //        auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
 //        auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
 //        auto Wii_ = Wii.in_bags(bags_3d, 3);
@@ -2762,7 +2762,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //        else {
 //            SDP.add(SDP3.in(range(0, bag_size-1)) >= 0);
 //            // SDPOA->add(SDP3.in(orig) >= 0);
-//            Debug("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+//            DebugOff("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
 //        }
 //
 //        //
@@ -2971,7 +2971,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //            //  for(auto i=0;i<1;i++)
 //        {
 //            con->uneval();
-//            Debug("eval of con "<<con->eval(i)<<endl);
+//            DebugOff("eval of con "<<con->eval(i)<<endl);
 //            con->uneval();
 //
 //            if(std::abs(con->eval(i))<=active_tol)
@@ -2989,9 +2989,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 //                oacon.uneval();
 //
 //                OA_sol.print();
-//                Debug("OA \t" <<oacon.eval(0));
+//                DebugOff("OA \t" <<oacon.eval(0));
 //
-//                Debug("Active instant "<<i<<endl);
+//                DebugOff("Active instant "<<i<<endl);
 //            }
 //            else //If constraint is not active xsolution is an interior point
 //            {
@@ -3284,7 +3284,7 @@ pair<pair<indices,indices>,pair<indices,indices>> PowerNet:: get_pairsof_node_pa
                 auto il_n=n1+","+n4;
                 auto jk_n=n2+","+n3;
                 
-                // Debug(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
+                // DebugOff(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
                 if(node_pairs._keys_map->find(il_n)!=node_pairs._keys_map->end() && node_pairs._keys_map->find(jk_n)!=node_pairs._keys_map->end())
                 {
                     
@@ -3294,8 +3294,8 @@ pair<pair<indices,indices>,pair<indices,indices>> PowerNet:: get_pairsof_node_pa
                     kl.add(ip);
                     jk.add(jk_n);
                     il.add(il_n);
-                    Debug("innermost");
-                    Debug(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
+                    DebugOff("innermost");
+                    DebugOff(bp<<" "<<ip<<" "<<il_n<<" "<<jk_n<<endl);
                 }
                 
                 

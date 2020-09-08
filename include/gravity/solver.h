@@ -635,6 +635,10 @@ namespace gravity {
             counts.push_back(*l-*(l-1));
             d.push_back(*(l-1));
         }
+        for(auto l=nb_workers_;l!=nb_workers;l++){
+            counts.push_back(0);
+            d.push_back(*(limits.end()));
+        }
         
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &sol_status[0], &counts[0], &d[0], MPI_INT, MPI_COMM_WORLD);
@@ -746,7 +750,10 @@ namespace gravity {
             counts.push_back(*l-*(l-1));
             d.push_back(*(l-1));
         }
-
+        for(auto l=nb_workers_;l!=nb_workers;l++){
+            counts.push_back(0);
+            d.push_back(*(limits.end()));
+        }
         
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &sol_obj[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
