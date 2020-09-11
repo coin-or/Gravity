@@ -43,6 +43,7 @@ public:
         _hour = tmp->tm_hour;
         _minutes = tmp->tm_min;
         _seconds = tmp->tm_sec;
+        _unix_time = gps_time;
         //        printf("%02d:%02d:%02d\n", tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
         _x = x;
         _y = y;
@@ -56,11 +57,14 @@ public:
         _hour = tmp->tm_hour;
         _minutes = tmp->tm_min;
         _seconds = tmp->tm_sec;
+        _unix_time = gps_time;
 //        printf("%02d:%02d:%02d\n", tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
         _x = x;
         _y = y;
         _z = z;
     }
+    
+    
     
     LidarPoint& operator=(const LidarPoint& p){
         _laser_id = p._laser_id;
