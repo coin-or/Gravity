@@ -18,8 +18,8 @@
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
 using namespace std;
-#include "jly_goicp.h"
-#include "ConfigMap.hpp"
+#include <gravity/jly_goicp.h>
+#include <gravity/ConfigMap.hpp>
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
@@ -27,13 +27,16 @@ using namespace std;
 #define DEFAULT_DATA_FNAME "data.txt"
 
 /* Set the different options for GoICP  */
-void set_GoICP_options(const GoICP & goicp);
+void set_GoICP_options(GoICP & goicp);
 
 /* Centralize point cloud around origin */
 void centralize(int n, POINT3D **  p, double avg_x, double avg_y, double avg_z);
 
 /* Scale point clouds to [-1,1] */
 void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2);
+
+/* Scale point cloud using provided max values */
+void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z);
 
 /* Computes the interpolation coefficient based on time elapsed  */
 double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* p2);
@@ -326,7 +329,7 @@ int main (int argc, char * argv[])
         size_t uav_id = 0;
         bool new_uav = true, u_turn = false, frame1 = true;
         double unix_time, delta_x = 0, delta_y = 0;
-        double scale = 1e-2;
+        double scale = 1;
         pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
         for (int i = 0; i< nb_rows-1; i++) { // Input iterator
             auto laser_id = CSV_data.GetCell<int>("LaserID", i);
@@ -481,14 +484,17 @@ int main (int argc, char * argv[])
         
         bool run_goICP = true;
         if(run_goICP){/* Run GoICP inline */
-            int Nm = x_vec1.size(), Nd = x_vec2.size(), NdDownsampled;
+            using namespace Go_ICP;
+            int Nm = x_vec1.size(), Nd = x_vec2.size(), NdDownsampled = 0;
             clock_t  clockBegin, clockEnd;
             string modelFName, dataFName, configFName, outputFname;
-            POINT3D * pModel, * pData;
+            POINT3D * pModel, * pData, * pFullData;
             GoICP goicp;
+            set_GoICP_options(goicp);
             // Load model and data point clouds
             pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
             double avg_x = 0, avg_y = 0, avg_z = 0;
+            double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
             for(int i = 0; i < Nm; i++)
             {
                 pModel[i].x  = x_vec1[i];
@@ -498,10 +504,9 @@ int main (int argc, char * argv[])
                 pModel[i].z = z_vec1[i];
                 avg_z += z_vec1[i];
             }
+            avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
             centralize(Nm, &pModel, avg_x, avg_y, avg_z);
-            avg_x = 0;
-            avg_y = 0;
-            avg_z = 0;
+            avg_x = 0;avg_y = 0;avg_z = 0;
             pData = (POINT3D *)malloc(sizeof(POINT3D) * Nd);
             for(int i = 0; i < Nd; i++)
             {
@@ -512,13 +517,25 @@ int main (int argc, char * argv[])
                 pData[i].z = z_vec2[i];
                 avg_z += z_vec2[i];
             }
+            avg_x /= Nd;avg_y /= Nd;avg_z /= Nd;
             centralize(Nd, &pData, avg_x, avg_y, avg_z);
+            for(int i = 0; i < Nd; i++)
+            {
+                if(max_x<std::abs(pData[i].x)){
+                    max_x = std::abs(pData[i].x);
+                }
+                if(max_y<std::abs(pData[i].y)){
+                    max_y = std::abs(pData[i].y);
+                }
+                if(max_z<std::abs(pData[i].z)){
+                    max_z = std::abs(pData[i].z);
+                }
+            }
             unit_scale(Nm, &pModel, Nd, &pData);
             goicp.pModel = pModel;
             goicp.Nm = Nm;
             goicp.pData = pData;
             goicp.Nd = Nd;
-            std::ofstream outputFileFinal("./optimal_pointcloud2.txt");
             // Build Distance Transform
             cout << "Building Distance Transform..." << flush;
             clockBegin = clock();
@@ -542,16 +559,97 @@ int main (int argc, char * argv[])
             cout << "Optimal Translation Vector:" << endl;
             cout << goicp.optT << endl;
             cout << "Finished in " << time << endl;
-            for(int i = 0; i < goicp.Nd; i++)
+            std::ofstream outputFileFinal("./optimal_pointcloud2.txt");
+//            for(int i = 0; i < goicp.Nd; i++)
+//            {
+//                POINT3D& p = goicp.pData[i];
+//                goicp.pData[i].x = goicp.optR.val[0][0]*p.x + goicp.optR.val[0][1]*p.y + goicp.optR.val[0][2]*p.z + goicp.optT.val[0][0];
+//                goicp.pData[i].y = goicp.optR.val[1][0]*p.x + goicp.optR.val[1][1]*p.y + goicp.optR.val[1][2]*p.z + goicp.optT.val[1][0];
+//                goicp.pData[i].z = goicp.optR.val[2][0]*p.x + goicp.optR.val[2][1]*p.y + goicp.optR.val[2][2]*p.z + goicp.optT.val[2][0];
+////                outputFileFinal << goicp.pData[i].x << " " << goicp.pData[i].y << " " << goicp.pData[i].z << std::endl;
+//            }
+            /* Copy model points unchanged */
+            int n1 = old_x_vec1.size(), n2 = old_x_vec2.size();
+            
+            auto tot_pts = n1+n2;
+            x_combined.resize(tot_pts);
+            y_combined.resize(tot_pts);
+            z_combined.resize(tot_pts);
+            
+            
+            for (auto i = 0; i< n1; i++) {
+                x_combined[i] = old_x_vec1[i];
+                y_combined[i] = old_y_vec1[i];
+                z_combined[i] = old_z_vec1[i];
+            }
+//            for (auto i = 0; i< n2; i++) {
+//                x_combined[n1+i] = old_x_vec2[i];
+//                y_combined[n1+i] = old_y_vec2[i];
+//                z_combined[n1+i] = old_z_vec2[i];
+//            }
+            pFullData = (POINT3D *)malloc(sizeof(POINT3D) * n2);
+            for(int i = 0; i < n2; i++)
             {
-                POINT3D& p = goicp.pData[i];
-                goicp.pData[i].x = goicp.optR.val[0][0]*p.x + goicp.optR.val[0][1]*p.y + goicp.optR.val[0][2]*p.z + goicp.optT.val[0][0];
-                goicp.pData[i].y = goicp.optR.val[1][0]*p.x + goicp.optR.val[1][1]*p.y + goicp.optR.val[1][2]*p.z + goicp.optT.val[1][0];
-                goicp.pData[i].z = goicp.optR.val[2][0]*p.x + goicp.optR.val[2][1]*p.y + goicp.optR.val[2][2]*p.z + goicp.optT.val[2][0];
-                outputFileFinal << goicp.pData[i].x << " " << goicp.pData[i].y << " " << goicp.pData[i].z << std::endl;
+                pFullData[i].x  = old_x_vec2[i];
+                pFullData[i].y  = old_y_vec2[i];
+                pFullData[i].z = old_z_vec2[i];
+            }
+            centralize(n2, &pFullData, avg_x, avg_y, avg_z);/* We're using the averages of x_vec2 */
+            scale_all(n2, &pFullData, max_x, max_y, max_z);/* We're using the max values of x_vec2 */
+            for(int i = 0; i < n2; i++)
+            {
+                double px = pFullData[i].x;double py = pFullData[i].y;double pz = pFullData[i].z;
+                pFullData[i].x = goicp.optR.val[0][0]*px + goicp.optR.val[0][1]*py + goicp.optR.val[0][2]*pz + goicp.optT.val[0][0];
+                pFullData[i].y = goicp.optR.val[1][0]*px + goicp.optR.val[1][1]*py + goicp.optR.val[1][2]*pz + goicp.optT.val[1][0];
+                pFullData[i].z = goicp.optR.val[2][0]*px + goicp.optR.val[2][1]*py + goicp.optR.val[2][2]*pz + goicp.optT.val[2][0];
+                /* Rescaling to original coordinates */
+                x_combined[n1+i] = pFullData[i].x * max_x;
+                y_combined[n1+i] = pFullData[i].y * max_y;
+                z_combined[n1+i] = pFullData[i].z * max_z;
+                x_combined[n1+i] += avg_x;
+                y_combined[n1+i] += avg_y;
+                z_combined[n1+i] += avg_z;
+                if(i<10)
+                    outputFileFinal << x_combined[n1+i] << " " <<  y_combined[n1+i] << " " << z_combined[n1+i] << std::endl;
+            }
+            bool save_file = true;
+            if(save_file){
+                DebugOn("Saving new las file");
+                //    LASreadOpener lasreadopener_final;
+                //    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
+                //    lasreadopener_final.set_populate_header(TRUE);
+                //    LASreader* lasreader = lasreadopener_final.open();
+                LASheader lasheader;
+                lasheader.global_encoding = 1;
+                lasheader.x_scale_factor = 0.01;
+                lasheader.y_scale_factor = 0.01;
+                lasheader.z_scale_factor = 0.01;
+                lasheader.x_offset =  500000.0;
+                lasheader.y_offset = 4100000.0;
+                lasheader.z_offset = 0.0;
+                lasheader.point_data_format = 1;
+                lasheader.point_data_record_length = 28;
+                
+                LASwriteOpener laswriteopener;
+                auto fname = "GoICPred.laz";
+                laswriteopener.set_file_name(fname);
+                LASwriter* laswriter = laswriteopener.open(&lasheader);
+                LASpoint laspoint;
+                laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+                for (auto i = 0; i< x_combined.size(); i++) {
+                    laspoint.set_x(x_combined[i]);
+                    laspoint.set_y(y_combined[i]);
+                    laspoint.set_z(z_combined[i]);
+                    laswriter->write_point(&laspoint);
+                    laswriter->update_inventory(&laspoint);
+                }
+                laswriter->update_header(&lasheader, TRUE);
+                laswriter->close();
+                delete laswriter;
             }
             delete(pModel);
             delete(pData);
+            return 0;
         }
         
         double angle_max = 0.05;
@@ -1204,38 +1302,39 @@ void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2){
             max_z = std::abs((*p2)[i].z);
         }
     }
+    scale_all(n1, p1, max_x, max_y, max_z);
+    scale_all(n2, p2, max_x, max_y, max_z);
+}
+
+/* Scale point cloud using privded max values */
+void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z){
     for(int i = 0; i < n1; i++)
     {
         (*p1)[i].x /= max_x;
         (*p1)[i].y /= max_y;
         (*p1)[i].z /= max_z;
     }
-    for(int i = 0; i < n2; i++)
-    {
-        (*p2)[i].x /= max_x;
-        (*p2)[i].y /= max_y;
-        (*p2)[i].z /= max_z;
-    }
 }
     
-void set_GoICP_options(const GoICP& goicp){
-//    goicp.MSEThresh = config.getF("MSEThresh");
-//    goicp.initNodeRot.a = config.getF("rotMinX");
-//    goicp.initNodeRot.b = config.getF("rotMinY");
-//    goicp.initNodeRot.c = config.getF("rotMinZ");
-//    goicp.initNodeRot.w = config.getF("rotWidth");
-//    goicp.initNodeTrans.x = config.getF("transMinX");
-//    goicp.initNodeTrans.y = config.getF("transMinY");
-//    goicp.initNodeTrans.z = config.getF("transMinZ");
-//    goicp.initNodeTrans.w = config.getF("transWidth");
-//    goicp.trimFraction = config.getF("trimFraction");
-//    // If < 0.1% trimming specified, do no trimming
-//    if(goicp.trimFraction < 0.001)
-//    {
-//        goicp.doTrim = false;
-//    }
-//    goicp.dt.SIZE = config.getI("distTransSize");
-//    goicp.dt.expandFactor = config.getF("distTransExpandFactor");
+void set_GoICP_options(GoICP& goicp){
+    goicp.MSEThresh = 0.001;
+    goicp.initNodeRot.a = -3.1416;
+    goicp.initNodeRot.b = -3.1416;
+    goicp.initNodeRot.c = -3.1416;
+    goicp.initNodeRot.w = 6.2832;
+    goicp.initNodeTrans.x = -0.5;
+    goicp.initNodeTrans.y = -0.5;
+    goicp.initNodeTrans.z = -0.5;
+    goicp.initNodeTrans.w = 1;
+    goicp.trimFraction = 0;
+//    goicp.optError = 11;
+    // If < 0.1% trimming specified, do no trimming
+    if(goicp.trimFraction < 0.001)
+    {
+        goicp.doTrim = false;
+    }
+    goicp.dt.SIZE = 300;
+    goicp.dt.expandFactor = 2.0;
 }
 
 /* Computes the interpolation coefficient based on time elapsed  */
