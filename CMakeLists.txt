@@ -16,10 +16,10 @@ find_package(Python3 COMPONENTS Development NumPy)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" OFF)
+option(Ipopt "Link to IPOPT libraries" ON)
 
 # Find LASlib (optional)
-option(LASlib "Link to LASlib libraries" OFF)
+option(LASlib "Link to LASlib libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -191,6 +191,17 @@ else(EIGEN_FOUND)
  set(ADD_EIGEN TRUE)
 endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
+
+find_package(GoICP QUIET)
+if (GoICP_FOUND)
+ message("-- Found GoICP: ${EIGEN_INCLUDE_DIRS}")
+else(GoICP_FOUND)
+ include(ExternalGoICP)
+ set(GoICP_INCLUDE_DIR ${THIRDPARTY_INSTALL_PATH}/Install/GoICP)
+ set(ADD_GoICP TRUE)
+endif (GoICP_FOUND)
+include_directories(${GoICP_INCLUDE_DIR})
+
 
 # cpp_option_parser
 if (OPT_PARSER)
