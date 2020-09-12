@@ -36,7 +36,7 @@ void centralize(int n, POINT3D **  p, double avg_x, double avg_y, double avg_z);
 void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2);
 
 /* Scale point cloud using provided max values */
-void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z);
+void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z, double min_x, double min_y, double min_z);
 
 /* Computes the interpolation coefficient based on time elapsed  */
 double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* p2);
@@ -425,7 +425,7 @@ int main (int argc, char * argv[])
             for (const auto &p: *frame.second->_lidar_points) {
                 coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%1==0 && p->_laser_id==15){
-                if(i%30==0 && p->_laser_id>6 && p->_laser_id<23){
+//                if(i%30==0 && p->_laser_id>6 && p->_laser_id<23){
                     x_vec1.push_back(p->_x);
                     x_shift1.push_back(frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x));
                     y_vec1.push_back(p->_y);
@@ -434,7 +434,7 @@ int main (int argc, char * argv[])
                     z_shift1.push_back(frame.second->_uav_point->_height+coef*(frame.second->_uav_point->_next->_height - frame.second->_uav_point->_height));
                     point_cloud1.push_back({p->_x, p->_y, p->_z});
                     uav1.push_back({x_shift1.back(), y_shift1.back(), z_shift1.back()});
-                }
+//                }
                 old_x_vec1.push_back(p->_x*1/scale);
                 x_shift_all1.push_back((frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x))*1/scale);
                 old_y_vec1.push_back(p->_y*1/scale);
@@ -455,7 +455,7 @@ int main (int argc, char * argv[])
             for (auto const &p: *frame.second->_lidar_points) {
                 coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%1==0 && p->_laser_id==15){
-                if(i%30==0 && p->_laser_id>6 && p->_laser_id<23){
+                if(i%10==0 && p->_laser_id>6 && p->_laser_id<23){
                     x_vec2.push_back(p->_x);
                     x_shift2.push_back(frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x));
                     y_vec2.push_back(p->_y);
@@ -467,7 +467,7 @@ int main (int argc, char * argv[])
                 }
                 old_x_vec2.push_back(p->_x*1/scale);
                 x_shift_all2.push_back((frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x))*1/scale);
-                old_y_vec2.push_back((frame.second->_uav_point->_y+coef*(frame.second->_uav_point->_next->_y - frame.second->_uav_point->_y))*1/scale);
+                old_y_vec2.push_back(p->_y*1/scale);
                 y_shift_all2.push_back(frame.second->_uav_point->_y*1/scale);
                 old_z_vec2.push_back(p->_z*1/scale);
                 z_shift_all2.push_back((frame.second->_uav_point->_height+coef*(frame.second->_uav_point->_next->_height - frame.second->_uav_point->_height))*1/scale);
@@ -495,6 +495,7 @@ int main (int argc, char * argv[])
             pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
             double avg_x = 0, avg_y = 0, avg_z = 0;
             double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
+            double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
             for(int i = 0; i < Nm; i++)
             {
                 pModel[i].x  = x_vec1[i];
@@ -521,17 +522,75 @@ int main (int argc, char * argv[])
             centralize(Nd, &pData, avg_x, avg_y, avg_z);
             for(int i = 0; i < Nd; i++)
             {
-                if(max_x<std::abs(pData[i].x)){
-                    max_x = std::abs(pData[i].x);
+                if(max_x<pData[i].x){
+                    max_x = pData[i].x;
                 }
-                if(max_y<std::abs(pData[i].y)){
-                    max_y = std::abs(pData[i].y);
+                if(min_x>pData[i].x){
+                    min_x = pData[i].x;
                 }
-                if(max_z<std::abs(pData[i].z)){
-                    max_z = std::abs(pData[i].z);
+                if(max_y<pData[i].y){
+                    max_y = pData[i].y;
+                }
+                if(min_y>pData[i].y){
+                    min_y = pData[i].y;
+                }
+                if(max_z<pData[i].z){
+                    max_z = pData[i].z;
+                }
+                if(min_z>pData[i].z){
+                    min_z = pData[i].z;
                 }
             }
-            unit_scale(Nm, &pModel, Nd, &pData);
+            for(int i = 0; i < Nm; i++)
+            {
+                if(max_x<pModel[i].x){
+                    max_x = pModel[i].x;
+                }
+                if(min_x>pModel[i].x){
+                    min_x = pModel[i].x;
+                }
+                if(max_y<pModel[i].y){
+                    max_y = pModel[i].y;
+                }
+                if(min_y>pModel[i].y){
+                    min_y = pModel[i].y;
+                }
+                if(max_z<pModel[i].z){
+                    max_z = pModel[i].z;
+                }
+                if(min_z>pModel[i].z){
+                    min_z = pModel[i].z;
+                }
+            }
+            scale_all(Nm, &pModel, max_x, max_y, max_z, min_x, min_y, min_z);
+            scale_all(Nd, &pData, max_x, max_y, max_z, min_x, min_y, min_z);
+            bool plot_GoICP = false;
+            if (plot_GoICP) {
+                vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
+                x_model.resize(Nm); y_model.resize(Nm); z_model.resize(Nm);
+                x_data.resize(Nd); y_data.resize(Nd); z_data.resize(Nd);
+                for(int i = 0; i < Nm; i++)
+                {
+                    x_model[i] = pModel[i].x;
+                    y_model[i] = pModel[i].y;
+                    z_model[i] = pModel[i].z;
+                }
+                for(int i = 0; i < Nd; i++)
+                {
+                    x_data[i] = pData[i].x;
+                    y_data[i] = pData[i].y;
+                    z_data[i] = pData[i].z;
+                }
+                namespace plt = matplotlibcpp;
+                
+                std::map<std::string, std::string> keywords, keywords2;
+                keywords["marker"] = "s";
+                keywords["linestyle"] = "None";
+                keywords["ms"] = "0.05";
+                //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+                plt::plot3(x_model, y_model, z_model, x_data, y_data, z_data, keywords);
+                plt::show();
+            }
             goicp.pModel = pModel;
             goicp.Nm = Nm;
             goicp.pData = pData;
@@ -560,6 +619,58 @@ int main (int argc, char * argv[])
             cout << goicp.optT << endl;
             cout << "Finished in " << time << endl;
             std::ofstream outputFileFinal("./optimal_pointcloud2.txt");
+            bool plot_unscaled = true;
+            if (true||plot_GoICP) {
+                for(int i = 0; i < goicp.Nd; i++)
+                {
+                    POINT3D& p = goicp.pData[i];
+                    goicp.pData[i].x = goicp.optR.val[0][0]*p.x + goicp.optR.val[0][1]*p.y + goicp.optR.val[0][2]*p.z + goicp.optT.val[0][0];
+                    goicp.pData[i].y = goicp.optR.val[1][0]*p.x + goicp.optR.val[1][1]*p.y + goicp.optR.val[1][2]*p.z + goicp.optT.val[1][0];
+                    goicp.pData[i].z = goicp.optR.val[2][0]*p.x + goicp.optR.val[2][1]*p.y + goicp.optR.val[2][2]*p.z + goicp.optT.val[2][0];
+                }
+                vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
+                x_model.resize(Nm); y_model.resize(Nm); z_model.resize(Nm);
+                x_data.resize(Nd); y_data.resize(Nd); z_data.resize(Nd);
+                for(int i = 0; i < Nm; i++)
+                {
+                    if(plot_unscaled){
+                        x_model[i] = x_vec1[i];
+                        y_model[i] = y_vec1[i];
+                        z_model[i] = z_vec1[i];
+
+                    }
+                    else{
+                        x_model[i] = pModel[i].x;
+                        y_model[i] = pModel[i].y;
+                        z_model[i] = pModel[i].z;
+                    }
+                }
+                for(int i = 0; i < Nd; i++)
+                {
+                    if(plot_unscaled){
+                        x_data[i] = 0.5*(pData[i].x + 1) * (max_x - min_x) + min_x;
+                        y_data[i] = 0.5*(pData[i].y + 1) * (max_y - min_y) + min_y;
+                        z_data[i] = 0.5*(pData[i].z + 1) * (max_z - min_z) + min_z;
+                        x_data[i] += avg_x;
+                        y_data[i] += avg_y;
+                        z_data[i] += avg_z;
+                    }
+                    else {
+                        x_data[i] = pData[i].x;
+                        y_data[i] = pData[i].y;
+                        z_data[i] = pData[i].z;
+                    }
+                }
+                namespace plt = matplotlibcpp;
+                
+                std::map<std::string, std::string> keywords, keywords2;
+                keywords["marker"] = "s";
+                keywords["linestyle"] = "None";
+                keywords["ms"] = "0.05";
+                //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+                plt::plot3(x_model, y_model, z_model, x_data, y_data, z_data, keywords);
+                plt::show();
+            }
 //            for(int i = 0; i < goicp.Nd; i++)
 //            {
 //                POINT3D& p = goicp.pData[i];
@@ -595,17 +706,19 @@ int main (int argc, char * argv[])
                 pFullData[i].z = old_z_vec2[i];
             }
             centralize(n2, &pFullData, avg_x, avg_y, avg_z);/* We're using the averages of x_vec2 */
-            scale_all(n2, &pFullData, max_x, max_y, max_z);/* We're using the max values of x_vec2 */
+            scale_all(n2, &pFullData, max_x, max_y, max_z, min_x, min_y, min_z);/* We're using the min/max values of x_vec2 and x_vec1 */
+            vector<double> new_data_x, new_data_y, new_data_z;
             for(int i = 0; i < n2; i++)
             {
                 double px = pFullData[i].x;double py = pFullData[i].y;double pz = pFullData[i].z;
+//                POINT3D& p = pFullData[i];
                 pFullData[i].x = goicp.optR.val[0][0]*px + goicp.optR.val[0][1]*py + goicp.optR.val[0][2]*pz + goicp.optT.val[0][0];
                 pFullData[i].y = goicp.optR.val[1][0]*px + goicp.optR.val[1][1]*py + goicp.optR.val[1][2]*pz + goicp.optT.val[1][0];
                 pFullData[i].z = goicp.optR.val[2][0]*px + goicp.optR.val[2][1]*py + goicp.optR.val[2][2]*pz + goicp.optT.val[2][0];
                 /* Rescaling to original coordinates */
-                x_combined[n1+i] = pFullData[i].x * max_x;
-                y_combined[n1+i] = pFullData[i].y * max_y;
-                z_combined[n1+i] = pFullData[i].z * max_z;
+                x_combined[n1+i] = 0.5*(pFullData[i].x + 1) * (max_x - min_x) + min_x;
+                y_combined[n1+i] = 0.5*(pFullData[i].y + 1) * (max_y - min_y) + min_y;
+                z_combined[n1+i] = 0.5*(pFullData[i].z + 1) * (max_z - min_z) + min_z;
                 x_combined[n1+i] += avg_x;
                 y_combined[n1+i] += avg_y;
                 z_combined[n1+i] += avg_z;
@@ -631,7 +744,7 @@ int main (int argc, char * argv[])
                 lasheader.point_data_record_length = 28;
                 
                 LASwriteOpener laswriteopener;
-                auto fname = "GoICPred.laz";
+                auto fname = "GoICPFinal.laz";
                 laswriteopener.set_file_name(fname);
                 LASwriter* laswriter = laswriteopener.open(&lasheader);
                 LASpoint laspoint;
@@ -646,6 +759,15 @@ int main (int argc, char * argv[])
                 laswriter->update_header(&lasheader, TRUE);
                 laswriter->close();
                 delete laswriter;
+                namespace plt = matplotlibcpp;
+                
+                std::map<std::string, std::string> keywords, keywords2;
+                keywords["marker"] = "s";
+                keywords["linestyle"] = "None";
+                keywords["ms"] = "0.05";
+                //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
+                plt::plot3(x_combined, y_combined, z_combined, keywords);
+                plt::show();
             }
             delete(pModel);
             delete(pData);
@@ -1278,41 +1400,60 @@ void centralize(int n, POINT3D **  p, double avg_x, double avg_y, double avg_z){
 /* Scale point clouds to [-1,1] */
 void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2){
     double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
+    double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
     for(int i = 0; i < n1; i++)
     {
-        if(max_x<std::abs((*p1)[i].x)){
-            max_x = std::abs((*p1)[i].x);
+        if(max_x<(*p1)[i].x){
+            max_x = (*p1)[i].x;
         }
-        if(max_y<std::abs((*p1)[i].y)){
-            max_y = std::abs((*p1)[i].y);
+        if(min_x>(*p1)[i].x){
+            min_x = (*p1)[i].x;
         }
-        if(max_z<std::abs((*p1)[i].z)){
-            max_z = std::abs((*p1)[i].z);
+        if(max_y<(*p1)[i].y){
+            max_y = (*p1)[i].y;
+        }
+        if(min_y>(*p1)[i].y){
+            min_y = (*p1)[i].y;
+        }
+        if(max_z<(*p1)[i].z){
+            max_z = (*p1)[i].z;
+        }
+        if(min_z>(*p1)[i].z){
+            min_z = (*p1)[i].z;
         }
     }
     for(int i = 0; i < n2; i++)
     {
-        if(max_x<std::abs((*p2)[i].x)){
-            max_x = std::abs((*p2)[i].x);
+        if(max_x<(*p2)[i].x){
+            max_x = (*p2)[i].x;
         }
-        if(max_y<std::abs((*p2)[i].y)){
-            max_y = std::abs((*p2)[i].y);
+        if(min_x>(*p2)[i].x){
+            min_x = (*p2)[i].x;
         }
-        if(max_z<std::abs((*p2)[i].z)){
-            max_z = std::abs((*p2)[i].z);
+        if(max_y<(*p2)[i].y){
+            max_y = (*p2)[i].y;
+        }
+        if(min_y>(*p2)[i].y){
+            min_y = (*p2)[i].y;
+        }
+        if(max_z<(*p2)[i].z){
+            max_z = (*p2)[i].z;
+        }
+        if(min_z>(*p2)[i].z){
+            min_z = (*p2)[i].z;
         }
     }
-    scale_all(n1, p1, max_x, max_y, max_z);
-    scale_all(n2, p2, max_x, max_y, max_z);
+    scale_all(n1, p1, max_x, max_y, max_z, min_x, min_y, min_z);
+    scale_all(n2, p2, max_x, max_y, max_z, min_x, min_y, min_z);
 }
 
 /* Scale point cloud using privded max values */
-void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z){
+void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z, double min_x, double min_y, double min_z){
     for(int i = 0; i < n1; i++)
     {
-        (*p1)[i].x /= max_x;
-        (*p1)[i].y /= max_y;
-        (*p1)[i].z /= max_z;
+        (*p1)[i].x = 2*(((*p1)[i].x - min_x)/(max_x - min_x)) - 1;
+        (*p1)[i].y = 2*(((*p1)[i].y - min_y)/(max_y - min_y)) - 1;
+        (*p1)[i].z = 2*(((*p1)[i].z - min_z)/(max_z - min_z)) - 1;
     }
 }
     
@@ -1326,7 +1467,7 @@ void set_GoICP_options(GoICP& goicp){
     goicp.initNodeTrans.y = -0.5;
     goicp.initNodeTrans.z = -0.5;
     goicp.initNodeTrans.w = 1;
-    goicp.trimFraction = 0;
+    goicp.trimFraction = 0.05;
 //    goicp.optError = 11;
     // If < 0.1% trimming specified, do no trimming
     if(goicp.trimFraction < 0.001)
