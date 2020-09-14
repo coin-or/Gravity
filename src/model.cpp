@@ -6182,7 +6182,7 @@ namespace gravity {
                         //obbt_model->print();
                         constr_viol=1;
                         lin_count=0;
-                        while (constr_viol==1 && lin_count<5){
+                        while (constr_viol==1 && lin_count<4){
                             solver<> LB_solver(obbt_model, lb_solver_type);
                             if(lb_solver_type==ipopt){
                                 LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6195,7 +6195,18 @@ namespace gravity {
                             if(obbt_model->_status==0){
                                 lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                 auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
-                                gap_old=gaplin;
+                                
+                                            if(lin_count>0 && (gap_old-gaplin)<=0.01){                   
+#ifdef USE_MPI                                                                        
+                            if(worker_id==0){                                         
+                                DebugOn("breaking due to too little gap improvement");
+                            }                                                         
+#else                                                                                 
+                                DebugOn("breaking due to too little gap improvement");
+#endif                                                                                
+                            break;                                                    
+                                            }   
+gap_old=gaplin;
                                 //obbt_model->get_solution(obbt_solution);
                                 vector<shared_ptr<Model<>>> o_models;
                                 o_models.push_back(obbt_model);
@@ -6208,7 +6219,7 @@ namespace gravity {
                                 //  constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
                                 
 #ifdef USE_MPI
-                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
+                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar", repeat_list);
 #else
                                 constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
 #endif
@@ -6221,6 +6232,8 @@ namespace gravity {
                                 break;
                             }
                             lin_count++;
+if(run_obbt_iter>1)
+break;
                         }
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
@@ -6383,7 +6396,7 @@ namespace gravity {
                                                     int model_id = 0;
 #ifdef USE_MPI
                                                     if(worker_id==0){
-                                                              DebugOn("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
+                                                              DebugOff("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
                                                     }
 #endif
                     
@@ -6539,7 +6552,7 @@ namespace gravity {
                                                         obbt_model->reset_lazy();
 #ifdef USE_MPI
                                                         if(worker_id==0){
-                                                            DebugOn("Repeat_list "<<repeat_list.size()<<endl);
+                                                            DebugOff("Repeat_list "<<repeat_list.size()<<endl);
                                                         }
 #else
                                                         DebugOn("Repeat_list "<<repeat_list.size()<<endl);
@@ -6572,32 +6585,36 @@ namespace gravity {
                                                     if(!linearize){
                                                         break;
                                                     }
-                        interval_gap.clear();
+                      //  interval_gap.clear();
                         sum=0; 
                         num_var=0;
-                        for(auto &it:obbt_model->_vars_name)
+			bool stop_resolve=false;
+			                      if(stop_resolve){
+                        for(auto &ita:obbt_model->_vars_name)
                         {
-                            string vname=it.first;
-                            v=obbt_model->template get_var<double>(vname);
-                            auto v_keys=v.get_keys();
-                            for(auto &key: *v_keys)
+                            string vnamea=ita.first;
+                            auto va=obbt_model->template get_var<double>(vnamea);
+			if(!va._lift){
+                            auto v_keysa=va.get_keys();
+                            for(auto &keya: *v_keysa)
                             { num_var++;
-                                var_key=vname+"|"+ key;
-                                interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
-                                interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
-                                sum+=interval_gap.back();
+                                auto var_keya=vnamea+"|"+ keya;
+                                auto int_new=va.get_ub(keya)-va.get_lb(keya);
+				sum+=((-int_new+interval_new[var_keya])/(interval_new[var_key]+zero_tol)*100.0);
+				interval_new[var_keya]=int_new;
                             }
-                            
+                         }   
                         }
-                        if(sum/num_var<=0.01){
+                        if(sum/num_var<=5.0 && lin_count>=1){
                             #ifdef USE_MPI
                             if(worker_id==0){
-                                DebugOn("breaking due to too little interval improvement");
+                                DebugOn("breaking at "<<lin_count<<" due to too little interval improvement "<< sum/num_var<<endl);
                             }
                             #else
-                                DebugOn("breaking due to too little interval improvement");
+                                DebugOn("breaking due to too little interval improvement "<<sum/num_var<<endl);
                             #endif
                                                         break;
+                        }
                         }
                                                     lin_count++;
                                                 }
@@ -6698,7 +6715,7 @@ namespace gravity {
                                     lin_count=0;
                                     active_root_tol=1e-6;
                                     auto gap_temp=gap_old;
-                                    while ((constr_viol==1) && (lin_count<5)){
+                                    while ((constr_viol==1) && (lin_count<4)){
                                         solver<> LB_solver(obbt_model, lb_solver_type);
                                         if(lb_solver_type==ipopt){
                                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6712,13 +6729,13 @@ namespace gravity {
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
                                             if(gap_temp-gap<=0.01){
-                                                 #ifdef USE_MPI
+#ifdef USE_MPI
                             if(worker_id==0){
-                                DebugOn("breaking due to too little gap improvement");
+                                DebugOn("breaking due to too little gap improvement"<<endl);
                             }
-                            #else
-                                DebugOn("breaking due to too little gap improvement");
-                            #endif
+#else
+                               DebugOn("breaking due to too little gap improvement"<<endl);
+#endif
                             break;
                                             }
                                             gap_temp=gap;
@@ -6742,7 +6759,7 @@ namespace gravity {
                                             o_models.push_back(obbt_model);
                                             // constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
 #ifdef USE_MPI
-                                            constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
+                                            constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar", repeat_list);
 #else
                                             constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
 #endif
@@ -6823,7 +6840,7 @@ namespace gravity {
                             }
                             solver_time= get_wall_time()-solver_time_start;
                             DebugOff("Solved Fixed Point iteration " << iter << endl);
-                            if(linearize && (gap_old-gap<0.1) && run_obbt_iter<=3){
+                            if(linearize && (gap_old-gap<0.1) && run_obbt_iter<=1){
 #ifdef USE_MPI
                                 if(worker_id==0){
                                     DebugOn("breaking "<<gap_old<<" "<<gap<<" "<<gap_tol<<endl);
@@ -6834,7 +6851,7 @@ namespace gravity {
                             gap_old=gap;
                         }
                         
-                        interval_gap.cleat();
+                        interval_gap.clear();
                         sum=0;
                         num_var=0;
                         for(auto &it:obbt_model->_vars_name)
@@ -6849,7 +6866,8 @@ namespace gravity {
                                 in_orig_model=true;
                             }
                             for(auto &key: *v_keys)
-                            { num_var++;
+                            {   
+				num_var++;
                                 var_key=vname+"|"+ key;
                                 interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
                                 interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);

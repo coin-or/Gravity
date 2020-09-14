@@ -622,7 +622,7 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-        int count=0;
+	auto nb_workers_ = std::min((size_t)nb_workers, models.size());        
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
             if(worker_id+1<limits.size()){
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
