@@ -1455,6 +1455,7 @@ namespace gravity {
                         else {
                             add(OA_cut.in(activeset)>=0);
                         }
+			oacuts++;   
                         reindex();
                     }
                     con_nonlin->set_x(i, res1);
