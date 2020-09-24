@@ -6123,7 +6123,7 @@ namespace gravity {
         bool xb_true=true;
         double sum=0, avg=0, num_var=0.0;
         vector<double> interval_gap;
-        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6, gap_tol=0.1;
+        const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-8, gap_tol=0.1;
         int gap_count_int=1, iter=0;
         int output = 0;
         int batch_model_count=0, lin_count;
