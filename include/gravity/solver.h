@@ -622,7 +622,7 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-	auto nb_workers_ = std::min((size_t)nb_workers, models.size());        
+	auto nb_workers_ =  limits.size()-1;
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
             if(worker_id+1<limits.size()){
                 for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
@@ -639,7 +639,6 @@ namespace gravity {
             counts.push_back(0);
             d.push_back(*(limits.end()));
         }
-        
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &sol_status[0], &counts[0], &d[0], MPI_INT, MPI_COMM_WORLD);
         //MPI_Barrier(MPI_COMM_WORLD);
@@ -733,7 +732,7 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-        auto nb_workers_ = std::min((size_t)nb_workers, models.size());
+	auto nb_workers_ =  limits.size()-1;        
         int count=0;
         DebugOff("nb_workers_ = " << nb_workers_ << ", models.size() = " << models.size() << endl);
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to broadcast my solutions " << endl);
