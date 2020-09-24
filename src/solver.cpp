@@ -1781,7 +1781,7 @@ namespace gravity {
         int oacuts_old=oacuts;
         double t_start=0, t=0, tb_time=0, t1, t2;
         vector<int> cut_size_vec, d;
-	cut_size_vec.resize(nb_workers, 0);
+        cut_size_vec.resize(nb_workers, 0);
         t_start=get_wall_time();
         if(batch_model_count!=0){
             std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
