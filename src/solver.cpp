@@ -550,8 +550,8 @@ namespace gravity {
         auto Ointerior = nonlin.build_model_interior();
         solver<> modelI(Ointerior, ipopt);
         //Ointerior.print();
-        modelI.set_option("bound_relax_factor", tol*1e-2);
-        modelI.set_option("check_violation", true);
+        //modelI.set_option("bound_relax_factor", tol*1e-2);
+        //modelI.set_option("check_violation", true);
         modelI.run(output=0, tol);
         
         
