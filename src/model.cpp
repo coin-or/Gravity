@@ -5955,14 +5955,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective) {
+std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective) {
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    std::tuple<bool,int,double,double,double,double,double,double,int,int> res;
-    int total_iter=0, global_iter=1;
+    std::tuple<bool,int,double,double,double,double,double,double,int,int,int> res;
+    int total_iter=0, global_iter=1,fail=0;
     int output, oacuts_init=0, oacuts=0;
     double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::min();
 #ifdef USE_MPI
@@ -6017,7 +6017,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
     total_iter += get<1>(status);
     auto lower_bound=get<6>(status);
     gap = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
-    
+    fail+=get<10>(status);
     while((gap > rel_tol*100.0 || (upper_bound-lower_bound)>abs_tol) && obbt_model->_status==0){
         //MPI_Barrier(MPI_COMM_WORLD);
         auto time=get_wall_time()-time_start;
@@ -6044,6 +6044,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
         if(get<1>(status)>0)
             global_iter++;
         gap=gap_new;
+        fail+=get<10>(status);
     }
 #ifdef USE_MPI
     if(worker_id==0){
@@ -6064,6 +6065,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
     get<7>(res)=get<7>(status);
     get<8>(res)=get<8>(status);
     get<9>(res)=oacuts_init;
+    get<10>(res)=fail;
     upper_bound=get<5>(status);
     DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
     DebugOff("Total number of OBBT iterations = " << total_iter << endl);
@@ -6081,9 +6083,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_scale_value, double solver_time_start) {
+std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_scale_value, double solver_time_start) {
     
-    std::tuple<bool,int,double, double, double, double, double, double, int, int> res;
+    std::tuple<bool,int,double, double, double, double, double, double, int, int,int> res;
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -6125,7 +6127,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
     vector<double> interval_gap;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6, gap_tol=0.1;
     int gap_count_int=1, iter=0;
-    int output = 0;
+    int output = 0, fail=0;
     int batch_model_count=0, lin_count;
     double solver_time =0, solver_time_end, gapnl,gap;
     vector<double> ub_sol;
@@ -6521,6 +6523,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
                                                     }
                                                     else
                                                     {
+                                                        fail++;
 #ifdef USE_MPI
                                                         if(worker_id==0){
                                                             DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
@@ -6993,15 +6996,16 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int> Model<typ
     std::get<7>(res) = avg;
     std::get<8>(res) = oacuts;
     std::get<9>(res) = oacuts_init;
+    std::get<10>(res)=fail;
     return res;
 }
 
 
 
 
-template std::tuple<bool,int,double,double,double,double,double,double,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective);
+template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective);
 
-template std::tuple<bool,int,double,double,double,double,double,double,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start);
+template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);

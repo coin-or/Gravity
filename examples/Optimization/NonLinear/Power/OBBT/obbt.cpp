@@ -171,7 +171,7 @@ int main (int argc, char * argv[]) {
     double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
     unsigned max_iter=1e3;
-    int oacuts=0, oacuts_init=0;
+    int oacuts=0, oacuts_init=0, fail=0;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     bool scale_objective=true;
     //linearize=true;
@@ -186,10 +186,12 @@ int main (int argc, char * argv[]) {
         if(worker_id==0){
             total_iter=get<1>(res);
             total_time=get<2>(res);
+            fail=get<10>(res);
         }
 #else
         total_iter=get<1>(res);
         total_time=get<2>(res);
+        fail=get<10>(res);
 #endif
     }
     else{
@@ -205,12 +207,14 @@ int main (int argc, char * argv[]) {
             total_time=get<2>(res);
             oacuts=get<8>(res);
             oacuts_init=get<9>(res);
+            fail=get<10>(res);
         }
 #else
         total_iter=get<1>(res);
         total_time=get<2>(res);
         oacuts=get<8>(res);
         oacuts_init=get<9>(res);
+        fail=get<10>(res);
 #endif
         
     }
@@ -222,7 +226,7 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     if(worker_id==0){
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<endl;
+        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<endl;
         if(lower_bound==numeric_limits<double>::min()){
             fout<<"Lower bound not solved to optimality"<<endl;
         }
@@ -231,11 +235,11 @@ int main (int argc, char * argv[]) {
     }
     MPI_Finalize();
 #else
-    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<endl);
+    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<endl);
     
     
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<endl;
+    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<endl;
     if(lower_bound==numeric_limits<double>::min()){
         fout<<"Lower bound not solved to optimality"<<endl;
     }
