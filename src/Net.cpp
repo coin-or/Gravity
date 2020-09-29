@@ -605,8 +605,8 @@ void Net::get_tree_decomp_bags() {
     }
     
     
-    DebugOff("\n Number of 3D bags = " << nb << endl);
-    DebugOff("\n Max clique size = " << max_size << endl);
+    DebugOn("\n Number of 3D bags = " << nb << endl);
+    DebugOn("\n Max clique size = " << max_size << endl);
     if(max_size==2){
         this->_tree = true;
     }

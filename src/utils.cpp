@@ -225,7 +225,7 @@ Sign sign_product(Sign s1, Sign s2){
     return s1;
 }
 
-/*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10] if possible the function will split mem into equal chuncks, if not the last chunck will be slightly larger */
+/*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,3,6,8,10, i.e., [0,3], [3,6], [6,8], [8,10] if possible the function will split mem into equal chuncks, if not the first few chunks will be larger by 1*/
 std::vector<size_t> bounds(unsigned parts, size_t mem) {
     std::vector<size_t>bnd;
     unsigned new_parts = parts;
@@ -239,18 +239,100 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     bnd.push_back(N1);
     for (size_t i = 0; i < new_parts; ++i) {
         N2 = N1 + delta;
-        if(i<reminder)
+        if(i<reminder){
             N2+=1;
-//        if (i == new_parts - 1)
-//            N2 += reminder;
+        }
         bnd.push_back(N2);
         N1 = N2;
     }
-//    for(size_t i=1;i<=reminder;++i)
-//        bnd.at(i)+=1;
     if(bnd.back()!=mem){
         DebugOn("Error in computing limits");
     }
     return bnd;
 }
-
+/*Split "objective_models" into "parts", e.g. if objective_models.size = 10 and parts = 4 you will have: 3,6,8,10, i.e., [0,3], [3,6], [6,8], [8,10] if possible the function will split mem into equal chuncks, if not the first few chunks will be larger by 1. Further try to assign memory such that it is similar to previous assignment of same memory chunks if any. Previous assignment of string in objective_models to part number is stored in old_map. Once assigned old map is updated to reflect new assignment  */
+std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_models, map<string,int>& old_map) {
+    std::vector<size_t>bnd;
+    std::vector<std::string> unassign, new_objective_models;
+    size_t mem=objective_models.size();
+    unsigned new_parts = parts;
+    size_t delta = mem / new_parts;
+    size_t remainder = mem % new_parts;
+    if(parts>mem){
+        DebugOff("In function std::vector<size_t> bounds(unsigned parts, size_t mem), parts cannot be strictly greater than mem");
+        new_parts = mem;
+    }
+    for (auto i=0;i<=new_parts;i++){
+        bnd.push_back(0);
+    }
+    int wid, wmax;
+    /*Assigns s to a wid in old_map: if such a wid is found, if wid+1<bnd.size(), if bnd[wid+1] < wmax. If s is not assigned it is put on the list unassign */
+    for(auto &s:objective_models){
+        if(old_map.find(s)!=old_map.end()){
+            wid=old_map.at(s);
+            if(wid<remainder){
+                wmax=delta+1;
+            }
+            else{
+                wmax=delta;
+            }
+            if(wid+1<bnd.size()){
+                if(bnd[wid+1] < wmax){
+                    bnd[wid+1]++;
+                }
+                else{
+                    unassign.push_back(s);
+                }
+            }
+            else{
+                unassign.push_back(s);
+            }
+        }
+        else{
+            unassign.push_back(s);
+        }
+    }
+    //Initialize wmax for wid 0
+    wid=0;
+    if(wid<remainder){
+        wmax=delta+1;
+    }
+    else{
+        wmax=delta;
+    }
+    //Assign all models in unassigned to wid, starting from wid=0, till each wid is filled upto its wmax.
+    for(auto u=unassign.begin();u<unassign.end();u++){
+        if(bnd[wid+1] < wmax){
+            old_map[*u]=wid;
+            bnd[wid+1]++;
+        }
+        else{
+            wid++;
+            u--;
+            if(wid<remainder){
+                wmax=delta+1;
+            }
+            else{
+                wmax=delta;
+            }
+        }
+    }
+    //reordering objective_models into new_objective_models, where the order of the strings is all strings assigned to wid 0, then all strings assigned to wid1 and so on.
+    for(auto w=bnd.begin();w<bnd.end()-1;w++){
+        for(auto it=objective_models.begin();it!=objective_models.end();it++){
+            if(old_map[*it]==(w - bnd.begin())){
+                new_objective_models.push_back(*it);
+            }
+        }
+    }
+    //adding previous w to make bnds assignment cumulative.
+    for(auto w=bnd.begin()+1;w<bnd.end();w++){
+        *w=*w+*(w-1);
+    }
+    objective_models=new_objective_models;
+    if(bnd.back()!=mem){
+        DebugOn("Error in computing limits");
+    }
+    return bnd;
+    
+}

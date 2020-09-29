@@ -2065,7 +2065,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     string num_bags_s = "100";
     num_bags = atoi(num_bags_s.c_str());
     
-    cout << "\nnum bags = " << num_bags << endl;
+    //cout << "\nnum bags = " << num_bags << endl;
     
     if(!grid._tree && grid._bags.empty()){
         grid.get_tree_decomp_bags();
