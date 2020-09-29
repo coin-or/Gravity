@@ -1995,7 +1995,7 @@ TEST_CASE("testing SDP-BT"){
     CHECK(final_gap<1);
 }
 TEST_CASE("testing function bounds_reassign"){
-    DebugOn("testing bounds reassign");
+    DebugOff("testing bounds reassign");
     map<string,int> old_map;
     unsigned partsa=4;
     vector<string> test1={"1","2","3","4","5","6","7","8","9","10","11","12"};
