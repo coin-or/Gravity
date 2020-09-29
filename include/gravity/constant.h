@@ -135,10 +135,17 @@ namespace gravity {
         };
         
         /**
+         @return true if current object is a multi expression.
+         */
+        bool is_mexpr() const{
+            return (_type==mexp_c);
+        };
+        
+        /**
          @return true if current object is a unitary or binary expression.
          */
         bool is_expr() const{
-            return (_type==uexp_c || _type==bexp_c);
+            return (_type==uexp_c || _type==bexp_c || _type==mexp_c);
         };
 
         

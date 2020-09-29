@@ -5,14 +5,14 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    grb_env->set(GRB_DoubleParam_TimeLimit,60);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-//    grb_env->set(GRB_IntParam_Threads,1);
+    grb_env->set(GRB_IntParam_Threads,8);
        grb_env->set(GRB_IntParam_Presolve,0);
       grb_env->set(GRB_IntParam_NumericFocus,3);
      grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-     grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-2);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
 //    grb_mod = new GRBModel(*grb_env);
@@ -22,16 +22,17 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env = new GRBEnv();
-    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    grb_env->set(GRB_DoubleParam_TimeLimit,60);
+    grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
-    grb_env->set(GRB_IntParam_Presolve,0);
-    grb_env->set(GRB_IntParam_NumericFocus,3);
+//    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_NumericFocus,3);
     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-2);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
@@ -43,16 +44,17 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     grb_env = new GRBEnv();
-    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+    grb_env->set(GRB_IntParam_Threads,8);
+    grb_env->set(GRB_DoubleParam_TimeLimit,60);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
-    grb_env->set(GRB_IntParam_Presolve,0);
-    grb_env->set(GRB_IntParam_NumericFocus,3);
+//    grb_env->set(GRB_IntParam_Presolve,0);
+//    grb_env->set(GRB_IntParam_NumericFocus,3);
     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-3);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-2);
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
@@ -87,7 +89,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
 //    grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
-        return false;
+//        return false;
     }
     update_solution();
 //    GRBVar* gvars = grb_mod->getVars();
@@ -254,8 +256,9 @@ void GurobiProgram::create_grb_constraints(){
             continue;
         }
         c->_new = false;
-        if (c->is_nonlinear()) {
-            throw invalid_argument("Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n");
+        
+        if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
+            throw invalid_argument("Gurobi cannot handle nonlinear constraints with more than two variables, try decomposing your constraints by introducing auxiliary variables.\n");
         }
         switch(c->get_ctype()) {
             case geq:
@@ -304,7 +307,7 @@ void GurobiProgram::create_grb_constraints(){
 //                }
             }
         }
-        else {
+        else if(c->is_quadratic()){
             for (size_t i = 0; i< nb_inst; i++){
 //                if (c->_violated[i]) {
                     quadlhs = 0;
@@ -378,6 +381,98 @@ void GurobiProgram::create_grb_constraints(){
                     grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
 //                grb_mod->re
 //                }
+            }
+        }
+        else{/* This is a General constraint with a unary expression and only two vars, e.g., y = cos(x) or y = min/max(x1,x2..). Refer to https://www.gurobi.com/documentation/9.0/refman/constraints.html#subsubsection:GenConstrFunction
+              We currently only support trigonometric functions, log function, and min/max */
+            for (size_t i = 0; i< nb_inst; i++){
+                linlhs = 0;
+                if (c->_lterms->size()!=1) {
+                    throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                }
+                auto lt = c->_lterms->begin()->second;
+                if (lt._p->_is_vector || lt._p->is_matrix_indexed() || lt._coef->is_matrix()) {
+                    throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                }
+                else {
+                    coeff = c->eval(lt._coef,i);
+                    if (!((coeff==1 && lt._sign) || (coeff==-1 && !lt._sign))) {
+                        throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                    }
+                    gvar1 = _grb_vars[lt._p->get_id() + lt._p->get_id_inst(i)];
+                }
+                if (c->eval(c->get_cst(), i)!=0) {
+                    throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                }
+                if(c->_expr->is_uexpr()){
+                    if (c->_expr->_coef!=-1) {
+                        throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                    }
+                    auto uexp = static_pointer_cast<uexpr<>>(c->_expr);
+                    if (uexp->_son->is_function()) {
+                        auto f = static_pointer_cast<func<>>(uexp->_son);
+                        auto p = f->_vars->begin()->second.first;
+                        gvar2 = _grb_vars[p->get_id() + p->get_id_inst(i)];
+                    }
+                    else if(uexp->_son->is_var()) {
+                        auto p = static_pointer_cast<param_>(uexp->_son);
+                        gvar2 = _grb_vars[p->get_id() + p->get_id_inst(i)];
+                    }
+                    else{
+                        throw invalid_argument("Error in expression construction");
+                    }
+                    switch (uexp->_otype) {
+                        case gravity::sin_:{
+                            if(c->_indices)
+                                grb_mod->addGenConstrSin(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            else
+                                grb_mod->addGenConstrSin(gvar2, gvar1);
+                            break;
+                        }
+                        case gravity::cos_:{
+                            if(c->_indices)
+                                grb_mod->addGenConstrCos(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            else
+                                grb_mod->addGenConstrCos(gvar2, gvar1);
+                            break;
+                        }
+                        case gravity::tan_:{
+                            if(c->_indices)
+                                grb_mod->addGenConstrTan(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            else
+                                grb_mod->addGenConstrTan(gvar2, gvar1);
+                            break;
+                        }
+                        case gravity::log_:{
+                            if(c->_indices)
+                                grb_mod->addGenConstrLog(gvar2, gvar1,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            else
+                                grb_mod->addGenConstrLog(gvar2, gvar1);
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }
+                else{/* Multi expression*/
+                    GRBVar* gvars;
+                    if (c->_expr->_coef!=-1) {
+                        throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
+                    }
+                    auto mexp = static_pointer_cast<mexpr<>>(c->_expr);
+                    if(mexp->_otype==min_){
+                        if(c->_indices)
+                            grb_mod->addGenConstrMin(gvar2, gvars, mexp->_children->size(),GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                        else
+                            grb_mod->addGenConstrMin(gvar2, gvars, mexp->_children->size());
+                    }
+                    else {
+                        if(c->_indices)
+                            grb_mod->addGenConstrMax(gvar2, gvars, mexp->_children->size(),GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                        else
+                            grb_mod->addGenConstrMax(gvar2, gvars, mexp->_children->size());
+                    }
+                }
             }
         }
     }
