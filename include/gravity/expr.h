@@ -783,6 +783,106 @@ namespace gravity {
         
         
     };
+        
+    template<typename type = double>
+    class mexpr: public expr<type>{
+    private:
+        
+    public:
+        OperatorType               _otype = id_;
+        shared_ptr<vector<type>>   _children = nullptr;
+        
+        mexpr(){
+            this->_type = mexp_c;
+            this->_to_str = "noname";
+            this->_range = make_shared<pair<type,type>>();
+        }
+        
+        mexpr(OperatorType otype, const vector<type>& vec){
+            this->_type = mexp_c;
+            this->_otype = otype;
+            this->_children = make_shared<vector<type>>(vec);
+            this->_to_str = "noname";
+            this->_range = make_shared<pair<type,type>>();
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        mexpr& operator=(mexpr<T2>&& exp){
+            this->_type = mexp_c;
+            _children = move(exp._children);
+            _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
+            this->_to_str = exp._to_str;
+            this->_coef = exp._coef;
+            this->_is_vector = exp._is_vector;
+            this->_is_transposed = exp._is_transposed;
+            this->_dim[0] = exp._dim[0]; this->_dim[1] = exp._dim[1];
+            return *this;
+        }
+        
+        mexpr& operator=(mexpr&& exp){
+            this->_type = mexp_c;
+            _children = move(exp._children);
+            _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            this->_range = move(exp._range);
+            this->_to_str = exp._to_str;
+            this->_coef = exp._coef;
+            this->_is_vector = exp._is_vector;
+            this->_is_transposed = exp._is_transposed;
+            this->_dim[0] = exp._dim[0]; this->_dim[1] = exp._dim[1];
+            return *this;
+        }
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        mexpr(const mexpr<T2>& exp){ /**< Copy constructor from multi expression tree */
+            *this = exp;
+        };
+        
+        mexpr(const mexpr& exp){ /**< Move constructor from multi expression tree */
+            *this = exp;
+        };
+        
+        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        mexpr(mexpr<T2>&& exp){ /**< Move constructor from binary expression tree */
+            *this = move(exp);
+        };
+        
+        mexpr(mexpr&& exp){ /**< Move constructor from binary expression tree */
+            *this = move(exp);
+        };
+        
+        string to_str(size_t inst,int prec) {
+            string str;
+            if (this->_coef!=unit<type>().eval()) {
+                auto coef = to_string_with_precision(this->_coef, prec);
+                str += clean_print(true,coef);
+                str+="(";
+            }
+            if((_otype==min_ || _otype==max_)) {
+                str += operator_str(_otype)+"(";
+                for(int i = 0; i< _children->size()-1; i++){
+                    str += _children->at(i).to_str(inst,prec);
+                    str += ",";
+                    str+= _children->at(i+1).to_str(inst,prec);
+                }
+                str += ")";
+                if (this->_coef!=unit<type>().eval()) {
+                    str += ")";
+                }
+                return str;
+            }
+        }
+        
+    };
 
 }
 #endif /* expr_h */

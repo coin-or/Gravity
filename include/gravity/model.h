@@ -7427,6 +7427,16 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     }
     
     template<class T>
+    func<T> min(const vector<param<T>>& vec){
+        func<T> res(mexpr<T>(min_, vec));
+        res._all_sign = unknown_;
+        res._all_convexity = undet_;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
     func<T> max(const param<T>& p1, const param<T>& p2){
         func<T> res(bexpr<T>(max_, p1.copy(), p2.copy()));
         res._all_sign = std::max(p1.get_all_sign(),p2.get_all_sign());
