@@ -253,11 +253,11 @@ namespace gravity {
 //                                iapp->Options()->SetNumericValue("bound_push", 1e-12);
 //                                iapp->Options()->SetNumericValue("bound_frac", 1e-12);
 //                                iapp->Options()->SetIntegerValue("acceptable_iter", 0);
-                    //            iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
+//                                iapp->Options()->SetNumericValue("slack_bound_push", 1e-12);
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-//                    iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-1);
+                    iapp->Options()->SetNumericValue("bound_relax_factor", 1e-10);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
 //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //            iapp->Options()->SetNumericValue("mu_init", mu_init);
@@ -295,6 +295,7 @@ namespace gravity {
                     //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
                     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     iapp->Options()->SetNumericValue("tol", tol);
+                    iapp->Options()->SetStringValue("sb", "yes");
                     //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
                     //                                                        iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
