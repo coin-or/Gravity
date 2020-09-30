@@ -6385,7 +6385,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 limits=bounds(nb_workers_, objective_models.size());
                                             }
                                             else{
-                                                limits=bounds(nb_workers_, objective_models.size(), old_map);
+                                                limits=bounds_reassign(nb_workers_, objective_models, old_map);
                                             }
 #endif
                                             while((viol==1) && (lin_count<4)){
@@ -6861,11 +6861,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
 #ifdef USE_MPI
                             if(!share_cuts){
-                                batch_time_start=get_wall_time();
+                                auto t1=get_wall_time();
                                 MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
                                 gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                batch_time_end=get_wall_time();
-                                DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
+                                auto t2=get_wall_time();
+                                DebugOn(endl<<endl<<"g bcast time "<<t2-t1<<endl);
                             }
 #endif
                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
