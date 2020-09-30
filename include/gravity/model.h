@@ -7427,8 +7427,26 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
     }
     
     template<class T>
-    func<T> min(const vector<param<T>>& vec){
+    func<T> min(const vector<var<T>>& vec){
         func<T> res(mexpr<T>(min_, vec));
+        res._range->first = numeric_limits<T>::lowest();
+        res._range->second = numeric_limits<T>::max();
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
+        res._all_sign = unknown_;
+        res._all_convexity = undet_;
+        res._expr->_all_convexity = res._all_convexity;
+        res._expr->_all_sign = res._all_sign;
+        return res;
+    }
+    
+    template<class T>
+    func<T> max(const vector<var<T>>& vec){
+        func<T> res(mexpr<T>(max_, vec));
+        res._range->first = numeric_limits<T>::lowest();
+        res._range->second = numeric_limits<T>::max();
+        res._expr->_range->first = res._range->first;
+        res._expr->_range->second = res._range->second;
         res._all_sign = unknown_;
         res._all_convexity = undet_;
         res._expr->_all_convexity = res._all_convexity;
