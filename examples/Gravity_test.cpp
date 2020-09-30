@@ -22,6 +22,26 @@
 using namespace std;
 using namespace gravity;
 
+TEST_CASE("testing multi max/min"){
+    var<> x1("x1", -1, 1), x2("x2", 0.1, 3), x3("x3",2,4), x4("x4",2,4);
+    x1.in(R(2));
+    x2.in(R(2));
+    x3.in(R(2));
+    x4.in(R(2));
+    vector<var<>> vars = {x2,x3,x4};
+    Constraint<> cstr("cstr");
+    cstr = x1 - min(vars);
+    cstr==0;
+    cstr.print();
+    Constraint<> cstr2("cstr2");
+    cstr2 = x1 - max(vars);
+    cstr2>=0;
+    cstr2.print();
+    CHECK(cstr.get_nb_vars()==4);
+    CHECK(cstr.is_nonlinear());
+    CHECK(cstr.get_dim()==2);
+}
+
 
 TEST_CASE("testing param, var anf func copy operators") {
     indices ids("ids");

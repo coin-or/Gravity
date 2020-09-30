@@ -301,29 +301,13 @@ namespace gravity {
         
         string to_str(size_t inst, int prec) {
             string str;
-            if (this->_coef!=unit<type>().eval()) {
-                if (this->_coef!=-1.*unit<type>().eval()) {
-                    str+= to_string_with_precision(this->_coef,prec);
-                }
-                else {
-                    str+= "-";
-                }
-            }
-            str += operator_str(_otype) +"("+_son->to_str(inst,prec)+")";
+            str += clean_print(true,to_string_with_precision(this->_coef,prec)) + operator_str(_otype) +"("+_son->to_str(inst,prec)+")";
             return str;
         }
         
         string to_str(size_t inst1, size_t inst2, int prec) {
             string str;
-            if (this->_coef!=unit<type>().eval()) {
-                if (this->_coef!=-1.*unit<type>().eval()) {
-                    str+= to_string_with_precision(this->_coef,prec);
-                }
-                else {
-                    str+= "-";
-                }
-            }
-            str += operator_str(_otype) +"("+_son->to_str(inst1,inst2,prec)+")";
+            str += clean_print(true,to_string_with_precision(this->_coef,prec)) + operator_str(_otype) +"("+_son->to_str(inst1,inst2,prec)+")";
             return str;
         }
    
@@ -615,11 +599,7 @@ namespace gravity {
                 return print_transposed(inst,prec);
             }
             string str;
-            if (this->_coef!=unit<type>().eval()) {
-                auto coef = to_string_with_precision(this->_coef, prec);
-                str += clean_print(true,coef);
-                str+="(";
-            }
+            str += clean_print(true,to_string_with_precision(this->_coef, prec));
             if((_otype==min_ || _otype==max_)) {
                 str += operator_str(_otype)+"(";
                 str+= _lson->to_str(inst,prec);
@@ -790,7 +770,7 @@ namespace gravity {
         
     public:
         OperatorType               _otype = id_;
-        shared_ptr<vector<type>>   _children = nullptr;
+        shared_ptr<vector<var<type>>>   _children = nullptr;
         
         mexpr(){
             this->_type = mexp_c;
@@ -798,10 +778,10 @@ namespace gravity {
             this->_range = make_shared<pair<type,type>>();
         }
         
-        mexpr(OperatorType otype, const vector<type>& vec){
+        mexpr(OperatorType otype, const vector<var<type>>& vec){
             this->_type = mexp_c;
             this->_otype = otype;
-            this->_children = make_shared<vector<type>>(vec);
+            this->_children = make_shared<vector<var<type>>>(vec);
             this->_to_str = "noname";
             this->_range = make_shared<pair<type,type>>();
         }
@@ -841,6 +821,25 @@ namespace gravity {
             return *this;
         }
         
+        mexpr& operator=(const mexpr& exp){
+            this->_type = mexp_c;
+            _children = exp._children;
+            _otype = exp._otype;
+            this->_all_convexity = exp._all_convexity;
+            this->_all_sign = exp._all_sign;
+            if(exp._range){
+                this->_range = make_shared<pair<type,type>>();
+                this->_range->first = exp._range->first;
+                this->_range->second = exp._range->second;
+            }
+            this->_to_str = exp._to_str;
+            this->_coef = exp._coef;
+            this->_is_vector = exp._is_vector;
+            this->_is_transposed = exp._is_transposed;
+            this->_dim[0] = exp._dim[0]; this->_dim[1] = exp._dim[1];
+            return *this;
+        }
+        
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
         mexpr(const mexpr<T2>& exp){ /**< Copy constructor from multi expression tree */
             *this = exp;
@@ -862,17 +861,13 @@ namespace gravity {
         
         string to_str(size_t inst,int prec) {
             string str;
-            if (this->_coef!=unit<type>().eval()) {
-                auto coef = to_string_with_precision(this->_coef, prec);
-                str += clean_print(true,coef);
-                str+="(";
-            }
+            str += clean_print(true,to_string_with_precision(this->_coef,prec));
             if((_otype==min_ || _otype==max_)) {
                 str += operator_str(_otype)+"(";
-                for(int i = 0; i< _children->size()-1; i++){
+                for(int i = 0; i< _children->size(); i++){
                     str += _children->at(i).to_str(inst,prec);
-                    str += ",";
-                    str+= _children->at(i+1).to_str(inst,prec);
+                    if(i<_children->size()-1)
+                        str += ",";
                 }
                 str += ")";
                 if (this->_coef!=unit<type>().eval()) {

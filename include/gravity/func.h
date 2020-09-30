@@ -3325,7 +3325,22 @@ namespace gravity {
             _all_convexity = be._all_convexity;
             _all_sign = be._all_sign;
         };
-        
+        template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
+        func(const mexpr<T2>& me):func(){
+            _expr = make_shared<mexpr<type>>(me);
+            embed(_expr);
+            if (!is_constant()) {
+                _ftype = nlin_;
+            }
+            _dim[0] = me._dim[0];
+            _dim[1] = me._dim[1];
+            _evaluated = false;
+            _range->first = me._range->first;
+            _range->second = me._range->second;
+            _all_convexity = me._all_convexity;
+            _all_sign = me._all_sign;
+            
+        };
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
         func(T2 c):func(){
             *this = constant<T2>(c);
@@ -3754,8 +3769,11 @@ namespace gravity {
                 if (f._expr->is_uexpr()) {
                     _expr = make_shared<uexpr<type>>(*static_pointer_cast<uexpr<type>>(f._expr));
                 }
-                else {
+                else if (f._expr->is_bexpr()){
                     _expr = make_shared<bexpr<type>>(*static_pointer_cast<bexpr<type>>(f._expr));
+                }
+                else {
+                    _expr = make_shared<mexpr<type>>(*static_pointer_cast<mexpr<type>>(f._expr));
                 }
                 embed(_expr);
             }
@@ -5557,7 +5575,10 @@ namespace gravity {
             if (exp->is_uexpr()) {
                 return eval_uexpr(((uexpr<type>*)exp.get()),i);
             }
-            return eval_bexpr(((bexpr<type>*)exp.get()),i);
+            else if(exp->is_bexpr()) {
+                return eval_bexpr(((bexpr<type>*)exp.get()),i);
+            }
+            return eval_mexpr(((mexpr<type>*)exp.get()),i);
         }
         
         inline type eval_expr(const shared_ptr<expr<type>>& exp, size_t i, size_t j) {
@@ -5802,6 +5823,43 @@ namespace gravity {
                     break;
             }
             
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        inline T  eval_mexpr(mexpr<type>* exp, size_t i){
+            T res = numeric_limits<T>::max();
+            switch (exp->_otype) {
+                case min_:
+                {
+                    for(int j = 0; j< exp->_children->size(); j++){
+                        T val = exp->_children->at(j).eval(i);
+                        if(res>val)
+                            res = val;
+                    }
+                    return exp->_coef*res;
+                    break;
+                }
+                case max_:
+                {
+                    res = numeric_limits<T>::lowest();
+                    for(int j = 0; j< exp->_children->size(); j++){
+                        T val = exp->_children->at(j).eval(i);
+                        if(res<val)
+                            res = val;
+                    }
+                    return exp->_coef*res;
+                    break;
+                }
+                default:
+                    throw invalid_argument("Unsupported multi operator");
+                    break;
+            }
+            
+        }
+        
+        template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
+        inline T  eval_mexpr(mexpr<type>* exp, size_t i){
+            throw invalid_argument("cannot eval_mexpr with a Complex number");
         }
         
         
@@ -7060,7 +7118,7 @@ namespace gravity {
                     }
                     _expr = make_shared<uexpr<type>>(ue);
                 }
-                else {
+                else if (f.get_expr()->is_bexpr()){
                     auto bexp = make_shared<bexpr<type>>(*static_pointer_cast<bexpr<T2>>(f.get_expr()));
                     if (bexp->_lson->is_function()) {
                         auto son = static_pointer_cast<func<T2>>(bexp->_lson);
@@ -7071,6 +7129,9 @@ namespace gravity {
                         bexp->_rson = make_shared<func>(*son);
                     }
                     _expr = bexp;
+                }
+                else {                    
+                    _expr = make_shared<mexpr<type>>(*static_pointer_cast<mexpr<T2>>(f.get_expr()));
                 }
                 embed(_expr);
                 if (!_vars->empty()) {
@@ -7585,6 +7646,21 @@ namespace gravity {
                             }
                         }
                     }
+                }
+                case mexp_c:{
+                    auto me = static_pointer_cast<mexpr<type>>(e);
+                    for(int i = 0; i<me->_children->size();i++){
+                        auto p =me->_children->at(i);
+                        auto name = p.get_name(false,false);
+                        if (p.is_var()) {
+                            auto pnew = get_var(name);
+                            if (!pnew) {
+                                pnew = make_shared<var<type>>(p);
+                                add_var(pnew,1);
+                            }
+                        }
+                    }
+                    break;
                 }
                 default:
                     break;
