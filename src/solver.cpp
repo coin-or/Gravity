@@ -1783,7 +1783,7 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
     double t_start=0, t=0, tb_time=0, t1, t2;
     vector<int> cut_size_vec, d;
     cut_size_vec.resize(nb_workers, 0);
-    t_start=get_wall_time();
+    //t_start=get_wall_time();
     if(batch_model_count!=0){
         if(worker_id+1<limits.size()){
             for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
@@ -1806,10 +1806,10 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
             }
             cut_size=cut_array_w.size();
         }
-        t1=get_wall_time();
+        //t1=get_wall_time();
         MPI_Allgather(&cut_size, 1, MPI_INT, &cut_size_vec[0], 1, MPI_INT, MPI_COMM_WORLD);
-        t2=get_wall_time();
-        tb_time+=t2-t1;
+        //t2=get_wall_time();
+        //tb_time+=t2-t1;
         int cut_all_size=0;
         c_old=0;
         d.push_back(0);
@@ -1823,16 +1823,16 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
         }
         d.pop_back();
         cut_array_allw.resize(cut_all_size);
-        t1=get_wall_time();
+        //t1=get_wall_time();
         MPI_Allgatherv(&cut_array_w[0], cut_size_vec[worker_id], MPI_DOUBLE,
                        &cut_array_allw[0], &cut_size_vec[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
-        t2=get_wall_time();
-        tb_time+=t2-t1;
+        //t2=get_wall_time();
+        //tb_time+=t2-t1;
         oacuts=oacuts_old;
         lin->add_cuts_to_model(cut_array_allw, *this, oacuts);
     }
-    t=get_wall_time();
-    DebugOn(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);
+    //t=get_wall_time();
+    //DebugOff(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);
     MPI_Barrier(MPI_COMM_WORLD);
     return viol;
 }

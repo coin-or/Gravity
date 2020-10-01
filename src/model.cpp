@@ -6226,7 +6226,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             
 #ifdef USE_MPI
                             if(share_cuts){
-                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar", repeat_list, limits_1);
+                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
                             }else{
                                  constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
                             }
@@ -6385,7 +6385,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 limits=bounds(nb_workers_, objective_models.size());
                                             }
                                             else{
-                                                limits=bounds(nb_workers_, objective_models.size(), old_map);
+                                                limits=bounds_reassign(nb_workers_, objective_models, old_map);
                                             }
 #endif
                                             while((viol==1) && (lin_count<4)){
@@ -6560,15 +6560,13 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                     }
 #ifdef USE_MPI
                                                     if(share_cuts){
-                                                        if(worker_id==0){
-                                                            DebugOn("calling cuts_mpi "<<obbt_subproblem_count<<endl);
-                                                        }
                                                         repeat_list.clear();
                                                         viol=relaxed_model->cuts_MPI(batch_models, batch_model_count, interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, range_tol, sol_status, cut_type, repeat_list, limits);
                                                     }
                                                     else{
                                                         viol_i=0;
                                                         viol=0;
+                                                        repeat_list.clear();
                                                         if(worker_id+1<limits.size()){
                                                             viol_i=relaxed_model->cuts_parallel(batch_models, limits[worker_id+1]-limits[worker_id], interior_model, obbt_model, oacuts, active_tol, run_obbt_iter, range_tol, cut_type, repeat_list);
                                                         }
@@ -6804,7 +6802,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         // constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
 #ifdef USE_MPI
                                         if(share_cuts){
-                                            constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar", repeat_list, limits_1);
+                                            constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
                                         }else{
                                             constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
                                         }
@@ -6861,11 +6859,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
 #ifdef USE_MPI
                             if(!share_cuts){
-                                batch_time_start=get_wall_time();
+                                //batch_time_start=get_wall_time();
                                 MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
                                 gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                batch_time_end=get_wall_time();
-                                DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
+                                //batch_time_end=get_wall_time();
+                               // DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
                             }
 #endif
                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
