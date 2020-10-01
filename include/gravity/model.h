@@ -2673,18 +2673,19 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
 #ifdef USE_BONMIN
         void fill_in_var_types(Bonmin::TMINLP::VariableType* var_types){
             size_t vid;
-            param_* v;
             for(auto& v_p: _vars)
             {
-                v = v_p.second;
+                auto v = v_p.second;
                 vid = v->get_id();
                 auto bonmin_type = Bonmin::TMINLP::CONTINUOUS;
-                auto type = v->get_intype();
-                if(type==short_ || type==integer_){
-                    bonmin_type = Bonmin::TMINLP::INTEGER;
-                }
-                else if(type==binary_){
-                    bonmin_type = Bonmin::TMINLP::BINARY;
+                if(v->_is_relaxed){
+                    auto vv = static_pointer_cast<var<double>>(v);
+                    if(vv->_range->first==0 && vv->_range->first==1){
+                        bonmin_type = Bonmin::TMINLP::BINARY;
+                    }
+                    else {
+                        bonmin_type = Bonmin::TMINLP::INTEGER;
+                    }
                 }
                 for (size_t i = 0; i < v->get_dim(); i++) {
                     var_types[vid+i] = bonmin_type;

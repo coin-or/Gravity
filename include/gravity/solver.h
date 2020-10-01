@@ -41,6 +41,16 @@ using Ipopt::SolveStatistics;
 #endif
 #ifdef USE_BONMIN
 #include <gravity/BonminProgram.h>
+#include "BonOsiTMINLPInterface.hpp"
+#include "BonIpoptSolver.hpp"
+//#include "MyTMINLP.hpp"
+#include "BonCbc.hpp"
+#include "BonBonminSetup.hpp"
+
+#include "BonOACutGenerator2.hpp"
+#include "BonEcpCuts.hpp"
+#include "BonOaNlpOptim.hpp"
+
 #endif
 #ifdef USE_CPLEX
 #include <gravity/CplexProgram.h>
@@ -166,7 +176,7 @@ namespace gravity {
                 if(_model->_objt==maximize){
                     *_model->_obj *= -1;
                 }
-                _prog = make_shared<BonminProgram>(_model);
+                _prog = make_shared<BonminProgram<type>>(_model);
 #else
                 bonminNotAvailable();
 #endif
@@ -414,9 +424,9 @@ namespace gravity {
                 }
                 else if(_stype==bonmin) {
 #ifdef USE_BONMIN
-                    
-                    //            using namespace Bonmin;
-                    BonminSetup bonmin;
+//                    {
+//                    using namespace Bonmin;
+                    Bonmin::BonminSetup bonmin;
                     bonmin.initializeOptionsAndJournalist();
                     //            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
                     //            bonmin.options()->SetIntegerValue("solution_limit", 1);
@@ -425,52 +435,59 @@ namespace gravity {
                     //            bonmin.options()->SetNumericValue("allowable_fraction_gap", -1e5);
                     //            bonmin.options()->SetNumericValue("tol", tol);
                     //            bonmin.options()->SetIntegerValue("print_level", 5);
-                    bonmin.options()->SetStringValue("tree_search_strategy", "top-node");
-                    bonmin.options()->SetStringValue("warm_start", "optimum");
+//                    bonmin.options()->SetStringValue("tree_search_strategy", "top-node");
+//                    bonmin.options()->SetStringValue("warm_start", "optimum");
                     
                     //            bonmin.options()->SetStringValue("variable_selection", "random");
                     //            bonmin.options()->SetStringValue("linear_solver", "ma57");
                     //            bonmin.options()->SetIntegerValue("nlp_log_at_root", 5);
-                    bonmin.options()->SetNumericValue("cutoff", 0.9);
+//                    bonmin.options()->SetNumericValue("cutoff", 999);
+//                    bonmin.options()->SetNumericValue("coeff_var_threshold", 999);
+//                    bonmin.options()->SetNumericValue("first_perc_for_cutoff_decr", 999);
+//                    bonmin.options()->SetNumericValue("second_perc_for_cutoff_decr", 999);
+//                    bonmin.options()->SetNumericValue("cutoff_decr", -999);
+                    
+                    
+                    
                     //            bonmin.options()->SetNumericValue("resolve_on_small_infeasibility", INFINITY);
-                    bonmin.options()->SetStringValue("heuristic_dive_MIP_fractional", "no");
-                    bonmin.options()->SetStringValue("heuristic_dive_MIP_vectorLength", "no");
-                    bonmin.options()->SetStringValue("heuristic_dive_fractional", "no");
-                    bonmin.options()->SetStringValue("heuristic_dive_vectorLength", "no");
-                    bonmin.options()->SetStringValue("heuristic_feasibility_pump", "no");
-                    bonmin.options()->SetStringValue("pump_for_minlp", "no");
+//                    bonmin.options()->SetStringValue("heuristic_dive_MIP_fractional", "no");
+//                    bonmin.options()->SetStringValue("heuristic_dive_MIP_vectorLength", "no");
+//                    bonmin.options()->SetStringValue("heuristic_dive_fractional", "no");
+//                    bonmin.options()->SetStringValue("heuristic_dive_vectorLength", "no");
+//                    bonmin.options()->SetStringValue("heuristic_feasibility_pump", "no");
+//                    bonmin.options()->SetStringValue("pump_for_minlp", "no");
                     //            bonmin.options()->SetStringValue("algorithm", "B-iFP");
-                    bonmin.options()->SetStringValue("node_comparison", "best-guess");
-                    //            bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
-                    bonmin.options()->SetIntegerValue("num_resolve_at_root", 5);
+//                    bonmin.options()->SetStringValue("node_comparison", "best-guess");
+//                    bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
+//                    bonmin.options()->SetIntegerValue("num_resolve_at_root", 15);
                     
                     _model->fill_in_maps();
-                    SmartPtr<TMINLP> tmp = new BonminProgram(_model);
+                    SmartPtr<Bonmin::TMINLP> tmp = new BonminProgram<type>(_model);
                     bonmin.initialize(tmp);
                     
                     
                     bool ok = false;
                     //        bonmin.initialize(prog.bonmin_prog);
                     try {
-                        Bab bb;
+                        Bonmin::Bab bb;
                         bb(bonmin);
                         auto status = bb.mipStatus();
                         switch (bb.mipStatus())
                         {
-                            case Bab::MipStatuses::FeasibleOptimal:
-                            case Bab::MipStatuses::Feasible:
+                            case Bonmin::Bab::MipStatuses::FeasibleOptimal:
+                            case Bonmin::Bab::MipStatuses::Feasible:
                                 ok = true;
                                 break;
                             default:
                                 ok = false;
                         }
                     }
-                    catch(TNLPSolver::UnsolvedError *E) {
+                    catch(Bonmin::TNLPSolver::UnsolvedError *E) {
                         //There has been a failure to solve a problem with Bonmin.
                         std::cerr << "Bonmin has failed to solve a problem" << std::endl;
                         ok = false;
                     }
-                    catch(OsiTMINLPInterface::SimpleError &E) {
+                    catch(Bonmin::OsiTMINLPInterface::SimpleError &E) {
                         std::cerr << E.className() << "::" << E.methodName() << std::endl << E.message() << std::endl;
                         ok = false;
                     }

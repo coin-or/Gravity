@@ -5,7 +5,7 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,60);
+    grb_env->set(GRB_DoubleParam_TimeLimit,300);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     grb_env->set(GRB_IntParam_Threads,8);
        grb_env->set(GRB_IntParam_Presolve,0);
@@ -24,7 +24,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,60);
+    grb_env->set(GRB_DoubleParam_TimeLimit,300);
     grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
@@ -47,7 +47,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
     grb_env->set(GRB_IntParam_Threads,8);
-    grb_env->set(GRB_DoubleParam_TimeLimit,60);
+    grb_env->set(GRB_DoubleParam_TimeLimit,300);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -455,22 +455,27 @@ void GurobiProgram::create_grb_constraints(){
                     }
                 }
                 else{/* Multi expression*/
-                    GRBVar* gvars;
+                    
                     if (c->_expr->_coef!=-1) {
                         throw invalid_argument("Gurobi does not support this type of nonlinear constraints");
                     }
                     auto mexp = static_pointer_cast<mexpr<>>(c->_expr);
+                    size_t nb_vars = mexp->_children->size();
+                    GRBVar gvars[nb_vars];
+                    for (int k = 0; k<nb_vars; k++) {
+                        gvars[k] = _grb_vars[mexp->_children->at(k).get_id() + mexp->_children->at(k).get_id_inst(i)];
+                    }
                     if(mexp->_otype==min_){
                         if(c->_indices)
-                            grb_mod->addGenConstrMin(gvar2, gvars, mexp->_children->size(),GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            grb_mod->addGenConstrMin(gvar1, gvars, nb_vars,GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else
-                            grb_mod->addGenConstrMin(gvar2, gvars, mexp->_children->size());
+                            grb_mod->addGenConstrMin(gvar1, gvars, nb_vars);
                     }
                     else {
                         if(c->_indices)
-                            grb_mod->addGenConstrMax(gvar2, gvars, mexp->_children->size(),GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                            grb_mod->addGenConstrMax(gvar1, gvars, nb_vars,GRB_INFINITY, c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else
-                            grb_mod->addGenConstrMax(gvar2, gvars, mexp->_children->size());
+                            grb_mod->addGenConstrMax(gvar1, gvars,nb_vars);
                     }
                 }
             }

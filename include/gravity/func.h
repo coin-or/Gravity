@@ -7646,6 +7646,7 @@ namespace gravity {
                             }
                         }
                     }
+                    break;
                 }
                 case mexp_c:{
                     auto me = static_pointer_cast<mexpr<type>>(e);
