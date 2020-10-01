@@ -78,16 +78,67 @@ void apply_rotation(double roll, double pitch, double yaw, vector<double>& x_vec
 /* Run the ARMO model for boresight alignment */
 tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, const vector<double>& y_vec1, const vector<double>& z_vec1, const vector<double>& x_vec2, const vector<double>& y_vec2, const vector<double>& z_vec2, const vector<double>& x_shift1, const vector<double>& y_shift1, const vector<double>& z_shift1, const vector<double>& x_shift2, const vector<double>& y_shift2, const vector<double>& z_shift2, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
 
+/* Plot two point clouds */
+void plot(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, double point_thick = 0.1);
+
+/* Run Go-ICP on point clouds, return best solution */
+tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
+
 /* Run the ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 /* Run the Global ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
+/* Run the MINLP ARMO model for registration */
+tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
+
 
 
 int main (int argc, char * argv[])
 {
+    bool test_global = true;
+    if (test_global) {
+        vector<vector<double>> point_cloud_model, point_cloud_data;
+        point_cloud_model.resize(6);
+        for(int i = 0; i<6; i++){
+            point_cloud_model[i].resize(3);
+        }
+        
+        point_cloud_model[0][0] = 0.1;
+        point_cloud_model[0][1] = 0.1;
+        point_cloud_model[0][2] = 0.1;
+        
+        point_cloud_model[1][0] = 0.1;
+        point_cloud_model[1][1] = 0.9;
+        point_cloud_model[1][2] = 0.1;
+        
+        point_cloud_model[2][0] = 0.9;
+        point_cloud_model[2][1] = 0.1;
+        point_cloud_model[2][2] = 0.1;
+        
+        point_cloud_model[3][0] = 0.9;
+        point_cloud_model[3][1] = 0.9;
+        point_cloud_model[3][2] = 0.1;
+        
+        point_cloud_model[4][0] = 0.5;
+        point_cloud_model[4][1] = 0.5;
+        point_cloud_model[4][2] = 0.9;
+        
+        point_cloud_model[5][0] = 0.5;
+        point_cloud_model[5][1] = 0.5;
+        point_cloud_model[5][2] = 0.8;
+        
+        point_cloud_data = point_cloud_model;
+        apply_rot_trans(120, -25, 7, 0.1, 0.04, 0.2, point_cloud_data);
+//        plot(point_cloud_model,point_cloud_data,2);
+//        auto res = run_GoICP(point_cloud_model,point_cloud_data);
+//        auto res = run_ARMO_Global(false, "full", point_cloud_model, point_cloud_data);
+        auto res = run_ARMO_MINLP(false, "full", point_cloud_model, point_cloud_data);
+        apply_rot_trans(get<0>(res), get<1>(res), get<2>(res), get<3>(res), get<4>(res), get<5>(res), point_cloud_data);
+        plot(point_cloud_model,point_cloud_data,2);
+        return 0;
+    }
     bool Registration = true;/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
@@ -1560,8 +1611,8 @@ double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* 
         return min_max;
     }
 
-/* Run the Global ARMO model for registration */
-tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+/* Run the MINLP ARMO model for registration */
+tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     double angle_max = 3, shift_max = 0.25;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1576,7 +1627,6 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
     //        return 0;
-    bool solve_lidar_cube = false, solve_lidar_iter = !solve_lidar_cube;
     int m = av_nb_pairs;
     //            int m = 1;
     vector<double> min_dist(nd,numeric_limits<double>::max());
@@ -1589,8 +1639,6 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     int idx2 = 0;
     int nb_max_neigh = 1;
     double dist_sq = 0;
-    if(solve_lidar_cube)
-        nb_max_neigh = m;
     /* Compute nearest points in data point cloud */
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
@@ -1622,172 +1670,345 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     
     N1 = range(1,nd);
     N2 = range(1,nm);
-    if(solve_lidar_iter){
-        for (auto i = 0; i<nd; i++) {
-            i_str = to_string(i+1);
-            j_str = nearest_id[i];
-            cells.add(i_str+","+j_str);
+    cells = indices(N1,N2);
+    //    cells.print();
+    //    for (auto i = 0; i<nd; i++) {
+    //        i_str = to_string(i+1);
+    //        for (auto j = 0; j<nm; j++) {
+    //            j_str = to_string(j+1);
+    //            cells.add(i_str+","+j_str);
+    //        }
+    //    }
+    Model<> Reg("Reg");
+    var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+    var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
+    var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
+    //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
+    //                    var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
+    var<> delta("delta", pos_);
+    var<> delta_min("delta_min", pos_);
+    var<int> bin("bin",0,1);
+    
+    Reg.add(bin.in(cells));
+    Reg.add(delta.in(cells), delta_min.in(N1));
+    Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
+    Reg.add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    Reg.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+    //        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
+    //                Reg.add(z_diff.in(cells));
+    DebugOn("There are " << cells.size() << " cells" << endl);
+//    for (int i = 0; i<6; i++) {
+//        bin(to_string(i+1)+","+to_string(i+1))=1;
+//    }
+    
+    
+    Constraint<> DeltaMin("DeltaMin");
+    DeltaMin = delta_min;
+    DeltaMin -= bin.in_matrix(1, 1)*delta.in_matrix(1, 1);
+    Reg.add(DeltaMin.in(N1)==0);
+    
+    
+    Constraint<> OneBin("OneBin");
+    OneBin = bin.in_matrix(1, 1);
+    Reg.add(OneBin.in(N1)==1);
+
+    
+    Constraint<> Norm2("Norm2");
+    Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+    Reg.add(Norm2.in(cells)>=0);
+    
+    
+    
+    auto ids1 = yaw.repeat_id(cells.size());
+    
+    Constraint<> x_rot1("x_rot1");
+    x_rot1 += new_x1 - x_shift.in(ids1);
+    x_rot1 -= (x1.in(N1))*cos(yaw.in(ids1))*cos(roll.in(ids1)) + (y1.in(N1))*(cos(yaw.in(ids1))*sin(roll.in(ids1))*sin(pitch.in(ids1)) - sin(yaw.in(ids1))*cos(pitch.in(ids1))) + (z1.in(N1))*(cos(yaw.in(ids1))*sin(roll.in(ids1))*cos(pitch.in(ids1)) + sin(yaw.in(ids1))*sin(pitch.in(ids1)));
+    Reg.add(x_rot1.in(N1)==0);
+    
+    
+    
+    Constraint<> y_rot1("y_rot1");
+    y_rot1 += new_y1 - y_shift.in(ids1);
+    y_rot1 -= (x1.in(N1))*sin(yaw.in(ids1))*cos(roll.in(ids1)) + (y1.in(N1))*(sin(yaw.in(ids1))*sin(roll.in(ids1))*sin(pitch.in(ids1)) + cos(yaw.in(ids1))*cos(pitch.in(ids1))) + (z1.in(N1))*(sin(yaw.in(ids1))*sin(roll.in(ids1))*cos(pitch.in(ids1)) - cos(yaw.in(ids1))*sin(pitch.in(ids1)));
+    Reg.add(y_rot1.in(N1)==0);
+    
+    Constraint<> z_rot1("z_rot1");
+    z_rot1 += new_z1 - z_shift.in(ids1);
+    z_rot1 -= (x1.in(N1))*sin(-1*roll.in(ids1)) + (y1.in(N1))*(cos(roll.in(ids1))*sin(pitch.in(ids1))) + (z1.in(N1))*(cos(roll.in(ids1))*cos(pitch.in(ids1)));
+    Reg.add(z_rot1.in(N1)==0);
+    Reg.min(sum(delta_min));
+    
+//    Reg.print();
+    
+    solver<> S(Reg,bonmin);
+    S.run();
+//    Reg.print_solution();
+    //        S.run(0, 1e-10, 1000);
+    
+    
+    //        for (int i = 0; i<500; i++) {
+    //            pre_x.add_val(x_rot1.eval(i));
+    //            pre_y.add_val(y_rot1.eval(i));
+    //            pre_z.add_val(z_rot1.eval(i));
+    //            x_uav.add_val(x_uav1.eval(i));
+    //            y_uav.add_val(y_uav1.eval(i));
+    //            z_uav.add_val(z_uav1.eval(i));
+    //        }
+    //        for (int i = 0; i<500; i++) {
+    //            pre_x.add_val(x_rot2.eval(i));
+    //            pre_y.add_val(y_rot2.eval(i));
+    //            pre_z.add_val(z_rot2.eval(i));
+    //            x_uav.add_val(x_uav2.eval(i));
+    //            y_uav.add_val(y_uav2.eval(i));
+    //            z_uav.add_val(z_uav2.eval(i));
+    //        }
+    //    M.print_solution();
+    
+    DebugOn("Pitch (degrees) = " << pitch.eval()*180/pi << endl);
+    DebugOn("Roll (degrees) = " << roll.eval()*180/pi << endl);
+    DebugOn("Yaw (degrees) = " << yaw.eval()*180/pi << endl);
+    DebugOn("Pitch = " << pitch.eval() << endl);
+    DebugOn("Roll = " << roll.eval() << endl);
+    DebugOn("Yaw = " << yaw.eval() << endl);
+    DebugOn("x shift = " << x_shift.eval() << endl);
+    DebugOn("y shift = " << y_shift.eval() << endl);
+    DebugOn("z shift = " << z_shift.eval() << endl);
+    roll_1 = roll.eval()*180/pi;
+    pitch_1 = pitch.eval()*180/pi;
+    yaw_1 = yaw.eval()*180/pi;
+    return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
+}
+
+
+/* Run the Global ARMO model for registration */
+tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+    double angle_max = 2.1, shift_max = 0.1;
+    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+    int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+    size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
+    vector<pair<double,double>> min_max_data;
+    vector<vector<pair<double,double>>> min_max_model(nm);
+    vector<int> nb_neighbors(nd);
+    vector<vector<int>> neighbors(nd);
+    vector<double> zeros = {0,0,0};
+    
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
+    param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
+    param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
+    //        return 0;
+    int m = av_nb_pairs;
+    //            int m = 1;
+    vector<double> min_dist(nd,numeric_limits<double>::max());
+    vector<int> nearest(nd);
+    vector<string> nearest_id(nd);
+    string i_str, j_str;
+    indices Pairs("Pairs"), cells("cells");
+    map<int,int> n2_map;
+    int idx1 = 0;
+    int idx2 = 0;
+    int nb_max_neigh = 1;
+    double dist_sq = 0;
+    /* Compute nearest points in data point cloud */
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        x1.add_val(i_str,point_cloud_data.at(i).at(0));
+        y1.add_val(i_str,point_cloud_data.at(i).at(1));
+        z1.add_val(i_str,point_cloud_data.at(i).at(2));
+    }
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        x2.add_val(j_str,point_cloud_model.at(j).at(0));
+        y2.add_val(j_str,point_cloud_model.at(j).at(1));
+        z2.add_val(j_str,point_cloud_model.at(j).at(2));
+    }
+    for (auto i = 0; i< nd; i++) {
+        double min_dist = numeric_limits<double>::max();
+        for (auto j = 0; j< nm; j++) {
+            dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+            if(min_dist>dist_sq){
+                min_dist = dist_sq;
+                j_str = to_string(j+1);
+                nearest_id[i] = j_str;
+            }
         }
-        Model<> Reg("Reg");
-        var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
-        var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
-        
-        //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
-        //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
-        var<> cosr("cosr", 0, 1), sinr("sinr", -0.5, 0.5);
-        var<> cosp("cosp", 0, 1), sinp("sinp", -0.5, 0.5);
-        var<> cosy("cosy", 0, 1), siny("siny", -0.5, 0.5);
-        var<> cosy_sinr("cosy_sinr", -0.5, 0.5), siny_sinr("siny_sinr", -0.5, 0.5);
-        var<> yaw("yaw", -0.5, 0.5), pitch("pitch", -0.5, 0.5), roll("roll", -0.5, 0.5);
-        var<> x_shift("x_shift", -0.05, 0.05), y_shift("y_shift", -0.05, 0.05), z_shift("z_shift", -0.05, 0.05);
+    }
+    idx1 = 0;
+    indices N1("N1"),N2("N2");
+    DebugOn("nd = " << nd << endl);
+    DebugOn("nm = " << nm << endl);
+    
+    N1 = range(1,nd);
+    N2 = range(1,nm);
+    cells = indices(N1,N2);
+//    cells.print();
+//    for (auto i = 0; i<nd; i++) {
+//        i_str = to_string(i+1);
+//        for (auto j = 0; j<nm; j++) {
+//            j_str = to_string(j+1);
+//            cells.add(i_str+","+j_str);
+//        }
+//    }
+    Model<> Reg("Reg");
+    var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+    var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+    
+    //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
+    //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
+    var<> cosr("cosr", -1, 1), sinr("sinr", -1, 1);
+    var<> cosp("cosp", -1, 1), sinp("sinp", -1, 1);
+    var<> cosy("cosy", -1, 1), siny("siny", -1, 1);
+    var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
+    var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
+    var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
 //                    var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
-        var<> delta("delta", pos_);
-        Reg.add(delta.in(cells));
-        Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
-        Reg.add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
-        Reg.add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
-        Reg.add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
-        Reg.add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
-        Reg.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+    var<> delta("delta", pos_);
+    var<> delta_min("delta_min", pos_);
+    var<int> bin("bin",0,1);
+    Reg.add(bin.in(cells));
+    Reg.add(delta.in(cells), delta_min.in(N1));
+    Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
+    Reg.add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
+    Reg.add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
+    Reg.add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+    Reg.add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    Reg.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
 //        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
-        //                Reg.add(z_diff.in(cells));
-        DebugOn("There are " << cells.size() << " cells" << endl);
-        
-        Constraint<> Norm2("Norm2");
-        Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-        Reg.add(Norm2.in(cells)>=0);
-        
-        //            Constraint<> x_abs1("x_abs1");
-        //            x_abs1 += x_diff - (new_x1.from(cells) - x2.to(cells));
-        //            Reg.add(x_abs1.in(cells)>=0);
-        //
-        //            Constraint<> x_abs2("x_abs2");
-        //            x_abs2 += x_diff - (x2.to(cells) - new_x1.from(cells));
-        //            Reg.add(x_abs2.in(cells)>=0);
-        //
-        //            Constraint<> y_abs1("y_abs1");
-        //            y_abs1 += y_diff - (new_y1.from(cells) - y2.to(cells));
-        //            Reg.add(y_abs1.in(cells)>=0);
-        //
-        //            Constraint<> y_abs2("y_abs2");
-        //            y_abs2 += y_diff - (y2.to(cells) - new_y1.from(cells));
-        //            Reg.add(y_abs2.in(cells)>=0);
-        //
-        //            Constraint<> z_abs1("z_abs1");
-        //            z_abs1 += z_diff - (new_z1.from(cells) - z2.to(cells));
-        //            Reg.add(z_abs1.in(cells)>=0);
-        //
-        //            Constraint<> z_abs2("z_abs2");
-        //            z_abs2 += z_diff - (z2.to(cells) - new_z1.from(cells));
-        //            Reg.add(z_abs2.in(cells)>=0);
-        Constraint<> cos_roll("cos_roll");
-        cos_roll = cosr - cos(roll);
-        Reg.add(cos_roll==0);
-        
-        Constraint<> sin_roll("sin_roll");
-        sin_roll = sinr - sin(roll);
-        Reg.add(sin_roll==0);
-        
-        Constraint<> cos_pitch("cos_pitch");
-        cos_pitch = cosp - cos(pitch);
-        Reg.add(cos_pitch==0);
-        
-        Constraint<> sin_pitch("sin_pitch");
-        sin_pitch = sinp - sin(pitch);
-        Reg.add(sin_pitch==0);
-        
-        Constraint<> cos_yaw("cos_yaw");
-        cos_yaw = cosy - cos(yaw);
-        Reg.add(cos_yaw==0);
-        
-        Constraint<> sin_yaw("sin_yaw");
-        sin_yaw = siny - sin(yaw);
-        Reg.add(sin_yaw==0);
-        
-        Constraint<> cosy_sinr_prod("cosy_sinr");
-        cosy_sinr_prod = cosy_sinr - cosy*sinr;
-        Reg.add(cosy_sinr_prod==0);
-        
-        Constraint<> siny_sinr_prod("siny_sinr");
-        siny_sinr_prod = siny_sinr - siny*sinr;
-        Reg.add(siny_sinr_prod==0);
-        
-        auto ids1 = yaw.repeat_id(cells.size());
-        
-        /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
-        Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
-        x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
-        Reg.add(x_rot1.in(N1)==0);
-        
-        
-        Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
-        y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
-        Reg.add(y_rot1.in(N1)==0);
-        
-        Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
-        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
-        Reg.add(z_rot1.in(N1)==0);
-        
-        
-        //    M.min(sum(z_diff)/nb_overlap);
-        
-        //        M.min(sum(z_diff));
-        if(axis == "full")
-            //            Reg.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
-            //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
-            Reg.min(sum(delta));
-        else if(axis == "x")
-            Reg.min(sum(x_diff)/cells.size());
-        else if (axis == "y")
-            Reg.min(sum(y_diff)/cells.size());
-        else
-            Reg.min(sum(z_diff)/cells.size());
-        
+    //                Reg.add(z_diff.in(cells));
+    DebugOn("There are " << cells.size() << " cells" << endl);
+    
+//    for (int i = 0; i<nd; i++) {
+//        vector<var<>> delta_vec(nm);
+//        for (int j = 0; j<nm; j++) {
+//            delta_vec[j] = delta(to_string(i+1)+","+to_string(j+1));
+//        }
+//        Constraint<> DeltaMin("DeltaMin_"+to_string(i));
+//        DeltaMin += delta_min[i+1] - min(delta_vec);
+//        Reg.add(DeltaMin==0);
+//    }
+
+    Constraint<> DeltaMin("DeltaMin");
+    DeltaMin = delta_min;
+    DeltaMin -= bin.in_matrix(1, 1)*delta.in_matrix(1, 1);
+    Reg.add(DeltaMin.in(N1)==0);
+    
+    
+    Constraint<> OneBin("OneBin");
+    OneBin = bin.in_matrix(1, 1);
+    Reg.add(OneBin.in(N1)==1);
+    
+    Constraint<> Norm2("Norm2");
+    Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+    Reg.add(Norm2.in(cells)>=0);
+    
+    Constraint<> cos_roll("cos_roll");
+    cos_roll = cosr - cos(roll);
+    Reg.add(cos_roll==0);
+    
+    Constraint<> sin_roll("sin_roll");
+    sin_roll = sinr - sin(roll);
+    Reg.add(sin_roll==0);
+    
+    Constraint<> cos_pitch("cos_pitch");
+    cos_pitch = cosp - cos(pitch);
+    Reg.add(cos_pitch==0);
+    
+    Constraint<> sin_pitch("sin_pitch");
+    sin_pitch = sinp - sin(pitch);
+    Reg.add(sin_pitch==0);
+    
+    Constraint<> cos_yaw("cos_yaw");
+    cos_yaw = cosy - cos(yaw);
+    Reg.add(cos_yaw==0);
+    
+    Constraint<> sin_yaw("sin_yaw");
+    sin_yaw = siny - sin(yaw);
+    Reg.add(sin_yaw==0);
+    
+    Constraint<> cosy_sinr_prod("cosy_sinr");
+    cosy_sinr_prod = cosy_sinr - cosy*sinr;
+    Reg.add(cosy_sinr_prod==0);
+    
+    Constraint<> siny_sinr_prod("siny_sinr");
+    siny_sinr_prod = siny_sinr - siny*sinr;
+    Reg.add(siny_sinr_prod==0);
+    
+    auto ids1 = yaw.repeat_id(cells.size());
+    
+    /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+    Constraint<> x_rot1("x_rot1");
+    x_rot1 += new_x1 - x_shift.in(ids1);
+    x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
+    Reg.add(x_rot1.in(N1)==0);
+    
+    
+    Constraint<> y_rot1("y_rot1");
+    y_rot1 += new_y1 - y_shift.in(ids1);
+    y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
+    Reg.add(y_rot1.in(N1)==0);
+    
+    Constraint<> z_rot1("z_rot1");
+    z_rot1 += new_z1 - z_shift.in(ids1);
+    z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
+    Reg.add(z_rot1.in(N1)==0);
+    
+    
+    //    M.min(sum(z_diff)/nb_overlap);
+    
+    //        M.min(sum(z_diff));
+    if(axis == "full")
+        //            Reg.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
         //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
-        
-        //    M.print();
-        
-        solver<> S(Reg,gurobi);
-        S.run();
+        Reg.min(sum(delta_min));
+    else if(axis == "x")
+        Reg.min(sum(x_diff)/cells.size());
+    else if (axis == "y")
+        Reg.min(sum(y_diff)/cells.size());
+    else
+        Reg.min(sum(z_diff)/cells.size());
+    
+    //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
+    
+        Reg.print();
+    
+    solver<> S(Reg,gurobi);
+    S.run();
+    Reg.print_solution();
 //        S.run(0, 1e-10, 1000);
-        
-        
-        //        for (int i = 0; i<500; i++) {
-        //            pre_x.add_val(x_rot1.eval(i));
-        //            pre_y.add_val(y_rot1.eval(i));
-        //            pre_z.add_val(z_rot1.eval(i));
-        //            x_uav.add_val(x_uav1.eval(i));
-        //            y_uav.add_val(y_uav1.eval(i));
-        //            z_uav.add_val(z_uav1.eval(i));
-        //        }
-        //        for (int i = 0; i<500; i++) {
-        //            pre_x.add_val(x_rot2.eval(i));
-        //            pre_y.add_val(y_rot2.eval(i));
-        //            pre_z.add_val(z_rot2.eval(i));
-        //            x_uav.add_val(x_uav2.eval(i));
-        //            y_uav.add_val(y_uav2.eval(i));
-        //            z_uav.add_val(z_uav2.eval(i));
-        //        }
-        //    M.print_solution();
-        
-        DebugOn("Pitch (degrees) = " << pitch.eval()*180/pi << endl);
-        DebugOn("Roll (degrees) = " << roll.eval()*180/pi << endl);
-        DebugOn("Yaw (degrees) = " << yaw.eval()*180/pi << endl);
-        DebugOn("Pitch = " << pitch.eval() << endl);
-        DebugOn("Roll = " << roll.eval() << endl);
-        DebugOn("Yaw = " << yaw.eval() << endl);
-        DebugOn("x shift = " << x_shift.eval() << endl);
-        DebugOn("y shift = " << y_shift.eval() << endl);
-        DebugOn("z shift = " << z_shift.eval() << endl);
-        roll_1 = roll.eval()*180/pi;
-        pitch_1 = pitch.eval()*180/pi;
-        yaw_1 = yaw.eval()*180/pi;
-        return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
-    }
+    
+    
+    //        for (int i = 0; i<500; i++) {
+    //            pre_x.add_val(x_rot1.eval(i));
+    //            pre_y.add_val(y_rot1.eval(i));
+    //            pre_z.add_val(z_rot1.eval(i));
+    //            x_uav.add_val(x_uav1.eval(i));
+    //            y_uav.add_val(y_uav1.eval(i));
+    //            z_uav.add_val(z_uav1.eval(i));
+    //        }
+    //        for (int i = 0; i<500; i++) {
+    //            pre_x.add_val(x_rot2.eval(i));
+    //            pre_y.add_val(y_rot2.eval(i));
+    //            pre_z.add_val(z_rot2.eval(i));
+    //            x_uav.add_val(x_uav2.eval(i));
+    //            y_uav.add_val(y_uav2.eval(i));
+    //            z_uav.add_val(z_uav2.eval(i));
+    //        }
+    //    M.print_solution();
+    
+    DebugOn("Pitch (degrees) = " << pitch.eval()*180/pi << endl);
+    DebugOn("Roll (degrees) = " << roll.eval()*180/pi << endl);
+    DebugOn("Yaw (degrees) = " << yaw.eval()*180/pi << endl);
+    DebugOn("Pitch = " << pitch.eval() << endl);
+    DebugOn("Roll = " << roll.eval() << endl);
+    DebugOn("Yaw = " << yaw.eval() << endl);
+    DebugOn("x shift = " << x_shift.eval() << endl);
+    DebugOn("y shift = " << y_shift.eval() << endl);
+    DebugOn("z shift = " << z_shift.eval() << endl);
+    roll_1 = roll.eval()*180/pi;
+    pitch_1 = pitch.eval()*180/pi;
+    yaw_1 = yaw.eval()*180/pi;
+    return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
 
 /* Run the ARMO model for registration */
@@ -2618,3 +2839,103 @@ double computeL2error(const vector<vector<double>>& point_cloud_model, const vec
 }
 
 
+/* Plot two point clouds */
+void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>& ext_data, double point_thick){
+    namespace plt = matplotlibcpp;
+    vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
+    vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
+    for (int i = 0; i<ext_model.size(); i++) {
+        x_vec_model[i] = ext_model[i][0];
+        y_vec_model[i] = ext_model[i][1];
+        z_vec_model[i] = ext_model[i][2];
+    }
+    for (int i = 0; i<ext_data.size(); i++) {
+        x_vec_data[i] = ext_data[i][0];
+        y_vec_data[i] = ext_data[i][1];
+        z_vec_data[i] = ext_data[i][2];
+    }
+    std::map<std::string, std::string> keywords;
+    keywords["marker"] = "s";
+    keywords["linestyle"] = "None";
+    keywords["ms"] = to_string(point_thick);
+    plt::plot3(x_vec_model, y_vec_model, z_vec_model,x_vec_data, y_vec_data, z_vec_data, keywords);
+    plt::show();
+}
+
+
+/* Run Go-ICP on point clouds */
+tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+    using namespace Go_ICP;
+    
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
+    clock_t  clockBegin, clockEnd;
+    string modelFName, dataFName, configFName, outputFname;
+    POINT3D * pModel, * pData, * pFullData;
+    GoICP goicp;
+    set_GoICP_options(goicp);
+    // Load model and data point clouds
+    pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
+    double avg_x = 0, avg_y = 0, avg_z = 0;
+    double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
+    double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
+    for(int i = 0; i < Nm; i++)
+    {
+        pModel[i].x  = point_cloud_model[i][0];
+        avg_x += pModel[i].x;
+        pModel[i].y  = point_cloud_model[i][1];
+        avg_y += pModel[i].y;
+        pModel[i].z = point_cloud_model[i][2];
+        avg_z += pModel[i].z;
+    }
+    avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
+    //            centralize(Nm, &pModel, avg_x, avg_y, avg_z);
+    avg_x = 0;avg_y = 0;avg_z = 0;
+    pData = (POINT3D *)malloc(sizeof(POINT3D) * Nd);
+    for(int i = 0; i < Nd; i++)
+    {
+        pData[i].x  = point_cloud_data[i][0];
+        avg_x += pData[i].x;
+        pData[i].y  = point_cloud_data[i][1];
+        avg_y += pData[i].y;
+        pData[i].z = point_cloud_data[i][2];
+        avg_z += pData[i].z;
+    }
+    avg_x /= Nd;avg_y /= Nd;avg_z /= Nd;
+    
+    bool plot_GoICP = false;
+    
+    goicp.pModel = pModel;
+    goicp.Nm = Nm;
+    goicp.pData = pData;
+    goicp.Nd = Nd;
+    // Build Distance Transform
+    cout << "Building Distance Transform..." << flush;
+    clockBegin = clock();
+    goicp.BuildDT();
+    clockEnd = clock();
+    cout << (double)(clockEnd - clockBegin)/CLOCKS_PER_SEC << "s (CPU)" << endl;
+    
+    // Run GO-ICP
+    if(NdDownsampled > 0)
+    {
+        goicp.Nd = NdDownsampled; // Only use first NdDownsampled data points (assumes data points are randomly ordered)
+    }
+    cout << "Model ID: " << modelFName << " (" << goicp.Nm << "), Data ID: " << dataFName << " (" << goicp.Nd << ")" << endl;
+    cout << "Registering..." << endl;
+    clockBegin = clock();
+    goicp.Register();
+    clockEnd = clock();
+    double time = (double)(clockEnd - clockBegin)/CLOCKS_PER_SEC;
+    cout << "Optimal Rotation Matrix:" << endl;
+    cout << goicp.optR << endl;
+    cout << "Optimal Translation Vector:" << endl;
+    cout << goicp.optT << endl;
+    cout << "Finished in " << time << endl;
+    auto pitch = atan2(goicp.optR.val[2][1], goicp.optR.val[2][2])*180/pi;
+    auto roll = atan2(-goicp.optR.val[2][0], std::sqrt(goicp.optR.val[2][1]*goicp.optR.val[2][1]+goicp.optR.val[2][2]*goicp.optR.val[2][2]))*180/pi;
+    auto yaw = atan2(goicp.optR.val[1][0],goicp.optR.val[0][0])*180/pi;
+    auto tx = goicp.optT.val[0][0];
+    auto ty = goicp.optT.val[1][0];
+    auto tz = goicp.optT.val[2][0];
+    return {roll,pitch,yaw,tx,ty,tz};
+}
