@@ -63,7 +63,8 @@ vector<vector<double>> get_extreme_points(const vector<vector<double>>& point_cl
 /* Return vector of n extreme points from point cloud */
 vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>& point_cloud);
 
-
+/* Run iterative heuristic */
+tuple<double,double,double,double,double,double> run_heuristic(const vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, vector<vector<double>>& point_cloud_data);
 
 /* Compute the L2 error */
 double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
@@ -97,7 +98,7 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
 
 int main (int argc, char * argv[])
 {
-    bool test_global = true;
+    bool test_global = false;
     if (test_global) {
         vector<vector<double>> point_cloud_model, point_cloud_data;
         point_cloud_model.resize(6);
@@ -130,12 +131,40 @@ int main (int argc, char * argv[])
         point_cloud_model[5][2] = 0.8;
         
         point_cloud_data = point_cloud_model;
-        apply_rot_trans(120, -25, 7, 0.1, 0.04, 0.2, point_cloud_data);
-//        plot(point_cloud_model,point_cloud_data,2);
+        apply_rot_trans(40, -25, 25, 0.1, 0.04, 0.2, point_cloud_data);
+        plot(point_cloud_model,point_cloud_data,2);
 //        auto res = run_GoICP(point_cloud_model,point_cloud_data);
 //        auto res = run_ARMO_Global(false, "full", point_cloud_model, point_cloud_data);
-        auto res = run_ARMO_MINLP(false, "full", point_cloud_model, point_cloud_data);
-        apply_rot_trans(get<0>(res), get<1>(res), get<2>(res), get<3>(res), get<4>(res), get<5>(res), point_cloud_data);
+        int nb_iter = 0, max_nb_iter = 10;
+        double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1;
+        while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error before = " << L2error << endl);
+            auto res = run_ARMO(false, "full", point_cloud_model, point_cloud_data);
+            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error after = " << L2error << endl);
+            res = run_ARMO(false, "z", point_cloud_model, point_cloud_data);
+            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error after = " << L2error << endl);
+            res = run_ARMO(false, "x", point_cloud_model, point_cloud_data);
+            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error after = " << L2error << endl);
+            res = run_ARMO(false, "y", point_cloud_model, point_cloud_data);
+            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error after = " << L2error << endl);
+            DebugOn("ITERATION " << nb_iter << endl);
+            nb_iter++;
+        }
+//        auto res = run_ARMO_MINLP(false, "full", point_cloud_model, point_cloud_data);
+        
         plot(point_cloud_model,point_cloud_data,2);
         return 0;
     }
@@ -202,7 +231,8 @@ int main (int argc, char * argv[])
             point_cloud_data[i-1][1] = y;
             point_cloud_data[i-1][2] = z;
         }
-        int nb_ext = 1000;
+        auto old_point_cloud = point_cloud_data;
+        int nb_ext = 10;
         bool global = global_str=="global";
         bool filter_extremes = (algo!="GoICP");
         auto ext_model = point_cloud_model;
@@ -217,340 +247,67 @@ int main (int argc, char * argv[])
         auto thetay = atan2(0.9999311, std::sqrt(0.0081669*0.0081669+0.0084357*0.0084357))/2;
         auto thetaz = atan2(-0.0081462,-0.0084556)/2;
         
-        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, ext_data);
-        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, point_cloud_data);
+//        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, ext_data);
+//        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, point_cloud_data);
 
         
         bool show_extremes = false;
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
         vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
         if (show_extremes) {
-            namespace plt = matplotlibcpp;
-            
-            for (int i = 0; i<ext_model.size(); i++) {
-                x_vec_model[i] = ext_model[i][0];
-                y_vec_model[i] = ext_model[i][1];
-                z_vec_model[i] = ext_model[i][2];
-            }
-            for (int i = 0; i<ext_data.size(); i++) {
-                x_vec_data[i] = ext_data[i][0];
-                y_vec_data[i] = ext_data[i][1];
-                z_vec_data[i] = ext_data[i][2];
-            }
-            
-            std::map<std::string, std::string> keywords, keywords2;
-            keywords["marker"] = "s";
-            keywords["linestyle"] = "None";
-            keywords["ms"] = "2";
-            plt::plot3(x_vec_model, y_vec_model, z_vec_model,x_vec_data, y_vec_data, z_vec_data, keywords);
-            plt::plot3(x_vec0, y_vec0, z_vec0,x_vec_data, y_vec_data, z_vec_data, keywords);
-            
-            //    keywords2["marker"] = "s";
-            //    keywords2["ms"] = "0.1";
-            
-            plt::show();
-//            return 0;
+            plot(ext_model,ext_data,1);
         }
         
-        bool show_before = false;
-        if (show_before) {
-            namespace plt = matplotlibcpp;
-            
-            std::map<std::string, std::string> keywords, keywords2;
-            keywords["marker"] = "s";
-            keywords["linestyle"] = "None";
-            keywords["ms"] = "0.05";
-            plt::plot3(x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1, keywords);
-            
-            //    keywords2["marker"] = "s";
-            //    keywords2["ms"] = "0.1";
-            
-            plt::show();
+        bool show_full_set = false;
+        if (show_full_set) {
+            plot(point_cloud_model,point_cloud_data);
         }
+        tuple<double,double,double,double,double,double> res, res1, res2;
         bool run_goICP = (algo=="GoICP");
         if(run_goICP){/* Run GoICP inline */
-            using namespace Go_ICP;
-            
-            int Nm = point_cloud_model.size(), Nd = ext_data.size(), NdDownsampled = 0;
-            clock_t  clockBegin, clockEnd;
-            string modelFName, dataFName, configFName, outputFname;
-            POINT3D * pModel, * pData, * pFullData;
-            GoICP goicp;
-            set_GoICP_options(goicp);
-            // Load model and data point clouds
-            pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
-            double avg_x = 0, avg_y = 0, avg_z = 0;
-            double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
-            double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
-            for(int i = 0; i < Nm; i++)
-            {
-                pModel[i].x  = point_cloud_model[i][0];
-                avg_x += pModel[i].x;
-                pModel[i].y  = point_cloud_model[i][1];
-                avg_y += pModel[i].y;
-                pModel[i].z = point_cloud_model[i][2];
-                avg_z += pModel[i].z;
-            }
-            avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
-//            centralize(Nm, &pModel, avg_x, avg_y, avg_z);
-            avg_x = 0;avg_y = 0;avg_z = 0;
-            pData = (POINT3D *)malloc(sizeof(POINT3D) * Nd);
-            for(int i = 0; i < Nd; i++)
-            {
-                pData[i].x  = ext_data[i][0];
-                avg_x += pData[i].x;
-                pData[i].y  = ext_data[i][1];
-                avg_y += pData[i].y;
-                pData[i].z = ext_data[i][2];
-                avg_z += pData[i].z;
-            }
-            avg_x /= Nd;avg_y /= Nd;avg_z /= Nd;
-//            centralize(Nd, &pData, avg_x, avg_y, avg_z);
-//            for(int i = 0; i < Nd; i++)
-//            {
-//                if(max_x<pData[i].x){
-//                    max_x = pData[i].x;
-//                }
-//                if(min_x>pData[i].x){
-//                    min_x = pData[i].x;
-//                }
-//                if(max_y<pData[i].y){
-//                    max_y = pData[i].y;
-//                }
-//                if(min_y>pData[i].y){
-//                    min_y = pData[i].y;
-//                }
-//                if(max_z<pData[i].z){
-//                    max_z = pData[i].z;
-//                }
-//                if(min_z>pData[i].z){
-//                    min_z = pData[i].z;
-//                }
-//            }
-//            for(int i = 0; i < Nm; i++)
-//            {
-//                if(max_x<pModel[i].x){
-//                    max_x = pModel[i].x;
-//                }
-//                if(min_x>pModel[i].x){
-//                    min_x = pModel[i].x;
-//                }
-//                if(max_y<pModel[i].y){
-//                    max_y = pModel[i].y;
-//                }
-//                if(min_y>pModel[i].y){
-//                    min_y = pModel[i].y;
-//                }
-//                if(max_z<pModel[i].z){
-//                    max_z = pModel[i].z;
-//                }
-//                if(min_z>pModel[i].z){
-//                    min_z = pModel[i].z;
-//                }
-//            }
-//            scale_all(Nm, &pModel, max_x, max_y, max_z, min_x, min_y, min_z);
-//            scale_all(Nd, &pData, max_x, max_y, max_z, min_x, min_y, min_z);
-            bool plot_GoICP = false;
-            if (plot_GoICP) {
-                vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
-                x_model.resize(Nm); y_model.resize(Nm); z_model.resize(Nm);
-                x_data.resize(Nd); y_data.resize(Nd); z_data.resize(Nd);
-                for(int i = 0; i < Nm; i++)
-                {
-                    x_model[i] = pModel[i].x;
-                    y_model[i] = pModel[i].y;
-                    z_model[i] = pModel[i].z;
-                }
-                for(int i = 0; i < Nd; i++)
-                {
-                    x_data[i] = pData[i].x;
-                    y_data[i] = pData[i].y;
-                    z_data[i] = pData[i].z;
-                }
-                namespace plt = matplotlibcpp;
-                
-                std::map<std::string, std::string> keywords, keywords2;
-                keywords["marker"] = "s";
-                keywords["linestyle"] = "None";
-                keywords["ms"] = "0.05";
-                //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-                plt::plot3(x_model, y_model, z_model, x_data, y_data, z_data, keywords);
-                //                plt::plot3(x_data, y_data, z_data, keywords);
-                plt::show();
-            }
-            goicp.pModel = pModel;
-            goicp.Nm = Nm;
-            goicp.pData = pData;
-            goicp.Nd = Nd;
-            // Build Distance Transform
-            cout << "Building Distance Transform..." << flush;
-            clockBegin = clock();
-            goicp.BuildDT();
-            clockEnd = clock();
-            cout << (double)(clockEnd - clockBegin)/CLOCKS_PER_SEC << "s (CPU)" << endl;
-            
-            // Run GO-ICP
-            if(NdDownsampled > 0)
-            {
-                goicp.Nd = NdDownsampled; // Only use first NdDownsampled data points (assumes data points are randomly ordered)
-            }
-            cout << "Model ID: " << modelFName << " (" << goicp.Nm << "), Data ID: " << dataFName << " (" << goicp.Nd << ")" << endl;
-            cout << "Registering..." << endl;
-            clockBegin = clock();
-            goicp.Register();
-            clockEnd = clock();
-            double time = (double)(clockEnd - clockBegin)/CLOCKS_PER_SEC;
-            cout << "Optimal Rotation Matrix:" << endl;
-            cout << goicp.optR << endl;
-            cout << "Optimal Translation Vector:" << endl;
-            cout << goicp.optT << endl;
-            cout << "Finished in " << time << endl;
-            std::ofstream outputFileFinal("./optimal_pointcloud2.txt");
-            bool plot_unscaled = false;
-//            goicp.optR.val[0][0] = -0.0101497;
-//            goicp.optR.val[0][1] = 0.0017169;
-//            goicp.optR.val[0][2] = 0.9999469;
-//            goicp.optR.val[1][0] = -0.0041633;
-//            goicp.optR.val[1][1] = 0.9999896;
-//            goicp.optR.val[1][2] = -0.0017597;
-//            goicp.optR.val[2][0] = -0.9999398;
-//            goicp.optR.val[2][1] = -0.0041811;
-//            goicp.optR.val[2][2] = -0.0101425;
-//
-//            goicp.optT.val[0][0] = 0.2163900;
-//            goicp.optT.val[1][0] = -0.1497952;
-//            goicp.optT.val[2][0] = 0.0745708;
-            thetax = atan2(goicp.optR.val[2][1], goicp.optR.val[2][2])*180/pi;
-            thetay = atan2(-goicp.optR.val[2][0], std::sqrt(goicp.optR.val[2][1]*goicp.optR.val[2][1]+goicp.optR.val[2][2]*goicp.optR.val[2][2]))*180/pi;
-            thetaz = atan2(goicp.optR.val[1][0],goicp.optR.val[0][0])*180/pi;
-            apply_rot_trans(thetay, thetax, thetaz, goicp.optT.val[0][0], goicp.optT.val[1][0], goicp.optT.val[2][0], point_cloud_data);
+            res = run_GoICP(point_cloud_model, point_cloud_data);
+            auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto L2error = computeL2error(point_cloud_model, point_cloud_data);
             DebugOn("L2Error = " << L2error << endl);
-            
-            if (plot_GoICP) {
-                for(int i = 0; i < goicp.Nd; i++)
-                {
-                    double px = goicp.pData[i].x;double py = goicp.pData[i].y;double pz = goicp.pData[i].z;
-                    goicp.pData[i].x = goicp.optR.val[0][0]*px + goicp.optR.val[0][1]*py + goicp.optR.val[0][2]*pz + goicp.optT.val[0][0];
-                    goicp.pData[i].y = goicp.optR.val[1][0]*px + goicp.optR.val[1][1]*py + goicp.optR.val[1][2]*pz + goicp.optT.val[1][0];
-                    goicp.pData[i].z = goicp.optR.val[2][0]*px + goicp.optR.val[2][1]*py + goicp.optR.val[2][2]*pz + goicp.optT.val[2][0];
-                }
-                vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
-                x_model.resize(Nm); y_model.resize(Nm); z_model.resize(Nm);
-                x_data.resize(Nd); y_data.resize(Nd); z_data.resize(Nd);
-                for(int i = 0; i < Nm; i++)
-                {
-                    x_model[i] = pModel[i].x;
-                    y_model[i] = pModel[i].y;
-                    z_model[i] = pModel[i].z;
-                }
-                for(int i = 0; i < Nd; i++)
-                {
-                    x_data[i] = goicp.pData[i].x;
-                    y_data[i] = goicp.pData[i].y;
-                    z_data[i] = goicp.pData[i].z;
-                }
-                namespace plt = matplotlibcpp;
-                
-                std::map<std::string, std::string> keywords, keywords2;
-                keywords["marker"] = "s";
-                keywords["linestyle"] = "None";
-                keywords["ms"] = "0.05";
-                //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-                plt::plot3(x_model, y_model, z_model, x_data, y_data, z_data, keywords);
-                //                plt::plot3(x_data, y_data, z_data, keywords);
-                plt::show();
-            }
-            
-            delete(pModel);
-            delete(pData);
-            return 0;
         }
         else {
-            double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1; /* at least one nonzero to enter the while loop */
-            double final_roll = 0, final_pitch = 0, final_yaw = 0, final_x_shift = 0, final_y_shift = 0, final_z_shift = 0;
-            int nb_iter = 0, max_nb_iter = 100;
-            tuple<double,double,double,double,double,double> res;
-            while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
-                auto L2error = computeL2error(ext_model,ext_data);
-                DebugOn("L2 error with exterme set before = " << L2error << endl);
-//                L2error = computeL2error(point_cloud_model,point_cloud_data);
-//                DebugOn("L2 error with full set before = " << L2error << endl);
-//                if(nb_iter==0)
-//                    res = run_ARMO(true, "full", ext_model, ext_data);
-//                else
-                if(global)
-                    res = run_ARMO_Global(false, "full", ext_model, ext_data);
-                else
-                    res = run_ARMO(false, "full", ext_model, ext_data);
-                nb_iter++;
-                roll = get<0>(res);
-                pitch = get<1>(res);
-                yaw = get<2>(res);
-                x_shift = get<3>(res);
-                y_shift = get<4>(res);
-                z_shift = get<5>(res);
-                final_roll += roll;
-                final_pitch += pitch;
-                final_yaw += yaw;
-                final_x_shift += x_shift;
-                final_y_shift += y_shift;
-                final_z_shift += z_shift;
-                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
-                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-                DebugOn("Iteration " << nb_iter << endl);
-//                break;
-//                L2error = computeL2error(point_cloud_model,ext_data);
-//                DebugOn("L2 error with exterme set after = " << L2error << endl);
-//                L2error = computeL2error(point_cloud_model,point_cloud_data);
-//                DebugOn("L2 error with full set after = " << L2error << endl);
-//                return 0;
-            }
-
-            DebugOn("Roll (degrees) = " << final_roll << endl);
-            DebugOn("Pitch (degrees) = " << final_pitch << endl);
-            DebugOn("Yaw (degrees) = " << final_yaw << endl);
-            DebugOn("Roll (radians)= " << final_roll *pi/180 << endl);
-            DebugOn("Pitch (radians) = " << final_pitch *pi/180 << endl);
-            DebugOn("Yaw (radians) = " << final_yaw *pi/180 << endl);
-            DebugOn("x shift = " << final_x_shift << endl);
-            DebugOn("y shift = " << final_y_shift << endl);
-            DebugOn("z shift = " << final_z_shift << endl);
+            res1 = run_heuristic(ext_model,ext_data,point_cloud_data);
             auto L2error = computeL2error(ext_model,ext_data);
             DebugOn("L2 error with exterme set after = " << L2error << endl);
             L2error = computeL2error(point_cloud_model,point_cloud_data);
             DebugOn("L2 error with full set after = " << L2error << endl);
-
+            ext_data = get_n_extreme_points(100, point_cloud_data);
+            res2 = run_heuristic(point_cloud_model,ext_data,point_cloud_data);
+            L2error = computeL2error(point_cloud_model,ext_data);
+            DebugOn("L2 error with exterme set after = " << L2error << endl);
+            L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error with full set after = " << L2error << endl);
+            res = res1;
+            get<0>(res) += get<0>(res2);
+            get<1>(res) += get<1>(res2);
+            get<2>(res) += get<2>(res2);
+            get<3>(res) += get<3>(res2);
+            get<4>(res) += get<4>(res2);
+            get<5>(res) += get<5>(res2);
+            auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+            DebugOn("Final Roll = " << roll << endl);
+            DebugOn("Final Pitch = " << pitch << endl);
+            DebugOn("Final Yaw = " << yaw << endl);
+            DebugOn("Final tx = " << x_shift << endl);
+            DebugOn("Final ty = " << y_shift << endl);
+            DebugOn("Final tz = " << z_shift << endl);
+//            plot(point_cloud_model,old_point_cloud);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, old_point_cloud);
+            plot(point_cloud_model,old_point_cloud);
         }
+        
         bool show_after = false;
         if (show_after) {
-            for (auto i = 0; i<point_cloud_data.size(); i++) {
-                x_vec1[i] = point_cloud_data[i][0];
-                y_vec1[i] = point_cloud_data[i][1];
-                z_vec1[i] = point_cloud_data[i][2];
-            }
-            for (auto i = 0; i<ext_data.size(); i++) {
-                x_vec_data[i] = ext_data[i][0];
-                y_vec_data[i] = ext_data[i][1];
-                z_vec_data[i] = ext_data[i][2];
-            }
-            
-            namespace plt = matplotlibcpp;
-            
-            std::map<std::string, std::string> keywords, keywords2;
-            keywords["marker"] = "s";
-            keywords["linestyle"] = "None";
-            keywords["ms"] = "0.05";
-            plt::plot3(x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1, keywords);
-            
-            keywords2["marker"] = "s";
-            keywords2["ms"] = "1";
-            keywords2["linestyle"] = "None";
-            plt::plot3(x_vec_model, y_vec_model, z_vec_model, x_vec_data, y_vec_data, z_vec_data, keywords2);
-            
-            plt::show();
+            plot(point_cloud_model,ext_data,0.5);
+            plot(point_cloud_model,point_cloud_data);
         }
-        bool save_file = true;
+        bool save_file = false;
         if(save_file){
             DebugOn("Saving new las file");
             //    LASreadOpener lasreadopener_final;
@@ -1492,7 +1249,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
     
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 0.0001;
+    goicp.MSEThresh = 0.001;
     goicp.initNodeRot.a = -3.1416;
     goicp.initNodeRot.b = -3.1416;
     goicp.initNodeRot.c = -3.1416;
@@ -1705,7 +1462,7 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
     Constraint<> DeltaMin("DeltaMin");
     DeltaMin = delta_min;
     DeltaMin -= bin.in_matrix(1, 1)*delta.in_matrix(1, 1);
-    Reg.add(DeltaMin.in(N1)==0);
+    Reg.add(DeltaMin.in(N1)>=0);
     
     
     Constraint<> OneBin("OneBin");
@@ -1783,7 +1540,7 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
 
 /* Run the Global ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 2.1, shift_max = 0.1;
+    double angle_max = 1, shift_max = 0.2;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1855,10 +1612,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     
     //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
     //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
-    var<> cosr("cosr", -1, 1), sinr("sinr", -1, 1);
-    var<> cosp("cosp", -1, 1), sinp("sinp", -1, 1);
-    var<> cosy("cosy", -1, 1), siny("siny", -1, 1);
-    var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
+    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), 1), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
     var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
@@ -1902,29 +1659,41 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
     Reg.add(Norm2.in(cells)>=0);
     
-    Constraint<> cos_roll("cos_roll");
-    cos_roll = cosr - cos(roll);
-    Reg.add(cos_roll==0);
+    Constraint<> trigR("trigR");
+    trigR = pow(cosr,2) + pow(sinr,2);
+    Reg.add(trigR==1);
+
+    Constraint<> trigP("trigP");
+    trigP = pow(cosp,2) + pow(sinp,2);
+    Reg.add(trigP==1);
+
+    Constraint<> trigY("trigY");
+    trigY = pow(cosy,2) + pow(siny,2);
+    Reg.add(trigY==1);
     
-    Constraint<> sin_roll("sin_roll");
-    sin_roll = sinr - sin(roll);
-    Reg.add(sin_roll==0);
-    
-    Constraint<> cos_pitch("cos_pitch");
-    cos_pitch = cosp - cos(pitch);
-    Reg.add(cos_pitch==0);
-    
-    Constraint<> sin_pitch("sin_pitch");
-    sin_pitch = sinp - sin(pitch);
-    Reg.add(sin_pitch==0);
-    
-    Constraint<> cos_yaw("cos_yaw");
-    cos_yaw = cosy - cos(yaw);
-    Reg.add(cos_yaw==0);
-    
-    Constraint<> sin_yaw("sin_yaw");
-    sin_yaw = siny - sin(yaw);
-    Reg.add(sin_yaw==0);
+//    Constraint<> cos_roll("cos_roll");
+//    cos_roll = cosr - cos(roll);
+//    Reg.add(cos_roll==0);
+//
+//    Constraint<> sin_roll("sin_roll");
+//    sin_roll = sinr - sin(roll);
+//    Reg.add(sin_roll==0);
+//
+//    Constraint<> cos_pitch("cos_pitch");
+//    cos_pitch = cosp - cos(pitch);
+//    Reg.add(cos_pitch==0);
+//
+//    Constraint<> sin_pitch("sin_pitch");
+//    sin_pitch = sinp - sin(pitch);
+//    Reg.add(sin_pitch==0);
+//
+//    Constraint<> cos_yaw("cos_yaw");
+//    cos_yaw = cosy - cos(yaw);
+//    Reg.add(cos_yaw==0);
+//
+//    Constraint<> sin_yaw("sin_yaw");
+//    sin_yaw = siny - sin(yaw);
+//    Reg.add(sin_yaw==0);
     
     Constraint<> cosy_sinr_prod("cosy_sinr");
     cosy_sinr_prod = cosy_sinr - cosy*sinr;
@@ -1934,7 +1703,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     siny_sinr_prod = siny_sinr - siny*sinr;
     Reg.add(siny_sinr_prod==0);
     
-    auto ids1 = yaw.repeat_id(cells.size());
+    auto ids1 = cosy.repeat_id(cells.size());
     
     /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
     Constraint<> x_rot1("x_rot1");
@@ -1995,7 +1764,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     //            z_uav.add_val(z_uav2.eval(i));
     //        }
     //    M.print_solution();
-    
+//    roll.in(R(1));pitch.in(R(1));yaw.in(R(1));
+    pitch = std::asin(sinp.eval());
+    roll = std::asin(sinr.eval());
+    yaw = std::asin(siny.eval());
     DebugOn("Pitch (degrees) = " << pitch.eval()*180/pi << endl);
     DebugOn("Roll (degrees) = " << roll.eval()*180/pi << endl);
     DebugOn("Yaw (degrees) = " << yaw.eval()*180/pi << endl);
@@ -2066,7 +1838,15 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
         for (auto i = 0; i< nd; i++) {
             double min_dist = numeric_limits<double>::max();
             for (auto j = 0; j< nm; j++) {
-                dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+                if(axis=="full")
+                    dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+                else if (axis == "z")
+                    dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2);
+                else if(axis=="y")
+                    dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+                else
+                    dist_sq = std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+                
                 if(min_dist>dist_sq){
                     min_dist = dist_sq;
                     j_str = to_string(j+1);
@@ -2093,8 +1873,8 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
             
 //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
 //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
-            var<> yaw("yaw", -1, 1), pitch("pitch", -1, 1), roll("roll", -1, 1);
-            var<> x_shift("x_shift", -0.1, 0.1), y_shift("y_shift", -0.1, 0.1), z_shift("z_shift", -0.1, 0.1);
+            var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
+            var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //            var<> yaw("yaw", 0, 0), pitch("pitch", 0, 0), roll("roll", 0, 0);
 //            var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
             var<> delta("delta", pos_);
@@ -2106,9 +1886,27 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
             //                Reg.add(z_diff.in(cells));
             DebugOn("There are " << cells.size() << " cells" << endl);
             
-                    Constraint<> Norm2("Norm2");
-                    Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-                    Reg.add(Norm2.in(cells)>=0);
+            if(axis == "full"){
+                Constraint<> Norm2("Norm2");
+                Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+                Reg.add(Norm2.in(cells)>=0);
+            }
+            else if(axis == "x"){
+                Constraint<> Norm2("Norm2");
+                Norm2 += delta - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+                Reg.add(Norm2.in(cells)>=0);
+            }
+            else if (axis == "y"){
+                Constraint<> Norm2("Norm2");
+                Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+                Reg.add(Norm2.in(cells)>=0);
+            }
+            else {
+                Constraint<> Norm2("Norm2");
+                Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2);
+                Reg.add(Norm2.in(cells)>=0);
+            }
+
             
 //            Constraint<> x_abs1("x_abs1");
 //            x_abs1 += x_diff - (new_x1.from(cells) - x2.to(cells));
@@ -2158,16 +1956,16 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
             //    M.min(sum(z_diff)/nb_overlap);
             
             //        M.min(sum(z_diff));
-            if(axis == "full")
+//            if(axis == "full")
                 //            Reg.min(sum(x_diff) + sum(y_diff) + sum(z_diff));
 //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
                         Reg.min(sum(delta));
-            else if(axis == "x")
-                Reg.min(sum(x_diff)/cells.size());
-            else if (axis == "y")
-                Reg.min(sum(y_diff)/cells.size());
-            else
-                Reg.min(sum(z_diff)/cells.size());
+//            else if(axis == "x")
+//                Reg.min(sum(x_diff)/cells.size());
+//            else if (axis == "y")
+//                Reg.min(sum(y_diff)/cells.size());
+//            else
+//                Reg.min(sum(z_diff)/cells.size());
             
             //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
             
@@ -2867,7 +2665,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 1000;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
@@ -2934,8 +2732,98 @@ tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<d
     auto pitch = atan2(goicp.optR.val[2][1], goicp.optR.val[2][2])*180/pi;
     auto roll = atan2(-goicp.optR.val[2][0], std::sqrt(goicp.optR.val[2][1]*goicp.optR.val[2][1]+goicp.optR.val[2][2]*goicp.optR.val[2][2]))*180/pi;
     auto yaw = atan2(goicp.optR.val[1][0],goicp.optR.val[0][0])*180/pi;
+    DebugOn("Roll = " << roll << endl);
+    DebugOn("Pitch = " << pitch << endl);
+    DebugOn("Yaw = " << yaw << endl);
     auto tx = goicp.optT.val[0][0];
     auto ty = goicp.optT.val[1][0];
     auto tz = goicp.optT.val[2][0];
+    DebugOn("tx = " << tx << endl);
+    DebugOn("ty = " << ty << endl);
+    DebugOn("tz = " << tz << endl);
     return {roll,pitch,yaw,tx,ty,tz};
+}
+
+tuple<double,double,double,double,double,double> run_heuristic(const vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, vector<vector<double>>& point_cloud_data){
+    double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1; /* at least one nonzero to enter the while loop */
+    double final_roll = 0, final_pitch = 0, final_yaw = 0, final_x_shift = 0, final_y_shift = 0, final_z_shift = 0;
+    int nb_iter = 0, max_nb_iter = 100;
+    tuple<double,double,double,double,double,double> res;
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+        auto L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set before = " << L2error << endl);
+        res = run_ARMO(false, "full", ext_model, ext_data);
+        roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
+        final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+        L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set after full = " << L2error << endl);
+        nb_iter++;
+        DebugOn("ITERATION " << nb_iter << endl);
+    }
+    nb_iter = 0;z_shift=1;max_nb_iter = 100;
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+        res = run_ARMO(false, "z", ext_model, ext_data);
+        roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
+        final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+        auto L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set after z = " << L2error << endl);
+        nb_iter++;
+        DebugOn("ITERATION " << nb_iter << endl);
+    }
+//    DebugOn("Plotting after z" << endl);
+//    plot(ext_model,ext_data,1);
+    nb_iter = 0;z_shift=1;max_nb_iter = 100;
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+        res = run_ARMO(false, "y", ext_model, ext_data);
+        roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
+        final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+        auto L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set after y = " << L2error << endl);
+        nb_iter++;
+        DebugOn("ITERATION " << nb_iter << endl);
+    }
+//    DebugOn("Plotting after y" << endl);
+//    plot(ext_model,ext_data,1);
+    nb_iter = 0;z_shift=1;max_nb_iter = 100;
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+        res = run_ARMO(false, "x", ext_model, ext_data);
+        roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
+        final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+        auto L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set after x = " << L2error << endl);
+        nb_iter++;
+        DebugOn("ITERATION " << nb_iter << endl);
+    }
+//    DebugOn("Plotting after x" << endl);
+//    plot(ext_model,ext_data,1);
+    nb_iter = 0;z_shift=1;max_nb_iter = 100;
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+        res = run_ARMO(false, "full", ext_model, ext_data);
+        roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
+        final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
+        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+        auto L2error = computeL2error(ext_model,ext_data);
+        DebugOn("L2 error with exterme set after full = " << L2error << endl);
+        nb_iter++;
+        DebugOn("ITERATION " << nb_iter << endl);
+    }
+    DebugOn("Final Roll (degrees) = " << final_roll << endl);
+    DebugOn("Final Pitch (degrees) = " << final_pitch << endl);
+    DebugOn("Final Yaw (degrees) = " << final_yaw << endl);
+    DebugOn("Final Roll (radians)= " << final_roll *pi/180 << endl);
+    DebugOn("Final Pitch (radians) = " << final_pitch *pi/180 << endl);
+    DebugOn("Final Yaw (radians) = " << final_yaw *pi/180 << endl);
+    DebugOn("Final x shift = " << final_x_shift << endl);
+    DebugOn("Final y shift = " << final_y_shift << endl);
+    DebugOn("Final z shift = " << final_z_shift << endl);
+    return {final_roll,final_pitch,final_yaw,final_x_shift,final_y_shift,final_z_shift};
 }

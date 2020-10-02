@@ -428,8 +428,8 @@ namespace gravity {
 //                    using namespace Bonmin;
                     Bonmin::BonminSetup bonmin;
                     bonmin.initializeOptionsAndJournalist();
-                    //            bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 100);
-                    //            bonmin.options()->SetIntegerValue("solution_limit", 1);
+                                bonmin.options()->SetIntegerValue("max_consecutive_infeasible", 10);
+                                bonmin.options()->SetIntegerValue("solution_limit", 1);
                     //            bonmin.options()->SetIntegerValue("bb_log_level", 3);
                     //            bonmin.options()->SetNumericValue("allowable_gap", -1e5);
                     //            bonmin.options()->SetNumericValue("allowable_fraction_gap", -1e5);
@@ -459,7 +459,7 @@ namespace gravity {
                     //            bonmin.options()->SetStringValue("algorithm", "B-iFP");
 //                    bonmin.options()->SetStringValue("node_comparison", "best-guess");
 //                    bonmin.options()->SetStringValue("dynamic_def_cutoff_decr", "yes");
-//                    bonmin.options()->SetIntegerValue("num_resolve_at_root", 15);
+                    bonmin.options()->SetIntegerValue("num_resolve_at_root", 2);
                     
                     _model->fill_in_maps();
                     SmartPtr<Bonmin::TMINLP> tmp = new BonminProgram<type>(_model);
