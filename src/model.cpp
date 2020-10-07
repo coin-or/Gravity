@@ -6815,11 +6815,21 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         obbt_model->reset_constrs();
                                     }
                                     else{
-                                        
+                                        lower_bound=numeric_limits<double>::min();
                                         break;
                                     }
                                     lin_count++;
                                 }
+#ifdef USE_MPI
+                                if(!share_cuts){
+                                    //batch_time_start=get_wall_time();
+                                    MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                                    MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+                                    gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
+                                    //batch_time_end=get_wall_time();
+                                    // DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
+                                }
+#endif
                                 if(obbt_model->_status==0)
                                 {
 #ifdef USE_MPI
@@ -6857,15 +6867,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     break;
                                 }
                             }
-#ifdef USE_MPI
-                            if(!share_cuts){
-                                //batch_time_start=get_wall_time();
-                                MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-                                gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                //batch_time_end=get_wall_time();
-                               // DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
-                            }
-#endif
                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                             {
                                 DebugOff("Gap closed at iter "<< iter<<endl);
