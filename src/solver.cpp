@@ -1857,6 +1857,9 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
     auto nb_workers_ = std::min((size_t)nb_workers, objective_models.size());
+    if(nb_workers_!=limits.size()-1){
+        DebugOn("Error4 in computing limits");
+    }
     std::string msname, mname, vname, key, dir;
     var<> var;
     if(objective_models.size()!=0){

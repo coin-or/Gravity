@@ -62,7 +62,30 @@ TEST_CASE("testing param, var anf func copy operators") {
     CHECK(deep_cpy.to_str(0,5)=="v1[key1] - 2v2[key1]");
 }
 
-
+TEST_CASE("testing function bounds_reassign"){
+    DebugOff("testing bounds reassign");
+    map<string,int> old_map;
+    unsigned partsa=4;
+    vector<string> test1={"1","2","3","4","5","6","7","8","9","10","11","12"};
+    std::vector<size_t> limits1 = bounds_reassign(partsa, test1,old_map);
+    CHECK(limits1.size()==5);
+    DebugOn(limits1[0]<<" "<<limits1[1]<<" "<<limits1[2]<<" "<<limits1[3]<<" "<<limits1[4]<<endl);
+    CHECK(limits1[3]==9);
+    vector<string> test2={"1","4","5","9","16","17","18","19","20","21","12","22"};
+    std::vector<size_t> limits2 = bounds_reassign(partsa, test2, old_map);
+    DebugOn(limits2[0]<<" "<<limits2[1]<<" "<<limits2[2]<<" "<<limits2[3]<<" "<<limits2[4]<<endl);
+    CHECK(test2[3]=="4");
+    CHECK(test2[4]=="5");
+    vector<string> test3={"1","4","6","9","16","5","18","19","20","21","12","3"};
+    std::vector<size_t> limits3 = bounds_reassign(partsa, test3,old_map);
+    CHECK(test3[2]=="3");
+    vector<string> test4={"1","3","5", "16", "17"};
+    std::vector<size_t> limits4 = bounds_reassign(4,test4,old_map);
+    vector<string> test5={"1","3","5", "18", "17"};
+    std::vector<size_t> limits5= bounds_reassign(5,test5,old_map);
+      CHECK(limits5[5]==5);
+    DebugOn("limits computed"<<endl);
+}
 
 //TEST_CASE("testing projection3") {
 //    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
@@ -1993,31 +2016,6 @@ TEST_CASE("testing SDP-BT"){
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
     CHECK(gap_init>10);
     CHECK(final_gap<1);
-}
-TEST_CASE("testing function bounds_reassign"){
-    DebugOff("testing bounds reassign");
-    map<string,int> old_map;
-    unsigned partsa=4;
-    vector<string> test1={"1","2","3","4","5","6","7","8","9","10","11","12"};
-    std::vector<size_t> limits1 = bounds_reassign(partsa, test1,old_map);
-    CHECK(limits1.size()==5);
-    DebugOn(limits1[0]<<" "<<limits1[1]<<" "<<limits1[2]<<" "<<limits1[3]<<" "<<limits1[4]<<endl);
-    CHECK(limits1[3]==9);
-    vector<string> test2={"1","4","5","9","16","17","18","19","20","21","12","22"};
-    std::vector<size_t> limits2 = bounds_reassign(partsa, test2, old_map);
-    DebugOn(limits2[0]<<" "<<limits2[1]<<" "<<limits2[2]<<" "<<limits2[3]<<" "<<limits2[4]<<endl);
-    CHECK(test2[3]=="4");
-    CHECK(test2[4]=="5");
-    vector<string> test3={"1","4","6","9","16","5","18","19","20","21","12","3"};
-    std::vector<size_t> limits3 = bounds_reassign(partsa, test3,old_map);
-    CHECK(test3[2]=="3");
-    vector<string> test4={"1","3","5", "16", "17"};
-    std::vector<size_t> limits4 = bounds_reassign(3,test4,old_map);
-    CHECK(test4[4]=="17");
-    vector<string> test5={"1","3","5", "18", "17"};
-    std::vector<size_t> limits5= bounds_reassign(5,test5,old_map);
-      CHECK(limits5[5]==5);
-    DebugOn("limits computed"<<endl);
 }
 #ifdef USE_MPI
 TEST_CASE("testing MPI") {

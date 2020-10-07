@@ -331,8 +331,14 @@ std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_mo
     }
     objective_models=new_objective_models;
     if(bnd.back()!=mem){
-        DebugOn("Error in computing limits");
+        DebugOn("Error1 in computing limits");
     }
+    if(bnd.size()!=new_parts+1){
+        DebugOn("Error2 in computing limits");
+    }
+    if(objective_models.size()!=mem){
+         DebugOn("Error3 in computing limits");
+     }
     return bnd;
     
 }

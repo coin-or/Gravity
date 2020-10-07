@@ -622,14 +622,17 @@ namespace gravity {
         int worker_id, nb_workers;
         auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-	auto nb_workers_ =  limits.size()-1;
+        auto nb_workers_ =  limits.size()-1;
         DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
-            if(worker_id+1<limits.size()){
-                for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+        if(worker_id+1<limits.size()){
+            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                     auto model = models[i-limits[worker_id]];
                     sol_status[i]=model->_status;
-                }
             }
+        }
+        if(sol_status.size()!=*(limits.end())){
+            DebugOn("Error in size of sol_status");
+        }
         std::vector<int> d, counts;
         for(auto l=limits.begin()+1;l!=limits.end();l++){
             counts.push_back(*l-*(l-1));
@@ -638,6 +641,12 @@ namespace gravity {
         for(auto l=nb_workers_;l!=nb_workers;l++){
             counts.push_back(0);
             d.push_back(*(limits.end()));
+        }
+        if(counts.size()!=nb_workers){
+                DebugOn("Error in size of counts");
+        }
+        if(d.size()!=nb_workers){
+                DebugOn("Error in size of d");
         }
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &sol_status[0], &counts[0], &d[0], MPI_INT, MPI_COMM_WORLD);
