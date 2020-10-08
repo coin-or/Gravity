@@ -6757,7 +6757,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 lin_count=0;
                                 active_root_tol=1e-6;
                                 auto gap_temp=gap_old;
-                                while ((constr_viol==1) && (lin_count<4)){
+#ifdef USE_MPI
+                                if(((worker_id==0)&&!share_cuts) || share_cuts)
+                                {
+#endif
+				while ((constr_viol==1) && (lin_count<4)){
                                     solver<> LB_solver(obbt_model, lb_solver_type);
                                     if(lb_solver_type==ipopt){
                                         //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6821,13 +6825,14 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     lin_count++;
                                 }
 #ifdef USE_MPI
+				}
                                 if(!share_cuts){
                                     //batch_time_start=get_wall_time();
                                     MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
                                     MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
                                     gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     //batch_time_end=get_wall_time();
-                                    // DebugOn(endl<<endl<<"g bcast time "<<batch_time_end-batch_time_start<<endl);
+                                    DebugOn(endl<<endl<<"wid "<<worker_id<<" gap "<<gap<<endl);
                                 }
 #endif
                                 if(obbt_model->_status==0)

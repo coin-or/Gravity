@@ -630,8 +630,10 @@ namespace gravity {
                     sol_status[i]=model->_status;
             }
         }
-        if(sol_status.size()!=*(limits.end())){
-            DebugOn("Error in size of sol_status");
+	if(sol_status.size()!=(limits.back())){
+            DebugOn("s size "<<sol_status.size()<<endl);
+            DebugOn("l end "<<limits.back()<<endl);
+            DebugOn("Error in size of sol_status"<<endl);
         }
         std::vector<int> d, counts;
         for(auto l=limits.begin()+1;l!=limits.end();l++){
@@ -640,7 +642,7 @@ namespace gravity {
         }
         for(auto l=nb_workers_;l!=nb_workers;l++){
             counts.push_back(0);
-            d.push_back(*(limits.end()));
+            d.push_back(limits.back());
         }
         if(counts.size()!=nb_workers){
                 DebugOn("Error in size of counts");
@@ -760,7 +762,7 @@ namespace gravity {
         }
         for(auto l=nb_workers_;l!=nb_workers;l++){
             counts.push_back(0);
-            d.push_back(*(limits.end()));
+            d.push_back(limits.back());
         }
         
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
