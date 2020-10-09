@@ -317,6 +317,7 @@ namespace gravity {
                     //                        iapp->Options()->SetNumericValue("ma27_meminc_factor", 5);
                     //                        iapp->Options()->SetStringValue("mu_strategy", "adaptive");
                     iapp->Options()->SetNumericValue("tol", tol);
+                    iapp->Options()->SetNumericValue("max_cpu_time", time_limit);
                     //                            iapp->Options()->SetNumericValue("dual_inf_tol", 1e-6);
                     //                                                        iapp->Options()->SetStringValue("derivative_test", "second-order");
                     //                            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
