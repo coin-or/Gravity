@@ -6404,6 +6404,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 sol_obj.resize(batch_model_count,-1.0);
 #ifdef USE_MPI
                                                 MPI_Barrier(MPI_COMM_WORLD);
+						if(worker_id==0){
+						DebugOn("calling run mpi"<<endl);
+						}
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_obj);
 #else
                                                 run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000);
