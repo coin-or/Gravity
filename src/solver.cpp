@@ -224,7 +224,7 @@ Model<type> Model<type>::build_model_interior() const
 }
 
 /* Runs models stored in the vector in parallel, using solver of stype and tolerance tol */
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
@@ -267,7 +267,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter));
+        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){
@@ -287,7 +287,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 
 
 /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter){
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     if(models.size()==0){
@@ -305,7 +305,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter));
+        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){

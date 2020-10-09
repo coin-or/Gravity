@@ -6409,7 +6409,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 						}
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_obj);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, 2000);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 batch_time = batch_time_end - batch_time_start;
