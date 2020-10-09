@@ -6761,7 +6761,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 active_root_tol=1e-6;
                                 auto gap_temp=gap_old;
 #ifdef USE_MPI
-                                if(((worker_id==0)&&!share_cuts) || share_cuts)
+                                if((!share_cuts) || share_cuts)
                                 {
 #endif
                                     while ((constr_viol==1) && (lin_count<4)){
