@@ -6204,14 +6204,14 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             
                             if(lin_count>0 && (gap_old-gaplin)<=0.01 && false){
 #ifdef USE_MPI                                                                        
-                                if(worker_id==0){                                         
+                                if(worker_id==0){
                                     DebugOn("Breaking due to too little gap improvement"<<endl);
-                                }                                                         
+                                }
 #else                                                                                 
                                 DebugOn("Breaking due to too little gap improvement"<<endl);
 #endif                                                                                
-                                break;                                                    
-                            }   
+                                break;
+                            }
                             gap_old=gaplin;
                             //obbt_model->get_solution(obbt_solution);
                             vector<shared_ptr<Model<>>> o_models;
@@ -6404,9 +6404,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 sol_obj.resize(batch_model_count,-1.0);
 #ifdef USE_MPI
                                                 MPI_Barrier(MPI_COMM_WORLD);
-						if(worker_id==0){
-						DebugOn("calling run mpi"<<endl);
-						}
+                                                if(worker_id==0){
+                                                    DebugOn("calling run mpi"<<endl);
+                                                }
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,2000, share_obj);
 #else
                                                 run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, 2000);
@@ -6624,7 +6624,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                     break;
                                                 }
                                                 //  interval_gap.clear();
-                                                sum=0; 
+                                                sum=0;
                                                 num_var=0;
                                                 bool stop_resolve=false;
                                                 if(stop_resolve){
@@ -6641,7 +6641,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                                 sum+=((-int_new+interval_new[var_keya])/(interval_new[var_key]+zero_tol)*100.0);
                                                                 interval_new[var_keya]=int_new;
                                                             }
-                                                        }   
+                                                        }
                                                     }
                                                     if(sum/num_var<=5.0 && lin_count>=1){
 #ifdef USE_MPI
@@ -6764,71 +6764,75 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 if(((worker_id==0)&&!share_cuts) || share_cuts)
                                 {
 #endif
-				while ((constr_viol==1) && (lin_count<4)){
-                                    solver<> LB_solver(obbt_model, lb_solver_type);
-                                    if(lb_solver_type==ipopt){
-                                        //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                                        //LB_solver.set_option("check_violation", true);
-                                    }
-                                    else if(lb_solver_type==gurobi){
-                                        LB_solver.set_option("gurobi_crossover", true);
-                                    }
-                                    LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
-                                    if(obbt_model->_status==0){
-                                        lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-                                        gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
-                                        if(gap_temp-gap<=0.01&&false){
+                                    while ((constr_viol==1) && (lin_count<4)){
+                                        solver<> LB_solver(obbt_model, lb_solver_type);
+                                        if(lb_solver_type==ipopt){
+                                            //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                                            //LB_solver.set_option("check_violation", true);
+                                        }
+                                        else if(lb_solver_type==gurobi){
+                                            LB_solver.set_option("gurobi_crossover", true);
+                                        }
+                                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
+                                        if(obbt_model->_status==0){
+                                            lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                                            gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
+                                            if(gap_temp-gap<=0.01&&false){
+#ifdef USE_MPI
+                                                if(worker_id==0){
+                                                    DebugOn("Breaking due to too little gap improvement"<<endl);
+                                                }
+#else
+                                                DebugOn("Breaking due to too little gap improvement"<<endl);
+#endif
+                                                break;
+                                            }
+                                            gap_temp=gap;
+                                            //obbt_model->print();
 #ifdef USE_MPI
                                             if(worker_id==0){
-                                                DebugOn("Breaking due to too little gap improvement"<<endl);
+                                                DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
+                                                DebugOn("lin count "<<lin_count<<endl);
                                             }
 #else
-                                            DebugOn("Breaking due to too little gap improvement"<<endl);
-#endif
-                                            break;
-                                        }
-                                        gap_temp=gap;
-                                        //obbt_model->print();
-#ifdef USE_MPI
-                                        if(worker_id==0){
                                             DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
                                             DebugOn("lin count "<<lin_count<<endl);
-                                        }
-#else
-                                        DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
-                                        DebugOn("lin count "<<lin_count<<endl);
 #endif
-                                        if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
-                                        {
-                                            close= true;
+                                            if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+                                            {
+                                                close= true;
+                                                break;
+                                            }
+                                            // obbt_model->get_solution(obbt_solution);
+                                            vector<shared_ptr<Model<>>> o_models;
+                                            o_models.push_back(obbt_model);
+                                            // constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
+#ifdef USE_MPI
+                                            if(share_cuts){
+                                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
+                                            }else{
+                                                constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
+                                            }
+#else
+                                            constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
+#endif
+                                            obbt_model->reset_lazy();
+                                            obbt_model->reindex();
+                                            obbt_model->reset();
+                                            obbt_model->reset_constrs();
+                                        }
+                                        else{
+                                            obbt_model->reset_lazy();
+                                            obbt_model->reindex();
+                                            obbt_model->reset();
+                                            obbt_model->reset_constrs();
+                                            lower_bound=numeric_limits<double>::min();
                                             break;
                                         }
-                                        // obbt_model->get_solution(obbt_solution);
-                                        vector<shared_ptr<Model<>>> o_models;
-                                        o_models.push_back(obbt_model);
-                                        // constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
+                                        lin_count++;
+                                    }
 #ifdef USE_MPI
-                                        if(share_cuts){
-                                            constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
-                                        }else{
-                                            constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
-                                        }
-#else
-                                        constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
-#endif
-                                        obbt_model->reset_lazy();
-                                        obbt_model->reindex();
-                                        obbt_model->reset();
-                                        obbt_model->reset_constrs();
-                                    }
-                                    else{
-                                        lower_bound=numeric_limits<double>::min();
-                                        break;
-                                    }
-                                    lin_count++;
                                 }
-#ifdef USE_MPI
-				}
                                 if(!share_cuts){
                                     //batch_time_start=get_wall_time();
                                     MPI_Barrier(MPI_COMM_WORLD);
@@ -6846,7 +6850,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         DebugOn("Solver time "<<(get_wall_time()-solver_time_start)<<endl<<" nb oa cuts "<<oacuts<<endl);
                                     }
 #endif
-                                    lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                                     if(!close){
@@ -6890,6 +6893,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                 if(worker_id==0)
                                     obbt_model->print_solution();
+                                DebugOn("terminate true wid "<<worker_id<<endl);
 #endif
                             }
                             if(linearize){
@@ -6931,7 +6935,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             in_orig_model=true;
                         }
                         for(auto &key: *v_keys)
-                        {   
+                        {
                             num_var++;
                             var_key=vname+"|"+ key;
                             interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
