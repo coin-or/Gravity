@@ -6197,7 +6197,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         else if(lb_solver_type==gurobi){
                             LB_solver.set_option("gurobi_crossover", true);
                         }
-                        LB_solver.run(output = 0, lb_solver_tol, "ma27");
+                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                             auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
@@ -6228,7 +6228,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             if(share_cuts){
                                 constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
                             }else{
-                                 constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
+                                constr_viol=relaxed_model->cuts_MPI(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, o_status, "allvar");
                             }
 #else
                             constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
@@ -6707,7 +6707,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 solver<> LB_solver(obbt_model,lb_solver_type);
                                 //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                 //LB_solver.set_option("check_violation", true);
-                                LB_solver.run(output = 0, lb_solver_tol, "ma27");
+                                LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
                                 if(obbt_model->_status==0)
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
@@ -6773,7 +6773,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     else if(lb_solver_type==gurobi){
                                         LB_solver.set_option("gurobi_crossover", true);
                                     }
-                                    LB_solver.run(output = 0, lb_solver_tol, "ma27");
+                                    LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
                                     if(obbt_model->_status==0){
                                         lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                         gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
@@ -6831,6 +6831,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 				}
                                 if(!share_cuts){
                                     //batch_time_start=get_wall_time();
+                                    MPI_Barrier(MPI_COMM_WORLD);
                                     MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
                                     MPI_Bcast(&lower_bound, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
                                     gap=100*(upper_bound - lower_bound)/std::abs(upper_bound);
