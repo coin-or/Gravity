@@ -17,9 +17,14 @@
 #include "laswriter.hpp"
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
+//#include <pcl/io/pcd_io.h>
+#include <pcl/features/fpfh.h>
 using namespace std;
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
+#include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
+
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
@@ -76,6 +81,9 @@ vector<double> get_center(const vector<vector<double>>& point_cloud);
 /* Apply rotation on input data (Boresight alignment) */
 void apply_rotation(double roll, double pitch, double yaw, vector<double>& x_vec1, vector<double>& y_vec1, vector<double>& z_vec1, vector<double>& x_vec2, vector<double>& y_vec2, vector<double>& z_vec2, const vector<double>& x_shift1, const vector<double>& y_shift1, const vector<double>& z_shift1, const vector<double>& x_shift2, const vector<double>& y_shift2, const vector<double>& z_shift2);
 
+/* Update point cloud coordinates */
+void update_xyz(vector<vector<double>>& point_cloud1, vector<double>& x_vec1, vector<double>& y_vec1, vector<double>& z_vec1);
+
 /* Run the ARMO model for boresight alignment */
 tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, const vector<double>& y_vec1, const vector<double>& z_vec1, const vector<double>& x_vec2, const vector<double>& y_vec2, const vector<double>& z_vec2, const vector<double>& x_shift1, const vector<double>& y_shift1, const vector<double>& z_shift1, const vector<double>& x_shift2, const vector<double>& y_shift2, const vector<double>& z_shift2, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
 
@@ -95,9 +103,17 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 
+/* PCL functions */
+/* Compute fpfh for each point in ext_model */
+pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33>::Ptr> compute_features(const vector<vector<double>>& ext_model);
+
+/* Save the features to a file */
+void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features);
 
 int main (int argc, char * argv[])
 {
+    
+
     bool test_global = false;
     if (test_global) {
         vector<vector<double>> point_cloud_model, point_cloud_data;
@@ -133,6 +149,14 @@ int main (int argc, char * argv[])
         point_cloud_data = point_cloud_model;
         apply_rot_trans(40, -25, 25, 0.1, 0.04, 0.2, point_cloud_data);
         plot(point_cloud_model,point_cloud_data,2);
+        bool save_features = true;
+        if(save_features){
+            auto res_model = compute_features(point_cloud_model);
+            save_feature_file("toy_model", get<0>(res_model), get<1>(res_model));
+            auto res_data = compute_features(point_cloud_data);
+            save_feature_file("toy_data", get<0>(res_data), get<1>(res_data));
+            return 0;
+        }
 //        auto res = run_GoICP(point_cloud_model,point_cloud_data);
 //        auto res = run_ARMO_Global(false, "full", point_cloud_model, point_cloud_data);
         int nb_iter = 0, max_nb_iter = 10;
@@ -168,7 +192,7 @@ int main (int argc, char * argv[])
         plot(point_cloud_model,point_cloud_data,2);
         return 0;
     }
-    bool Registration = true;/* Solve the Registration problem */
+    bool Registration = false;/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
@@ -234,14 +258,21 @@ int main (int argc, char * argv[])
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
         bool global = global_str=="global";
-        bool filter_extremes = (algo!="GoICP");
+        bool filter_extremes = (algo=="ARMO");
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
         if (filter_extremes) {
             ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
             ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
         }
-        
+        bool save_features = false;
+        if(save_features){
+            auto res_model = compute_features(ext_model);
+            save_feature_file("bunny_model", get<0>(res_model), get<1>(res_model));
+            auto res_data = compute_features(ext_data);
+            save_feature_file("bunny_data", get<0>(res_data), get<1>(res_data));
+            return 0;
+        }
         /* Rotating and translating */
         auto thetax = atan2(-0.0081669, -0.0084357)/2;
         auto thetay = atan2(0.9999311, std::sqrt(0.0081669*0.0081669+0.0084357*0.0084357))/2;
@@ -268,20 +299,20 @@ int main (int argc, char * argv[])
             res = run_GoICP(point_cloud_model, point_cloud_data);
             auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            auto L2error = computeL2error(point_cloud_model, point_cloud_data);
-            DebugOn("L2Error = " << L2error << endl);
+//            auto L2error = computeL2error(point_cloud_model, point_cloud_data);
+//            DebugOn("L2Error = " << L2error << endl);
         }
         else {
             res1 = run_heuristic(ext_model,ext_data,point_cloud_data);
-            auto L2error = computeL2error(ext_model,ext_data);
-            DebugOn("L2 error with exterme set after = " << L2error << endl);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error with full set after = " << L2error << endl);
+//            auto L2error = computeL2error(ext_model,ext_data);
+//            DebugOn("L2 error with exterme set after = " << L2error << endl);
+//            L2error = computeL2error(point_cloud_model,point_cloud_data);
+//            DebugOn("L2 error with full set after = " << L2error << endl);
             ext_data = get_n_extreme_points(100, point_cloud_data);
             res2 = run_heuristic(point_cloud_model,ext_data,point_cloud_data);
-            L2error = computeL2error(point_cloud_model,ext_data);
-            DebugOn("L2 error with exterme set after = " << L2error << endl);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
+//            L2error = computeL2error(point_cloud_model,ext_data);
+//            DebugOn("L2 error with exterme set after = " << L2error << endl);
+            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
             DebugOn("L2 error with full set after = " << L2error << endl);
             res = res1;
             get<0>(res) += get<0>(res2);
@@ -302,9 +333,9 @@ int main (int argc, char * argv[])
             plot(point_cloud_model,old_point_cloud);
         }
         
-        bool show_after = false;
+        bool show_after = true;
         if (show_after) {
-            plot(point_cloud_model,ext_data,0.5);
+            plot(point_cloud_model,ext_data,0.1);
             plot(point_cloud_model,point_cloud_data);
         }
         bool save_file = false;
@@ -316,17 +347,21 @@ int main (int argc, char * argv[])
             //    LASreader* lasreader = lasreadopener_final.open();
             LASheader lasheader;
             lasheader.global_encoding = 1;
-            lasheader.x_scale_factor = 0.01;
-            lasheader.y_scale_factor = 0.01;
-            lasheader.z_scale_factor = 0.01;
-            lasheader.x_offset =  500000.0;
-            lasheader.y_offset = 4100000.0;
-            lasheader.z_offset = 0.0;
+//            lasheader.x_scale_factor = 0.01;
+//            lasheader.y_scale_factor = 0.01;
+//            lasheader.z_scale_factor = 0.01;
+//            lasheader.x_offset =  500000.0;
+//            lasheader.y_offset = 4100000.0;
+//            lasheader.z_offset = 0.0;
             lasheader.point_data_format = 1;
             lasheader.point_data_record_length = 28;
             
             LASwriteOpener laswriteopener;
             auto name = Model_file.substr(0,Model_file.find('.'));
+            if(run_goICP)
+                name += "_GoICP";
+            else
+                name += "_ARMO";
             auto fname = name+".laz";
             laswriteopener.set_file_name(fname.c_str());
             LASwriter* laswriter = laswriteopener.open(&lasheader);
@@ -648,6 +683,7 @@ int main (int argc, char * argv[])
 //                coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%10==0 && p->_laser_id==15){
                 if(i%100==0 && p->_laser_id>6 && p->_laser_id<23){
+//                if(true){
 //                if(p->_z>12.6){
                     x_vec1.push_back(p->_x);
                     x_shift1.push_back(frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x));
@@ -679,6 +715,7 @@ int main (int argc, char * argv[])
 //                coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%10==0 && p->_laser_id==15){
                 if(i%100==0 && p->_laser_id>6 && p->_laser_id<23){
+//                if(true){
 //                if(p->_z>12.6){
                     x_vec2.push_back(p->_x);
                     x_shift2.push_back(frame.second->_uav_point->_x+coef*(frame.second->_uav_point->_next->_x - frame.second->_uav_point->_x));
@@ -704,12 +741,15 @@ int main (int argc, char * argv[])
             DebugOn("Average number of points per frame in flight line 2 = " << nb_pts_per_frame2/frames2.size() << endl);
         DebugOn("Number of points in flight line 1 = " << x_vec1.size() << endl);
         DebugOn("Number of points in flight line 2 = " << x_vec2.size() << endl);
-        
+        bool show_full_set = false;
+        if (show_full_set) {
+            plot(point_cloud1,point_cloud2);
+        }
         
         bool run_goICP = false;
         if(run_goICP){/* Run GoICP inline */
             using namespace Go_ICP;
-            int Nm = old_x_vec1.size(), Nd = x_vec2.size(), NdDownsampled = 0;
+            int Nm = x_vec1.size(), Nd = x_vec2.size(), NdDownsampled = 0;
             clock_t  clockBegin, clockEnd;
             string modelFName, dataFName, configFName, outputFname;
             POINT3D * pModel, * pData, * pFullData;
@@ -722,11 +762,11 @@ int main (int argc, char * argv[])
             double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
             for(int i = 0; i < Nm; i++)
             {
-                pModel[i].x  = old_x_vec1[i];
+                pModel[i].x  = x_vec1[i];
                 avg_x += pModel[i].x;
-                pModel[i].y  = old_y_vec1[i];
+                pModel[i].y  = y_vec1[i];
                 avg_y += pModel[i].y;
-                pModel[i].z = old_z_vec1[i];
+                pModel[i].z = z_vec1[i];
                 avg_z += pModel[i].z;
             }
             avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
@@ -788,6 +828,22 @@ int main (int argc, char * argv[])
             }
             scale_all(Nm, &pModel, max_x, max_y, max_z, min_x, min_y, min_z);
             scale_all(Nd, &pData, max_x, max_y, max_z, min_x, min_y, min_z);
+            auto name = CSV_file.substr(0,CSV_file.find('.'));
+            auto fname = name+"_model.txt";
+            std::ofstream modelFile(fname);
+            modelFile << Nm << endl;
+            for(int i = 0; i < Nm; i++)
+            {
+                modelFile << pModel[i].x << " " <<  pModel[i].y << " " << pModel[i].z << endl;
+            }
+            fname = name+"_data.txt";
+            std::ofstream dataFile(fname);
+            dataFile << Nd << endl;
+            for(int i = 0; i < Nd; i++)
+            {
+                dataFile << pData[i].x << " " <<  pData[i].y << " " << pData[i].z << endl;
+            }
+            return 0;
             bool plot_GoICP = true;
             if (plot_GoICP) {
                 vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
@@ -812,7 +868,7 @@ int main (int argc, char * argv[])
                 keywords["linestyle"] = "None";
                 keywords["ms"] = "0.05";
                 //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-                plt::plot3(x_model, y_model, z_model, x_data, y_data, z_data, keywords);
+                plt::plot3(x_data, y_data, z_data, x_model, y_model, z_model, keywords);
 //                plt::plot3(x_data, y_data, z_data, keywords);
                 plt::show();
             }
@@ -1037,11 +1093,15 @@ int main (int argc, char * argv[])
             unit_scale(Nm, &pModel, Nd, &pData);
             /* What about the drone points?*/
         }
-        bool bypass = true;
+        bool bypass = false;
         double roll1 = 0, pitch1 = 0, yaw1 = 0, roll2 = 0, pitch2 = 0, yaw2 = 0, roll3 = 0, pitch3 = 0, yaw3 = 0;
         if(!bypass){
 
-            tuple<double,double,double> opt_sol = run_ARMO("z", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            auto L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("Initial L2 error = " << L2error << endl);
+//            plot(point_cloud1, point_cloud2);
+            tuple<double,double,double> opt_sol = run_ARMO("only_z", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            
             
     //
             roll1 = get<0>(opt_sol);
@@ -1049,6 +1109,11 @@ int main (int argc, char * argv[])
             yaw1 = get<2>(opt_sol);
             apply_rotation(roll1, pitch1, yaw1, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
             apply_rotation(roll1, pitch1, yaw1, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2, z_shift_all2);
+            update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
+            update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
+            L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("L2 error after z_only = " << L2error << endl);
+//            plot(point_cloud1, point_cloud2);
     //        auto projected1 = project("z", point_cloud1);/* Project on (x,y) plane, i.e., set z to zero */
     //        vector<double> zeros(0,x_vec2.size());
             opt_sol = run_ARMO("full", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
@@ -1062,6 +1127,14 @@ int main (int argc, char * argv[])
             pitch3 = get<1>(opt_sol);
             yaw3 = get<2>(opt_sol);
             apply_rotation(roll3, pitch3, yaw3, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
+            update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
+            update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
+            L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("L2 error after full = " << L2error << endl);
+//            plot(point_cloud1, point_cloud2);
+        }
+        else {
+            roll3 = 0;pitch3=0;yaw3=0;/* Manual values*/
         }
         double shifted_x, shifted_y, shifted_z;
         auto tot_pts = old_x_vec1.size()+old_x_vec2.size();
@@ -1069,7 +1142,7 @@ int main (int argc, char * argv[])
         y_combined.resize(tot_pts);
         z_combined.resize(tot_pts);
         
-        roll3 = -0.25;pitch3=0.5;yaw3=-0.7;/* Manual values*/
+        
         double beta = roll3*pi/180;// roll in radians
         double gamma = pitch3*pi/180; // pitch in radians
         double alpha = yaw3*pi/180; // yaw in radians
@@ -1099,29 +1172,6 @@ int main (int argc, char * argv[])
             z_combined[old_x_vec1.size()+i] += z_shift_all2[i];
         }
         apply_rotation(roll3, pitch3, yaw3, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2,z_shift_all2);
-        bool plot_data = true;
-        if(plot_data){
-            namespace plt = matplotlibcpp;
-            
-            std::map<std::string, std::string> keywords, keywords2;
-            keywords["marker"] = "s";
-            keywords["linestyle"] = "None";
-            keywords["ms"] = "0.1";
-            //    plt::plot3(x_combined, y_combined, zmax_combined, keywords);
-            //            plt::plot3(x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, keywords);
-//            plt::plot3(x_combined, y_combined, z_combined, keywords);
-//            plt::plot3(uav_x, uav_y, uav_z, x_combined, y_combined, z_combined, keywords);
-            keywords2["marker"] = "s";
-            keywords2["ms"] = "0.05";
-            //    plt::plot3(uav_x1, uav_y1, uav_z1, uav_x, uav_y, uav_z, keywords2);
-            //    plt::plot3(uav_x1, uav_y1, uav_z1, keywords);
-                plt::plot3(x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, keywords);
-//            plt::plot3(old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, keywords2);
-            //    plt::colorbar();
-            // Enable legend.
-            //    plt::legend();
-            plt::show();
-        }
         for (auto p : LidarPoints)
         {
             delete p;
@@ -1249,15 +1299,15 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
     
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 0.001;
-    goicp.initNodeRot.a = -3.1416;
-    goicp.initNodeRot.b = -3.1416;
-    goicp.initNodeRot.c = -3.1416;
-    goicp.initNodeRot.w = 6.2832;
-    goicp.initNodeTrans.x = -0.25;
-    goicp.initNodeTrans.y = -0.25;
-    goicp.initNodeTrans.z = -0.25;
-    goicp.initNodeTrans.w = 1;
+    goicp.MSEThresh = 0.0001;
+    goicp.initNodeRot.a = -0.5;
+    goicp.initNodeRot.b = -0.5;
+    goicp.initNodeRot.c = -0.5;
+    goicp.initNodeRot.w = 1;
+    goicp.initNodeTrans.x = -0.01;
+    goicp.initNodeTrans.y = -0.01;
+    goicp.initNodeTrans.z = -0.01;
+    goicp.initNodeTrans.w = 0.02;
     goicp.trimFraction = 0;
 //    goicp.optError = 11;
     // If < 0.1% trimming specified, do no trimming
@@ -1705,7 +1755,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     
     auto ids1 = cosy.repeat_id(cells.size());
     
-    /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+    /* alpha = yaw_, beta = roll and gamma = pitch */
     Constraint<> x_rot1("x_rot1");
     x_rot1 += new_x1 - x_shift.in(ids1);
     x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
@@ -2111,10 +2161,15 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
                     else {
                         j_str = to_string(res->second+1);
                     }
-//                    if(axis=="x")
+                    if(axis=="x")
+                        dist_sq = std::pow(y_vec1.at(i) - y_vec2.at(k),2) + std::pow(z_vec1.at(i) - z_vec2.at(k),2);
+                    else if(axis=="y")
+                        dist_sq = std::pow(x_vec1.at(i) - x_vec2.at(k),2) + std::pow(z_vec1.at(i) - z_vec2.at(k),2);
+                    else if(axis=="z")
+                        dist_sq = std::pow(x_vec1.at(i) - x_vec2.at(k),2) + std::pow(y_vec1.at(i) - y_vec2.at(k),2);
+                    else
                         dist_sq = std::pow(x_vec1.at(i) - x_vec2.at(k),2) + std::pow(y_vec1.at(i) - y_vec2.at(k),2) + std::pow(z_vec1.at(i) - z_vec2.at(k),2);
-//                    else
-//                        dist_sq = std::pow(x_vec1.at(i) - x_vec2.at(k),2) + std::pow(y_vec1.at(i) - y_vec2.at(k),2);
+                    
                     if(min_dist[i]>dist_sq){
                         min_dist[i] = dist_sq;
                         nearest[i] = k;
@@ -2346,31 +2401,47 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             Constraint<> Opp_yaw("Opp_yaw");
             Opp_yaw += yaw1 + yaw2;
             Lidar.add(Opp_yaw==0);
+            bool L2Norm = axis=="full";
+            bool L1Norm = !L2Norm;
             
-            
-            Constraint<> x_abs1("x_abs1");
-            x_abs1 += x_diff - (new_x1.from(cells) - new_x2.to(cells));
-            Lidar.add(x_abs1.in(cells)>=0);
-            
-            Constraint<> x_abs2("x_abs2");
-            x_abs2 += x_diff - (new_x2.to(cells) - new_x1.from(cells));
-            Lidar.add(x_abs2.in(cells)>=0);
-            
-            Constraint<> y_abs1("y_abs1");
-            y_abs1 += y_diff - (new_y1.from(cells) - new_y2.to(cells));
-            Lidar.add(y_abs1.in(cells)>=0);
-            
-            Constraint<> y_abs2("y_abs2");
-            y_abs2 += y_diff - (new_y2.to(cells) - new_y1.from(cells));
-            Lidar.add(y_abs2.in(cells)>=0);
-            
-            Constraint<> z_abs1("z_abs1");
-            z_abs1 += z_diff - (new_z1.from(cells) - new_z2.to(cells));
-            Lidar.add(z_abs1.in(cells)>=0);
-            
-            Constraint<> z_abs2("z_abs2");
-            z_abs2 += z_diff - (new_z2.to(cells) - new_z1.from(cells));
-            Lidar.add(z_abs2.in(cells)>=0);
+            if(L2Norm){
+                Constraint<> XNorm2("XNorm2");
+                XNorm2 += x_diff - pow(new_x1.from(cells) - x2.to(cells),2);
+                Lidar.add(XNorm2.in(cells)>=0);
+                
+                Constraint<> YNorm2("YNorm2");
+                YNorm2 += y_diff - pow(new_y1.from(cells) - y2.to(cells),2);
+                Lidar.add(YNorm2.in(cells)>=0);
+                
+                Constraint<> ZNorm2("ZNorm2");
+                ZNorm2 += z_diff - pow(new_z1.from(cells) - z2.to(cells),2);
+                Lidar.add(ZNorm2.in(cells)>=0);
+            }
+            if(L1Norm){
+                Constraint<> x_abs1("x_abs1");
+                x_abs1 += x_diff - (new_x1.from(cells) - new_x2.to(cells));
+                Lidar.add(x_abs1.in(cells)>=0);
+                
+                Constraint<> x_abs2("x_abs2");
+                x_abs2 += x_diff - (new_x2.to(cells) - new_x1.from(cells));
+                Lidar.add(x_abs2.in(cells)>=0);
+                
+                Constraint<> y_abs1("y_abs1");
+                y_abs1 += y_diff - (new_y1.from(cells) - new_y2.to(cells));
+                Lidar.add(y_abs1.in(cells)>=0);
+                
+                Constraint<> y_abs2("y_abs2");
+                y_abs2 += y_diff - (new_y2.to(cells) - new_y1.from(cells));
+                Lidar.add(y_abs2.in(cells)>=0);
+                
+                Constraint<> z_abs1("z_abs1");
+                z_abs1 += z_diff - (new_z1.from(cells) - new_z2.to(cells));
+                Lidar.add(z_abs1.in(cells)>=0);
+                
+                Constraint<> z_abs2("z_abs2");
+                z_abs2 += z_diff - (new_z2.to(cells) - new_z1.from(cells));
+                Lidar.add(z_abs2.in(cells)>=0);
+            }
             
             auto ids1 = yaw1.repeat_id(cells.size());
             
@@ -2415,10 +2486,16 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             if(axis == "full")
                 Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
             else if(axis == "x")
-                Lidar.min(sum(x_diff)/cells.size());
+                Lidar.min(sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
             else if (axis == "y")
+                Lidar.min(sum(x_diff)/cells.size() + sum(z_diff)/cells.size());
+            else if (axis == "z")
+                Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size());
+            else if (axis == "only_x")
+                Lidar.min(sum(x_diff)/cells.size());
+            else if (axis == "only_y")
                 Lidar.min(sum(y_diff)/cells.size());
-            else
+            else if (axis == "only_z")
                 Lidar.min(sum(z_diff)/cells.size());
             
             //                Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
@@ -2461,6 +2538,14 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
     return {roll_1, pitch_1, yaw_1};
 }
 
+/* Update point cloud coordinates */
+void update_xyz(vector<vector<double>>& point_cloud1, vector<double>& x_vec1, vector<double>& y_vec1, vector<double>& z_vec1){
+    for (auto i = 0; i< point_cloud1.size(); i++) {
+        point_cloud1[i][0] = x_vec1[i];
+        point_cloud1[i][1] = y_vec1[i];
+        point_cloud1[i][2] = z_vec1[i];
+    }
+}
 
 void apply_rotation(double roll, double pitch, double yaw, vector<double>& x_vec1, vector<double>& y_vec1, vector<double>& z_vec1, vector<double>& x_vec2, vector<double>& y_vec2, vector<double>& z_vec2, const vector<double>& x_shift1, const vector<double>& y_shift1, const vector<double>& z_shift1, const vector<double>& x_shift2, const vector<double>& y_shift2, const vector<double>& z_shift2){
     double beta = roll*pi/180;// roll in radians
@@ -2665,7 +2750,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 1000;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
@@ -2750,55 +2835,55 @@ tuple<double,double,double,double,double,double> run_heuristic(const vector<vect
     int nb_iter = 0, max_nb_iter = 100;
     tuple<double,double,double,double,double,double> res;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
-        auto L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set before = " << L2error << endl);
+//        auto L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set before = " << L2error << endl);
         res = run_ARMO(false, "full", ext_model, ext_data);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set after full = " << L2error << endl);
+//        L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set after full = " << L2error << endl);
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;z_shift=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1) {
         res = run_ARMO(false, "z", ext_model, ext_data);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        auto L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set after z = " << L2error << endl);
+//        auto L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set after z = " << L2error << endl);
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
 //    DebugOn("Plotting after z" << endl);
 //    plot(ext_model,ext_data,1);
     nb_iter = 0;z_shift=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1) {
         res = run_ARMO(false, "y", ext_model, ext_data);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        auto L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set after y = " << L2error << endl);
+//        auto L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set after y = " << L2error << endl);
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
 //    DebugOn("Plotting after y" << endl);
 //    plot(ext_model,ext_data,1);
     nb_iter = 0;z_shift=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1) {
         res = run_ARMO(false, "x", ext_model, ext_data);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);x_shift = get<3>(res);y_shift = get<4>(res);z_shift = get<5>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        auto L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set after x = " << L2error << endl);
+//        auto L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set after x = " << L2error << endl);
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
@@ -2811,8 +2896,8 @@ tuple<double,double,double,double,double,double> run_heuristic(const vector<vect
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;final_x_shift += x_shift;final_y_shift += y_shift;final_z_shift += z_shift;
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, ext_data);
         apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        auto L2error = computeL2error(ext_model,ext_data);
-        DebugOn("L2 error with exterme set after full = " << L2error << endl);
+//        auto L2error = computeL2error(ext_model,ext_data);
+//        DebugOn("L2 error with exterme set after full = " << L2error << endl);
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
@@ -2826,4 +2911,82 @@ tuple<double,double,double,double,double,double> run_heuristic(const vector<vect
     DebugOn("Final y shift = " << final_y_shift << endl);
     DebugOn("Final z shift = " << final_z_shift << endl);
     return {final_roll,final_pitch,final_yaw,final_x_shift,final_y_shift,final_z_shift};
+}
+
+
+void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features){
+    string fname = filename+"_features.bin";
+    FILE* fid = fopen(fname.c_str(), "wb");
+    int nV = augmented_cloud->size(), nDim = 33;
+    fwrite(&nV, sizeof(int), 1, fid);
+    fwrite(&nDim, sizeof(int), 1, fid);
+    for (int v = 0; v < nV; v++) {
+        const pcl::PointNormal &pt = augmented_cloud->points[v];
+        float xyz[3] = {pt.x, pt.y, pt.z};
+        fwrite(xyz, sizeof(float), 3, fid);
+        const pcl::FPFHSignature33 &feature = cloud_features->points[v];
+        fwrite(feature.histogram, sizeof(float), 33, fid);
+        if(v<10){
+            DebugOn("For point: (" << pt.x << "," << pt.y << "," << pt.z << "): ");
+            for (int i = 0; i<33; i++) {
+                DebugOn(feature.histogram[i] << " , ");
+            }
+            DebugOn(endl);
+        }
+    }
+    DebugOn(endl);
+    fclose(fid);
+}
+
+pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33>::Ptr> compute_features(const vector<vector<double>>& ext_model) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    
+    for (int i = 0; i<ext_model.size(); i++) {
+        pcl::PointXYZ p;
+        p.x = ext_model[i][0];
+        p.y = ext_model[i][1];
+        p.z = ext_model[i][2];
+        cloud->push_back(p);
+    }
+    
+    // Create the normal estimation class, and pass the input dataset to it
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    ne.setInputCloud (cloud);
+    
+    // Create an empty kdtree representation, and pass it to the normal estimation object.
+    // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+    ne.setSearchMethod (tree);
+    
+    // Output datasets
+    pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+    
+    // Use all neighbors in a sphere of radius 0.05
+    ne.setRadiusSearch (0.9);
+    
+    // Compute the features
+    ne.compute (*cloud_normals);
+    
+    // cloud_normals->size () should have the same size as the input cloud->size ()*
+    // Assume a point cloud with normal is given as
+    pcl::PointCloud<pcl::PointNormal>::Ptr augmented_cloud(new  pcl::PointCloud<pcl::PointNormal>());
+    augmented_cloud->resize(cloud_normals->size());
+    for(std::size_t i = 0; i<cloud_normals->size(); ++i)
+    {
+        (*augmented_cloud)[i].x = (*cloud)[i].x;
+        (*augmented_cloud)[i].y = (*cloud)[i].y;
+        (*augmented_cloud)[i].z = (*cloud)[i].z;
+        (*augmented_cloud)[i].normal_x = (*cloud_normals)[i].normal_x;
+        (*augmented_cloud)[i].normal_y = (*cloud_normals)[i].normal_y;
+        (*augmented_cloud)[i].normal_z = (*cloud_normals)[i].normal_z;
+    }
+    // Create the FPFH estimation class, and pass the input dataset+normals to it
+    pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr cloud_features(new pcl::PointCloud<pcl::FPFHSignature33>());
+    
+    fpfh.setRadiusSearch(1);
+    fpfh.setInputCloud(cloud);
+    fpfh.setInputNormals(cloud_normals);
+    fpfh.compute(*cloud_features);
+    return {augmented_cloud,cloud_features};
 }

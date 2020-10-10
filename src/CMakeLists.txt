@@ -72,7 +72,7 @@ target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LI
 endif()
 
 target_include_directories(gravity PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-target_link_libraries(gravity Python3::Python Python3::NumPy)
+target_link_libraries(gravity Python3::Python Python3::NumPy ${PCL_LIBRARIES})
 
 if(Cov)
   set_target_properties(gravity
