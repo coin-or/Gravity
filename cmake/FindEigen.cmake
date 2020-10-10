@@ -1,54 +1,41 @@
-# Search supplied hint directories first if supplied.
-set(EIGEN_ROOT_DIR "$ENV{EIGEN_ROOT_DIR}" CACHE PATH "Eigen root directory.")
-if(EIGEN_ROOT_DIR)
- message("Looking for Eigen in ${EIGEN_ROOT_DIR}")
-else(EIGEN_ROOT_DIR)
- message("EIGEN_ROOT_DIR not provided.")
-endif(EIGEN_ROOT_DIR)
+###############################################################################
+# Find Eigen3
+#
+# This sets the following variables:
+# EIGEN_FOUND - True if Eigen was found.
+# EIGEN_INCLUDE_DIRS - Directories containing the Eigen include files.
+# EIGEN_DEFINITIONS - Compiler flags for Eigen.
+# EIGEN_VERSION - Package version
 
-find_path(EIGEN_INCLUDE_DIR
-  NAMES Eigen/Core
-  HINTS /usr/local/include
-  HINTS /usr/local/include/eigen3
-  HINTS /usr/include
-  HINTS /usr/include/eigen3
-  HINTS ${THIRDPARTY_INSTALL_PATH}/include)
+find_package(PkgConfig QUIET)
+pkg_check_modules(PC_EIGEN eigen3)
+set(EIGEN_DEFINITIONS ${PC_EIGEN_CFLAGS_OTHER})
 
-# Extract Eigen version from Eigen/src/Core/util/Macros.h
-if (EIGEN_INCLUDE_DIR)
-  set(EIGEN_VERSION_FILE ${EIGEN_INCLUDE_DIR}/Eigen/src/Core/util/Macros.h)
-  if (NOT EXISTS ${EIGEN_VERSION_FILE})
-    eigen_report_not_found(
-      "Could not find file: ${EIGEN_VERSION_FILE} "
-      "containing version information in Eigen install located at: "
-      "${EIGEN_INCLUDE_DIR}.")
-  else (NOT EXISTS ${EIGEN_VERSION_FILE})
-    file(READ ${EIGEN_VERSION_FILE} EIGEN_VERSION_FILE_CONTENTS)
+find_path(EIGEN_INCLUDE_DIR Eigen/Core
+    HINTS "${EIGEN_ROOT}" "$ENV{EIGEN_ROOT}" ${PC_EIGEN_INCLUDEDIR} ${PC_EIGEN_INCLUDE_DIRS}
+    PATHS "$ENV{PROGRAMFILES}/Eigen" "$ENV{PROGRAMW6432}/Eigen"
+          "$ENV{PROGRAMFILES}/Eigen3" "$ENV{PROGRAMW6432}/Eigen3"
+    PATH_SUFFIXES eigen3 include/eigen3 include)
 
-    string(REGEX MATCH "#define EIGEN_WORLD_VERSION [0-9]+"
-      EIGEN_WORLD_VERSION "${EIGEN_VERSION_FILE_CONTENTS}")
-    string(REGEX REPLACE "#define EIGEN_WORLD_VERSION ([0-9]+)" "\\1"
-      EIGEN_WORLD_VERSION "${EIGEN_WORLD_VERSION}")
+if(EIGEN_INCLUDE_DIR)
+  file(READ "${EIGEN_INCLUDE_DIR}/Eigen/src/Core/util/Macros.h" _eigen_version_header)
 
-    string(REGEX MATCH "#define EIGEN_MAJOR_VERSION [0-9]+"
-      EIGEN_MAJOR_VERSION "${EIGEN_VERSION_FILE_CONTENTS}")
-    string(REGEX REPLACE "#define EIGEN_MAJOR_VERSION ([0-9]+)" "\\1"
-      EIGEN_MAJOR_VERSION "${EIGEN_MAJOR_VERSION}")
+  string(REGEX MATCH "define[ \t]+EIGEN_WORLD_VERSION[ \t]+([0-9]+)" _eigen_world_version_match "${_eigen_version_header}")
+  set(EIGEN_WORLD_VERSION "${CMAKE_MATCH_1}")
+  string(REGEX MATCH "define[ \t]+EIGEN_MAJOR_VERSION[ \t]+([0-9]+)" _eigen_major_version_match "${_eigen_version_header}")
+  set(EIGEN_MAJOR_VERSION "${CMAKE_MATCH_1}")
+  string(REGEX MATCH "define[ \t]+EIGEN_MINOR_VERSION[ \t]+([0-9]+)" _eigen_minor_version_match "${_eigen_version_header}")
+  set(EIGEN_MINOR_VERSION "${CMAKE_MATCH_1}")
+  set(EIGEN_VERSION ${EIGEN_WORLD_VERSION}.${EIGEN_MAJOR_VERSION}.${EIGEN_MINOR_VERSION})
+endif()
 
-    string(REGEX MATCH "#define EIGEN_MINOR_VERSION [0-9]+"
-      EIGEN_MINOR_VERSION "${EIGEN_VERSION_FILE_CONTENTS}")
-    string(REGEX REPLACE "#define EIGEN_MINOR_VERSION ([0-9]+)" "\\1"
-      EIGEN_MINOR_VERSION "${EIGEN_MINOR_VERSION}")
+set(EIGEN_INCLUDE_DIRS ${EIGEN_INCLUDE_DIR})
 
-    # This is on a single line s/t CMake does not interpret it as a list of
-    # elements and insert ';' separators which would result in 3.;2.;0 nonsense.
-    set(EIGEN_VERSION "${EIGEN_WORLD_VERSION}.${EIGEN_MAJOR_VERSION}.${EIGEN_MINOR_VERSION}")
-  endif (NOT EXISTS ${EIGEN_VERSION_FILE})
-endif (EIGEN_INCLUDE_DIR)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Eigen DEFAULT_MSG EIGEN_INCLUDE_DIR)
 
-# Set standard CMake FindPackage variables if found.
-if (EIGEN_FOUND)
-  set(EIGEN_INCLUDE_DIRS ${EIGEN_INCLUDE_DIR})
-else (EIGEN_FOUND)
- message("Cannot find Eigen, will try pulling it from github.")
-endif (EIGEN_FOUND)
+mark_as_advanced(EIGEN_INCLUDE_DIR)
+
+if(EIGEN_FOUND)
+  message(STATUS "Eigen found (include: ${EIGEN_INCLUDE_DIRS}, version: ${EIGEN_VERSION})")
+endif()
