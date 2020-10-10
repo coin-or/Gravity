@@ -6959,7 +6959,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     DebugOff("Average interval reduction\t"<<avg<<endl);
                     DebugOff("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
                     
-                    if(!close)
+                    if(false)
                     {
                         if(!linearize){
                             if(obbt_model->_status==0){
