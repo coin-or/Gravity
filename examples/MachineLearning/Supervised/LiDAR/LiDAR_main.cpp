@@ -192,7 +192,7 @@ int main (int argc, char * argv[])
         plot(point_cloud_model,point_cloud_data,2);
         return 0;
     }
-    bool Registration = false;/* Solve the Registration problem */
+    bool Registration = true;/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
@@ -588,7 +588,7 @@ int main (int argc, char * argv[])
         size_t uav_id = 0;
         bool new_uav = true, u_turn = false, frame1 = true;
         double unix_time, delta_x = 0, delta_y = 0;
-        double scale = 1e-2;
+        double scale = 1;
         pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
         for (int i = 0; i< nb_rows-1; i++) { // Input iterator
             auto laser_id = CSV_data.GetCell<int>("LaserID", i);
@@ -683,6 +683,7 @@ int main (int argc, char * argv[])
 //                coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%10==0 && p->_laser_id==15){
                 if(i%100==0 && p->_laser_id>6 && p->_laser_id<23){
+//                if(i%100==0){
 //                if(true){
 //                if(p->_z>12.6){
                     x_vec1.push_back(p->_x);
@@ -715,6 +716,7 @@ int main (int argc, char * argv[])
 //                coef = get_interpolation_coef(p->_unix_time, frame.second->_uav_point, frame.second->_uav_point->_next);
 //                if(i%10==0 && p->_laser_id==15){
                 if(i%100==0 && p->_laser_id>6 && p->_laser_id<23){
+//                if(i%100==0){
 //                if(true){
 //                if(p->_z>12.6){
                     x_vec2.push_back(p->_x);
@@ -746,7 +748,7 @@ int main (int argc, char * argv[])
             plot(point_cloud1,point_cloud2);
         }
         
-        bool run_goICP = false;
+        bool run_goICP = true;
         if(run_goICP){/* Run GoICP inline */
             using namespace Go_ICP;
             int Nm = x_vec1.size(), Nd = x_vec2.size(), NdDownsampled = 0;
@@ -757,33 +759,32 @@ int main (int argc, char * argv[])
             set_GoICP_options(goicp);
             // Load model and data point clouds
             pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
-            double avg_x = 0, avg_y = 0, avg_z = 0;
+            double avg_x1 = 0, avg_y1 = 0, avg_z1 = 0;double avg_x2 = 0, avg_y2 = 0, avg_z2 = 0;
             double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
             double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
             for(int i = 0; i < Nm; i++)
             {
                 pModel[i].x  = x_vec1[i];
-                avg_x += pModel[i].x;
+                avg_x1 += pModel[i].x;
                 pModel[i].y  = y_vec1[i];
-                avg_y += pModel[i].y;
+                avg_y1 += pModel[i].y;
                 pModel[i].z = z_vec1[i];
-                avg_z += pModel[i].z;
+                avg_z1 += pModel[i].z;
             }
-            avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
-            centralize(Nm, &pModel, avg_x, avg_y, avg_z);
-            avg_x = 0;avg_y = 0;avg_z = 0;
+            avg_x1 /= Nm;avg_y1 /= Nm;avg_z1 /= Nm;
+            centralize(Nm, &pModel, avg_x1, avg_y1, avg_z1);
             pData = (POINT3D *)malloc(sizeof(POINT3D) * Nd);
             for(int i = 0; i < Nd; i++)
             {
                 pData[i].x  = x_vec2[i];
-                avg_x += pData[i].x;
+                avg_x2 += pData[i].x;
                 pData[i].y  = y_vec2[i];
-                avg_y += pData[i].y;
+                avg_y2 += pData[i].y;
                 pData[i].z = z_vec2[i];
-                avg_z += pData[i].z;
+                avg_z2 += pData[i].z;
             }
-            avg_x /= Nd;avg_y /= Nd;avg_z /= Nd;
-            centralize(Nd, &pData, avg_x, avg_y, avg_z);
+            avg_x2 /= Nd;avg_y2 /= Nd;avg_z2 /= Nd;
+            centralize(Nd, &pData, avg_x2, avg_y2, avg_z2);
             for(int i = 0; i < Nd; i++)
             {
                 if(max_x<pData[i].x){
@@ -843,7 +844,7 @@ int main (int argc, char * argv[])
             {
                 dataFile << pData[i].x << " " <<  pData[i].y << " " << pData[i].z << endl;
             }
-            return 0;
+//            return 0;
             bool plot_GoICP = true;
             if (plot_GoICP) {
                 vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
@@ -861,6 +862,12 @@ int main (int argc, char * argv[])
                     y_data[i] = pData[i].y;
                     z_data[i] = pData[i].z;
                 }
+                auto L2error = computeL2error(point_cloud1,point_cloud2);
+                DebugOn("Initial L2 error before scaling = " << L2error << endl);
+                update_xyz(point_cloud1, x_model, y_model, z_model);
+                update_xyz(point_cloud2, x_data, y_data, z_data);
+                L2error = computeL2error(point_cloud1,point_cloud2);
+                DebugOn("Initial L2 error after scaling = " << L2error << endl);
                 namespace plt = matplotlibcpp;
                 
                 std::map<std::string, std::string> keywords, keywords2;
@@ -899,15 +906,21 @@ int main (int argc, char * argv[])
             cout << "Optimal Translation Vector:" << endl;
             cout << goicp.optT << endl;
             cout << "Finished in " << time << endl;
+            auto pitch = atan2(goicp.optR.val[2][1], goicp.optR.val[2][2])*180/pi;
+            auto roll = atan2(-goicp.optR.val[2][0], std::sqrt(goicp.optR.val[2][1]*goicp.optR.val[2][1]+goicp.optR.val[2][2]*goicp.optR.val[2][2]))*180/pi;
+            auto yaw = atan2(goicp.optR.val[1][0],goicp.optR.val[0][0])*180/pi;
+            DebugOn("Roll = " << roll << endl);
+            DebugOn("Pitch = " << pitch << endl);
+            DebugOn("Yaw = " << yaw << endl);
             std::ofstream outputFileFinal("./optimal_pointcloud2.txt");
             bool plot_unscaled = false;
             if (true||plot_GoICP) {
                 for(int i = 0; i < goicp.Nd; i++)
                 {
-                    POINT3D& p = goicp.pData[i];
-                    goicp.pData[i].x = goicp.optR.val[0][0]*p.x + goicp.optR.val[0][1]*p.y + goicp.optR.val[0][2]*p.z + goicp.optT.val[0][0];
-                    goicp.pData[i].y = goicp.optR.val[1][0]*p.x + goicp.optR.val[1][1]*p.y + goicp.optR.val[1][2]*p.z + goicp.optT.val[1][0];
-                    goicp.pData[i].z = goicp.optR.val[2][0]*p.x + goicp.optR.val[2][1]*p.y + goicp.optR.val[2][2]*p.z + goicp.optT.val[2][0];
+                    double px = goicp.pData[i].x;double py = goicp.pData[i].y;double pz = goicp.pData[i].z;
+                    goicp.pData[i].x = goicp.optR.val[0][0]*px + goicp.optR.val[0][1]*py + goicp.optR.val[0][2]*pz + goicp.optT.val[0][0];
+                    goicp.pData[i].y = goicp.optR.val[1][0]*px + goicp.optR.val[1][1]*py + goicp.optR.val[1][2]*pz + goicp.optT.val[1][0];
+                    goicp.pData[i].z = goicp.optR.val[2][0]*px + goicp.optR.val[2][1]*py + goicp.optR.val[2][2]*pz + goicp.optT.val[2][0];
                 }
                 vector<double> x_model, y_model, z_model, x_data, y_data, z_data;
                 x_model.resize(Nm); y_model.resize(Nm); z_model.resize(Nm);
@@ -915,9 +928,12 @@ int main (int argc, char * argv[])
                 for(int i = 0; i < Nm; i++)
                 {
                     if(plot_unscaled){
-                        x_model[i] = old_x_vec1[i];
-                        y_model[i] = old_y_vec1[i];
-                        z_model[i] = old_z_vec1[i];
+                        x_model[i] = x_vec1[i];
+                        auto scaled_x = 0.5*(pModel[i].x + 1) * (max_x - min_x) + min_x + avg_x1;
+                        if(scaled_x != x_model[i])
+                            DebugOn("Rescaling issue!" << endl);
+                        y_model[i] = y_vec1[i];
+                        z_model[i] = z_vec1[i];
 
                     }
                     else{
@@ -929,19 +945,23 @@ int main (int argc, char * argv[])
                 for(int i = 0; i < Nd; i++)
                 {
                     if(plot_unscaled){
-                        x_data[i] = 0.5*(pData[i].x + 1) * (max_x - min_x) + min_x;
-                        y_data[i] = 0.5*(pData[i].y + 1) * (max_y - min_y) + min_y;
-                        z_data[i] = 0.5*(pData[i].z + 1) * (max_z - min_z) + min_z;
-                        x_data[i] += avg_x;
-                        y_data[i] += avg_y;
-                        z_data[i] += avg_z;
+                        x_data[i] = 0.5*(goicp.pData[i].x + 1) * (max_x - min_x) + min_x;
+                        y_data[i] = 0.5*(goicp.pData[i].y + 1) * (max_y - min_y) + min_y;
+                        z_data[i] = 0.5*(goicp.pData[i].z + 1) * (max_z - min_z) + min_z;
+                        x_data[i] += avg_x2;
+                        y_data[i] += avg_y2;
+                        z_data[i] += avg_z2;
                     }
                     else {
-                        x_data[i] = pData[i].x;
-                        y_data[i] = pData[i].y;
-                        z_data[i] = pData[i].z;
+                        x_data[i] = goicp.pData[i].x;
+                        y_data[i] = goicp.pData[i].y;
+                        z_data[i] = goicp.pData[i].z;
                     }
                 }
+                update_xyz(point_cloud1, x_model, y_model, z_model);
+                update_xyz(point_cloud2, x_data, y_data, z_data);
+                auto L2error = computeL2error(point_cloud1,point_cloud2);
+                DebugOn("Final L2 error = " << L2error << endl);
                 namespace plt = matplotlibcpp;
                 
                 std::map<std::string, std::string> keywords, keywords2;
@@ -987,7 +1007,7 @@ int main (int argc, char * argv[])
                 pFullData[i].y  = old_y_vec2[i];
                 pFullData[i].z = old_z_vec2[i];
             }
-            centralize(n2, &pFullData, avg_x, avg_y, avg_z);/* We're using the averages of x_vec2 */
+            centralize(n2, &pFullData, avg_x2, avg_y2, avg_z2);/* We're using the averages of x_vec2 */
             scale_all(n2, &pFullData, max_x, max_y, max_z, min_x, min_y, min_z);/* We're using the min/max values of x_vec2 and x_vec1 */
             vector<double> new_data_x, new_data_y, new_data_z;
             for(int i = 0; i < n2; i++)
@@ -1001,9 +1021,9 @@ int main (int argc, char * argv[])
                 x_combined[n1+i] = 0.5*(pFullData[i].x + 1) * (max_x - min_x) + min_x;
                 y_combined[n1+i] = 0.5*(pFullData[i].y + 1) * (max_y - min_y) + min_y;
                 z_combined[n1+i] = 0.5*(pFullData[i].z + 1) * (max_z - min_z) + min_z;
-                x_combined[n1+i] += avg_x;
-                y_combined[n1+i] += avg_y;
-                z_combined[n1+i] += avg_z;
+                x_combined[n1+i] += avg_x2;
+                y_combined[n1+i] += avg_y2;
+                z_combined[n1+i] += avg_z2;
                 if(i<10)
                     outputFileFinal << x_combined[n1+i] << " " <<  y_combined[n1+i] << " " << z_combined[n1+i] << std::endl;
             }
@@ -1112,17 +1132,46 @@ int main (int argc, char * argv[])
             update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
             update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
             L2error = computeL2error(point_cloud1,point_cloud2);
-            DebugOn("L2 error after z_only = " << L2error << endl);
+            DebugOn("L2 error after only_z = " << L2error << endl);
 //            plot(point_cloud1, point_cloud2);
     //        auto projected1 = project("z", point_cloud1);/* Project on (x,y) plane, i.e., set z to zero */
     //        vector<double> zeros(0,x_vec2.size());
-            opt_sol = run_ARMO("full", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
-//            roll2 = get<0>(opt_sol);
-//            pitch2 = get<1>(opt_sol);
-//            yaw2 = get<2>(opt_sol);
-//            apply_rotation(roll2, pitch2, yaw2, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
+            opt_sol = run_ARMO("x", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            roll2 = get<0>(opt_sol);
+            pitch2 = get<1>(opt_sol);
+            yaw2 = get<2>(opt_sol);
+            apply_rotation(roll2, pitch2, yaw2, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
+            apply_rotation(roll2, pitch2, yaw2, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2, z_shift_all2);
+            update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
+            update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
+            L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("L2 error after x = " << L2error << endl);
+            
+            opt_sol = run_ARMO("y", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            roll2 = get<0>(opt_sol);
+            pitch2 = get<1>(opt_sol);
+            yaw2 = get<2>(opt_sol);
+            apply_rotation(roll2, pitch2, yaw2, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
+            apply_rotation(roll2, pitch2, yaw2, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2, z_shift_all2);
+            update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
+            update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
+            L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("L2 error after y = " << L2error << endl);
+            
+            
+            opt_sol = run_ARMO("only_z", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            roll2 = get<0>(opt_sol);
+            pitch2 = get<1>(opt_sol);
+            yaw2 = get<2>(opt_sol);
+            apply_rotation(roll2, pitch2, yaw2, x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2);
+            apply_rotation(roll2, pitch2, yaw2, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2, z_shift_all2);
+            update_xyz(point_cloud1, x_vec1, y_vec1, z_vec1);
+            update_xyz(point_cloud2, x_vec2, y_vec2, z_vec2);
+            L2error = computeL2error(point_cloud1,point_cloud2);
+            DebugOn("L2 error after only_z = " << L2error << endl);
+            
 //            apply_rotation(roll2, pitch2, yaw2, old_x_vec1, old_y_vec1, old_z_vec1, old_x_vec2, old_y_vec2, old_z_vec2, x_shift_all1, y_shift_all1, z_shift_all1, x_shift_all2, y_shift_all2, z_shift_all2);
-//            opt_sol = run_ARMO("y", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
+            opt_sol = run_ARMO("full", x_vec1, y_vec1, z_vec1, x_vec2, y_vec2, z_vec2, x_shift1, y_shift1, z_shift1, x_shift2, y_shift2, z_shift2, point_cloud1, point_cloud2, uav1, uav2);
             roll3 = get<0>(opt_sol);
             pitch3 = get<1>(opt_sol);
             yaw3 = get<2>(opt_sol);
@@ -1843,7 +1892,7 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
     DebugOff("thetaz = " << thetaz << endl);
     
     if(!bypass){
-        double angle_max = 3, shift_max = 0.25;
+        double angle_max = 0.5, shift_max = 0;
         double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
         int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
         size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -2224,153 +2273,7 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             K = indices(N1,range(2,m-1));
             
             
-            
-            
-            
-            if (solve_lidar_cube) {
-                Model<> Lidar("Lidar");
-                var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
-                var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
-                //            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
-                var<> mu("mu", pos_), mu_k("mu_k", pos_), delta("delta", pos_);
-                //                            var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
-                var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
-                //                var<> yaw1("yaw1", 0.25*pi/180, 0.25*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", -1.45*pi/180, -1.45*pi/180);
-                //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.5778*pi/180, -0.5778*pi/180), roll1("roll1", -1.44581*pi/180, -1.44581*pi/180);
-                //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.573231*pi/180, -0.573231*pi/180), roll1("roll1", -1.45338*pi/180, -1.45338*pi/180);
-                //                var<> yaw1("yaw1", 0.0249847*pi/180, 0.0249847*pi/180), pitch1("pitch1", -0.507086*pi/180, -0.507086*pi/180), roll1("roll1", -1.3698*pi/180, -1.3698*pi/180);
-                //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
-                var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
-                //            yaw1 = -0.5*pi/180;
-                //            pitch1 = 0.9*pi/180;
-                //            roll1 = 1.375*pi/180;
-                Lidar.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
-                Lidar.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
-                Lidar.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
-                Lidar.add(new_x2.in(N2), new_y2.in(N2), new_z2.in(N2));
-                //            Lidar.add(x_diff.in(NM), y_diff.in(NM), z_diff.in(NM));
-                Lidar.add(delta.in(NM));
-                Lidar.add(mu.in(N1));
-                Lidar.add(mu_k.in(K));
-                
-                Constraint<> Equal_pitch("Equal_pitch");
-                Equal_pitch += pitch1 - pitch2;
-                Lidar.add(Equal_pitch==0);
-                
-                Constraint<> Opp_roll("Opp_roll");
-                Opp_roll += roll1 + roll2;
-                Lidar.add(Opp_roll==0);
-                
-                Constraint<> Opp_yaw("Opp_yaw");
-                Opp_yaw += yaw1 + yaw2;
-                Lidar.add(Opp_yaw==0);
-                
-                Constraint<> Mu_2("Mu_2");
-                Mu_2 += mu_k.in(S2) - gravity::min(delta.in(S1), delta.in(S2));
-                Lidar.add(Mu_2.in(S2)==0);
-                
-                Constraint<> Mu_k("Mu_k");
-                Mu_k += mu_k.in(S3m1) - gravity::min(mu_k.in(S2m2), delta.in(S3m1));
-                Lidar.add(Mu_k.in(S3m1)==0);
-                
-                Constraint<> Mu("Mu");
-                Mu += mu - gravity::min(mu_k.in(Sm1), delta.in(Sm));
-                Lidar.add(Mu.in(N1)==0);
-                
-                //                            Constraint<> Norm2("Norm2");
-                //                            Norm2 += delta - pow(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs),2) - pow(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs),2) - pow(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs),2);
-                //                            Lidar.add(Norm2.in(Pairs)==0);
-                
-                Constraint<> Norm1("Norm1");
-                Norm1 += delta - abs(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs)) - abs(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs)) - abs(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
-                //                Norm1 += delta - abs(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
-                Lidar.add(Norm1.in(Pairs)==0);
-                
-                
-                //            Constraint<> z_abs1("z_abs1");
-                //            z_abs1 += z_diff - (new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
-                //            Lidar.add(z_abs1.in(Pairs)>=0);
-                //
-                //            Constraint<> z_abs2("z_abs2");
-                //            z_abs2 += z_diff - (new_z2.in_ignore_ith(1, 0, Pairs) - new_z1.in_ignore_ith(1, 1, Pairs));
-                //            Lidar.add(z_abs2.in(Pairs)>=0);
-                //
-                //            Constraint<> x_abs1("x_abs1");
-                //            x_abs1 += x_diff - (new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs));
-                //            Lidar.add(x_abs1.in(Pairs)>=0);
-                //
-                //            Constraint<> x_abs2("x_abs2");
-                //            x_abs2 += x_diff - (new_x2.in_ignore_ith(0, 1, Pairs) - new_x1.in_ignore_ith(1, 1, Pairs));
-                //            Lidar.add(x_abs2.in(Pairs)>=0);
-                //
-                //
-                //            Constraint<> y_abs1("y_abs1");
-                //            y_abs1 += y_diff - (new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs));
-                //            Lidar.add(y_abs1.in(Pairs)>=0);
-                //
-                //            Constraint<> y_abs2("y_abs2");
-                //            y_abs2 += y_diff - (new_y2.in_ignore_ith(0, 1, Pairs) - new_y1.in_ignore_ith(1, 1, Pairs));
-                //            Lidar.add(y_abs2.in(Pairs)>=0);
-                
-                auto ids1 = yaw1.repeat_id(n1);
-                
-                /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
-                Constraint<> x_rot1("x_rot1");
-                x_rot1 += new_x1 - x_uav1.in(N1);
-                x_rot1 -= (x1.in(N1)-x_uav1.in(N1))*cos(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) - sin(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) + sin(yaw1.in(ids1))*sin(pitch1.in(ids1)));
-                Lidar.add(x_rot1.in(N1)==0);
-                
-                auto ids2 = yaw2.repeat_id(n2);
-                
-                Constraint<> x_rot2("x_rot2");
-                x_rot2 += new_x2 - x_uav2.in(N2);
-                x_rot2 -= (x2.in(N2)-x_uav2.in(N2))*cos(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) - sin(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) + sin(yaw2.in(ids2))*sin(pitch2.in(ids2)));
-                Lidar.add(x_rot2.in(N2)==0);
-                
-                
-                Constraint<> y_rot1("y_rot1");
-                y_rot1 += new_y1 - y_uav1.in(N1);
-                y_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) + cos(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) - cos(yaw1.in(ids1))*sin(pitch1.in(ids1)));
-                Lidar.add(y_rot1.in(N1)==0);
-                
-                Constraint<> y_rot2("y_rot2");
-                y_rot2 += new_y2 - y_uav2.in(N2);
-                y_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) + cos(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) - cos(yaw2.in(ids2))*sin(pitch2.in(ids2)));
-                Lidar.add(y_rot2.in(N2)==0);
-                
-                Constraint<> z_rot1("z_rot1");
-                z_rot1 += new_z1 - z_uav1.in(N1);
-                z_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(-1*roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(roll1.in(ids1))*sin(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(roll1.in(ids1))*cos(pitch1.in(ids1)));
-                Lidar.add(z_rot1.in(N1)==0);
-                
-                
-                Constraint<> z_rot2("z_rot2");
-                z_rot2 += new_z2 - z_uav2.in(N2);
-                z_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(-1*roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(roll2.in(ids2))*sin(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(roll2.in(ids2))*cos(pitch2.in(ids2)));
-                Lidar.add(z_rot2.in(N2)==0);
-                
-                //            Lidar.min(sum(mu) + 1e2*pow(yaw1,2) + 1e2*pow(roll1,2) + 1e2*pow(pitch1,2));
-                //            Lidar.min(1e3*sum(mu) + (pow(yaw1,2) + pow(roll1,2) + pow(pitch1,2)));
-                Lidar.min(sum(mu));
-                
-                //            Lidar.print();
-                //            Lidar.initialize_zero();
-                //            return 0;
-                solver<> S(Lidar,ipopt);
-                //            S.set_option("tol", 1e-10);
-                //            S.run(5,1e-10);
-                S.run();
-                DebugOn("Pitch1 = " << pitch1.eval()*180/pi << endl);
-                DebugOn("Roll1 = " << roll1.eval()*180/pi << endl);
-                DebugOn("Yaw1 = " << yaw1.eval()*180/pi << endl);
-                DebugOn("Pitch2 = " << pitch2.eval()*180/pi << endl);
-                DebugOn("Roll2 = " << roll2.eval()*180/pi << endl);
-                DebugOn("Yaw2 = " << yaw2.eval()*180/pi << endl);
-                roll_1 = roll1.eval()*180/pi;
-                pitch_1 = pitch1.eval()*180/pi;
-                yaw_1 = yaw1.eval()*180/pi;
-                //            return 0;
-            }
+        
         if (solve_lidar_iter) {
             Model<> Lidar("Lidar");
             var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
@@ -2401,7 +2304,7 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             Constraint<> Opp_yaw("Opp_yaw");
             Opp_yaw += yaw1 + yaw2;
             Lidar.add(Opp_yaw==0);
-            bool L2Norm = axis=="full";
+            bool L2Norm = false;
             bool L1Norm = !L2Norm;
             
             if(L2Norm){
@@ -2444,41 +2347,46 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             }
             
             auto ids1 = yaw1.repeat_id(cells.size());
-            
-            /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
-            Constraint<> x_rot1("x_rot1");
-            x_rot1 += new_x1 - x_uav1.in(N1);
-            x_rot1 -= (x1.in(N1)-x_uav1.in(N1))*cos(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) - sin(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) + sin(yaw1.in(ids1))*sin(pitch1.in(ids1)));
-            Lidar.add(x_rot1.in(N1)==0);
-            
             auto ids2 = yaw2.repeat_id(cells.size());
             
-            Constraint<> x_rot2("x_rot2");
-            x_rot2 += new_x2 - x_uav2.in(N2);
-            x_rot2 -= (x2.in(N2)-x_uav2.in(N2))*cos(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) - sin(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) + sin(yaw2.in(ids2))*sin(pitch2.in(ids2)));
-            Lidar.add(x_rot2.in(N2)==0);
+            /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+            if(axis!="x"){
+                Constraint<> x_rot1("x_rot1");
+                x_rot1 += new_x1 - x_uav1.in(N1);
+                x_rot1 -= (x1.in(N1)-x_uav1.in(N1))*cos(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) - sin(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) + sin(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+                Lidar.add(x_rot1.in(N1)==0);
+                
             
+                Constraint<> x_rot2("x_rot2");
+                x_rot2 += new_x2 - x_uav2.in(N2);
+                x_rot2 -= (x2.in(N2)-x_uav2.in(N2))*cos(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) - sin(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) + sin(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+                Lidar.add(x_rot2.in(N2)==0);
+            }
             
-            Constraint<> y_rot1("y_rot1");
-            y_rot1 += new_y1 - y_uav1.in(N1);
-            y_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) + cos(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) - cos(yaw1.in(ids1))*sin(pitch1.in(ids1)));
-            Lidar.add(y_rot1.in(N1)==0);
+            if(axis!="y"){
+                Constraint<> y_rot1("y_rot1");
+                y_rot1 += new_y1 - y_uav1.in(N1);
+                y_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) + cos(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) - cos(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+                Lidar.add(y_rot1.in(N1)==0);
+                
+                Constraint<> y_rot2("y_rot2");
+                y_rot2 += new_y2 - y_uav2.in(N2);
+                y_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) + cos(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) - cos(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+                Lidar.add(y_rot2.in(N2)==0);
+            }
             
-            Constraint<> y_rot2("y_rot2");
-            y_rot2 += new_y2 - y_uav2.in(N2);
-            y_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) + cos(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) - cos(yaw2.in(ids2))*sin(pitch2.in(ids2)));
-            Lidar.add(y_rot2.in(N2)==0);
-            
-            Constraint<> z_rot1("z_rot1");
-            z_rot1 += new_z1 - z_uav1.in(N1);
-            z_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(-1*roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(roll1.in(ids1))*sin(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(roll1.in(ids1))*cos(pitch1.in(ids1)));
-            Lidar.add(z_rot1.in(N1)==0);
-            
-            
-            Constraint<> z_rot2("z_rot2");
-            z_rot2 += new_z2 - z_uav2.in(N2);
-            z_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(-1*roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(roll2.in(ids2))*sin(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(roll2.in(ids2))*cos(pitch2.in(ids2)));
-            Lidar.add(z_rot2.in(N2)==0);
+            if(axis!="z"){
+                Constraint<> z_rot1("z_rot1");
+                z_rot1 += new_z1 - z_uav1.in(N1);
+                z_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(-1*roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(roll1.in(ids1))*sin(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(roll1.in(ids1))*cos(pitch1.in(ids1)));
+                Lidar.add(z_rot1.in(N1)==0);
+                
+                
+                Constraint<> z_rot2("z_rot2");
+                z_rot2 += new_z2 - z_uav2.in(N2);
+                z_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(-1*roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(roll2.in(ids2))*sin(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(roll2.in(ids2))*cos(pitch2.in(ids2)));
+                Lidar.add(z_rot2.in(N2)==0);
+            }
             
             //    M.min(sum(z_diff)/nb_overlap);
             
@@ -2533,6 +2441,150 @@ tuple<double,double,double> run_ARMO(string axis, const vector<double>& x_vec1, 
             roll_1 = roll1.eval()*180/pi;
             pitch_1 = pitch1.eval()*180/pi;
             yaw_1 = yaw1.eval()*180/pi;
+        }
+        else if (solve_lidar_cube) {
+            Model<> Lidar("Lidar");
+            var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+            var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
+            //            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+            var<> mu("mu", pos_), mu_k("mu_k", pos_), delta("delta", pos_);
+            //                            var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
+            var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
+            //                var<> yaw1("yaw1", 0.25*pi/180, 0.25*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", -1.45*pi/180, -1.45*pi/180);
+            //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.5778*pi/180, -0.5778*pi/180), roll1("roll1", -1.44581*pi/180, -1.44581*pi/180);
+            //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.573231*pi/180, -0.573231*pi/180), roll1("roll1", -1.45338*pi/180, -1.45338*pi/180);
+            //                var<> yaw1("yaw1", 0.0249847*pi/180, 0.0249847*pi/180), pitch1("pitch1", -0.507086*pi/180, -0.507086*pi/180), roll1("roll1", -1.3698*pi/180, -1.3698*pi/180);
+            //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
+            var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
+            //            yaw1 = -0.5*pi/180;
+            //            pitch1 = 0.9*pi/180;
+            //            roll1 = 1.375*pi/180;
+            Lidar.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
+            Lidar.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
+            Lidar.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+            Lidar.add(new_x2.in(N2), new_y2.in(N2), new_z2.in(N2));
+            //            Lidar.add(x_diff.in(NM), y_diff.in(NM), z_diff.in(NM));
+            Lidar.add(delta.in(NM));
+            Lidar.add(mu.in(N1));
+            Lidar.add(mu_k.in(K));
+            
+            Constraint<> Equal_pitch("Equal_pitch");
+            Equal_pitch += pitch1 - pitch2;
+            Lidar.add(Equal_pitch==0);
+            
+            Constraint<> Opp_roll("Opp_roll");
+            Opp_roll += roll1 + roll2;
+            Lidar.add(Opp_roll==0);
+            
+            Constraint<> Opp_yaw("Opp_yaw");
+            Opp_yaw += yaw1 + yaw2;
+            Lidar.add(Opp_yaw==0);
+            
+            Constraint<> Mu_2("Mu_2");
+            Mu_2 += mu_k.in(S2) - gravity::min(delta.in(S1), delta.in(S2));
+            Lidar.add(Mu_2.in(S2)==0);
+            
+            Constraint<> Mu_k("Mu_k");
+            Mu_k += mu_k.in(S3m1) - gravity::min(mu_k.in(S2m2), delta.in(S3m1));
+            Lidar.add(Mu_k.in(S3m1)==0);
+            
+            Constraint<> Mu("Mu");
+            Mu += mu - gravity::min(mu_k.in(Sm1), delta.in(Sm));
+            Lidar.add(Mu.in(N1)==0);
+            
+            //                            Constraint<> Norm2("Norm2");
+            //                            Norm2 += delta - pow(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs),2) - pow(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs),2) - pow(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs),2);
+            //                            Lidar.add(Norm2.in(Pairs)==0);
+            
+            Constraint<> Norm1("Norm1");
+            Norm1 += delta - abs(new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs)) - abs(new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs)) - abs(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
+            //                Norm1 += delta - abs(new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
+            Lidar.add(Norm1.in(Pairs)==0);
+            
+            
+            //            Constraint<> z_abs1("z_abs1");
+            //            z_abs1 += z_diff - (new_z1.in_ignore_ith(1, 1, Pairs) - new_z2.in_ignore_ith(0, 1, Pairs));
+            //            Lidar.add(z_abs1.in(Pairs)>=0);
+            //
+            //            Constraint<> z_abs2("z_abs2");
+            //            z_abs2 += z_diff - (new_z2.in_ignore_ith(1, 0, Pairs) - new_z1.in_ignore_ith(1, 1, Pairs));
+            //            Lidar.add(z_abs2.in(Pairs)>=0);
+            //
+            //            Constraint<> x_abs1("x_abs1");
+            //            x_abs1 += x_diff - (new_x1.in_ignore_ith(1, 1, Pairs) - new_x2.in_ignore_ith(0, 1, Pairs));
+            //            Lidar.add(x_abs1.in(Pairs)>=0);
+            //
+            //            Constraint<> x_abs2("x_abs2");
+            //            x_abs2 += x_diff - (new_x2.in_ignore_ith(0, 1, Pairs) - new_x1.in_ignore_ith(1, 1, Pairs));
+            //            Lidar.add(x_abs2.in(Pairs)>=0);
+            //
+            //
+            //            Constraint<> y_abs1("y_abs1");
+            //            y_abs1 += y_diff - (new_y1.in_ignore_ith(1, 1, Pairs) - new_y2.in_ignore_ith(0, 1, Pairs));
+            //            Lidar.add(y_abs1.in(Pairs)>=0);
+            //
+            //            Constraint<> y_abs2("y_abs2");
+            //            y_abs2 += y_diff - (new_y2.in_ignore_ith(0, 1, Pairs) - new_y1.in_ignore_ith(1, 1, Pairs));
+            //            Lidar.add(y_abs2.in(Pairs)>=0);
+            
+            auto ids1 = yaw1.repeat_id(n1);
+            
+            /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+            Constraint<> x_rot1("x_rot1");
+            x_rot1 += new_x1 - x_uav1.in(N1);
+            x_rot1 -= (x1.in(N1)-x_uav1.in(N1))*cos(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) - sin(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) + sin(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+            Lidar.add(x_rot1.in(N1)==0);
+            
+            auto ids2 = yaw2.repeat_id(n2);
+            
+            Constraint<> x_rot2("x_rot2");
+            x_rot2 += new_x2 - x_uav2.in(N2);
+            x_rot2 -= (x2.in(N2)-x_uav2.in(N2))*cos(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) - sin(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) + sin(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+            Lidar.add(x_rot2.in(N2)==0);
+            
+            
+            Constraint<> y_rot1("y_rot1");
+            y_rot1 += new_y1 - y_uav1.in(N1);
+            y_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(yaw1.in(ids1))*cos(roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*sin(pitch1.in(ids1)) + cos(yaw1.in(ids1))*cos(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(sin(yaw1.in(ids1))*sin(roll1.in(ids1))*cos(pitch1.in(ids1)) - cos(yaw1.in(ids1))*sin(pitch1.in(ids1)));
+            Lidar.add(y_rot1.in(N1)==0);
+            
+            Constraint<> y_rot2("y_rot2");
+            y_rot2 += new_y2 - y_uav2.in(N2);
+            y_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(yaw2.in(ids2))*cos(roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*sin(pitch2.in(ids2)) + cos(yaw2.in(ids2))*cos(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(sin(yaw2.in(ids2))*sin(roll2.in(ids2))*cos(pitch2.in(ids2)) - cos(yaw2.in(ids2))*sin(pitch2.in(ids2)));
+            Lidar.add(y_rot2.in(N2)==0);
+            
+            Constraint<> z_rot1("z_rot1");
+            z_rot1 += new_z1 - z_uav1.in(N1);
+            z_rot1 -= (x1.in(N1)-x_uav1.in(N1))*sin(-1*roll1.in(ids1)) + (y1.in(N1)-y_uav1.in(N1))*(cos(roll1.in(ids1))*sin(pitch1.in(ids1))) + (z1.in(N1)-z_uav1.in(N1))*(cos(roll1.in(ids1))*cos(pitch1.in(ids1)));
+            Lidar.add(z_rot1.in(N1)==0);
+            
+            
+            Constraint<> z_rot2("z_rot2");
+            z_rot2 += new_z2 - z_uav2.in(N2);
+            z_rot2 -= (x2.in(N2)-x_uav2.in(N2))*sin(-1*roll2.in(ids2)) + (y2.in(N2)-y_uav2.in(N2))*(cos(roll2.in(ids2))*sin(pitch2.in(ids2))) + (z2.in(N2)-z_uav2.in(N2))*(cos(roll2.in(ids2))*cos(pitch2.in(ids2)));
+            Lidar.add(z_rot2.in(N2)==0);
+            
+            //            Lidar.min(sum(mu) + 1e2*pow(yaw1,2) + 1e2*pow(roll1,2) + 1e2*pow(pitch1,2));
+            //            Lidar.min(1e3*sum(mu) + (pow(yaw1,2) + pow(roll1,2) + pow(pitch1,2)));
+            Lidar.min(sum(mu));
+            
+            //            Lidar.print();
+            //            Lidar.initialize_zero();
+            //            return 0;
+            solver<> S(Lidar,ipopt);
+            //            S.set_option("tol", 1e-10);
+            //            S.run(5,1e-10);
+            S.run();
+            DebugOn("Pitch1 = " << pitch1.eval()*180/pi << endl);
+            DebugOn("Roll1 = " << roll1.eval()*180/pi << endl);
+            DebugOn("Yaw1 = " << yaw1.eval()*180/pi << endl);
+            DebugOn("Pitch2 = " << pitch2.eval()*180/pi << endl);
+            DebugOn("Roll2 = " << roll2.eval()*180/pi << endl);
+            DebugOn("Yaw2 = " << yaw2.eval()*180/pi << endl);
+            roll_1 = roll1.eval()*180/pi;
+            pitch_1 = pitch1.eval()*180/pi;
+            yaw_1 = yaw1.eval()*180/pi;
+            //            return 0;
         }
     }
     return {roll_1, pitch_1, yaw_1};
