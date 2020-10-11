@@ -117,37 +117,55 @@ int main (int argc, char * argv[])
     bool test_global = false;
     if (test_global) {
         vector<vector<double>> point_cloud_model, point_cloud_data;
-        point_cloud_model.resize(6);
-        for(int i = 0; i<6; i++){
+        point_cloud_model.resize(30);
+        for(int i = 0; i<30; i++){
             point_cloud_model[i].resize(3);
         }
         
-        point_cloud_model[0][0] = 0.1;
-        point_cloud_model[0][1] = 0.1;
-        point_cloud_model[0][2] = 0.1;
+        point_cloud_model[0][0] = 0.5;
+        point_cloud_model[0][1] = 0.5;
+        point_cloud_model[0][2] = 0;
         
-        point_cloud_model[1][0] = 0.1;
-        point_cloud_model[1][1] = 0.9;
-        point_cloud_model[1][2] = 0.1;
+        point_cloud_model[1][0] = 0.45;
+        point_cloud_model[1][1] = 0.45;
+        point_cloud_model[1][2] = 0.05;
         
-        point_cloud_model[2][0] = 0.9;
-        point_cloud_model[2][1] = 0.1;
-        point_cloud_model[2][2] = 0.1;
+        point_cloud_model[2][0] = 0.5;
+        point_cloud_model[2][1] = -0.5;
+        point_cloud_model[2][2] = 0;
         
-        point_cloud_model[3][0] = 0.9;
-        point_cloud_model[3][1] = 0.9;
-        point_cloud_model[3][2] = 0.1;
+        point_cloud_model[3][0] = 0.45;
+        point_cloud_model[3][1] = -0.45;
+        point_cloud_model[3][2] = 0.05;
         
-        point_cloud_model[4][0] = 0.5;
+        point_cloud_model[4][0] = -0.5;
         point_cloud_model[4][1] = 0.5;
-        point_cloud_model[4][2] = 0.9;
+        point_cloud_model[4][2] = 0;
         
-        point_cloud_model[5][0] = 0.5;
-        point_cloud_model[5][1] = 0.5;
-        point_cloud_model[5][2] = 0.8;
+        point_cloud_model[5][0] = -0.45;
+        point_cloud_model[5][1] = 0.45;
+        point_cloud_model[5][2] = 0.05;
         
+        point_cloud_model[6][0] = -0.5;
+        point_cloud_model[6][1] = -0.5;
+        point_cloud_model[6][2] = 0;
+        
+        point_cloud_model[7][0] = -0.45;
+        point_cloud_model[7][1] = -0.45;
+        point_cloud_model[7][2] = 0.05;
+        
+        for (int i = 8; i<30; i++) {
+            point_cloud_model[i][0] = 0;
+            point_cloud_model[i][1] = 0;
+            point_cloud_model[i][2] = 0.2 + i*0.05;
+        }
         point_cloud_data = point_cloud_model;
-        apply_rot_trans(40, -25, 25, 0.1, 0.04, 0.2, point_cloud_data);
+        /* Adding noise in model cloud */
+        point_cloud_model[0][0] += 0.1;
+        point_cloud_model[1][0] -= 0.1;
+        point_cloud_model[29][0] -= 0.1;
+        
+        apply_rot_trans(40, -25, 45, 0.1, -0.1, 0.2, point_cloud_data);
         plot(point_cloud_model,point_cloud_data,2);
         bool save_features = true;
         if(save_features){
@@ -155,44 +173,58 @@ int main (int argc, char * argv[])
             save_feature_file("toy_model", get<0>(res_model), get<1>(res_model));
             auto res_data = compute_features(point_cloud_data);
             save_feature_file("toy_data", get<0>(res_data), get<1>(res_data));
-            return 0;
+//            return 0;
         }
-//        auto res = run_GoICP(point_cloud_model,point_cloud_data);
-//        auto res = run_ARMO_Global(false, "full", point_cloud_model, point_cloud_data);
-        int nb_iter = 0, max_nb_iter = 10;
         double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1;
-        while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-1) {
-            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error before = " << L2error << endl);
-            auto res = run_ARMO(false, "full", point_cloud_model, point_cloud_data);
+        bool GoICP = false, MIQCP = true;
+        if(GoICP){
+            auto res = run_GoICP(point_cloud_model,point_cloud_data);
             roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error after = " << L2error << endl);
-            res = run_ARMO(false, "z", point_cloud_model, point_cloud_data);
+        }
+        if(MIQCP){
+            auto res = run_ARMO_Global(false, "full", point_cloud_model, point_cloud_data);
             roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error after = " << L2error << endl);
-            res = run_ARMO(false, "x", point_cloud_model, point_cloud_data);
-            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error after = " << L2error << endl);
-            res = run_ARMO(false, "y", point_cloud_model, point_cloud_data);
-            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error after = " << L2error << endl);
-            DebugOn("ITERATION " << nb_iter << endl);
-            nb_iter++;
+        }
+            else {
+            auto data_copy = point_cloud_data;
+            auto res = run_heuristic(point_cloud_model,data_copy,point_cloud_data);
+                
+//            while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-2) {
+//                auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+//                DebugOn("L2 error before = " << L2error << endl);
+//                auto res = run_ARMO(false, "full", point_cloud_model, point_cloud_data);
+//                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+//                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//                L2error = computeL2error(point_cloud_model,point_cloud_data);
+//                DebugOn("L2 error after = " << L2error << endl);
+//                res = run_ARMO(false, "z", point_cloud_model, point_cloud_data);
+//                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+//                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//                L2error = computeL2error(point_cloud_model,point_cloud_data);
+//                DebugOn("L2 error after = " << L2error << endl);
+//                res = run_ARMO(false, "x", point_cloud_model, point_cloud_data);
+//                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+//                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//                L2error = computeL2error(point_cloud_model,point_cloud_data);
+//                DebugOn("L2 error after = " << L2error << endl);
+//                res = run_ARMO(false, "y", point_cloud_model, point_cloud_data);
+//                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
+//                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//                L2error = computeL2error(point_cloud_model,point_cloud_data);
+//                DebugOn("L2 error after = " << L2error << endl);
+//                DebugOn("ITERATION " << nb_iter << endl);
+//                nb_iter++;
+//            }
         }
 //        auto res = run_ARMO_MINLP(false, "full", point_cloud_model, point_cloud_data);
-        
+        auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+        DebugOn("Final L2 error = " << L2error << endl);
         plot(point_cloud_model,point_cloud_data,2);
         return 0;
     }
-    bool Registration = true;/* Solve the Registration problem */
+    bool Registration = false;/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
@@ -303,33 +335,39 @@ int main (int argc, char * argv[])
 //            DebugOn("L2Error = " << L2error << endl);
         }
         else {
-            res1 = run_heuristic(ext_model,ext_data,point_cloud_data);
-//            auto L2error = computeL2error(ext_model,ext_data);
-//            DebugOn("L2 error with exterme set after = " << L2error << endl);
-//            L2error = computeL2error(point_cloud_model,point_cloud_data);
-//            DebugOn("L2 error with full set after = " << L2error << endl);
-            ext_data = get_n_extreme_points(100, point_cloud_data);
-            res2 = run_heuristic(point_cloud_model,ext_data,point_cloud_data);
-//            L2error = computeL2error(point_cloud_model,ext_data);
-//            DebugOn("L2 error with exterme set after = " << L2error << endl);
-            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 error with full set after = " << L2error << endl);
-            res = res1;
-            get<0>(res) += get<0>(res2);
-            get<1>(res) += get<1>(res2);
-            get<2>(res) += get<2>(res2);
-            get<3>(res) += get<3>(res2);
-            get<4>(res) += get<4>(res2);
-            get<5>(res) += get<5>(res2);
-            auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
-            DebugOn("Final Roll = " << roll << endl);
-            DebugOn("Final Pitch = " << pitch << endl);
-            DebugOn("Final Yaw = " << yaw << endl);
-            DebugOn("Final tx = " << x_shift << endl);
-            DebugOn("Final ty = " << y_shift << endl);
-            DebugOn("Final tz = " << z_shift << endl);
-//            plot(point_cloud_model,old_point_cloud);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, old_point_cloud);
+            if(global){
+//                res = run_ARMO_MINLP(false, "full", ext_model, ext_data);
+                res = run_ARMO_Global(false, "full", ext_model, ext_data);
+            }
+            else{
+                res1 = run_heuristic(ext_model,ext_data,point_cloud_data);
+    //            auto L2error = computeL2error(ext_model,ext_data);
+    //            DebugOn("L2 error with exterme set after = " << L2error << endl);
+    //            L2error = computeL2error(point_cloud_model,point_cloud_data);
+    //            DebugOn("L2 error with full set after = " << L2error << endl);
+                ext_data = get_n_extreme_points(100, point_cloud_data);
+                res2 = run_heuristic(point_cloud_model,ext_data,point_cloud_data);
+    //            L2error = computeL2error(point_cloud_model,ext_data);
+    //            DebugOn("L2 error with exterme set after = " << L2error << endl);
+                auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+                DebugOn("L2 error with full set after = " << L2error << endl);
+                res = res1;
+                get<0>(res) += get<0>(res2);
+                get<1>(res) += get<1>(res2);
+                get<2>(res) += get<2>(res2);
+                get<3>(res) += get<3>(res2);
+                get<4>(res) += get<4>(res2);
+                get<5>(res) += get<5>(res2);
+                auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+                DebugOn("Final Roll = " << roll << endl);
+                DebugOn("Final Pitch = " << pitch << endl);
+                DebugOn("Final Yaw = " << yaw << endl);
+                DebugOn("Final tx = " << x_shift << endl);
+                DebugOn("Final ty = " << y_shift << endl);
+                DebugOn("Final tz = " << z_shift << endl);
+    //            plot(point_cloud_model,old_point_cloud);
+                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, old_point_cloud);
+            }
             plot(point_cloud_model,old_point_cloud);
         }
         
@@ -1349,14 +1387,14 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
     
 void set_GoICP_options(GoICP& goicp){
     goicp.MSEThresh = 0.0001;
-    goicp.initNodeRot.a = -0.5;
-    goicp.initNodeRot.b = -0.5;
-    goicp.initNodeRot.c = -0.5;
-    goicp.initNodeRot.w = 1;
-    goicp.initNodeTrans.x = -0.01;
-    goicp.initNodeTrans.y = -0.01;
-    goicp.initNodeTrans.z = -0.01;
-    goicp.initNodeTrans.w = 0.02;
+    goicp.initNodeRot.a = -1;
+    goicp.initNodeRot.b = -1;
+    goicp.initNodeRot.c = -1;
+    goicp.initNodeRot.w = 2;
+    goicp.initNodeTrans.x = -0.25;
+    goicp.initNodeTrans.y = -0.25;
+    goicp.initNodeTrans.z = -0.25;
+    goicp.initNodeTrans.w = 1;
     goicp.trimFraction = 0;
 //    goicp.optError = 11;
     // If < 0.1% trimming specified, do no trimming
@@ -1469,7 +1507,7 @@ double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* 
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 3, shift_max = 0.25;
+    double angle_max = 1, shift_max = 0.25;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1553,9 +1591,9 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
     //        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
     //                Reg.add(z_diff.in(cells));
     DebugOn("There are " << cells.size() << " cells" << endl);
-//    for (int i = 0; i<6; i++) {
-//        bin(to_string(i+1)+","+to_string(i+1))=1;
-//    }
+    for (int i = 0; i<N1.size(); i++) {
+        bin(to_string(i+1)+","+to_string(i+1)).set_lb(1);//=1;
+    }
     
     
     Constraint<> DeltaMin("DeltaMin");
@@ -1597,9 +1635,9 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
     
 //    Reg.print();
     
-    solver<> S(Reg,bonmin);
+    solver<> S(Reg,ipopt);
     S.run();
-//    Reg.print_solution();
+    Reg.print_solution();
     //        S.run(0, 1e-10, 1000);
     
     
@@ -1639,7 +1677,7 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
 
 /* Run the Global ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 1, shift_max = 0.2;
+    double angle_max = 1, shift_max = 0.25;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1733,7 +1771,9 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
 //        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
     //                Reg.add(z_diff.in(cells));
     DebugOn("There are " << cells.size() << " cells" << endl);
-    
+//        for (int i = 0; i<nd; i++) {
+//            bin(to_string(i+1)+","+to_string(i+1)).set_lb(1);
+//        }
 //    for (int i = 0; i<nd; i++) {
 //        vector<var<>> delta_vec(nm);
 //        for (int j = 0; j<nm; j++) {
@@ -1753,6 +1793,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
+    
+//    Constraint<> OneBin2("OneBin2");
+//    OneBin2 = bin.in_matrix(0, 1);
+//    Reg.add(OneBin2.in(N1)==1);
     
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
@@ -1892,7 +1936,7 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
     DebugOff("thetaz = " << thetaz << endl);
     
     if(!bypass){
-        double angle_max = 0.5, shift_max = 0;
+        double angle_max = 1, shift_max = 0.25;
         double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
         int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
         size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
