@@ -6138,7 +6138,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
     int obbt_subproblem_count=0;
     double active_root_tol=1e-6, active_tol=1e-6;
-    double gap_old;
+    double gap_old=-999, gaplin=-999;
     bool share_obj;
     map<string, size_t> inst_old;
     int viol, constr_viol, viol_i;
@@ -6200,7 +6200,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-                            auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
+                            gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                             
                             if(lin_count>0 && (gap_old-gaplin)<=0.01 && false){
 #ifdef USE_MPI                                                                        
@@ -6242,12 +6242,20 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             break;
                         }
                         lin_count++;
-                        if(run_obbt_iter>1)
+                        if(run_obbt_iter>1){
+                            if(!share_cuts){
+#ifdef USE_MPI
+                                MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                                MPI_Bcast(&lower_bound_init, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+                                gaplin=100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
+#endif
+                            }
                             break;
+                        }
+                            
                     }
                     if(obbt_model->_status==0){
-                        lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-                        auto gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
+                        gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                         gap_old=gaplin;
                         DebugOff("Initial Number of oa cuts "<<oacuts<<endl);
                         DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
