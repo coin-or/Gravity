@@ -6200,6 +6200,19 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 2000);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                        }
+                        else{
+                            lower_bound_init=numeric_limits<double>::min();
+                        }
+                        if(run_obbt_iter>1){
+                            if(!share_cuts){
+#ifdef USE_MPI
+                                MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                                MPI_Bcast(&lower_bound_init, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+                            }
+                        }
+                        if(obbt_model->_status==0){
                             gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                             
                             if(lin_count>0 && (gap_old-gaplin)<=0.01 && false){
@@ -6243,13 +6256,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         }
                         lin_count++;
                         if(run_obbt_iter>1){
-                            if(!share_cuts){
-#ifdef USE_MPI
-                                MPI_Bcast(&obbt_model->_status, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                                MPI_Bcast(&lower_bound_init, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-                                gaplin=100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
-#endif
-                            }
                             break;
                         }
                             
