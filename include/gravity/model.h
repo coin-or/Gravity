@@ -2058,7 +2058,7 @@ namespace gravity {
                 
                 update_convexity(*newc);
                 newc->_violated.resize(newc->get_nb_inst(),true);
-                _cons_name[c.get_name()] = newc;
+                _cons_name[c.get_name()] = newc;                
                 if(*newc->_all_lazy && newc->_lazy.size()==0){
                     newc->_lazy.resize(newc->get_nb_inst(),true);
                     newc->allocate_mem();
