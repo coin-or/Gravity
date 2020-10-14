@@ -5976,7 +5976,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     const double gap_tol=rel_tol;
     //this->print();
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 0, ub_solver_tol, "ma27", 1000, 2000);
+    UB_solver.run(output = 0, ub_solver_tol, "ma27", 2000, 600);
     ub_scale_value=this->get_obj_val();
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
     scale_objective=true;
@@ -5988,7 +5988,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     
     //LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
     //LBnonlin_solver.set_option("check_violation", true);
-    LBnonlin_solver.run(output = 0 , lb_solver_tol, "ma27", 1000, 2000);
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, "ma27", 2000, 600);
     //        relaxed_model->print();
     //        relaxed_model->print_solution();
     //        exit(0);
@@ -6197,7 +6197,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         else if(lb_solver_type==gurobi){
                             LB_solver.set_option("gurobi_crossover", true);
                         }
-                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 1000, 2000);
+                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                         }
@@ -6402,7 +6402,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 limits=bounds_reassign(nb_workers_, objective_models, old_map);
                                             }
 #endif
-                                            while((viol==1) && (lin_count<4)){
+                                            while((viol==1) && (lin_count<8)){
                                                 if(lin_count>=1){
 #ifdef USE_MPI
                                                     if(worker_id==0){
@@ -6421,9 +6421,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 if(worker_id==0){
                                                     DebugOn("calling run mpi"<<endl);
                                                 }
-                                                run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",300,2000, share_obj);
+                                                run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 300, 2000);
+                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, 300);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 batch_time = batch_time_end - batch_time_start;
@@ -6721,7 +6721,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 solver<> LB_solver(obbt_model,lb_solver_type);
                                 //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                 //LB_solver.set_option("check_violation", true);
-                                LB_solver.run(output = 0, lb_solver_tol, "ma27", 1000, 2000);
+                                LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
                                 if(obbt_model->_status==0)
                                 {
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
@@ -6787,7 +6787,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         else if(lb_solver_type==gurobi){
                                             LB_solver.set_option("gurobi_crossover", true);
                                         }
-                                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 1000, 2000);
+                                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
                                         if(obbt_model->_status==0){
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
@@ -6993,7 +6993,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             else if(lb_solver_type==gurobi){
                                 LB_solver.set_option("gurobi_crossover", true);
                             }
-                            LB_solver.run(output = 0, lb_solver_tol, "ma27", 1000, 2000);
+                            LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
                             if(obbt_model->_status==0){
                                 lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                             }
