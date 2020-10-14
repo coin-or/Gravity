@@ -1902,7 +1902,7 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
                 models[count]->reindex();
                 vec.push_back(models[count++]);
             }
-            run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter);
+            run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter,max_batch_time);
         }
         MPI_Barrier(MPI_COMM_WORLD);
         send_status_new(models,limits, sol_status);
