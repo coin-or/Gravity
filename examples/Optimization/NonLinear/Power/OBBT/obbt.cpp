@@ -180,7 +180,7 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     bool scale_objective=true;
     bool termination=true;
-    //linearize=true;
+    linearize=true;
     //share_cuts=true;
     if(!linearize){
         auto nonlin_obj=true;

@@ -6337,7 +6337,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         }
                         batch_models.push_back(modelk);
                         batch_models.at(i)->set_name(to_string(i));
-                        solver<> solverk(modelk, lb_solver_type);
+                        solver<type> solverk(modelk, lb_solver_type);
                         batch_solvers.push_back(solverk);
                         
                     }
@@ -6622,7 +6622,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                                 if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
                                                                     mod->remove(con->_name);
                                                                 }
-                                                                mod->add(*con);
+                                                                Constraint<type> temp_c;
+                                                                temp_c.deep_copy(*con);
+                                                                mod->add(temp_c);
+                                                                //mod->add(*con);
                                                             }
                                                         }
                                                         mod->reset();
@@ -6878,7 +6881,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                     if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
                                                         mod->remove(con->_name);
                                                     }
-                                                    mod->add(*con);
+                                                    Constraint<type> temp_c;
+                                                    temp_c.deep_copy(*con);
+                                                    mod->add(temp_c);
                                                 }
                                             }
                                             mod->reset_constrs();
