@@ -6106,6 +6106,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #endif
     vector<shared_ptr<Model<>>> batch_models;
     batch_models.reserve(nb_threads);
+    vector<solver<>> batch_solvers;
+    batch_solvers.reserve(nb_threads);
     vector<string> objective_models, repeat_list;
     objective_models.reserve(nb_total_threads);
     repeat_list.reserve(nb_total_threads);
@@ -6335,6 +6337,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         }
                         batch_models.push_back(modelk);
                         batch_models.at(i)->set_name(to_string(i));
+                        solver<> solverk(modelk, lb_solver_type);
+                        batch_solvers.push_back(solverk);
+                        
                     }
                     //DebugOn("created model array"<<endl);
                     while(solver_time<=max_time && !terminate && iter<max_iter)
@@ -6423,7 +6428,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 }
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
 #else
-                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, 300);
+                                                run_parallel_new(objective_models, sol_obj, sol_status, batch_models,batch_solvers, lb_solver_type,obbt_subproblem_tol,nb_threads, "ma27", 2000, 300);
 #endif
                                                 double batch_time_end = get_wall_time();
                                                 batch_time = batch_time_end - batch_time_start;

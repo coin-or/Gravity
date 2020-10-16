@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
-    string solver_str="ipopt";
+    string solver_str="gurobi";
 #ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     op::OptionParser opt;
@@ -59,6 +59,7 @@ int main (int argc, char * argv[])
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
+    use_gurobi=true;
     
     
     /* Grid Stats */
@@ -183,7 +184,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_to.in(arcs));
+   // SOCP.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -215,6 +216,9 @@ int main (int argc, char * argv[])
         solver<> SCOPF_GRB(SOCP, gurobi);
         auto solver_time_start = get_wall_time();
         SCOPF_GRB.run(output = 5, tol = 1e-6);
+        SOCP.add(Thermal_Limit_to.in(arcs));
+        SOCP.reindex();
+        SCOPF_GRB.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;
@@ -224,7 +228,10 @@ int main (int argc, char * argv[])
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
         auto solver_time_start = get_wall_time();
-        SOCOPF.run(output, tol=1e-6);
+        SOCOPF.run(output=5, tol=1e-6);
+        SOCP.add(Thermal_Limit_to.in(arcs));
+        SOCP.reindex();
+        SOCOPF.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

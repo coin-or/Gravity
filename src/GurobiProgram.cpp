@@ -103,11 +103,11 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-    grb_mod->set(GRB_IntParam_Method, 0);
+    grb_mod->set(GRB_IntParam_Method, 1);
     if(!gurobi_crossover){
         grb_mod->set(GRB_IntParam_Crossover, 0);
     }
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{

@@ -285,6 +285,76 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 
+/* Runs models stored in the vector in parallel, using solver that is passed as argument */
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, vector<solver<>> &solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+    std::vector<thread> threads;
+    std::vector<bool> feasible;
+    std::vector<double> solution(models[0]->_nb_vars);
+    std::string mname, msname,vname, key, dir;
+    var<> var;
+    if(models.size()==0){
+        DebugOff("in run_parallel(models...), models is empty, returning");
+        return -1;
+    }
+    for (auto s=0;s<objective_models.size();s++){
+        msname=objective_models[s];
+        mname=msname;
+        std::size_t pos = msname.find("|");
+        vname.assign(msname, 0, pos);
+        msname=msname.substr(pos+1);
+        pos=msname.find("|");
+        key.assign(msname, 0, pos);
+        dir=msname.substr(pos+1);
+        var=models[s]->get_var<double>(vname);
+        models[s]->set_name(mname);
+        auto so=solvers.at(s);
+        so._model->_obj=models.at(s)->_obj;
+        so._model->_objt=models.at(s)->_objt;
+        if(dir=="LB")
+        {
+            models[s]->min(var(key));
+            so._model->min(var(key));
+        }
+        else
+        {
+            models[s]->max(var(key));
+            so._model->max(var(key));
+        }
+        models[s]->reindex();
+        
+
+        so._model->_obj->_new=true;
+        so._model->reset();
+        so._model->reindex();
+
+    }
+    /* Split models into nr_threads parts */
+    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
+    std::vector<size_t> limits = bounds(nr_threads_, models.size());
+    DebugOff("Running on " << nr_threads_ << " threads." << endl);
+    DebugOff("limits size = " << limits.size() << endl);
+    for (size_t i = 0; i < limits.size(); ++i) {
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+    }
+    /* Launch all threads in parallel */
+    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+    for (size_t i = 0; i < nr_threads_; ++i) {
+        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+    }
+    /* Join the threads with the main thread */
+    for(auto &t : threads){
+        t.join();
+    }
+    int count=0;
+    for(auto &m:models){
+        if(count<objective_models.size()){
+            sol_status.at(count)=m->_status;
+            sol_obj.at(count)=m->get_obj_val();
+            count++;
+        }
+    }
+    return 0;
+}
 
 /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
 int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
@@ -313,6 +383,34 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     }
     return 0;
 }
+
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+    std::vector<thread> threads;
+    std::vector<bool> feasible;
+    if(models.size()==0){
+        DebugOff("in run_parallel(models...), models is empty, returning");
+        return -1;
+    }
+    /* Split models into nr_threads parts */
+    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
+    std::vector<size_t> limits = bounds(nr_threads_, models.size());
+    DebugOff("Running on " << nr_threads_ << " threads." << endl);
+    DebugOff("limits size = " << limits.size() << endl);
+    for (size_t i = 0; i < limits.size(); ++i) {
+        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+    }
+    /* Launch all threads in parallel */
+    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+    for (size_t i = 0; i < nr_threads_; ++i) {
+        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+    }
+    /* Join the threads with the main thread */
+    for(auto &t : threads){
+        t.join();
+    }
+    return 0;
+}
+
 
 int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter){
     return run_parallel(models,stype,tol,nr_threads,"",max_iter);
@@ -1902,7 +2000,71 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
                 models[count]->reindex();
                 vec.push_back(models[count++]);
             }
-            run_parallel(vec,stype,tol,nr_threads,lin_solver,max_iter,max_batch_time);
+            run_parallel(vec,solvers,stype,tol,nr_threads,lin_solver,max_iter,max_batch_time);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        send_status_new(models,limits, sol_status);
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(share_all_obj){
+            /* We will send the objective value of successful models */
+            send_obj_all_new(models,limits, sol_obj);
+        }
+    }
+    //   MPI_Barrier(MPI_COMM_WORLD);
+    return max(err_rank, err_size);
+    
+}
+int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& solvers, const std::vector<size_t>& limits, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all_obj){
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+    auto nb_workers_ = std::min((size_t)nb_workers, objective_models.size());
+    if(nb_workers_!=limits.size()-1){
+        DebugOn("Error4 in computing limits");
+    }
+    std::string msname, mname, vname, key, dir;
+    var<> var;
+    if(objective_models.size()!=0){
+        /* Split models into equal loads */
+        //std::vector<size_t> limits = bounds(nb_workers_, objective_models.size());
+        DebugOff("I will be splitting " << objective_models.size() << " tasks ");
+        DebugOff("among " << nb_workers_ << " worker(s)" << endl);
+        DebugOff("limits size = " << limits.size() << endl);
+        for (size_t i = 0; i < limits.size(); ++i) {
+            DebugOff("limits[" << i << "] = " << limits[i] << endl);
+        }
+        if(worker_id+1<limits.size()){
+            /* Launch all threads in parallel */
+            if(limits[worker_id] == limits[worker_id+1]){
+                throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
+            }
+            DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+            int count=0;
+            auto vec = vector<shared_ptr<gravity::Model<double>>>();
+            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                msname=objective_models.at(i);
+                mname=msname;
+                std::size_t pos = msname.find("|");
+                vname.assign(msname, 0, pos);
+                msname=msname.substr(pos+1);
+                pos=msname.find("|");
+                key.assign(msname, 0, pos);
+                dir=msname.substr(pos+1);
+                var=models[count]->get_var<double>(vname);
+                if(dir=="LB")
+                {
+                    models[count]->min(var(key));
+                }
+                else
+                {
+                    models[count]->max(var(key));
+                    
+                }
+                models[count]->set_name(mname);
+                models[count]->reindex();
+                vec.push_back(models[count++]);
+            }
+            run_parallel(vec,solvers, stype,tol,nr_threads,lin_solver,max_iter,max_batch_time);
         }
         MPI_Barrier(MPI_COMM_WORLD);
         send_status_new(models,limits, sol_status);
