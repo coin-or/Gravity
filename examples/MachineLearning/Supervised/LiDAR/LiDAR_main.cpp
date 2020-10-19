@@ -166,7 +166,20 @@ int main (int argc, char * argv[])
         point_cloud_model[n-2][0] -= 0.1;
         
         apply_rot_trans(40, -25, 45, 0.1, -0.1, 0.2, point_cloud_data);
-        plot(point_cloud_model,point_cloud_data,2);
+//        plot(point_cloud_model,point_cloud_data,2);
+        
+        auto fname = "toy_model.txt";
+        std::ofstream modelFile(fname);
+        modelFile << point_cloud_model.size() << endl;
+        for (int i = 0; i<point_cloud_model.size(); i++) {
+            modelFile << point_cloud_model[i][0] << " " << point_cloud_model[i][1] << " " << point_cloud_model[i][2] << endl;
+        }
+        fname = "toy_data.txt";
+        std::ofstream dataFile(fname);
+        dataFile << point_cloud_data.size() << endl;
+        for (int i = 0; i<point_cloud_data.size(); i++) {
+            dataFile << point_cloud_data[i][0] << " " << point_cloud_data[i][1] << " " << point_cloud_data[i][2] << endl;
+        }
         auto L2error = computeL2error(point_cloud_model,point_cloud_data);
         auto L1error = computeL1error(point_cloud_model,point_cloud_data);
         DebugOn("Initial L2 error = " << L2error << endl);
@@ -180,7 +193,7 @@ int main (int argc, char * argv[])
 //            return 0;
         }
         double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1;
-        bool GoICP = false, MIQCP = true;
+        bool GoICP = false, MIQCP = false;
         if(GoICP){
             auto res = run_GoICP(point_cloud_model,point_cloud_data);
             roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
