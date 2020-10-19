@@ -126,124 +126,6 @@ int main (int argc, char * argv[])
 {
     
 
-    bool test_global = true;
-    if (test_global) {
-        vector<vector<double>> point_cloud_model, point_cloud_data;
-        int n = 5;
-        point_cloud_model.resize(n);
-        for(int i = 0; i<n; i++){
-            point_cloud_model[i].resize(3);
-        }
-        
-        point_cloud_model[0][0] = 0.5;
-        point_cloud_model[0][1] = 0.5;
-        point_cloud_model[0][2] = 0;
-        
-        point_cloud_model[1][0] = 0.5;
-        point_cloud_model[1][1] = -0.5;
-        point_cloud_model[1][2] = 0;
-        
-        
-        point_cloud_model[2][0] = -0.5;
-        point_cloud_model[2][1] = 0.5;
-        point_cloud_model[2][2] = 0;
-        
-        
-        point_cloud_model[3][0] = -0.5;
-        point_cloud_model[3][1] = -0.5;
-        point_cloud_model[3][2] = 0;
-        
-        
-        for (int i = 4; i<n; i++) {
-            point_cloud_model[i][0] = 0;
-            point_cloud_model[i][1] = 0;
-            point_cloud_model[i][2] = 0.2 + i*0.05;
-        }
-        point_cloud_data = point_cloud_model;
-        /* Adding noise in model cloud */
-        point_cloud_model[0][0] += 0.1;
-        point_cloud_model[1][0] -= 0.1;
-        point_cloud_model[n-2][0] -= 0.1;
-        
-        apply_rot_trans(40, -25, 45, 0.1, -0.1, 0.2, point_cloud_data);
-//        plot(point_cloud_model,point_cloud_data,2);
-        
-        auto fname = "toy_model.txt";
-        std::ofstream modelFile(fname);
-        modelFile << point_cloud_model.size() << endl;
-        for (int i = 0; i<point_cloud_model.size(); i++) {
-            modelFile << point_cloud_model[i][0] << " " << point_cloud_model[i][1] << " " << point_cloud_model[i][2] << endl;
-        }
-        fname = "toy_data.txt";
-        std::ofstream dataFile(fname);
-        dataFile << point_cloud_data.size() << endl;
-        for (int i = 0; i<point_cloud_data.size(); i++) {
-            dataFile << point_cloud_data[i][0] << " " << point_cloud_data[i][1] << " " << point_cloud_data[i][2] << endl;
-        }
-        auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-        auto L1error = computeL1error(point_cloud_model,point_cloud_data);
-        DebugOn("Initial L2 error = " << L2error << endl);
-        DebugOn("Initial L1 error = " << L1error << endl);
-        bool save_features = false;
-        if(save_features){
-            auto res_model = compute_features(point_cloud_model);
-            save_feature_file("toy_model", get<0>(res_model), get<1>(res_model));
-            auto res_data = compute_features(point_cloud_data);
-            save_feature_file("toy_data", get<0>(res_data), get<1>(res_data));
-//            return 0;
-        }
-        double roll = 0, pitch = 0, yaw = 0, x_shift = 0, y_shift = 0, z_shift = 1;
-        bool GoICP = false, MIQCP = false;
-        if(GoICP){
-            auto res = run_GoICP(point_cloud_model,point_cloud_data);
-            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        }
-        else if(MIQCP){
-            bool convex = false;
-            auto res = run_ARMO_Global(convex, "full", point_cloud_model, point_cloud_data);
-            roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-        }
-        else {
-            auto data_copy = point_cloud_data;
-            auto res = run_IPH(point_cloud_model,data_copy,point_cloud_data);
-            
-            //            while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)+std::abs(x_shift)+std::abs(y_shift)+std::abs(z_shift)>1e-2) {
-            //                auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-            //                DebugOn("L2 error before = " << L2error << endl);
-            //                auto res = run_ARMO(false, "full", point_cloud_model, point_cloud_data);
-            //                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            //                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            //                L2error = computeL2error(point_cloud_model,point_cloud_data);
-            //                DebugOn("L2 error after = " << L2error << endl);
-            //                res = run_ARMO(false, "z", point_cloud_model, point_cloud_data);
-            //                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            //                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            //                L2error = computeL2error(point_cloud_model,point_cloud_data);
-            //                DebugOn("L2 error after = " << L2error << endl);
-            //                res = run_ARMO(false, "x", point_cloud_model, point_cloud_data);
-            //                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            //                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            //                L2error = computeL2error(point_cloud_model,point_cloud_data);
-            //                DebugOn("L2 error after = " << L2error << endl);
-            //                res = run_ARMO(false, "y", point_cloud_model, point_cloud_data);
-            //                roll = get<0>(res); pitch = get<1>(res); yaw = get<2>(res); x_shift = get<3>(res); y_shift = get<4>(res); z_shift = get<5>(res);
-            //                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            //                L2error = computeL2error(point_cloud_model,point_cloud_data);
-            //                DebugOn("L2 error after = " << L2error << endl);
-            //                DebugOn("ITERATION " << nb_iter << endl);
-            //                nb_iter++;
-            //            }
-        }
-//        auto res = run_ARMO_MINLP(false, "full", point_cloud_model, point_cloud_data);
-        L2error = computeL2error(point_cloud_model,point_cloud_data);
-        L1error = computeL1error(point_cloud_model,point_cloud_data);
-        DebugOn("Final L2 error = " << L2error << endl);
-        DebugOn("Final L1 error = " << L1error << endl);
-        plot(point_cloud_model,point_cloud_data,2);
-        return 0;
-    }
     bool Registration = false;/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
@@ -310,699 +192,216 @@ int main (int argc, char * argv[])
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
         bool global = global_str=="global";
-        bool filter_extremes = (algo=="ARMO");
+        bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
         if (filter_extremes) {
             ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
             ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
         }
-        bool save_features = false;
-        if(save_features){
-            auto res_model = compute_features(ext_model);
-            save_feature_file("bunny_model", get<0>(res_model), get<1>(res_model));
-            auto res_data = compute_features(ext_data);
-            save_feature_file("bunny_data", get<0>(res_data), get<1>(res_data));
-            return 0;
-        }
-        /* Rotating and translating */
-        auto thetax = atan2(-0.0081669, -0.0084357)/2;
-        auto thetay = atan2(0.9999311, std::sqrt(0.0081669*0.0081669+0.0084357*0.0084357))/2;
-        auto thetaz = atan2(-0.0081462,-0.0084556)/2;
-        
-//        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, ext_data);
-//        apply_rot_trans(thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2, point_cloud_data);
-
-        
-        bool show_extremes = false;
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
         vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
-        if (show_extremes) {
-            plot(ext_model,ext_data,1);
-        }
-        
-        bool show_full_set = false;
-        if (show_full_set) {
-            plot(point_cloud_model,point_cloud_data);
-        }
         tuple<double,double,double,double,double,double> res, res1, res2;
         bool run_goICP = (algo=="GoICP");
         if(run_goICP){/* Run GoICP inline */
             res = run_GoICP(point_cloud_model, point_cloud_data);
             auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-//            auto L2error = computeL2error(point_cloud_model, point_cloud_data);
-//            DebugOn("L2Error = " << L2error << endl);
         }
         else {
             if(global){
-//                res = run_ARMO_MINLP(false, "full", ext_model, ext_data);
-                res = run_ARMO_Global(false, "full", ext_model, ext_data);
+                bool convex = true;
+                res = run_ARMO_Global(convex, "full", ext_model, ext_data);
             }
             else{
                 res1 = run_IPH(ext_model,ext_data,point_cloud_data);
-    //            auto L2error = computeL2error(ext_model,ext_data);
-    //            DebugOn("L2 error with exterme set after = " << L2error << endl);
-    //            L2error = computeL2error(point_cloud_model,point_cloud_data);
-    //            DebugOn("L2 error with full set after = " << L2error << endl);
                 ext_data = get_n_extreme_points(100, point_cloud_data);
                 res2 = run_IPH(point_cloud_model,ext_data,point_cloud_data);
-    //            L2error = computeL2error(point_cloud_model,ext_data);
-    //            DebugOn("L2 error with exterme set after = " << L2error << endl);
-                auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-                DebugOn("L2 error with full set after = " << L2error << endl);
-                res = res1;
-                get<0>(res) += get<0>(res2);
-                get<1>(res) += get<1>(res2);
-                get<2>(res) += get<2>(res2);
-                get<3>(res) += get<3>(res2);
-                get<4>(res) += get<4>(res2);
-                get<5>(res) += get<5>(res2);
-                auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
-                DebugOn("Final Roll = " << roll << endl);
-                DebugOn("Final Pitch = " << pitch << endl);
-                DebugOn("Final Yaw = " << yaw << endl);
-                DebugOn("Final tx = " << x_shift << endl);
-                DebugOn("Final ty = " << y_shift << endl);
-                DebugOn("Final tz = " << z_shift << endl);
-    //            plot(point_cloud_model,old_point_cloud);
-                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, old_point_cloud);
-            }
-            plot(point_cloud_model,old_point_cloud);
-        }
-        
-        bool show_after = true;
-        if (show_after) {
-            plot(point_cloud_model,ext_data,0.1);
-            plot(point_cloud_model,point_cloud_data);
-        }
-        bool save_file = false;
-        if(save_file){
-            DebugOn("Saving new las file");
-            //    LASreadOpener lasreadopener_final;
-            //    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
-            //    lasreadopener_final.set_populate_header(TRUE);
-            //    LASreader* lasreader = lasreadopener_final.open();
-            LASheader lasheader;
-            lasheader.global_encoding = 1;
-//            lasheader.x_scale_factor = 0.01;
-//            lasheader.y_scale_factor = 0.01;
-//            lasheader.z_scale_factor = 0.01;
-//            lasheader.x_offset =  500000.0;
-//            lasheader.y_offset = 4100000.0;
-//            lasheader.z_offset = 0.0;
-            lasheader.point_data_format = 1;
-            lasheader.point_data_record_length = 28;
-            
-            LASwriteOpener laswriteopener;
-            auto name = Model_file.substr(0,Model_file.find('.'));
-            if(run_goICP)
-                name += "_GoICP";
-            else
-                name += "_ARMO";
-            auto fname = name+".laz";
-            laswriteopener.set_file_name(fname.c_str());
-            LASwriter* laswriter = laswriteopener.open(&lasheader);
-            LASpoint laspoint;
-            laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
-            for (auto i = 0; i< x_vec0.size(); i++) {
-                laspoint.set_x(x_vec0[i]);
-                laspoint.set_y(y_vec0[i]);
-                laspoint.set_z(z_vec0[i]);
-                laswriter->write_point(&laspoint);
-                laswriter->update_inventory(&laspoint);
-            }
-            for (auto i = 0; i< x_vec1.size(); i++) {
-                laspoint.set_x(x_vec1[i]);
-                laspoint.set_y(y_vec1[i]);
-                laspoint.set_z(z_vec1[i]);
-                laswriter->write_point(&laspoint);
-                laswriter->update_inventory(&laspoint);
-            }
-            laswriter->update_header(&lasheader, TRUE);
-            laswriter->close();
-            delete laswriter;
-        }
-        
-        return 0;
-        
-    }
-    
-    bool show_umbrella = false;
-    if(show_umbrella){
-        vector<double> x_vec0, y_vec0, z_vec0, x_vec, y_vec, z_vec;
-        map<string, tuple<int,int,int>> mapping;
-        int x_min_idx, x_max_idx, y_min_idx, y_max_idx, z_min_idx, z_max_idx;
-        double x1 = 10;
-        double y1 = 10;
-        double z1 = 10;
-        x_vec0.push_back(x1);
-        y_vec0.push_back(y1);
-        z_vec0.push_back(z1);
-        for (int a = 0; a < 10; a++){
-            x_vec0.push_back(a);
-            y_vec0.push_back(a);
-            z_vec0.push_back(a);
-        }
-        double x_rot1, y_rot1, z_rot1, x_min = numeric_limits<double>::max(), x_max = numeric_limits<double>::lowest(), y_min = numeric_limits<double>::max(), y_max = numeric_limits<double>::lowest(), z_min = numeric_limits<double>::max(), z_max = numeric_limits<double>::lowest();
-        double angles[] = {0, 0.5, -0.5};
-        //      list<double> mylist (angles,angles+3);
-        for (int a = 0; a < 3; a++){
-            for (int b = 0; b <3; b++){
-                for (int c = 0; c <3; c++){
-                    
-                    x_rot1 = x1*cos(angles[a])*cos(angles[b]) + y1*(cos(angles[a])*sin(angles[b])*sin(angles[c]) - sin(angles[a])*cos(angles[c])) + z1*(cos(angles[a])*sin(angles[b])*cos(angles[c]) + sin(angles[a])*sin(angles[c]));
-                    
-                    y_rot1 = x1*sin(angles[a])*cos(angles[b]) + y1*(sin(angles[a])*sin(angles[b])*sin(angles[c]) + cos(angles[a])*cos(angles[c])) + z1*(sin(angles[a])*sin(angles[b])*cos(angles[c]) - cos(angles[a])*sin(angles[c]));
-                    
-                    z_rot1 = x1*sin(-1*angles[b]) + y1*(cos(angles[b])*sin(angles[c])) + z1*(cos(angles[b])*cos(angles[c]));
-                    
-                    x_vec.push_back(x_rot1);
-                    y_vec.push_back(y_rot1);
-                    z_vec.push_back(z_rot1);
-                    if(x_min>x_rot1){
-                        x_min = x_rot1;
-                        x_min_idx = x_vec.size()-1;
-                        mapping["x_min"] = {a,b,c};
-                    }
-                    if(y_min>y_rot1){
-                        y_min = y_rot1;
-                        y_min_idx = x_vec.size()-1;
-                        mapping["y_min"] = {a,b,c};
-                    }
-                    if(z_min>z_rot1){
-                        z_min = z_rot1;
-                        z_min_idx = x_vec.size()-1;
-                        mapping["z_min"] = {a,b,c};
-                    }
-                    if(x_max<x_rot1){
-                        x_max = x_rot1;
-                        x_max_idx = x_vec.size()-1;
-                        mapping["x_max"] = {a,b,c};
-                    }
-                    if(y_max<y_rot1){
-                        y_max = y_rot1;
-                        y_max_idx = x_vec.size()-1;
-                        mapping["y_max"] = {a,b,c};
-                    }
-                    if(z_max<z_rot1){
-                        z_max = z_rot1;
-                        z_max_idx = x_vec.size()-1;
-                        mapping["z_max"] = {a,b,c};
-                    }
-                }
             }
         }
-        x_vec0.push_back(x_vec.at(x_min_idx));
-        y_vec0.push_back(y_vec.at(x_min_idx));
-        z_vec0.push_back(z_vec.at(x_min_idx));
-        x_vec0.push_back(x_vec.at(x_max_idx));
-        y_vec0.push_back(y_vec.at(x_max_idx));
-        z_vec0.push_back(z_vec.at(x_max_idx));
-        x_vec0.push_back(x_vec.at(y_min_idx));
-        y_vec0.push_back(y_vec.at(y_min_idx));
-        z_vec0.push_back(z_vec.at(y_min_idx));
-        x_vec0.push_back(x_vec.at(y_max_idx));
-        y_vec0.push_back(y_vec.at(y_max_idx));
-        z_vec0.push_back(z_vec.at(y_max_idx));
-        x_vec0.push_back(x_vec.at(z_min_idx));
-        y_vec0.push_back(y_vec.at(z_min_idx));
-        z_vec0.push_back(z_vec.at(z_min_idx));
-        x_vec0.push_back(x_vec.at(z_max_idx));
-        y_vec0.push_back(y_vec.at(z_max_idx));
-        z_vec0.push_back(z_vec.at(z_max_idx));
-        DebugOn("Extreme points mapping:" << endl);
-        for (const auto &triplets: mapping) {
-            DebugOn("(" << angles[get<0>(triplets.second)] << "," << angles[get<1>(triplets.second)] << "," << angles[get<2>(triplets.second)] << ")" << endl);
+        bool compute_L2_error = false;
+        if(compute_L2_error){
+            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 error with full set after = " << L2error << endl);
         }
-        
-        
-        angles[1] = 0.1;
-        angles[2] = -0.1;
-        //      list<double> mylist (angles,angles+3);
-        for (int a = 0; a < 3; a++){
-            for (int b = 0; b <3; b++){
-                for (int c = 0; c <3; c++){
-                    
-                    x_rot1 = x1*cos(angles[a])*cos(angles[b]) + y1*(cos(angles[a])*sin(angles[b])*sin(angles[c]) - sin(angles[a])*cos(angles[c])) + z1*(cos(angles[a])*sin(angles[b])*cos(angles[c]) + sin(angles[a])*sin(angles[c]));
-                    
-                    y_rot1 = x1*sin(angles[a])*cos(angles[b]) + y1*(sin(angles[a])*sin(angles[b])*sin(angles[c]) + cos(angles[a])*cos(angles[c])) + z1*(sin(angles[a])*sin(angles[b])*cos(angles[c]) - cos(angles[a])*sin(angles[c]));
-                    
-                    z_rot1 = x1*sin(-1*angles[b]) + y1*(cos(angles[b])*sin(angles[c])) + z1*(cos(angles[b])*cos(angles[c]));
-                    
-                    x_vec.push_back(x_rot1);
-                    y_vec.push_back(y_rot1);
-                    z_vec.push_back(z_rot1);
-                }}}
-        
-        angles[1] = 0.25;
-        angles[2] = -0.25;
-        //      list<double> mylist (angles,angles+3);
-        for (int a = 0; a < 3; a++){
-            for (int b = 0; b <3; b++){
-                for (int c = 0; c <3; c++){
-                    
-                    x_rot1 = x1*cos(angles[a])*cos(angles[b]) + y1*(cos(angles[a])*sin(angles[b])*sin(angles[c]) - sin(angles[a])*cos(angles[c])) + z1*(cos(angles[a])*sin(angles[b])*cos(angles[c]) + sin(angles[a])*sin(angles[c]));
-                    
-                    y_rot1 = x1*sin(angles[a])*cos(angles[b]) + y1*(sin(angles[a])*sin(angles[b])*sin(angles[c]) + cos(angles[a])*cos(angles[c])) + z1*(sin(angles[a])*sin(angles[b])*cos(angles[c]) - cos(angles[a])*sin(angles[c]));
-                    
-                    z_rot1 = x1*sin(-1*angles[b]) + y1*(cos(angles[b])*sin(angles[c])) + z1*(cos(angles[b])*cos(angles[c]));
-                    
-                    x_vec.push_back(x_rot1);
-                    y_vec.push_back(y_rot1);
-                    z_vec.push_back(z_rot1);
-                }}}
-        
-        
-        
-        
-        namespace plt = matplotlibcpp;
-        
-        std::map<std::string, std::string> keywords, keywords2;
-        keywords["marker"] = "s";
-        keywords["linestyle"] = "None";
-        keywords["ms"] = "2";
-        plt::plot3(x_vec0, y_vec0, z_vec0, x_vec, y_vec, z_vec, keywords);
-        
-        //    keywords2["marker"] = "s";
-        //    keywords2["ms"] = "0.1";
-        
-        plt::show();
         return 0;
     }
-    
-    
-    
-    int output = 0;
-    double tol = 1e-6;
-    bool optimize = true;
-    double solver_time_end, total_time_end, solve_time, total_time;
-    int grid_step = 1;
-    map<pair<double,double>,tuple<int,double,double,double,UAVPoint*>> grid1, grid2, grid; /* Grid with all cells where <x,y> is the key and <nb_measurements, min_z, max_z, av_z> is the cell data */
-    int ground_z = 0;
-    
-    bool two_txt_files = false;
-    if(two_txt_files){
-        vector<vector<double>> point_cloud1, point_cloud2;
-        string Model_file = string(prj_dir)+"/data_sets/LiDAR/model.txt";
-        string Data_file = string(prj_dir)+"/data_sets/LiDAR/data.txt";
-        string algo = "ARMO", global_str = "local";
-        if(argc>1){
-            Model_file = argv[1];
-        }
-        if(argc>2){
-            Data_file = argv[2];
-        }
-        if(argc>3){
-            algo = argv[3];
-        }
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        int model_nb_rows = Model_doc.GetRowCount();
-        int data_nb_rows = Data_doc.GetRowCount();
-        if(model_nb_rows<3){
-            throw invalid_argument("Model file with less than 2 points");
-            return 0;
-        }
-        if(data_nb_rows<3){
-            throw invalid_argument("Data file with less than 2 points");
-            return 0;
-        }
-        DebugOn("Model file has " << model_nb_rows-1 << " rows" << endl);
-        DebugOn("Data file has " << data_nb_rows-1 << " rows" << endl);
-        int row0 = 0;
-        if(skip_first_line)
-            row0 = 1;
-        point_cloud1.resize(model_nb_rows-2);
-        for (int i = row0; i< model_nb_rows-1; i++) { // Input iterator
-            auto x = Model_doc.GetCell<double>(0, i);
-            auto y = Model_doc.GetCell<double>(1, i);
-            auto z = Model_doc.GetCell<double>(2, i);
-            point_cloud1[i-1].resize(3);
-            point_cloud1[i-1][0] = x;
-            point_cloud1[i-1][1] = y;
-            point_cloud1[i-1][2] = z;
-        }
-        point_cloud2.resize(data_nb_rows-2);
-        for (int i = row0; i< data_nb_rows-1; i++) { // Input iterator
-            auto x = Data_doc.GetCell<double>(0, i);
-            auto y = Data_doc.GetCell<double>(1, i);
-            auto z = Data_doc.GetCell<double>(2, i);
-            point_cloud2[i-1].resize(3);
-            point_cloud2[i-1][0] = x;
-            point_cloud2[i-1][1] = y;
-            point_cloud2[i-1][2] = z;
-        }
-    }
-    
-    bool one_csv_file = true;
-    
-    if(one_csv_file){
-        string CSV_file = string(prj_dir)+"/data_sets/LiDAR/CSV_Export.csv";
-        if(argc>1){
-            CSV_file = argv[1];
-        }
-        bool bypass = false;
-        if(argc>2){
-            bypass = true;
-        }
-        rapidcsv::Document  CSV_data(CSV_file, rapidcsv::LabelParams(0, -1));
-        int nb_rows = CSV_data.GetRowCount();
-        if(nb_rows<2){
-            throw invalid_argument("csv file with less than 2 points");
-            return 0;
-        }
-        DebugOn("csv file has " << nb_rows << " rows" << endl);
-        DebugOn("csv file has " << CSV_data.GetColumnCount() << " columns" << endl);
-        /* Values below are used to identify u-turns in drone flight */
-        bool neg_x = false;/* x is decreasing */
-        bool neg_y = false;/* y is decreasing */
-        
-        vector<UAVPoint*> UAVPoints;
-        vector<LidarPoint*> LidarPoints;
-        map<int,shared_ptr<Frame>> frames;
-        map<int,shared_ptr<Frame>> frames1, frames2;
-        vector<double> uav_x, uav_y, uav_z;
-        vector<double> uav_x1, uav_y1, uav_z1;
-//        vector<double> old_x_vec1,old_y_vec1,old_z_vec1;
-//        vector<double> old_x_vec2,old_y_vec2,old_z_vec2;
-//        vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
-//        vector<double> x_vec2,y_vec2,z_vec2,zmin_vec2,zmax_vec2;
-        vector<double> x_vec1_r,y_vec1_r,z_vec1_r;
-        vector<double> x_vec2_r,y_vec2_r,z_vec2_r;
-        vector<double> x_shift1_r,y_shift1_r,z_shift1_r;
-        vector<double> x_shift2_r,y_shift2_r,z_shift2_r;
-        vector<double> x_shift,y_shift,z_shift;
-        vector<double> x_shift1,y_shift1,z_shift1;
-        vector<double> x_shift2,y_shift2,z_shift2;
-        vector<double> x_shift_all1,y_shift_all1,z_shift_all1;
-        vector<double> x_shift_all2,y_shift_all2,z_shift_all2;
-        vector<double> uav_roll1,uav_pitch1,uav_yaw1;
-        vector<double> uav_roll2,uav_pitch2,uav_yaw2;
-        vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
-        set<double> timestamps;
-        size_t uav_id = 0;
-        bool new_uav = true, u_turn = false, frame1 = true;
-        double unix_time, delta_x = 0, delta_y = 0;
-        double scale = 1e-2;
-        pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
-        for (int i = 0; i< nb_rows-1; i++) { // Input iterator
-            auto laser_id = CSV_data.GetCell<int>("LaserID", i);
-//            if(laser_id!=15){/* Only keep points from Nadir laser */
-//                continue;
-//            }
-            
-            
-            auto frame_id = CSV_data.GetCell<int>(0, i);
-            unix_time = CSV_data.GetCell<double>("Time", i);
-            new_uav = (uav_id==0) || (UAVPoints[uav_id-1]->_frame_id != frame_id);
-            if(new_uav){
-                auto uav_x1 = CSV_data.GetCell<double>("Track_UTM_E", i)*scale;
-                auto uav_y1 = CSV_data.GetCell<double>("Track_UTM_N", i)*scale;
-                if(UAVPoints.size()==2){
-                    auto uav_x0 = UAVPoints.back()->_x;
-                    auto uav_y0 = UAVPoints.back()->_y;
-                    neg_x = (uav_x1 - uav_x0) < 0;/* x is decreasing */
-                    neg_y = (uav_y1 - uav_y0) < 0;/* y is decreasing */
-                }
-                else if(UAVPoints.size()>2){
-                    auto uav_x0 = UAVPoints.back()->_x;
-                    auto uav_y0 = UAVPoints.back()->_y;
-                    bool neg_x_new = (uav_x1 - uav_x0) < 0;/* x is decreasing */
-                    bool neg_y_new = (uav_y1 - uav_y0) < 0;/* y is decreasing */
-                    if(neg_x_new!=neg_x || neg_y_new!=neg_y){/* A U turn is being detected */
-                        u_turn = true;
-                        frame1 = false;
-                        neg_x = neg_x_new;
-                        neg_y = neg_y_new;
-                    }
-                    else {
-                        u_turn = false;
-                    }
-                }
-                UAVPoints.push_back(new UAVPoint());
-                UAVPoints[uav_id]->_frame_id = frame_id;
-                UAVPoints[uav_id]->_x = uav_x1;
-                UAVPoints[uav_id]->_y = uav_y1;
-                UAVPoints[uav_id]->_height = CSV_data.GetCell<double>("Track_UTM_Height", i)*scale;
-                UAVPoints[uav_id]->set_unix_time(unix_time);
-                if(uav_id>0){
-                    UAVPoints[uav_id]->_prev = UAVPoints[uav_id-1];
-                    UAVPoints[uav_id-1]->_next = UAVPoints[uav_id];
-                }
-                uav_x.push_back(UAVPoints[uav_id]->_x);
-                uav_y.push_back(UAVPoints[uav_id]->_y);
-                uav_z.push_back(UAVPoints[uav_id]->_height);
-                frame_ptr = frames.insert(make_pair(UAVPoints[uav_id]->_frame_id, make_shared<Frame>(UAVPoints[uav_id]->_frame_id, UAVPoints[uav_id]->_unix_time)));
-                frame_ptr.first->second->add_UAV_point(UAVPoints[uav_id]);
-                if(frame1){/* Has not performed a u-turn yet, keep adding to frames1 */
-                    frames1.insert(make_pair(frame_ptr.first->second->_id, frame_ptr.first->second));
-                    DebugOff("Frame " << frame_ptr.first->first << " in flight line 1" << endl);
-                }
-                else{/* Already turned, keep adding to frames2 */
-                    frames2.insert(make_pair(frame_ptr.first->second->_id, frame_ptr.first->second));
-                    DebugOff("Frame " << frame_ptr.first->first << " in flight line 2" << endl);
-                }
-                if(u_turn){
-                    DebugOn("Detected a Uturn at frame " << frame_ptr.first->first << endl);
-                }
-                uav_id++;
-            }
-            
-            auto xpos = CSV_data.GetCell<double>("UTM_E", i)*scale;
-            auto ypos = CSV_data.GetCell<double>("UTM_N", i)*scale;
-            auto zpos = CSV_data.GetCell<double>("UTM_Height", i)*scale;
-            LidarPoints.push_back(new LidarPoint(laser_id,unix_time,xpos,ypos,zpos));
-            frame_ptr.first->second->add_lidar_point(LidarPoints.back());
-            LidarPoints.back()->_uav_pt = frame_ptr.first->second->_uav_point;
-            
-            //                uav_x1.push_back((frame_ptr.first->second._uav_points.front()->_longitude+582690.8242)*1e-5);
-            //                uav_y1.push_back((frame_ptr.first->second._uav_points.front()->_latitude+4107963.58)*1e-5);
-            //                uav_z1.push_back(frame_ptr.first->second._uav_points.front()->_height*100);
-        }
-        DebugOn("Read " << uav_id << " frames" << endl);
-        DebugOn(frames1.size() << " frames in flight line 1" << endl);
-        DebugOn(frames2.size() << " frames in flight line 2" << endl);
-        DebugOn(LidarPoints.size() << " lidar points read" << endl);
-        
-        vector<vector<double>> point_cloud1, point_cloud2, uav1, uav2;
-        vector<vector<double>> full_point_cloud1, full_point_cloud2, full_uav1, full_uav2;
-        auto name = CSV_file.substr(0,CSV_file.find('.'));
-        auto fname = name+"_model.txt";
-//        std::ofstream modelFile(fname);
-//        modelFile << "laser_id  x   y   z   INS_x   INS_y   INS_z" << endl;
-        int nb_pts_per_frame1 = 0, nb_pts_per_frame2 = 0, idx1 = 1, idx2 = 1;
-        double coef = 0;
-        int multip = nb_rows/2e4;
-        for (const auto &frame: frames1) {
-            if (frame.second->_id == frames1.rbegin()->first) {/* Ignore last frame */
-                continue;
-            }
-            nb_pts_per_frame1 += frame.second->_lidar_points->size();
-            int i = 0;
-            for (const auto &p: *frame.second->_lidar_points) {
-//                if(i%10==0 && p->_laser_id==15){
-                if(i%multip==0 && p->_laser_id>6 && p->_laser_id<23){
-//                if(i%multip==0){
-//                if(true){
-                    point_cloud1.push_back({p->_x, p->_y, p->_z});
-                    uav1.push_back({frame.second->_uav_point->_x, frame.second->_uav_point->_y, frame.second->_uav_point->_height});
-                }
-                full_point_cloud1.push_back({p->_x, p->_y, p->_z});
-                full_uav1.push_back({frame.second->_uav_point->_x, frame.second->_uav_point->_y, frame.second->_uav_point->_height});
-//                modelFile << p->_laser_id << " " << p->_x << " " << p->_y<< " " << p->_z << " " << frame.second->_uav_point->_x<< " " << frame.second->_uav_point->_y<< " " << frame.second->_uav_point->_height << "\n";
-                i++;
-            }
-            
-        }
-//        fname = name+"_data.txt";
-//        std::ofstream dataFile(fname);
-//        dataFile << "laser_id  x   y   z   INS_x   INS_y   INS_z" << endl;
-        DebugOff("last frame id = " << frames2.rbegin()->first << endl);
-        for (const auto &frame: frames2) {
-            if (frame.second->_id == frames2.rbegin()->first) {/* Ignore last frame */
-                continue;
-            }
-            nb_pts_per_frame2 += frame.second->_lidar_points->size();
-            int i = 0;
-            for (auto const &p: *frame.second->_lidar_points) {
-//                if(true){
-                if(i%multip==0 && p->_laser_id>6 && p->_laser_id<23){
-//                if(i%multip==0){
-                    point_cloud2.push_back({p->_x, p->_y, p->_z});
-                    uav2.push_back({frame.second->_uav_point->_x, frame.second->_uav_point->_y, frame.second->_uav_point->_height});
-                }
-                full_point_cloud2.push_back({p->_x, p->_y, p->_z});
-                full_uav2.push_back({frame.second->_uav_point->_x, frame.second->_uav_point->_y, frame.second->_uav_point->_height});
-//                dataFile << p->_laser_id << " " << p->_x << " " << p->_y<< " " << p->_z << " " << frame.second->_uav_point->_x<< " " << frame.second->_uav_point->_y<< " " << frame.second->_uav_point->_height << "\n";
-                i++;
-            }
-        }
-        if(frames1.size()!=0)
-            DebugOn("Average number of points per frame in flight line 1 = " << nb_pts_per_frame1/frames1.size() << endl);
-        if(frames2.size()!=0)
-            DebugOn("Average number of points per frame in flight line 2 = " << nb_pts_per_frame2/frames2.size() << endl);
-        DebugOn("Number of points in flight line 1 = " << point_cloud1.size() << endl);
-        DebugOn("Number of points in flight line 2 = " << point_cloud2.size() << endl);
-        bool show_full_set = false;
-        if (show_full_set) {
-            plot(point_cloud1,point_cloud2);
-        }
-        
-       
-        
-        bool scale_data = false;
-        if(scale_data){
-            auto Nm = point_cloud1.size();
-            auto Nd = point_cloud2.size();
-            POINT3D * pModel, * pData, * pFullData;
-            // Load model and data point clouds
-            pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
-            double avg_x = 0, avg_y = 0, avg_z = 0;
-            double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
-            double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
-            for(int i = 0; i < Nm; i++)
-            {
-                pModel[i].x  = point_cloud1[i][0];
-                avg_x += pModel[i].x;
-                pModel[i].y  = point_cloud1[i][1];
-                avg_y += pModel[i].y;
-                pModel[i].z = point_cloud1[i][2];
-                avg_z += pModel[i].z;
-            }
-            avg_x /= Nm;avg_y /= Nm;avg_z /= Nm;
-            centralize(Nm, &pModel, avg_x, avg_y, avg_z);
-            avg_x = 0;avg_y = 0;avg_z = 0;
-            pData = (POINT3D *)malloc(sizeof(POINT3D) * Nd);
-            for(int i = 0; i < Nd; i++)
-            {
-                pData[i].x  = point_cloud2[i][0];
-                avg_x += pData[i].x;
-                pData[i].y  = point_cloud2[i][1];
-                avg_y += pData[i].y;
-                pData[i].z = point_cloud2[i][2];
-                avg_z += pData[i].z;
-            }
-            avg_x /= Nd;avg_y /= Nd;avg_z /= Nd;
-            centralize(Nd, &pData, avg_x, avg_y, avg_z);
-            unit_scale(Nm, &pModel, Nd, &pData);
-            /* TODO: Update pointcloud1 and pointcloud2 */
-        }
-        
-        bool run_goICP = false;
-        if(run_goICP){/* Run GoICP inline */
-            run_GoICP(point_cloud1, point_cloud2);
-        }
-        double final_roll = 0, final_pitch = 0, final_yaw = 0;
-        double total_time =0, time_start = 0, time_end = 0;
-        double L2error_init = 0, L1error_init = 0;
-        if(!bypass){
-           
-            L2error_init = computeL2error(point_cloud1,point_cloud2);
-            L1error_init = computeL1error(point_cloud1,point_cloud2);
-            DebugOn("Initial L2 error = " << L2error_init << endl);
-            DebugOn("Initial L1 error = " << L2error_init << endl);
-            time_start = get_wall_time();
-            auto res = run_IPH(point_cloud1, point_cloud2, uav1, uav2);
-            final_roll = get<0>(res);final_pitch = get<1>(res); final_yaw = get<2>(res);
-        }
-        auto L2error = computeL2error(point_cloud1,point_cloud2);
-        auto L1error = computeL1error(point_cloud1,point_cloud2);
-        DebugOn("n1 = " << point_cloud1.size() << endl);
-        DebugOn("n2 = " << point_cloud2.size() << endl);
-        DebugOn("Initial L2 error = " << L2error_init << endl);
-        DebugOn("Final L2 error = " << L2error << endl);
-        DebugOn("Relative L2 gap = " << 100*(L2error_init-L2error)/L2error_init << "%" << endl);
-        DebugOn("Initial L1 error = " << L1error_init << endl);
-        DebugOn("Final L1 error = " << L1error << endl);
-        DebugOn("Relative L1 gap = " << 100*(L1error_init-L1error)/L1error_init << "%" << endl);
-        time_end = get_wall_time();
-        DebugOn("Total wall clock time = " << time_end - time_start << endl);
-        double shifted_x, shifted_y, shifted_z;
-        auto tot_pts = full_point_cloud1.size()+full_point_cloud2.size();
-        x_combined.resize(tot_pts);
-        y_combined.resize(tot_pts);
-        z_combined.resize(tot_pts);
-        
-        
-        double beta = final_roll*pi/180;// roll in radians
-        double gamma = final_pitch*pi/180; // pitch in radians
-        double alpha = final_yaw*pi/180; // yaw in radians
 
-        int n1 = full_point_cloud1.size(), n2 = full_point_cloud2.size();
-        for (auto i = 0; i< n1; i++) {
-            shifted_x = full_point_cloud1[i][0] - full_uav1[i][0];
-            shifted_y = full_point_cloud1[i][1] - full_uav1[i][1];
-            shifted_z = full_point_cloud1[i][2] - full_uav1[i][2];
-            x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-            y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-            z_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-            x_combined[i] += full_uav1[i][0];
-            y_combined[i] += full_uav1[i][1];
-            z_combined[i] += full_uav1[i][2];
+    /* Boresight Alignment Problem */
+    vector<vector<double>> full_point_cloud1, full_point_cloud2;
+    vector<vector<double>> point_cloud1, point_cloud2;
+    vector<vector<double>> full_uav1, full_uav2;
+    vector<vector<double>> uav1, uav2;
+    string Model_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
+    string Data_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
+    string algo = "ARMO", global_str = "local";
+    if(argc>1){
+        Model_file = argv[1];
+    }
+    if(argc>2){
+        Data_file = argv[2];
+    }
+    if(argc>3){
+        algo = argv[3];
+    }
+    rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+    rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+    int model_nb_rows = Model_doc.GetRowCount();
+    int data_nb_rows = Data_doc.GetRowCount();
+    if(model_nb_rows<3){
+        throw invalid_argument("Model file with less than 2 points");
+        return 0;
+    }
+    if(data_nb_rows<3){
+        throw invalid_argument("Data file with less than 2 points");
+        return 0;
+    }
+    DebugOn("Model file has " << model_nb_rows-1 << " rows" << endl);
+    DebugOn("Data file has " << data_nb_rows-1 << " rows" << endl);
+    full_point_cloud1.resize(model_nb_rows-2);
+    full_uav1.resize(model_nb_rows-2);
+    int multip = (model_nb_rows+data_nb_rows-2)/2e4;
+    for (int i = 1; i< model_nb_rows-1; i++) { // Input iterator
+        auto laser_id = Model_doc.GetCell<int>(0, i);
+        auto x = Model_doc.GetCell<double>(1, i);
+        auto y = Model_doc.GetCell<double>(2, i);
+        auto z = Model_doc.GetCell<double>(3, i);
+        auto uav_x = Model_doc.GetCell<double>(4, i);
+        auto uav_y = Model_doc.GetCell<double>(5, i);
+        auto uav_z = Model_doc.GetCell<double>(6, i);
+        full_point_cloud1[i-1].resize(3);
+        full_point_cloud1[i-1][0] = x;
+        full_point_cloud1[i-1][1] = y;
+        full_point_cloud1[i-1][2] = z;
+        full_uav1[i-1].resize(3);
+        full_uav1[i-1][0] = uav_x;
+        full_uav1[i-1][1] = uav_y;
+        full_uav1[i-1][2] = uav_z;
+        if(i%multip==1 && laser_id>6 && laser_id<23){
+            point_cloud1.push_back({x, y, z});
+            uav1.push_back({uav_x, uav_y, uav_z});
         }
-        beta *= -1;
-        alpha *= -1;
-        for (auto i = 0; i< n2; i++) {
-            shifted_x = full_point_cloud2[i][0] - full_uav2[i][0];
-            shifted_y = full_point_cloud2[i][1] - full_uav2[i][1];
-            shifted_z = full_point_cloud2[i][2] - full_uav2[i][2];
-            x_combined[n1+i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-            y_combined[n1+i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-            z_combined[n1+i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-            x_combined[n1+i] += full_uav2[i][0];
-            y_combined[n1+i] += full_uav2[i][1];
-            z_combined[n1+i] += full_uav2[i][2];
+    }
+    full_point_cloud2.resize(data_nb_rows-2);
+    full_uav2.resize(data_nb_rows-2);
+    for (int i = 1; i< data_nb_rows-1; i++) { // Input iterator
+        auto laser_id = Data_doc.GetCell<int>(0, i);
+        auto x = Data_doc.GetCell<double>(1, i);
+        auto y = Data_doc.GetCell<double>(2, i);
+        auto z = Data_doc.GetCell<double>(3, i);
+        auto uav_x = Data_doc.GetCell<double>(4, i);
+        auto uav_y = Data_doc.GetCell<double>(5, i);
+        auto uav_z = Data_doc.GetCell<double>(6, i);
+        full_point_cloud2[i-1].resize(3);
+        full_point_cloud2[i-1][0] = x;
+        full_point_cloud2[i-1][1] = y;
+        full_point_cloud2[i-1][2] = z;
+        full_uav2[i-1].resize(3);
+        full_uav2[i-1][0] = uav_x;
+        full_uav2[i-1][1] = uav_y;
+        full_uav2[i-1][2] = uav_z;
+        if(i%multip==1 && laser_id>6 && laser_id<23){
+            point_cloud2.push_back({x, y, z});
+            uav2.push_back({uav_x, uav_y, uav_z});
         }
-        for (auto p : LidarPoints)
-        {
-            delete p;
-        }
-        LidarPoints.clear();
-        for (auto p : UAVPoints)
-        {
-            delete p;
-        }
-        UAVPoints.clear();
+    }
+    
+    bool run_goICP = false;
+    if(run_goICP){/* Run GoICP inline */
+        run_GoICP(point_cloud1, point_cloud2);
+    }
+    double final_roll = 0, final_pitch = 0, final_yaw = 0;
+    double total_time =0, time_start = 0, time_end = 0;
+    double L2error_init = 0, L1error_init = 0;
+    L2error_init = computeL2error(point_cloud1,point_cloud2);
+    L1error_init = computeL1error(point_cloud1,point_cloud2);
+    DebugOn("Initial L2 error = " << L2error_init << endl);
+    DebugOn("Initial L1 error = " << L1error_init << endl);
+    time_start = get_wall_time();
+    auto res = run_IPH(point_cloud1, point_cloud2, uav1, uav2);
+    final_roll = get<0>(res);final_pitch = get<1>(res); final_yaw = get<2>(res);
+    auto L2error = computeL2error(point_cloud1,point_cloud2);
+    auto L1error = computeL1error(point_cloud1,point_cloud2);
+    DebugOn("n1 = " << point_cloud1.size() << endl);
+    DebugOn("n2 = " << point_cloud2.size() << endl);
+    DebugOn("Initial L2 error = " << L2error_init << endl);
+    DebugOn("Final L2 error = " << L2error << endl);
+    DebugOn("Relative L2 gap = " << 100*(L2error_init-L2error)/L2error_init << "%" << endl);
+    DebugOn("Initial L1 error = " << L1error_init << endl);
+    DebugOn("Final L1 error = " << L1error << endl);
+    DebugOn("Relative L1 gap = " << 100*(L1error_init-L1error)/L1error_init << "%" << endl);
+    time_end = get_wall_time();
+    DebugOn("Total wall clock time = " << time_end - time_start << endl);
+    double shifted_x, shifted_y, shifted_z;
+    auto tot_pts = full_point_cloud1.size()+full_point_cloud2.size();
+    vector<double> x_combined,y_combined,z_combined;
+    x_combined.resize(tot_pts);
+    y_combined.resize(tot_pts);
+    z_combined.resize(tot_pts);
+    
+    
+    double beta = final_roll*pi/180;// roll in radians
+    double gamma = final_pitch*pi/180; // pitch in radians
+    double alpha = final_yaw*pi/180; // yaw in radians
+
+    int n1 = full_point_cloud1.size(), n2 = full_point_cloud2.size();
+    for (auto i = 0; i< n1; i++) {
+        shifted_x = full_point_cloud1[i][0] - full_uav1[i][0];
+        shifted_y = full_point_cloud1[i][1] - full_uav1[i][1];
+        shifted_z = full_point_cloud1[i][2] - full_uav1[i][2];
+        x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+        z_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+        x_combined[i] += full_uav1[i][0];
+        y_combined[i] += full_uav1[i][1];
+        z_combined[i] += full_uav1[i][2];
+    }
+    beta *= -1;
+    alpha *= -1;
+    for (auto i = 0; i< n2; i++) {
+        shifted_x = full_point_cloud2[i][0] - full_uav2[i][0];
+        shifted_y = full_point_cloud2[i][1] - full_uav2[i][1];
+        shifted_z = full_point_cloud2[i][2] - full_uav2[i][2];
+        x_combined[n1+i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        y_combined[n1+i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+        z_combined[n1+i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+        x_combined[n1+i] += full_uav2[i][0];
+        y_combined[n1+i] += full_uav2[i][1];
+        z_combined[n1+i] += full_uav2[i][2];
+    }
+    
+    bool save_file = true;
+    if(save_file){
+        DebugOn("Saving new las file\n");
+        LASheader lasheader;
+        lasheader.global_encoding = 1;
+        lasheader.x_scale_factor = 0.01;
+        lasheader.y_scale_factor = 0.01;
+        lasheader.z_scale_factor = 0.01;
+        lasheader.x_offset =  500000.0;
+        lasheader.y_offset = 4100000.0;
+        lasheader.z_offset = 0.0;
+        lasheader.point_data_format = 1;
+        lasheader.point_data_record_length = 28;
         
-        bool save_file = true;
-        if(save_file){
-            DebugOn("Saving new las file\n");
-            //    LASreadOpener lasreadopener_final;
-            //    lasreadopener_final.set_file_name(LiDAR_file1.c_str());
-            //    lasreadopener_final.set_populate_header(TRUE);
-            //    LASreader* lasreader = lasreadopener_final.open();
-            LASheader lasheader;
-            lasheader.global_encoding = 1;
-            lasheader.x_scale_factor = 0.01;
-            lasheader.y_scale_factor = 0.01;
-            lasheader.z_scale_factor = 0.01;
-            lasheader.x_offset =  500000.0;
-            lasheader.y_offset = 4100000.0;
-            lasheader.z_offset = 0.0;
-            lasheader.point_data_format = 1;
-            lasheader.point_data_record_length = 28;
-            
-            LASwriteOpener laswriteopener;
-            DebugOn("Final Roll = " << final_roll << ", final Pitch = " << final_pitch << ", final Yaw = " << final_yaw << endl);
-            auto name = CSV_file.substr(0,CSV_file.find('.'));
-            auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
-            laswriteopener.set_file_name(fname.c_str());
-            LASwriter* laswriter = laswriteopener.open(&lasheader);
-            LASpoint laspoint;
-            laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
-            for (auto i = 0; i< x_combined.size(); i++) {
-                laspoint.set_x(x_combined[i]*1/scale);
-                laspoint.set_y(y_combined[i]*1/scale);
-                laspoint.set_z(z_combined[i]*1/scale);
-                laswriter->write_point(&laspoint);
-                laswriter->update_inventory(&laspoint);
-            }
-            laswriter->update_header(&lasheader, TRUE);
-            laswriter->close();
-            delete laswriter;
+        LASwriteOpener laswriteopener;
+        DebugOn("Final Roll = " << final_roll << ", final Pitch = " << final_pitch << ", final Yaw = " << final_yaw << endl);
+        auto name = Model_file.substr(0,Model_file.find('.'));
+        auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
+        laswriteopener.set_file_name(fname.c_str());
+        LASwriter* laswriter = laswriteopener.open(&lasheader);
+        LASpoint laspoint;
+        laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+        for (auto i = 0; i< x_combined.size(); i++) {
+            laspoint.set_x(x_combined[i]);
+            laspoint.set_y(y_combined[i]);
+            laspoint.set_z(z_combined[i]);
+            laswriter->write_point(&laspoint);
+            laswriter->update_inventory(&laspoint);
         }
-        
+        laswriter->update_header(&lasheader, TRUE);
+        laswriter->close();
+        delete laswriter;
     }
     return 0;
 }
