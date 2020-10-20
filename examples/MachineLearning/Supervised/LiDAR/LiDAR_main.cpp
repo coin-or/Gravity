@@ -159,8 +159,8 @@ int main (int argc, char * argv[])
         if(argc>6){
             convex_str = argv[6];
         }
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(-1, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(-1, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){
@@ -2302,15 +2302,15 @@ tuple<double,double,double,double,double,double> run_IPH(const vector<vector<dou
         nb_iter++;
         DebugOn("ITERATION " << nb_iter << endl);
     }
-    DebugOn("Final Roll (degrees) = " << final_roll << endl);
-    DebugOn("Final Pitch (degrees) = " << final_pitch << endl);
-    DebugOn("Final Yaw (degrees) = " << final_yaw << endl);
-    DebugOn("Final Roll (radians)= " << final_roll *pi/180 << endl);
-    DebugOn("Final Pitch (radians) = " << final_pitch *pi/180 << endl);
-    DebugOn("Final Yaw (radians) = " << final_yaw *pi/180 << endl);
-    DebugOn("Final x shift = " << final_x_shift << endl);
-    DebugOn("Final y shift = " << final_y_shift << endl);
-    DebugOn("Final z shift = " << final_z_shift << endl);
+    Debug("Final Roll (degrees) = " << final_roll << endl);
+    Debug("Final Pitch (degrees) = " << final_pitch << endl);
+    Debug("Final Yaw (degrees) = " << final_yaw << endl);
+    Debug("Final Roll (radians)= " << final_roll *pi/180 << endl);
+    Debug("Final Pitch (radians) = " << final_pitch *pi/180 << endl);
+    Debug("Final Yaw (radians) = " << final_yaw *pi/180 << endl);
+    Debug("Final x shift = " << final_x_shift << endl);
+    Debug("Final y shift = " << final_y_shift << endl);
+    Debug("Final z shift = " << final_z_shift << endl);
     return {final_roll,final_pitch,final_yaw,final_x_shift,final_y_shift,final_z_shift};
 }
 
@@ -2399,10 +2399,10 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
         throw invalid_argument("Input file with less than 2 points");
         return 0;
     }
-    DebugOn("Input file has " << model_nb_rows-1 << " rows" << endl);
-    point_cloud.resize(model_nb_rows-2);
-    uav.resize(model_nb_rows-2);
-    for (int i = 1; i< model_nb_rows-1; i++) {
+    DebugOn("Input file has " << model_nb_rows << " rows" << endl);
+    point_cloud.resize(model_nb_rows);
+    uav.resize(model_nb_rows);
+    for (int i = 0; i< model_nb_rows; i++) {
         auto laser_id = Model_doc.GetCell<int>(0, i);
         auto x = Model_doc.GetCell<double>(1, i);
         auto y = Model_doc.GetCell<double>(2, i);
@@ -2410,14 +2410,14 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
         auto uav_x = Model_doc.GetCell<double>(4, i);
         auto uav_y = Model_doc.GetCell<double>(5, i);
         auto uav_z = Model_doc.GetCell<double>(6, i);
-        point_cloud[i-1].resize(3);
-        point_cloud[i-1][0] = x;
-        point_cloud[i-1][1] = y;
-        point_cloud[i-1][2] = z;
-        uav[i-1].resize(3);
-        uav[i-1][0] = uav_x;
-        uav[i-1][1] = uav_y;
-        uav[i-1][2] = uav_z;
+        point_cloud[i].resize(3);
+        point_cloud[i][0] = x;
+        point_cloud[i][1] = y;
+        point_cloud[i][2] = z;
+        uav[i].resize(3);
+        uav[i][0] = uav_x;
+        uav[i][1] = uav_y;
+        uav[i][2] = uav_z;
     }
 }
 
