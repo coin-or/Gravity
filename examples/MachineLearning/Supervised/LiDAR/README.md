@@ -3,7 +3,17 @@
 ## ARMO
 Follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity) then run using the follwing command:
 
-`Gravity/bin/Release/lidar Cars_model.txt Cars_data.txt Cars_model_sub.txt Cars_data_sub.txt ARMO local`
+For Registration:
+
+`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global` (This will run the convex MIQCP relaxation model)
+
+or
+
+`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt GoICP` (This will run the Go-ICP algorithm)
+
+For Boresight Alignment:
+
+`Gravity/bin/Release/lidar Align Cars_model.txt Cars_data.txt Cars_model_sub.txt Cars_data_sub.txt`
 
 The first two command line arguments should point to the full point clouds, the second two should point to the subsampled point clouds.
 
