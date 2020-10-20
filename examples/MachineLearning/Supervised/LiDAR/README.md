@@ -5,7 +5,11 @@ Follow the instructions to compile Gravity [here](https://github.com/coin-or/Gra
 
 For Registration:
 
-`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global` (This will run the convex MIQCP relaxation model)
+`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
+
+or 
+
+`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
 
 or
 
