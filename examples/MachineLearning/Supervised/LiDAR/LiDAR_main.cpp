@@ -33,10 +33,10 @@ using namespace std;
 
 
 /* Read input files */
-void read_data(const rapidcsv::Document& doc,vector<vector<double>>& point_cloud, const vector<vector<double>>& uav);
+void read_data(const rapidcsv::Document& doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav);
 
 /* Save LAZ files */
-void save_laz(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
+void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 /* Set the different options for GoICP  */
 void set_GoICP_options(GoICP & goicp);
@@ -299,7 +299,9 @@ int main (int argc, char * argv[])
     
     bool save_file = true;
     if(save_file){
-        save_laz(full_point_cloud1, full_point_cloud2, full_uav1, full_uav2);
+        auto name = Model_file.substr(0,Model_file.find('.'));
+        auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
+        save_laz(fname,full_point_cloud1, full_point_cloud2);
     }
     return 0;
 }
@@ -2403,7 +2405,7 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
 
 
 /* Save LAZ files */
-void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
+void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2){
     DebugOn("Saving new las file\n");
     LASheader lasheader;
     lasheader.global_encoding = 1;
@@ -2423,10 +2425,17 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
     LASwriter* laswriter = laswriteopener.open(&lasheader);
     LASpoint laspoint;
     laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
-    for (auto i = 0; i< x_combined.size(); i++) {
-        laspoint.set_x(x_combined[i]*1e2);
-        laspoint.set_y(y_combined[i]*1e2);
-        laspoint.set_z(z_combined[i]*1e2);
+    for (auto i = 0; i< n1; i++) {
+        laspoint.set_x(point_cloud1[i][0]*1e2);
+        laspoint.set_y(point_cloud1[i][1]*1e2);
+        laspoint.set_z(point_cloud1[i][2]*1e2);
+        laswriter->write_point(&laspoint);
+        laswriter->update_inventory(&laspoint);
+    }
+    for (auto i = 0; i< n2; i++) {
+        laspoint.set_x(point_cloud2[i][0]*1e2);
+        laspoint.set_y(point_cloud2[i][1]*1e2);
+        laspoint.set_z(point_cloud2[i][2]*1e2);
         laswriter->write_point(&laspoint);
         laswriter->update_inventory(&laspoint);
     }
