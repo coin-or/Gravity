@@ -131,30 +131,36 @@ void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointN
 
 int main (int argc, char * argv[])
 {
+    string prob_type = "Align";
+    if(argc>1){
+        prob_type = argv[1];
+    }
     
-
-    bool Registration = false;/* Solve the Registration problem */
+    bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/data.txt";
-        string algo = "ARMO", global_str = "local";
-        if(argc>1){
-            Model_file = argv[1];
-        }
+        string algo = "ARMO", global_str = "local", convex_str = "nonconvex";
         if(argc>2){
-            Data_file = argv[2];
+            Model_file = argv[2];
         }
         if(argc>3){
-            algo = argv[3];
+            Data_file = argv[3];
         }
         if(argc>4){
-            global_str = argv[4];
+            algo = argv[4];
         }
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        if(argc>5){
+            global_str = argv[5];
+        }
+        if(argc>6){
+            convex_str = argv[6];
+        }
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(-1, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(-1, -1),rapidcsv::SeparatorParams(' '));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){
@@ -165,36 +171,34 @@ int main (int argc, char * argv[])
             throw invalid_argument("Data file with less than 2 points");
             return 0;
         }
-        DebugOn("Model file has " << model_nb_rows-1 << " rows" << endl);
-        DebugOn("Data file has " << data_nb_rows-1 << " rows" << endl);
+        DebugOn("Model file has " << model_nb_rows << " rows" << endl);
+        DebugOn("Data file has " << data_nb_rows << " rows" << endl);
         int row0 = 0;
-        if(skip_first_line)
-            row0 = 1;
-        point_cloud_model.resize(model_nb_rows-2);
-        for (int i = row0; i< model_nb_rows-1; i++) { // Input iterator
+        point_cloud_model.resize(model_nb_rows);
+        for (int i = row0; i< model_nb_rows; i++) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
             auto y = Model_doc.GetCell<double>(1, i);
             auto z = Model_doc.GetCell<double>(2, i);
             x_vec0.push_back(x);
             y_vec0.push_back(y);
             z_vec0.push_back(z);
-            point_cloud_model[i-1].resize(3);
-            point_cloud_model[i-1][0] = x;
-            point_cloud_model[i-1][1] = y;
-            point_cloud_model[i-1][2] = z;
+            point_cloud_model[i].resize(3);
+            point_cloud_model[i][0] = x;
+            point_cloud_model[i][1] = y;
+            point_cloud_model[i][2] = z;
         }
-        point_cloud_data.resize(data_nb_rows-2);
-        for (int i = row0; i< data_nb_rows-1; i++) { // Input iterator
+        point_cloud_data.resize(data_nb_rows);
+        for (int i = row0; i< data_nb_rows; i++) { // Input iterator
             auto x = Data_doc.GetCell<double>(0, i);
             auto y = Data_doc.GetCell<double>(1, i);
             auto z = Data_doc.GetCell<double>(2, i);
             x_vec1.push_back(x);
             y_vec1.push_back(y);
             z_vec1.push_back(z);
-            point_cloud_data[i-1].resize(3);
-            point_cloud_data[i-1][0] = x;
-            point_cloud_data[i-1][1] = y;
-            point_cloud_data[i-1][2] = z;
+            point_cloud_data[i].resize(3);
+            point_cloud_data[i][0] = x;
+            point_cloud_data[i][1] = y;
+            point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
@@ -209,6 +213,10 @@ int main (int argc, char * argv[])
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
         vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
         tuple<double,double,double,double,double,double> res, res1, res2;
+        
+        auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
+        DebugOn("L2 before Registration = " << L2error_init << endl);
+        
         bool run_goICP = (algo=="GoICP");
         if(run_goICP){/* Run GoICP inline */
             res = run_GoICP(point_cloud_model, point_cloud_data);
@@ -217,18 +225,23 @@ int main (int argc, char * argv[])
         }
         else {
             if(global){
-                bool convex = true;
+                bool convex = convex_str=="convex";
                 res = run_ARMO_Global(convex, "full", ext_model, ext_data);
+                auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             }
             else{
                 res1 = run_IPH(ext_model,ext_data,point_cloud_data);
-                ext_data = get_n_extreme_points(100, point_cloud_data);
-                res2 = run_IPH(point_cloud_model,ext_data,point_cloud_data);
+                if(filter_extremes){
+                    ext_data = get_n_extreme_points(100, point_cloud_data);
+                    res2 = run_IPH(point_cloud_model,ext_data,point_cloud_data);
+                }
             }
         }
-        bool compute_L2_error = false;
+        bool compute_L2_error = true;
         if(compute_L2_error){
             auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 before Registration = " << L2error_init << endl);
             DebugOn("L2 error with full set after = " << L2error << endl);
         }
         return 0;
@@ -244,27 +257,30 @@ int main (int argc, char * argv[])
     string red_Model_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
     string red_Data_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
     string algo = "ARMO", global_str = "local";
-    if(argc>1){
-        Model_file = argv[1];
-    }
     if(argc>2){
-        Data_file = argv[2];
+        Model_file = argv[2];
     }
     if(argc>3){
-        red_Model_file = argv[3];
+        Data_file = argv[3];
     }
     if(argc>4){
-        red_Data_file = argv[4];
+        red_Model_file = argv[4];
+        rapidcsv::Document  red_Model_doc(red_Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        read_data(red_Model_doc, point_cloud1, uav1);
+    }
+    if(argc>5){
+        red_Data_file = argv[5];
+        rapidcsv::Document  red_Data_doc(red_Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        read_data(red_Data_doc, point_cloud2, uav2);
+        
     }
     rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
     rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-    rapidcsv::Document  red_Model_doc(red_Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-    rapidcsv::Document  red_Data_doc(red_Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+    
     
     read_data(Model_doc, full_point_cloud1, full_uav1);
-    read_data(red_Model_doc, point_cloud1, uav1);
     read_data(Data_doc, full_point_cloud2, full_uav2);
-    read_data(red_Data_doc, point_cloud2, uav2);
+    
     
     
     bool run_goICP = false;
@@ -302,6 +318,8 @@ int main (int argc, char * argv[])
         auto name = Model_file.substr(0,Model_file.find('.'));
         auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
         save_laz(fname,full_point_cloud1, full_point_cloud2);
+        fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+"_sub.laz";
+        save_laz(fname,point_cloud1, point_cloud2);
     }
     return 0;
 }
