@@ -31,6 +31,13 @@ using namespace std;
 #define DEFAULT_MODEL_FNAME "model.txt"
 #define DEFAULT_DATA_FNAME "data.txt"
 
+
+/* Read input files */
+void read_data(const rapidcsv::Document& doc,vector<vector<double>>& point_cloud, const vector<vector<double>>& uav);
+
+/* Save LAZ files */
+void save_laz(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
+
 /* Set the different options for GoICP  */
 void set_GoICP_options(GoICP & goicp);
 
@@ -234,6 +241,8 @@ int main (int argc, char * argv[])
     vector<vector<double>> uav1, uav2;
     string Model_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
     string Data_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
+    string red_Model_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
+    string red_Data_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
     string algo = "ARMO", global_str = "local";
     if(argc>1){
         Model_file = argv[1];
@@ -242,69 +251,21 @@ int main (int argc, char * argv[])
         Data_file = argv[2];
     }
     if(argc>3){
-        algo = argv[3];
+        red_Model_file = argv[3];
+    }
+    if(argc>4){
+        red_Data_file = argv[4];
     }
     rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
     rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-    int model_nb_rows = Model_doc.GetRowCount();
-    int data_nb_rows = Data_doc.GetRowCount();
-    if(model_nb_rows<3){
-        throw invalid_argument("Model file with less than 2 points");
-        return 0;
-    }
-    if(data_nb_rows<3){
-        throw invalid_argument("Data file with less than 2 points");
-        return 0;
-    }
-    DebugOn("Model file has " << model_nb_rows-1 << " rows" << endl);
-    DebugOn("Data file has " << data_nb_rows-1 << " rows" << endl);
-    full_point_cloud1.resize(model_nb_rows-2);
-    full_uav1.resize(model_nb_rows-2);
-    int multip = (model_nb_rows+data_nb_rows-2)/2e4;
-    for (int i = 1; i< model_nb_rows-1; i++) { // Input iterator
-        auto laser_id = Model_doc.GetCell<int>(0, i);
-        auto x = Model_doc.GetCell<double>(1, i);
-        auto y = Model_doc.GetCell<double>(2, i);
-        auto z = Model_doc.GetCell<double>(3, i);
-        auto uav_x = Model_doc.GetCell<double>(4, i);
-        auto uav_y = Model_doc.GetCell<double>(5, i);
-        auto uav_z = Model_doc.GetCell<double>(6, i);
-        full_point_cloud1[i-1].resize(3);
-        full_point_cloud1[i-1][0] = x;
-        full_point_cloud1[i-1][1] = y;
-        full_point_cloud1[i-1][2] = z;
-        full_uav1[i-1].resize(3);
-        full_uav1[i-1][0] = uav_x;
-        full_uav1[i-1][1] = uav_y;
-        full_uav1[i-1][2] = uav_z;
-        if(i%multip==1 && laser_id>6 && laser_id<23){
-            point_cloud1.push_back({x, y, z});
-            uav1.push_back({uav_x, uav_y, uav_z});
-        }
-    }
-    full_point_cloud2.resize(data_nb_rows-2);
-    full_uav2.resize(data_nb_rows-2);
-    for (int i = 1; i< data_nb_rows-1; i++) { // Input iterator
-        auto laser_id = Data_doc.GetCell<int>(0, i);
-        auto x = Data_doc.GetCell<double>(1, i);
-        auto y = Data_doc.GetCell<double>(2, i);
-        auto z = Data_doc.GetCell<double>(3, i);
-        auto uav_x = Data_doc.GetCell<double>(4, i);
-        auto uav_y = Data_doc.GetCell<double>(5, i);
-        auto uav_z = Data_doc.GetCell<double>(6, i);
-        full_point_cloud2[i-1].resize(3);
-        full_point_cloud2[i-1][0] = x;
-        full_point_cloud2[i-1][1] = y;
-        full_point_cloud2[i-1][2] = z;
-        full_uav2[i-1].resize(3);
-        full_uav2[i-1][0] = uav_x;
-        full_uav2[i-1][1] = uav_y;
-        full_uav2[i-1][2] = uav_z;
-        if(i%multip==1 && laser_id>6 && laser_id<23){
-            point_cloud2.push_back({x, y, z});
-            uav2.push_back({uav_x, uav_y, uav_z});
-        }
-    }
+    rapidcsv::Document  red_Model_doc(red_Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+    rapidcsv::Document  red_Data_doc(red_Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+    
+    read_data(Model_doc, full_point_cloud1, full_uav1);
+    read_data(red_Model_doc, point_cloud1, uav1);
+    read_data(Data_doc, full_point_cloud2, full_uav2);
+    read_data(red_Data_doc, point_cloud2, uav2);
+    
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
@@ -334,74 +295,11 @@ int main (int argc, char * argv[])
     DebugOn("Total wall clock time = " << time_end - time_start << endl);
     double shifted_x, shifted_y, shifted_z;
     auto tot_pts = full_point_cloud1.size()+full_point_cloud2.size();
-    vector<double> x_combined,y_combined,z_combined;
-    x_combined.resize(tot_pts);
-    y_combined.resize(tot_pts);
-    z_combined.resize(tot_pts);
-    
-    
-    double beta = final_roll*pi/180;// roll in radians
-    double gamma = final_pitch*pi/180; // pitch in radians
-    double alpha = final_yaw*pi/180; // yaw in radians
-
-    int n1 = full_point_cloud1.size(), n2 = full_point_cloud2.size();
-    for (auto i = 0; i< n1; i++) {
-        shifted_x = full_point_cloud1[i][0] - full_uav1[i][0];
-        shifted_y = full_point_cloud1[i][1] - full_uav1[i][1];
-        shifted_z = full_point_cloud1[i][2] - full_uav1[i][2];
-        x_combined[i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-        y_combined[i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        z_combined[i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-        x_combined[i] += full_uav1[i][0];
-        y_combined[i] += full_uav1[i][1];
-        z_combined[i] += full_uav1[i][2];
-    }
-    beta *= -1;
-    alpha *= -1;
-    for (auto i = 0; i< n2; i++) {
-        shifted_x = full_point_cloud2[i][0] - full_uav2[i][0];
-        shifted_y = full_point_cloud2[i][1] - full_uav2[i][1];
-        shifted_z = full_point_cloud2[i][2] - full_uav2[i][2];
-        x_combined[n1+i] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-        y_combined[n1+i] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        z_combined[n1+i] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-        x_combined[n1+i] += full_uav2[i][0];
-        y_combined[n1+i] += full_uav2[i][1];
-        z_combined[n1+i] += full_uav2[i][2];
-    }
+    apply_rotation(final_roll, final_pitch, final_yaw, full_point_cloud1, full_point_cloud2, full_uav1, full_uav2);
     
     bool save_file = true;
     if(save_file){
-        DebugOn("Saving new las file\n");
-        LASheader lasheader;
-        lasheader.global_encoding = 1;
-        lasheader.x_scale_factor = 0.01;
-        lasheader.y_scale_factor = 0.01;
-        lasheader.z_scale_factor = 0.01;
-        lasheader.x_offset =  500000.0;
-        lasheader.y_offset = 4100000.0;
-        lasheader.z_offset = 0.0;
-        lasheader.point_data_format = 1;
-        lasheader.point_data_record_length = 28;
-        
-        LASwriteOpener laswriteopener;
-        DebugOn("Final Roll = " << final_roll << ", final Pitch = " << final_pitch << ", final Yaw = " << final_yaw << endl);
-        auto name = Model_file.substr(0,Model_file.find('.'));
-        auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
-        laswriteopener.set_file_name(fname.c_str());
-        LASwriter* laswriter = laswriteopener.open(&lasheader);
-        LASpoint laspoint;
-        laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
-        for (auto i = 0; i< x_combined.size(); i++) {
-            laspoint.set_x(x_combined[i]);
-            laspoint.set_y(y_combined[i]);
-            laspoint.set_z(z_combined[i]);
-            laswriter->write_point(&laspoint);
-            laswriter->update_inventory(&laspoint);
-        }
-        laswriter->update_header(&lasheader, TRUE);
-        laswriter->close();
-        delete laswriter;
+        save_laz(full_point_cloud1, full_point_cloud2, full_uav1, full_uav2);
     }
     return 0;
 }
@@ -2472,4 +2370,67 @@ pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33
     fpfh.setInputNormals(cloud_normals);
     fpfh.compute(*cloud_features);
     return {augmented_cloud,cloud_features};
+}
+
+/* Read input files */
+void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav){
+    int model_nb_rows = Model_doc.GetRowCount();
+    if(model_nb_rows<3){
+        throw invalid_argument("Input file with less than 2 points");
+        return 0;
+    }
+    DebugOn("Input file has " << model_nb_rows-1 << " rows" << endl);
+    point_cloud.resize(model_nb_rows-2);
+    uav.resize(model_nb_rows-2);
+    for (int i = 1; i< model_nb_rows-1; i++) {
+        auto laser_id = Model_doc.GetCell<int>(0, i);
+        auto x = Model_doc.GetCell<double>(1, i);
+        auto y = Model_doc.GetCell<double>(2, i);
+        auto z = Model_doc.GetCell<double>(3, i);
+        auto uav_x = Model_doc.GetCell<double>(4, i);
+        auto uav_y = Model_doc.GetCell<double>(5, i);
+        auto uav_z = Model_doc.GetCell<double>(6, i);
+        point_cloud[i-1].resize(3);
+        point_cloud[i-1][0] = x;
+        point_cloud[i-1][1] = y;
+        point_cloud[i-1][2] = z;
+        uav[i-1].resize(3);
+        uav[i-1][0] = uav_x;
+        uav[i-1][1] = uav_y;
+        uav[i-1][2] = uav_z;
+    }
+}
+
+
+/* Save LAZ files */
+void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
+    DebugOn("Saving new las file\n");
+    LASheader lasheader;
+    lasheader.global_encoding = 1;
+    lasheader.x_scale_factor = 0.01;
+    lasheader.y_scale_factor = 0.01;
+    lasheader.z_scale_factor = 0.01;
+    lasheader.x_offset =  500000.0;
+    lasheader.y_offset = 4100000.0;
+    lasheader.z_offset = 0.0;
+    lasheader.point_data_format = 1;
+    lasheader.point_data_record_length = 28;
+
+    auto n1 = point_cloud1.size();
+    auto n2 = point_cloud2.size();
+    LASwriteOpener laswriteopener;
+    laswriteopener.set_file_name(fname.c_str());
+    LASwriter* laswriter = laswriteopener.open(&lasheader);
+    LASpoint laspoint;
+    laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+    for (auto i = 0; i< x_combined.size(); i++) {
+        laspoint.set_x(x_combined[i]*1e2);
+        laspoint.set_y(y_combined[i]*1e2);
+        laspoint.set_z(z_combined[i]*1e2);
+        laswriter->write_point(&laspoint);
+        laswriter->update_inventory(&laspoint);
+    }
+    laswriter->update_header(&lasheader, TRUE);
+    laswriter->close();
+    delete laswriter;
 }
