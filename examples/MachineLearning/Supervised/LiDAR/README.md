@@ -1,7 +1,7 @@
 
 
 ## ARMO
-Follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity) then run using the follwing command:
+Follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity) then run using the following command:
 
 For Registration:
 
