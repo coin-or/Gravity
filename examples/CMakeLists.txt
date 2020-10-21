@@ -1,7 +1,5 @@
 include_directories(${PROJECT_INCLUDE_DIR})
 
-
-
 # add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
 #SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -34,7 +32,12 @@ file(GLOB POOLING_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/
 file(GLOB POOLING_UB_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Pooling/POOLINGUB/*.cpp)
 file(GLOB POOLING_SDP_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Pooling/POOLINGSDP/*.cpp)
 file(GLOB SPACE_CRAFT_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/SpaceCraft/*.cpp)
-file(GLOB LIDAR_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/LiDAR/*.cpp)
+file(GLOB LIDAR_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/LiDAR/LiDAR_main.cpp)
+
+
+if (NOT Matplot)
+  list(REMOVE_ITEM HEADERS ${PROJECT_INCLUDE_DIR}/matplotlibcpp.h)
+endif()
 
 add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
 add_executable(space_craft ${SPACE_CRAFT_SOURCES})

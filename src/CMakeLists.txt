@@ -27,6 +27,10 @@ include_directories(${PROJECT_INCLUDE_DIR})
 file(GLOB HEADERS ${PROJECT_INCLUDE_DIR} *.h *.hpp)
 file(GLOB SOURCES . *.cpp ${PROJECT_INCLUDE_DIR}/gravity/*.h)
 
+if (NOT Matplot)
+  list(REMOVE_ITEM HEADERS ${PROJECT_INCLUDE_DIR}/matplotlibcpp.h)
+endif()
+
 if (NOT Ipopt)
   list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/IpoptProgram.cpp)
 endif()
@@ -71,8 +75,8 @@ if(NOT OPT_PARSER)
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES})
 endif()
 
-target_include_directories(gravity PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-target_link_libraries(gravity Python3::Python Python3::NumPy ${PCL_LIBRARIES})
+#target_include_directories(gravity PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
+#target_link_libraries(gravity Python3::Python Python3::NumPy ${PCL_LIBRARIES})
 
 if(Cov)
   set_target_properties(gravity
