@@ -1,6 +1,12 @@
 
 
-## ARMO
+# ARMO
+
+## Supported platforms
+
+ARMO was only tested on Mac OS and Linux, no Windows support at this point.
+
+## Compiling
 
 First, make sure you are on the LiDAR branch of Gravity by entering:
 
