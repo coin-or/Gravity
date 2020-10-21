@@ -2,7 +2,7 @@
 
 ## ARMO
 
-The only dependency for ARMO is [Ipopt](https://projects.coin-or.org/Ipopt), please follow the instructions there to install it on your system (preferably build Ipopt with HSL libraries).
+The only dependency for ARMO is [Ipopt](https://github.com/coin-or/Ipopt), please install it on your system first (preferably build Ipopt with HSL libraries).
 
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
