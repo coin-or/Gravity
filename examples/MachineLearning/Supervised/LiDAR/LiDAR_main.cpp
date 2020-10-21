@@ -11,19 +11,22 @@
 #include <optionParser.hpp>
 #endif
 #include <gravity/rapidcsv.h>
+#ifdef USE_MATPLOT
 #include <gravity/matplotlibcpp.h>
+#endif
 #include <DataSet.h>
 #include "lasreader.hpp"
 #include "laswriter.hpp"
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
-//#include <pcl/io/pcd_io.h>
+#ifdef USE_PCL
 #include <pcl/features/fpfh.h>
+#include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
+#endif
 using namespace std;
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
-#include <pcl/point_types.h>
-#include <pcl/features/normal_3d.h>
 
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
@@ -122,12 +125,16 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 
+#ifdef USE_PCL
 /* PCL functions */
 /* Compute fpfh for each point in ext_model */
 pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33>::Ptr> compute_features(const vector<vector<double>>& ext_model);
 
 /* Save the features to a file */
 void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features);
+
+#endif
+
 
 int main (int argc, char * argv[])
 {
@@ -2042,7 +2049,7 @@ double computeL1error(const vector<vector<double>>& point_cloud_model, const vec
     return err;
 }
 
-
+#ifdef USE_MATPLOT
 /* Plot two point clouds */
 void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>& ext_data, double point_thick){
     namespace plt = matplotlibcpp;
@@ -2065,7 +2072,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
     plt::plot3(x_vec_model, y_vec_model, z_vec_model,x_vec_data, y_vec_data, z_vec_data, keywords);
     plt::show();
 }
-
+#endif
 
 /* Run Go-ICP on point clouds */
 tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
@@ -2314,7 +2321,7 @@ tuple<double,double,double,double,double,double> run_IPH(const vector<vector<dou
     return {final_roll,final_pitch,final_yaw,final_x_shift,final_y_shift,final_z_shift};
 }
 
-
+#ifdef USE_PCL
 void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features){
     string fname = filename+"_features.bin";
     FILE* fid = fopen(fname.c_str(), "wb");
@@ -2392,12 +2399,13 @@ pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33
     return {augmented_cloud,cloud_features};
 }
 
+#endif
+
 /* Read input files */
 void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav){
     int model_nb_rows = Model_doc.GetRowCount();
     if(model_nb_rows<3){
         throw invalid_argument("Input file with less than 2 points");
-        return 0;
     }
     DebugOn("Input file has " << model_nb_rows << " rows" << endl);
     point_cloud.resize(model_nb_rows);
