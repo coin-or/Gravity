@@ -28,3 +28,5 @@ The first two command line arguments should point to the full point clouds, the 
 
 Datasets can be downloaded [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_402c21969b5d4bc49a340f97607027b1.zip) (full point clouds) and [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_e271c09cc9824d0686aed597678615ec.zip) (subsampled point clouds)
 
+## Go-ICP
+ARMO includes the source code of [Go-ICP](https://github.com/yangjiaolong/Go-ICP) for comparison purposes.
