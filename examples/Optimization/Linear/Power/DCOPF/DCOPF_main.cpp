@@ -204,9 +204,11 @@ int main (int argc, char * argv[])
            solver<> DCOPF_GRB(DCOPF, gurobi);
            auto solver_time_start = get_wall_time();
            DCOPF_GRB.run(output=1, tol = 1e-6);
-           DCOPF.add(Flow_P.in(arcs) == 0);
-           DCOPF.reindex();
-           DCOPF_GRB.run(output=1, tol = 1e-6);
+           auto dc=DCOPF->copy();
+           dc.add(Flow_P.in(arcs) == 0);
+           dc.reindex();
+           solver<> DCOPF_GRB1(dc, gurobi);
+           dc.run(output=1, tol = 1e-6);
            DCOPF.print_constraints_stats(1e-8);
            solver_time_end = get_wall_time();
            total_time_end = get_wall_time();

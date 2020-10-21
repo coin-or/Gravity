@@ -54,6 +54,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
+    DebugOn("found token "<<endl);
 }
 
 //GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
@@ -80,8 +81,15 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::~GurobiProgram() {
 //    for (auto p : _grb_vars) delete p.second;
-    if (grb_mod) delete grb_mod;
-    if (grb_env) delete grb_env;
+    if (grb_mod) {
+        delete grb_mod;
+         DebugOn("destroyed mod");
+    }
+    if (grb_env){
+        delete grb_env;
+             DebugOn("destroyed env");
+        }
+   
 }
 
 void GurobiProgram::reset_model(){
@@ -98,15 +106,15 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    relax_model();
     //grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
     //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
-    //grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
-    //grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     grb_mod->set(GRB_IntParam_Threads, 1);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
     grb_mod->set(GRB_IntParam_Method, 1);
-    if(!gurobi_crossover){
-        grb_mod->set(GRB_IntParam_Crossover, 0);
-    }
+//    if(!gurobi_crossover){
+//        grb_mod->set(GRB_IntParam_Crossover, 0);
+//    }
     grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
@@ -162,8 +170,12 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 void GurobiProgram::prepare_model(){
     _model->fill_in_maps();
     _model->compute_funcs();
+    DebugOn("going to fill in vmap"<<endl);
     fill_in_grb_vmap();
+    //grb_mod->write("gurobiprint_v.mps");
+    DebugOn("going to fill in cmap"<<endl);
     create_grb_constraints();
+    DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
     //grb_mod->write("gurobiprint.mps");
 //    print_constraints();
@@ -234,6 +246,7 @@ void GurobiProgram::fill_in_grb_vmap(){
         if (!v->_new) {
             continue;
         }
+        DebugOn("to add v"<<endl);
         v->_new = false;
         auto idx = v->get_id();
         switch (v->get_intype()) {
@@ -259,6 +272,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                 for (size_t i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    DebugOn("added var"<<endl);
                 }
                 break;
             }
@@ -315,7 +329,9 @@ void GurobiProgram::create_grb_constraints(){
             continue;
         }
         c->_new = false;
+        DebugOn("to add constraint"<<endl);
         if (c->is_nonlinear()) {
+            DebugOn("nonlinear"<<endl);
             throw invalid_argument("Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n");
         }
         switch(c->get_ctype()) {
@@ -362,6 +378,7 @@ void GurobiProgram::create_grb_constraints(){
                     grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                 else
                     grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                    DebugOn("added constraint"<<endl);
                 }
             }
         }

@@ -91,10 +91,12 @@ namespace gravity {
             {
 #ifdef USE_GUROBI
                 auto grb_prog = static_pointer_cast<GurobiProgram>(_prog);
+                    //auto grb_prog = (GurobiProgram*)(_prog.get());
                 delete grb_prog->grb_mod;
                 delete grb_prog->grb_env;
                 grb_prog->grb_mod = nullptr;
                 grb_prog->grb_env = nullptr;
+                DebugOn("destroyed solver"<<endl);
 #else
                 gurobiNotAvailable();
 #endif
@@ -387,11 +389,17 @@ namespace gravity {
                 {
 #ifdef USE_GUROBI
                     try{
-                        
+                        DebugOn("before get grb_prog"<<endl);
                         auto grb_prog = (GurobiProgram*)(_prog.get());
+                        if(grb_prog->grb_env)
+                            DebugOn("env exists "<<endl);
+                        if(grb_prog->grb_mod)
+                            DebugOn("model exists "<<endl);
                         grb_prog->_output = output;
+                        DebugOn("after get grb_prog"<<endl);
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
+                        DebugOn("after prep"<<endl);
                         optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
 //                        delete grb_prog->grb_mod;
@@ -581,22 +589,23 @@ namespace gravity {
     }
 
 template<typename type>
-int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const vector<solver<type>> &solvers, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6){
+int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const vector<shared_ptr<solver<>>> &solvers, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6){
     int return_status = -1;
     for (auto i = start; i<end; i++) {
-        if(solvers.at(i)._model->_objt==maximize && stype==ipopt){
-            *solvers.at(i)._model->_obj *= -1;
+        if(solvers.at(i)->_model->_objt==maximize && stype==ipopt){
+            *solvers.at(i)->_model->_obj *= -1;
         }
-        solvers.at(i)._model->reset();
-        solvers.at(i)._model->reset_constrs();
-        solvers.at(i)._model->reset_lifted_vars_bounds();
-        solvers.at(i)._model->reindex();
-        auto s=solvers.at(i);
-        return_status = s.run(0, tol, lin_solver, max_iter, max_batch_time);
-        DebugOff("Return status "<<return_status << endl);
+//        solvers.at(i)._model->reset();
+//        solvers.at(i)._model->reset_constrs();
+//        solvers.at(i)._model->reset_lifted_vars_bounds();
+//        solvers.at(i)._model->reindex();
+        //auto s=solvers.at(i);
+        DebugOn("to call run"<<endl);
+        return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, max_batch_time);
+        DebugOn("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
-        DebugOff("Obj s"<<solvers.at(i)._model->get_obj_val()<<endl);
-        DebugOff("Obj m"<<models.at(i)->get_obj_val()<<endl);
+        DebugOn("Obj s"<<solvers.at(i)->_model->get_obj_val()<<endl);
+        DebugOn("Obj m"<<models.at(i)->get_obj_val()<<endl);
     }
     return return_status;
 }
@@ -611,14 +620,14 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     /* Runs models stored in the vector in parallel, using solver of stype and tolerance tol */
     //run_parallel,ref(vec),stype,tol,nr_threads,lin_solver,max_iter);
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
-  int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& solvers, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
+  int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
     
     int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
     
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype=ipopt, double tol=1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
     
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter);
-     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, vector<solver<>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time);
+     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time);
     
     
 #ifdef USE_MPI
@@ -812,7 +821,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<size_t>& limits, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all_obj = false);
-   int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& batch_solvers, const vector<size_t>& limits, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all_obj = false);
+   int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& batch_solvers, const vector<size_t>& limits, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all_obj = false);
     
 #endif
 }

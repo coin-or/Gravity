@@ -100,7 +100,14 @@ shared_ptr<Model<type>> Model<type>::buildOA()
         }
         else
         {
-            OA->add(*con);
+            Constraint<type> temp_c;
+            temp_c.deep_copy(*con);
+            OA->add(temp_c);
+            auto c=OA->get_constraint(con->_name);
+            c->_new=true;
+            for(auto i=0;i<c->get_nb_inst();i++){
+                c->_violated[i]=true;
+            }
         }
     }
     set_solution(xsolution);
@@ -286,7 +293,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 
 
 /* Runs models stored in the vector in parallel, using solver that is passed as argument */
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, vector<solver<>> &solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>> &solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
@@ -307,32 +314,32 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         dir=msname.substr(pos+1);
         var=models[s]->get_var<double>(vname);
         models[s]->set_name(mname);
-        auto so=solvers.at(s);
-        so._model->_obj=models.at(s)->_obj;
-        so._model->_objt=models.at(s)->_objt;
+        //auto so=solvers.at(s);
+       // so._model->_obj=models.at(s)->_obj;
+       // so._model->_objt=models.at(s)->_objt;
         if(dir=="LB")
         {
             models[s]->min(var(key));
-            so._model->min(var(key));
+            models[s]->_objt=minimize;
+           // so._model->min(var(key));
         }
         else
         {
             models[s]->max(var(key));
-            so._model->max(var(key));
+             models[s]->_objt=maximize;
+           // so._model->max(var(key));
         }
         models[s]->reindex();
-        
-
-        so._model->_obj->_new=true;
-        so._model->reset();
-        so._model->reindex();
+        //so._model->_obj->_new=true;
+//        so._model->reset();
+//        so._model->reindex();
 
     }
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,models.size());
     std::vector<size_t> limits = bounds(nr_threads_, models.size());
-    DebugOff("Running on " << nr_threads_ << " threads." << endl);
-    DebugOff("limits size = " << limits.size() << endl);
+    DebugOn("Running on " << nr_threads_ << " threads." << endl);
+    DebugOn("limits size = " << limits.size() << endl);
     for (size_t i = 0; i < limits.size(); ++i) {
         DebugOff("limits[" << i << "] = " << limits[i] << endl);
     }
@@ -384,7 +391,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     return 0;
 }
 
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     if(models.size()==0){
@@ -715,6 +722,12 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                     add(OA_sol.in(activeset)>=0);
                 }
                 //OA_sol.print();
+                if(oa_sol_inst>0){
+                    auto coa=get_constraint(OA_sol._name);
+                    for(auto o=0;o<oa_sol_inst;o++){
+                        coa->_violated[o]=true;
+                    }
+                }
             }
             else if(con->is_quadratic() && con->_lterms->size()==1 && con->_qterms->size()==1 && con->_qterms->begin()->second._p->first==con->_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
             {
@@ -742,6 +755,12 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                 else {
                     add(OA_sol.in(allset)>=0);
                 }
+                if(oa_sol_inst>0){
+                    auto coa=get_constraint(OA_sol._name);
+                    for(auto o=0;o<oa_sol_inst;o++){
+                        coa->_violated[o]=true;
+                    }
+                }
             }
             else if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
             {
@@ -765,6 +784,12 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                 }
                 else {
                     add(OA_sol.in(allset)>=0);
+                }
+                if(oa_sol_inst>0){
+                    auto coa=get_constraint(OA_sol._name);
+                    for(auto o=0;o<oa_sol_inst;o++){
+                        coa->_violated[o]=true;
+                    }
                 }
             }
         }
@@ -875,6 +900,10 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                                             else {
                                                 add(OA_cut.in(activeset)>=0);
                                             }
+                                            auto coa=get_constraint(OA_cut._name);
+                                            for(auto o=0;o<coa->get_nb_inst();o++){
+                                                coa->_violated[o]=true;
+                                            }
                                             add_new=false;
                                             oa_cut=false;
                                         }
@@ -915,6 +944,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                                     con_lin->_indices->add("inst_"+to_string(nb_inst));
                                     con_lin->_dim[0] = con_lin->_indices->size();
                                     con_lin->_lazy.push_back(false);
+                                    con_lin->_violated.push_back(true);
                                     auto count=0;
                                     for(auto &l: *(con_lin->_lterms)){
                                         auto name=l.first;
@@ -1553,6 +1583,10 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
                     else {
                         add(OA_cut.in(activeset)>=0);
                     }
+                    auto coa=get_constraint(OA_cut._name);
+                    for(auto o=0;o<coa->get_nb_instances();o++){
+                        coa->_violated.push_back(true);
+                    }
                     oacuts++;
                     reindex();
                 }
@@ -1580,6 +1614,7 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
                 con_lin->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
                 con_lin->_dim[0] = con_lin->_indices->size();
                 con_lin->_lazy.push_back(true);
+                con_lin->_violated.push_back(true);
                 auto count=0;
                 for(auto &l: *(con_lin->_lterms)){
                     auto name=l.first;
@@ -2014,7 +2049,7 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     return max(err_rank, err_size);
     
 }
-int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<solver<>>& solvers, const std::vector<size_t>& limits, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all_obj){
+int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, const std::vector<size_t>& limits, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all_obj){
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
