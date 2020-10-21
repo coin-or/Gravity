@@ -166,6 +166,14 @@ namespace gravity {
 #else
                 gurobiNotAvailable();
 #endif
+                
+                                        for (auto &con: _model->_cons_vec){
+                                            con->_new=true;
+                                            for (auto i = 0; i< con->get_nb_inst(); i++){
+                                                con->_violated[i]=true;
+                                            }
+                                        }
+
             }
             else if(_stype==cplex)
             {
@@ -601,7 +609,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
 //        solvers.at(i)._model->reindex();
         //auto s=solvers.at(i);
         DebugOn("to call run"<<endl);
-        return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, max_batch_time);
+        return_status = solvers.at(i)->run(5, tol, lin_solver, max_iter, max_batch_time);
         DebugOn("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
         DebugOn("Obj s"<<solvers.at(i)->_model->get_obj_val()<<endl);

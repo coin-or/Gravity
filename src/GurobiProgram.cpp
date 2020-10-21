@@ -172,12 +172,12 @@ void GurobiProgram::prepare_model(){
     _model->compute_funcs();
     DebugOn("going to fill in vmap"<<endl);
     fill_in_grb_vmap();
-    //grb_mod->write("gurobiprint_v.mps");
     DebugOn("going to fill in cmap"<<endl);
     create_grb_constraints();
     DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
-    //grb_mod->write("gurobiprint.mps");
+    //grb_mod->write("gurobiprint.lp");
+
 //    print_constraints();
 }
 void GurobiProgram::update_model(){

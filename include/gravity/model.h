@@ -2396,6 +2396,7 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
                             diff = std::abs(c->eval(inst));
                             if(diff > tol) {
                                 DebugOn("Violated equation: " << c->to_str(inst,3)<<" Instance "<<inst);
@@ -2530,6 +2531,7 @@ namespace gravity {
                 switch (c->get_ctype()) {
                     case eq:
                         for (size_t inst=0; inst<nb_inst; inst++) {
+                            c->_violated[inst] = false;
                             diff = std::abs(c->eval(inst));
                             if(diff > tol) {
                                 DebugOff("Violated equation: ");

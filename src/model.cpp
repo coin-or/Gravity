@@ -6199,7 +6199,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         //LB_solver.set_option("gurobi_crossover", true);
                     }
                     while (constr_viol==1 && lin_count<4){
-                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
+                        LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                         }
@@ -6239,6 +6239,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                             DebugOn("Initial linear gap = "<<gaplin<<" at lin count "<<lin_count<<endl);
                             DebugOn("oa cuts = "<<oacuts<<endl);
+                            obbt_model->print();
+                            
                             
 #endif
                             //  constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
@@ -6333,17 +6335,28 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     }
                     DebugOn("reset the variables"<<endl);
                     /*To recreate a new gurobi model*/
-                    if(lb_solver_type==gurobi||true){
-                        for (auto &con: obbt_model->_cons_vec){
-                            con->_new=true;
-                            for (auto i = 0; i< con->get_nb_inst(); i++){
-                                con->_violated[i]=true;
-                            }
+//                    if(lb_solver_type==gurobi||true){
+//                        for (auto &con: obbt_model->_cons_vec){
+//                            con->_new=true;
+//                            for (auto i = 0; i< con->get_nb_inst(); i++){
+//                                con->_violated[i]=true;
+//                            }
+//                        }
+//                    }
+
+                    for (auto &con: obbt_model->_cons_vec){
+                        DebugOn("cname "<<con->_name<<endl);
+                        for (auto i = 0; i< con->get_nb_inst(); i++){
+                            DebugOn(con->_violated[i]<<" ");
                         }
+                        DebugOn(endl);
                     }
                     DebugOn("reset the constraints"<<endl);
                     solver_time= get_wall_time()-solver_time_start;
                     DebugOn(nb_threads<<endl);
+                    if(obbt_model->_cons_name.count("obj|ub")==0){
+                        oacuts++;
+                    }
                     for(auto i=0;i<nb_threads;i++){
                         auto modelk = obbt_model->copy();
                         param<> ub("ub");
@@ -6358,6 +6371,13 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         batch_models.at(i)->set_name(to_string(i));
                         auto solverk = std::make_shared<solver<>>(modelk, lb_solver_type);
                         batch_solvers.push_back(solverk);
+                    }
+                    for (auto &con: obbt_model->_cons_vec){
+                        DebugOn("cname "<<con->_name<<endl);
+                        for (auto i = 0; i< con->get_nb_inst(); i++){
+                            DebugOn(con->_violated[i]<<" ");
+                        }
+                        DebugOn(endl);
                     }
                     DebugOn("created model array"<<endl);
                     while(solver_time<=max_time && !terminate && iter<max_iter)
@@ -6637,13 +6657,25 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                     if(linearize){
                                                         for (auto con: obbt_model->_cons_vec){
                                                             if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                                                auto c_nb_inst_old=0;
+                                                                auto c_nb_inst_new=con->get_nb_inst();
                                                                 if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                                    c_nb_inst_old=mod->get_constraint(con->_name)->get_nb_inst();
+                                                                    if(c_nb_inst_old!=c_nb_inst_new){
                                                                     mod->remove(con->_name);
+                                                                    }
                                                                 }
+                                                                if(c_nb_inst_old!=c_nb_inst_new){
                                                                 Constraint<type> temp_c;
                                                                 temp_c.deep_copy(*con);
                                                                 mod->add(temp_c);
-                                                                //mod->add(*con);
+                                                                if(lb_solver_type==gurobi){
+                                                                    auto coa=mod->get_constraint(con->_name);
+                                                                    for(auto o=0;o<c_nb_inst_old;o++){
+                                                                        coa->_violated[o]=false;
+                                                                    }
+                                                                }
+                                                                }
                                                             }
                                                         }
                                                         mod->reset();
@@ -6797,6 +6829,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 {
 #endif
                                     while ((constr_viol==1) && (lin_count<4)){
+                                        
 //                                        solver<> LB_solver(obbt_model, lb_solver_type);
 //                                        if(lb_solver_type==ipopt){
 //                                            //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -6885,21 +6918,33 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
                                     if(!close){
+                                        //Manage violated here
                                         for(auto &mod:batch_models){
-                                            for (auto con: obbt_model->_cons_vec){
-                                                if(con->_name.find("OA_cuts_")!=std::string::npos){
-                                                    if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
-                                                        mod->remove(con->_name);
+                                                for (auto con: obbt_model->_cons_vec){
+                                                    if(con->_name.find("OA_cuts_")!=std::string::npos){
+                                                        auto c_nb_inst_old=0;
+                                                        auto c_nb_inst_new=con->get_nb_inst();
+                                                        if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
+                                                            c_nb_inst_old=mod->get_constraint(con->_name)->get_nb_inst();
+                                                            if(c_nb_inst_old!=c_nb_inst_new){
+                                                            mod->remove(con->_name);
+                                                            }
+                                                        }
+                                                        if(c_nb_inst_old!=c_nb_inst_new){
+                                                        Constraint<type> temp_c;
+                                                        temp_c.deep_copy(*con);
+                                                        mod->add(temp_c);
+                                                        if(lb_solver_type==gurobi){
+                                                            auto coa=mod->get_constraint(con->_name);
+                                                            for(auto o=0;o<c_nb_inst_old;o++){
+                                                                coa->_violated[o]=false;
+                                                            }
+                                                        }
+                                                        }
                                                     }
-                                                    Constraint<type> temp_c;
-                                                    temp_c.deep_copy(*con);
-                                                    mod->add(temp_c);
                                                 }
+                                                mod->reset();
                                             }
-                                            mod->reset_constrs();
-                                            mod->reset_lifted_vars_bounds();
-                                            mod->reset();
-                                        }
                                     }
 #ifdef USE_MPI
                                     if(worker_id==0){
