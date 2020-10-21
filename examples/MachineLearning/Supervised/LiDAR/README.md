@@ -6,7 +6,7 @@ The only dependency for ARMO is [Ipopt](https://projects.coin-or.org/Ipopt), ple
 
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
-Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/INSTALL.md) then run using the following command:
+Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command:
 
 For Registration:
 
