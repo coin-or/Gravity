@@ -176,7 +176,7 @@ void GurobiProgram::prepare_model(){
     create_grb_constraints();
     DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
-    //grb_mod->write("gurobiprint.lp");
+    grb_mod->write("gurobiprint.lp");
 
 //    print_constraints();
 }
@@ -239,12 +239,21 @@ void GurobiProgram::relax_model(){
 
 void GurobiProgram::fill_in_grb_vmap(){
     param_* v;
+    auto size_init=_grb_vars.size();
     _grb_vars.resize(_model->get_nb_vars());
+    bool add;
     for(auto& v_p: _model->_vars)
     {
         v = v_p.second.get();
         if (!v->_new) {
             continue;
+        }
+        if(v->_new && size_init>v->get_id())
+        {
+            add=false;
+        }
+        else{
+            add=true;
         }
         DebugOn("to add v"<<endl);
         v->_new = false;
@@ -254,8 +263,13 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<float>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                
+                }
+                else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                }
                 }
                 break;
             }
@@ -263,7 +277,13 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<long double>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                }
+                else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                }
                 }
                 break;
             }
@@ -271,8 +291,15 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<double>*)v;
                 for (size_t i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                     DebugOn("added var"<<endl);
+                }
+                    else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                        DebugOn("updated bounds"<<endl);
+                }
                 }
                 break;
             }
@@ -280,15 +307,28 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                 }
+                else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                }
+
+            }
                 break;
             }
             case short_:{
                 auto real_var = (var<short>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                }
+                else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                }
                 }
                 break;
             }
@@ -296,7 +336,13 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<bool>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
+                    if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_BINARY, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                   }
+                   else{
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
+                }
                 }
                 break;
             }

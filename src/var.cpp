@@ -440,6 +440,7 @@ template<typename type> void  var<type>::set_lb(const string& key, type val){
     _lb->_val->at(key_it->second) = val;
     _lb->update_range(val);
     this->update_range(val);
+    //this->_new=true;
 }
 
 template<typename type> void  var<type>::set_ub(const string& key, type val){
@@ -457,6 +458,7 @@ template<typename type> void  var<type>::set_ub(const string& key, type val){
     _ub->_val->at(key_it->second) = val;
     _ub->update_range(val);
     this->update_range(val);
+    //this->_new=true;
 }
 
     

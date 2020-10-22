@@ -6294,9 +6294,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         string vname=(*it.second)._name;
                         v=obbt_model->template get_var<double>(vname);
                         /*To recreate a new gurobi model*/
-                        if(lb_solver_type==gurobi){
-                            it.second->_new=true;
-                        }
+//                        if(lb_solver_type==gurobi){
+//                            it.second->_new=true;
+//                        }
                         auto v_keys=v.get_keys();
                         auto v_key_map=v.get_keys_map();
                         for(auto &key: *v_keys)
@@ -6587,8 +6587,12 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                             }
                                                         }
                                                         if(update_lb||update_ub){
+                                                            auto vkptr=obbt_model->get_var_ptr(vkname);
+                                                            vkptr->_new=true;
                                                             for(auto &mod:batch_models){
                                                                 auto vkmod=mod->template get_var<T>(vkname);
+                                                                auto vmodptr=mod->get_var_ptr(vkname);
+                                                                vmodptr->_new=true;
                                                                 if(update_lb){
                                                                     vkmod.set_lb(keyk, vk.get_lb(keyk));
                                                                 }
@@ -6979,6 +6983,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 DebugOff("Number of constraints "<<obbt_model->_nb_cons<<endl);
                                 DebugOff("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                             }
+                            int inp;
+                            cin>>inp;
                         }
                         if(break_flag==true)
                         {

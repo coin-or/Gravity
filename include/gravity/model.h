@@ -600,6 +600,9 @@ namespace gravity {
                     }
                 }
             }
+            for(auto &v: this->_vars){
+                v.second->_new=true;
+            }
             for(auto &cp: m._cons_name){
                 auto c_cpy = make_shared<Constraint<type>>();
                 c_cpy->deep_copy(*cp.second);
