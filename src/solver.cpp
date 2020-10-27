@@ -230,6 +230,8 @@ Model<type> Model<type>::build_model_interior() const
     return *Interior.copy();
 }
 
+
+
 /* Runs models stored in the vector in parallel, using solver of stype and tolerance tol */
 int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
@@ -291,13 +293,12 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     return 0;
 }
 
-
 /* Runs models stored in the vector in parallel, using solver that is passed as argument */
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>> &solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models,  const vector<shared_ptr<solver<>>> &solvers, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
-    std::string mname, msname,vname, key, dir;
+    std::string mname, msname,vname, key, dir, modelname;
     var<> var;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -329,6 +330,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
              models[s]->_objt=maximize;
            // so._model->max(var(key));
         }
+        models[s]->reset_constrs();
+        models[s]->reset_lifted_vars_bounds();
+        models[s]->reset();
         models[s]->reindex();
         //so._model->_obj->_new=true;
 //        so._model->reset();
@@ -353,10 +357,24 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         t.join();
     }
     int count=0;
+    int viol_i=0, viol=0;
     for(auto &m:models){
         if(count<objective_models.size()){
             sol_status.at(count)=m->_status;
             sol_obj.at(count)=m->get_obj_val();
+            m->get_solution(solution);
+            if(m->_status==0 && linearize){
+                if(cut_type=="modelname"){
+                    modelname=m->get_name();
+                }
+                else if(cut_type=="allvar"){
+                    modelname="allvar";
+                }
+                viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  nb_oacuts,  active_tol);
+            }
+            if(viol_i==1){
+                viol=1;
+            }
             count++;
         }
     }
@@ -999,8 +1017,9 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     return Ointerior;
 }
 //
-template<>
-bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol)
+template<typename type>
+template<typename T>
+bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>> lin, string modelname, int& nb_oacuts, double active_tol)
 {
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
@@ -1101,16 +1120,16 @@ bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                                     DebugOff("status "<< interior._status);
                                     //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                     if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                                        if(con->xval_within_bounds(i, xcurrent)){
-                                            if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
+//                                        if(con->xval_within_bounds(i, xcurrent)){
+//                                            if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
                                                 auto con_interior=interior.get_constraint(cname);
                                                 xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
                                                 auto res_search=con->binary_line_search(xinterior, i);
                                                 if(res_search){
                                                     oa_cut=true;
                                                 }
-                                            }
-                                        }
+                                            //}
+                                        //}
                                     }
                                     else{
                                         if (con->is_convex()){
@@ -1146,7 +1165,7 @@ bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                                         activeset.add((*con->_indices->_keys)[i]);
                                         Constraint<> OA_cut(con_lin_name);
                                         OA_cut=con->get_outer_app(activeset, scale);
-                                        OA_cut._lazy.push_back(false);
+                                        //OA_cut._lazy.push_back(false);
                                         if(con->_ctype==leq) {
                                             lin->add(OA_cut.in(activeset)<=0);
                                         }
@@ -1189,9 +1208,12 @@ bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                                 auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
                                 auto nb_inst = con_lin->get_nb_instances();
                                 con_lin->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
-                                con_lin->_dim[0] = con_lin->_indices->size();
-                                con_lin->_lazy.push_back(true);
+                                con_lin->_dim[0] = con_lin->_indices->_keys->size();
+                                //con_lin->_lazy.push_back(true);
+                                con_lin->_violated.push_back(true);
                                 auto count=0;
+                                DebugOn("nb inst "<<nb_inst);
+                                //auto func_true=false;
                                 for(auto &l: *(con_lin->_lterms)){
                                     auto name=l.first;
                                     if(!l.second._sign){
@@ -1199,20 +1221,17 @@ bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                                     }
                                     if(l.second._coef->is_param()) {
                                         auto p_cst = ((param<>*)(l.second._coef.get()));
-                                        p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]*scale);
+                                        p_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
+                                        DebugOn("added p"<<endl);
                                     }
                                     else {
-                                        //                            auto f = static_pointer_cast<func<>>(l.second._coef);
-                                        //                            if(!f->func_is_param()){
-                                        //                                throw invalid_argument("function should be a param");
-                                        //                            }
-                                        //                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                                        //                            f->_indices->add("inst_"+to_string(p->_indices->_keys->size()));
-                                        //                            p->add_val("inst_"+to_string(p->_indices->_keys->size()), c_val[count]);
-                                        //                            f->_dim[0] = f->_indices->size();
-                                        //                            f->uneval();
-                                        //                            f->allocate_mem();
-                                        throw invalid_argument("Coefficient must be parameter");
+                                            auto f = static_pointer_cast<func<>>(l.second._coef);
+                                            if(!f->func_is_param()){
+                                                throw invalid_argument("function should be a param");
+                                            }
+                                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                                            p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
+                                        l.second._coef = p;
                                     }
                                     auto parkeys=l.second._p->_indices->_keys;
                                     //                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
@@ -1223,22 +1242,33 @@ bool Model<>::add_iterative(const Model<>& interior, vector<double>& obbt_soluti
                                 //Set value of the constant
                                 if(con_lin->_cst->is_param()){
                                     auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                    co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val*scale);
+                                    co_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
                                 }
+//                               else if(con_lin->_cst->is_function()){
+//                                    auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+//                                    if(!rhs_f->func_is_param()){
+//                                        throw invalid_argument("function should be a param");
+//                                    }
+//                                    auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+//                                    p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
+//                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
+//                                    rhs_f->_dim[0] = rhs_f->_indices->size();
+//                                    //  rhs_f->eval_all();
+//                                }
                                 else if(con_lin->_cst->is_function()){
-                                    auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                    if(!rhs_f->func_is_param()){
-                                        throw invalid_argument("function should be a param");
-                                    }
-                                    auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                    p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val*scale);
-                                    rhs_f->_indices->add("inst_"+to_string(nb_inst));
-                                    rhs_f->_dim[0] = rhs_f->_indices->size();
-                                    //  rhs_f->eval_all();
+                                     auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+                                                                        if(!rhs_f->func_is_param()){
+                                                                            throw invalid_argument("function should be a param");
+                                                                        }
+                                auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+                                rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
+                                con_lin->_cst = rhs_p;
                                 }
-                                con_lin->eval_all();
+                                
+                                
                                 con_lin->uneval();
-                                con_lin->eval(nb_inst);
+                                con_lin->eval_all();
+                                //con_lin->eval(nb_inst);
                             }
                             con->set_x(i, xcurrent);
                             xcurrent.clear();
@@ -1576,7 +1606,7 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
                     indices activeset("active_"+con_nonlin->_name);
                     activeset.add((*con_nonlin->_indices->_keys)[i]);
                     OA_cut=con_nonlin->get_outer_app(activeset, 1.0);
-                    OA_cut._lazy.push_back(false);
+                    //OA_cut._lazy.push_back(false);
                     if(con_nonlin->_ctype==leq) {
                         add(OA_cut.in(activeset)<=0);
                     }
@@ -1613,7 +1643,7 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
                 auto nb_inst = con_lin->get_nb_instances();
                 con_lin->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
                 con_lin->_dim[0] = con_lin->_indices->size();
-                con_lin->_lazy.push_back(true);
+                //con_lin->_lazy.push_back(true);
                 con_lin->_violated.push_back(true);
                 auto count=0;
                 for(auto &l: *(con_lin->_lterms)){
@@ -1828,7 +1858,7 @@ int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_m
             cut_vec.resize(0);
             viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
             m->set_solution(obbt_solution);
-            lin->add_cuts_to_model(cut_vec, *this, added_cuts);
+            m->add_cuts_to_model(cut_vec, *this, added_cuts);
             if(viol_i==1){
                 repeat_list.push_back(m->_name);
             }
@@ -2195,4 +2225,5 @@ void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models,
 template shared_ptr<Model<double>> Model<double>::buildOA();
 template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
+template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>> lin, string modelname, int& nb_oacuts, double active_tol);
 }

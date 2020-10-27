@@ -599,17 +599,24 @@ namespace gravity {
 template<typename type>
 int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const vector<shared_ptr<solver<>>> &solvers, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6){
     int return_status = -1;
+        int viol_i=0;
     for (auto i = start; i<end; i++) {
         if(solvers.at(i)->_model->_objt==maximize && stype==ipopt){
             *solvers.at(i)->_model->_obj *= -1;
         }
+        std::vector<double> obbt_solution(solvers.at(i)->_model->_nb_vars);
 //        solvers.at(i)._model->reset();
 //        solvers.at(i)._model->reset_constrs();
 //        solvers.at(i)._model->reset_lifted_vars_bounds();
 //        solvers.at(i)._model->reindex();
         //auto s=solvers.at(i);
+    
         DebugOn("to call run"<<endl);
         return_status = solvers.at(i)->run(5, tol, lin_solver, max_iter, max_batch_time);
+//        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
+//        m->set_solution(obbt_solution);
+ //       m->add_cuts_to_model(cut_vec, *this, added_cuts);
+
         DebugOn("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
         DebugOn("Obj s"<<solvers.at(i)->_model->get_obj_val()<<endl);
@@ -635,7 +642,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype=ipopt, double tol=1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
     
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter);
-     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time);
+     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string modelname,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize);
     
     
 #ifdef USE_MPI
