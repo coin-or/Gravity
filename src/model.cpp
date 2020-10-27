@@ -6597,8 +6597,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                         vkptr->_new=true;
                                                         for(auto &mod:batch_models){
                                                             auto vkmod=mod->template get_var<T>(vkname);
-                                                            auto vmodptr=mod->get_var_ptr(vkname);
-                                                            vmodptr->_new=true;
+//                                                            auto vmodptr=mod->get_var_ptr(vkname);
+//                                                            vmodptr->_new=true;
                                                             if(update_lb){
                                                                 vkmod.set_lb(keyk, vk.get_lb(keyk));
                                                             }
@@ -6752,6 +6752,21 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             else{
                                                 batch_model_count=0;
                                             }
+                                            if(lb_solver_type==gurobi){
+                                                                       for(auto &mod:batch_models){
+                                                                       for(auto &it:mod->_vars)
+                                                                       {
+                                                                           it.second->_new=true;
+                                                                       }
+                                                                   
+                                                                       for (auto &con: mod->_cons_vec){
+                                                                           con->_new=true;
+                                                                           for (auto i = 0; i< con->get_nb_inst(); i++){
+                                                                                                       con->_violated[i]=true;
+                                                                           }
+                                                                   }
+                                                                   }
+                                                                   }
                                         }
                                         solver_time=get_wall_time()-solver_time_start;
                                         if(solver_time>=max_time)
@@ -6770,7 +6785,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 break;
                             }
                         }
-                        
                         //Check if OBBT has converged, can check every gap_count_int intervals
                         if(iter%gap_count_int==0)
                         {
@@ -6927,35 +6941,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #endif
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                    if(!close){
-                                        //Manage violated here
-                                        for(auto &mod:batch_models){
-                                            for (auto con: obbt_model->_cons_vec){
-                                                if(con->_name.find("OA_cuts_")!=std::string::npos){
-                                                    auto c_nb_inst_old=0;
-                                                    auto c_nb_inst_new=con->get_nb_inst();
-                                                    if(mod->_cons_name.find(con->_name)!=mod->_cons_name.end()){
-                                                        c_nb_inst_old=mod->get_constraint(con->_name)->get_nb_inst();
-                                                        if(c_nb_inst_old!=c_nb_inst_new){
-                                                            mod->remove(con->_name);
-                                                        }
-                                                    }
-                                                    if(c_nb_inst_old!=c_nb_inst_new){
-                                                        Constraint<type> temp_c;
-                                                        temp_c.deep_copy(*con);
-                                                        mod->add(temp_c);
-                                                        if(lb_solver_type==gurobi){
-                                                            auto coa=mod->get_constraint(con->_name);
-                                                            for(auto o=0;o<c_nb_inst_old;o++){
-                                                                coa->_violated[o]=false;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            mod->reset();
-                                        }
-                                    }
 #ifdef USE_MPI
                                     if(worker_id==0){
                                         DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<get_wall_time()-solver_time_start<<endl);

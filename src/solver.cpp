@@ -380,7 +380,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             count++;
         }
     }
-    return 0;
+    return viol;
 }
 
 /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
