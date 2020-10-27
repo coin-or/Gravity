@@ -611,16 +611,16 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
 //        solvers.at(i)._model->reindex();
         //auto s=solvers.at(i);
     
-        DebugOn("to call run"<<endl);
+        DebugOff("to call run"<<endl);
         return_status = solvers.at(i)->run(5, tol, lin_solver, max_iter, max_batch_time);
 //        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
 //        m->set_solution(obbt_solution);
  //       m->add_cuts_to_model(cut_vec, *this, added_cuts);
 
-        DebugOn("Return status "<<return_status << endl);
+        DebugOff("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
-        DebugOn("Obj s"<<solvers.at(i)->_model->get_obj_val()<<endl);
-        DebugOn("Obj m"<<models.at(i)->get_obj_val()<<endl);
+        DebugOff("Obj s"<<solvers.at(i)->_model->get_obj_val()<<endl);
+        DebugOff("Obj m"<<models.at(i)->get_obj_val()<<endl);
     }
     return return_status;
 }

@@ -56,9 +56,7 @@ void ClpNotAvailable()
 }
 
 namespace gravity {
-/** Outer approximation of model. Throws exception if model has nonlinear equality constraints
- @param[in] nb_discr: number of OA cuts per nonlinear constraint
- @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
+/** Returns copy of current Model  which has all variables in current model, same objective as current model and only linear constraints in current Model. Throws exception if model has nonlinear equality constraints
  **/
 template<typename type>
 template<typename T>
@@ -113,6 +111,10 @@ shared_ptr<Model<type>> Model<type>::buildOA()
     set_solution(xsolution);
     return OA;
 }
+/** Outer approximation of model. Throws exception if model has nonlinear equality constraints
+@param[in] nb_discr: number of OA cuts per nonlinear constraint
+@return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
+**/
 //    template<typename type>
 //    template<typename T>
 //    shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
@@ -170,8 +172,8 @@ shared_ptr<Model<type>> Model<type>::buildOA()
 //    }
 
 
-/** Returns a model that can compute an interior point to the current model
- **/
+/** Returns a model which has all variables in current model. If current model has nonlinear constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to
+**/
 template<typename type>
 template<typename T>
 Model<type> Model<type>::build_model_interior() const
@@ -293,7 +295,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     return 0;
 }
 
-/* Runs models stored in the vector in parallel, using solver that is passed as argument */
+/* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
 int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models,  const vector<shared_ptr<solver<>>> &solvers, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize){
     std::vector<thread> threads;
     std::vector<bool> feasible;
@@ -327,7 +329,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         else
         {
             models[s]->max(var(key));
-             models[s]->_objt=maximize;
+            models[s]->_objt=maximize;
            // so._model->max(var(key));
         }
         models[s]->reset_constrs();
@@ -408,7 +410,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     }
     return 0;
 }
-
+/* Runds models stored in the vector in parallel, using solver solvers. solvers is passed as an argument ot run_model_solvers */
 int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
     std::vector<thread> threads;
     std::vector<bool> feasible;
@@ -521,6 +523,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
 //             // OA_uniform.print();
 //        }
 //    }
+/*To add OA constraints using a grid, not used in current linearization approach*/
 template<>
 void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
 {
@@ -608,6 +611,7 @@ void Model<>::add_outer_app_uniform(int nb_discr, Constraint<> con)
     //
     //        }
 }
+/*Returns true if constraint cname of instance int in the current model is violated by x, as per active_tol. Filtering approach, currently not used.*/
 template<>
 bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst, double tol){
 #ifdef USE_MPI
@@ -648,7 +652,7 @@ bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst, 
     }
     return violated;
 }
-
+/*Returns a model that can compute interior point of nonlin model. Generates OA cuts to nonlin model at solution of nonlin model. Adds the generated cuts to the current model. If nb_perturb>0, perturbs the solution of nonlin model and generates cuts at the perturbed solution too*/
 template<>
 Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
 {
@@ -1016,7 +1020,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     //print();
     return Ointerior;
 }
-//
+/*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the current model at the obbt_solution point. These cuts are added to model lin. The cut addition strategy is given by argument modelname. Can be for "allvar" or only "modelname", for varibale whose name is given in the models->_name. When a cut is added nb_oacuts is incremented. active_tol is the tolerance used to generate the cuts. */
 template<typename type>
 template<typename T>
 bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>> lin, string modelname, int& nb_oacuts, double active_tol)
@@ -1212,7 +1216,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                 //con_lin->_lazy.push_back(true);
                                 con_lin->_violated.push_back(true);
                                 auto count=0;
-                                DebugOn("nb inst "<<nb_inst);
+                                DebugOff("nb inst "<<nb_inst);
                                 //auto func_true=false;
                                 for(auto &l: *(con_lin->_lterms)){
                                     auto name=l.first;
@@ -1222,7 +1226,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                     if(l.second._coef->is_param()) {
                                         auto p_cst = ((param<>*)(l.second._coef.get()));
                                         p_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
-                                        DebugOn("added p"<<endl);
+                                        DebugOff("added p"<<endl);
                                     }
                                     else {
                                             auto f = static_pointer_cast<func<>>(l.second._coef);
@@ -1288,6 +1292,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
 }
+/*Generates cuts (just as using the strategy in the add_iterative function above) but does not add them to lin model. Stores new row of existing constraints in lin in vector cuts. If a constraint does not exist in lin, point at which a new constraint must be added is stored in vector cuts*/
 template<>
 int Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts)
 {
@@ -1523,6 +1528,7 @@ int Model<>::generate_cuts_iterative(const Model<>& interior, vector<double>& ob
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return constr_viol;
 }
+/*Adds cuts to the current model*/
 template<>
 void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacuts){
     int start=0,i, count_con,count_vec, start_orig;

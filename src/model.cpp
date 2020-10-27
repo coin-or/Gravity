@@ -6198,7 +6198,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     else if(lb_solver_type==gurobi){
                         //LB_solver.set_option("gurobi_crossover", true);
                     }
-                    while (constr_viol==1 && lin_count<2){
+                    while (constr_viol==1 && lin_count<4){
                         LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
@@ -6449,7 +6449,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 cut_type="allvar";
                                             }
                                             
-                                            while((viol==1) && (lin_count<1)){
+                                            while((viol==1) && (lin_count<4)){
                                                 if(lin_count>=1){
 #ifdef USE_MPI
                                                     if(worker_id==0){
@@ -6835,11 +6835,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 lin_count=0;
                                 active_root_tol=1e-6;
                                 auto gap_temp=gap_old;
-#ifdef USE_MPI
-                                if((!share_cuts) || share_cuts)
-                                {
-#endif
-                                    while ((constr_viol==1) && (lin_count<2)){
+                                    while ((constr_viol==1) && (lin_count<4)){
                                         
                                         //                                        solver<> LB_solver(obbt_model, lb_solver_type);
                                         //                                        if(lb_solver_type==ipopt){
@@ -6890,11 +6886,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 constr_viol=relaxed_model->cuts_parallel(o_models, 1, interior_model, obbt_model, oacuts, lb_solver_tol, run_obbt_iter, range_tol, "allvar");
                                             }
 #else
-                                            batch_models[0]->print();
-                                            obbt_model->print();
+
                                             vector<double> obbt_solution(obbt_model->_nb_vars);
                                             obbt_model->get_solution(obbt_solution);
-                                            //auto modelk=obbt_model->copy();
                                             
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, 1e-6);
 #endif
@@ -6914,7 +6908,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         lin_count++;
                                     }
 #ifdef USE_MPI
-                                }
                                 if(!share_cuts){
                                     //batch_time_start=get_wall_time();
                                     MPI_Barrier(MPI_COMM_WORLD);
@@ -6988,7 +6981,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 terminate=true;
 #ifdef USE_MPI
                                 if(worker_id==0)
-                                    obbt_model->print_solution();
+                                    //obbt_model->print_solution();
                                 DebugOn("terminate true wid "<<worker_id<<endl);
 #endif
                             }
@@ -6996,8 +6989,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 DebugOff("Number of constraints "<<obbt_model->_nb_cons<<endl);
                                 DebugOff("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                             }
-                            int inp;
-                            cin>>inp;
                         }
                         if(break_flag==true)
                         {
