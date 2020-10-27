@@ -731,8 +731,7 @@ namespace gravity {
             res._real = _real;
             res._imag = _imag; res._mag = res._mag; res._ang = _ang;
             if(_indices){
-                res._indices = make_shared<indices>();
-                res._indices->shallow_copy(_indices);
+                res._indices = make_shared<indices>(_indices->deep_copy());
             }
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
