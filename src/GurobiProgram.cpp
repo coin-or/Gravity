@@ -255,7 +255,7 @@ void GurobiProgram::fill_in_grb_vmap(){
         else{
             add=true;
         }
-        DebugOn("to add v"<<endl);
+        //DebugOn("to add v"<<endl);
         v->_new = false;
         auto idx = v->get_id();
         switch (v->get_intype()) {
@@ -293,7 +293,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     if(add){
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                    DebugOn("added var"<<endl);
+                    //DebugOn("added var"<<endl);
                 }
                     else{
                     _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
@@ -375,7 +375,7 @@ void GurobiProgram::create_grb_constraints(){
             continue;
         }
         c->_new = false;
-        DebugOn("to add constraint"<<endl);
+        //DebugOn("to add constraint"<<endl);
         if (c->is_nonlinear()) {
             DebugOn("nonlinear"<<endl);
             throw invalid_argument("Gurobi cannot handle nonlinear constraints that are not convex quadratic.\n");
@@ -424,7 +424,7 @@ void GurobiProgram::create_grb_constraints(){
                     grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                 else
                     grb_mod->addConstr(linlhs,sense,0,c->get_name());
-                    DebugOn("added constraint"<<endl);
+                    //DebugOn("added constraint"<<endl);
                 }
             }
         }
