@@ -92,11 +92,14 @@ namespace gravity {
 #ifdef USE_GUROBI
                 auto grb_prog = static_pointer_cast<GurobiProgram>(_prog);
                     //auto grb_prog = (GurobiProgram*)(_prog.get());
-                delete grb_prog->grb_mod;
-                delete grb_prog->grb_env;
-                grb_prog->grb_mod = nullptr;
-                grb_prog->grb_env = nullptr;
-                DebugOn("destroyed solver"<<endl);
+                if(grb_prog->grb_mod){
+                    delete grb_prog->grb_mod;
+                    grb_prog->grb_mod = nullptr;
+                }
+                if(grb_prog->grb_env){
+                    delete grb_prog->grb_env;
+                    grb_prog->grb_env = nullptr;
+                }
 #else
                 gurobiNotAvailable();
 #endif
@@ -397,17 +400,10 @@ namespace gravity {
                 {
 #ifdef USE_GUROBI
                     try{
-                        DebugOn("before get grb_prog"<<endl);
                         auto grb_prog = (GurobiProgram*)(_prog.get());
-                        if(grb_prog->grb_env)
-                            DebugOn("env exists "<<endl);
-                        if(grb_prog->grb_mod)
-                            DebugOn("model exists "<<endl);
                         grb_prog->_output = output;
-                        DebugOn("after get grb_prog"<<endl);
                         //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
-                        DebugOn("after prep"<<endl);
                         optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
 //                        delete grb_prog->grb_mod;

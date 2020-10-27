@@ -83,12 +83,12 @@ GurobiProgram::~GurobiProgram() {
 //    for (auto p : _grb_vars) delete p.second;
     if (grb_mod) {
         delete grb_mod;
-         DebugOn("destroyed mod");
+        grb_mod = nullptr;
     }
     if (grb_env){
         delete grb_env;
-             DebugOn("destroyed env");
-        }
+        grb_env = nullptr;
+    }
    
 }
 
@@ -115,7 +115,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    grb_mod->set(GRB_IntParam_OutputFlag, 0);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -170,13 +170,13 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 void GurobiProgram::prepare_model(){
     _model->fill_in_maps();
     _model->compute_funcs();
-    DebugOn("going to fill in vmap"<<endl);
+//    DebugOn("going to fill in vmap"<<endl);
     fill_in_grb_vmap();
-    DebugOn("going to fill in cmap"<<endl);
+//    DebugOn("going to fill in cmap"<<endl);
     create_grb_constraints();
-    DebugOn("going to fill in omap"<<endl);
+//    DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
-    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write("gurobiprint.lp");
 
 //    print_constraints();
 }
@@ -298,7 +298,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     else{
                     _grb_vars.at(vid).set(GRB_DoubleAttr_LB, real_var->get_lb(i));
                     _grb_vars.at(vid).set(GRB_DoubleAttr_UB, real_var->get_ub(i));
-                        DebugOn("updated bounds"<<endl);
+                        DebugOff("updated bounds"<<endl);
                 }
                 }
                 break;
