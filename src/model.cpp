@@ -6295,6 +6295,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         oacuts_init=oacuts;
                     }
                 }
+                obbt_model->print();
                 int count_var=0;
                 int count_skip=0;
                 if(obbt_model->_status==0){
@@ -6372,6 +6373,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         //                        auto solverk = std::make_shared<solver<>>(modelk, lb_solver_type);
                         //                        batch_solvers.push_back(solverk);
                     }
+                    obbt_model->print();
+                    batch_models[0]->print();
                     DebugOn("created model array"<<endl);
                     while(solver_time<=max_time && !terminate && iter<max_iter)
                     {
@@ -6470,7 +6473,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 }
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
 #else
-                                                viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, batch_solvers, relaxed_model, interior_model, cut_type,  oacuts, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize);
+                                                int a;
+                                                viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, batch_solvers, relaxed_model, interior_model, cut_type, a, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize);
                                                 
 #endif
                                                 double batch_time_end = get_wall_time();
@@ -6701,7 +6705,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI                                                                                          
                                             DebugOn(endl<<endl<<"wid "<<worker_id<<" Batch "<<batch_time<<" cuts "<<oacuts<<" time "<<t<<endl);
 #else
-                                            DebugOn("Batch time "<<batch_time<<" nb oa cuts "<<oacuts<<" solver time "<<t<<endl);
+                                            DebugOn("Batch time "<<batch_time<<" solver time "<<t<<endl);
+                                            for(auto &m:batch_models){
+                                                DebugOn(m->_nb_cons<<"\t");
+                                            }
+                                            DebugOn(endl);
 #endif  
                                             if(!linearize){
                                                 break;
@@ -6761,8 +6769,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                                    
                                                                        for (auto &con: mod->_cons_vec){
                                                                            con->_new=true;
-                                                                           for (auto i = 0; i< con->get_nb_inst(); i++){
-                                                                                                       con->_violated[i]=true;
+                                                                           for (auto cn = 0; cn< con->get_nb_inst(); cn++){
+                                                                                                       con->_violated[cn]=true;
                                                                            }
                                                                    }
                                                                    }
@@ -6859,7 +6867,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         //                                        else if(lb_solver_type==gurobi){
                                         //                                            LB_solver.set_option("gurobi_crossover", true);
                                         //                                        }
-                                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
+                                        LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
                                         if(obbt_model->_status==0){
                                             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
                                             gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
@@ -6892,6 +6900,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             // obbt_model->get_solution(obbt_solution);
                                             vector<shared_ptr<Model<>>> o_models;
                                             o_models.push_back(obbt_model);
+                                            //obbt_model->print();
+                                            //batch_models[0]->print();
                                             // constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_root_tol);
 #ifdef USE_MPI
                                             if(share_cuts){
@@ -6905,6 +6915,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             obbt_model->get_solution(obbt_solution);
                                             
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, 1e-6);
+                                            DebugOn("oacuts "<<oacuts<<endl);
 #endif
                                             obbt_model->reset_lazy();
                                             obbt_model->reindex();

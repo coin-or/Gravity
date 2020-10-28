@@ -169,14 +169,17 @@ namespace gravity {
 #else
                 gurobiNotAvailable();
 #endif
+                for(auto &it:_model->_vars)
+                {
+                    it.second->_new=true;
+                }
+                for (auto &con: _model->_cons_vec){
+                    con->_new=true;
+                    for (auto i = 0; i< con->get_nb_inst(); i++){
+                        con->_violated[i]=true;
+                    }
+                }
                 
-                                        for (auto &con: _model->_cons_vec){
-                                            con->_new=true;
-                                            for (auto i = 0; i< con->get_nb_inst(); i++){
-                                                con->_violated[i]=true;
-                                            }
-                                        }
-
             }
             else if(_stype==cplex)
             {
@@ -608,7 +611,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
         //auto s=solvers.at(i);
     
         DebugOff("to call run"<<endl);
-        return_status = solvers.at(i)->run(5, tol, lin_solver, max_iter, max_batch_time);
+        return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, max_batch_time);
 //        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
 //        m->set_solution(obbt_solution);
  //       m->add_cuts_to_model(cut_vec, *this, added_cuts);
