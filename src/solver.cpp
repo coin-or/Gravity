@@ -344,8 +344,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         batch_solvers.push_back(solverk);
     }
     /* Split models into nr_threads parts */
-    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
-    std::vector<size_t> limits = bounds(nr_threads_, models.size());
+    auto nr_threads_ = std::min((size_t)nr_threads,objective_models.size());
+    std::vector<size_t> limits = bounds(nr_threads_, objective_models.size());
     DebugOn("Running on " << nr_threads_ << " threads." << endl);
     DebugOn("limits size = " << limits.size() << endl);
     for (size_t i = 0; i < limits.size(); ++i) {
