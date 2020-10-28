@@ -6106,8 +6106,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #endif
     vector<shared_ptr<Model<>>> batch_models;
     batch_models.reserve(nb_threads);
-    vector<shared_ptr<solver<>>> batch_solvers;
-    batch_solvers.reserve(nb_threads);
     vector<string> objective_models, repeat_list;
     objective_models.reserve(nb_total_threads);
     repeat_list.reserve(nb_total_threads);
@@ -6295,7 +6293,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         oacuts_init=oacuts;
                     }
                 }
-                obbt_model->print();
+                //obbt_model->print();
                 int count_var=0;
                 int count_skip=0;
                 if(obbt_model->_status==0){
@@ -6373,9 +6371,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         //                        auto solverk = std::make_shared<solver<>>(modelk, lb_solver_type);
                         //                        batch_solvers.push_back(solverk);
                     }
-                    obbt_model->print();
-                    batch_models[0]->print();
-                    DebugOn("created model array"<<endl);
+                    //obbt_model->print();
+                    //batch_models[0]->print();
+                    //DebugOn("created model array"<<endl);
                     while(solver_time<=max_time && !terminate && iter<max_iter)
                     {
                         iter++;
@@ -6441,10 +6439,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 limits=bounds_reassign(nb_workers_, objective_models, old_map);
                                             }
 #endif
-                                            for(auto i=0;i<nb_threads;i++){
-                                                auto solverk = std::make_shared<solver<>>(batch_models[i], lb_solver_type);
-                                                batch_solvers.push_back(solverk);
-                                            }
+//                                            for(auto i=0;i<nb_threads;i++){
+//                                                auto solverk = std::make_shared<solver<>>(batch_models[i], lb_solver_type);
+//                                                batch_solvers.push_back(solverk);
+//                                            }
                                             if(run_obbt_iter<=2){
                                                 cut_type="modelname";
                                             }
@@ -6452,7 +6450,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 cut_type="allvar";
                                             }
                                             
-                                            while((viol==1) && (lin_count<4)){
+                                            while((viol==1) && (lin_count<1)){
                                                 if(lin_count>=1){
 #ifdef USE_MPI
                                                     if(worker_id==0){
@@ -6474,7 +6472,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
 #else
                                                 int a;
-                                                viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, batch_solvers, relaxed_model, interior_model, cut_type, a, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize);
+                                                viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, a, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize);
                                                 
 #endif
                                                 double batch_time_end = get_wall_time();
@@ -6749,7 +6747,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             // DebugOn("Repeat_list "<<repeat_list.size()<<endl);
                                             repeat_list.clear();
                                             objective_models.clear();
-                                            batch_solvers.clear();
                                             if(linearize){
                                                 for(auto &r:repeat_list){
                                                     objective_models.push_back(r);
@@ -6808,8 +6805,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                             obbt_model->reset_constrs();
                             obbt_model->reset_lifted_vars_bounds();
+                            solver<> LB_solver(obbt_model,lb_solver_type);
                             if(!linearize){
-                                //solver<> LB_solver(obbt_model,lb_solver_type);
                                 //LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                                 //LB_solver.set_option("check_violation", true);
                                 LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);

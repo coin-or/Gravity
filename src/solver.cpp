@@ -296,12 +296,13 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models,  const vector<shared_ptr<solver<>>> &solvers, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
+    vector<shared_ptr<solver<double>>> batch_solvers;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
         return -1;
@@ -339,7 +340,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         //so._model->_obj->_new=true;
 //        so._model->reset();
 //        so._model->reindex();
-
+        auto solverk = make_shared<solver<double>>(models[s], stype);
+        batch_solvers.push_back(solverk);
     }
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,models.size());
@@ -352,7 +354,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+        threads.push_back(thread(run_models_solver<double>, ref(vec), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){
@@ -411,32 +413,32 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     return 0;
 }
 /* Runds models stored in the vector in parallel, using solver solvers. solvers is passed as an argument ot run_model_solvers */
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
-    std::vector<thread> threads;
-    std::vector<bool> feasible;
-    if(models.size()==0){
-        DebugOff("in run_parallel(models...), models is empty, returning");
-        return -1;
-    }
-    /* Split models into nr_threads parts */
-    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
-    std::vector<size_t> limits = bounds(nr_threads_, models.size());
-    DebugOff("Running on " << nr_threads_ << " threads." << endl);
-    DebugOff("limits size = " << limits.size() << endl);
-    for (size_t i = 0; i < limits.size(); ++i) {
-        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-    }
-    /* Launch all threads in parallel */
-    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
-    for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
-    }
-    /* Join the threads with the main thread */
-    for(auto &t : threads){
-        t.join();
-    }
-    return 0;
-}
+//int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+//    std::vector<thread> threads;
+//    std::vector<bool> feasible;
+//    if(models.size()==0){
+//        DebugOff("in run_parallel(models...), models is empty, returning");
+//        return -1;
+//    }
+//    /* Split models into nr_threads parts */
+//    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
+//    std::vector<size_t> limits = bounds(nr_threads_, models.size());
+//    DebugOff("Running on " << nr_threads_ << " threads." << endl);
+//    DebugOff("limits size = " << limits.size() << endl);
+//    for (size_t i = 0; i < limits.size(); ++i) {
+//        DebugOff("limits[" << i << "] = " << limits[i] << endl);
+//    }
+//    /* Launch all threads in parallel */
+//    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+//    for (size_t i = 0; i < nr_threads_; ++i) {
+//        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+//    }
+//    /* Join the threads with the main thread */
+//    for(auto &t : threads){
+//        t.join();
+//    }
+//    return 0;
+//}
 
 
 int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter){
