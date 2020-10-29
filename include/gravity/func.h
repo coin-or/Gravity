@@ -752,7 +752,8 @@ namespace gravity {
             //                    p->index_in(ids);
             //                }
             //            }
-            _indices = make_shared<indices>(ids.deep_copy());
+            _indices = make_shared<indices>();
+            _indices->deep_copy(ids);
             _dim[0] = std::max(_dim[0], ids.size());
             if(_expr){// TODO take care of nonlinear part
                 _expr->in(ids);
@@ -3693,7 +3694,8 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(f._indices->deep_copy());
+                _indices = make_shared<indices>();
+                _indices->deep_copy(*f._indices);
             }
             else {
                 _indices = nullptr;
@@ -3848,7 +3850,8 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(f._indices->deep_copy());
+                _indices = make_shared<indices>();
+                _indices->shallow_copy(f._indices);
             }
             else {
                 _indices = nullptr;

@@ -6148,6 +6148,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     o_status.push_back(0);
     vector<size_t> limits_1={0,1};
     map<string,int> old_map;
+    int nb_refine = 10;
     if(this->_status==0){
         upper_bound=this->get_obj_val();
         if(relaxed_model->_status==0)
@@ -6196,7 +6197,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     else if(lb_solver_type==gurobi){
                         //LB_solver.set_option("gurobi_crossover", true);
                     }
-                    while (constr_viol==1 && lin_count<4){
+                    while (constr_viol==1 && lin_count<nb_refine){
                         LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
                         if(obbt_model->_status==0){
                             lower_bound_init=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
@@ -6854,7 +6855,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 lin_count=0;
                                 active_root_tol=1e-6;
                                 auto gap_temp=gap_old;
-                                    while ((constr_viol==1) && (lin_count<4)){
+                                    while ((constr_viol==1) && (lin_count<nb_refine)){
                                         
                                         //                                        solver<> LB_solver(obbt_model, lb_solver_type);
                                         //                                        if(lb_solver_type==ipopt){

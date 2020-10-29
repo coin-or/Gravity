@@ -1017,19 +1017,33 @@ public:
         return !(*this==cpy);
     }
     
-    void shallow_copy(shared_ptr<indices> cpy){
-        _name = cpy->_name;
-        _type = cpy->_type;
-        _keys_map = cpy->_keys_map;
-        _keys = cpy->_keys;
-        _dim = cpy->_dim;
-        _excluded_keys = cpy->_excluded_keys;
-        if(cpy->_ids){
-            _ids = make_shared<vector<vector<size_t>>>(*cpy->_ids);
+    void shallow_copy(const indices& cpy){
+        _name = cpy._name;
+        _type = cpy._type;
+        _keys_map = cpy._keys_map;
+        _keys = cpy._keys;
+        _dim = cpy._dim;
+        _excluded_keys = cpy._excluded_keys;
+        if(cpy._ids){
+            _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
         }
-        _time_extended = cpy->_time_extended;
-        _time_pos = cpy->_time_pos;
+        _time_extended = cpy._time_extended;
+        _time_pos = cpy._time_pos;
     }
+    
+//    void shallow_copy(shared_ptr<indices> cpy){
+//        _name = cpy->_name;
+//        _type = cpy->_type;
+//        _keys_map = cpy->_keys_map;
+//        _keys = cpy->_keys;
+//        _dim = cpy->_dim;
+//        _excluded_keys = cpy->_excluded_keys;
+//        if(cpy->_ids){
+//            _ids = make_shared<vector<vector<size_t>>>(*cpy->_ids);
+//        }
+//        _time_extended = cpy->_time_extended;
+//        _time_pos = cpy->_time_pos;
+//    }
     
     void time_expand(const indices& T) {//Fix this to expand ids size
         _time_extended = true;
@@ -1078,25 +1092,53 @@ public:
         return *this;
     }
     
-    indices deep_copy() const{
-        indices cpy;
-        cpy._name = _name;
-        cpy._type = _type;
-        cpy._dim = _dim;
-        cpy._excluded_keys = _excluded_keys;
-        if(_ids){
-            cpy._ids = make_shared<vector<vector<size_t>>>(*_ids);
+    void deep_copy(const indices& cpy){
+        _name = cpy._name;
+        _type = cpy._type;
+        _keys_map = make_shared<map<string,size_t>>(*cpy._keys_map);
+        _keys = make_shared<vector<string>>(*cpy._keys);
+        _dim = make_shared<vector<size_t>>(*cpy._dim);
+        _excluded_keys = cpy._excluded_keys;
+        if(cpy._ids){
+            _ids = make_shared<vector<vector<size_t>>>(*cpy._ids);
         }
-        if(_keys){
-            cpy._keys = make_shared<vector<string>>(*_keys);
-        }
-        if(_keys_map){
-            cpy._keys_map = make_shared<map<string,size_t>>(*_keys_map);
-        }
-        cpy._time_extended = _time_extended;
-        cpy._time_pos = _time_pos;
-        return cpy;
+        _time_extended = cpy._time_extended;
+        _time_pos = cpy._time_pos;
     }
+    
+//    void deep_copy(shared_ptr<indices> cpy){
+//        _name = cpy->_name;
+//        _type = cpy->_type;
+//        _keys_map = make_shared<map<string,size_t>>(*cpy->_keys_map);
+//        _keys = make_shared<vector<string>>(*cpy->_keys);
+//        _dim = make_shared<vector<size_t>>(*cpy->_dim);
+//        _excluded_keys = cpy->_excluded_keys;
+//        if(cpy->_ids){
+//            _ids = make_shared<vector<vector<size_t>>>(*cpy->_ids);
+//        }
+//        _time_extended = cpy->_time_extended;
+//        _time_pos = cpy->_time_pos;
+//    }
+    
+//    indices deep_copy() const{
+//        indices cpy;
+//        cpy._name = _name;
+//        cpy._type = _type;
+//        cpy._dim = make_shared<vector<size_t>>(*_dim);
+//        cpy._excluded_keys = _excluded_keys;
+//        if(_ids){
+//            cpy._ids = make_shared<vector<vector<size_t>>>(*_ids);
+//        }
+//        if(_keys){
+//            cpy._keys = make_shared<vector<string>>(*_keys);
+//        }
+//        if(_keys_map){
+//            cpy._keys_map = make_shared<map<string,size_t>>(*_keys_map);
+//        }
+//        cpy._time_extended = _time_extended;
+//        cpy._time_pos = _time_pos;
+//        return cpy;
+//    }
     
     indices& operator=(indices&& cpy){
         if(_name.empty())

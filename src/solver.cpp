@@ -302,7 +302,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     std::vector<double> solution(models[0]->_nb_vars);
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
-    int lin_count=4;
+    int lin_count = 10;
     vector<shared_ptr<solver<double>>> batch_solvers;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -364,42 +364,42 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
         if(l>=1 && stype==ipopt){
             for (auto s=0;s<objective_models.size();s++){
-                    if(batch_solvers[s]->_model->_objt==maximize){
-                        *batch_solvers[s]->_model->_obj *= -1;
+                if(batch_solvers[s]->_model->_objt==maximize){
+                    *batch_solvers[s]->_model->_obj *= -1;
+                }
+            }
+            
+        }
+        auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+        for (size_t i = 0; i < nr_threads_; ++i) {
+            threads.push_back(thread(run_models_solver<double>, ref(vec), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+        }
+        /* Join the threads with the main thread */
+        for(auto &t : threads){
+            t.join();
+        }
+        for(auto &m:models){
+            if(count<objective_models.size()){
+                m->get_solution(solution);
+                if(m->_status==0 && linearize){
+                    if(cut_type=="modelname"){
+                        modelname=m->get_name();
                     }
-            }
-
-        }
-    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
-    for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models_solver<double>, ref(vec), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
-    }
-    /* Join the threads with the main thread */
-    for(auto &t : threads){
-        t.join();
-    }
-    for(auto &m:models){
-        if(count<objective_models.size()){
-            m->get_solution(solution);
-            if(m->_status==0 && linearize){
-                if(cut_type=="modelname"){
-                    modelname=m->get_name();
+                    else if(cut_type=="allvar"){
+                        modelname="allvar";
+                    }
+                    viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  nb_oacuts,  active_tol);
                 }
-                else if(cut_type=="allvar"){
-                    modelname="allvar";
+                if(viol_i==1){
+                    viol=1;
                 }
-                viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  nb_oacuts,  active_tol);
+                count++;
+                m->reset_constrs();
+                    // m->reset_lifted_vars_bounds();
+                m->reset();
+                m->reindex();
             }
-            if(viol_i==1){
-                viol=1;
-            }
-            count++;
-            m->reset_constrs();
-           // m->reset_lifted_vars_bounds();
-            m->reset();
-            m->reindex();
         }
-    }
         threads.clear();
         if(viol==0){
             break;

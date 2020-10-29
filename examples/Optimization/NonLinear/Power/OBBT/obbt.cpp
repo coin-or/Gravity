@@ -117,11 +117,12 @@ int main (int argc, char * argv[]) {
     
     auto max_time = op::str2double(opt["t"]);
 #else
-    if(argc>=4){
+    if(argc>1){
         fname=argv[1];
+    }
+    if(argc>3){
         time_s=argv[2];
         sdp_kim_s=argv[3];
-        
     }
     if(argc>4){
         linearize_s=argv[4];
@@ -177,7 +178,7 @@ int main (int argc, char * argv[]) {
     int total_iter;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
-    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    SolverType ub_solver_type = ipopt, lb_solver_type = gurobi;
     bool scale_objective=true;
     bool termination=true;
     linearize=true;
@@ -207,7 +208,7 @@ int main (int argc, char * argv[]) {
         current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, share_cuts);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, share_cuts);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
