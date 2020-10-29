@@ -359,7 +359,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         viol_i=0;
         viol=0;
         count=0;
-        if(lin_count>=1 && stype==ipopt){
+        if(l>=1 && stype==ipopt){
             for (auto s=0;s<objective_models.size();s++){
                     if(batch_solvers[s]->_model->_objt==maximize){
                         *batch_solvers[s]->_model->_obj *= -1;
