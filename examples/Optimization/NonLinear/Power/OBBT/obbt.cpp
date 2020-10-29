@@ -38,7 +38,7 @@ int main (int argc, char * argv[]) {
     string threads_s="1";
     
     string lazy_s = "no", linearize_s = "no";
-    string orig_s = "no", share_cuts_s="yes";
+    string orig_s = "no";
     bool lazy_bool = false;
     bool add_original=false;
     bool sdp_kim=true;
@@ -46,7 +46,6 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     bool linearize=false;
-    bool share_cuts=true;
     
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     
@@ -127,15 +126,9 @@ int main (int argc, char * argv[]) {
     if(argc>4){
         linearize_s=argv[4];
     }
-    if(argc>5){
-        share_cuts_s=argv[5];
-    }
     if (linearize_s.compare("yes")==0) {
         linearize = true;
     }
-    if (share_cuts_s.compare("no")==0) {
-           share_cuts = false;
-       }
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
@@ -182,12 +175,12 @@ int main (int argc, char * argv[]) {
     bool scale_objective=true;
     bool termination=true;
     linearize=true;
-    //share_cuts=true;
+    int nb_refine=10;
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, share_cuts);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=12, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
@@ -208,7 +201,7 @@ int main (int argc, char * argv[]) {
         current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, share_cuts);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
