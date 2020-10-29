@@ -1291,9 +1291,9 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                                                         }
                                 auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
                                 rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
-                                    rhs_f->_dim[0] = rhs_f->_indices->size();
-                                //con_lin->_cst = rhs_p;
+//                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
+//                                    rhs_f->_dim[0] = rhs_f->_indices->size();
+                                con_lin->_cst = rhs_p;
                                 }
                                 
                                 
@@ -1736,17 +1736,17 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
 
 template<>
 void Model<>::reset_lazy(){
-    for (auto &con: _cons_vec)
-    {
-        if(con->_lazy.size()!=0){
-            auto nb=con->get_nb_instances();
-            for (auto i=0;i<nb;i++){
-                if(con->_lazy[i]){
-                    con->_lazy[i]=false;
-                }
-            }
-        }
-    }
+//    for (auto &con: _cons_vec)
+//    {
+//        if(con->_lazy.size()!=0){
+//            auto nb=con->get_nb_instances();
+//            for (auto i=0;i<nb;i++){
+//                if(con->_lazy[i]){
+//                    con->_lazy[i]=false;
+//                }
+//            }
+//        }
+//    }
 }
 
 

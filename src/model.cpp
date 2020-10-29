@@ -6239,7 +6239,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             
                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, active_tol);
 #endif
-                            obbt_model->reset_lazy();
                             obbt_model->reset();
                             obbt_model->reset_constrs();
                             obbt_model->reindex();
@@ -6675,13 +6674,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, 1e-6);
                                             DebugOn("oacuts "<<oacuts<<endl);
 #endif
-                                            obbt_model->reset_lazy();
                                             obbt_model->reindex();
                                             obbt_model->reset();
                                             obbt_model->reset_constrs();
                                         }
                                         else{
-                                            obbt_model->reset_lazy();
                                             obbt_model->reindex();
                                             obbt_model->reset();
                                             obbt_model->reset_constrs();
