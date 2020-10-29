@@ -112,9 +112,9 @@ shared_ptr<Model<type>> Model<type>::buildOA()
     return OA;
 }
 /** Outer approximation of model. Throws exception if model has nonlinear equality constraints
-@param[in] nb_discr: number of OA cuts per nonlinear constraint
-@return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
-**/
+ @param[in] nb_discr: number of OA cuts per nonlinear constraint
+ @return Model with OA cuts. OA cuts are added to the model (for all func instances) in an uniform grid (nb_discr)
+ **/
 //    template<typename type>
 //    template<typename T>
 //    shared_ptr<Model<type>> Model<type>::buildOA(int nb_discr, int nb_perturb)
@@ -173,7 +173,7 @@ shared_ptr<Model<type>> Model<type>::buildOA()
 
 
 /** Returns a model which has all variables in current model. If current model has nonlinear constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to
-**/
+ **/
 template<typename type>
 template<typename T>
 Model<type> Model<type>::build_model_interior() const
@@ -369,29 +369,29 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             t.join();
         }
         if(linearize){
-        for(auto &m:models){
-            if(count<objective_models.size()){
-                m->get_solution(solution);
-                if(m->_status==0 && linearize){
-                    if(cut_type=="modelname"){
-                        modelname=m->get_name();
+            for(auto &m:models){
+                if(count<objective_models.size()){
+                    m->get_solution(solution);
+                    if(m->_status==0 && linearize){
+                        if(cut_type=="modelname"){
+                            modelname=m->get_name();
+                        }
+                        else if(cut_type=="allvar"){
+                            modelname="allvar";
+                        }
+                        viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  ncuts,  active_tol);
                     }
-                    else if(cut_type=="allvar"){
-                        modelname="allvar";
+                    if(viol_i==1){
+                        viol=1;
                     }
-                    viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  ncuts,  active_tol);
-                }
-                if(viol_i==1){
-                    viol=1;
-                }
-                count++;
-                m->reset_constrs();
+                    count++;
+                    m->reset_constrs();
                     // m->reset_lifted_vars_bounds();
-                m->reset();
-                m->reindex();
+                    m->reset();
+                    m->reindex();
+                }
             }
         }
-    }
         threads.clear();
         if(viol==0){
             break;
@@ -399,11 +399,11 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     }
     count=0;
     for(auto &m:models){
-    if(count<objective_models.size()){
-    sol_status.at(count)=m->_status;
-    sol_obj.at(count)=m->get_obj_val();
-    count++;
-    }
+        if(count<objective_models.size()){
+            sol_status.at(count)=m->_status;
+            sol_obj.at(count)=m->get_obj_val();
+            count++;
+        }
     }
     return viol;
 }
@@ -1149,15 +1149,15 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                     DebugOff("status "<< interior._status);
                                     //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
                                     if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-//                                        if(con->xval_within_bounds(i, xcurrent)){
-//                                            if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
-                                                auto con_interior=interior.get_constraint(cname);
-                                                xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                                                auto res_search=con->binary_line_search(xinterior, i);
-                                                if(res_search){
-                                                    oa_cut=true;
-                                                }
-                                            //}
+                                        //                                        if(con->xval_within_bounds(i, xcurrent)){
+                                        //                                            if(!(lin->linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
+                                        auto con_interior=interior.get_constraint(cname);
+                                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                                        auto res_search=con->binary_line_search(xinterior, i);
+                                        if(res_search){
+                                            oa_cut=true;
+                                        }
+                                        //}
                                         //}
                                     }
                                     else{
@@ -1254,12 +1254,12 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                         DebugOff("added p"<<endl);
                                     }
                                     else {
-                                            auto f = static_pointer_cast<func<>>(l.second._coef);
-                                            if(!f->func_is_param()){
-                                                throw invalid_argument("function should be a param");
-                                            }
-                                            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                                            p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
+                                        auto f = static_pointer_cast<func<>>(l.second._coef);
+                                        if(!f->func_is_param()){
+                                            throw invalid_argument("function should be a param");
+                                        }
+                                        auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                                        p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
                                         l.second._coef = p;
                                     }
                                     auto parkeys=l.second._p->_indices->_keys;
@@ -1273,27 +1273,16 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                     auto co_cst = ((param<>*)(con_lin->_cst.get()));
                                     co_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
                                 }
-//                               else if(con_lin->_cst->is_function()){
-//                                    auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-//                                    if(!rhs_f->func_is_param()){
-//                                        throw invalid_argument("function should be a param");
-//                                    }
-//                                    auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-//                                    p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-//                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
-//                                    rhs_f->_dim[0] = rhs_f->_indices->size();
-//                                    //  rhs_f->eval_all();
-//                                }
                                 else if(con_lin->_cst->is_function()){
-                                     auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                                                        if(!rhs_f->func_is_param()){
-                                                                            throw invalid_argument("function should be a param");
-                                                                        }
-                                auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-//                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
-//                                    rhs_f->_dim[0] = rhs_f->_indices->size();
-                                con_lin->_cst = rhs_p;
+                                    auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+                                    if(!rhs_f->func_is_param()){
+                                        throw invalid_argument("function should be a param");
+                                    }
+                                    auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+                                    rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
+                                    //                              rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
+                                    //                              rhs_f->_dim[0] = rhs_f->_indices->size();
+                                    con_lin->_cst = rhs_p;
                                 }
                                 
                                 
@@ -1736,17 +1725,17 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
 
 template<>
 void Model<>::reset_lazy(){
-//    for (auto &con: _cons_vec)
-//    {
-//        if(con->_lazy.size()!=0){
-//            auto nb=con->get_nb_instances();
-//            for (auto i=0;i<nb;i++){
-//                if(con->_lazy[i]){
-//                    con->_lazy[i]=false;
-//                }
-//            }
-//        }
-//    }
+    //    for (auto &con: _cons_vec)
+    //    {
+    //        if(con->_lazy.size()!=0){
+    //            auto nb=con->get_nb_instances();
+    //            for (auto i=0;i<nb;i++){
+    //                if(con->_lazy[i]){
+    //                    con->_lazy[i]=false;
+    //                }
+    //            }
+    //        }
+    //    }
 }
 
 
