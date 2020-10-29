@@ -6710,9 +6710,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             }
                                             DebugOn(endl);
 #endif  
-                                            if(!linearize){
-                                                break;
-                                            }
+                                         
                                             //  interval_gap.clear();
                                             sum=0;
                                             num_var=0;
@@ -6746,18 +6744,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             }
                                             
                                             // DebugOn("Repeat_list "<<repeat_list.size()<<endl);
-                                            repeat_list.clear();
                                             objective_models.clear();
-                                            if(linearize){
-                                                for(auto &r:repeat_list){
-                                                    objective_models.push_back(r);
-                                                }
-                                                batch_model_count=repeat_list.size();
-                                                repeat_list.clear();
-                                            }
-                                            else{
-                                                batch_model_count=0;
-                                            }
+                                            batch_model_count=0;
                                             if(false && lb_solver_type==gurobi){
                                                                        for(auto &mod:batch_models){
                                                                        for(auto &it:mod->_vars)

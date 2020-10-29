@@ -378,6 +378,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         for(auto &t : threads){
             t.join();
         }
+        if(linearize){
         for(auto &m:models){
             if(count<objective_models.size()){
                 m->get_solution(solution);
@@ -400,6 +401,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                 m->reindex();
             }
         }
+    }
         threads.clear();
         if(viol==0){
             break;
@@ -409,8 +411,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     for(auto &m:models){
     if(count<objective_models.size()){
     sol_status.at(count)=m->_status;
-          sol_obj.at(count)=m->get_obj_val();
-        count++;
+    sol_obj.at(count)=m->get_obj_val();
+    count++;
     }
     }
     return viol;
@@ -1299,7 +1301,9 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                                                                         }
                                 auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
                                 rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-                                con_lin->_cst = rhs_p;
+                                    rhs_f->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
+                                    rhs_f->_dim[0] = rhs_f->_indices->size();
+                                //con_lin->_cst = rhs_p;
                                 }
                                 
                                 
