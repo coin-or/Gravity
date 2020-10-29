@@ -6757,7 +6757,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             else{
                                                 batch_model_count=0;
                                             }
-                                            if(lb_solver_type==gurobi){
+                                            if(false && lb_solver_type==gurobi){
                                                                        for(auto &mod:batch_models){
                                                                        for(auto &it:mod->_vars)
                                                                        {

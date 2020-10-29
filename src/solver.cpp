@@ -302,6 +302,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     std::vector<double> solution(models[0]->_nb_vars);
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
+    int lin_count=4;
     vector<shared_ptr<solver<double>>> batch_solvers;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -352,6 +353,20 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         DebugOff("limits[" << i << "] = " << limits[i] << endl);
     }
     /* Launch all threads in parallel */
+       int viol_i=0, viol=0;
+        int count=0;
+    for(auto l=0;l<lin_count;l++){
+        viol_i=0;
+        viol=0;
+        count=0;
+        if(lin_count>=1 && stype==ipopt){
+            for (auto s=0;s<objective_models.size();s++){
+                    if(batch_solvers[s]->_model->_objt==maximize){
+                        *batch_solvers[s]->_model->_obj *= -1;
+                    }
+            }
+
+        }
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
         threads.push_back(thread(run_models_solver<double>, ref(vec), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
@@ -360,12 +375,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     for(auto &t : threads){
         t.join();
     }
-    int count=0;
-    int viol_i=0, viol=0;
     for(auto &m:models){
         if(count<objective_models.size()){
-            sol_status.at(count)=m->_status;
-            sol_obj.at(count)=m->get_obj_val();
             m->get_solution(solution);
             if(m->_status==0 && linearize){
                 if(cut_type=="modelname"){
@@ -380,7 +391,24 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                 viol=1;
             }
             count++;
+            m->reset_constrs();
+           // m->reset_lifted_vars_bounds();
+            m->reset();
+            m->reindex();
         }
+    }
+        threads.clear();
+        if(viol==0){
+            break;
+        }
+    }
+    count=0;
+    for(auto &m:models){
+    if(count<objective_models.size()){
+    sol_status.at(count)=m->_status;
+          sol_obj.at(count)=m->get_obj_val();
+        count++;
+    }
     }
     return viol;
 }
