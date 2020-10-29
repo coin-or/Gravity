@@ -6444,7 +6444,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 //                                                batch_solvers.push_back(solverk);
 //                                            }
                                             if(run_obbt_iter<=2){
-                                                cut_type="modelname";
+                                                cut_type="allvar";
                                             }
                                             else{
                                                 cut_type="allvar";
