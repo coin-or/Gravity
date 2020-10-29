@@ -296,14 +296,14 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type,  int nb_oacuts, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int lin_count){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
-    int lin_count = 10;
     vector<shared_ptr<solver<double>>> batch_solvers;
+    int viol_i=0, viol=0, count=0, ncuts=0;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
         return -1;
@@ -319,28 +319,20 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         dir=msname.substr(pos+1);
         var=models[s]->get_var<double>(vname);
         models[s]->set_name(mname);
-        //auto so=solvers.at(s);
-       // so._model->_obj=models.at(s)->_obj;
-       // so._model->_objt=models.at(s)->_objt;
         if(dir=="LB")
         {
             models[s]->min(var(key));
             models[s]->_objt=minimize;
-           // so._model->min(var(key));
         }
         else
         {
             models[s]->max(var(key));
             models[s]->_objt=maximize;
-           // so._model->max(var(key));
         }
         models[s]->reset_constrs();
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset();
         models[s]->reindex();
-        //so._model->_obj->_new=true;
-//        so._model->reset();
-//        so._model->reindex();
         auto solverk = make_shared<solver<double>>(models[s], stype);
         batch_solvers.push_back(solverk);
     }
@@ -353,8 +345,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         DebugOff("limits[" << i << "] = " << limits[i] << endl);
     }
     /* Launch all threads in parallel */
-       int viol_i=0, viol=0;
-        int count=0;
     for(auto l=0;l<lin_count;l++){
         viol_i=0;
         viol=0;
@@ -389,7 +379,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                     else if(cut_type=="allvar"){
                         modelname="allvar";
                     }
-                    viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  nb_oacuts,  active_tol);
+                    viol_i=relaxed_model->add_iterative(interior,  solution, m,  modelname,  ncuts,  active_tol);
                 }
                 if(viol_i==1){
                     viol=1;
