@@ -6178,7 +6178,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     obbt_model->reindex();
                     obbt_model->reset_constrs();
                     /*Root refine obbt_model*/
-                    close=relaxed_model->root_refine(interior_model, obbt_model, nb_refine, run_obbt_iter, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, oacuts, lb_solver_type, abs_tol, rel_tol, zero_tol);
+                     close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, run_obbt_iter, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol);
                     if(obbt_model->_status==0){
                         gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                         gap_old=gaplin;
@@ -6544,7 +6544,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                             else{
                                 auto gap_temp=gap_old;
-                                 close=relaxed_model->root_refine(interior_model, obbt_model, nb_refine, run_obbt_iter, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, oacuts, lb_solver_type, abs_tol, rel_tol, zero_tol);
+                                 close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, run_obbt_iter, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol);
                                 if(obbt_model->_status==0)
                                 {
 #ifdef USE_MPI

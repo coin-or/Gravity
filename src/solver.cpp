@@ -296,7 +296,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int lin_count){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
@@ -348,7 +348,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         DebugOff("limits[" << i << "] = " << limits[i] << endl);
     }
     /* Launch all threads in parallel */
-    for(auto l=0;l<lin_count;l++){
+    for(auto l=0;l<nb_refine;l++){
         viol_i=0;
         viol=0;
         count=0;
@@ -1707,7 +1707,7 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
 }
 template<typename type>
 template<typename T>
-bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, int& oacuts, SolverType lb_solver_type, const double abs_tol, const double rel_tol, const double zero_tol){
+bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol){
 int constr_viol=1, lin_count=0, output;
 solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
@@ -1726,7 +1726,7 @@ while (constr_viol==1 && lin_count<nb_refine){
                                                                    }
                                 vector<double> solution(obbt_model->_nb_vars);
                                 obbt_model->get_solution(solution);
-                                constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, lb_solver_tol);
+                                constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
                                 DebugOn("oacuts "<<oacuts<<endl);
                                 obbt_model->reindex();
                                 obbt_model->reset();
@@ -1745,6 +1745,139 @@ while (constr_viol==1 && lin_count<nb_refine){
     return(close);
 }
 
+//template<typename type>
+//template<typename T>
+//bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models,    map<string, bool>& fixed_point,    map<string, double>& interval_original,map<string, double>& ub_original,map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
+//    std::string msname, mkname,vkname,keyk,dirk, var_key_k;
+//    double objk, boundk1, temp, tempa, mid, left, right;
+//    var<> vk;
+//    for (auto s=0;s<objective_models.size();s++)
+//                                                {
+//                                                    /* Update bounds only if the model status is solved to optimal */
+//                                                    if(sol_status.at(s)==0)
+//                                                    {
+//                                                        msname=objective_models.at(s);
+//                                                        mkname=msname;
+//                                                        std::size_t pos = mkname.find("|");
+//                                                        vkname.assign(mkname, 0, pos);
+//                                                        mkname=mkname.substr(pos+1);
+//                                                        pos=mkname.find("|");
+//                                                        keyk.assign(mkname, 0, pos);
+//                                                        dirk=mkname.substr(pos+1);
+//                                                        vk=this->template get_var<T>(vkname);
+//                                                        var_key_k=vkname+"|"+keyk;
+//
+//                                                        objk=sol_obj.at(s);
+//
+//                                                        auto update_lb=false;
+//                                                        auto update_ub=false;
+//                                                        if(dirk=="LB")
+//                                                        {
+//                                                            boundk1=vk.get_lb(keyk);
+//                                                            //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
+//                                                            objk=std::max(objk-range_tol, boundk1);
+//                                                        }
+//                                                        else
+//                                                        {
+//                                                            boundk1=vk.get_ub(keyk);
+//                                                            //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
+//                                                            objk=std::min(objk+range_tol, boundk1);
+//                                                        }
+//                                                        if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+//                                                        {//do not close intervals to OBBT before finishing at least one full iteration over all variables
+//                                                                fixed_point[msname]=true;
+//                                                        }
+//                                                        else
+//                                                        {
+//                                                            if(dirk=="LB"){
+//                                                                vk.set_lb(keyk, objk);
+//                                                                update_lb=true;
+//                                                            }
+//                                                            else{
+//                                                                vk.set_ub(keyk, objk);
+//                                                                update_ub=true;
+//                                                            }
+//                                                            //If crossover in bounds,just exchange them
+//                                                            if(vk.get_ub(keyk)<vk.get_lb(keyk))
+//                                                            {
+//                                                                fixed_point[var_key_k+"|LB"]=true;
+//                                                                fixed_point[var_key_k+"|UB"]=true;
+//                                                                temp=vk.get_ub(keyk);
+//                                                                tempa=vk.get_lb(keyk);
+//                                                                vk.set_ub(keyk, tempa);
+//                                                                vk.set_lb(keyk, temp);
+//                                                                update_lb=true;
+//                                                                update_ub=true;
+//                                                            }
+//                                                            else if(!vk._lift){
+//                                                                fixed_point[msname]=false;
+//                                                                terminate=false;
+//                                                            }
+//                                                        }
+//                                                        //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
+//                                                        if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+//                                                        {
+//                                                            //If original interval is itself smaller than range_tol, do not have to reset interval
+//                                                            if(interval_original[var_key_k]>=range_tol)
+//                                                            {
+//                                                                DebugOff("Entered reset");
+//                                                                //Mid is the midpoint of interval
+//                                                                mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+//                                                                left=mid-range_tol/2.0;
+//                                                                right=mid+range_tol/2.0;
+//                                                                //If resized interval does not cross original bounds, reset
+//                                                                if(right<=ub_original[var_key_k] && left>=lb_original[var_key_k])
+//                                                                {
+//                                                                    vk.set_ub(keyk, right);
+//                                                                    vk.set_lb(keyk, left);
+//                                                                    update_lb=true;
+//                                                                    update_ub=true;
+//                                                                }
+//                                                                //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
+//                                                                else if(right>ub_original[var_key_k])
+//                                                                {
+//
+//                                                                    vk.set_ub(keyk, ub_original[var_key_k]);
+//                                                                    vk.set_lb(keyk, ub_original[var_key_k]-range_tol);
+//                                                                    update_lb=true;
+//                                                                    update_ub=true;
+//                                                                }
+//                                                                //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
+//                                                                else if(left<lb_original[var_key_k])
+//                                                                {
+//                                                                    vk.set_lb(keyk, lb_original[var_key_k]);
+//                                                                    vk.set_ub(keyk, lb_original[var_key_k]+range_tol);
+//                                                                    update_lb=true;
+//                                                                    update_ub=true;
+//
+//                                                                }
+//                                                                //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
+//                                                                //than range_tol
+//
+//                                                            }
+//                                                        }
+//                                                        if(update_lb||update_ub){
+//                                                            auto vkptr=obbt_model->get_var_ptr(vkname);
+//                                                            vkptr->_new=true;
+//                                                            for(auto &mod:batch_models){
+//                                                                auto vkmod=mod->template get_var<T>(vkname);
+//    //                                                            auto vmodptr=mod->get_var_ptr(vkname);
+//    //                                                            vmodptr->_new=true;
+//                                                                if(update_lb){
+//                                                                    vkmod.set_lb(keyk, vk.get_lb(keyk));
+//                                                                }
+//                                                                if(update_ub){
+//                                                                    vkmod.set_ub(keyk, vk.get_ub(keyk));
+//                                                                }
+//                                                            }
+//                                                        }
+//                                                    }
+//                                                    else
+//                                                    {
+//                                                        fail++;
+//                                                    }
+//                                                }
+//}
 
 /** Returns an interior point of a model
  @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
@@ -2254,5 +2387,5 @@ template shared_ptr<Model<double>> Model<double>::buildOA();
 template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
-template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, int& oacuts, SolverType lb_solver_type, const double abs_tol, const double rel_tol, const double zero_tol);
+template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol);
 }

@@ -6277,7 +6277,7 @@ namespace gravity {
         template<typename T=type>
         bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, std::string model_name,int& oacuts, double active_tol);
         template<typename T=type>
-        bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, int& oacuts, SolverType lb_solver_type, const double abs_tol, const double rel_tol, const double zero_tol);
+        bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, double active_tol,  int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol);
         void reset_lazy();
         int num_obbt_prob(){
             int count=0;
