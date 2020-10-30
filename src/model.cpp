@@ -6377,9 +6377,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                     }
                                                     if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                                                     {//do not close intervals to OBBT before finishing at least one full iteration over all variables
-                                                        if(lin_count==0){
                                                             fixed_point[msname]=true;
-                                                        }
                                                     }
                                                     else
                                                     {
@@ -6518,11 +6516,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 if(active_tol>lb_solver_tol){
                                     active_tol*=0.1;
                                 }
-                                obbt_model->reset();
                                 obbt_model->reindex();
+                                obbt_model->reset();
                             }
-                            obbt_model->reset_constrs();
                             obbt_model->reset_lifted_vars_bounds();
+                            obbt_model->reset_constrs();
                             if(!linearize){
                                                             solver<> LB_solver(obbt_model,lb_solver_type);
                                 LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
@@ -6545,56 +6543,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 }
                             }
                             else{
-                                constr_viol=1;
-                                lin_count=0;
-                                active_root_tol=1e-6;
                                 auto gap_temp=gap_old;
-//                                  close=relaxed_model->root_refine(interior_model, obbt_model, nb_refine, run_obbt_iter, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, oacuts, lb_solver_type, abs_tol, rel_tol, zero_tol);
-                         obbt_model->print();
-                                 solver<> LB_solver(obbt_model,lb_solver_type);
-                                    while ((constr_viol==1) && (lin_count<nb_refine)){
-                                        LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
-                                        if(obbt_model->_status==0){
-                                            lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-                                            gap=(upper_bound-lower_bound)/std::abs(upper_bound)*100;
-                                            gap_temp=gap;
-#ifdef USE_MPI
-                                            if(worker_id==0){
-                                                DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
-                                                DebugOn("lin count "<<lin_count<<endl);
-                                            }
-#else
-                                            DebugOn("Iter linear gap = "<<gap<<"%"<<endl);
-                                            DebugOn("lin count "<<lin_count<<endl);
-#endif
-                                            if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
-                                            {
-                                                close= true;
-                                                break;
-                                            }
-                                            vector<double> obbt_solution(obbt_model->_nb_vars);
-                                            obbt_model->get_solution(obbt_solution);
-#ifdef USE_MPI
-                                 constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, 1e-6);
-#else
-
-
-                                            constr_viol=relaxed_model->add_iterative(interior_model, obbt_solution, obbt_model, "allvar", oacuts, lb_solver_tol);
-                                            DebugOn("oacuts "<<oacuts<<endl);
-#endif
-                                            obbt_model->reindex();
-                                            obbt_model->reset();
-                                            obbt_model->reset_constrs();
-                                        }
-                                        else{
-                                            obbt_model->reindex();
-                                            obbt_model->reset();
-                                            obbt_model->reset_constrs();
-                                            lower_bound=numeric_limits<double>::min();
-                                            break;
-                                        }
-                                        lin_count++;
-                                    }
+                                 close=relaxed_model->root_refine(interior_model, obbt_model, nb_refine, run_obbt_iter, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, oacuts, lb_solver_type, abs_tol, rel_tol, zero_tol);
                                 if(obbt_model->_status==0)
                                 {
 #ifdef USE_MPI

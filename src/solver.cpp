@@ -329,13 +329,16 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             models[s]->max(var(key));
             models[s]->_objt=maximize;
         }
-        models[s]->reset_constrs();
-        models[s]->reset_lifted_vars_bounds();
-        models[s]->reset();
         models[s]->reindex();
+        models[s]->reset();
+        models[s]->reset_lifted_vars_bounds();
+        models[s]->reset_constrs();
+        DebugOff(objective_models[s]);
+        //models[s]->print();
         auto solverk = make_shared<solver<double>>(models[s], stype);
         batch_solvers.push_back(solverk);
     }
+    DebugOn(endl);
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,objective_models.size());
     std::vector<size_t> limits = bounds(nr_threads_, objective_models.size());
@@ -379,16 +382,17 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                         else if(cut_type=="allvar"){
                             modelname="allvar";
                         }
+                        DebugOff("active tol "<<active_tol<<endl);
                         viol_i=relaxed_model->add_iterative(interior,  solution, models[count],  modelname,  ncuts,  active_tol);
                     }
                     if(viol_i==1){
                         viol=1;
                     }
                     count++;
+                    m->reindex();
+                    m->reset();
                     m->reset_constrs();
                     // m->reset_lifted_vars_bounds();
-                    m->reset();
-                    m->reindex();
                 }
             }
         }
@@ -1708,10 +1712,13 @@ int constr_viol=1, lin_count=0, output;
 solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
     obbt_model->print();
+    DebugOn("lb solver tol "<<lb_solver_tol<<endl);
 while (constr_viol==1 && lin_count<nb_refine){
-                            LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
+                            LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
                             if(obbt_model->_status==0){
                                  lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
+                                DebugOn("lin count "<<lin_count<<endl);
                                 if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                                                                    {
                                                                        close= true;
@@ -1719,9 +1726,7 @@ while (constr_viol==1 && lin_count<nb_refine){
                                                                    }
                                 vector<double> solution(obbt_model->_nb_vars);
                                 obbt_model->get_solution(solution);
-                                constr_viol=this->add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, lb_solver_tol);
-                                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
-                                DebugOn("lin count "<<lin_count<<endl);
+                                constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, lb_solver_tol);
                                 DebugOn("oacuts "<<oacuts<<endl);
                                 obbt_model->reindex();
                                 obbt_model->reset();
