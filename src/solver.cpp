@@ -1705,21 +1705,33 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
         }
     }
 }
-/** Discretizes Constraint con and adds OA cuts to the model that calls it. Discretization of squared constraint only currently implemented
-@param[in] nb_discr:
-@param[in] con:
-@return void. OA cuts are added to the model that calls the function (for all func instances)
+/** function to resolve the lower bound problem and add cuts to it, either until nb_refine times or if no violated point is found as per tolerance active_tol
+@param[in] interior model: Model which can give interior point of current model
+@param[in] obbt_model: Model which is resolved and cuts are added to
+@param[in] lb_solver_type: solver algorithm
+@param[in] nb_refine: max number of model resolves allowed
+@param[in] upper bound: upper_bound of the nonconvex model
+@param[in] lower bound: objective value of obbt_model
+@param[in] ub_scale_value: scaled value of upper bound objective
+@param[in] lb_solver_tol: tolerance with which obbt_model is solved
+@param[in] active_tol: constraint violation tolerance based on which cuts are added
+@param[in] oacuts: incremented by added cuts
+@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+@param[in] max_iter, amx_time: to solve obbt_model
+@return bool close. returns true iff gap is closed
 **/
 template<typename type>
 template<typename T>
-bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol){
+bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time){
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
     obbt_model->print();
     DebugOn("lb solver tol "<<lb_solver_tol<<endl);
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 5, lb_solver_tol, "ma27", 2000, 600);
+        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
             DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
@@ -1749,7 +1761,22 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     }
     return(close);
 }
-
+/** function to update variable bounds of current model and vector models for the OBBT algorithm
+@param[in] objective models: Vec with names of each model in models
+@param[in] sol_obj: Vec with objective values of each model in models
+@param[in] sol_obj: Vec with solution status of each model in models
+@param[in] models: Vec of models
+@param[in] fixed point: for each obbt_problem, set to true if fixed point reached
+@param[in] interval_original: interval of each variable given at the start
+@param[in] ub_original: upper bound of each variable given at the start
+@param[in] lb_original: lower bound of each variable given at the start
+@param[in] terminate: iff obbt algorithm reached fixed point then terminate is true
+@param[in] lb_solver_tol: tolerance with which obbt_model is solved
+@param[in] fail: increment by 1 when a obbt subproblem fails
+@param[in] range_tol: vvariable interval width should be greater than equal to range_tol
+@param[in]  fixed_tol_abs, fixed_tol_rel, zero_tol: parameters to determine if fixed point reached for a variable
+@return returns true
+ */
 template<typename type>
 template<typename T>
 bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
@@ -1813,7 +1840,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                     vk.set_lb(keyk, temp);
                     update_lb=true;
                     update_ub=true;
-                }
+                }/*If fixed point not reached for any variable, terminate is false*/
                 else if(!vk._lift){
                     fixed_point[msname]=false;
                     terminate=false;
@@ -2393,6 +2420,6 @@ template shared_ptr<Model<double>> Model<double>::buildOA();
 template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
-template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, int run_obbt_iter, double upper_bound, double& lower_bound, double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol);
+template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time);
 template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
 }
