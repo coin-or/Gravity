@@ -1728,8 +1728,6 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
-    obbt_model->print();
-    DebugOn("lb solver tol "<<lb_solver_tol<<endl);
     while (constr_viol==1 && lin_count<nb_refine){
         LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){

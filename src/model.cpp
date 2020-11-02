@@ -6281,7 +6281,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     terminate=false;
                     obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
                     solver_time= get_wall_time()-solver_time_start;
-                    DebugOn(nb_threads<<endl);
                     /*Crete nb_threads copy of obbt_models*/
                     for(auto i=0;i<nb_threads;i++){
                         auto modelk = obbt_model->copy();
@@ -6369,7 +6368,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                             if(worker_id==0){
                                                 DebugOn("calling run mpi"<<endl);
                                             }
-                                            run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
+                                            viol= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, limits);
 #else
                                             viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine);
                                             
