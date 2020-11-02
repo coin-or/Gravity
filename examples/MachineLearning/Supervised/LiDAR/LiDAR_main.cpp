@@ -248,9 +248,18 @@ int main (int argc, char * argv[])
         bool compute_L2_error = true;
         if(compute_L2_error){
             auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 before Registration = " << L2error_init << endl);
-            DebugOn("L2 error with full set after = " << L2error << endl);
+            DebugOn("L2 before Registration = " << to_string_with_precision(L2error_init,12) << endl);
+            DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
+            L2error_init = L2error;
         }
+//        res = run_GoICP(point_cloud_model, point_cloud_data);
+//        auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+//        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//        if(compute_L2_error){
+//            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
+//            DebugOn("L2 before Registration = " << to_string_with_precision(L2error_init,12) << endl);
+//            DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
+//        }
         return 0;
     }
 
@@ -402,7 +411,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
     
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 0.0001;
+    goicp.MSEThresh = 1e-5;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -418,7 +427,7 @@ void set_GoICP_options(GoICP& goicp){
     {
         goicp.doTrim = false;
     }
-    goicp.dt.SIZE = 300;
+    goicp.dt.SIZE = 1000;
     goicp.dt.expandFactor = 2.0;
 }
 
@@ -934,6 +943,12 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
         Reg.add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
         Reg.add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
         
+//        point_cloud[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+//        point_cloud[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+//        point_cloud[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+//        double beta = roll*pi/180;// roll in radians
+//        double gamma = pitch*pi/180; // pitch in radians
+//        double alpha = yaw*pi/180; // yaw in radians
         Constraint<> x_rot1("x_rot1");
         x_rot1 += new_x1 - x_shift.in(ids1);
         x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
@@ -980,7 +995,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
         solver<> S(Reg,gurobi);
         S.run();
     }
-//    Reg.print_solution();
+    Reg.print_solution();
 //        S.run(0, 1e-10, 1000);
     
     
@@ -1005,12 +1020,9 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     pitch = std::asin(sinp.eval());
     roll = std::asin(sinr.eval());
     yaw = std::asin(siny.eval());
-    DebugOn("Pitch (degrees) = " << pitch.eval()*180/pi << endl);
-    DebugOn("Roll (degrees) = " << roll.eval()*180/pi << endl);
-    DebugOn("Yaw (degrees) = " << yaw.eval()*180/pi << endl);
-    DebugOn("Pitch = " << pitch.eval() << endl);
-    DebugOn("Roll = " << roll.eval() << endl);
-    DebugOn("Yaw = " << yaw.eval() << endl);
+    DebugOn("Roll (degrees) = " << to_string_with_precision(roll.eval()*180/pi,12) << endl);
+    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch.eval()*180/pi,12) << endl);
+    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw.eval()*180/pi,12) << endl);
     DebugOn("x shift = " << x_shift.eval() << endl);
     DebugOn("y shift = " << y_shift.eval() << endl);
     DebugOn("z shift = " << z_shift.eval() << endl);
@@ -2018,14 +2030,18 @@ double computeL2error(const vector<vector<double>>& point_cloud_model, const vec
     size_t n = point_cloud_data.size();
     size_t m = point_cloud_model.size();
     double dist_sq = 0, err = 0;
+    map<int,int> z;
     for (auto i = 0; i< n; i++) {
         double min_dist = numeric_limits<double>::max();
         for (auto j = 0; j< m; j++) {
             dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
             if(min_dist>dist_sq){
                 min_dist = dist_sq;
+                z[i] = j;
             }
         }
+        DebugOn("DeltaMin(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOn("z(" << i+1 << ") = " << z[i]+1 << endl);
         err += min_dist;
     }
     return err;
@@ -2145,9 +2161,9 @@ tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<d
     auto pitch = atan2(goicp.optR.val[2][1], goicp.optR.val[2][2])*180/pi;
     auto roll = atan2(-goicp.optR.val[2][0], std::sqrt(goicp.optR.val[2][1]*goicp.optR.val[2][1]+goicp.optR.val[2][2]*goicp.optR.val[2][2]))*180/pi;
     auto yaw = atan2(goicp.optR.val[1][0],goicp.optR.val[0][0])*180/pi;
-    DebugOn("Roll = " << roll << endl);
-    DebugOn("Pitch = " << pitch << endl);
-    DebugOn("Yaw = " << yaw << endl);
+    DebugOn("Roll (degrees) = " << to_string_with_precision(roll,12) << endl);
+    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch,12) << endl);
+    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw,12) << endl);
     auto tx = goicp.optT.val[0][0];
     auto ty = goicp.optT.val[1][0];
     auto tz = goicp.optT.val[2][0];
