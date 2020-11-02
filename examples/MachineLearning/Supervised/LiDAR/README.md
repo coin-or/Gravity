@@ -12,7 +12,7 @@ First, make sure you are on the LiDAR branch of Gravity by entering:
 
 `git checkout LiDAR`
 
-The only dependency for ARMO is [Ipopt](https://github.com/coin-or/Ipopt), please install it on your system first (preferably build Ipopt with HSL libraries).
+The only dependency for ARMO are [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools), please install them on your system first (preferably build Ipopt with HSL libraries).
 
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
