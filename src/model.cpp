@@ -6266,9 +6266,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     if(obbt_model->_status==0){
                         gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                         gap_old=gaplin;
-                        DebugOff("Initial Number of oa cuts "<<oacuts<<endl);
-                        DebugOff("Initial linear gap = "<<gaplin<<"%"<<endl);
-                        DebugOff("Initial number of constraints after perturb "<<oacuts<<endl);
 #ifdef USE_MPI
                         if(worker_id==0){
                             DebugOn("Gap initial "<<gaplin<<" and cuts initial "<<oacuts<<" and cuts buildoa "<<oacuts_init<<endl);
@@ -6328,7 +6325,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                 {
                                     fixed_point[key_lb]=true;
                                     fixed_point[key_ub]=true;
-                                    DebugOff("made true"<<endl);
                                     
                                 }
                                 /* Add to batch if not reached fixed point, or if we're at the last key of the last variable */
@@ -6380,7 +6376,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #endif
                                             double batch_time_end = get_wall_time();
                                             batch_time = batch_time_end - batch_time_start;
-                                            DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
 #ifdef USE_MPI
                                             if(worker_id==0){
                                                 DebugOff("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
@@ -6441,7 +6436,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;;
                                     gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
                                     DebugOff("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
-                                    DebugOff("Updating bounds on original problem and resolving"<<endl);
 #ifdef USE_MPI
                                     if(worker_id==0){
                                         DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<solver_time<<endl);
@@ -6480,13 +6474,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                             {
-                                DebugOff("Gap closed at iter "<< iter<<endl);
-                                DebugOff("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
                                 gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-                                DebugOff("Final Gap = " << to_string(gap) << "%."<<endl);
-                                DebugOff("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                                DebugOff("Lower bound = " << to_string(lower_bound) << "."<<endl);
-                                DebugOff("Time\t"<<solver_time<<endl);
                                 close=true;
                                 terminate=true;
 #ifdef USE_MPI
@@ -6494,10 +6482,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                     //obbt_model->print_solution();
                                     DebugOn("terminate true wid "<<worker_id<<endl);
 #endif
-                            }
-                            if(linearize){
-                                DebugOff("Number of constraints "<<obbt_model->_nb_cons<<endl);
-                                DebugOff("Number of symbolic constraints "<<obbt_model->_cons_name.size()<<endl);
                             }
                         }
                         if(break_flag==true)
@@ -6518,7 +6502,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     avg=sum/count_var;
                     
                     DebugOff("Average interval reduction\t"<<avg<<endl);
-                    DebugOff("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
                 }
                 else{
                     DebugOn("Initial lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
@@ -6528,44 +6511,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             }
             else{
                 close=true;
-            }
-            if(!close)
-            {
-#ifdef USE_MPI
-                if(worker_id==0){
-#endif
-                    if(obbt_model->_status==0)
-                    {
-                        DebugOff("\nLower bound = " << " " << to_string(lower_bound) << " " <<endl);
-                        DebugOff("Solution Print"<<endl);
-                        DebugOff("Initial Gap Nonlinear = " << to_string(gapnl) << "%."<<endl);
-                        gap = 100*std::abs(upper_bound - lower_bound)/std::abs(upper_bound);
-                        DebugOff("Final Gap = " << to_string(gap) << "%."<<endl);
-                        DebugOff("Upper bound = " << to_string(upper_bound) << "."<<endl);
-                        DebugOff("Lower bound = " << to_string(lower_bound) << "."<<endl);
-                        DebugOff("Time\t"<<solver_time<<endl);
-                    }
-                    else
-                    {
-                        DebugOff("Initial Gap = " << to_string(gapnl) << "%."<<endl);
-                        DebugOff("Lower bounding problem status = " << obbt_model->_status <<endl);
-                        DebugOff("Lower bounding problem not solved to optimality, cannot compute final gap"<<endl);
-                        lower_bound=numeric_limits<double>::min();
-                    }
-                    if(time_limit){
-                        DebugOff("Reached Time limit!"<<endl);
-                    }
-                    else {
-                        DebugOff("Terminate\t"<<terminate<<endl);
-                    }
-                    
-                    
-                    DebugOff("Time\t"<<solver_time<<endl);
-                    DebugOff("Iterations\t"<<iter<<endl);
-#ifdef USE_MPI
-                }
-#endif
-                
             }
         }
         else

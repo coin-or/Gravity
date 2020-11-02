@@ -174,7 +174,7 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     bool scale_objective=true;
     bool termination=true;
-    //linearize=true;
+    linearize=true;
     int nb_refine=10;
     if(!linearize){
         auto nonlin_obj=true;
