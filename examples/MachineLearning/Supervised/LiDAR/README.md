@@ -1,7 +1,22 @@
 
 
-## ARMO
-Follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity) then run using the following command:
+# ARMO
+
+## Supported platforms
+
+ARMO was only tested on Mac OS and Linux, no Windows support at this point.
+
+## Compiling
+
+First, make sure you are on the LiDAR branch of Gravity by entering:
+
+`git checkout LiDAR`
+
+The only dependency for ARMO are [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools), please install them on your system first (preferably build Ipopt with HSL libraries).
+
+To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
+
+Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command:
 
 For Registration:
 
@@ -23,3 +38,5 @@ The first two command line arguments should point to the full point clouds, the 
 
 Datasets can be downloaded [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_402c21969b5d4bc49a340f97607027b1.zip) (full point clouds) and [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_e271c09cc9824d0686aed597678615ec.zip) (subsampled point clouds)
 
+## Go-ICP
+ARMO includes the source code of [Go-ICP](https://github.com/yangjiaolong/Go-ICP) for comparison purposes.
