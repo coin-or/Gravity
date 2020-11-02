@@ -1731,7 +1731,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     obbt_model->print();
     DebugOn("lb solver tol "<<lb_solver_tol<<endl);
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
+        LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
             DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
