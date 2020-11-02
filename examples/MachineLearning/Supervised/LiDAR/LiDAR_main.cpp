@@ -252,14 +252,6 @@ int main (int argc, char * argv[])
             DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
             L2error_init = L2error;
         }
-//        res = run_GoICP(point_cloud_model, point_cloud_data);
-//        auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
-//        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-//        if(compute_L2_error){
-//            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-//            DebugOn("L2 before Registration = " << to_string_with_precision(L2error_init,12) << endl);
-//            DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
-//        }
         return 0;
     }
 
@@ -411,7 +403,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
     
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-5;
+    goicp.MSEThresh = 1e-4;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -427,7 +419,7 @@ void set_GoICP_options(GoICP& goicp){
     {
         goicp.doTrim = false;
     }
-    goicp.dt.SIZE = 1000;
+    goicp.dt.SIZE = 300;
     goicp.dt.expandFactor = 2.0;
 }
 
