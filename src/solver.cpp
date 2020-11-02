@@ -1706,22 +1706,22 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
     }
 }
 /** function to resolve the lower bound problem and add cuts to it, either until nb_refine times or if no violated point is found as per tolerance active_tol
-@param[in] interior model: Model which can give interior point of current model
-@param[in] obbt_model: Model which is resolved and cuts are added to
-@param[in] lb_solver_type: solver algorithm
-@param[in] nb_refine: max number of model resolves allowed
-@param[in] upper bound: upper_bound of the nonconvex model
-@param[in] lower bound: objective value of obbt_model
-@param[in] ub_scale_value: scaled value of upper bound objective
-@param[in] lb_solver_tol: tolerance with which obbt_model is solved
-@param[in] active_tol: constraint violation tolerance based on which cuts are added
-@param[in] oacuts: incremented by added cuts
-@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
-@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
-@param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
-@param[in] max_iter, amx_time: to solve obbt_model
-@return bool close. returns true iff gap is closed
-**/
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_model: Model which is resolved and cuts are added to
+ @param[in] lb_solver_type: solver algorithm
+ @param[in] nb_refine: max number of model resolves allowed
+ @param[in] upper bound: upper_bound of the nonconvex model
+ @param[in] lower bound: objective value of obbt_model
+ @param[in] ub_scale_value: scaled value of upper bound objective
+ @param[in] lb_solver_tol: tolerance with which obbt_model is solved
+ @param[in] active_tol: constraint violation tolerance based on which cuts are added
+ @param[in] oacuts: incremented by added cuts
+ @param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+ @param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+ @param[in] abs_tol, rel_tol, zero_tol: parameters to determine if gap closed
+ @param[in] max_iter, amx_time: to solve obbt_model
+ @return bool close. returns true iff gap is closed
+ **/
 template<typename type>
 template<typename T>
 bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time){
@@ -1762,20 +1762,20 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     return(close);
 }
 /** function to update variable bounds of current model and vector models for the OBBT algorithm
-@param[in] objective models: Vec with names of each model in models
-@param[in] sol_obj: Vec with objective values of each model in models
-@param[in] sol_obj: Vec with solution status of each model in models
-@param[in] models: Vec of models
-@param[in] fixed point: for each obbt_problem, set to true if fixed point reached
-@param[in] interval_original: interval of each variable given at the start
-@param[in] ub_original: upper bound of each variable given at the start
-@param[in] lb_original: lower bound of each variable given at the start
-@param[in] terminate: iff obbt algorithm reached fixed point then terminate is true
-@param[in] lb_solver_tol: tolerance with which obbt_model is solved
-@param[in] fail: increment by 1 when a obbt subproblem fails
-@param[in] range_tol: vvariable interval width should be greater than equal to range_tol
-@param[in]  fixed_tol_abs, fixed_tol_rel, zero_tol: parameters to determine if fixed point reached for a variable
-@return returns true
+ @param[in] objective models: Vec with names of each model in models
+ @param[in] sol_obj: Vec with objective values of each model in models
+ @param[in] sol_obj: Vec with solution status of each model in models
+ @param[in] models: Vec of models
+ @param[in] fixed point: for each obbt_problem, set to true if fixed point reached
+ @param[in] interval_original: interval of each variable given at the start
+ @param[in] ub_original: upper bound of each variable given at the start
+ @param[in] lb_original: lower bound of each variable given at the start
+ @param[in] terminate: iff obbt algorithm reached fixed point then terminate is true
+ @param[in] lb_solver_tol: tolerance with which obbt_model is solved
+ @param[in] fail: increment by 1 when a obbt subproblem fails
+ @param[in] range_tol: vvariable interval width should be greater than equal to range_tol
+ @param[in]  fixed_tol_abs, fixed_tol_rel, zero_tol: parameters to determine if fixed point reached for a variable
+ @return returns true
  */
 template<typename type>
 template<typename T>
@@ -2273,11 +2273,17 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     return max(err_rank, err_size);
     
 }
-int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, const std::vector<size_t>& limits, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all_obj){
+
+
+int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::vector<size_t> limits){
+    
+    
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
     auto nb_workers_ = std::min((size_t)nb_workers, objective_models.size());
+    std::vector<std::string> objective_models_worker;
+    std::vector<double> sol_obj_worker, sol_status_worker,
     if(nb_workers_!=limits.size()-1){
         DebugOn("Error4 in computing limits");
     }
@@ -2301,37 +2307,16 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
             int count=0;
             auto vec = vector<shared_ptr<gravity::Model<double>>>();
             for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                msname=objective_models.at(i);
-                mname=msname;
-                std::size_t pos = msname.find("|");
-                vname.assign(msname, 0, pos);
-                msname=msname.substr(pos+1);
-                pos=msname.find("|");
-                key.assign(msname, 0, pos);
-                dir=msname.substr(pos+1);
-                var=models[count]->get_var<double>(vname);
-                if(dir=="LB")
-                {
-                    models[count]->min(var(key));
-                }
-                else
-                {
-                    models[count]->max(var(key));
-                    
-                }
-                models[count]->set_name(mname);
-                models[count]->reindex();
-                vec.push_back(models[count++]);
+                objective_models_worker.push_back(objective_models[i]);
             }
-            run_parallel(vec,solvers, stype,tol,nr_threads,lin_solver,max_iter,max_batch_time);
+            sol_status_worker.resize(limits[worker_id+1]-limits[worker_id],0);
+            sol_obj_worker.resize(limits[worker_id+1]-limits[worker_id],0);
+            run_parallel_new(objective_models_worker, sol_obj_worker, sol_status_worker, models, relaxed_model, interior, cut_type, active_tol, stype, tol, nr_threads, lin_solver, max_iter, max_batch_time, linearize, nb_refine);
         }
         MPI_Barrier(MPI_COMM_WORLD);
         send_status_new(models,limits, sol_status);
         MPI_Barrier(MPI_COMM_WORLD);
-        if(share_all_obj){
-            /* We will send the objective value of successful models */
-            send_obj_all_new(models,limits, sol_obj);
-        }
+        send_obj_all_new(models,limits, sol_obj);
     }
     //   MPI_Barrier(MPI_COMM_WORLD);
     return max(err_rank, err_size);

@@ -5951,7 +5951,86 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     lifted._dim[1] = c._dim[1];
     return lifted;
 }
-
+template <typename type>
+template<typename T>
+void Model<type>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var){
+    var<> v;
+    std::string var_key, key_lb, key_ub;
+    for(auto &it:_vars)
+    {
+        string vname=(*it.second)._name;
+        v=this->template get_var<double>(vname);
+        auto v_keys=v.get_keys();
+        auto v_key_map=v.get_keys_map();
+        for(auto &key: *v_keys)
+        {
+            var_key = vname+"|"+ key;
+            key_lb= var_key +"|LB";
+            key_ub= var_key +"|UB";
+            /* Do not do OBBT on lifted variables */
+            if(v._lift){
+                fixed_point[key_lb]=true;
+                fixed_point[key_ub]=true;
+                count_skip+=2;
+                DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
+            }
+            else{
+                fixed_point[key_lb]=false;
+                fixed_point[key_ub]=false;
+            }
+            auto key_pos=v_key_map->at(key);
+            
+            if(v._off[key_pos]==true)
+            {
+                fixed_point[key_lb]=true;
+                fixed_point[key_ub]=true;
+                count_skip+=2;
+                DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
+            }
+            count_var++;
+            interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
+            ub_original[var_key]=v.get_ub(key);
+            lb_original[var_key]=v.get_lb(key);
+            interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
+            
+        }
+        
+    }
+}
+template <typename type>
+template<typename T>
+void Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol){
+    var<> v, var_ub;
+    std::string var_key;
+    for(auto &it:obbt_model->_vars_name)
+    {
+        string vname=it.first;
+        v=obbt_model->template get_var<double>(vname);
+        auto v_keys=v.get_keys();
+        bool in_orig_model=false;
+        if(this->_vars_name.find(vname)!=this->_vars_name.end())
+        {
+            var_ub=this->template get_var<T>(vname);
+            in_orig_model=true;
+        }
+        for(auto &key: *v_keys)
+        {
+            var_key=vname+"|"+ key;
+            interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
+            interval_gap.push_back((interval_original.at(var_key)-interval_new.at(var_key))/(interval_original.at(var_key)+zero_tol)*100.0);
+            sum+=interval_gap.back();
+            if( in_orig_model)
+            {
+                var_ub.uneval();
+                if((var_ub.eval(key)-v.get_lb(key)) < - 1e-6 || (var_ub.eval(key)-v.get_ub(key))>1e-6){
+                    xb_true=false;
+                    DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
+                }
+            }
+        }
+        
+    }
+}
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
@@ -6117,7 +6196,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     bool terminate=false;
     bool break_flag=false, time_limit = false, close=false;
     bool xb_true=true;
-    double sum=0, avg=0, num_var=0.0;
+    double sum=0, avg=0;
+    int count_var=0, count_skip=0;
     vector<double> interval_gap;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6, gap_tol=0.1;
     int gap_count_int=1, iter=0;
@@ -6140,6 +6220,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     o_status.push_back(0);
     vector<size_t> limits_1={0,1};
     map<string,int> old_map;
+    int nb_init_refine;
     if(this->_status==0){
         upper_bound=this->get_obj_val();
         if(relaxed_model->_status==0)
@@ -6165,12 +6246,15 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                 if(linearize){
                     if(run_obbt_iter==1){
                         active_tol=0.1;
+                        nb_init_refine=nb_refine;
                     }
                     else if(run_obbt_iter<=2){
                         active_tol=1e-6;
+                        nb_init_refine=1;
                     }
                     else{
                         active_tol=lb_solver_tol;
+                        nb_init_refine=1;
                     }
                     DebugOn("Number of obbt subproblems "<<relaxed_model->num_obbt_prob()<<endl);
                     DebugOn("Initial constraints after add_outer_app_solution "<<oacuts<<endl);
@@ -6178,7 +6262,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     obbt_model->reindex();
                     obbt_model->reset_constrs();
                     /*Root refine obbt_model*/
-                    close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
+                    close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_init_refine, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
                     if(obbt_model->_status==0){
                         gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                         gap_old=gaplin;
@@ -6195,55 +6279,13 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         oacuts_init=oacuts;
                     }
                 }
-                int count_var=0;
-                int count_skip=0;
+                
                 if(obbt_model->_status==0){
                     terminate=false;
-                    for(auto &it:obbt_model->_vars)
-                    {
-                        string vname=(*it.second)._name;
-                        v=obbt_model->template get_var<double>(vname);
-                        auto v_keys=v.get_keys();
-                        auto v_key_map=v.get_keys_map();
-                        for(auto &key: *v_keys)
-                        {
-                            var_key = vname+"|"+ key;
-                            key_lb= var_key +"|LB";
-                            key_ub= var_key +"|UB";
-                            /* Do not do OBBT on lifted variables */
-                            if(v._lift){
-                                fixed_point[key_lb]=true;
-                                fixed_point[key_ub]=true;
-                                count_skip+=2;
-                                DebugOff("Skipping OBBT for "<<vname<<"\t"<<key<<endl);
-                            }
-                            else{
-                                fixed_point[key_lb]=false;
-                                fixed_point[key_ub]=false;
-                            }
-                            auto key_pos=v_key_map->at(key);
-                            
-                            if(v._off[key_pos]==true)
-                            {
-                                fixed_point[key_lb]=true;
-                                fixed_point[key_ub]=true;
-                                count_skip+=2;
-                                DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
-                            }
-                            count_var++;
-                            interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
-                            ub_original[var_key]=v.get_ub(key);
-                            lb_original[var_key]=v.get_lb(key);
-                            interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
-                            
-                        }
-                        
-                    }
+                    obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
                     solver_time= get_wall_time()-solver_time_start;
                     DebugOn(nb_threads<<endl);
-                    if(obbt_model->_cons_name.count("obj|ub")==0){
-                        oacuts++;
-                    }
+                    /*Crete nb_threads copy of obbt_models*/
                     for(auto i=0;i<nb_threads;i++){
                         auto modelk = obbt_model->copy();
                         param<> ub("ub");
@@ -6257,6 +6299,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         batch_models.push_back(modelk);
                         batch_models.at(i)->set_name(to_string(i));
                     }
+                    /*Run obbt algorithm until termiante is true, iter and time less than max iter and max time*/
                     while(solver_time<=max_time && !terminate && iter<max_iter)
                     {
                         iter++;
@@ -6311,7 +6354,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                                             DebugOn("obbt subproblem count "<<obbt_subproblem_count<<endl);
 #endif
-                                    
+                                            
 #ifdef USE_MPI
                                             auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
                                             if(!linearize){
@@ -6321,29 +6364,29 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                                 limits=bounds_reassign(nb_workers_, objective_models, old_map);
                                             }
 #endif
-                                                cut_type="allvar";
-                                                double batch_time_start = get_wall_time();
-                                                sol_status.resize(batch_model_count,-1);
-                                                sol_obj.resize(batch_model_count,-1.0);
+                                            cut_type="allvar";
+                                            double batch_time_start = get_wall_time();
+                                            sol_status.resize(batch_model_count,-1);
+                                            sol_obj.resize(batch_model_count,-1.0);
 #ifdef USE_MPI
-                                                MPI_Barrier(MPI_COMM_WORLD);
-                                                if(worker_id==0){
-                                                    DebugOn("calling run mpi"<<endl);
-                                                }
-                                                run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
+                                            MPI_Barrier(MPI_COMM_WORLD);
+                                            if(worker_id==0){
+                                                DebugOn("calling run mpi"<<endl);
+                                            }
+                                            run_MPI_new(objective_models, sol_obj, sol_status,batch_models,limits,lb_solver_type,obbt_subproblem_tol,nb_threads,"ma27",2000,300, share_obj);
 #else
-                                                viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine);
-                                                
+                                            viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine);
+                                            
 #endif
-                                                double batch_time_end = get_wall_time();
-                                                batch_time = batch_time_end - batch_time_start;
-                                                DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
+                                            double batch_time_end = get_wall_time();
+                                            batch_time = batch_time_end - batch_time_start;
+                                            DebugOff("Done running batch models, solve time = " << to_string(batch_time) << endl);
 #ifdef USE_MPI
-                                                if(worker_id==0){
-                                                    DebugOff("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
-                                                }
+                                            if(worker_id==0){
+                                                DebugOff("time before bounds update "<<get_wall_time()-solver_time_start<<endl);
+                                            }
 #endif
-                                                auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
+                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
                                             
                                             auto t=get_wall_time()-solver_time_start;
 #ifdef USE_MPI                                                                                          
@@ -6391,7 +6434,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             obbt_model->reset_lifted_vars_bounds();
                             obbt_model->reset_constrs();
                             if(!linearize){
-                                                            solver<> LB_solver(obbt_model,lb_solver_type);
+                                solver<> LB_solver(obbt_model,lb_solver_type);
                                 LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
                                 if(obbt_model->_status==0)
                                 {
@@ -6413,7 +6456,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                             else{
                                 auto gap_temp=gap_old;
-                                 close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
+                                close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
                                 if(obbt_model->_status==0)
                                 {
 #ifdef USE_MPI
@@ -6449,7 +6492,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                 if(worker_id==0)
                                     //obbt_model->print_solution();
-                                DebugOn("terminate true wid "<<worker_id<<endl);
+                                    DebugOn("terminate true wid "<<worker_id<<endl);
 #endif
                             }
                             if(linearize){
@@ -6467,41 +6510,12 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         DebugOff("Solved Fixed Point iteration " << iter << endl);
                     }
                     
-                    interval_gap.clear();
+                    
                     sum=0;
-                    num_var=0;
-                    for(auto &it:obbt_model->_vars_name)
-                    {
-                        string vname=it.first;
-                        v=obbt_model->template get_var<double>(vname);
-                        auto v_keys=v.get_keys();
-                        bool in_orig_model=false;
-                        if(this->_vars_name.find(vname)!=this->_vars_name.end())
-                        {
-                            var_ub=this->template get_var<T>(vname);
-                            in_orig_model=true;
-                        }
-                        for(auto &key: *v_keys)
-                        {
-                            num_var++;
-                            var_key=vname+"|"+ key;
-                            interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
-                            interval_gap.push_back((interval_original[var_key]-interval_new[var_key])/(interval_original[var_key]+zero_tol)*100.0);
-                            sum+=interval_gap.back();
-                            if( in_orig_model)
-                            {
-                                var_ub.uneval();
-                                if((var_ub.eval(key)-v.get_lb(key)) < - 1e-6 || (var_ub.eval(key)-v.get_ub(key))>1e-6){
-                                    xb_true=false;
-                                    DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
-                                }
-                            }
-                            DebugOff(var_key<<" " << interval_gap.back()<< " LB flag = " << fixed_point.at(var_key+"|LB") << endl);
-                            DebugOff(var_key<<" " << interval_gap.back()<< " UB flag = " << fixed_point.at(var_key+"|UB") << endl);
-                        }
-                        
-                    }
-                    avg=sum/num_var;
+                    bool xb_true=true;
+                    this->populate_final_interval_gap(obbt_model,  interval_original, interval_new, interval_gap,  sum,  xb_true, zero_tol);
+                    
+                    avg=sum/count_var;
                     
                     DebugOff("Average interval reduction\t"<<avg<<endl);
                     DebugOff("Total obbt subproblems run\t"<<obbt_subproblem_count<<endl);
@@ -6581,13 +6595,15 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 
 
 
-
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, int nb_refine);
 
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start, int nb_refine);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
+template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
+template void Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol);
+
 
 //    template func<double> constant<double>::get_real() const;
 //    template class Model<double>;

@@ -6280,6 +6280,10 @@ namespace gravity {
         bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol,  int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time);
         template<typename T=type>
         bool obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original,const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+          template<typename T=type>
+        void populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
+        template<typename T=type>
+        void populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol);
         void reset_lazy();
         int num_obbt_prob(){
             int count=0;
