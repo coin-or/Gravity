@@ -16,7 +16,7 @@ The only dependency for ARMO are [Ipopt](https://github.com/coin-or/Ipopt) and [
 
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
-Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command:
+Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command (If you're having trouble with the installation, follow the steps described in [here](https://github.com/coin-or/Gravity/blob/LiDAR/.travis.yml)):
 
 For Registration:
 
