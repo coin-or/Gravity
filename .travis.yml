@@ -35,6 +35,7 @@ before_install:
 script:
 - make lidar
 - ../bin/Debug/lidar Reg ../data_sets/LiDAR/toy_model.txt ../data_sets/LiDAR/toy_data.txt GoICP
+- ../bin/Debug/lidar Reg ../data_sets/LiDAR/toy_model.txt ../data_sets/LiDAR/toy_data.txt ARMO IPH
 - cd ../
 - ./get_code_cov.sh
 after_success: 

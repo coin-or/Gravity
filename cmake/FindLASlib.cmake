@@ -12,7 +12,7 @@ find_path(LASlib_INCLUDE_DIR
 
 find_path(LASlib_INCLUDE_DIR2
         NAMES mydefs.hpp
-        HINTS /usr/local/include/LASzip
+        HINTS /usr/local/include/LASzip/src
         HINTS ${LASlib_ROOT_DIR}/../LASzip/src
         HINTS ${LASlib_ROOT_DIR}/include
         HINTS ${LASlib_ROOT_DIR}/inc
