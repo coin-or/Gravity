@@ -163,7 +163,7 @@ get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
-#include(ExternalProject)
+include(ExternalProject)
 # Eigen
 #find_package(Eigen QUIET)
 #if (EIGEN_FOUND)
