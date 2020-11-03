@@ -1,11 +1,13 @@
 set(LASlib_ROOT_DIR "$ENV{LASlib_ROOT_DIR}" CACHE PATH "LASlib root directory.")
-message("Looking for Ipopt in ${LASlib_ROOT_DIR}")
+message("Looking for LASlib in ${LASlib_ROOT_DIR}")
 
 
 find_path(LASlib_INCLUDE_DIR
 	NAMES lasutility.hpp
 	HINTS /usr/local/include/LASlib
 	HINTS ${LASlib_ROOT_DIR}/include
+	HINTS ${LASlib_ROOT_DIR}/inc
+	HINTS ${LASlib_ROOT_DIR}
 )
 
 find_library(LASlib_LIBRARY 
