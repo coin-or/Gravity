@@ -2193,21 +2193,6 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
 }
 
 
-
-
-/** Runs models stored in the vector in parallel using MPI
- *      @models vector of models to run in parallel
- *           @stype Solver type
- *                @tol numerical tolerance
- *                     @max_iter max number of iterations per model
- *                          @max_batch_time max wall clock time of each batch
- *                               @nb_threads Number of parallel threads per worker
- *                                    @lin_solver linear system solver
- *                                         @share_all propagate model status and solutions to all workers, if false, only worker 0 has updated solutions and status flags for all models
- *                                              @share_all_obj propagate only objective values and model status to all workers
- *
- */
-
 int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::vector<size_t> limits){
     
     
@@ -2256,6 +2241,18 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     return max(err_rank, err_size);
     
 }
+/** Runs models stored in the vector in parallel using MPI
+*      @models vector of models to run in parallel
+*           @stype Solver type
+*                @tol numerical tolerance
+*                     @max_iter max number of iterations per model
+*                          @max_batch_time max wall clock time of each batch
+*                               @nb_threads Number of parallel threads per worker
+*                                    @lin_solver linear system solver
+*                                         @share_all propagate model status and solutions to all workers, if false, only worker 0 has updated solutions and status flags for all models
+*                                              @share_all_obj propagate only objective values and model status to all workers
+*
+*/
 int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);

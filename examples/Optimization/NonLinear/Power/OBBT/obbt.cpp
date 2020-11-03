@@ -119,12 +119,17 @@ int main (int argc, char * argv[]) {
     if(argc>1){
         fname=argv[1];
     }
-    if(argc>3){
+    if(argc>2){
         time_s=argv[2];
+    }
+    if(argc>3){
         sdp_kim_s=argv[3];
     }
     if(argc>4){
         linearize_s=argv[4];
+    }
+    if(argc>5){
+        solver_str=argv[5];
     }
     if (linearize_s.compare("yes")==0) {
         linearize = true;
@@ -137,6 +142,14 @@ int main (int argc, char * argv[]) {
     }
     else {
         sdp_kim = true;
+    }
+    if (solver_str.compare("gurobi")==0) {
+        solv_type = gurobi;
+    }
+    else if(solver_str.compare("cplex")==0) {
+        solv_type = cplex;
+    }else if(solver_str.compare("Mosek")==0) {
+        solv_type = _mosek;
     }
 #endif
     
