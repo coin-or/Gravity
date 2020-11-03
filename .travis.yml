@@ -11,6 +11,7 @@ before_install:
 - git clone https://github.com/LAStools/LAStools.git 
 - cd LAStools
 - make
+- export LASlib_ROOT_DIR="/home/travis/build/coin-or/Gravity/LAStools/LASlib"
 - cd ..
 - wget --tries=40 --retry-connrefused --waitretry=1 --no-check-certificate https://www.coin-or.org/download/source/Ipopt/Ipopt-3.12.12.tgz
 - tar xvzf Ipopt-3.12.12.tgz
