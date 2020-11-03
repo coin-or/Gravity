@@ -2216,7 +2216,8 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
     auto nb_workers_ = std::min((size_t)nb_workers, objective_models.size());
     std::vector<std::string> objective_models_worker;
-    std::vector<double> sol_obj_worker, sol_status_worker,
+    std::vector<double> sol_obj_worker;
+    std::vector<int> sol_status_worker;
     if(nb_workers_!=limits.size()-1){
         DebugOn("Error4 in computing limits");
     }
