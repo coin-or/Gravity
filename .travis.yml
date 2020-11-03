@@ -33,8 +33,7 @@ before_install:
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON -DDebug=ON
 script:
-- make
-- ../bin/Debug/gravity_test
+- make lidar
 - ../bin/Debug/lidar Reg ../data_sets/LiDAR/toy_model.txt ../data_sets/LiDAR/toy_data.txt GoICP
 - cd ../
 - ./get_code_cov.sh
