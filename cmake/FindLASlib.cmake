@@ -11,7 +11,7 @@ find_path(LASlib_INCLUDE_DIR
 )
 
 find_library(LASlib_LIBRARY 
-	libLASlib.a
+	liblas.a
 	HINTS /usr/local/lib/LASlib
 	HINTS ${LASlib_ROOT_DIR}/lib
 	HINTS ${LASlib_ROOT_DIR}/bin
