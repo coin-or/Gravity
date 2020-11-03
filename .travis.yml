@@ -31,7 +31,7 @@ before_install:
 - cd ../../../
 - echo $LANG
 - echo $LC_ALL
-- mkdir build && cd build && cmake .. -DOPT_PARSER=ON -DIpopt=ON -DCov=ON -DDebug=ON
+- mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON -DDebug=ON
 script:
 - make
 - ../bin/Debug/gravity_test
