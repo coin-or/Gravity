@@ -6284,6 +6284,8 @@ namespace gravity {
         void populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
         template<typename T=type>
         void populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol);
+        template<typename T=type>
+        void create_batch_models(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value);
         void reset_lazy();
         int num_obbt_prob(){
             int count=0;

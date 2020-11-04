@@ -270,11 +270,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,models.size());
     std::vector<size_t> limits = bounds(nr_threads_, models.size());
-    DebugOff("Running on " << nr_threads_ << " threads." << endl);
-    DebugOff("limits size = " << limits.size() << endl);
-    for (size_t i = 0; i < limits.size(); ++i) {
-        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-    }
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
@@ -329,24 +324,15 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             models[s]->max(var(key));
             models[s]->_objt=maximize;
         }
-        models[s]->reindex();
-        models[s]->reset();
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset_constrs();
-        DebugOff(objective_models[s]);
         //models[s]->print();
         auto solverk = make_shared<solver<double>>(models[s], stype);
         batch_solvers.push_back(solverk);
     }
-    DebugOn(endl);
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,objective_models.size());
     std::vector<size_t> limits = bounds(nr_threads_, objective_models.size());
-    DebugOn("Running on " << nr_threads_ << " threads." << endl);
-    DebugOn("limits size = " << limits.size() << endl);
-    for (size_t i = 0; i < limits.size(); ++i) {
-        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-    }
     /* Launch all threads in parallel */
     for(auto l=0;l<nb_refine;l++){
         viol_i=0;
@@ -389,10 +375,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                         viol=1;
                     }
                     count++;
-                    m->reindex();
-                    m->reset();
-                    m->reset_constrs();
-                    // m->reset_lifted_vars_bounds();
                 }
             }
         }
@@ -402,6 +384,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     count=0;
+    sol_status.resize(objective_models.size(),-1);
+    sol_obj.resize(objective_models.size(),-1.0);
     for(auto &m:models){
         if(count<objective_models.size()){
             sol_status.at(count)=m->_status;
@@ -1043,6 +1027,8 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
         }
     }
     reindex();
+    reset();
+    reset_constrs();
     DebugOff("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
     set_solution(xsolution);
     //print();
@@ -1298,6 +1284,9 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     
     set_solution(xsolution);
     lin->set_solution(obbt_solution);
+    lin->reindex();
+    lin->reset();
+    lin->reset_constrs();
     nb_oacuts+=nb_added_cuts;
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
@@ -2209,14 +2198,8 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     std::string msname, mname, vname, key, dir;
     var<> var;
     if(objective_models.size()!=0){
-        /* Split models into equal loads */
-        //std::vector<size_t> limits = bounds(nb_workers_, objective_models.size());
-        DebugOff("I will be splitting " << objective_models.size() << " tasks ");
-        DebugOff("among " << nb_workers_ << " worker(s)" << endl);
-        DebugOff("limits size = " << limits.size() << endl);
-        for (size_t i = 0; i < limits.size(); ++i) {
-            DebugOff("limits[" << i << "] = " << limits[i] << endl);
-        }
+        sol_status.resize(objective_models.size(),-1);
+        sol_obj.resize(objective_models.size(),-1.0);
         if(worker_id+1<limits.size()){
             /* Launch all threads in parallel */
             if(limits[worker_id] == limits[worker_id+1]){
