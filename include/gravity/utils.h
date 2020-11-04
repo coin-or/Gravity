@@ -49,6 +49,7 @@ op::OptionParser readOptions(int argc, char * argv[]);
 std::vector<size_t> bounds(unsigned parts, size_t mem);
 
 std::vector<size_t> bounds_reassign(unsigned parts, std::vector<std::string>& objective_models, std::map<std::string,int>& old_map);
+void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_refine, double lb_solver_tol, int run_obbt_iter);
 
 gravity::Sign reverse(gravity::Sign s);
 

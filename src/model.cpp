@@ -5999,9 +5999,10 @@ void Model<type>::populate_original_interval(map<string, bool>& fixed_point, map
 }
 template <typename type>
 template<typename T>
-void Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol){
+void Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var){
     var<> v, var_ub;
     std::string var_key;
+    double avg;
     for(auto &it:obbt_model->_vars_name)
     {
         string vname=it.first;
@@ -6017,8 +6018,7 @@ void Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obb
         {
             var_key=vname+"|"+ key;
             interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
-            interval_gap.push_back((interval_original.at(var_key)-interval_new.at(var_key))/(interval_original.at(var_key)+zero_tol)*100.0);
-            sum+=interval_gap.back();
+            sum+=((interval_original.at(var_key)-interval_new.at(var_key))/(interval_original.at(var_key)+zero_tol)*100.0);
             if( in_orig_model)
             {
                 var_ub.uneval();
@@ -6030,6 +6030,8 @@ void Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& obb
         }
         
     }
+    avg=sum/count_var;
+    DebugOff("Average interval reduction "<<avg<<endl);
 }
 template <typename type>
 template<typename T>
@@ -6047,6 +6049,53 @@ for(auto i=0;i<nb_threads;i++){
     batch_models.push_back(modelk);
     batch_models.at(i)->set_name(to_string(i));
 }
+}
+    //Check if OBBT has converged, can check every gap_count_int intervals
+    template <typename type>
+    template<typename T>
+    void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time){
+        gap=-999;
+        #ifdef USE_MPI
+            int worker_id, nb_workers;
+            auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+            auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        #endif
+        int output=0;
+        bool close=false;
+                          obbt_model->reset_lifted_vars_bounds();
+                          obbt_model->reset_constrs();
+                          if(!linearize){
+                              solver<> LB_solver(obbt_model,lb_solver_type);
+                              LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
+                              if(obbt_model->_status==0)
+                              {
+                                  lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+                              }
+                          }
+                          else{
+                              if(active_tol>lb_solver_tol){
+                                  active_tol*=0.1;
+                              }
+                              close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
+                          }
+                          if(this->_status==0)
+                          {
+                              gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+                              if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+                                                      {
+                                                          terminate=true;
+                                                      }
+                                
+                          }
+                          else{
+                              DebugOn("Failed to solve lower bounding problem"<<endl);
+                              lower_bound=numeric_limits<double>::min();
+                              terminate=true;
+                          }
+#ifdef USE_MPI
+        if(worker_id==0)
+#endif
+            DebugOn("Gap "<<gap<<" at iteration "<<iter<<endl);
 }
 template <typename type>
 template<typename T,
@@ -6124,8 +6173,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         oacuts=get<8>(status);
         run_obbt_iter++;
         status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine);
-        
-        
         lower_bound=get<6>(status);
         gap_new = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
         total_iter += get<1>(status);
@@ -6182,195 +6229,102 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     nb_total_threads *= nb_workers;
 #endif
     vector<shared_ptr<Model<>>> batch_models;
-    batch_models.reserve(nb_threads);
     vector<string> objective_models;
-    objective_models.reserve(nb_total_threads);
     vector<double> sol_obj;
-    sol_obj.reserve(nb_total_threads);
     vector<int> sol_status;
-    sol_status.reserve(nb_total_threads);
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
-    string vname, var_key,key_lb,key_ub, mname;
+    string vname, var_key, mname, cut_type="allvar";
     string dir_array[2]={"LB", "UB"};
     var<> v;
-    bool break_flag=false, time_limit = false, close=false, terminate=false, xb_true=true;
-    vector<double> interval_gap;
+    bool close=false, terminate=false, xb_true=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
-    int iter=0, output = 0, fail=0, batch_model_count=0, count_var=0, count_skip=0;
-    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0;
+    int iter=0, output = 0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine;
+    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=1e-6, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
-    double active_root_tol=1e-6, active_tol=1e-6;
-    string cut_type="allvar";
     map<string,int> old_map;
-    int nb_init_refine;
     if(this->_status==0){
         upper_bound=this->get_obj_val();
-        if(relaxed_model->_status==0)
-        {
+        if(relaxed_model->_status==0){
             lower_bound_nonlin_init=relaxed_model->get_obj_val()*upper_bound/ub_scale_value;
             lower_bound_init = lower_bound_nonlin_init;
             lower_bound = lower_bound_nonlin_init;
             gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
             /* Check if gap is already not zero at root node */
-            if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol)
-            {
+            if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol){
                 if(linearize){
-                    if(run_obbt_iter==1){
-                        active_tol=0.1;
-                        nb_init_refine=nb_refine;
-                    }
-                    else if(run_obbt_iter<=2){
-                        active_tol=1e-6;
-                        nb_init_refine=1;
-                    }
-                    else{
-                        active_tol=lb_solver_tol;
-                        nb_init_refine=1;
-                    }
+                    /*Set values of active tol and nb_init_refine*/
+                    set_activetol_initrefine(active_tol, nb_init_refine, nb_refine, lb_solver_tol, run_obbt_iter);
                     /*Root refine obbt_model*/
                     close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_init_refine, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
                     oacuts_init=oacuts;
                     gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                 }
                 if(obbt_model->_status==0){
-                    terminate=false;
+                    /*Initialize fixed point, interval original and new, bounds original*/
                     obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
                     solver_time= get_wall_time()-solver_time_start;
                     /*Create nb_threads copy of obbt_models*/
                     obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
                     /*Run obbt algorithm until termiante is true, iter and time less than max iter and max time*/
-                    while(solver_time<=max_time && !terminate && iter<max_iter)
-                    {
+                    while(solver_time<=max_time && !terminate && iter<max_iter){
                         iter++;
                         terminate=true;
-                        for (auto it=obbt_model->_vars_name.begin(); it!=obbt_model->_vars_name.end(); it++)
-                        {
+                        for (auto it=obbt_model->_vars_name.begin(); it!=obbt_model->_vars_name.end(); it++){
                             vname=it->first;
                             v = obbt_model->template get_var<double>(vname);
                             auto v_keys=v.get_keys();
-                            for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++)
-                            {
+                            for(auto it_key=v.get_keys()->begin(); it_key!=v.get_keys()->end(); it_key++){
                                 auto key = *it_key;
                                 var_key=vname+"|"+ key;
-                                key_lb= var_key +"|LB";
-                                key_ub= var_key +"|UB";
-                                interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
-                                if(std::abs(v.get_ub(key)-v.get_lb(key))<=range_tol)
-                                {
-                                    fixed_point[key_lb]=true;
-                                    fixed_point[key_ub]=true;
-                                    
-                                }
                                 /* Add to batch if not reached fixed point, or if we're at the last key of the last variable */
-                                if(fixed_point[key_lb]==false || fixed_point[key_ub]==false || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end()))
-                                {
+                                if(fixed_point[var_key +"|LB"]==false || fixed_point[var_key +"|UB"]==false || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end())){
                                     /* Loop on Min/Max, upper bound and lower bound */
-                                    for(auto &dir: dir_array)
-                                    {
-                                        mname=vname+"|"+key+"|"+dir;
+                                    for(auto &dir: dir_array){
+                                        mname=var_key+"|"+dir;
                                         if(fixed_point[mname]==false){
                                             objective_models.push_back(mname);
-                                            batch_model_count++;
                                         }
                                         /* When batch models has reached size of nb_threads or when at the last key of last variable */
-                                        if (batch_model_count==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB"))
-                                        {
+                                        if (objective_models.size()==nb_total_threads || (next(it)==obbt_model->_vars_name.end() && next(it_key)==v.get_keys()->end() && dir=="UB")){
 #ifdef USE_MPI
-                                            auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
-                                            if(!linearize){
-                                                limits=bounds(nb_workers_, objective_models.size());
-                                            }
-                                            else{
-                                                limits=bounds_reassign(nb_workers_, objective_models, old_map);
-                                            }
-                                            auto viol= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, limits);
+                                            auto viol= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, old_map);
 #else
                                             auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine);
 #endif
-                                            
-                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
+                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
                                             sol_status.clear();
                                             sol_obj.clear();
                                             objective_models.clear();
-                                            batch_model_count=0;
                                         }
                                         solver_time=get_wall_time()-solver_time_start;
-                                        if(solver_time>=max_time)
-                                        {
-                                            break_flag=true;
-                                            time_limit = true;
+                                        if(solver_time>=max_time){
                                             break;
                                         }
                                     }
                                 }
-                                if(solver_time>=max_time)
-                                {
-                                    break_flag=true;
-                                    time_limit = true;
+                                if(solver_time>=max_time){
                                     break;
                                 }
                             }
-                            if(solver_time>=max_time)
-                            {
-                                break_flag=true;
-                                time_limit = true;
+                            if(solver_time>=max_time){
                                 break;
                             }
                         }
-                        //Check if OBBT has converged, can check every gap_count_int intervals
-                        obbt_model->reset_lifted_vars_bounds();
-                        obbt_model->reset_constrs();
-                        if(!linearize){
-                            solver<> LB_solver(obbt_model,lb_solver_type);
-                            LB_solver.run(output = 0, lb_solver_tol, "ma27", 2000, 600);
-                            if(obbt_model->_status==0)
-                            {
-                                lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-                            }
-                        }
-                        else{
-                            if(active_tol>lb_solver_tol){
-                                active_tol*=0.1;
-                            }
-                            close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
-                        }
-                        if(obbt_model->_status==0)
-                        {
-                            gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-#ifdef USE_MPI
-                            if(worker_id==0){
-                                DebugOn("Gap "<<gap<<" at iteration "<<iter<<" and solver time "<<get_wall_time()-solver_time_start<<endl);
-                            }
-#endif
-                        }
-                        else{
-                            DebugOn("Failed to solve lower bounding problem"<<endl);
-                            lower_bound=numeric_limits<double>::min();
-                            break;
-                        }
-                        if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
-                        {
-                            close=true;
-                            terminate=true;
-                        }
+                        /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
+                        relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
                         solver_time= get_wall_time()-solver_time_start;
                     }
-                    this->populate_final_interval_gap(obbt_model,  interval_original, interval_new, interval_gap,  sum,  xb_true, zero_tol);
-                    avg=sum/count_var;
+                    /*final interval, average interval reduction, sanity check on bounds*/
+                    this->populate_final_interval_gap(obbt_model,  interval_original, interval_new, sum,  xb_true, zero_tol, count_var);
                 }
                 else{
                     DebugOn("Initial lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
                     lower_bound=numeric_limits<double>::min();
-                    close=false;
                 }
             }
-            else{
-                close=true;
-            }
         }
-        else
-        {
+        else{
             DebugOn("Lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
             lower_bound=numeric_limits<double>::min();
         }
@@ -6379,7 +6333,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         DebugOn("Upper bounding problem not solved to optimality, cannot compute gap"<<endl);
         upper_bound=numeric_limits<double>::min();
     }
-    batch_models.clear();
     std::get<0>(res) = terminate;
     std::get<1>(res) = iter;
     std::get<2>(res) = solver_time;
@@ -6393,9 +6346,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     std::get<10>(res)=fail;
     return res;
 }
-
-
-
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, int nb_refine);
 
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start, int nb_refine);
@@ -6403,8 +6353,9 @@ template std::tuple<bool,int,double,double,double,double,double,double,int,int,i
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
-template void Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, vector<double>& interval_gap, double& sum, bool& xb_true, const double zero_tol);
+template void Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
 template void Model<double>::create_batch_models(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
+template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time);
 
 
 //    template func<double> constant<double>::get_real() const;

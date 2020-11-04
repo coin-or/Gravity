@@ -342,3 +342,17 @@ std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_mo
     return bnd;
     
 }
+void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_refine, double lb_solver_tol, int run_obbt_iter){
+                        if(run_obbt_iter==1){
+                                            active_tol=0.1;
+                                            nb_init_refine=nb_refine;
+                                        }
+                                        else if(run_obbt_iter<=2){
+                                            active_tol=1e-6;
+                                            nb_init_refine=1;
+                                        }
+                                        else{
+                                            active_tol=lb_solver_tol;
+                                            nb_init_refine=1;
+                                        }
+                    }
