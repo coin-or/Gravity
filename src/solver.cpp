@@ -2188,10 +2188,27 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
     MPI_Barrier(MPI_COMM_WORLD);
     return viol;
 }
+/** function to run models in parallel across machines. Populates solution status and objective of the runs. If linearize cuts are also added, and each problem is refined upto nb_refine times
+@param[in] objective models: Vec with names of each model in models. If linearize order of elements in this vector is changed at the end of the function
+@param[in] sol_obj: Vec with objective values of each model in models
+@param[in] sol_obj: Vec with solution status of each model in models
+@param[in] models: Vec of models (per machine, of size threads_per_machine nr_threads)
+@param[in] relaxed model: original nonlinear nonconvex model
+@param[in] interioir model: model to compute interior point of relaxed model
+@param[in] cut_type: cut add strategy allvar or modelname
+@param[in] active tol: a constraint is violated and linearized as per this tolerance
+@param[in] stype: solver type
+@param[in] tol: tolerance with which each model in objective_models is solved
+@param[in] nr_threads: threads per machine
+@param[in] lin_solver: linear solver used by ipopt (ma27, ma57, etc)
+@param[in] max_iter, max_batch_time: max iter and batch_time for each time a problem is run
+@param[in] linearize: true if linear obbt algorithm is used
+@param[in] nb_refine: number of refinement steps, used for linearizs only
+@param[in] old_map: map of which worker_id each modelname is assigned to, used for linearize only
+@return returns true
+*/
 
-
-int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map){
-    
+int run_MPI_new(std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map){
     
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -2200,18 +2217,17 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
     std::vector<std::string> objective_models_worker;
     std::vector<double> sol_obj_worker;
     std::vector<int> sol_status_worker;
-    if(!linearize){
-        limits=bounds(nb_workers_, objective_models.size());
-    }
-    else{
-        limits=bounds_reassign(nb_workers_, objective_models, old_map);
-    }
-    if(nb_workers_!=limits.size()-1){
-        DebugOn("Error4 in computing limits");
-    }
-    std::string msname, mname, vname, key, dir;
-    var<> var;
+    std::vector<size_t> limits;
     if(objective_models.size()!=0){
+        if(!linearize){
+            limits=bounds(nb_workers_, objective_models.size());
+        }
+        else{
+            limits=bounds_reassign(nb_workers_, objective_models, old_map);
+        }
+        if(nb_workers_!=limits.size()-1){
+            DebugOn("Error4 in computing limits");
+        }
         sol_status.resize(objective_models.size(),-1);
         sol_obj.resize(objective_models.size(),-1.0);
         if(worker_id+1<limits.size()){
@@ -2220,8 +2236,6 @@ int run_MPI_new(const std::vector<std::string> objective_models, std::vector<dou
                 throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
             }
             DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
-            int count=0;
-            auto vec = vector<shared_ptr<gravity::Model<double>>>();
             for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                 objective_models_worker.push_back(objective_models[i]);
             }

@@ -600,21 +600,8 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int return_status = -1;
         int viol_i=0;
     for (auto i = start; i<end; i++) {
-//        if(solvers[i]->_model->_objt==maximize && stype==ipopt){
-//            *solvers[i]->_model->_obj *= -1;
-//        }
-
-//        solvers.at(i)._model->reset();
-//        solvers.at(i)._model->reset_constrs();
-//        solvers.at(i)._model->reset_lifted_vars_bounds();
-//        solvers.at(i)._model->reindex();
-        //auto s=solvers.at(i);
-    
         DebugOff("to call run"<<endl);
         return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, max_batch_time);
-//        viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-//        m->set_solution(obbt_solution);
- //       m->add_cuts_to_model(cut_vec, *this, added_cuts);
     }
     return return_status;
 }
@@ -830,7 +817,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     void run_MPI(const initializer_list<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all = false, bool share_all_obj = false);
     int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const vector<shared_ptr<gravity::Model<double>>>& models, const vector<size_t>& limits, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter = 1e6, int max_batch_time = 1e6, bool share_all_obj = false);
-    int run_MPI_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map);
+    int run_MPI_new(std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map);
     
 #endif
 }
