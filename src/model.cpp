@@ -6261,7 +6261,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     bool close=false, terminate=false, xb_true=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
     int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine;
-    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=1e-6, active_tol=1e-6;
+    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
     map<string,int> old_map;
     if(this->_status==0){
