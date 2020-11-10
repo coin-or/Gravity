@@ -23,7 +23,20 @@ Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](htt
 [<img 
 src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
 
-### ** Contributors **
+## Citing
+The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
+
+Bibtex ref:
+`@article{Gravity,
+  title={Gravity: A Mathematical Modeling Language for Optimization and Machine Learning},
+  author={Hassan Hijazi and Guanglei Wang and Carleton Coffrin},
+  journal={Machine Learning Open Source Software Workshop at NeurIPS 2018},
+  year={2018},
+  note = {Available at \url{www.gravityopt.com}.},
+  publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
+}`
+
+## Contributors
 Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
 
 Guanglei Wang, Ksenia Bestuzheva, Carleton Coffrin, Smitha Gopinath, Mertcan Yetkin
