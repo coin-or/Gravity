@@ -291,7 +291,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<vector<double>>& cbasis){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
@@ -327,7 +327,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset_constrs();
         //models[s]->print();
-        auto solverk = make_shared<solver<double>>(models[s], stype);
+        auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
         batch_solvers.push_back(solverk);
     }
     /* Split models into nr_threads parts */
@@ -347,7 +347,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                     *batch_solvers[s]->_model->_obj *= -1;
                 }
             }
-            
         }
         auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
         for (size_t i = 0; i < nr_threads_; ++i) {
@@ -393,6 +392,12 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             count++;
         }
     }
+    count=0;
+#ifdef USE_GUROBI
+    for(auto&s: batch_solvers){
+        s->get_basis(vbasis.at(count), cbasis.at(count));
+    }
+#endif
     return viol;
 }
 
@@ -1717,11 +1722,19 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
+    #ifdef USE_MPI
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+    #endif
     while (constr_viol==1 && lin_count<nb_refine){
         LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-            DebugOff("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
+  #ifdef USE_MPI
+            if(worker_id==0)
+    #endif
+            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
             DebugOff("lin count "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
@@ -1737,6 +1750,10 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             obbt_model->reset_constrs();
         }
         else{
+            #ifdef USE_MPI
+                      if(worker_id==0)
+              #endif
+            DebugOn("lower bounding failed "<<lin_count<<endl);
             lower_bound=numeric_limits<double>::min();
             obbt_model->reindex();
             obbt_model->reset();
@@ -1767,6 +1784,11 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
 template<typename type>
 template<typename T>
 bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
+    #ifdef USE_MPI
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+    #endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
     double objk, boundk1, temp, tempa, mid, left, right;
     var<> vk;
@@ -1785,9 +1807,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             dirk=mkname.substr(pos+1);
             vk=this->template get_var<T>(vkname);
             var_key_k=vkname+"|"+keyk;
-            
             objk=sol_obj.at(s);
-            
             auto update_lb=false;
             auto update_ub=false;
             if(dirk=="LB")
@@ -1901,6 +1921,10 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
         }
         else
         {
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+                DebugOn("failed "<<objective_models.at(s));
             fail++;
         }
     }

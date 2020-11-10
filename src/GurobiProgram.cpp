@@ -176,9 +176,23 @@ void GurobiProgram::prepare_model(){
     create_grb_constraints();
 //    DebugOn("going to fill in omap"<<endl);
     set_grb_objective();
+
 //    grb_mod->write("gurobiprint.lp");
 
 //    print_constraints();
+}
+void initialize_basis(std::vector<double> vbasis, std::std::vector<double> cbasis){
+    int count=0;
+    for(auto &gv:_grb_vars){
+        gv.set(GRB_IntAttr_VBasis, vbasis[count++]);
+    }
+
+    GRBConstr* gcons= grb_mod->getConstrs();
+
+    count=0;
+    for(auto &gc:gcons){
+        gc.set(GRB_IntAttr_CBasis, cbasis[count++]);
+    }
 }
 void GurobiProgram::update_model(){
     _model->fill_in_maps();

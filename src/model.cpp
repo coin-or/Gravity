@@ -6125,7 +6125,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     UB_solver.run(output = 0, ub_solver_tol, "ma27", 2000, 600);
     ub_scale_value=this->get_obj_val();
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
-    scale_objective=true;
     if(scale_objective){
         auto obj = *relaxed_model->_obj/ub_scale_value;
         relaxed_model->min(obj);
@@ -6253,6 +6252,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     vector<string> objective_models;
     vector<double> sol_obj;
     vector<int> sol_status;
+    vector<vector<double>> vbasis, cbasis;
+    vbasis.resize(nb_threads);
+    cbasis.resize(nb_threads);
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
     string vname, var_key, mname, cut_type="allvar";
@@ -6261,7 +6263,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     bool close=false, terminate=false, xb_true=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
     int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine;
-    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=1e-6, active_tol=1e-6;
+    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
     map<string,int> old_map;
     if(this->_status==0){
@@ -6311,7 +6313,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                             auto viol= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, old_map);
 #else
-                                            auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine);
+                                            auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, vbasis, cbasis);
 #endif
                                             auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
                                             sol_status.clear();
