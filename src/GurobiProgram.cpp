@@ -54,7 +54,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
-    DebugOn("found token "<<endl);
+    //DebugOn("found token "<<endl);
 }
 
 //GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {

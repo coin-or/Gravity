@@ -1734,8 +1734,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
   #ifdef USE_MPI
             if(worker_id==0)
     #endif
-            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"%"<<endl);
-            DebugOff("lin count "<<lin_count<<endl);
+            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
@@ -1792,6 +1791,11 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
     double objk, boundk1, temp, tempa, mid, left, right;
     var<> vk;
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     for (auto s=0;s<objective_models.size();s++)
     {
         /* Update bounds only if the model status is solved to optimal */
@@ -1918,6 +1922,10 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                     }
                 }
             }
+#ifdef USE_MPI                                                                          
+    if(worker_id==0)                                                                    
+#endif
+DebugOff("success "<<objective_models.at(s)<<endl);
         }
         else
         {
@@ -2274,7 +2282,6 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
     }
     //   MPI_Barrier(MPI_COMM_WORLD);
     return max(err_rank, err_size);
-    
 }
 /** Runs models stored in the vector in parallel using MPI
 *      @models vector of models to run in parallel
