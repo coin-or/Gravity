@@ -115,7 +115,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -181,19 +181,38 @@ void GurobiProgram::prepare_model(){
 
 //    print_constraints();
 }
-void initialize_basis(std::vector<double> vbasis, std::std::vector<double> cbasis){
+void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> cbasis){
+    int nv=grb_mod->get(GRB_IntAttr_NumVars);
+    int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
     int count=0;
     for(auto &gv:_grb_vars){
         gv.set(GRB_IntAttr_VBasis, vbasis[count++]);
     }
 
     GRBConstr* gcons= grb_mod->getConstrs();
-
-    count=0;
-    for(auto &gc:gcons){
-        gc.set(GRB_IntAttr_CBasis, cbasis[count++]);
+  
+    for(auto i=0;i<nc;i++){
+        gcons[i].set(GRB_IntAttr_CBasis, cbasis[i]);
     }
 }
+
+void GurobiProgram::get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis){
+    int nv=grb_mod->get(GRB_IntAttr_NumVars);
+    int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
+    vbasis.resize(nv);
+    cbasis.resize(nc);
+    GRBVar* gvars= grb_mod->getVars();
+    for(auto i=0;i<nv;i++){
+        vbasis[i]=gvars[i].get(GRB_IntAttr_VBasis);
+    }
+
+    GRBConstr* gcons= grb_mod->getConstrs();
+
+    for(auto i=0;i<nc;i++){
+        cbasis[i]=gcons[i].get(GRB_IntAttr_CBasis);
+    }
+}
+
 void GurobiProgram::update_model(){
     _model->fill_in_maps();
     _model->compute_funcs();

@@ -113,14 +113,14 @@ namespace gravity {
             _model->_built = true;
             init();
         }
-        solver(shared_ptr<gravity::Model<type>> model, SolverType stype, vector<double> vbasis, vector<double> cbasis){
+        solver(shared_ptr<gravity::Model<type>> model, SolverType stype, vector<int> vbasis, vector<int> cbasis){
             _stype = stype;
             _model = (Model<type>*)(&(*model));
             _model->_built = true;
             init();
 #ifdef USE_GUROBI
             auto grb_prog = (GurobiProgram*)(_prog.get());
-            grb_prog->_output = output;
+            grb_prog->_output = 0;
             grb_prog->prepare_model();
             grb_prog->initialize_basis(vbasis,cbasis);
 #endif
@@ -593,15 +593,12 @@ namespace gravity {
             }
             return return_status;
         }
-        void get_basis(std::vector<double>& vbasis, std::vector<double>& cbasis){
+        void get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis){
 #ifdef USE_GUROBI
             auto grb_prog = (GurobiProgram*)(_prog.get());
-            grb_prog->_output = output;//            prog.grb_prog->reset_model();
             grb_prog->get_basis(vbasis, cbasis);
-            
 #endif
         }
-        
     };
     
     template<typename type>
@@ -642,7 +639,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype=ipopt, double tol=1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
     
     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, const std::vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter);
-     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string modelname, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<vector<double>>& cbasis);
+     int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string modelname, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<int>>& vbasis, vector<vector<int>>& cbasis);
     
     
 #ifdef USE_MPI

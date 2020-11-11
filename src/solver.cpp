@@ -291,13 +291,14 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<vector<double>>& cbasis){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<int>>& vbasis, vector<vector<int>>& cbasis){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     std::vector<double> solution(models[0]->_nb_vars);
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
     vector<shared_ptr<solver<double>>> batch_solvers;
+    //shared_ptr<solver<double>> solverk;
     int viol_i=0, viol=0, count=0, ncuts=0;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -327,8 +328,16 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset_constrs();
         //models[s]->print();
-        auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
-        batch_solvers.push_back(solverk);
+        DebugOn("to create solver"<<endl);
+        if(stype==gurobi){
+            auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
+            batch_solvers.push_back(solverk);
+        }
+        else{
+            auto solverk = make_shared<solver<double>>(models[s], stype);
+            batch_solvers.push_back(solverk);
+        }
+        DebugOn("created solver"<<endl);
     }
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,objective_models.size());
@@ -393,11 +402,11 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     count=0;
-#ifdef USE_GUROBI
+    if(stype==gurobi){
     for(auto&s: batch_solvers){
         s->get_basis(vbasis.at(count), cbasis.at(count));
     }
-#endif
+    }
     return viol;
 }
 
@@ -1718,7 +1727,7 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
  **/
 template<typename type>
 template<typename T>
-bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time){
+bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<int>& vrbasis, std::vector<int>& crbasis){
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
@@ -1728,7 +1737,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
     #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
+        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
   #ifdef USE_MPI
@@ -1761,6 +1770,9 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         }
         lin_count++;
         
+    }
+    if(lb_solver_type==gurobi){
+        LB_solver.get_basis(vrbasis,crbasis);
     }
     return(close);
 }
@@ -2378,6 +2390,6 @@ template shared_ptr<Model<double>> Model<double>::buildOA();
 template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
-template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time);
+template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<int>& vrbasis, std::vector<int>& crbasis);
 template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
 }
