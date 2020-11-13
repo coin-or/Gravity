@@ -6290,12 +6290,12 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     solver_time= get_wall_time()-solver_time_start;
                     /*Create nb_threads copy of obbt_models*/
                     obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
-                    if(lb_solver_type==gurobi){
-                        for(auto i=0;i<nb_threads;i++){
+		    if(lb_solver_type==gurobi){                        
+			for(auto i=0;i<nb_threads;i++){
                             vbasis.at(i)=vrbasis;
                             cbasis.at(i)=crbasis;
                         }
-                    }
+		     }
                     /*Run obbt algorithm until termiante is true, iter and time less than max iter and max time*/
                     while(solver_time<=max_time && !terminate && iter<max_iter){
                         iter++;

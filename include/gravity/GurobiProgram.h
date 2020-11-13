@@ -18,6 +18,7 @@ public:
 
     Model<>*    _model;
     int         _output;
+    bool grb_first_run=false;
     GurobiProgram();
     GurobiProgram(Model<>* m);
     GurobiProgram(const shared_ptr<Model<>>& m);

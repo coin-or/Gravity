@@ -118,12 +118,15 @@ namespace gravity {
             _model = (Model<type>*)(&(*model));
             _model->_built = true;
             init();
+if(stype==gurobi){
 #ifdef USE_GUROBI
             auto grb_prog = (GurobiProgram*)(_prog.get());
             grb_prog->_output = 0;
+	    grb_prog->grb_first_run=true;
             grb_prog->prepare_model();
             grb_prog->initialize_basis(vbasis,cbasis);
 #endif
+}
         }
         
         solver(const Model<type>& model, SolverType stype){
@@ -418,7 +421,10 @@ namespace gravity {
                         auto grb_prog = (GurobiProgram*)(_prog.get());
                         grb_prog->_output = output;
                         //            prog.grb_prog->reset_model();
-                        grb_prog->prepare_model();
+                        if(!grb_prog->grb_first_run){
+                        	grb_prog->prepare_model();
+				DebugOn("calling prep after init"<<endl);
+			}
                         optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
 //                        delete grb_prog->grb_mod;

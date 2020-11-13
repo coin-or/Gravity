@@ -328,7 +328,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset_constrs();
         //models[s]->print();
-        DebugOn("to create solver"<<endl);
+        DebugOff("to create solver"<<endl);
         if(stype==gurobi){
             auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
             batch_solvers.push_back(solverk);
@@ -337,7 +337,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             auto solverk = make_shared<solver<double>>(models[s], stype);
             batch_solvers.push_back(solverk);
         }
-        DebugOn("created solver"<<endl);
+        DebugOff("created solver"<<endl);
     }
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,objective_models.size());
@@ -405,6 +405,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     if(stype==gurobi){
     for(auto&s: batch_solvers){
         s->get_basis(vbasis.at(count), cbasis.at(count));
+	count++;
     }
     }
     return viol;
@@ -1774,6 +1775,13 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(lb_solver_type==gurobi){
         LB_solver.get_basis(vrbasis,crbasis);
     }
+DebugOn("vbasis"<<endl);
+for(auto v:vrbasis)
+DebugOn(v<<endl);
+DebugOn("cbasis"<<endl);
+for(auto c:crbasis)
+DebugOn(c<<endl);
+obbt_model->print();
     return(close);
 }
 /** function to update variable bounds of current model and vector models for the OBBT algorithm

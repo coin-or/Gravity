@@ -35,11 +35,12 @@ GurobiProgram::GurobiProgram(Model<>* m) {
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //    grb_env->set(GRB_IntParam_NumericFocus,3);
         //    grb_env->set(GRB_IntParam_NonConvex,2);
-            //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
             
-            grb_env->set(GRB_IntParam_OutputFlag,0);
+            grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
+	    grb_mod->set(GRB_IntParam_Method, 1);  
             found_token = true;
         }
         catch(GRBException e) {
@@ -102,20 +103,20 @@ void GurobiProgram::reset_model(){
 bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, bool gurobi_crossover){
     //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
 //    print_constraints();
-    if (relax) relax_model();
+ //   if (relax) relax_model();
 //    relax_model();
     //grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
     //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
+   // grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
+   // grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
-    grb_mod->set(GRB_IntParam_Threads, 1);
+    //grb_mod->set(GRB_IntParam_Threads, 1);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-    grb_mod->set(GRB_IntParam_Method, 1);
+   // grb_mod->set(GRB_IntParam_Method, 1);
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    //grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -164,6 +165,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
         cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
     }
 //    delete[] gvars;
+     grb_first_run=false;
     return true;
 }
 
@@ -182,7 +184,8 @@ void GurobiProgram::prepare_model(){
 //    print_constraints();
 }
 void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> cbasis){
-    int nv=grb_mod->get(GRB_IntAttr_NumVars);
+	grb_mod->update();    
+	int nv=grb_mod->get(GRB_IntAttr_NumVars);
     int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
     int count=0;
     for(auto &gv:_grb_vars){
@@ -191,9 +194,15 @@ void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> c
 
     GRBConstr* gcons= grb_mod->getConstrs();
   
-    for(auto i=0;i<nc;i++){
+//DebugOn("nc "<<nc<<endl);
+//DebugOn("cbasis "<<cbasis.size()<<endl);
+    for(auto i=0;i<cbasis.size();i++){
         gcons[i].set(GRB_IntAttr_CBasis, cbasis[i]);
     }
+  for(auto i=cbasis.size();i<nc;i++){                        
+        gcons[i].set(GRB_IntAttr_CBasis, -1);          
+    }  
+delete[] gcons;
 }
 
 void GurobiProgram::get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis){
@@ -211,6 +220,8 @@ void GurobiProgram::get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis
     for(auto i=0;i<nc;i++){
         cbasis[i]=gcons[i].get(GRB_IntAttr_CBasis);
     }
+delete[] gcons;
+delete[] gvars;
 }
 
 void GurobiProgram::update_model(){
