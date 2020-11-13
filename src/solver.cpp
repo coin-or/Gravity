@@ -298,7 +298,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
     vector<shared_ptr<solver<double>>> batch_solvers;
-    //shared_ptr<solver<double>> solverk;
     int viol_i=0, viol=0, count=0, ncuts=0;
     if(models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -329,7 +328,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_constrs();
         //models[s]->print();
         DebugOff("to create solver"<<endl);
-        if(stype==gurobi){
+        if(stype==gurobi && false){
             auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
             batch_solvers.push_back(solverk);
         }
@@ -1738,7 +1737,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
     #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
+        LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
   #ifdef USE_MPI
@@ -1775,13 +1774,13 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(lb_solver_type==gurobi){
         LB_solver.get_basis(vrbasis,crbasis);
     }
-DebugOn("vbasis"<<endl);
-for(auto v:vrbasis)
-DebugOn(v<<endl);
-DebugOn("cbasis"<<endl);
-for(auto c:crbasis)
-DebugOn(c<<endl);
-obbt_model->print();
+//DebugOn("vbasis"<<endl);
+//for(auto v:vrbasis)
+//DebugOn(v<<endl);
+//DebugOn("cbasis"<<endl);
+//for(auto c:crbasis)
+//DebugOn(c<<endl);
+//obbt_model->print();
     return(close);
 }
 /** function to update variable bounds of current model and vector models for the OBBT algorithm

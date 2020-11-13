@@ -38,7 +38,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
             
-            grb_env->set(GRB_IntParam_OutputFlag,1);
+            grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
 	    grb_mod->set(GRB_IntParam_Method, 1);  
             found_token = true;

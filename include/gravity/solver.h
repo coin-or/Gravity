@@ -423,7 +423,7 @@ if(stype==gurobi){
                         //            prog.grb_prog->reset_model();
                         if(!grb_prog->grb_first_run){
                         	grb_prog->prepare_model();
-				DebugOn("calling prep after init"<<endl);
+				//DebugOn("calling prep after init"<<endl);
 			}
                         optimal = grb_prog->solve(output, relax, tol, mipgap, _bool_options["gurobi_crossover"]);
                         return_status = optimal ? 0 : -1;
