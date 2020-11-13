@@ -200,7 +200,7 @@ void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> c
         gcons[i].set(GRB_IntAttr_CBasis, cbasis[i]);
     }
   for(auto i=cbasis.size();i<nc;i++){                        
-        gcons[i].set(GRB_IntAttr_CBasis, -1);          
+        gcons[i].set(GRB_IntAttr_CBasis, 0);          
     }  
 delete[] gcons;
 }

@@ -1810,11 +1810,6 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
     double objk, boundk1, temp, tempa, mid, left, right;
     var<> vk;
-#ifdef USE_MPI
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-#endif
     for (auto s=0;s<objective_models.size();s++)
     {
         /* Update bounds only if the model status is solved to optimal */
