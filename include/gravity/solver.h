@@ -623,7 +623,9 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     int return_status = -1;
     for (auto i = start; i<end; i++) {
         DebugOff("to call run"<<endl);
-        return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, 2000);
+        if(models.at(i)->_status==0){
+            return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, 2000);
+        }
     }
     return return_status;
 }

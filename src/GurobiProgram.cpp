@@ -35,8 +35,8 @@ GurobiProgram::GurobiProgram(Model<>* m) {
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //    grb_env->set(GRB_IntParam_NumericFocus,3);
         //    grb_env->set(GRB_IntParam_NonConvex,2);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+         //   grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+         //   grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
             
             grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
@@ -107,8 +107,8 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    relax_model();
     //grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
     //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
-   // grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
-   // grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
+      grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
+      grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
     //grb_mod->set(GRB_IntParam_Threads, 1);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
@@ -137,6 +137,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     // cout<<"ConstrSResidual "<<grb_mod->get(GRB_DoubleAttr_ConstrSResidual)<<endl;
  
     //grb_mod->write("~/mod.mps");
+    grb_first_run=false;
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
         return false;
@@ -165,7 +166,6 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
         cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
     }
 //    delete[] gvars;
-     grb_first_run=false;
     return true;
 }
 
@@ -200,7 +200,7 @@ void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> c
         gcons[i].set(GRB_IntAttr_CBasis, cbasis[i]);
     }
   for(auto i=cbasis.size();i<nc;i++){                        
-        gcons[i].set(GRB_IntAttr_CBasis, -1);          
+        gcons[i].set(GRB_IntAttr_CBasis, 0);          
     }  
 delete[] gcons;
 }
