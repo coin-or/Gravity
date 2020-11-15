@@ -131,6 +131,9 @@ int main (int argc, char * argv[]) {
     if(argc>5){
         solver_str=argv[5];
     }
+    if(argc>6){
+        threads_s=argv[6];
+    }
     if (linearize_s.compare("yes")==0) {
         linearize = true;
     }
@@ -193,7 +196,7 @@ int main (int argc, char * argv[]) {
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
@@ -214,7 +217,7 @@ int main (int argc, char * argv[]) {
         current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI

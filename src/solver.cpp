@@ -401,10 +401,12 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     count=0;
-    if(stype==gurobi){
+    if(stype==gurobi && false){
     for(auto&s: batch_solvers){
+	if(sol_status.at(count)==0){     
         s->get_basis(vbasis.at(count), cbasis.at(count));
-	count++;
+	}	
+count++;
     }
     }
     return viol;
@@ -1771,7 +1773,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         lin_count++;
         
     }
-    if(lb_solver_type==gurobi){
+    if(lb_solver_type==gurobi && obbt_model->_status==0){
         LB_solver.get_basis(vrbasis,crbasis);
     }
 //DebugOn("vbasis"<<endl);
