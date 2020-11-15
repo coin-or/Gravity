@@ -437,35 +437,6 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     }
     return 0;
 }
-/* Runds models stored in the vector in parallel, using solver solvers. solvers is passed as an argument ot run_model_solvers */
-//int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, const vector<shared_ptr<solver<>>>& solvers, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
-//    std::vector<thread> threads;
-//    std::vector<bool> feasible;
-//    if(models.size()==0){
-//        DebugOff("in run_parallel(models...), models is empty, returning");
-//        return -1;
-//    }
-//    /* Split models into nr_threads parts */
-//    auto nr_threads_ = std::min((size_t)nr_threads,models.size());
-//    std::vector<size_t> limits = bounds(nr_threads_, models.size());
-//    DebugOff("Running on " << nr_threads_ << " threads." << endl);
-//    DebugOff("limits size = " << limits.size() << endl);
-//    for (size_t i = 0; i < limits.size(); ++i) {
-//        DebugOff("limits[" << i << "] = " << limits[i] << endl);
-//    }
-//    /* Launch all threads in parallel */
-//    auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
-//    for (size_t i = 0; i < nr_threads_; ++i) {
-//        threads.push_back(thread(run_models_solver<double>, ref(vec), solvers, limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
-//    }
-//    /* Join the threads with the main thread */
-//    for(auto &t : threads){
-//        t.join();
-//    }
-//    return 0;
-//}
-
-
 int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter){
     return run_parallel(models,stype,tol,nr_threads,"",max_iter);
 };
@@ -1055,24 +1026,16 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
 {
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
-    vector<double> xcurrent, xres;
+    vector<double> xcurrent, xres, c_val;
     get_solution(xsolution);
     set_solution(obbt_solution);
     const double active_tol_sol=1e-12, zero_tol=1e-6;
-    bool constr_viol=false;
-    bool interior_solv=true;
-    vector<double> c_val ;
     double c0_val;
-    bool oa_cut=true;
-    bool convex_region=true;
-    bool add_new=false;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false, near_zero=true;
     int nb_added_cuts = 0;
     string keyv;
     double scale=1.0;
-    bool near_zero=true;
-    string cname, con_lin_name;
-    
-    string vkname,keyk,dirk;
+    string cname, con_lin_name,vkname,keyk,dirk;
     var<> vk;
     shared_ptr<param_> vck;
     if(modelname!="allvar"){
@@ -1874,8 +1837,8 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                 // if interval is less than range_tol, fixed point is reached
                 else if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<=range_tol)
                 {
-                                                 fixed_point[var_key_k+"|LB"]=true;
-                                                 fixed_point[var_key_k+"|UB"]=true;
+                    fixed_point[var_key_k+"|LB"]=true;
+                    fixed_point[var_key_k+"|UB"]=true;
                 }
                 /*If fixed point not reached for any variable, terminate is false*/
                 else if(!vk._lift){
@@ -1920,7 +1883,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                         update_ub=true;
                         
                     }
-                    //In the resized interval both original lower and upper bounds can not be crosses, because original interval is greater
+                    //In the resized interval both original lower and upper bounds can not be crossed, because original interval is greater
                     //than range_tol
                     
                 }
@@ -1931,8 +1894,6 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                 vkptr->_new=true;
                 for(auto &mod:models){
                     auto vkmod=mod->template get_var<T>(vkname);
-                    //                                                            auto vmodptr=mod->get_var_ptr(vkname);
-                    //                                                            vmodptr->_new=true;
                     if(update_lb){
                         vkmod.set_lb(keyk, vk.get_lb(keyk));
                     }
@@ -1989,13 +1950,6 @@ shared_ptr<Model<type>> Model<type>::build_model_IIS()
         n+=con->get_nb_instances();
     }
     
-    
-    
-    // DebugOn("N"<<n<<endl);
-    // param<> eta_length("eta_length");
-    //  eta_length.set_val(n);
-    
-    
     var<> eta_i("eta_i", 0, 1);
     IIS->add(eta_i.in(range(0,n-1)));
     
@@ -2003,44 +1957,29 @@ shared_ptr<Model<type>> Model<type>::build_model_IIS()
     sum_eta=eta_int-sum(eta_i);
     IIS->add(sum_eta==0);
     
-    
-    
     int counter=0;
     
     for (auto &con: _cons_vec)
     {
         cs=con->get_nb_instances();
-        //            for(i=0;i<cs;i++)
-        //            {
-        
-        // DebugOn(cs<<endl);
         Constraint<> Inter_con(con->_name);
         Inter_con=*con;
         
         if(con->_ctype==leq)
         {
-            //  Inter_con -= eta_i.in(range(counter, counter));
-            //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))<=eta_i.in(range(counter, counter)));
             IIS->add(Inter_con<= eta_i.in(range(counter, counter+con->get_nb_instances()-1)));
         }
         else  if(con->_ctype==geq)
         {
             Inter_con += eta_i.in(range(counter, counter+con->get_nb_instances()-1));
-            //IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))>=eta_i.in(range(counter, counter)));
-            //   Inter_con=(*con)+eta_i.in(range(counter, counter));
             IIS->add(Inter_con>=0);
-            //IIS->add(Inter_con.in(range(i,i))>=0);
         }
         else  if(con->_ctype==eq)
         {
-            // IIS->add(Inter_con.in(range(0,con->get_nb_instances()-1))==0);
             Inter_con=(*con);
             IIS->add(Inter_con==0);
         }
         counter+=con->get_nb_instances();
-        //eta_i.in(range(counter, counter))}
-        
-        
     }
     IIS->print();
     return IIS;
@@ -2256,6 +2195,7 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
 @param[in] linearize: true if linear obbt algorithm is used
 @param[in] nb_refine: number of refinement steps, used for linearizs only
 @param[in] old_map: map of which worker_id each modelname is assigned to, used for linearize only
+@param[in] vbasis, cbasis: initialization of variable and constraint basis(defined by Gurobi documentation) for each model in models.
 @return returns true
 */
 

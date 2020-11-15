@@ -344,7 +344,7 @@ std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_mo
 }
 void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_refine, double lb_solver_tol, int run_obbt_iter){
                         if(run_obbt_iter==1){
-                                            active_tol=0.1;
+                                            active_tol=1e-6;
                                             nb_init_refine=nb_refine;
                                         }
                                         else if(run_obbt_iter<=2){
@@ -356,3 +356,18 @@ void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_re
                                             nb_init_refine=1;
                                         }
                     }
+/* function to initializa vbasis and cbasis
+@param[in] vbasis- Contains nb_threads number of double vectors. To Hold variable basis of each model in nb_threads
+ @param[in] cbasis- Contains nb_threads number of double vectors. To Hold constraint basis of each model in nb_threads
+ @param[in] vrbasis- Variable basis to be copied into vbasis
+ @param[in] crbasis- Constraint basis to be copied into cbasis
+ @param[in] nb_threads- Parameter for nb_threads
+ */
+        void initialize_basis_vectors(SolverType stype, std::vector<std::vector<int>>& vbasis,std::vector<std::vector<int>>& cbasis, std::vector<int>& vrbasis, std::vector<int>& crbasis, int nb_threads){
+                if(stype==gurobi){
+                    for(auto i=0;i<nb_threads;i++){
+                        vbasis.at(i)=vrbasis;
+                        cbasis.at(i)=crbasis;
+                    }
+                }
+            }
