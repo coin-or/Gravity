@@ -6055,7 +6055,7 @@ template <typename type>
 template<typename T>
 void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
     double lb;
-    lb=std::min(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
+    lb=std::max(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
     for(auto& modelk:batch_models){
     if(modelk->_cons_name.count("obj|lb")!=0){
         modelk->remove("obj|lb");
