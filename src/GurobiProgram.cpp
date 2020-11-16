@@ -29,18 +29,18 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env = new GRBEnv();
         //    grb_env->set(GRB_IntParam_Presolve,0);
             //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-            grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,7200);
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
-            grb_env->set(GRB_IntParam_Threads,1);
+            //grb_env->set(GRB_IntParam_Threads,1);
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //    grb_env->set(GRB_IntParam_NumericFocus,3);
         //    grb_env->set(GRB_IntParam_NonConvex,2);
          //   grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
          //   grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
             
-            grb_env->set(GRB_IntParam_OutputFlag,0);
+            //grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
-	    grb_mod->set(GRB_IntParam_Method, 1);  
+	    //grb_mod->set(GRB_IntParam_Method, 1);
             found_token = true;
         }
         catch(GRBException e) {
@@ -106,13 +106,14 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
  //   if (relax) relax_model();
 //    relax_model();
     //grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-8);
-    //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
+      //grb_mod->set(GRB_IntParam_ScaleFlag, 1);
       grb_mod->set(GRB_DoubleParam_FeasibilityTol, tol);
       grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
-    //grb_mod->set(GRB_IntParam_Threads, 1);
+      grb_mod->set(GRB_IntParam_Threads, 1);
+      grb_mod->set(GRB_DoubleParam_TimeLimit, 2000.0);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-   // grb_mod->set(GRB_IntParam_Method, 1);
+      grb_mod->set(GRB_IntParam_Method, 1);
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
