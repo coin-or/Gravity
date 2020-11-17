@@ -12,7 +12,13 @@ First, make sure you are on the LiDAR branch of Gravity by entering:
 
 `git checkout LiDAR`
 
-The only dependency for ARMO are [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools), please install them on your system first (preferably build Ipopt with HSL libraries).
+The only dependencies for ARMO are [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools), please install them on your system first (preferably build Ipopt with HSL libraries).
+
+Make sure to specify the path to `IPOPT_ROOT_DIR` and `LASlib_ROOT_DIR` in your `bash_profile` file, e.g.:
+
+`export IPOPT_ROOT_DIR="/Users/yourname/Dev/CoinIpopt/build"`
+
+`export LASlib_ROOT_DIR="/Users/yourname/Dev/LAStools/LASlib"`
 
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
@@ -20,19 +26,19 @@ Then, simply follow the instructions to compile Gravity [here](https://github.co
 
 For Registration:
 
-`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
 
 or 
 
-`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
 
 or
 
-`Gravity/bin/Release/lidar Reg toy_model.txt toy_data.txt GoICP` (This will run the Go-ICP algorithm)
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt GoICP` (This will run the Go-ICP algorithm)
 
 For Boresight Alignment:
 
-`Gravity/bin/Release/lidar Align Cars_model.txt Cars_data.txt Cars_model_sub.txt Cars_data_sub.txt`
+`Gravity/bin/Release/lidar Align /path_to_Cars_model.txt /path_to_Cars_data.txt /path_to_Cars_model_sub.txt /path_to_Cars_data_sub.txt`
 
 The first two command line arguments should point to the full point clouds, the second two should point to the subsampled point clouds.
 
