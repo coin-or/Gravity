@@ -311,9 +311,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             for(auto &m:models){
                 if(count<objective_models.size()){
                     m->get_solution(solution);
-                    auto c=m->get_constraint("obj|ub");
+             //       auto c=m->get_constraint("obj|ub");
                     //c->print();
-                    DebugOn("val c "<<c->eval(0)<<endl);
+               //     DebugOn("val c "<<c->eval(0)<<endl);
                     if(m->_status==0 && linearize){
                         if(cut_type=="modelname"){
                             modelname=m->get_name();
@@ -341,9 +341,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     sol_obj.resize(objective_models.size(),-1.0);
     for(auto &m:models){
         if(count<objective_models.size()){
-            auto c=m->get_constraint("obj|ub");
+            //auto c=m->get_constraint("obj|ub");
                           //c->print();
-                          DebugOn("val c "<<c->eval(0)<<endl);
+                          //DebugOn("val c "<<c->eval(0)<<endl);
             sol_status.at(count)=m->_status;
             sol_obj.at(count)=m->get_obj_val();
             count++;
