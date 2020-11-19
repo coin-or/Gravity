@@ -180,7 +180,7 @@ public:
         this->_name = c._name;
         this->_is_constraint = true;
         _onCoef = c._onCoef.deep_copy();
-        _offCoef = c._offCoef.deep_copy();        
+        _offCoef = c._offCoef.deep_copy();
     }
     
     Constraint& operator=(const Constraint& c){
@@ -423,6 +423,24 @@ public:
     
     bool is_active(size_t inst = 0, double tol = 1e-6) const{
         return fabs(this->_val->at(inst)) < tol;
+    }
+    bool check_convex_region(int inst){
+        bool convex_region=true;
+        vector<double> xres;
+        if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
+        {
+            xres=this->get_x(inst);
+            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+            if(soc1<=0 && soc2<=0 && soc3<=0){
+                convex_region=true;
+            }
+            else{
+                convex_region=false;
+            }
+        }
+        return convex_region;
     }
 };
 }

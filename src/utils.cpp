@@ -337,37 +337,60 @@ std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_mo
         DebugOn("Error2 in computing limits");
     }
     if(objective_models.size()!=mem){
-         DebugOn("Error3 in computing limits");
-     }
+        DebugOn("Error3 in computing limits");
+    }
     return bnd;
     
 }
 void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_refine, double lb_solver_tol, int run_obbt_iter){
-                        if(run_obbt_iter==1){
-                                            active_tol=1e-3;
-                                            nb_init_refine=nb_refine;
-                                        }
-                                        else if(run_obbt_iter<=2){
-                                            active_tol=1e-6;
-                                            nb_init_refine=1;
-                                        }
-                                        else{
-                                            active_tol=lb_solver_tol;
-                                            nb_init_refine=1;
-                                        }
-                    }
+    if(run_obbt_iter==1){
+        active_tol=1e-3;
+        nb_init_refine=nb_refine;
+    }
+    else if(run_obbt_iter<=2){
+        active_tol=1e-6;
+        nb_init_refine=1;
+    }
+    else{
+        active_tol=lb_solver_tol;
+        nb_init_refine=1;
+    }
+}
 /* function to initializa vbasis and cbasis
-@param[in] vbasis- Contains nb_threads number of double vectors. To Hold variable basis of each model in nb_threads
+ @param[in] vbasis- Contains nb_threads number of double vectors. To Hold variable basis of each model in nb_threads
  @param[in] cbasis- Contains nb_threads number of double vectors. To Hold constraint basis of each model in nb_threads
  @param[in] vrbasis- Variable basis to be copied into vbasis
  @param[in] crbasis- Constraint basis to be copied into cbasis
  @param[in] nb_threads- Parameter for nb_threads
  */
-        void initialize_basis_vectors(SolverType stype, std::vector<std::vector<int>>& vbasis,std::vector<std::vector<int>>& cbasis, std::vector<int>& vrbasis, std::vector<int>& crbasis, int nb_threads){
-                if(stype==gurobi){
-                    for(auto i=0;i<nb_threads;i++){
-                        vbasis.at(i)=vrbasis;
-                        cbasis.at(i)=crbasis;
-                    }
-                }
+void initialize_basis_vectors(SolverType stype, std::vector<std::vector<int>>& vbasis,std::vector<std::vector<int>>& cbasis, std::vector<int>& vrbasis, std::vector<int>& crbasis, int nb_threads){
+    if(stype==gurobi){
+        for(auto i=0;i<nb_threads;i++){
+            vbasis.at(i)=vrbasis;
+            cbasis.at(i)=crbasis;
+        }
+    }
+}
+void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol){
+    bool near_zero;
+    for (auto j = 0; j<c_val.size(); j++) {
+        near_zero=true;
+        scale=1.0;
+        if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+            if(zero_tol/std::abs(c_val[j])>scale){
+                scale=zero_tol/std::abs(c_val[j]);
             }
+        }
+        if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+            near_zero=true;
+        }
+        else{
+            near_zero=false;
+        }
+    }
+    oa_cut=true;
+    if(near_zero){
+        oa_cut=false;
+    }
+    
+}

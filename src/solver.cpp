@@ -311,9 +311,9 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             for(auto &m:models){
                 if(count<objective_models.size()){
                     m->get_solution(solution);
-             //       auto c=m->get_constraint("obj|ub");
+                    //       auto c=m->get_constraint("obj|ub");
                     //c->print();
-               //     DebugOn("val c "<<c->eval(0)<<endl);
+                    //     DebugOn("val c "<<c->eval(0)<<endl);
                     if(m->_status==0 && linearize){
                         if(cut_type=="modelname"){
                             modelname=m->get_name();
@@ -342,8 +342,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     for(auto &m:models){
         if(count<objective_models.size()){
             //auto c=m->get_constraint("obj|ub");
-                          //c->print();
-                          //DebugOn("val c "<<c->eval(0)<<endl);
+            //c->print();
+            //DebugOn("val c "<<c->eval(0)<<endl);
             sol_status.at(count)=m->_status;
             sol_obj.at(count)=m->get_obj_val();
             count++;
@@ -351,12 +351,12 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     }
     count=0;
     if(stype==gurobi && false){
-    for(auto&s: batch_solvers){
-	if(sol_status.at(count)==0){     
-        s->get_basis(vbasis.at(count), cbasis.at(count));
-	}	
-count++;
-    }
+        for(auto&s: batch_solvers){
+            if(sol_status.at(count)==0){
+                s->get_basis(vbasis.at(count), cbasis.at(count));
+            }
+            count++;
+        }
     }
     return viol;
 }
@@ -970,241 +970,103 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     //print();
     return Ointerior;
 }
-/*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the current model at the obbt_solution point. These cuts are added to model lin. The cut addition strategy is given by argument modelname. Can be for "allvar" or only "modelname", for varibale whose name is given in the models->_name. When a cut is added nb_oacuts is incremented. active_tol is the tolerance used to generate the cuts. */
+/*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+ @param[in] lin: Model to which linear cuts are added
+ @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+ @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
 template<typename type>
 template<typename T>
 bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, string modelname, int& nb_oacuts, double active_tol)
 {
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
-    vector<double> xcurrent, xres, c_val;
+    vector<double> xcurrent, c_val;
     get_solution(xsolution);
     set_solution(obbt_solution);
     const double active_tol_sol=1e-12, zero_tol=1e-6;
-    double c0_val;
-    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false, near_zero=true;
+    double c0_val, scale=1.0;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
-    string keyv;
-    double scale=1.0;
-    string cname, con_lin_name,vkname,keyk,dirk;
-    var<> vk;
-    shared_ptr<param_> vck;
-    if(modelname!="allvar"){
-        auto mname=modelname;
-        std::size_t pos = mname.find("|");
-        vkname.assign(mname, 0, pos);
-        mname=mname.substr(pos+1);
-        pos=mname.find("|");
-        keyk.assign(mname, 0, pos);
-        dirk=mname.substr(pos+1);
-        vk=this->template get_var<double>(vkname);
-    }
-    bool var_found=false, key_found=false;
+    string cname,con_lin_name;
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear()) {
-            var_found=false;
-            if(modelname=="allvar"){
-                var_found=true;
+            cname=con->_name;
+            con_lin_name="OA_cuts_"+con->_name;
+            if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
+                add_new=false;
             }
-            else if(con->has_sym_var(vk)){
-                var_found=true;
+            else{
+                add_new=true;
             }
-            if(var_found){
-                cname=con->_name;
-                con_lin_name="OA_cuts_"+con->_name;
-                if(lin->_cons_name.find(con_lin_name)!=lin->_cons_name.end()){
-                    add_new=false;
+            auto cnb_inst=con->get_nb_inst();
+            for(auto i=0;i<cnb_inst;i++){
+                oa_cut=false;
+                c0_val=0;
+                c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                xcurrent=con->get_x(i);
+                con->uneval();
+                con->eval_all();
+                if(con->is_active(i,active_tol_sol)){
+                    oa_cut=true;
                 }
-                else{
-                    add_new=true;
-                }
-                auto cnb_inst=con->get_nb_inst();
-                for(auto i=0;i<cnb_inst;i++){
-                    for(auto &v: *con->_vars){
-                        key_found=false;
-                        if(modelname=="allvar"){
-                            key_found=true;
-                        }
-                        else{
-                            if(v.second.first->_vec_id==vk._vec_id){
-                                vck=con->_vars->at(v.first).first;
-                                if(!vck->is_indexed()){
-                                    auto posv=vck->get_id_inst(i);
-                                    keyv=(*vck->_indices->_keys)[posv];
-                                }
-                                else{
-                                    auto posv=(vck->_indices->_ids->at(0))[i];
-                                    keyv=(*vck->_indices->_keys)[posv];
-                                }
-                                if(keyv==keyk){
-                                    key_found=true;
-                                }
-                            }
-                        }
-                        if(key_found){
-                            oa_cut=false;
-                            c0_val=0;
-                            c_val.resize(con->_nb_vars,0);
-                            auto cname=con->_name;
-                            xcurrent=con->get_x(i);
-                            con->uneval();
-                            con->eval_all();
-                            if(con->is_active(i,active_tol_sol)){
+                else
+                {
+                    auto fk=con->eval(i);
+                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                        constr_viol=true;
+                        //ToDo fix interior status and check for it
+                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                            auto con_interior=interior.get_constraint(cname);
+                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                            auto res_search=con->binary_line_search(xinterior, i);
+                            if(res_search){
                                 oa_cut=true;
                             }
-                            else
-                            {   con->uneval();
-                                auto fk=con->eval(i);
-                                if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                    constr_viol=true;
-                                    //ToDo fix interior status
-                                    DebugOff("status "<< interior._status);
-                                    //                                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()) && (interior._status==0||interior._status==1))  {
-                                    if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                                        auto con_interior=interior.get_constraint(cname);
-                                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                                        auto res_search=con->binary_line_search(xinterior, i);
-                                        if(res_search){
-                                            oa_cut=true;
-                                        }
-                                    }
-                                    else{
-                                        if (con->is_convex()){
-                                            oa_cut=true;
-                                        }
-                                    }
-                                    
-                                }
+                        }
+                        else{
+                            if (con->is_convex()){
+                                oa_cut=true;
                             }
-                            if(oa_cut){
-                                convex_region=true;
-                                oa_cut=false;
-                                
-                                if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                {
-                                    
-                                    xres=con->get_x(i);
-                                    auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                    auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                    auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                    if(soc1<=0 && soc2<=0 && soc3<=0){
-                                        convex_region=true;
-                                    }
-                                    else{
-                                        convex_region=false;
-                                    }
-                                }
-                                if(convex_region){
-                                    scale=1.0;
-                                    if(add_new){
-                                        nb_added_cuts++;
-                                        indices activeset("active_"+con->_name);
-                                        activeset.add((*con->_indices->_keys)[i]);
-                                        Constraint<> OA_cut(con_lin_name);
-                                        OA_cut=con->get_outer_app(activeset, scale);
-                                        //OA_cut._lazy.push_back(false);
-                                        if(con->_ctype==leq) {
-                                            lin->add(OA_cut.in(activeset)<=0);
-                                        }
-                                        else {
-                                            lin->add(OA_cut.in(activeset)>=0);
-                                        }
-                                        add_new=false;
-                                        oa_cut=false;
-                                    }
-                                    else{
-                                        con->get_outer_coef(i, c_val, c0_val);
-                                        vector<int> coefs;
-                                        for (auto j = 0; j<c_val.size(); j++) {
-                                            near_zero=true;
-                                            scale=1.0;
-                                            if(c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-                                                if(zero_tol/std::abs(c_val[j])>scale){
-                                                    scale=zero_tol/std::abs(c_val[j]);
-                                                }
-                                            }
-                                            if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
-                                                near_zero=true;
-                                            }
-                                            else{
-                                                near_zero=false;
-                                            }
-                                            //coefs.push_back(1e5*c_val[j]);
-                                        }
-                                        // coefs.push_back(1e5*c0_val);
-                                        // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
-                                        oa_cut=true;
-                                        if(near_zero)
-                                            oa_cut=false;
-                                    }
-                                }
-                                
-                            }
-                            if(oa_cut){
-                                nb_added_cuts++;
-                                auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
-                                auto nb_inst = con_lin->get_nb_instances();
-                                con_lin->_indices->add("inst_"+to_string(i)+"_"+to_string(nb_inst));
-                                con_lin->_dim[0] = con_lin->_indices->_keys->size();
-                                //con_lin->_lazy.push_back(true);
-                                con_lin->_violated.push_back(true);
-                                auto count=0;
-                                DebugOff("nb inst "<<nb_inst);
-                                //auto func_true=false;
-                                for(auto &l: *(con_lin->_lterms)){
-                                    auto name=l.first;
-                                    if(!l.second._sign){
-                                        throw invalid_argument("symbolic negative");
-                                    }
-                                    if(l.second._coef->is_param()) {
-                                        auto p_cst = ((param<>*)(l.second._coef.get()));
-                                        p_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
-                                        DebugOff("added p"<<endl);
-                                    }
-                                    else {
-                                        auto f = static_pointer_cast<func<>>(l.second._coef);
-                                        if(!f->func_is_param()){
-                                            throw invalid_argument("function should be a param");
-                                        }
-                                        auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                                        p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c_val[count]*scale);
-                                        l.second._coef = p;
-                                    }
-                                    auto parkeys=l.second._p->_indices->_keys;
-                                    //                                auto vname = l.second._p->_name.substr(0,l.second._p->_name.find_last_of("."));
-                                    auto v = con->get_var(l.second._p->_name);
-                                    l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(i)]);
-                                    count++;
-                                }
-                                //Set value of the constant
-                                if(con_lin->_cst->is_param()){
-                                    auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                    co_cst->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-                                }
-                                else if(con_lin->_cst->is_function()){
-                                    auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                    if(!rhs_f->func_is_param()){
-                                        throw invalid_argument("function should be a param");
-                                    }
-                                    auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                    rhs_p->add_val("inst_"+to_string(i)+"_"+to_string(nb_inst), c0_val*scale);
-                                    con_lin->_cst = rhs_p;
-                                }
-                                
-                                
-                                con_lin->uneval();
-                                con_lin->eval_all();
-                                //con_lin->eval(nb_inst);
-                            }
-                            con->set_x(i, xcurrent);
-                            xcurrent.clear();
-                            xinterior.clear();
-                            xres.clear();
-                            break;
                         }
                     }
                 }
+                if(oa_cut){
+                    oa_cut=false;
+                    convex_region=con->check_convex_region(i);
+                    if(convex_region){
+                        scale=1.0;
+                        if(add_new){
+                            nb_added_cuts++;
+                            indices activeset("active_"+con->_name);
+                            activeset.add((*con->_indices->_keys)[i]);
+                            Constraint<> OA_cut(con_lin_name);
+                            OA_cut=con->get_outer_app(activeset, scale);
+                            if(con->_ctype==leq) {
+                                lin->add(OA_cut.in(activeset)<=0);
+                            }
+                            else {
+                                lin->add(OA_cut.in(activeset)>=0);
+                            }
+                            add_new=false;
+                            oa_cut=false;
+                        }
+                        else{
+                            con->get_outer_coef(i, c_val, c0_val);
+                            get_row_scaling(c_val, scale, oa_cut, zero_tol);
+                        }
+                    }
+                }
+                if(oa_cut){
+                    nb_added_cuts++;
+                    lin->add_linear_row(*con,i, c_val, c0_val, scale);
+                }
+                con->set_x(i, xcurrent);
+                xcurrent.clear();
+                xinterior.clear();
             }
         }
     }
@@ -1218,7 +1080,61 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     return(constr_viol);
 }
 /*Adds row to a linear model*/
-
+template<typename type>
+template<typename T>
+void Model<type>::add_linear_row(Constraint<type>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale){
+    auto con_lin=this->get_constraint("OA_cuts_"+con._name);
+    auto nb_inst = con_lin->get_nb_instances();
+    con_lin->_indices->add("inst_"+to_string(c_inst)+"_"+to_string(nb_inst));
+    con_lin->_dim[0] = con_lin->_indices->_keys->size();
+    //con_lin->_lazy.push_back(true);
+    con_lin->_violated.push_back(true);
+    auto count=0;
+    DebugOff("nb inst "<<nb_inst);
+    //auto func_true=false;
+    for(auto &l: *(con_lin->_lterms)){
+        auto name=l.first;
+        if(!l.second._sign){
+            throw invalid_argument("symbolic negative");
+        }
+        if(l.second._coef->is_param()) {
+            auto p_cst = ((param<>*)(l.second._coef.get()));
+            p_cst->add_val("inst_"+to_string(c_inst)+"_"+to_string(nb_inst), c_val[count]*scale);
+            DebugOff("added p"<<endl);
+        }
+        else {
+            auto f = static_pointer_cast<func<>>(l.second._coef);
+            if(!f->func_is_param()){
+                throw invalid_argument("function should be a param");
+            }
+            auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+            p->add_val("inst_"+to_string(c_inst)+"_"+to_string(nb_inst), c_val[count]*scale);
+            l.second._coef = p;
+        }
+        auto parkeys=l.second._p->_indices->_keys;
+        auto v = con.get_var(l.second._p->_name);
+        l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(c_inst)]);
+        count++;
+    }
+    //Set value of the constant
+    if(con_lin->_cst->is_param()){
+        auto co_cst = ((param<>*)(con_lin->_cst.get()));
+        co_cst->add_val("inst_"+to_string(c_inst)+"_"+to_string(nb_inst), c0_val*scale);
+    }
+    else if(con_lin->_cst->is_function()){
+        auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
+        if(!rhs_f->func_is_param()){
+            throw invalid_argument("function should be a param");
+        }
+        auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+        rhs_p->add_val("inst_"+to_string(c_inst)+"_"+to_string(nb_inst), c0_val*scale);
+        con_lin->_cst = rhs_p;
+    }
+    con_lin->uneval();
+    con_lin->eval_all();
+    //con_lin->eval(nb_inst);
+    
+}
 
 /*Generates cuts (just as using the strategy in the add_iterative function above) but does not add them to lin model. Stores new row of existing constraints in lin in vector cuts. If a constraint does not exist in lin, point at which a new constraint must be added is stored in vector cuts*/
 template<>
@@ -1646,19 +1562,19 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
     bool close=false;
-    #ifdef USE_MPI
-        int worker_id, nb_workers;
-        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-    #endif
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     while (constr_viol==1 && lin_count<nb_refine){
         LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-  #ifdef USE_MPI
+#ifdef USE_MPI
             if(worker_id==0)
-    #endif
-            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
+#endif
+                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
@@ -1673,10 +1589,10 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             obbt_model->reset_constrs();
         }
         else{
-            #ifdef USE_MPI
-                      if(worker_id==0)
-              #endif
-            DebugOn("lower bounding failed "<<lin_count<<endl);
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+                DebugOn("lower bounding failed "<<lin_count<<endl);
             lower_bound=numeric_limits<double>::min();
             obbt_model->reindex();
             obbt_model->reset();
@@ -1689,13 +1605,13 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(lb_solver_type==gurobi && obbt_model->_status==0){
         LB_solver.get_basis(vrbasis,crbasis);
     }
-//DebugOn("vbasis"<<endl);
-//for(auto v:vrbasis)
-//DebugOn(v<<endl);
-//DebugOn("cbasis"<<endl);
-//for(auto c:crbasis)
-//DebugOn(c<<endl);
-//obbt_model->print();
+    //DebugOn("vbasis"<<endl);
+    //for(auto v:vrbasis)
+    //DebugOn(v<<endl);
+    //DebugOn("cbasis"<<endl);
+    //for(auto c:crbasis)
+    //DebugOn(c<<endl);
+    //obbt_model->print();
     return(close);
 }
 /** function to update variable bounds of current model and vector models for the OBBT algorithm
@@ -1717,11 +1633,11 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
 template<typename type>
 template<typename T>
 bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
-    #ifdef USE_MPI
-        int worker_id, nb_workers;
-        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-    #endif
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
     double objk, boundk1, temp, tempa, mid, left, right;
     var<> vk;
@@ -1850,9 +1766,9 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                 }
             }
 #ifdef USE_MPI                                                                          
-    if(worker_id==0)                                                                    
+            if(worker_id==0)
 #endif
-DebugOff("success "<<objective_models.at(s)<<endl);
+                DebugOff("success "<<objective_models.at(s)<<endl);
         }
         else
         {
@@ -2126,25 +2042,25 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
     return viol;
 }
 /** function to run models in parallel across machines. Populates solution status and objective of the runs. If linearize cuts are also added, and each problem is refined upto nb_refine times
-@param[in] objective models: Vec with names of each model in models. If linearize order of elements in this vector is changed at the end of the function
-@param[in] sol_obj: Vec with objective values of each model in models
-@param[in] sol_obj: Vec with solution status of each model in models
-@param[in] models: Vec of models (per machine, of size threads_per_machine nr_threads)
-@param[in] relaxed model: original nonlinear nonconvex model
-@param[in] interioir model: model to compute interior point of relaxed model
-@param[in] cut_type: cut add strategy allvar or modelname
-@param[in] active tol: a constraint is violated and linearized as per this tolerance
-@param[in] stype: solver type
-@param[in] tol: tolerance with which each model in objective_models is solved
-@param[in] nr_threads: threads per machine
-@param[in] lin_solver: linear solver used by ipopt (ma27, ma57, etc)
-@param[in] max_iter, max_batch_time: max iter and batch_time for each time a problem is run
-@param[in] linearize: true if linear obbt algorithm is used
-@param[in] nb_refine: number of refinement steps, used for linearizs only
-@param[in] old_map: map of which worker_id each modelname is assigned to, used for linearize only
-@param[in] vbasis, cbasis: initialization of variable and constraint basis(defined by Gurobi documentation) for each model in models.
-@return returns true
-*/
+ @param[in] objective models: Vec with names of each model in models. If linearize order of elements in this vector is changed at the end of the function
+ @param[in] sol_obj: Vec with objective values of each model in models
+ @param[in] sol_obj: Vec with solution status of each model in models
+ @param[in] models: Vec of models (per machine, of size threads_per_machine nr_threads)
+ @param[in] relaxed model: original nonlinear nonconvex model
+ @param[in] interioir model: model to compute interior point of relaxed model
+ @param[in] cut_type: cut add strategy allvar or modelname
+ @param[in] active tol: a constraint is violated and linearized as per this tolerance
+ @param[in] stype: solver type
+ @param[in] tol: tolerance with which each model in objective_models is solved
+ @param[in] nr_threads: threads per machine
+ @param[in] lin_solver: linear solver used by ipopt (ma27, ma57, etc)
+ @param[in] max_iter, max_batch_time: max iter and batch_time for each time a problem is run
+ @param[in] linearize: true if linear obbt algorithm is used
+ @param[in] nb_refine: number of refinement steps, used for linearizs only
+ @param[in] old_map: map of which worker_id each modelname is assigned to, used for linearize only
+ @param[in] vbasis, cbasis: initialization of variable and constraint basis(defined by Gurobi documentation) for each model in models.
+ @return returns true
+ */
 
 int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map, vector<vector<int>>& vbasis, vector<vector<int>>& cbasis){
     
@@ -2190,17 +2106,17 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
     return max(err_rank, err_size);
 }
 /** Runs models stored in the vector in parallel using MPI
-*      @models vector of models to run in parallel
-*           @stype Solver type
-*                @tol numerical tolerance
-*                     @max_iter max number of iterations per model
-*                          @max_batch_time max wall clock time of each batch
-*                               @nb_threads Number of parallel threads per worker
-*                                    @lin_solver linear system solver
-*                                         @share_all propagate model status and solutions to all workers, if false, only worker 0 has updated solutions and status flags for all models
-*                                              @share_all_obj propagate only objective values and model status to all workers
-*
-*/
+ *      @models vector of models to run in parallel
+ *           @stype Solver type
+ *                @tol numerical tolerance
+ *                     @max_iter max number of iterations per model
+ *                          @max_batch_time max wall clock time of each batch
+ *                               @nb_threads Number of parallel threads per worker
+ *                                    @lin_solver linear system solver
+ *                                         @share_all propagate model status and solutions to all workers, if false, only worker 0 has updated solutions and status flags for all models
+ *                                              @share_all_obj propagate only objective values and model status to all workers
+ *
+ */
 int run_MPI(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool share_all, bool share_all_obj){
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -2286,4 +2202,5 @@ template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
 template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<int>& vrbasis, std::vector<int>& crbasis);
 template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 }
