@@ -248,7 +248,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     var<> var;
     vector<shared_ptr<solver<double>>> batch_solvers;
     int viol_i=0, viol=0, count=0, ncuts=0;
-    if(models.size()==0){
+    if(objective_models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
         return -1;
     }
@@ -784,10 +784,10 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                             activeset.add((*con->_indices->_keys)[i]);
                             Constraint<> OA_cut(con_lin_name);
                             OA_cut=con->get_outer_app(activeset, scale);
-                            if(con->_ctype==leq) {
+                            if(con->_ctype==leq){
                                 lin->add(OA_cut.in(activeset)<=0);
                             }
-                            else {
+                            else{
                                 lin->add(OA_cut.in(activeset)>=0);
                             }
                             add_new=false;
@@ -1308,7 +1308,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
+        LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
 #ifdef USE_MPI

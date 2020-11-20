@@ -260,7 +260,9 @@ if(stype==gurobi){
         int run(int output, type tol , double time_limit, const string& lin_solver, int max_iter){
             return run(output, tol, max_iter, 1e-6, true, {lin_solver!="",lin_solver}, time_limit);
         }
-        
+        int run(int output, type tol , double time_limit, int max_iter){
+                  return run(output, tol, max_iter, 1e-6, true, {false,""}, time_limit);
+        }
         int run(int output=5, type tol=1e-6 , int max_iter=2000){
             return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
         }
@@ -624,7 +626,7 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
     for (auto i = start; i<end; i++) {
         DebugOff("to call run"<<endl);
         if(models.at(i)->_status==0){
-            return_status = solvers.at(i)->run(0, tol, lin_solver, max_iter, 2000);
+            return_status = solvers.at(i)->run(0, tol, max_iter, 2000);
         }
     }
     return return_status;

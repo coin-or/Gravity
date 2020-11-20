@@ -302,11 +302,12 @@ TEST_CASE("Model.relax()") {
     double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto res=M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
     LB->print_constraints_stats(1e-6);
 //    LB->print_nonzero_constraints(1e-6);
     LB->print();
-    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
+    auto lower_bound = get<6>(res);
+    auto final_gap = 100*(M.get_obj_val() - lower_bound)/std::abs(M.get_obj_val());
     CHECK(final_gap<1);
 }
 
@@ -2009,7 +2010,7 @@ TEST_CASE("testing SDP-BT"){
     auto nonlin_obj=true, current=true;
     auto SDP= build_SDPOPF(grid, current, nonlin_obj);
     auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    auto lower_bound = SDP->get_obj_val();
+    auto lower_bound = get<6>(res);
     auto lower_bound_init = get<3>(res);
     auto upper_bound = OPF->get_obj_val();
     auto gap_init = 100*(upper_bound - lower_bound_init)/std::abs(upper_bound);
