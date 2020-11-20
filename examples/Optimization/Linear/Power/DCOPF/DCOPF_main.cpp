@@ -17,7 +17,7 @@ using namespace gravity;
 int main (int argc, char * argv[])
 {
     int output = 0;
-    bool projected = false, use_cplex = false, use_gurobi = true;
+    bool projected = false, use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
     string mehrotra = "no", log_level="0";
@@ -59,6 +59,13 @@ int main (int argc, char * argv[])
     solver_str = options["p"];
     if (solver_str.compare("1")==0) {
         projected = true;
+    }
+#else
+    if(argc==2){
+        fname=argv[1];
+    }
+    else{
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }
 #endif
     double total_time_start = get_wall_time();
@@ -178,7 +185,7 @@ int main (int argc, char * argv[])
         /* AC Power Flow */
         Constraint<> Flow_P("Flow_P");
         Flow_P = Pf + b*(theta.from(arcs) - theta.to(arcs));
-       // DCOPF.add(Flow_P.in(arcs) == 0);
+        DCOPF.add(Flow_P.in(arcs) == 0);
         
         /* Phase Angle Bounds constraints */
         Constraint<> PAD_UB("PAD_UB");
@@ -189,7 +196,7 @@ int main (int argc, char * argv[])
         PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
         PAD_LB -= th_min;
         DCOPF.add(PAD_LB.in(node_pairs) >= 0);
-    
+    }
     /* Solver selection */
     if (use_cplex) {
         solver<> DCOPF_CPX(DCOPF, cplex);
@@ -200,21 +207,15 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-       else if (use_gurobi) {
-           solver<> DCOPF_GRB(DCOPF, gurobi);
-           auto solver_time_start = get_wall_time();
-           DCOPF_GRB.run(output=1, tol = 1e-6);
-           auto dc=DCOPF->copy();
-           dc.add(Flow_P.in(arcs) == 0);
-           dc.reindex();
-           solver<> DCOPF_GRB1(dc, gurobi);
-           dc.run(output=1, tol = 1e-6);
-           DCOPF.print_constraints_stats(1e-8);
-           solver_time_end = get_wall_time();
-           total_time_end = get_wall_time();
-           solve_time = solver_time_end - solver_time_start;
-           total_time = total_time_end - total_time_start;
-       }
+    //    else if (use_gurobi) {
+    //        solver DCOPF_GRB(DCOPF, gurobi);
+    //        auto solver_time_start = get_wall_time();
+    //        DCOPF_GRB.run(output, relax = false, tol = 1e-6);
+    //        solver_time_end = get_wall_time();
+    //        total_time_end = get_wall_time();
+    //        solve_time = solver_time_end - solver_time_start;
+    //        total_time = total_time_end - total_time_start;
+    //    }
     else {
         solver<> DCOPF_IPT(DCOPF,ipopt);
         auto solver_time_start = get_wall_time();
@@ -228,7 +229,6 @@ int main (int argc, char * argv[])
         solve_time = solver_time_end - solver_time_start;
         total_time = total_time_end - total_time_start;
     }
-}
     /** Uncomment next line to print expanded model */
     /* DCOPF.print(); */
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(DCOPF.get_obj_val()) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", GlobalOptimal, " + to_string(total_time);

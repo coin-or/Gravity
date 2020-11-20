@@ -172,7 +172,10 @@ shared_ptr<Model<type>> Model<type>::buildOA()
 //    }
 
 
-/** Returns a model which has all variables in current model. If current model has nonlinear constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to
+/** /** Returns an interior point model
+@param[in] nonlin: model for which interior point with respect to nonconvex constraints that describe a convex region(SDP,SOC,rotated SOC constraints) is computed
+Assuming model has no nonlinear equality constraints
+ Returns a model which has all variables in current model. If current model has SDP, SOC, rotated SOC constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to min (sum eta_i)
  **/
 template<typename type>
 template<typename T>
@@ -180,13 +183,15 @@ Model<type> Model<type>::build_model_interior() const
 {
     Model<type> Interior(_name+"Interior");
     
-    /* Variables */
+    /* Variables of current model are added*/
     for (auto &it: _vars)
     {
         auto v = it.second;
         Interior.add_var(v);
     }
+     /* Index set for eta variables*/
     indices ind_eta("ind_eta");
+    /* Vector of indices, each element corresponds to a nonconvex constraint, and has indices of eta corresponding to all its instances */
     vector<indices> ind_eta_vec;
     for (auto &con: _cons_vec)
     {
@@ -201,6 +206,7 @@ Model<type> Model<type>::build_model_interior() const
             }
         }
     }
+    /*Add eta variables to model*/
     var<> eta_int("eta_interior", -1, 0);
     Interior.add(eta_int.in(ind_eta));
     
@@ -212,8 +218,9 @@ Model<type> Model<type>::build_model_interior() const
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear()) {
-            /* We are only interested in an iterior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
+            /* We are only interested in an interior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
+                /*ind has indices of all eta_int elements corressponding to con*/
                 auto ind=ind_eta_vec[count++];
                 
                 Constraint<> Inter_con(*con);
@@ -601,77 +608,41 @@ bool Model<>::linearmodel_violates_x(vector<double>& x, string cname, int inst, 
     }
     return violated;
 }
-/*Returns a model that can compute interior point of nonlin model. Generates OA cuts to nonlin model at solution of nonlin model. Adds the generated cuts to the current model. If nb_perturb>0, perturbs the solution of nonlin model and generates cuts at the perturbed solution too*/
+/*Returns a model that can compute interior point of nonlin model. Generates OA cuts to nonlin model at solution of nonlin model and adds it to current model.
+ @param[in] nonlin: Nonlinear model whose nonlinear constraints are linearzied and added to current model
+  @return interior model: Model which can give interior point of current model
+ */
 template<>
 Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
 {
-    const double active_tol=1e-6,active_tol_sol=1e-12, perturb_dist=1e-1, zero_tol=1e-6;
+    const double active_tol_sol=1e-12, zero_tol=1e-6;
     vector<double> xactive, xcurrent, xinterior, xres, xtest;
-    bool interior=false;
-    double fk, fkk;
-    double rhs_tol = 0;
-    bool outer;
-    int count=0;
+    bool interior=false, convex_region=true;
     size_t posv;
-    vector<double> c_val ;
-    double c0_val;
-    vector<indices> vec_Pert;
-    vector<param<double>> oa_vec_c;
-    param<double> oa_c0;
-    
     int output=0;
-    double tol=1e-8;
-    bool convex_region=true;
-    double scale=1.0;
+    double scale=1.0, tol=1e-8;
     auto Ointerior = nonlin.build_model_interior();
     solver<> modelI(Ointerior, ipopt);
-    //Ointerior.print();
-    //modelI.set_option("bound_relax_factor", tol*1e-2);
-    //modelI.set_option("check_violation", true);
     modelI.run(output=0, tol);
-    
-    
     vector<double> xsolution(_nb_vars);
     nonlin.get_solution(xsolution);
-    
-    //    Ointerior.print();
-    
-    if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val() <0)
+    if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val()<0)
     {
         interior=true;
-        //        Ointerior.print_solution();
     }
     else{
-        DebugOn("Failed to solve interior model"<<endl);
+        throw invalid_argument("Failed to solve interior model");
     }
     for (auto &con: nonlin._cons_vec)
     {
-        if(!con->is_linear()) {
+        if(!con->is_linear()){
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
             {
                 Constraint<> OA_sol("OA_cuts_"+con->_name);
                 indices activeset("active_"+con->_name);
                 auto keys=con->_indices->_keys;
                 for(auto i=0;i<con->get_nb_inst();i++){
-                    //                    con->uneval();
-                    /** Generate an OA cut if constraint is active or if it has a convex representation */
-                    //if(con->is_active(i,active_tol_sol) || (con->is_convex() && !con->is_rotated_soc() && !con->check_soc())){
-                    convex_region=true;
-                    if(!con->is_convex()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                    {
-                        
-                        xres=con->get_x(i);
-                        auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                        auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                        auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                        if(soc1<=0 && soc2<=0 && soc3<=0){
-                            convex_region=true;
-                        }
-                        else{
-                            convex_region=false;
-                        }
-                    }
-                    
+                    convex_region=con->check_convex_region(i);
                     if(convex_region){
                         con->uneval();
                         con->eval_all();
@@ -681,23 +652,11 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                     }
                 }
                 OA_sol=con->get_outer_app(activeset, scale);
-                auto oa_sol_inst=OA_sol.get_nb_instances();
-                for(auto o=0;o<oa_sol_inst;o++){
-                    OA_sol._lazy.push_back(false);
-                }
-                
                 if(con->_ctype==leq) {
                     add(OA_sol.in(activeset)<=0);
                 }
                 else {
                     add(OA_sol.in(activeset)>=0);
-                }
-                //OA_sol.print();
-                if(oa_sol_inst>0){
-                    auto coa=get_constraint(OA_sol._name);
-                    for(auto o=0;o<oa_sol_inst;o++){
-                        coa->_violated[o]=true;
-                    }
                 }
             }
             else if(con->is_quadratic() && con->_lterms->size()==1 && con->_qterms->size()==1 && con->_qterms->begin()->second._p->first==con->_qterms->begin()->second._p->second) //This if is specific to constraints of the form ay- bx^2 \geq 0 or bx^2-ay \leq 0
@@ -708,6 +667,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                 indices allset("active_"+con->_name);
                 auto keys=con->_indices->_keys;
                 for(auto i=0;i<con->get_nb_inst();i++){
+                    /*Avoiding linearizations too close to zero*/
                     posv=x->get_id_inst(i);
                     x->get_double_val(posv, xval);
                     if(std::abs(xval)>=zero_tol){
@@ -716,258 +676,37 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                     }
                 }
                 OA_sol=con->get_outer_app(allset, scale);
-                auto oa_sol_inst=OA_sol.get_nb_instances();
-                for(auto o=0;o<oa_sol_inst;o++){
-                    OA_sol._lazy.push_back(false);
-                }
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
                 }
                 else {
                     add(OA_sol.in(allset)>=0);
                 }
-                if(oa_sol_inst>0){
-                    auto coa=get_constraint(OA_sol._name);
-                    for(auto o=0;o<oa_sol_inst;o++){
-                        coa->_violated[o]=true;
-                    }
-                }
             }
             else if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
             {
-                //add_outer_app_uniform(5, *con);
-                //Need to reset after this
                 Constraint<> OA_sol("OA_cuts_"+con->_name);
                 indices allset("active_"+con->_name);
                 auto keys=con->_indices->_keys;
                 for(auto i=0;i<con->get_nb_inst();i++){
                     string keyi=(*keys)[i];
                     allset.add(keyi);
-                    
                 }
                 OA_sol=con->get_outer_app(allset, scale);
-                auto oa_sol_inst=OA_sol.get_nb_instances();
-                for(auto o=0;o<oa_sol_inst;o++){
-                    OA_sol._lazy.push_back(false);
-                }
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
                 }
                 else {
                     add(OA_sol.in(allset)>=0);
                 }
-                if(oa_sol_inst>0){
-                    auto coa=get_constraint(OA_sol._name);
-                    for(auto o=0;o<oa_sol_inst;o++){
-                        coa->_violated[o]=true;
-                    }
-                }
             }
         }
     }
     nonlin.set_solution(xsolution);
     reindex();
-    DebugOff("Number of constraints in linear model "<<_nb_cons<<endl);
-    bool add_new, oa_cut;
-    int nb_added_cuts=0;
-    int nb_perturb=0;
-    int count_var=0;
-    bool near_zero=false;
-    if(interior && nb_perturb>0){
-        for (auto &con: nonlin._cons_vec)
-        {
-            if(!con->is_linear() && (!con->is_convex() || con->is_rotated_soc() || con->check_soc())) {
-                auto con_lin_name="OA_cuts_"+con->_name;
-                if(_cons_name.find(con_lin_name)!=_cons_name.end()){
-                    add_new=false;
-                }
-                else{
-                    add_new=true;
-                }
-                auto cnb_inst=con->get_nb_inst();
-                for(auto i=0;i<cnb_inst;i++){
-                    auto cname=con->_name;
-                    xcurrent=con->get_x(i);
-                    count_var=0;
-                    for(auto &it: *(con->_vars))
-                    {
-                        auto v = it.second.first;
-                        auto vname=v->_name;
-                        if(v->_is_vector)
-                        {
-                            throw invalid_argument("vector variables are not supported");
-                            break;
-                        }
-                        else
-                        {
-                            posv=v->get_id_inst(i);
-                            auto ub_v=v->get_double_ub(posv);
-                            auto lb_v=v->get_double_lb(posv);
-                            for(auto j=1;j<=nb_perturb;j++)
-                            {
-                                outer=false;
-                                oa_cut=false;
-                                c0_val=0;
-                                c_val.resize(con->_nb_vars,0);
-                                v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 - j*perturb_dist), lb_v),ub_v)); /** Perturbed point with negative epsilon */
-                                con->uneval();
-                                fk=con->eval(i);
-                                if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                    outer=true;
-                                }
-                                if(!outer){
-                                    v->set_double_val(posv, std::min(std::max(xcurrent[count_var]*(1 + j*perturb_dist), lb_v),ub_v)); /** Perturbed point with positive epsilon */
-                                    con->uneval();
-                                    fk=con->eval(i);
-                                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                                        outer=true;
-                                    }
-                                }
-                                if(outer){
-                                    // DebugOn("outer"<<endl);
-                                    auto con_interior=Ointerior.get_constraint(cname);
-                                    xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                                    xres=con->get_x(i);
-                                    if(con->xval_within_bounds(i, xcurrent)){
-                                        if(!(linearmodel_violates_x(xcurrent, con->_name, i, active_tol))){
-                                            auto res_search=con->binary_line_search(xinterior, i);
-                                            if(res_search){
-                                                oa_cut=true;
-                                            }
-                                        }
-                                    }
-                                }
-                                if(oa_cut){
-                                    //DebugOn("oacut"<<endl);
-                                    convex_region=true;
-                                    oa_cut=false;
-                                    if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()) //For the SDP determinant constraint, check if the point is feasible with repsecto to the SOC constraints
-                                    {
-                                        con->uneval();
-                                        fkk=con->eval(i);
-                                        xres=con->get_x(i);
-                                        auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-                                        auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-                                        auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-                                        if(soc1<=0 && soc2<=0 && soc3<=0){
-                                            convex_region=true;
-                                        }
-                                        else{
-                                            convex_region=false;
-                                        }
-                                    }
-                                    if(convex_region){
-                                        scale=1.0;
-                                        if(add_new){
-                                            nb_added_cuts++;
-                                            indices activeset("active_"+con->_name);
-                                            activeset.add((*con->_indices->_keys)[i]);
-                                            Constraint<> OA_cut(con_lin_name);
-                                            OA_cut=con->get_outer_app(activeset, scale);
-                                            OA_cut._lazy.push_back(false);
-                                            if(con->_ctype==leq) {
-                                                add(OA_cut.in(activeset)<=0);
-                                            }
-                                            else {
-                                                add(OA_cut.in(activeset)>=0);
-                                            }
-                                            auto coa=get_constraint(OA_cut._name);
-                                            for(auto o=0;o<coa->get_nb_inst();o++){
-                                                coa->_violated[o]=true;
-                                            }
-                                            add_new=false;
-                                            oa_cut=false;
-                                        }
-                                        else{
-                                            con->get_outer_coef(i, c_val, c0_val);
-                                            vector<int> coefs;
-                                            scale=1;
-                                            for (auto k = 0; k<c_val.size(); k++) {
-                                                near_zero=true;
-                                                scale=1.0;
-                                                if(c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
-                                                    if(zero_tol/std::abs(c_val[k])>scale){
-                                                        scale=zero_tol/std::abs(c_val[k]);
-                                                    }
-                                                }
-                                                if(near_zero && c_val[k]!=0 && std::abs(c_val[k])<zero_tol){
-                                                    near_zero=true;
-                                                }
-                                                else{
-                                                    near_zero=false;
-                                                }
-                                                //coefs.push_back(1e5*c_val[j]);
-                                            }
-                                            // coefs.push_back(1e5*c0_val);
-                                            // if(_OA_cuts[con->_id*100+i].insert(coefs).second)
-                                            oa_cut=true;
-                                            if(near_zero)
-                                                oa_cut=false;
-                                            
-                                        }
-                                    }
-                                }
-                                if(oa_cut){
-                                    //DebugOn("adding inst"<<endl);
-                                    nb_added_cuts++;
-                                    auto con_lin=get_constraint("OA_cuts_"+con->_name);
-                                    auto nb_inst = con_lin->get_nb_instances();
-                                    con_lin->_indices->add("inst_"+to_string(nb_inst));
-                                    con_lin->_dim[0] = con_lin->_indices->size();
-                                    con_lin->_lazy.push_back(false);
-                                    con_lin->_violated.push_back(true);
-                                    auto count=0;
-                                    for(auto &l: *(con_lin->_lterms)){
-                                        auto name=l.first;
-                                        if(!l.second._sign){
-                                            throw invalid_argument("symbolic negative");
-                                        }
-                                        if(l.second._coef->is_param()) {
-                                            auto p_cst = ((param<>*)(l.second._coef.get()));
-                                            p_cst->add_val("inst_"+to_string(p_cst->_indices->_keys->size()), c_val[count]*scale);
-                                        }
-                                        else {
-                                            throw invalid_argument("Coefficient must be parameter");
-                                        }
-                                        auto parkeys=l.second._p->_indices->_keys;
-                                        auto varc = con->get_var(l.second._p->_name);
-                                        l.second._p->_indices->add_ref((*parkeys)[varc->get_id_inst(i)]);
-                                        count++;
-                                    }
-                                    //Set value of the constant!!!
-                                    if(con_lin->_cst->is_param()){
-                                        auto co_cst = ((param<>*)(con_lin->_cst.get()));
-                                        co_cst->add_val("inst_"+to_string(co_cst->_indices->_keys->size()), c0_val*scale);
-                                    }
-                                    else if(con_lin->_cst->is_function()){
-                                        auto rhs_f = static_pointer_cast<func<>>(con_lin->_cst);
-                                        if(!rhs_f->func_is_param()){
-                                            throw invalid_argument("function should be a param");
-                                        }
-                                        auto p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-                                        p->add_val("inst_"+to_string(p->_indices->_keys->size()), c0_val*scale);
-                                        con_lin->_cst=p;
-                                    }
-                                    con_lin->eval_all();
-                                }
-                                con->set_x(i, xcurrent);
-                                xres.clear();
-                            }
-                        }
-                        count_var++;
-                    }
-                    xcurrent.clear();
-                    xinterior.clear();
-                }
-            }
-        }
-    }
-    reindex();
     reset();
     reset_constrs();
-    DebugOff("Number of constraints in linear model after perturb "<<_nb_cons<<endl);
     set_solution(xsolution);
-    //print();
     return Ointerior;
 }
 /*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
@@ -1079,7 +818,12 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
 }
-/*Adds row to a linear model*/
+/*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
+@param[in] con: Nonlinear constraint
+@param[in] c_inst: Instance of nonlinear constraint which is to be linearized
+@param[in] c_val: Coefficients of the new row of the linear constraint
+@param[in] c0_val: Constant term of the new row of the linear constraint
+@param[in] scaling factor of the new linear constraint row */
 template<typename type>
 template<typename T>
 void Model<type>::add_linear_row(Constraint<type>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale){
@@ -1087,11 +831,9 @@ void Model<type>::add_linear_row(Constraint<type>& con, int c_inst, const vector
     auto nb_inst = con_lin->get_nb_instances();
     con_lin->_indices->add("inst_"+to_string(c_inst)+"_"+to_string(nb_inst));
     con_lin->_dim[0] = con_lin->_indices->_keys->size();
-    //con_lin->_lazy.push_back(true);
     con_lin->_violated.push_back(true);
     auto count=0;
     DebugOff("nb inst "<<nb_inst);
-    //auto func_true=false;
     for(auto &l: *(con_lin->_lterms)){
         auto name=l.first;
         if(!l.second._sign){
@@ -1132,8 +874,6 @@ void Model<type>::add_linear_row(Constraint<type>& con, int c_inst, const vector
     }
     con_lin->uneval();
     con_lin->eval_all();
-    //con_lin->eval(nb_inst);
-    
 }
 
 /*Generates cuts (just as using the strategy in the add_iterative function above) but does not add them to lin model. Stores new row of existing constraints in lin in vector cuts. If a constraint does not exist in lin, point at which a new constraint must be added is stored in vector cuts*/
@@ -1568,13 +1308,13 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 0, lb_solver_tol, lin_solver, max_iter, max_time);
+        LB_solver.run(output = 5, lb_solver_tol, lin_solver, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
-                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
+                DebugOff("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
@@ -1782,10 +1522,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
     return 0;
 }
 
-/** Returns an interior point of a model
- @param[in] nonlin: model for which interior point with respect to nonlinear constraints is computed
- Assuming model has no nonlinear equality constraints
- **/
+
 template<typename type>
 template<typename T>
 shared_ptr<Model<type>> Model<type>::build_model_IIS()

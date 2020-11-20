@@ -6057,17 +6057,37 @@ void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& ba
     double lb;
     lb=std::max(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
     for(auto& modelk:batch_models){
-    if(modelk->_cons_name.count("obj|lb")!=0){
-        modelk->remove("obj|lb");
+        if(modelk->_cons_name.count("obj|lb")==0){
+            auto obj = *modelk->_obj;
+            param<> lb_p("lb_p");
+            lb_p=lb;
+            Constraint<type> obj_lb("obj|lb");
+            obj_lb = obj - lb;
+            modelk->add(obj_lb>=0);
+        }
     }
-        func<double> a;
-        a.deep_copy(*this->_obj);
-               Constraint<type> obj_lb("obj|lb");
-               obj_lb = a - lb;
-               modelk->add(obj_lb>=0);
-    }
-
+   // auto con=batch_models[0]->get_constraint("obj|lb");
+   // con->_cst->_val->at(0)=lb+1;
+   // con->print();
 }
+//template <typename type>
+//template<typename T>
+//void Model<type>::batch_models_update_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
+//    double lb;
+//    lb=std::max(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
+//    for(auto& modelk:batch_models){
+//    if(modelk->_cons_name.count("obj|lb")!=0){
+//        func<double> a;
+//               a.deep_copy(*this->_obj);
+//                      Constraint<type> obj_lb("obj|lb");
+//                      obj_lb = a - lb;
+//                      modelk->add(obj_lb>=0);
+//
+//    }
+//
+//    }
+//
+//}
 //Check if OBBT has converged, can check every gap_count_int intervals
 template <typename type>
 template<typename T>
@@ -6308,8 +6328,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     /*Create nb_threads copy of obbt_models*/
                     obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
                     if(linearize){
-                    initialize_basis_vectors(lb_solver_type, vbasis,cbasis,vrbasis,crbasis,nb_threads);
-                    obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
+                        initialize_basis_vectors(lb_solver_type, vbasis,cbasis,vrbasis,crbasis,nb_threads);
+                        obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
                     }
                     /*Run obbt algorithm until termiante is true, iter and time less than max iter and max time*/
                     while(solver_time<=max_time && !terminate && iter<max_iter){
@@ -6359,7 +6379,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
                         relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
                         if(linearize){
-                            obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
+                            //obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
                         }
                         solver_time= get_wall_time()-solver_time_start;
                     }
