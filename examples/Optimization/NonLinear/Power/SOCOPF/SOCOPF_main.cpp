@@ -24,7 +24,7 @@ int main (int argc, char * argv[])
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
-    string solver_str="gurobi";
+    string solver_str="ipopt";
 #ifdef USE_OPT_PARSER
     /** Create a OptionParser with options */
     op::OptionParser opt;
@@ -59,8 +59,6 @@ int main (int argc, char * argv[])
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname);
-    use_gurobi=true;
-    
     
     /* Grid Stats */
     auto node_pairs = grid.get_node_pairs();
