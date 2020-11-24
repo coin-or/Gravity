@@ -1042,10 +1042,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
-    vector<pair<double,double>> min_max_data;
-    vector<vector<pair<double,double>>> min_max_model(nm);
-    vector<int> nb_neighbors(nd);
-    vector<vector<int>> neighbors(nd);
+    //vector<pair<double,double>> min_max_data;
+    //vector<vector<pair<double,double>>> min_max_model(nm);
+    //vector<int> nb_neighbors(nd);
+    //vector<vector<int>> neighbors(nd);
     vector<double> zeros = {0,0,0};
     
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
@@ -1054,16 +1054,16 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     //        return 0;
     int m = av_nb_pairs;
     //            int m = 1;
-    vector<double> min_dist(nd,numeric_limits<double>::max());
-    vector<int> nearest(nd);
-    vector<string> nearest_id(nd);
+    //vector<double> min_dist(nd,numeric_limits<double>::max());
+    //vector<int> nearest(nd);
+    //vector<string> nearest_id(nd);
     string i_str, j_str;
     indices Pairs("Pairs"), cells("cells");
-    map<int,int> n2_map;
+    //map<int,int> n2_map;
     int idx1 = 0;
     int idx2 = 0;
-    int nb_max_neigh = 1;
-    double dist_sq = 0;
+   // int nb_max_neigh = 1;
+    //double dist_sq = 0;
     /* Compute nearest points in data point cloud */
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
@@ -1077,17 +1077,17 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         y2.add_val(j_str,point_cloud_model.at(j).at(1));
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
     }
-    for (auto i = 0; i< nd; i++) {
-        double min_dist = numeric_limits<double>::max();
-        for (auto j = 0; j< nm; j++) {
-            dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
-            if(min_dist>dist_sq){
-                min_dist = dist_sq;
-                j_str = to_string(j+1);
-                nearest_id[i] = j_str;
-            }
-        }
-    }
+//    for (auto i = 0; i< nd; i++) {
+//        double min_dist = numeric_limits<double>::max();
+//        for (auto j = 0; j< nm; j++) {
+//            dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+//            if(min_dist>dist_sq){
+//                min_dist = dist_sq;
+//                j_str = to_string(j+1);
+//                nearest_id[i] = j_str;
+//            }
+//        }
+//    }
     idx1 = 0;
     indices N1("N1"),N2("N2");
     DebugOn("nd = " << nd << endl);
@@ -1107,7 +1107,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     Model<> Reg("Reg");
     var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
     var<> new_xm("new_xm"), new_ym("new_ym"), new_zm("new_zm");
-    var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+    //var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
     //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
@@ -1132,6 +1132,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     var<> delta("delta", pos_);
     var<int> bin("bin",0,1);
     Reg.add(bin.in(cells));
+    DebugOn("Added binary variables" << endl);
     Reg.add(delta.in(N1));
     Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
     Reg.add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
@@ -1147,23 +1148,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     Reg.add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     Reg.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
     Reg.add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
-//        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
-    //                Reg.add(z_diff.in(cells));
     DebugOn("There are " << cells.size() << " cells" << endl);
-//        for (int i = 0; i<nd; i++) {
-//            bin(to_string(i+1)+","+to_string(i+1)).set_lb(1);
-//        }
-//    for (int i = 0; i<nd; i++) {
-//        vector<var<>> delta_vec(nm);
-//        for (int j = 0; j<nm; j++) {
-//            delta_vec[j] = delta(to_string(i+1)+","+to_string(j+1));
-//        }
-//        Constraint<> DeltaMin("DeltaMin_"+to_string(i));
-//        DeltaMin += delta_min[i+1] - min(delta_vec);
-//        Reg.add(DeltaMin==0);
-//    }
 
-    x2.print();
     Constraint<> Def_newxm("Def_newxm");
     Def_newxm = new_xm-product(x2.in(N2),bin.in_matrix(1, 1));
     Reg.add(Def_newxm.in(N1)==0);
@@ -1176,25 +1162,13 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
      Def_newzm = new_zm-product(z2.in(N2),bin.in_matrix(1, 1));
      Reg.add(Def_newzm.in(N1)==0);
     
-    
-    
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
     
-//    Constraint<> OneBin2("OneBin2");
-//    OneBin2 = bin.in_matrix(0, 1);
-//    Reg.add(OneBin2.in(N1)==1);
-    
-//    Constraint<> Norm2("Norm2");
-//    Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-//    Reg.add(Norm2.in(cells)>=0);
-    
     Constraint<> Norm2("Norm2");
       Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
       Reg.add(Norm2.in(N1)>=0);
-    
-    Norm2.print();
     
     Constraint<> trigR("trigR");
     trigR = pow(cosr,2) + pow(sinr,2);
