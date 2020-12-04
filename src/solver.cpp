@@ -278,7 +278,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->_status=0;
         //models[s]->print();
         DebugOff("to create solver"<<endl);
-        if(stype==gurobi && false){
+        if(stype==gurobi){
             auto solverk = make_shared<solver<double>>(models[s], stype, vbasis[s], cbasis[s]);
             batch_solvers.push_back(solverk);
         }
@@ -357,7 +357,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     count=0;
-    if(stype==gurobi && false){
+    if(stype==gurobi){
         for(auto&s: batch_solvers){
             if(sol_status.at(count)==0){
                 s->get_basis(vbasis.at(count), cbasis.at(count));

@@ -188,7 +188,7 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
-    bool scale_objective=false;
+    bool scale_objective=true;
     bool termination=true;
     //linearize=true;
     int nb_refine=10;

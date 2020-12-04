@@ -117,7 +117,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    //grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    grb_mod->set(GRB_IntParam_OutputFlag, 0);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
