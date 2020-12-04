@@ -6053,9 +6053,12 @@ void Model<type>::create_batch_models(vector<shared_ptr<Model<type>>>& batch_mod
 }
 template <typename type>
 template<typename T>
-void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
-    double lb;
+void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads,
+ double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double
+ ub_scale_value){
+    double lb, lb_old;
     lb=std::max(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
+    lb_old=std::max(lower_bound_old, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
     for(auto& modelk:batch_models){
         if(modelk->_cons_name.count("obj|lb")==0){
             auto obj = *modelk->_obj;
@@ -6064,6 +6067,14 @@ void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& ba
             Constraint<type> obj_lb("obj|lb");
             obj_lb = obj - lb;
             modelk->add(obj_lb>=0);
+        }
+        else{
+            auto con=modelk->get_constraint("obj|lb");
+            if(lb>lb_old){
+                modelk->remove("obj|lb");
+                Constraint<> a(*con);
+                modelk->add(a>=(lb-lb_old));
+                }
         }
     }
 }
@@ -6085,17 +6096,43 @@ void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& ba
 //    }
 //
 //}
+//Initialize gurobi with ipopt
+
+template <typename type>
+template<typename T>
+void Model<type>::initialize_gurobi(double lb_solver_tol, vector<double>& vrbasis, vector<double>& crbasis){
+    vector<double> solution(this->_nb_vars);
+    solver<> LB_solver(*this,ipopt);
+    LB_solver.run(0, lb_solver_tol);
+    this->get_solution(solution);
+    vrbasis=solution;
+    for(auto &c:_cons){
+        for(auto i=0;i<c.second->get_nb_inst();i++){
+            if(std::abs(c.second->_dual[i])>=1e-5){
+            crbasis.push_back((c.second->_dual[i]*(-1)));
+            }
+            else{
+                if(c.second->_ctype==leq){
+                crbasis.push_back(-0);
+                }
+                else{
+                    crbasis.push_back(0);
+                }
+            }
+        }
+    }
+}
+
 //Check if OBBT has converged, can check every gap_count_int intervals
 template <typename type>
 template<typename T>
-void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time){
+void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, vector<double>& crbasis){
     gap=-999;
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    vector<int> vrbasis, crbasis;
     int output=0;
     bool close=false;
     obbt_model->reset_lifted_vars_bounds();
@@ -6112,7 +6149,7 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
         if(active_tol>lb_solver_tol){
             active_tol*=0.1;
         }
-        close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis);
+        close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis, true);
     }
     DebugOff("lower bound "<<lower_bound<<endl);
     if(obbt_model->_status==0)
@@ -6283,9 +6320,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #endif
     vector<shared_ptr<Model<>>> batch_models;
     vector<string> objective_models;
-    vector<double> sol_obj;
-    vector<int> sol_status, vrbasis, crbasis;
-    vector<vector<int>> vbasis, cbasis;
+    vector<double> sol_obj, vrbasis, crbasis;
+    vector<int> sol_status;
+    vector<vector<double>> vbasis, cbasis;
     vbasis.resize(nb_threads);
     cbasis.resize(nb_threads);
     map<string, bool> fixed_point;
@@ -6293,11 +6330,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     string vname, var_key, mname, cut_type="allvar";
     string dir_array[2]={"LB", "UB"};
     var<> v;
-    bool close=false, terminate=false, xb_true=true;
+    bool close=false, terminate=false, xb_true=true, initialize_resolve=false;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
     int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine;
     double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
-    double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min();
+    double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
     map<string,int> old_map;
     if(this->_status==0){
         upper_bound=this->get_obj_val();
@@ -6312,9 +6349,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     /*Set values of active tol and nb_init_refine*/
                     set_activetol_initrefine(active_tol, nb_init_refine, nb_refine, lb_solver_tol, run_obbt_iter);
                     /*Root refine obbt_model*/
-                    close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_init_refine, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis);
+                    close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_init_refine, upper_bound, lower_bound_init, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis, false);
                     oacuts_init=oacuts;
                     gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
+                    lower_bound_old=lower_bound_init;
                 }
                 if(obbt_model->_status==0){
                     /*Initialize fixed point, interval original and new, bounds original*/
@@ -6324,7 +6362,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
                     if(linearize){
                         initialize_basis_vectors(lb_solver_type, vbasis,cbasis,vrbasis,crbasis,nb_threads);
-                        obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
+                        obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_old,lower_bound_nonlin_init, upper_bound, ub_scale_value);
                     }
                     /*Run obbt algorithm until termiante is true, iter and time less than max iter and max time*/
                     while(solver_time<=max_time && !terminate && iter<max_iter){
@@ -6350,7 +6388,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                             auto viol= run_MPI_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, old_map, vbasis, cbasis);
 #else
-                                            auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, vbasis, cbasis);
+                                            auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 2000, 300, linearize, nb_refine, vbasis, cbasis, initialize_resolve);
+                                            if(initialize_resolve && lb_solver_type==gurobi){
+                                            auto a=initialize_run_parallel( objective_models, batch_models, lb_solver_type, obbt_subproblem_tol,nb_threads, "ma27", 2000, 300, vbasis, cbasis);
+                                            }
 #endif
                                             auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
                                             sol_status.clear();
@@ -6372,9 +6413,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                         }
                         /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
-                        relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 2000, 600);
+                        relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis);
                         if(linearize){
-                            //obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound, lower_bound_nonlin_init, upper_bound, ub_scale_value);
+                                                        obbt_model->batch_models_obj_lb_constr(batch_models, nb_threads, lower_bound,lower_bound_old,lower_bound_nonlin_init, upper_bound, ub_scale_value);
+                                                        lower_bound_old=lower_bound;
                         }
                         solver_time= get_wall_time()-solver_time_start;
                     }
@@ -6418,8 +6460,9 @@ template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
 template double Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
 template void Model<double>::create_batch_models(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
-template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time);
-template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
+template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, vector<double>& crbasis);
+template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
+template void Model<double>::initialize_gurobi(double lb_solver_tol, vector<double>& vrbasis, vector<double>& crbasis);
 
 
 //    template func<double> constant<double>::get_real() const;

@@ -40,7 +40,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             
             //grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
-	    //grb_mod->set(GRB_IntParam_Method, 1);
+	        //grb_mod->set(GRB_IntParam_Method, 0);
             found_token = true;
         }
         catch(GRBException e) {
@@ -85,10 +85,12 @@ GurobiProgram::~GurobiProgram() {
     if (grb_mod) {
         delete grb_mod;
         grb_mod = nullptr;
+        DebugOff("deleted model"<<endl);
     }
     if (grb_env){
         delete grb_env;
         grb_env = nullptr;
+        DebugOff("deleted environment"<<endl);
     }
    
 }
@@ -113,11 +115,17 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
       grb_mod->set(GRB_IntParam_Threads, 1);
       grb_mod->set(GRB_DoubleParam_TimeLimit, 2000.0);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-      grb_mod->set(GRB_IntParam_Method, 1);
+    if(grb_first_run){
+        grb_mod->set(GRB_IntParam_Method, 0);
+    }
+    else{
+        grb_mod->set(GRB_IntParam_Method, 1);
+    }
+    
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    //grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -184,7 +192,7 @@ void GurobiProgram::prepare_model(){
 
 //    print_constraints();
 }
-void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> cbasis){
+void GurobiProgram::initialize_basis(const std::vector<double>& vbasis, const std::vector<double>& cbasis){
 	grb_mod->update();    
 	int nv=grb_mod->get(GRB_IntAttr_NumVars);
     int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
@@ -204,9 +212,35 @@ void GurobiProgram::initialize_basis(std::vector<int> vbasis, std::vector<int> c
         gcons[i].set(GRB_IntAttr_CBasis, 0);          
     }  
 delete[] gcons;
+gcons=nullptr;
 }
 
-void GurobiProgram::get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis){
+void GurobiProgram::initialize_pstart(const std::vector<double>& pstart, const std::vector<double>& dstart){
+    grb_mod->update();
+    int nv=grb_mod->get(GRB_IntAttr_NumVars);
+    int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
+    int count=0;
+    for(auto &gv:_grb_vars){
+        gv.set(GRB_DoubleAttr_PStart, pstart[count++]);
+    }
+
+    GRBConstr* gcons= grb_mod->getConstrs();
+  
+//DebugOn("nc "<<nc<<endl);
+//DebugOn("cbasis "<<cbasis.size()<<endl);
+    for(auto i=0;i<dstart.size();i++){
+        gcons[i].set(GRB_DoubleAttr_DStart, dstart[i]);
+    }
+  for(auto i=dstart.size();i<nc;i++){
+        gcons[i].set(GRB_DoubleAttr_DStart, 0);
+    }
+delete[] gcons;
+    gcons=nullptr;
+    //DebugOn(grb_mod->get(GRB_IntAttr_NumConstrs));
+}
+
+
+void GurobiProgram::get_basis(std::vector<double>& vbasis, std::vector<double>& cbasis){
     int nv=grb_mod->get(GRB_IntAttr_NumVars);
     int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
     vbasis.resize(nv);
@@ -223,6 +257,29 @@ void GurobiProgram::get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis
     }
 delete[] gcons;
 delete[] gvars;
+    gcons=nullptr;
+    gvars=nullptr;
+}
+
+void GurobiProgram::get_pstart(std::vector<double>& pstart, std::vector<double>& dstart){
+    int nv=grb_mod->get(GRB_IntAttr_NumVars);
+    int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
+    pstart.resize(nv);
+    dstart.resize(nc);
+    GRBVar* gvars= grb_mod->getVars();
+    for(auto i=0;i<nv;i++){
+        pstart[i]=gvars[i].get(GRB_DoubleAttr_X);
+    }
+
+    GRBConstr* gcons= grb_mod->getConstrs();
+
+    for(auto i=0;i<nc;i++){
+        dstart[i]=gcons[i].get(GRB_DoubleAttr_Pi);
+    }
+delete[] gcons;
+delete[] gvars;
+    gcons=nullptr;
+    gvars=nullptr;
 }
 
 void GurobiProgram::update_model(){
