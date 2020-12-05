@@ -1,5 +1,5 @@
 include_directories(${PROJECT_INCLUDE_DIR})
-
+enable_testing()
 
 
 # add the automatically determined parts of the RPATH
@@ -74,6 +74,7 @@ target_link_libraries(sdpcuts gravity)
 #target_link_libraries(sdprecpol gravity)
 #target_link_libraries(sdpchordal gravity)
 target_link_libraries(gravity_test gravity)
+add_test(NAME Gravity_Test COMMAND gravity_test)
 target_link_libraries(svm gravity)
 #target_link_libraries(neuralnet gravity)
 #target_link_libraries(microgid gravity)
