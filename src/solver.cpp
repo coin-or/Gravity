@@ -7,6 +7,7 @@
 //
 
 #include <gravity/solver.h>
+#include <pthread.h>
 
 #ifdef USE_BONMIN
 #include <BonBonminSetup.hpp>
