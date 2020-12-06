@@ -24,6 +24,7 @@
 #include <IpSolveStatistics.hpp>
 #include <future>
 #include <thread>
+#include <pthread.h>
 
 
 using Ipopt::IsValid;
