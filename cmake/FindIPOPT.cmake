@@ -36,6 +36,8 @@ if(IPOPT_FOUND)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(IPOPT_LIBRARIES "${IPOPT_LIBRARIES};m;pthread")
     endif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+else (IPOPT_FOUND)
+ message("Cannot find Ipopt, will try pulling it from github.")
 endif(IPOPT_FOUND)
 
 mark_as_advanced(IPOPT_LIBRARY IPOPT_INCLUDE_DIR)

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.2)
 
 project(Gravity)
 
+enable_testing()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(MACOSX_RPATH 1) 
 # Debug mode
@@ -14,7 +16,7 @@ option(Cov "Turn on coverage" OFF)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" OFF)
+option(Ipopt "Link to IPOPT libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -57,14 +59,6 @@ if (OpenMPI)
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
-# Find Ipopt.
-if (Ipopt)
-	message(STATUS "Enable IPOPT")
-	add_definitions(-DUSE_IPOPT)
-	find_package(IPOPT REQUIRED)
-	include_directories(${IPOPT_INCLUDE_DIRS}/..)
-	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
-endif()
 
 # Find xlnt
 if (Xlnt)
@@ -164,6 +158,23 @@ set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
 include(ExternalProject)
+
+#Ipopt
+message(STATUS "Enable IPOPT")
+add_definitions(-DUSE_IPOPT)
+find_package(IPOPT QUIET)
+if (IPOPT_FOUND)
+ message("-- Found IPOPT: ${IPOPT_INCLUDE_DIRS}")
+ include_directories(${IPOPT_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+else(IPOPT_FOUND)
+if(APPLE)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.dylib)
+elseif(UNIX)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
+endif(APPLE)
+ include(ExternalIpopt)
+endif (IPOPT_FOUND)
 # Eigen
 find_package(Eigen QUIET)
 if (EIGEN_FOUND)
