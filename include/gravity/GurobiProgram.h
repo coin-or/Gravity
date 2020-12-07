@@ -32,8 +32,10 @@ public:
     void relax_model();
     void warm_start();
     void update_grb_constraints(std::map<std::string,std::size_t>);
-    void initialize_basis(std::vector<int> vbasis, std::vector<int> cbasis);
-    void get_basis(std::vector<int>& vbasis, std::vector<int>& cbasis);
+    void initialize_basis(const std::vector<double>& vbasis, const std::vector<double>& cbasis);
+    void get_basis(std::vector<double>& vbasis, std::vector<double>& cbasis);
+    void initialize_pstart(const std::vector<double>& vbasis, const std::vector<double>& cbasis);
+    void get_pstart(std::vector<double>& vbasis, std::vector<double>& cbasis);
 
     void fill_in_grb_vmap();
     void create_grb_constraints();

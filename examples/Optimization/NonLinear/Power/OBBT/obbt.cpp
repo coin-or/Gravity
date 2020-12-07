@@ -190,6 +190,7 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective=true;
     bool termination=true;
+    bool initialize_resolve=false;
     //linearize=true;
     int nb_refine=10;
     if(!linearize){
