@@ -9085,12 +9085,12 @@ namespace gravity {
         else if(!f.is_constant()){
             res._all_convexity = undet_;
         }
-        res._range->first = log(f._range->first);
+        res._range->first = std::log(f._range->first);
         if(f._range->second==numeric_limits<T1>::max()){
             res._range->second = numeric_limits<T1>::max();
         }
         else {
-            res._range->second = log(f._range->second);
+            res._range->second = std::log(f._range->second);
         }
         res._expr->_range->first = res._range->first;
         res._expr->_range->second = res._range->second;

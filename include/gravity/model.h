@@ -35,10 +35,18 @@
 #ifdef USE_BONMIN
 #include <BonTMINLP.hpp>
 #endif
+#include "mp/nl.h"
+#include "mp/problem.h"
+#include "CoinMpsIO.hpp"
+#include "CoinFileIO.hpp"
+#include "CoinModel.hpp"
+#include "mp/expr-visitor.h"
 
 using namespace std;
 
 namespace gravity {
+
+
     template<typename type>
     const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
         if(c1->get_nb_inst() > c2->get_nb_inst())
@@ -7392,7 +7400,60 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return _obj->eval(c,i,j);
         }
         
-        
+        int readMPS(const string& fname){
+                //string mps_file = "/Users/l297598/Downloads/fhnw-binpack4-58.mps", gms_file="/Users/l297598/Downloads/nvs24.gms";
+            CoinMpsIO m;
+            CoinMessageHandler* handler_ = new CoinMessageHandler();;
+            m.passInMessageHandler(handler_);
+            bool savePrefix = m.messageHandler()->prefix();
+            m.messageHandler()->setPrefix(handler_->prefix());
+            m.setSmallElementValue(m.getSmallElementValue());
+            int status = 0;
+            try {
+                status = m.readMps(fname.c_str(), "");
+                    //        status = m.readGms(gms_file.c_str());
+                auto nb_vars = m.getNumCols();
+                DebugOn("The number of variables is " << nb_vars << endl);
+                auto nb_cstr = m.getNumRows();
+                DebugOn("The number of constraints is " << nb_cstr << endl);
+                if (m.reader()->whichSection() == COIN_QUAD_SECTION) {
+                    CoinBigIndex *start = NULL;
+                    int *column = NULL;
+                    double *element = NULL;
+                    status = m.readQuadraticMps(NULL, start, column, element, 2);
+                    if (!status){
+                            //                loadQuadraticObjective(nb_vars, start, column, element);
+                    }
+                    delete[] start;
+                    delete[] column;
+                    delete[] element;
+                }
+                if (m.reader()->whichSection() == COIN_CONIC_SECTION) {
+                    CoinBigIndex *start = NULL;
+                    int *column = NULL;
+                    double *element = NULL;
+                    int * coneType = NULL;
+                    int nbCones = 0;
+                    status = m.readConicMps(NULL, start, column, coneType, nbCones);
+                    if (!status){
+                            //                loadQuadraticObjective(nb_vars, start, column, element);
+                    }
+                    DebugOn("Problem has " << nbCones << " Cones" << endl);
+                    delete[] start;
+                    delete[] column;
+                    delete[] coneType;
+                }
+            }
+            catch (CoinError e) {
+                e.print();
+                status = -1;
+            }
+            delete handler_;
+            return status;
+        }
+
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+        int readNL(const string& fname);
     };
     
     //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);
@@ -7542,6 +7603,124 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res.update_vars();
         return res;
     }
+
+    // Converter of optimization problems from NL to Gravity format.
+    class MPConverter : public mp::ExprVisitor<MPConverter, func<>> {
+    public:
+        
+        MPConverter(Model<>& m): _model(&m){};
+        
+        Model<>* _model = nullptr;
+        
+        func<> VisitPow2(UnaryExpr e) {
+          return pow(Visit(e.arg()),2);
+        }
+        
+        
+        double VisitNumericConstant(mp::NumericConstant c) {
+          return (c.value());
+        }
+        
+        func<> VisitMinus(UnaryExpr e) {
+            return -1*Visit(e.arg());
+        }
+        
+        func<> VisitSum(SumExpr e){
+            func<> sum;
+            for (SumExpr::iterator i = e.begin(), end = e.end(); i != end; ++i){
+                sum += Visit(*i);
+            }
+            return sum;
+        }
+        
+        var<> get_cont_int_var(int index){
+            auto x = _model->get_var<double>("x");
+            auto y = _model->get_var<double>("y");
+            if(index >= y.get_id())/* Integer variable */
+                return y(index);
+            /* Continuous variable */
+            return x(index);
+        }
+        
+        var<> VisitVariable(mp::Reference r) {
+            return get_cont_int_var(r.index());
+        }
+        
+        double VisitConstant(NumericConstant n) { return n.value(); }
+//        func<> Visit(NumericExpr e) {
+//          return ExprVisitor<MPConverter, func<>>::Visit(e);
+//        }
+        func<> VisitAdd(BinaryExpr e) {
+          return Visit(e.lhs()) + Visit(e.rhs());
+        }
+
+        func<> VisitSub(BinaryExpr e) {
+          return Visit(e.lhs()) - Visit(e.rhs());
+        }
+
+        func<> VisitMul(BinaryExpr e) {
+          return Visit(e.lhs()) * Visit(e.rhs());
+        }
+
+        func<> VisitDiv(BinaryExpr e) {
+          return Visit(e.lhs()) / Visit(e.rhs());
+        }
+
+
+        func<> VisitPow(BinaryExpr e) {
+          return pow(Visit(e.lhs()), Visit(e.rhs()).eval());
+        }
+
+//        func<> VisitLess(BinaryExpr e) {
+//          return IloMax(Visit(e.lhs()) - Visit(e.rhs()), 0.0);
+//        }
+//
+//        func<> VisitMin(VarArgExpr e) {
+//          return IloMin(ConvertArgs(e));
+//        }
+//
+//        func<> VisitMax(VarArgExpr e) {
+//          return IloMax(ConvertArgs(e));
+//        }
+//
+//        func<> VisitMinus(UnaryExpr e) {
+//          return -Visit(e.arg());
+//        }
+
+        func<> VisitAbs(UnaryExpr e) {
+          return abs(Visit(e.arg()));
+        }
+        
+        func<> VisitSin(UnaryExpr e) {
+            return sin(Visit(e.arg()));
+        }
+        
+        func<> VisitCos(UnaryExpr e) {
+            return cos(Visit(e.arg()));
+        }
+        
+        func<> VisitSqrt(UnaryExpr e) {
+            return sqrt(Visit(e.arg()));
+        }
+
+        func<> VisitExp(UnaryExpr e) {
+            return exp(Visit(e.arg()));
+        }
+        
+        func<> VisitLog(UnaryExpr e) {
+            return log(Visit(e.arg()));
+        }
+//        func<> VisitFloor(UnaryExpr e) {
+//          return IloFloor(Visit(e.arg()));
+//        }
+//
+//        func<> VisitCeil(UnaryExpr e) {
+//          return IloCeil(Visit(e.arg()));
+//        }
+    };
+
+
+
     
 }
 

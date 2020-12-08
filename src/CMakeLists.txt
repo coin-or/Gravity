@@ -56,6 +56,12 @@ endif()
 
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
+if(ADD_MP)
+ add_dependencies(gravity mp)
+endif()
+if(ADD_CoinUtils)
+ add_dependencies(gravity coinutils)
+endif()
 if(ADD_EIGEN)
  add_dependencies(gravity eigen)
 endif(ADD_EIGEN)
@@ -68,7 +74,7 @@ target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIB
 endif()
 
 if(NOT OPT_PARSER)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES})
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY})
 endif()
 
 if(Cov)
