@@ -202,7 +202,7 @@ endif()
 
 
 #Ipopt
-if (OPT_PARSER)
+if (Ipopt)
 message(STATUS "Enable IPOPT")
 add_definitions(-DUSE_IPOPT)
 find_package(IPOPT QUIET)
