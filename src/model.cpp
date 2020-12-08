@@ -6669,9 +6669,9 @@ template<typename T>
 void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol){
     {
 #ifdef USE_MPI
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+        int worker_id, nb_workers;
+        auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+        auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
         this->copy_bounds(obbt_model);
         this->copy_solution(obbt_model);
@@ -6684,34 +6684,34 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
             if(new_ub<=(upper_bound-1e-3)){
                 upper_bound = new_ub;
                 get_solution(ub_sol);
-         
+                
 #ifdef USE_MPI
                 if(worker_id==0){
 #endif
-                DebugOn("Found a better feasible point!"<<endl);
-                DebugOn("New upper bound = "<< upper_bound << endl);
+                    DebugOn("Found a better feasible point!"<<endl);
+                    DebugOn("New upper bound = "<< upper_bound << endl);
 #ifdef USE_MPI
                 }
 #endif
                 if(!linearize){
-                for(auto &mod:batch_models){
-                    if(mod->_cons_name.count("obj|ub")==0){
-                        param<> ub("ub");
-                        ub = upper_bound/lb_scale_value;
-                        func<double> obj;
-                        obj.deep_copy(*obbt_model->_obj);
-                        Constraint<type> obj_ub("obj|ub");
-                        obj_ub = obj - ub;
-                        mod->add(obj_ub<=0);
+                    for(auto &mod:batch_models){
+                        if(mod->_cons_name.count("obj|ub")==0){
+                            param<> ub("ub");
+                            ub = upper_bound/lb_scale_value;
+                            func<double> obj;
+                            obj.deep_copy(*obbt_model->_obj);
+                            Constraint<type> obj_ub("obj|ub");
+                            obj_ub = obj - ub;
+                            mod->add(obj_ub<=0);
+                        }
+                        else {
+                            auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                            ub->set_val(upper_bound/lb_scale_value);
+                            mod->reset_constrs();
+                        }
                     }
-                    else {
-                        auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-                        ub->set_val(upper_bound/lb_scale_value);
-                        mod->reset_constrs();
-                    }
-                }
-                
-                DebugOff("I have updated all batch models with new ub!\n");
+                    
+                    DebugOff("I have updated all batch models with new ub!\n");
                 }
                 gap=(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100;
                 DebugOff("Gap "<<std::setprecision(9)<<gap<<" ub "<<std::setprecision(9)<<upper_bound<<" lb "<<std::setprecision(9)<<lower_bound<<endl);
@@ -6720,18 +6720,177 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
                     terminate=true;
                     
                 }
-
+                
             }
         }
         else {
             if(status_old==0){
-            set_solution(ub_sol);
-            _obj->set_val(upper_bound);
-            _status=0;
+                set_solution(ub_sol);
+                _obj->set_val(upper_bound);
+                _status=0;
             }
         }
     }
 }
+    
+template <typename type>
+template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
+int Model<type>::readNL(const string& fname){    
+    mp::Problem p;
+    mp::ReadNLFile(fname, p);
+    auto nb_vars = p.num_vars();
+    auto nb_cstr = p.num_algebraic_cons();
+    DebugOn("The number of variables is " << nb_vars << endl);
+    DebugOn("The number of constraints is " << nb_cstr << endl);
+    indices C("C"), I("I"), LinConstr("LinConstr"), QuadConstr("QuadConstr"), NonLinConstr("NonLinConstr");
+    int nb_cont = 0;
+    int nb_int = 0;
+    int nb_other = 0;
+    vector<int> C_ids,I_ids;
+    for (const auto v: p.vars()) {
+        if(v.type()==mp::var::CONTINUOUS){
+            nb_cont++;
+            C.insert(to_string(v.index()));
+            C_ids.push_back(v.index());
+        }
+        else if(v.type()==mp::var::INTEGER){
+            I.insert(to_string(v.index()));
+            I_ids.push_back(v.index());
+            nb_int++;
+        }
+        else{
+            throw invalid_argument("Unrecognised variable type, can only be continuous or integer");
+        }
+    }
+    DebugOn("Number of continuous variables = " << nb_cont << endl);
+    DebugOn("Number of integer variables = " << nb_int << endl);
+    
+    param<> x_ub("x_ub"), x_lb("x_lb");
+    param<int> y_ub("y_ub"), y_lb("y_lb");
+    x_ub.in(C);x_lb.in(C);
+    y_ub.in(I);y_lb.in(I);
+    for (int i = 0; i<C.size(); i++) {
+        x_lb.set_val(i, p.var(C_ids[i]).lb());
+        x_ub.set_val(i, p.var(C_ids[i]).ub());
+    }
+    for (int i = 0; i<I.size(); i++) {
+        y_lb.set_val(i, p.var(I_ids[i]).lb());
+        y_ub.set_val(i, p.var(I_ids[i]).ub());
+    }
+    var<> x("x", x_lb, x_ub);
+    var<int> y("y", y_lb, y_ub);
+
+    param<> rhs("rhs");
+    int nb_lin = 0;
+    int nb_nonlin = 0;
+    int index = 0;
+    _name = fname;
+
+    add(x.in(C));
+    add(y.in(I));
+
+    replace_integers();
+
+    MPConverter converter(*this);
+    map<int,vector<int>> constr_sparsity;
+    vector<int> C_lin, C_nonlin, C_quad;
+    for (const auto con: p.algebraic_cons()) {
+        auto lexpr = con.linear_expr();
+        auto nl_expr = con.nonlinear_expr();
+        if (nl_expr){
+            auto expr = converter.Visit(nl_expr);
+            expr.print();
+            nb_nonlin++;
+            C_nonlin.push_back(index);
+            NonLinConstr.insert(to_string(index));
+            for (const auto term: lexpr){
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                expr += coef*converter.get_cont_int_var(var_id);
+            }
+            
+            auto c_lb = con.lb();
+            auto c_ub = con.ub();
+            if(c_lb==c_ub){
+                Constraint<> c("NL_C_eq_"+to_string(index));
+                c += expr;
+                add(c == c_lb);
+            }
+            else {
+                if(c_lb>numeric_limits<double>::lowest()){
+                    Constraint<> c("NL_C_lb_"+to_string(index));
+                    c += expr;
+                    add(c >= c_lb);
+                }
+                if(c_ub<numeric_limits<double>::max()){
+                    Constraint<> c("NL_C_ub_"+to_string(index));
+                    c += expr;
+                    add(c <= c_ub);
+                }
+            }
+        }
+        else{
+            int nb_terms = lexpr.num_terms();
+            constr_sparsity[nb_terms].push_back(index);
+            func<> expr;
+            for (const auto term: lexpr){
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                expr += coef*converter.get_cont_int_var(var_id);
+            }
+            
+            auto c_lb = con.lb();
+            auto c_ub = con.ub();
+            if(c_lb==c_ub){
+                Constraint<> c("Lin_C_eq_"+to_string(index));
+                c += expr;
+                add(c == c_lb);
+            }
+            else {
+                if(c_lb>numeric_limits<double>::lowest()){
+                    Constraint<> c("Lin_C_lb_"+to_string(index));
+                    c += expr;
+                    add(c >= c_lb);
+                }
+                if(c_ub<numeric_limits<double>::max()){
+                    Constraint<> c("Lin_C_ub_"+to_string(index));
+                    c += expr;
+                    add(c <= c_ub);
+                }
+            }
+            LinConstr.insert(to_string(index));
+            C_lin.push_back(index);
+            nb_lin++;
+        }
+        
+        index++;
+    }
+    DebugOn("Number of linear constraints = " << nb_lin << endl);
+    DebugOn("Number of non linear constraints = " << nb_nonlin << endl);
+    DebugOn("Number of sparsity degrees for linear constraints = " << constr_sparsity.size() << endl);
+
+    print();
+    return 0;
+}
+    
+    
+    
+//    template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
+//    
+//    template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
+    
+    template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
+    template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
+    template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
+    
+    
+    //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
+    //    template func<double> constant<double>::get_real() const;
+    //    template class Model<double>;
+    //    template class Model<Cpx>;
+    
+}
+
 template <typename type>
 template<typename T>
 void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
@@ -7208,6 +7367,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     std::get<10>(res)=fail;
     return res;
 }
+
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal, double upper_bound_prev);
 
 
@@ -7221,8 +7381,8 @@ template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<
 template void Model<double>::update_upper_bound(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
 template void Model<double>::model_fix_int(shared_ptr<gravity::Model<double>> relax);
 template shared_ptr<Model<double>> Model<double>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);
-template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
-template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
+//template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
+//template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
@@ -7230,4 +7390,4 @@ template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 //    template class Model<double>;
 //    template class Model<Cpx>;
 
-}
+//}

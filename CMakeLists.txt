@@ -41,7 +41,7 @@ option(Ipopt "Link to IPOPT libraries" ON)
 
 option(MP "Link to AMPL MP libraries" OFF)
 
-option(CoinUtils "Link to CoinUtils libraries" OFF)
+option(CoinUtils "Link to CoinUtils libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -196,6 +196,8 @@ set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 if(NOT WIN32)
 #CoinUtils
 if (CoinUtils)
+include(ExternalProject)
+#CoinUtils
 message(STATUS "Enable CoinUtils")
 add_definitions(-DUSE_CoinUtils)
 find_package(CoinUtils QUIET)
@@ -217,11 +219,13 @@ endif(CoinUtils)
 
 #MP
 if (MP)
+#MP
 message(STATUS "Enable AMPL MP")
 add_definitions(-DUSE_MP)
 find_package(MP QUIET)
 if (MP_FOUND)
  message("-- Found AMPL MP: ${MP_INCLUDE_DIRS}")
+ message("-- Found AMPL MP: ${CoinUtils_INCLUDE_DIRS}")
  include_directories(${MP_INCLUDE_DIRS}/..)
  set(LIBS ${LIBS} ${MP_LIBRARIES})
 else(MP_FOUND)
@@ -258,19 +262,6 @@ endif(HiGHS)
 
 
 if(Ipopt)
-# Add Ipopt include dir and link to libraries
-if(WIN32)
-# include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
-include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
-# add_subdirectory(thirdparty/Ipopt)
-# find_library(IPOPT_LIBRARIES 
-#     ipopt.dll
-# 	HINTS /usr/local/lib
-# 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
-# 	HINTS ${IPOPT_ROOT_DIR}/lib
-# )
-endif(WIN32)
-
 message(STATUS "Enable IPOPT")
 add_definitions(-DUSE_IPOPT)
 find_package(IPOPT QUIET)
@@ -288,6 +279,7 @@ elseif(WIN32)
  set(IPOPT_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt-3.lib)
 endif(APPLE)
 include(ExternalIpopt)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
 endif (IPOPT_FOUND)
 endif(Ipopt)
 

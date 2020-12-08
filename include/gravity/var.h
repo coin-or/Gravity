@@ -267,7 +267,7 @@ namespace gravity {
                 (res._ub->in(*res._indices));
             }
  //           res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
-            res._range = make_shared<pair<type,type>>(res._lb->eval(t1, args...),res._ub->eval(t1, args...));
+//            res._range = make_shared<pair<type,type>>(res._lb->eval(t1, args...),res._ub->eval(t1, args...));
             return res;
         }
         

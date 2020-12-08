@@ -60,6 +60,12 @@ endif()
 
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
+if(ADD_MP)
+ add_dependencies(gravity mp)
+endif()
+if(ADD_CoinUtils)
+ add_dependencies(gravity coinutils)
+endif()
 if(ADD_EIGEN)
  add_dependencies(gravity eigen)
 endif(ADD_EIGEN)
@@ -73,11 +79,11 @@ endif()
 
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} liboption_parser.a nlohmann_json::nlohmann_json)
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY} liboption_parser.a nlohmann_json::nlohmann_json)
 endif()
 
 if(NOT OPT_PARSER)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} nlohmann_json::nlohmann_json)
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY} nlohmann_json::nlohmann_json)
 endif()
 
 if(Matplot)

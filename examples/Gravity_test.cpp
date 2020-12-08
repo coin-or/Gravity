@@ -22,10 +22,17 @@
 using namespace std;
 using namespace gravity;
 
-TEST_CASE("testing MISDP solvers"){
-    var<> x1("x1", -10, 150);
-    
+
+#ifdef USE_MP
+TEST_CASE("testing readNL() function") {
+    Model<> M;
+    string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
+    int status = M.readNL(NL_file);
+    CHECK(status==0);
+    CHECK(M.get_nb_vars()==36);
+    CHECK(M.get_nb_cons()==30);
 }
+#endif
 
 TEST_CASE("testing range update"){
     var<> x1("x1", -10, 150);
