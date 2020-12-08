@@ -363,7 +363,7 @@ void set_activetol_initrefine(double& active_tol, int& nb_init_refine, int nb_re
  @param[in] crbasis- Constraint basis to be copied into cbasis
  @param[in] nb_threads- Parameter for nb_threads
  */
-void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::vector<double>>& cbasis, const std::vector<double>& vrbasis, const std::vector<double>& crbasis, int nb_threads){
+void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::map<std::string,double>>& cbasis, const std::vector<double>& vrbasis, const std::map<std::string,double>& crbasis, int nb_threads){
     if(stype==gurobi){
         for(auto i=0;i<nb_threads;i++){
             vbasis.at(i)=vrbasis;
@@ -374,7 +374,7 @@ void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>
 void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef){
     bool near_zero=true;
     scale=1.0;
-oa_cut=true;
+    oa_cut=true;
     for (auto j = 0; j<c_val.size(); j++) {
         if(c_val[j]!=0 && std::abs(c_val[j])<min_coef){
             if(min_coef/std::abs(c_val[j])>scale){
@@ -392,15 +392,15 @@ oa_cut=true;
     if(near_zero){
         oa_cut=false;
     }
-for (auto j = 0; j<c_val.size(); j++) {
-auto a=c_val[j]*scale;
-if(a>max_coef){
-oa_cut=false;
-break;
-}
-if(std::abs(a)<=1e-13){
-oa_cut=false;
-break;
-}   
-}
+    for (auto j = 0; j<c_val.size(); j++) {
+        auto a=c_val[j]*scale;
+        if(a>max_coef){
+            oa_cut=false;
+            break;
+        }
+        if(std::abs(a)<=1e-12){
+            oa_cut=false;
+            break;
+        }
+    }
 }

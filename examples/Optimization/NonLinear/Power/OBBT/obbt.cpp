@@ -191,7 +191,7 @@ int main (int argc, char * argv[]) {
     bool scale_objective=true;
     bool termination=true;
     bool initialize_resolve=false;
-    //linearize=true;
+    linearize=true;
     int nb_refine=10;
     if(!linearize){
         auto nonlin_obj=true;
