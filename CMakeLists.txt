@@ -18,6 +18,10 @@ option(Gurobi "Link to GUROBI libraries" OFF)
 # Find IPOPT (optional)
 option(Ipopt "Link to IPOPT libraries" ON)
 
+option(MP "Link to AMPL MP libraries" ON)
+
+option(CoinUtils "Link to CoinUtils libraries" ON)
+
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
 
@@ -159,6 +163,7 @@ set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 include(ExternalProject)
 #CoinUtils
+if (CoinUtils)
 message(STATUS "Enable CoinUtils")
 add_definitions(-DUSE_CoinUtils)
 find_package(CoinUtils QUIET)
@@ -176,8 +181,10 @@ else(CoinUtils_FOUND)
   set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.so)
  endif(APPLE)
 endif()
+endif()
 
 #MP
+if (MP)
 message(STATUS "Enable AMPL MP")
 add_definitions(-DUSE_MP)
 find_package(MP QUIET)
@@ -191,9 +198,11 @@ else(MP_FOUND)
  include(ExternalMP)
  set(MP_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/MP/build/lib/libmp.a)
 endif()
+endif()
 
 
 #Ipopt
+if (OPT_PARSER)
 message(STATUS "Enable IPOPT")
 add_definitions(-DUSE_IPOPT)
 find_package(IPOPT QUIET)
@@ -210,6 +219,7 @@ elseif(UNIX)
 endif(APPLE) 
  include(ExternalIpopt)
 endif (IPOPT_FOUND)
+endif()
 # Eigen
 find_package(Eigen QUIET)
 if (EIGEN_FOUND)
