@@ -516,24 +516,24 @@ void GurobiProgram::create_grb_constraints(){
                         if (it1.second._p->_is_vector || it1.second._p->is_matrix_indexed() || it1.second._coef->is_matrix()) {
                             auto dim =it1.second._p->get_dim(i);
                             for (int j = 0; j<dim; j++) {
+                                num_lterms++;
                                 coeff = c->eval(it1.second._coef,i,j);
                                 if(std::abs(coeff)<=min_coef){
                                     zero_coeff=true;
                                 }
                                 else{
-                                    num_lterms++;
                                     gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
                                     lterm += coeff*gvar1;
                                 }
                             }
                         }
                         else {
+                            num_lterms++;
                             coeff = c->eval(it1.second._coef,i);
                             if(std::abs(coeff)<=min_coef){
                                 zero_coeff=true;
                             }
                             else{
-                                num_lterms++;
                                 gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
                                 lterm += coeff*gvar1;
                             }
@@ -545,7 +545,7 @@ void GurobiProgram::create_grb_constraints(){
                     }
                     linlhs += c->eval(c->get_cst(), i);
                     /*skips adding constraint with 2 or less lterms (for eg McCormick secants (which have 2 lterms)), if one of the coefficients is zero*/
-                    if(!zero_coeff||(zero_coeff && (num_lterms>=2))){
+                    if(num_lterms>2 ||(!zero_coeff && (num_lterms<=2))){
                         if(c->_indices)
                             grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else

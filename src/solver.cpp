@@ -277,6 +277,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
         models[s]->reset_lifted_vars_bounds();
         models[s]->reset_constrs();
+        models[s]->reset();
         models[s]->_status=0;
         //models[s]->print();
         DebugOff("to create solver"<<endl);
@@ -856,7 +857,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     set_solution(xsolution);
     lin->set_solution(obbt_solution);
     lin->reindex();
-    lin->reset();
+    //lin->reset();
     lin->reset_constrs();
     nb_oacuts+=nb_added_cuts;
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
@@ -1370,7 +1371,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
             DebugOff("oacuts "<<oacuts<<endl);
             obbt_model->reindex();
-            obbt_model->reset();
+            //obbt_model->reset();
             obbt_model->reset_constrs();
         }
         else{
@@ -1380,7 +1381,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
                 DebugOn("lower bounding failed "<<lin_count<<endl);
             lower_bound=numeric_limits<double>::min();
             obbt_model->reindex();
-            obbt_model->reset();
+            //obbt_model->reset();
             obbt_model->reset_constrs();
             break;
         }
