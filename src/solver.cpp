@@ -298,12 +298,15 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         viol=0;
         count=0;
         if(l>=1){
-            DebugOn("resolving"<<endl);
+            DebugOff("resolving"<<endl);
         }
-        if(l>=1 && stype==ipopt){
+        if(l>=1){
             for (auto s=0;s<objective_models.size();s++){
-                if(batch_solvers[s]->_model->_objt==maximize){
+                if(stype==ipopt && batch_solvers[s]->_model->_objt==maximize){
                     *batch_solvers[s]->_model->_obj *= -1;
+                }
+                if(stype==gurobi){
+                    batch_solvers[s]->_model->_obj->_new= false;
                 }
             }
         }
@@ -830,17 +833,6 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                         else{
                             con->get_outer_coef(i, c_val, c0_val);
                             get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
-                            /*if(big){
-                             DebugOn("con name "<<con->_name<<endl);
-                             for(auto u=0;u<c_val.size();u++)
-                             DebugOn(c_val[u]<<"\t");
-                             DebugOn(endl);
-                             DebugOn("scale "<<scale);
-                             auto con_lin=lin->get_constraint("OA_cuts_"+con->_name);
-                             auto nb_inst = con_lin->get_nb_instances();
-                             DebugOn("nb inst "<<nb_inst<<endl);
-                             
-                             }*/
                         }
                     }
                 }
@@ -857,7 +849,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     set_solution(xsolution);
     lin->set_solution(obbt_solution);
     lin->reindex();
-    //lin->reset();
+    lin->reset();
     lin->reset_constrs();
     nb_oacuts+=nb_added_cuts;
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
@@ -1371,7 +1363,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
             DebugOff("oacuts "<<oacuts<<endl);
             obbt_model->reindex();
-            //obbt_model->reset();
+            obbt_model->reset();
             obbt_model->reset_constrs();
         }
         else{
@@ -1381,7 +1373,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
                 DebugOn("lower bounding failed "<<lin_count<<endl);
             lower_bound=numeric_limits<double>::min();
             obbt_model->reindex();
-            //obbt_model->reset();
+            obbt_model->reset();
             obbt_model->reset_constrs();
             break;
         }
@@ -1537,9 +1529,11 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                     auto vkmod=mod->template get_var<T>(vkname);
                     if(update_lb){
                         vkmod.set_lb(keyk, vk.get_lb(keyk));
+                        DebugOff(vk.get_lb(keyk)<<endl);
                     }
                     if(update_ub){
                         vkmod.set_ub(keyk, vk.get_ub(keyk));
+                        DebugOff(vk.get_ub(keyk)<<endl);
                     }
                 }
             }

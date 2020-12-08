@@ -476,9 +476,6 @@ void GurobiProgram::create_grb_constraints(){
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
     double coeff;
-    double min_coef=1e-12;
-    bool zero_coeff;
-    int num_lterms;
     for(auto& p: _model->_cons){
         auto c = p.second;
         if (!c->_new && c->_all_satisfied) {
@@ -507,36 +504,22 @@ void GurobiProgram::create_grb_constraints(){
         inst = 0;
         if (c->is_linear()) {
             for (size_t i = 0; i< nb_inst; i++){
-                zero_coeff=false;
                 if (c->_violated[i]) {
                     linlhs = 0;
-                    num_lterms=0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
                         if (it1.second._p->_is_vector || it1.second._p->is_matrix_indexed() || it1.second._coef->is_matrix()) {
                             auto dim =it1.second._p->get_dim(i);
                             for (int j = 0; j<dim; j++) {
-                                num_lterms++;
                                 coeff = c->eval(it1.second._coef,i,j);
-                                if(std::abs(coeff)<=min_coef){
-                                    zero_coeff=true;
-                                }
-                                else{
                                     gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i,j)];
                                     lterm += coeff*gvar1;
-                                }
                             }
                         }
                         else {
-                            num_lterms++;
                             coeff = c->eval(it1.second._coef,i);
-                            if(std::abs(coeff)<=min_coef){
-                                zero_coeff=true;
-                            }
-                            else{
                                 gvar1 = _grb_vars[it1.second._p->get_id() + it1.second._p->get_id_inst(i)];
                                 lterm += coeff*gvar1;
-                            }
                         }
                         if (!it1.second._sign) {
                             lterm *= -1;
@@ -544,14 +527,11 @@ void GurobiProgram::create_grb_constraints(){
                         linlhs += lterm;
                     }
                     linlhs += c->eval(c->get_cst(), i);
-                    /*skips adding constraint with 2 or less lterms (for eg McCormick secants (which have 2 lterms)), if one of the coefficients is zero*/
-                    if(num_lterms>2 ||(!zero_coeff && (num_lterms<=2))){
                         if(c->_indices)
                             grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else
                             grb_mod->addConstr(linlhs,sense,0,c->get_name());
                             //DebugOn("added constraint"<<endl);
-                    }
                 }
             }
         }

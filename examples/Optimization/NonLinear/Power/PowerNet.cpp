@@ -1566,14 +1566,8 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     //    var<> RIij("RIij", Iij_min,Iij_max);
     //    var<> IIij("IIij", Iij_min,Iij_max);
     
-    if(current){
-        SDPOPF->add(lij.in(arcs));
-        SDPOPF->add(lji.in(arcs));
-        //        SDPOPF->add(RIij.in(arcs));
-        //        SDPOPF->add(IIij.in(arcs));
-    }
+  
     
-    SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
     
     
     /* Real part of Wij = ViVj */
@@ -1582,10 +1576,17 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
     var<>  Im_Wij("Im_Wij", wi_min, wi_max);
     /* Magnitude of Wii = Vi^2 */
     var<>  Wii("Wii", w_min, w_max);
-    SDPOPF->add(Wii.in(nodes));
     SDPOPF->add(R_Wij.in(node_pairs_chord));
     SDPOPF->add(Im_Wij.in(node_pairs_chord));
-    
+    SDPOPF->add(Wii.in(nodes));
+    SDPOPF->add(Pf_from.in(arcs), Qf_from.in(arcs),Pf_to.in(arcs),Qf_to.in(arcs));
+    if(current){
+          SDPOPF->add(lij.in(arcs));
+          SDPOPF->add(lji.in(arcs));
+          //        SDPOPF->add(RIij.in(arcs));
+          //        SDPOPF->add(IIij.in(arcs));
+      }
+      
     
     var<>  R_Vi("R_Vi", -1*v_max, v_max);
     var<>  Im_Vi("Im_Vi", -1*v_max, v_max);
