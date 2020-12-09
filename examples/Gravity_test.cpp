@@ -26,9 +26,11 @@ TEST_CASE("testing readNL() function") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
     int status = M.readNL(NL_file);
+    M.print();
     CHECK(status==0);
     CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_cons()==30);
+    CHECK(M.is_convex());
 }
 
 

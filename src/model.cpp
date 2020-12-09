@@ -6607,12 +6607,40 @@ int Model<type>::readNL(const string& fname){
     MPConverter converter(*this);
     map<int,vector<int>> constr_sparsity;
     vector<int> C_lin, C_nonlin, C_quad;
+    
+    int num_objs = p.num_objs();
+    if(num_objs>=1){
+        if(num_objs>=2){
+            DebugOn("Gravity currently supports only one objective, will only add the first one");
+        }
+        mp::Problem::Objective obj = p.obj(0);
+        mp::obj::Type main_obj_type = p.obj(0).type();
+        func<> objective;
+        auto lexpr = obj.linear_expr();
+        for (const auto term: lexpr){
+            auto coef = term.coef();
+            auto var_id = term.var_index();
+            objective += coef*converter.get_cont_int_var(var_id);
+        }
+        auto nl_expr = obj.nonlinear_expr();
+        if (nl_expr){
+            auto expr = converter.Visit(nl_expr);
+            objective += expr;
+        }
+        auto sense = main_obj_type == mp::obj::MIN;
+        if(sense){
+            min(objective);
+        }
+        else {
+            max(objective);
+        }
+    }
+    
     for (const auto con: p.algebraic_cons()) {
         auto lexpr = con.linear_expr();
         auto nl_expr = con.nonlinear_expr();
         if (nl_expr){
             auto expr = converter.Visit(nl_expr);
-            expr.print();
             nb_nonlin++;
             C_nonlin.push_back(index);
             NonLinConstr.insert(to_string(index));
@@ -6682,7 +6710,7 @@ int Model<type>::readNL(const string& fname){
     DebugOn("Number of non linear constraints = " << nb_nonlin << endl);
     DebugOn("Number of sparsity degrees for linear constraints = " << constr_sparsity.size() << endl);
 
-    print();
+    
     return 0;
 }
     
