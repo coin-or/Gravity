@@ -219,7 +219,8 @@ void GurobiProgram::initialize_pstart(const std::vector<double>& pstart, const s
     grb_mod->update();
     int nv=grb_mod->get(GRB_IntAttr_NumVars);
     int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
-    int count=0;
+    if(pstart.size()==nv){
+            int count=0;
     for(auto &gv:_grb_vars){
         gv.set(GRB_DoubleAttr_PStart, pstart[count++]);
     }
@@ -240,6 +241,7 @@ void GurobiProgram::initialize_pstart(const std::vector<double>& pstart, const s
 
 delete[] gcons;
     gcons=nullptr;
+    }
     //DebugOn(grb_mod->get(GRB_IntAttr_NumConstrs));
 }
 

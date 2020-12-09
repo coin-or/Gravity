@@ -241,7 +241,7 @@ Model<type> Model<type>::build_model_interior() const
 }
 
 /* Runs models stored in the vector models in parallel, using the solver object solvers. Objective of models to run is given in objective_models. Solution status and objective of each model is added to sol_status, and sol_obj. Liner constraints are added to each model calling add_iterative.  relaxed_model, interior, cut_type,  nb_oacuts, active_tol are args to add_iterative*/
-int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool init_resolve){
+int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool initialize_primal){
     std::vector<thread> threads;
     bool init_pstart=true;
     std::vector<double> solution(models[0]->_nb_vars);
@@ -282,8 +282,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         //models[s]->print();
         DebugOff("to create solver"<<endl);
         auto solverk = make_shared<solver<double>>(models[s], stype);
-        if(stype==gurobi){
-            solverk->initialize_basis(vbasis.at(s), cbasis.at(s), init_pstart);
+        if(stype==gurobi && initialize_primal){
+            solverk->initialize_basis(vbasis.at(s), cbasis.at(s));
         }
         batch_solvers.push_back(solverk);
         
@@ -298,9 +298,6 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         viol=0;
         count=0;
         if(l>=1){
-            DebugOff("resolving"<<endl);
-        }
-        if(l>=1){
             for (auto s=0;s<objective_models.size();s++){
                 if(stype==ipopt && batch_solvers[s]->_model->_objt==maximize){
                     *batch_solvers[s]->_model->_obj *= -1;
@@ -313,6 +310,8 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         //auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
         for (size_t i = 0; i < nr_threads_; ++i) {
             if(viol_i.at(i)==1 && models[i]->_status==0){
+                if(l>=1)
+                DebugOff("resolving"<<endl);
                 threads.push_back(thread(run_models_solver<double>, ref(models), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
             }
         }
@@ -351,7 +350,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     count=0;
-    if(stype==gurobi){
+    if(stype==gurobi && initialize_primal){
         for(auto&s: batch_solvers){
             if(sol_status.at(count)==0){
                     s->get_pstart(vbasis.at(count), cbasis.at(count));
@@ -671,9 +670,6 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
         if(!con->is_linear()){
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
             {
-                if(!con->is_convex() && !con->is_rotated_soc() && !con->check_soc()){
-                    scale=100;
-                }
                 Constraint<> OA_sol("OA_cuts_"+con->_name);
                 indices activeset("active_"+con->_name);
                 auto keys=con->_indices->_keys;
@@ -687,7 +683,8 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         }
                     }
                 }
-                OA_sol=con->get_outer_app(activeset, scale);
+              //  OA_sol=con->get_outer_app(activeset, scale);
+                OA_sol=con->get_outer_app(activeset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(activeset)<=0);
                 }
@@ -712,7 +709,8 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         allset.add(keyi);
                     }
                 }
-                OA_sol=con->get_outer_app(allset, scale);
+               // OA_sol=con->get_outer_app(allset, scale);
+                OA_sol=con->get_outer_app(allset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
                 }
@@ -729,7 +727,8 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                     string keyi=(*keys)[i];
                     allset.add(keyi);
                 }
-                OA_sol=con->get_outer_app(allset, scale);
+                //OA_sol=con->get_outer_app(allset, scale);
+                OA_sol=con->get_outer_app(allset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
                 }
@@ -820,7 +819,8 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                             indices activeset("active_"+con->_name);
                             activeset.add((*con->_indices->_keys)[i]);
                             Constraint<> OA_cut(con_lin_name);
-                            OA_cut=con->get_outer_app(activeset, scale);
+                            //OA_cut=con->get_outer_app(activeset, scale);
+                             OA_cut=con->get_outer_app(activeset, scale, true, 1e-3);
                             if(con->_ctype==leq){
                                 lin->add(OA_cut.in(activeset)<=0);
                             }
@@ -1333,11 +1333,11 @@ void Model<>::add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacu
  **/
 template<typename type>
 template<typename T>
-bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init){
+bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts,  const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal){
     int constr_viol=1, lin_count=0, output;
     solver<> LB_solver(obbt_model, lb_solver_type);
-    if(init && lb_solver_type==gurobi){
-        LB_solver.initialize_basis(vrbasis, crbasis, true);
+    if(initialize_primal && lb_solver_type==gurobi){
+        LB_solver.initialize_basis(vrbasis, crbasis);
     }
     bool close=false;
 #ifdef USE_MPI
@@ -1379,7 +1379,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         }
         lin_count++;
     }
-    if(lb_solver_type==gurobi && obbt_model->_status==0){
+    if(initialize_primal && lb_solver_type==gurobi && obbt_model->_status==0){
         LB_solver.get_pstart(vrbasis,crbasis);
     }
     return(close);
@@ -1409,7 +1409,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
-    double objk, boundk1, temp, tempa, mid, left, right;
+    double objk, boundk1, temp, tempa, mid, left, right, interval;
     var<> vk;
     for (auto s=0;s<objective_models.size();s++)
     {
@@ -1429,29 +1429,37 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             objk=sol_obj.at(s);
             auto update_lb=false;
             auto update_ub=false;
-            if(dirk=="LB")
-            {
-                boundk1=vk.get_lb(keyk);
-                //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                objk=std::max(objk-range_tol, boundk1);
+          
+            // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
+            if(dirk=="LB"){
+                interval=vk.get_ub(keyk)-objk;
             }
-            else
-            {
-                boundk1=vk.get_ub(keyk);
-                //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                objk=std::min(objk+range_tol, boundk1);
+            else{
+                interval=objk-vk.get_lb(keyk);
             }
+                if(std::abs(interval)<=range_tol)
+                {
+                    fixed_point[var_key_k+"|LB"]=true;
+                    fixed_point[var_key_k+"|UB"]=true;
+                }
+           
+            // if new bound converges to previous bound, fixed point is reached and no need to update bounds
             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
-            {
-                fixed_point[msname]=true;
-            }
-            else
-            {
+                     {
+                         fixed_point[msname]=true;
+                     }
+            else{/*Update bounds*/
                 if(dirk=="LB"){
+                    boundk1=vk.get_lb(keyk);
+                    //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
+                    objk=std::max(objk-range_tol, boundk1);
                     vk.set_lb(keyk, objk);
                     update_lb=true;
                 }
                 else{
+                    boundk1=vk.get_ub(keyk);
+                    //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
+                    objk=std::min(objk+range_tol, boundk1);
                     vk.set_ub(keyk, objk);
                     update_ub=true;
                 }
@@ -1467,18 +1475,14 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                     update_lb=true;
                     update_ub=true;
                 }
-                // if interval is less than range_tol, fixed point is reached
-                else if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<=range_tol)
-                {
-                    fixed_point[var_key_k+"|LB"]=true;
-                    fixed_point[var_key_k+"|UB"]=true;
-                }
                 /*If fixed point not reached for any variable, terminate is false*/
-                else if(!vk._lift){
-                    fixed_point[msname]=false;
-                    terminate=false;
+                if(!fixed_point[msname]){
+                    if(!vk._lift){
+                        terminate=false;
+                    }
                 }
             }
+
             //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
             if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
             {
@@ -1831,7 +1835,7 @@ int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model
  @return returns true
  */
 
-int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis){
+int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool initialize_primal){
     
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -1864,7 +1868,7 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
             }
             sol_status_worker.resize(limits[worker_id+1]-limits[worker_id],0);
             sol_obj_worker.resize(limits[worker_id+1]-limits[worker_id],0);
-            run_parallel_new(objective_models_worker, sol_obj_worker, sol_status_worker, models, relaxed_model, interior, cut_type, active_tol, stype, tol, nr_threads, lin_solver, max_iter, max_batch_time, linearize, nb_refine, vbasis, cbasis, false);
+            run_parallel_new(objective_models_worker, sol_obj_worker, sol_status_worker, models, relaxed_model, interior, cut_type, active_tol, stype, tol, nr_threads, lin_solver, max_iter, max_batch_time, linearize, nb_refine, vbasis, cbasis, initialize_primal);
         }
         MPI_Barrier(MPI_COMM_WORLD);
         send_status_new(models,limits, sol_status);
