@@ -146,10 +146,10 @@ int main (int argc, char * argv[]) {
           nb_root_refine_s=argv[8];
       }
     if(argc>9){
-          viol_root_init_s=argv[9];
+          viol_obbt_init_s=argv[9];
       }
     if(argc>10){
-          viol_obbt_init_s=argv[10];
+          viol_root_init_s=argv[10];
       }
     if(argc>11){
           init_prim_s=argv[11];
@@ -220,7 +220,7 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective=true;
     bool termination=true;
-    linearize=true;
+    //linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
