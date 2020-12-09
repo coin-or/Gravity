@@ -36,6 +36,11 @@ int main (int argc, char * argv[]) {
     string time_s = "1000";
     string sdp_kim_s="yes";
     string threads_s="1";
+    string nb_refine_s="10";
+    string nb_root_refine_s="10";
+    string init_prim_s="no";
+    string viol_obbt_init_s="0.1";
+    string viol_root_init_s="0.1";
     
     string lazy_s = "no", linearize_s = "no";
     string orig_s = "no";
@@ -46,7 +51,7 @@ int main (int argc, char * argv[]) {
     const double tol = 1e-6;
     string mehrotra = "no";
     bool linearize=false;
-    
+    bool initialize_primal=false;
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     
     
@@ -123,20 +128,40 @@ int main (int argc, char * argv[]) {
         time_s=argv[2];
     }
     if(argc>3){
-        sdp_kim_s=argv[3];
+        threads_s=argv[3];
     }
     if(argc>4){
-        linearize_s=argv[4];
+        sdp_kim_s=argv[4];
     }
     if(argc>5){
-        solver_str=argv[5];
+        linearize_s=argv[5];
     }
     if(argc>6){
-        threads_s=argv[6];
+        solver_str=argv[6];
     }
+    if(argc>7){
+          nb_refine_s=argv[7];
+      }
+    if(argc>8){
+          nb_root_refine_s=argv[8];
+      }
+    if(argc>9){
+          viol_root_init_s=argv[9];
+      }
+    if(argc>10){
+          viol_obbt_init_s=argv[10];
+      }
+    if(argc>11){
+          init_prim_s=argv[11];
+      }
+    
+   
     if (linearize_s.compare("yes")==0) {
         linearize = true;
     }
+    if (init_prim_s.compare("yes")==0) {
+           initialize_primal = true;
+       }
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
@@ -158,6 +183,11 @@ int main (int argc, char * argv[]) {
     
     current=true;
     auto nb_threads=std::atoi(threads_s.c_str());
+    auto nb_refine=std::atoi(nb_refine_s.c_str());
+    auto nb_root_refine=std::atoi(nb_root_refine_s.c_str());
+    auto viol_obbt_init=std::stod(viol_obbt_init_s.c_str());
+    auto viol_root_init=std::stod(viol_root_init_s.c_str());
+    
     PowerNet grid;
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
@@ -190,14 +220,12 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective=true;
     bool termination=true;
-    bool initialize_primal=false;
     linearize=true;
-    int nb_refine=10;
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
@@ -218,7 +246,7 @@ int main (int argc, char * argv[]) {
         current=true;
         auto nonlin_obj=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
 #ifdef USE_MPI
