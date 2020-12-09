@@ -220,7 +220,7 @@ int main (int argc, char * argv[]) {
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective=true;
     bool termination=true;
-    //linearize=true;
+    linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
