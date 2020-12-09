@@ -241,7 +241,7 @@ namespace gravity {
             if(!indexed & !res._ub->is_number()){
                 (res._ub->in(*res._indices));
             }
-            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
+//            res._range = make_shared<pair<type,type>>(res._lb->_range->first,res._ub->_range->second);
             return res;
         }
         

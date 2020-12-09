@@ -6546,6 +6546,145 @@ namespace gravity {
         return res;
     }
     
+template <typename type>
+template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
+int Model<type>::readNL(const string& fname){    
+    mp::Problem p;
+    mp::ReadNLFile(fname, p);
+    auto nb_vars = p.num_vars();
+    auto nb_cstr = p.num_algebraic_cons();
+    DebugOn("The number of variables is " << nb_vars << endl);
+    DebugOn("The number of constraints is " << nb_cstr << endl);
+    indices C("C"), I("I"), LinConstr("LinConstr"), QuadConstr("QuadConstr"), NonLinConstr("NonLinConstr");
+    int nb_cont = 0;
+    int nb_int = 0;
+    int nb_other = 0;
+    vector<int> C_ids,I_ids;
+    for (const auto v: p.vars()) {
+        if(v.type()==mp::var::CONTINUOUS){
+            nb_cont++;
+            C.insert(to_string(v.index()));
+            C_ids.push_back(v.index());
+        }
+        else if(v.type()==mp::var::INTEGER){
+            I.insert(to_string(v.index()));
+            I_ids.push_back(v.index());
+            nb_int++;
+        }
+        else{
+            throw invalid_argument("Unrecognised variable type, can only be continuous or integer");
+        }
+    }
+    DebugOn("Number of continuous variables = " << nb_cont << endl);
+    DebugOn("Number of integer variables = " << nb_int << endl);
+    
+    param<> x_ub("x_ub"), x_lb("x_lb");
+    param<int> y_ub("y_ub"), y_lb("y_lb");
+    x_ub.in(C);x_lb.in(C);
+    y_ub.in(I);y_lb.in(I);
+    for (int i = 0; i<C.size(); i++) {
+        x_lb.set_val(i, p.var(C_ids[i]).lb());
+        x_ub.set_val(i, p.var(C_ids[i]).ub());
+    }
+    for (int i = 0; i<I.size(); i++) {
+        y_lb.set_val(i, p.var(I_ids[i]).lb());
+        y_ub.set_val(i, p.var(I_ids[i]).ub());
+    }
+    var<> x("x", x_lb, x_ub);
+    var<int> y("y", y_lb, y_ub);
+
+    param<> rhs("rhs");
+    int nb_lin = 0;
+    int nb_nonlin = 0;
+    int index = 0;
+    _name = fname;
+
+    add(x.in(C));
+    add(y.in(I));
+
+    replace_integers();
+
+    MPConverter converter(*this);
+    map<int,vector<int>> constr_sparsity;
+    vector<int> C_lin, C_nonlin, C_quad;
+    for (const auto con: p.algebraic_cons()) {
+        auto lexpr = con.linear_expr();
+        auto nl_expr = con.nonlinear_expr();
+        if (nl_expr){
+            auto expr = converter.Visit(nl_expr);
+            expr.print();
+            nb_nonlin++;
+            C_nonlin.push_back(index);
+            NonLinConstr.insert(to_string(index));
+            for (const auto term: lexpr){
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                expr += coef*converter.get_cont_int_var(var_id);
+            }
+            
+            auto c_lb = con.lb();
+            auto c_ub = con.ub();
+            if(c_lb==c_ub){
+                Constraint<> c("NL_C_eq_"+to_string(index));
+                c += expr;
+                add(c == c_lb);
+            }
+            else {
+                if(c_lb>numeric_limits<double>::lowest()){
+                    Constraint<> c("NL_C_lb_"+to_string(index));
+                    c += expr;
+                    add(c >= c_lb);
+                }
+                if(c_ub<numeric_limits<double>::max()){
+                    Constraint<> c("NL_C_ub_"+to_string(index));
+                    c += expr;
+                    add(c <= c_ub);
+                }
+            }
+        }
+        else{
+            int nb_terms = lexpr.num_terms();
+            constr_sparsity[nb_terms].push_back(index);
+            func<> expr;
+            for (const auto term: lexpr){
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                expr += coef*converter.get_cont_int_var(var_id);
+            }
+            
+            auto c_lb = con.lb();
+            auto c_ub = con.ub();
+            if(c_lb==c_ub){
+                Constraint<> c("Lin_C_eq_"+to_string(index));
+                c += expr;
+                add(c == c_lb);
+            }
+            else {
+                if(c_lb>numeric_limits<double>::lowest()){
+                    Constraint<> c("Lin_C_lb_"+to_string(index));
+                    c += expr;
+                    add(c >= c_lb);
+                }
+                if(c_ub<numeric_limits<double>::max()){
+                    Constraint<> c("Lin_C_ub_"+to_string(index));
+                    c += expr;
+                    add(c <= c_ub);
+                }
+            }
+            LinConstr.insert(to_string(index));
+            C_lin.push_back(index);
+            nb_lin++;
+        }
+        
+        index++;
+    }
+    DebugOn("Number of linear constraints = " << nb_lin << endl);
+    DebugOn("Number of non linear constraints = " << nb_nonlin << endl);
+    DebugOn("Number of sparsity degrees for linear constraints = " << constr_sparsity.size() << endl);
+
+    print();
+    return 0;
+}
     
     
     
@@ -6555,7 +6694,7 @@ namespace gravity {
     
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
-    
+    template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
     
     
     //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);

@@ -93,7 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
-            _in=make_shared<bool>(*p._in);
+            _in=p._in;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
