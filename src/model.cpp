@@ -6355,8 +6355,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     gaplin=(upper_bound-lower_bound_init)/std::abs(upper_bound)*100;
                     lower_bound_old=lower_bound_init;
                 }
-                obbt_model->print();
-                exit(0);
                 if(obbt_model->_status==0){
                     /*Initialize fixed point, interval original and new, bounds original*/
                     obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
