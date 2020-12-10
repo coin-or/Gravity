@@ -1848,7 +1848,8 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
             limits=bounds(nb_workers_, objective_models.size());
         }
         else{
-            limits=bounds_reassign(nb_workers_, objective_models, old_map);
+            limits=bounds(nb_workers_, objective_models.size());
+            //limits=bounds_reassign(nb_workers_, objective_models, old_map);
         }
         if(nb_workers_!=limits.size()-1){
             DebugOn("Error4 in computing limits");
