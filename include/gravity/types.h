@@ -1420,7 +1420,15 @@ public:
     
     
     
-    
+    /** Adds a reference in _ids
+     */
+    void add_ref(int key_id){
+        if(!_ids){
+            _ids = make_shared<vector<vector<size_t>>>();
+            _ids->resize(1);
+        }
+        _ids->at(0).push_back(key_id);
+    }
     
     
     /** Adds a reference to the key specified as argument, i.e., adds the corresponding index in _ids

@@ -31,6 +31,8 @@ TEST_CASE("testing readNL() function") {
     CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_cons()==30);
     CHECK(M.is_convex());
+    M.restructure();
+    DebugOn("Done Restructuring!");
 }
 
 

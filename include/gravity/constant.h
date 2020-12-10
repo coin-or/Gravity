@@ -319,6 +319,8 @@ namespace gravity {
             return Cpx(0,0);
         }
         
+        
+        bool is_constant() const{ return true;};
         /** Constructors */
         void update_type(){
             if(typeid(type)==typeid(bool)){

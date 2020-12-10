@@ -238,6 +238,21 @@ namespace gravity {
             return n;
         };
         
+        size_t get_nb_int_vars() const{
+            size_t n = 0;
+            for (auto &vp:*_vars) {
+                if(vp.second.first->_is_relaxed){
+                    if(vp.second.first->_is_vector){
+                        n += vp.second.first->get_dim();
+                    }
+                    else {
+                        n += 1;
+                    }
+                }
+            }
+            return n;
+        };
+        
         size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){

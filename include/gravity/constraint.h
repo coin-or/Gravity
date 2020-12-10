@@ -42,6 +42,14 @@ public:
         return (_ctype==eq);
     }
     
+    bool is_leq() const{
+        return (_ctype==leq);
+    }
+    
+    bool is_geq() const{
+        return (_ctype==geq);
+    }
+    
     
     
 };
@@ -423,6 +431,197 @@ public:
     
     bool is_active(size_t inst = 0, double tol = 1e-6) const{
         return fabs(this->_val->at(inst)) < tol;
+    }
+    
+    int get_lterm_cont_var_id(int i) const{
+        int idx = 0;
+        int nb_terms = this->get_nb_vars();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to eval_lterm_coef(), out of bounds index");
+        }
+        auto iter =this->_lterms->begin();
+        for (int j = 0; j<nb_terms; j++) {
+            if(!iter->second._p->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->get_id_inst();
+                idx++;
+            }
+            iter++;
+        }
+        
+    }
+    
+    
+    int get_lterm_int_var_id(int i) const{
+        int idx = 0;
+        int nb_terms = this->get_nb_vars();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to eval_lterm_coef(), out of bounds index");
+        }
+        auto iter =this->_lterms->begin();
+        for (int j = 0; j<nb_terms; j++) {
+            if(iter->second._p->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->get_id_inst();
+                idx++;
+            }
+            iter++;
+        }
+        
+    }
+    
+    type eval_lterm_cont_coef(int i) const{
+        int nb_terms = this->get_nb_vars();
+        int idx = 0;
+        auto iter =this->_lterms->begin();
+        for (int j = 0; j<nb_terms; j++) {
+            if(!iter->second._p->_is_relaxed){
+                if(idx==i){
+                    if(iter->second._coef->is_constant()) {
+                        auto p_cst = ((constant<>*)(iter->second._coef.get()));
+                        if (!iter->second._sign) {
+                            return -1*p_cst->eval();
+                        }
+                        else {
+                            return p_cst->eval();
+                        }
+                    }
+                    if(iter->second._coef->is_param()) {
+                        auto p_cst = ((param<>*)(iter->second._coef.get()));
+                        if (!iter->second._sign) {
+                            return -1*p_cst->eval(0);
+                        }
+                        else {
+                            return p_cst->eval(0);
+                        }
+                    }
+                    else {
+                        auto f = static_pointer_cast<func<>>(iter->second._coef);
+                        if(!f->func_is_param()){
+                            throw invalid_argument("function should be a param");
+                        }
+                        auto p_cst = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                        if (!iter->second._sign) {
+                            return -1*p_cst->eval(0);
+                        }
+                        else {
+                            return p_cst->eval(0);
+                        }
+                    }
+                }
+                idx++;
+            }
+            iter++;
+        }
+    }
+    
+    type eval_lterm_int_coef(int i) const{
+        int nb_terms = this->get_nb_vars();
+        int idx = 0;
+        auto iter =this->_lterms->begin();
+        for (int j = 0; j<nb_terms; j++) {
+            if(iter->second._p->_is_relaxed){
+                if(idx==i){
+                    if(iter->second._coef->is_param()) {
+                        auto p_cst = ((param<>*)(iter->second._coef.get()));
+                        if (!iter->second._sign) {
+                            return -1*p_cst->eval(0);
+                        }
+                        else {
+                            return p_cst->eval(0);
+                        }
+                    }
+                    else {
+                        auto f = static_pointer_cast<func<>>(iter->second._coef);
+                        if(!f->func_is_param()){
+                            throw invalid_argument("function should be a param");
+                        }
+                        auto p_cst = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                        if (!iter->second._sign) {
+                            return -1*p_cst->eval(0);
+                        }
+                        else {
+                            return p_cst->eval(0);
+                        }
+                    }
+                }
+                idx++;
+            }
+            iter++;
+        }
+    }
+        
+    
+    /*Adds row(or new instance) of a linear constraint
+     @param[in] con: linear constraint to add in current symbolic constraint
+     */
+    template<typename T=type>
+    void add_linear_row(const shared_ptr<Constraint<type>>& con){
+        if(!(this->is_linear() || this->is_constant())){
+            throw invalid_argument("calling add_linear_row on a nonlinear constraint!");
+        }
+        int nb_inst = this->get_nb_instances()+1;
+        this->_indices->add("inst_"+to_string(nb_inst));
+        this->_dim[0] = this->_indices->_keys->size();
+        this->_violated.push_back(true);
+        DebugOff("nb inst "<<nb_inst);
+        int nb_terms = con->get_nb_vars();
+        int nb_int_vars = con->get_nb_int_vars();
+        int nb_cont_vars = nb_terms - nb_int_vars;
+        if(nb_terms!=this->get_nb_vars() || nb_int_vars!=this->get_nb_int_vars()){
+            throw invalid_argument("adding row with different sparsity structure");
+        }
+        auto iter =this->_lterms->begin();
+        for(int i = 0;i < nb_cont_vars; i++){/* terms with continuous variables */
+            auto l = iter++;
+            if(l->second._coef->is_param()) {
+                auto p_cst = ((param<>*)(l->second._coef.get()));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                DebugOff("added p"<<endl);
+            }
+            else {
+                auto f = static_pointer_cast<func<>>(l->second._coef);
+                if(!f->func_is_param()){
+                    throw invalid_argument("function should be a param");
+                }
+                auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                l->second._coef = p;
+            }
+            l->second._p->_indices->add_ref(con->get_lterm_cont_var_id(i));
+        }
+        for(int i = 0;i < nb_int_vars; i++){/* terms with integer variables */
+            auto l =  iter++;
+            if(l->second._coef->is_param()) {
+                auto p_cst = ((param<>*)(l->second._coef.get()));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                DebugOff("added p"<<endl);
+            }
+            else {
+                auto f = static_pointer_cast<func<>>(l->second._coef);
+                if(!f->func_is_param()){
+                    throw invalid_argument("function should be a param");
+                }
+                auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                l->second._coef = p;
+            }
+            l->second._p->_indices->add_ref(con->get_lterm_int_var_id(i));
+        }
+        //Set value of the constant
+        if(this->_cst->is_param()){
+            auto co_cst = ((param<>*)(this->_cst.get()));
+            co_cst->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+        }
+        else if(this->_cst->is_function()){
+            auto rhs_f = static_pointer_cast<func<>>(this->_cst);
+            if(!rhs_f->func_is_param()){
+                throw invalid_argument("function should be a param");
+            }
+            auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
+            rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+            this->_cst = rhs_p;
+        }
     }
 };
 }

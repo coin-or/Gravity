@@ -1902,6 +1902,173 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return relax;
         }
         
+
+        
+        
+        template<typename T=type,
+        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+        void restructure() {/*<  group equations/inequalities that share the sparsity patterns */
+            vector<string> delete_cstr;
+            list<shared_ptr<Constraint<type>>> eq_list; /* list of equations */
+            list<shared_ptr<Constraint<type>>> leq_list; /* list of <= inequalities */
+            list<shared_ptr<Constraint<type>>> geq_list; /* list of >= inequalities */
+            map<pair<int,int>,vector<shared_ptr<Constraint<type>>>> eq_sparsity, leq_sparsity, geq_sparsity;
+            int nb_terms = 0, nb_int_vars = 0, nb_cont_vars = 0;
+            /* start with linear constraints */
+            for (auto& c_pair:_cons) {
+                if(c_pair.second->is_linear()){
+                    nb_terms = c_pair.second->get_nb_vars();
+                    nb_int_vars = c_pair.second->get_nb_int_vars();
+                    nb_cont_vars = nb_terms - nb_int_vars;
+                    if (c_pair.second->is_eq()) {
+                        eq_list.push_back(c_pair.second);
+                        eq_sparsity[{nb_cont_vars,nb_int_vars}].push_back(c_pair.second);
+                    }
+                    else if (c_pair.second->is_leq()) {
+                        leq_list.push_back(c_pair.second);
+                        leq_sparsity[{nb_cont_vars,nb_int_vars}].push_back(c_pair.second);
+                    }
+                    else {
+                        geq_list.push_back(c_pair.second);
+                        geq_sparsity[{nb_cont_vars,nb_int_vars}].push_back(c_pair.second);
+                    }
+                }
+            }
+            int index = 0;
+            var<> x = get_var<double>("x");
+            var<> y = get_var<double>("y");
+            for( const auto & iter: eq_sparsity){
+                auto con_vec = iter.second;
+                if(con_vec.size()>1){
+                    auto con0 = con_vec[0];
+                    Constraint<> eq("lin_eq_"+to_string(index));
+                    param<> c0("c0_eq_"+to_string(index));
+                    c0 = con0->eval_cst(0);
+                    nb_cont_vars = iter.first.first;
+                    nb_int_vars = iter.first.second;
+                    vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                    vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                    vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                    vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                    indices eq_ids("lin_eq_"+to_string(index));
+                    eq_ids.insert("inst_1");
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        x_ids[i].set_name("lin_eq_x_ids"+to_string(index)+"_"+to_string(i));
+                        x_ids[i] = *x._indices;
+                        x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                        x_coefs[i] = param<>("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
+                        x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                        eq += x_coefs[i].in(eq_ids)*x.in(x_ids[i]);
+                    }
+                    for(int i = 0; i<nb_int_vars;i++){
+                        y_ids[i].set_name("lin_eq_y_ids"+to_string(index)+"_"+to_string(i));
+                        y_ids[i] = *y._indices;
+                        y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                        y_coefs[i] = param<>("coef_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
+                        y_coefs[i] = con0->eval_lterm_int_coef(i);
+                        eq += y_coefs[i].in(eq_ids)*y.in(y_ids[i]);
+                    }
+                    eq += c0.in(eq_ids);
+                    eq.in(eq_ids);
+                    for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
+                        auto con = con_vec[i];                        
+                        eq.add_linear_row(con);
+                        delete_cstr.push_back(con->get_name());
+                    }
+                    add(eq==0);
+                    delete_cstr.push_back(con0->get_name());
+                }
+            }
+            for( const auto & iter: leq_sparsity){
+                auto con_vec = iter.second;
+                if(con_vec.size()>1){
+                    auto con0 = con_vec[0];
+                    Constraint<> leq("lin_leq_"+to_string(index));
+                    param<> c0("c0_leq_"+to_string(index));
+                    c0 = con0->eval_cst(0);
+                    nb_cont_vars = iter.first.first;
+                    nb_int_vars = iter.first.second;
+                    vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                    vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                    vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                    vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                    indices leq_ids("lin_leq_"+to_string(index));
+                    leq_ids.insert("inst_1");
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        x_ids[i].set_name("lin_leq_x_ids"+to_string(index)+"_"+to_string(i));
+                        x_ids[i] = *x._indices;
+                        x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                        x_coefs[i] = param<>("coef_lin_leq_x_coefs"+to_string(index)+"_"+to_string(i));
+                        x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                        leq += x_coefs[i].in(leq_ids)*x.in(x_ids[i]);
+                    }
+                    for(int i = 0; i<nb_int_vars;i++){
+                        y_ids[i].set_name("lin_leq_y_ids"+to_string(index)+"_"+to_string(i));
+                        y_ids[i] = *y._indices;
+                        y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                        y_coefs[i] = param<>("coef_lin_leq_y_coefs"+to_string(index)+"_"+to_string(i));
+                        y_coefs[i] = con0->eval_lterm_int_coef(i);
+                        leq += y_coefs[i].in(leq_ids)*y.in(y_ids[i]);
+                    }
+                    leq += c0.in(leq_ids);
+                    leq.in(leq_ids);
+                    for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
+                        auto con = con_vec[i];
+                        leq.add_linear_row(con);
+                        delete_cstr.push_back(con->get_name());
+                    }
+                    add(leq<=0);
+                    delete_cstr.push_back(con0->get_name());
+                }
+            }
+            for( const auto & iter: geq_sparsity){
+                auto con_vec = iter.second;
+                if(con_vec.size()>1){
+                    auto con0 = con_vec[0];
+                    Constraint<> geq("lin_geq_"+to_string(index));
+                    param<> c0("c0_geq_"+to_string(index));
+                    c0 = con0->eval_cst(0);
+                    nb_cont_vars = iter.first.first;
+                    nb_int_vars = iter.first.second;
+                    vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
+                    vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
+                    vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
+                    vector<param<>> y_coefs(nb_int_vars);/* coefficient multiplying each symbolic integer variable */
+                    indices geq_ids("lin_geq_"+to_string(index));
+                    geq_ids.insert("inst_1");
+
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        x_ids[i].set_name("lin_geq_x_ids"+to_string(index)+"_"+to_string(i));
+                        x_ids[i] = *x._indices;
+                        x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                        x_coefs[i] = param<>("coef_lin_geq_x_coefs"+to_string(index)+"_"+to_string(i));
+                        x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                        geq += x_coefs[i].in(geq_ids)*x.in(x_ids[i]);
+                    }
+                    for(int i = 0; i<nb_int_vars;i++){
+                        y_ids[i].set_name("lin_geq_y_ids"+to_string(index)+"_"+to_string(i));
+                        y_ids[i] = *y._indices;
+                        y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                        y_coefs[i] = param<>("coef_lin_geq_y_coefs"+to_string(index)+"_"+to_string(i));
+                        y_coefs[i] = con0->eval_lterm_int_coef(i);
+                        geq += y_coefs[i].in(geq_ids)*y.in(y_ids[i]);
+                    }
+                    geq += c0.in(geq_ids);
+                    geq.in(geq_ids);
+                    for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
+                        auto con = con_vec[i];
+                        geq.add_linear_row(con);
+                        delete_cstr.push_back(con->get_name());
+                    }
+                    add(geq>=0);
+                }
+            }
+            for(const auto cstr_name: delete_cstr){
+                remove(cstr_name);
+            }
+            DebugOn("Model after restructure: " << endl);
+            print();
+        }
         
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
