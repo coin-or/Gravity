@@ -693,7 +693,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         bool is_concave() const{
             return _convexity==concave_;
         }
-        
+
+        bool has_var(const string& name) const{
+            return (_vars_name.count(name)!=0);
+        };
         
         bool has_var(const param_& v) const{
             return (_vars.count(v.get_vec_id())!=0);
@@ -1935,8 +1938,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 }
             }
             int index = 0;
-            var<> x = get_var<double>("x");
-            var<> y = get_var<double>("y");
+            var<> x, y;
+            if(has_var("x"))
+                x = get_var<double>("x");
+            if(has_var("y"))
+                y = get_var<double>("y");
             for( const auto & iter: eq_sparsity){
                 auto con_vec = iter.second;
                 if(con_vec.size()>1){
@@ -1978,7 +1984,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     add(eq==0);
                     delete_cstr.push_back(con0->get_name());
                 }
+                index++;
             }
+            index = 0;
             for( const auto & iter: leq_sparsity){
                 auto con_vec = iter.second;
                 if(con_vec.size()>1){
@@ -2020,7 +2028,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     add(leq<=0);
                     delete_cstr.push_back(con0->get_name());
                 }
+                index++;
             }
+            index = 0;
             for( const auto & iter: geq_sparsity){
                 auto con_vec = iter.second;
                 if(con_vec.size()>1){
@@ -2062,6 +2072,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                     add(geq>=0);
                 }
+                index++;
             }
             for(const auto cstr_name: delete_cstr){
                 remove(cstr_name);
@@ -5626,7 +5637,9 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         
-        
+        bool has_int() const{
+            return !_int_vars.empty();
+        }
         
         void replace_integers(){/*< Replace internal type of integer variables so that continuous relaxations can be computed */
             bool has_int = false;
@@ -7801,11 +7814,15 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         var<> get_cont_int_var(int index){
-            auto x = _model->get_var<double>("x");
-            auto y = _model->get_var<double>("y");
-            if(index >= y.get_id())/* Integer variable */
-                return y(index);
+            if(_model->has_int()){
+                auto y = _model->get_var<double>("y");
+                if(index >= y.get_id())/* Integer variable */
+                {
+                    return y(index);
+                }
+            }
             /* Continuous variable */
+            auto x = _model->get_var<double>("x");
             return x(index);
         }
         

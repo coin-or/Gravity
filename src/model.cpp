@@ -6599,10 +6599,12 @@ int Model<type>::readNL(const string& fname){
     int index = 0;
     _name = fname;
 
-    add(x.in(C));
-    add(y.in(I));
-
-    replace_integers();
+    if(!C.empty())
+        add(x.in(C));
+    if(!I.empty()){
+        add(y.in(I));
+        replace_integers();
+    }
 
     MPConverter converter(*this);
     map<int,vector<int>> constr_sparsity;
@@ -6620,7 +6622,8 @@ int Model<type>::readNL(const string& fname){
         for (const auto term: lexpr){
             auto coef = term.coef();
             auto var_id = term.var_index();
-            objective += coef*converter.get_cont_int_var(var_id);
+            if(coef!=0)
+                objective += coef*converter.get_cont_int_var(var_id);
         }
         auto nl_expr = obj.nonlinear_expr();
         if (nl_expr){
@@ -6647,7 +6650,8 @@ int Model<type>::readNL(const string& fname){
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0)
+                    expr += coef*converter.get_cont_int_var(var_id);
             }
             
             auto c_lb = con.lb();
@@ -6671,15 +6675,18 @@ int Model<type>::readNL(const string& fname){
             }
         }
         else{
-            int nb_terms = lexpr.num_terms();
-            constr_sparsity[nb_terms].push_back(index);
+            int nb_terms = 0;
             func<> expr;
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0){
+                    expr += coef*converter.get_cont_int_var(var_id);
+                    nb_terms++;
+                }
             }
-            
+            constr_sparsity[nb_terms].push_back(index);
+
             auto c_lb = con.lb();
             auto c_ub = con.ub();
             if(c_lb==c_ub){
@@ -6702,8 +6709,7 @@ int Model<type>::readNL(const string& fname){
             LinConstr.insert(to_string(index));
             C_lin.push_back(index);
             nb_lin++;
-        }
-        
+        }        
         index++;
     }
     DebugOn("Number of linear constraints = " << nb_lin << endl);
