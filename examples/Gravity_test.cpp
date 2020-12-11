@@ -43,7 +43,7 @@ TEST_CASE("testing readNL() function on waterlund32.nl") {
     M.print();
     CHECK(status==0);
     CHECK(M.get_nb_vars()==660);
-    CHECK(M.get_nb_cons()==380);
+    CHECK(M.get_nb_cons()==200);
     CHECK(!M.is_convex());
     M.restructure();
     DebugOn("Done Restructuring!");

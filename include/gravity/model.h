@@ -4831,6 +4831,12 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
         }
         
+        void recompute_var_bounds(){
+            for(auto &v_p: _vars)
+            {
+                v_p.second->reset_bounds();
+            }
+        }
         void reset() {
             _built = false; /**< Indicates if this model has been already built. */
             _first_run = true; /**< Indicates if a solver was ran on this model. */
@@ -5543,6 +5549,13 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             cout << endl;
         }
         
+        void print_int_solution(int prec=5) const{
+            for (auto &v_pair:_vars) {
+                auto v = v_pair.second;
+                if(v->_is_relaxed)
+                    v->print_vals(prec);
+            }
+        }
         
         void print_solution(int prec=5) const{
             print_obj_val(prec);
@@ -5610,6 +5623,42 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 cout << "Max ";
             }
             return size_header;
+        }
+        
+        /** Write integer solution point to file */
+        void write_int_solution(int precision = 10){
+            ofstream myfile;
+            string fname = _name+"_int_solution.txt";
+            myfile.open(fname);
+            std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+            std::cout.rdbuf(myfile.rdbuf());
+            print_int_solution(precision);
+            std::cout.rdbuf(coutbuf);
+            myfile.close();
+        }
+        
+        /** Write solution point to file */
+        void write_solution(int precision = 10){
+            ofstream myfile;
+            string fname = _name+"_solution.txt";
+            myfile.open(fname);
+            std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+            std::cout.rdbuf(myfile.rdbuf());
+            print_solution(precision);
+            std::cout.rdbuf(coutbuf);
+            myfile.close();
+        }
+        
+        /** Write Model to file */
+        void write(int precision = 10){
+            ofstream myfile;
+            string fname = _name+".txt";
+            myfile.open(fname);
+            std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+            std::cout.rdbuf(myfile.rdbuf());
+            print(precision);
+            std::cout.rdbuf(coutbuf);
+            myfile.close();
         }
         
         void print(int prec = 10){
