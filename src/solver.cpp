@@ -1338,6 +1338,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         LB_solver.initialize_basis(vrbasis, crbasis);
     }
     bool close=false;
+    vector<double> solution(obbt_model->_nb_vars);
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -1350,19 +1351,14 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
-                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
+            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
                 break;
             }
-            vector<double> solution(obbt_model->_nb_vars);
             obbt_model->get_solution(solution);
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
-            DebugOff("oacuts "<<oacuts<<endl);
-            obbt_model->reindex();
-            obbt_model->reset();
-            obbt_model->reset_constrs();
         }
         else{
 #ifdef USE_MPI
@@ -1370,9 +1366,6 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
 #endif
                 DebugOn("lower bounding failed "<<lin_count<<endl);
             lower_bound=numeric_limits<double>::min();
-            obbt_model->reindex();
-            obbt_model->reset();
-            obbt_model->reset_constrs();
             break;
         }
         lin_count++;
@@ -1380,6 +1373,9 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(initialize_primal && lb_solver_type==gurobi && obbt_model->_status==0){
         LB_solver.get_pstart(vrbasis,crbasis);
     }
+    obbt_model->reindex();
+    obbt_model->reset();
+    obbt_model->reset_constrs();
     return(close);
 }
 /** function to update variable bounds of current model and vector models for the OBBT algorithm
@@ -1430,9 +1426,11 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
           
             // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
             if(dirk=="LB"){
+                boundk1=vk.get_lb(keyk);
                 interval=vk.get_ub(keyk)-objk;
             }
             else{
+                boundk1=vk.get_ub(keyk);
                 interval=objk-vk.get_lb(keyk);
             }
                 if(std::abs(interval)<=range_tol)
@@ -1448,14 +1446,12 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                      }
             else{/*Update bounds*/
                 if(dirk=="LB"){
-                    boundk1=vk.get_lb(keyk);
                     //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
                     objk=std::max(objk-range_tol, boundk1);
                     vk.set_lb(keyk, objk);
                     update_lb=true;
                 }
                 else{
-                    boundk1=vk.get_ub(keyk);
                     //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
                     objk=std::min(objk+range_tol, boundk1);
                     vk.set_ub(keyk, objk);
@@ -1618,200 +1614,9 @@ shared_ptr<Model<type>> Model<type>::build_model_IIS()
     IIS->print();
     return IIS;
 }
-template<>
-int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname){
-    std::vector<double> obbt_solution, cut_vec;
-    string msname;
-    int added_cuts=0;
-    int viol=0, viol_i=0;
-    for (auto s=0;s<batch_model_count;s++)
-    {
-        auto m=batch_models[s];
-        /* Update bounds only if the model status is solved to optimal */
-        if(m->_status==0)
-        {
-            if(vname=="modelname"){
-                msname=m->_name;
-            }
-            else if(vname=="allvar"){
-                msname="allvar";
-            }
-            obbt_solution.resize(m->_nb_vars);
-            m->get_solution(obbt_solution);
-            cut_vec.resize(0);
-            viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-            lin->add_cuts_to_model(cut_vec, *this, added_cuts);
-            if(viol==1 || viol_i==1){
-                viol=1;
-            }
-        }
-    }
-    return viol;
-}
-template<>
-int Model<>::cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list){
-    std::vector<double> obbt_solution, cut_vec;
-    string msname;
-    int added_cuts=0;
-    int viol=0, viol_i=0;
-    for (auto s=0;s<batch_model_count;s++)
-    {
-        auto m=batch_models[s];
-        /* Update bounds only if the model status is solved to optimal */
-        if(m->_status==0)
-        {
-            if(vname=="modelname"){
-                msname=m->_name;
-            }
-            else if(vname=="allvar"){
-                msname="allvar";
-            }
-            obbt_solution.resize(m->_nb_vars);
-            m->get_solution(obbt_solution);
-            cut_vec.resize(0);
-            viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-            m->set_solution(obbt_solution);
-            m->add_cuts_to_model(cut_vec, *this, added_cuts);
-            if(viol_i==1){
-                repeat_list.push_back(m->_name);
-            }
-            if(viol==1 || viol_i==1){
-                viol=1;
-            }
-        }
-    }
-    return viol;
-}
+
 
 #ifdef USE_MPI
-
-template<>
-int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname){
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-    auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
-    std::string msname;
-    vector<double> obbt_solution, cut_vec;
-    vector<int> bcast_array;
-    bcast_array.resize(3,0);
-    int added_cuts=0;
-    int cut_size=0;
-    int viol=0, viol_i=0;
-    if(batch_model_count!=0){
-        std::vector<size_t> limits = bounds(nb_workers_, batch_model_count);
-        for (auto w_id = 0; w_id<nb_workers; w_id++) {
-            if(w_id+1<limits.size()){
-                for (auto i = limits[w_id]; i < limits[w_id+1]; i++) {
-                    if(sol_status[i]==0){
-                        if(worker_id==w_id){
-                            if(vname=="modelname"){
-                                msname=batch_models[i-limits[w_id]]->_name;
-                            }
-                            else if(vname=="allvar"){
-                                msname="allvar";
-                            }
-                            obbt_solution.resize(batch_models[i-limits[w_id]]->_nb_vars);
-                            batch_models[i-limits[w_id]]->get_solution(obbt_solution);
-                            cut_vec.resize(0);
-                            viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                            if((viol==1) || (viol_i==1)){
-                                viol=1;
-                            }
-                            
-                            cut_size=cut_vec.size();
-                            bcast_array[0]=viol;
-                            bcast_array[1]=cut_size;
-                            bcast_array[2]=oacuts;
-                        }
-                        MPI_Bcast(&bcast_array[0], 3, MPI_INT, w_id, MPI_COMM_WORLD);
-                        MPI_Barrier(MPI_COMM_WORLD);
-                        viol=bcast_array[0];
-                        cut_size=bcast_array[1];
-                        oacuts=bcast_array[2];
-                        if(cut_size!=0){
-                            if(worker_id!=w_id){
-                                cut_vec.resize(cut_size, 0);
-                            }
-                            MPI_Bcast(&cut_vec[0], cut_size, MPI_DOUBLE, w_id, MPI_COMM_WORLD);
-                            lin->add_cuts_to_model(cut_vec, *this, added_cuts);
-                            MPI_Barrier(MPI_COMM_WORLD);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return viol;
-}
-
-template<>
-int Model<>::cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list, const std::vector<size_t>& limits){
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-    auto nb_workers_ = std::min((size_t)nb_workers, (size_t)batch_model_count);
-    std::string msname;
-    vector<double> obbt_solution, cut_vec, cut_array_w, cut_array_allw;
-    int cut_size=0;
-    int viol=0, viol_i, c_old;
-    int oacuts_old=oacuts;
-    double t_start=0, t=0, tb_time=0, t1, t2;
-    vector<int> cut_size_vec, d;
-    cut_size_vec.resize(nb_workers, 0);
-    //t_start=get_wall_time();
-    if(batch_model_count!=0){
-        if(worker_id+1<limits.size()){
-            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-                if(sol_status[i]==0){
-                    if(vname=="modelname"){
-                        msname=batch_models[i-limits[worker_id]]->_name;
-                    }
-                    else if(vname=="allvar"){
-                        msname="allvar";
-                    }
-                    obbt_solution.resize(batch_models[i-limits[worker_id]]->_nb_vars);
-                    batch_models[i-limits[worker_id]]->get_solution(obbt_solution);
-                    cut_vec.clear();
-                    viol_i=generate_cuts_iterative(interior_model, obbt_solution, lin, msname, oacuts, active_tol, cut_vec);
-                    batch_models[i-limits[worker_id]]->set_solution(obbt_solution);
-                    for(auto &c:cut_vec){
-                        cut_array_w.push_back(c);
-                    }
-                }
-            }
-            cut_size=cut_array_w.size();
-        }
-        //t1=get_wall_time();
-        MPI_Allgather(&cut_size, 1, MPI_INT, &cut_size_vec[0], 1, MPI_INT, MPI_COMM_WORLD);
-        //t2=get_wall_time();
-        //tb_time+=t2-t1;
-        int cut_all_size=0;
-        c_old=0;
-        d.push_back(0);
-        for(auto &c:cut_size_vec){
-            if((viol==0) && c>0){
-                viol=1;
-            }
-            cut_all_size+=c;
-            d.push_back(c_old+c);
-            c_old+=c;
-        }
-        d.pop_back();
-        cut_array_allw.resize(cut_all_size);
-        //t1=get_wall_time();
-        MPI_Allgatherv(&cut_array_w[0], cut_size_vec[worker_id], MPI_DOUBLE,
-                       &cut_array_allw[0], &cut_size_vec[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
-        //t2=get_wall_time();
-        //tb_time+=t2-t1;
-        oacuts=oacuts_old;
-        lin->add_cuts_to_model(cut_array_allw, *this, oacuts);
-    }
-    //t=get_wall_time();
-    //DebugOff(endl<<endl<<"wid "<<worker_id<<" cuts_MPI "<<(t-t_start)<<" Broad "<<tb_time<<endl<<endl);
-    MPI_Barrier(MPI_COMM_WORLD);
-    return viol;
-}
 /** function to run models in parallel across machines. Populates solution status and objective of the runs. If linearize cuts are also added, and each problem is refined upto nb_refine times
  @param[in] objective models: Vec with names of each model in models. If linearize order of elements in this vector is changed at the end of the function
  @param[in] sol_obj: Vec with objective values of each model in models

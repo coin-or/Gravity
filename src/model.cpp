@@ -6137,7 +6137,7 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
     obbt_model->reset_constrs();
     if(!linearize){
         solver<> LB_solver(obbt_model,lb_solver_type);
-        LB_solver.run(output = 0, lb_solver_tol, 2000, 600);
+        LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0)
         {
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
@@ -6150,13 +6150,13 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
         if(active_root_tol>lb_solver_tol){
                 active_root_tol*=0.1;
         }
-        close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 2000, 600, vrbasis, crbasis, initialize_primal);
+        close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", max_iter, max_time, vrbasis, crbasis, initialize_primal);
     }
     DebugOff("lower bound "<<lower_bound<<endl);
     if(obbt_model->_status==0)
     {
         gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
-        if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+        if (close)
         {
             terminate=true;
         }
@@ -6201,6 +6201,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     if(scale_objective){
         auto obj = *relaxed_model->_obj/ub_scale_value;
         relaxed_model->min(obj);
+        relaxed_model->reset();
         ub_scale_value=1.0;
     }
     LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
