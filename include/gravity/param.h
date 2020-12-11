@@ -1190,6 +1190,9 @@ namespace gravity {
                 return index;
             }
             else {
+                _val->resize(std::max(_val->size(),index+1));
+                _dim[0] = std::max(_dim[0],_val->size());
+
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
                 set_val(key,val);
                 if(_indices->_ids){

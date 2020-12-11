@@ -22,7 +22,8 @@
 using namespace std;
 using namespace gravity;
 
-TEST_CASE("testing readNL() function") {
+
+TEST_CASE("testing readNL() function on ex4.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
     int status = M.readNL(NL_file);
@@ -31,6 +32,22 @@ TEST_CASE("testing readNL() function") {
     CHECK(M.get_nb_vars()==36);
     CHECK(M.get_nb_cons()==30);
     CHECK(M.is_convex());
+    M.restructure();
+    DebugOn("Done Restructuring!");
+    M.write();
+}
+
+TEST_CASE("testing readNL() function on waterlund32.nl") {
+    Model<> M;
+    string NL_file = string(prj_dir)+"/data_sets/NL/waterund32.nl";
+    int status = M.readNL(NL_file);
+    M.print();
+    CHECK(status==0);
+    CHECK(M.get_nb_vars()==660);
+    CHECK(M.get_nb_cons()==200);
+    CHECK(!M.is_convex());
+    M.restructure();
+    DebugOn("Done Restructuring!");
 }
 
 
@@ -172,6 +189,7 @@ TEST_CASE("Variable Scaling") {
     solver<> s2(M_scale,ipopt);
     s2.run(5,1e-6);
     CHECK(std::abs(M_scale.get_obj_val()-obj_val) < 1e-3);
+    M_scale.write_solution();
 }
 
 TEST_CASE("Model.relax()") {

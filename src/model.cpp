@@ -6599,10 +6599,12 @@ int Model<type>::readNL(const string& fname){
     int index = 0;
     _name = fname;
 
-    add(x.in(C));
-    add(y.in(I));
-
-    replace_integers();
+    if(!C.empty())
+        add(x.in(C));
+    if(!I.empty()){
+        add(y.in(I));
+        replace_integers();
+    }
 
     MPConverter converter(*this);
     map<int,vector<int>> constr_sparsity;
@@ -6620,7 +6622,8 @@ int Model<type>::readNL(const string& fname){
         for (const auto term: lexpr){
             auto coef = term.coef();
             auto var_id = term.var_index();
-            objective += coef*converter.get_cont_int_var(var_id);
+            if(coef!=0)
+                objective += coef*converter.get_cont_int_var(var_id);
         }
         auto nl_expr = obj.nonlinear_expr();
         if (nl_expr){
@@ -6647,7 +6650,8 @@ int Model<type>::readNL(const string& fname){
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0)
+                    expr += coef*converter.get_cont_int_var(var_id);
             }
             
             auto c_lb = con.lb();
@@ -6671,39 +6675,64 @@ int Model<type>::readNL(const string& fname){
             }
         }
         else{
-            int nb_terms = lexpr.num_terms();
-            constr_sparsity[nb_terms].push_back(index);
+            int nb_terms = 0;
             func<> expr;
             for (const auto term: lexpr){
                 auto coef = term.coef();
                 auto var_id = term.var_index();
-                expr += coef*converter.get_cont_int_var(var_id);
+                if(coef!=0){
+                    expr += coef*converter.get_cont_int_var(var_id);
+                    nb_terms++;
+                }
             }
-            
             auto c_lb = con.lb();
             auto c_ub = con.ub();
-            if(c_lb==c_ub){
-                Constraint<> c("Lin_C_eq_"+to_string(index));
-                c += expr;
-                add(c == c_lb);
-            }
-            else {
-                if(c_lb>numeric_limits<double>::lowest()){
-                    Constraint<> c("Lin_C_lb_"+to_string(index));
-                    c += expr;
-                    add(c >= c_lb);
+            if(nb_terms==1 && c_lb!=c_ub){/* this is just a bound constraint */
+                const auto term = *lexpr.begin();
+                auto coef = term.coef();
+                auto var_id = term.var_index();
+                auto v = converter.get_cont_int_var(var_id);
+                if(coef != 0 && c_lb>numeric_limits<double>::lowest()){
+                    if(v._is_relaxed){/* an integer */
+                        v._lb->_val->at(v.get_id_inst()) = c_lb/coef;
+                    }
+                    else {
+                        v._lb->_val->at(v.get_id_inst()) = c_lb/coef;
+                    }
                 }
-                if(c_ub<numeric_limits<double>::max()){
-                    Constraint<> c("Lin_C_ub_"+to_string(index));
-                    c += expr;
-                    add(c <= c_ub);
+                if(coef != 0 && c_ub<numeric_limits<double>::max()){
+                    if(v._is_relaxed){/* an integer */
+                        v._ub->_val->at(v.get_id_inst()) = c_ub/coef;
+                    }
+                    else {
+                        v._ub->_val->at(v.get_id_inst()) = c_ub/coef;
+                    }
                 }
             }
-            LinConstr.insert(to_string(index));
-            C_lin.push_back(index);
-            nb_lin++;
+            else{
+                constr_sparsity[nb_terms].push_back(index);
+                if(c_lb==c_ub){
+                    Constraint<> c("Lin_C_eq_"+to_string(index));
+                    c += expr;
+                    add(c == c_lb);
+                }
+                else {
+                    if(c_lb>numeric_limits<double>::lowest()){
+                        Constraint<> c("Lin_C_lb_"+to_string(index));
+                        c += expr;
+                        add(c >= c_lb);
+                    }
+                    if(c_ub<numeric_limits<double>::max()){
+                        Constraint<> c("Lin_C_ub_"+to_string(index));
+                        c += expr;
+                        add(c <= c_ub);
+                    }
+                }
+                LinConstr.insert(to_string(index));
+                C_lin.push_back(index);
+                nb_lin++;
+            }
         }
-        
         index++;
     }
     DebugOn("Number of linear constraints = " << nb_lin << endl);
