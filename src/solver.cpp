@@ -1444,9 +1444,11 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
             if(dirk=="LB"){
                 interval=vk.get_ub(keyk)-objk;
+		boundk1=vk.get_lb(keyk); 
             }
             else{
                 interval=objk-vk.get_lb(keyk);
+		boundk1=vk.get_ub(keyk); 
             }
                 if(std::abs(interval)<=range_tol)
                 {
@@ -1461,14 +1463,12 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                      }
             else{/*Update bounds*/
                 if(dirk=="LB"){
-                    boundk1=vk.get_lb(keyk);
                     //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
                     objk=std::max(objk-range_tol, boundk1);
                     vk.set_lb(keyk, objk);
                     update_lb=true;
                 }
                 else{
-                    boundk1=vk.get_ub(keyk);
                     //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
                     objk=std::min(objk+range_tol, boundk1);
                     vk.set_ub(keyk, objk);
