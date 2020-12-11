@@ -34,6 +34,7 @@ TEST_CASE("testing readNL() function on ex4.nl") {
     CHECK(M.is_convex());
     M.restructure();
     DebugOn("Done Restructuring!");
+    M.write();
 }
 
 TEST_CASE("testing readNL() function on waterlund32.nl") {
@@ -188,6 +189,7 @@ TEST_CASE("Variable Scaling") {
     solver<> s2(M_scale,ipopt);
     s2.run(5,1e-6);
     CHECK(std::abs(M_scale.get_obj_val()-obj_val) < 1e-3);
+    M_scale.write_solution();
 }
 
 TEST_CASE("Model.relax()") {
