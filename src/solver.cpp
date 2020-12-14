@@ -1337,6 +1337,9 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(initialize_primal && lb_solver_type==gurobi){
         LB_solver.initialize_basis(vrbasis, crbasis);
     }
+double gap_old=100;
+double gap;
+vector<double> solution(obbt_model->_nb_vars);
     bool close=false;
     vector<double> solution(obbt_model->_nb_vars);
 #ifdef USE_MPI
@@ -1348,6 +1351,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
+            gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
@@ -1357,15 +1361,29 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
                 close= true;
                 break;
             }
+	if(gap_old-gap<=0.01){
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+		DebugOn("gap less than 0.01"<<endl);
+		break;
+}
+            gap_old=gap;
             obbt_model->get_solution(solution);
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
         }
         else{
 #ifdef USE_MPI
             if(worker_id==0)
+		{
 #endif
-                DebugOn("lower bounding failed "<<lin_count<<endl);
-            lower_bound=numeric_limits<double>::min();
+            DebugOn("lower bounding failed in root refine"<<lin_count<<endl);
+	    	LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
+	    	obbt_model->print();
+#ifdef USE_MPI                                                                        
+}
+#endif 
+ lower_bound=numeric_limits<double>::min(); 
             break;
         }
         lin_count++;
@@ -1428,10 +1446,12 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             if(dirk=="LB"){
                 boundk1=vk.get_lb(keyk);
                 interval=vk.get_ub(keyk)-objk;
+		boundk1=vk.get_lb(keyk); 
             }
             else{
                 boundk1=vk.get_ub(keyk);
                 interval=objk-vk.get_lb(keyk);
+		boundk1=vk.get_ub(keyk); 
             }
                 if(std::abs(interval)<=range_tol)
                 {
