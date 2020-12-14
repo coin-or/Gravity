@@ -1337,11 +1337,8 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     if(initialize_primal && lb_solver_type==gurobi){
         LB_solver.initialize_basis(vrbasis, crbasis);
     }
-double gap_old=100;
-double gap;
-vector<double> solution(obbt_model->_nb_vars);
-    bool close=false;
     vector<double> solution(obbt_model->_nb_vars);
+    bool close=false;
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -1351,7 +1348,7 @@ vector<double> solution(obbt_model->_nb_vars);
         LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-            gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
+           // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
@@ -1361,14 +1358,14 @@ vector<double> solution(obbt_model->_nb_vars);
                 close= true;
                 break;
             }
-	if(gap_old-gap<=0.01){
+/*	if(gap_old-gap<=0.01){
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
 		DebugOn("gap less than 0.01"<<endl);
 		break;
 }
-            gap_old=gap;
+            gap_old=gap;*/
             obbt_model->get_solution(solution);
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
         }

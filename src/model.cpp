@@ -6097,7 +6097,11 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
         if(obbt_model->_status==0)
         {
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-        }
+	     if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+            {
+                close= true;
+            }
+     }
     }
     else{
         if(active_tol>lb_solver_tol){
@@ -6441,7 +6445,6 @@ template double Model<double>::populate_final_interval_gap(const shared_ptr<Mode
 template void Model<double>::create_batch_models(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
-template void Model<double>::initialize_gurobi(double lb_solver_tol, vector<double>& vrbasis, vector<double>& crbasis);
 
 
 //    template func<double> constant<double>::get_real() const;
