@@ -5954,19 +5954,19 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 template <typename type>
 template<typename T>
 void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol){
-    var<> v;
+    var<> v, var_ub;
     std::string var_key, key_lb, key_ub;
     double vi_ub_val;
     bool in_orig_model=false;
-    for(auto &it:_vars)
+    for(auto &it:obbt_model->_vars)
     {
         string vname=(*it.second)._name;
         v=obbt_model->template get_var<double>(vname);
         auto v_keys=v.get_keys();
         auto v_key_map=v.get_keys_map();
         in_orig_model=false;
-        if(this->_vars_name.find(vk._name)!=this->_vars_name.end()){
-                var_ub=this->template get_var<T>(vkname);
+        if(this->_vars_name.find(vname)!=this->_vars_name.end()){
+                var_ub=this->template get_var<T>(vname);
                 in_orig_model=true;
         }
         for(auto &key: *v_keys)
@@ -5987,10 +5987,12 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
                 if(in_orig_model){
                     vi_ub_val=var_ub.eval(key);
                     if(vi_ub_val-v.get_lb(key)<=range_tol){
-                        fixed_point[var_key_k+"|LB"]=true;
+                        fixed_point[var_key+"|LB"]=true;
+                        DebugOn("vi_ub "<<vi_ub_val<<" vlb "<<v.get_lb(key)<<" "<<key_lb<<endl);
                     }
                     if(v.get_ub(key)-vi_ub_val<=range_tol){
-                        fixed_point[var_key_k+"|UB"]=true;
+                        fixed_point[var_key+"|UB"]=true;
+                        DebugOn("vi_ub "<<vi_ub_val<<" vlb "<<v.get_ub(key)<<" "<<key_ub<<endl);
                     }
                 }
             }
@@ -6336,7 +6338,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                 }
                 if(obbt_model->_status==0){
                     /*Initialize fixed point, interval original and new, bounds original*/
-                    obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
+                    this->populate_original_interval(obbt_model, fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var,range_tol);
                     solver_time= get_wall_time()-solver_time_start;
                     /*Create nb_threads copy of obbt_models*/
                     obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
@@ -6456,7 +6458,8 @@ template std::tuple<bool,int,double,double,double,double,double,double,int,int,i
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
-template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
+template void Model<double>::populate_original_interval(shared_ptr<Model<double>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol);
+//template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
 template double Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
 template void Model<double>::create_batch_models(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
