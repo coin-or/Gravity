@@ -6117,9 +6117,11 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
 	     if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
-                close= true;
+                close=true;
+                obbt_model->print();
+                obbt_model->print_solution();
             }
-     }
+        }
     }
     else{
         if(active_tol>lb_solver_tol){
@@ -6376,7 +6378,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                                             auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
-                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
+                                            auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
+                                           // auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
                                             sol_status.clear();
                                             sol_obj.clear();
                                             objective_models.clear();

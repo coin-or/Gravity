@@ -1411,15 +1411,15 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
  */
 template<typename type>
 template<typename T>
-bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
+bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
-    double objk, boundk1, temp, tempa, mid, left, right, interval;
-    var<> vk;
+    double objk;
+    bool bound_converge=true;
     for (auto s=0;s<objective_models.size();s++)
     {
         /* Update bounds only if the model status is solved to optimal */
@@ -1433,12 +1433,60 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             pos=mkname.find("|");
             keyk.assign(mkname, 0, pos);
             dirk=mkname.substr(pos+1);
-            vk=this->template get_var<T>(vkname);
-            var_key_k=vkname+"|"+keyk;
             objk=sol_obj.at(s);
+
+this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
+
+
+         
+#ifdef USE_MPI                                                                          
+            if(worker_id==0)
+#endif
+                DebugOff("success "<<objective_models.at(s)<<endl);
+        }
+        else
+        {
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+                DebugOn("failed "<<objective_models.at(s)<<endl);
+            fail++;
+        }
+    }
+    return 0;
+}
+
+template<typename type>
+template<typename T>
+bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol)
+{    
+double boundk1, temp, tempa, mid, left, right, interval, vi_ub_val;
+bool in_orig_model;    
+var<> vk, var_ub;
+            auto var_key_k=vkname+"|"+keyk;
             auto update_lb=false;
             auto update_ub=false;
-          
+            vk=obbt_model->template get_var<T>(vkname);
+            in_orig_model=false;
+            if(this->_vars_name.find(vk._name)!=this->_vars_name.end()){
+                var_ub=this->template get_var<T>(vkname);
+                in_orig_model=true;
+                vi_ub_val=var_ub.eval(keyk);
+                if(dirk=="LB"){
+                interval=vi_ub_val-objk;
+                if(interval<=range_tol)
+                {
+                    fixed_point[var_key_k+"|LB"]=true;
+                }
+                }
+                else{
+                interval=objk-vi_ub_val; 
+                if(interval<=range_tol)
+                {
+                    fixed_point[var_key_k+"|UB"]=true;
+                }
+                }
+            }
             // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
             if(dirk=="LB"){
                 boundk1=vk.get_lb(keyk);
@@ -1455,7 +1503,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                 }
            
             // if new bound converges to previous bound, fixed point is reached and no need to update bounds
-            if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+            if(bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                      {
                          fixed_point[msname]=true;
                      }
@@ -1535,9 +1583,6 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                 }
             }
             if(update_lb||update_ub){
-                interval_new[var_key_k]=vk.get_ub(keyk)-vk.get_lb(keyk);
-                auto vkptr=get_var_ptr(vkname);
-                vkptr->_new=true;
                 for(auto &mod:models){
                     auto vkmod=mod->template get_var<T>(vkname);
                     if(update_lb){
@@ -1550,24 +1595,8 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
                     }
                 }
             }
-#ifdef USE_MPI                                                                          
-            if(worker_id==0)
-#endif
-                DebugOff("success "<<objective_models.at(s)<<endl);
+            return true;
         }
-        else
-        {
-#ifdef USE_MPI
-            if(worker_id==0)
-#endif
-                DebugOn("failed "<<objective_models.at(s)<<endl);
-            fail++;
-        }
-    }
-    return 0;
-}
-
-
 template<typename type>
 template<typename T>
 shared_ptr<Model<type>> Model<type>::build_model_IIS()
@@ -1793,6 +1822,7 @@ template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
 template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
-template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+template bool Model<double>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 }
