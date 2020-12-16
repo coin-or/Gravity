@@ -5953,15 +5953,22 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
 }
 template <typename type>
 template<typename T>
-void Model<type>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var){
+void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol){
     var<> v;
     std::string var_key, key_lb, key_ub;
+    double vi_ub_val;
+    bool in_orig_model=false;
     for(auto &it:_vars)
     {
         string vname=(*it.second)._name;
-        v=this->template get_var<double>(vname);
+        v=obbt_model->template get_var<double>(vname);
         auto v_keys=v.get_keys();
         auto v_key_map=v.get_keys_map();
+        in_orig_model=false;
+        if(this->_vars_name.find(vk._name)!=this->_vars_name.end()){
+                var_ub=this->template get_var<T>(vkname);
+                in_orig_model=true;
+        }
         for(auto &key: *v_keys)
         {
             var_key = vname+"|"+ key;
@@ -5977,6 +5984,15 @@ void Model<type>::populate_original_interval(map<string, bool>& fixed_point, map
             else{
                 fixed_point[key_lb]=false;
                 fixed_point[key_ub]=false;
+                if(in_orig_model){
+                    vi_ub_val=var_ub.eval(key);
+                    if(vi_ub_val-v.get_lb(key)<=range_tol){
+                        fixed_point[var_key_k+"|LB"]=true;
+                    }
+                    if(v.get_ub(key)-vi_ub_val<=range_tol){
+                        fixed_point[var_key_k+"|UB"]=true;
+                    }
+                }
             }
             auto key_pos=v_key_map->at(key);
             
