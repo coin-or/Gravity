@@ -1627,13 +1627,13 @@ public:
             DebugOn("Old obj: " << endl);
             _obj->print();
             *_obj = _obj->replace(v, f);
+            _obj->clean_terms(); /* put this in while loop above*/
             DebugOn("Projected obj: " << endl);
             _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
-        }
-            //                _obj->clean_terms();
+        }        
         for (auto &c_p: _cons_name) {
             auto c = c_p.second;
             if (!c->_is_constraint || !c->has_sym_var(v)) {
@@ -1641,7 +1641,7 @@ public:
             }
             while(c->has_ids(v)){/* Keep replacing until no change */
                     //                    c->print();
-                if(c->_name =="NL_C_ub_2")
+                if(v.get_name(false,false)=="x.in{(16) ; (17)}" && c->_name =="NL_C_ub_2")
                     cout << "ok";
                 DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                 DebugOn("Old constraint: " << endl);
@@ -1652,8 +1652,8 @@ public:
                     DebugOn("Variable indices :" << v._indices->to_str() << endl);
                     DebugOn("Projected constraint: " << endl);
                         //                        new_c.update_terms();
-                        //                            new_c.clean_terms();
-                        //                            c->clean_terms();
+                    new_c.clean_terms();
+                    c->clean_terms();
                     DebugOn("Splitted constraint: " << endl);
                     c->print();
                     new_c.print();
@@ -1670,7 +1670,7 @@ public:
                     v._indices->print();
                     DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                     DebugOn("Projected constraint: " << endl);
-                        //                            new_c.clean_terms();
+                    new_c.clean_terms();
                     new_c.print();
                     *c = new_c;
                     c->allocate_mem();
@@ -2306,9 +2306,11 @@ public:
         for(const auto cstr_name: delete_cstr){
             remove(cstr_name);
         }
-            //                for (auto& c_pair:_cons) {
-            //                    c_pair.second->update_terms();
-            //                }
+        for (auto& c_pair:_cons) {
+            c_pair.second->update_terms();
+        }
+        reindex();
+        reset();
         DebugOn("Model after restructure: " << endl);
         print();
     }
@@ -2337,6 +2339,9 @@ public:
             DebugOn("Using the following constraints to project: " << endl);
                 //                c->clean_terms();
             c->print();
+            if(c->is_quadratic()){
+                DebugOn("Using a quadratic constraint to project!" << endl);
+            }
                 //                if(c->_name=="lin_eq_1_projected.in({(inst_3) ; (inst_4)})")
                 //                    cout << "ok";
             /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
@@ -2390,6 +2395,7 @@ public:
                         func<> finv = (-1./coef).in(*coef._indices);
                         finv.eval_all();
                         cinv = finv;
+                        f *= cinv;
                     }
                     else {
                         func<> finv = (-1./coef);
@@ -2426,9 +2432,7 @@ public:
             }
             delete_cstr.push_back(c->_name);
             c->_is_constraint = false;
-            if(c->is_quadratic()){
-                DebugOn("Using a quadratic constraint to project!" << endl);
-            }
+            
             replace(vv,f,eq_list);
             delete_vars.push_back(v);
         }
@@ -2445,6 +2449,8 @@ public:
             //                    c_pair.second->clean_terms();
             //                }
         DebugOn("Number of projeted variables = " << nb_proj << endl);
+        reindex();
+        reset();
         DebugOn("Model after projetion: " << endl);
         print();
     }

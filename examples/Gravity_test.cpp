@@ -67,6 +67,38 @@ TEST_CASE("testing readNL() function on ex4.nl") {
     M.write();
 }
 
+TEST_CASE("testing readNL() function on wastewater02m1.nl") {
+    Model<> M;
+    string NL_file = string(prj_dir)+"/data_sets/NL/wastewater02m1.nl";
+    int status = M.readNL(NL_file);
+    CHECK(status==0);
+    M.print();
+    solver<> s1(M,ipopt);
+    int solve_status = s1.run(5,1e-6);
+    CHECK(solve_status==0);
+    CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
+    M.restructure();
+    DebugOn("Done Restructuring!");
+    solver<> s2(M,ipopt);
+    s2.run(5,1e-6);
+    CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
+    M.project();
+    solver<> s3(M,ipopt);
+    s3.run(5,1e-6);
+    CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
+//    auto determinant_level = 1;
+//    bool add_Kim_Kojima = false, add_SDP_3d = false;
+//    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+//    LB->print();
+//    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+//    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
+//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+//    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    LB->print();
+//    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
+    DebugOn("Done Projecting!" << endl);
+}
+
 TEST_CASE("testing readNL() function on waterlund32.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/waterund32.nl";

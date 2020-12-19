@@ -175,6 +175,7 @@ namespace gravity {
         
         void decr_occ_param(string str, int nb=1);/**< Decreases the number of occurences the parameter has in this function by nb. */
         
+        void reset_occ();/**< reset the number of occurences to zero. */
         
         map<string, lterm>& get_lterms() const{
             return *_lterms;
@@ -811,6 +812,16 @@ namespace gravity {
          */
         void update_rows(const vector<bool>& keep_ids);
         
+        
+        /**
+         Update the function indexing and term names using index elements.
+         */
+        void update_terms();
+        
+        /**
+         Update the function terms by removing terms with zero coef
+         */
+        void clean_terms();
         
         /**
          Update the function indexing and its variables/parameters by repeating the index n times.
@@ -2220,14 +2231,17 @@ namespace gravity {
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->second);
+                        if(f_cst._indices){
+                            res.in(*f_cst._indices);
+                        }
                     }
                     else if(coef->is_param()) {
                         auto p_cst = *((param<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->second);
-                        if(p_cst.is_indexed()){
-                            res._indices = p_cst._indices;
+                        if(p_cst._indices){
+                            res.in(*p_cst._indices);
                         }
                     }
                     else if(coef->is_number()) {
@@ -2257,14 +2271,17 @@ namespace gravity {
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(f_cst._range,var_range);
                         res.insert(lt.second._sign, f_cst, *lt.second._p->first);
+                        if(f_cst._indices){
+                            res.in(*f_cst._indices);
+                        }
                     }
                     else if(coef->is_param()) {
                         auto p_cst = *((param<type>*)(coef.get()));
                         auto var_range = make_shared<pair<type,type>>(get_range(lt.second._p->second));
                         term_range = get_product_range(p_cst._range,var_range);
                         res.insert(lt.second._sign, p_cst, *lt.second._p->first);
-                        if(p_cst.is_indexed()){
-                            res._indices = p_cst._indices;
+                        if(p_cst._indices){
+                            res.in(*p_cst._indices);
                         }
                     }
                     else if(coef->is_number()) {
@@ -2378,7 +2395,9 @@ namespace gravity {
                         else {
                             res -= *((func<type>*)(coef.get()));
                         }
-                        
+                        if(((func<type>*)(coef.get()))->_indices){
+                            res.in(*((func<type>*)(coef.get()))->_indices);
+                        }
                     }
                     else if(coef->is_param()) {
                         auto p_cst = *((param<type>*)(coef.get()));
@@ -2388,8 +2407,8 @@ namespace gravity {
                         else {
                             res -= p_cst;
                         }
-                        if(p_cst.is_indexed()){
-                            res._indices = p_cst._indices;
+                        if(p_cst._indices){
+                            res.in(*p_cst._indices);
                         }
                     }
                     else if(coef->is_number()) {
@@ -2872,7 +2891,7 @@ namespace gravity {
                 auto v = v_p.second.first;
                 if(v->is_indexed() && !v->_is_transposed){
                     _indices = v->_indices;
-                    _dim[0] = v->_dim[0];
+                    _dim[0] = v->get_dim();
                 }
                 if(v->is_matrix_indexed()){
                     _indices = v->_indices;
@@ -6385,6 +6404,13 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
+//            if(is_constant()){
+//                for (size_t i = 0; i < _val->size(); i++) {
+//                    if(_val->at(i)!=zero<type>().eval())
+//                        return false;
+//                }
+//                return true;
+//            }
             return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
 //            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
@@ -7858,7 +7884,170 @@ namespace gravity {
             _vars = new_vars;
         }
         
-        void update_vars(){merge_vars(*this);};
+        void update_vars(){
+            reset_occ();
+            for (auto &pair:*_lterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    static_pointer_cast<func>(coef)->update_vars();
+                }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
+                auto p = pair.second._p;
+                if (p->is_var()) {
+                    auto pname = p->get_name(false,false);
+                    auto it = _vars->find(pname);
+                    if (it==_vars->end()) {
+                        add_var(p);
+                    }
+                    else{
+                        pair.second._p = it->second.first;
+                        it->second.second++;
+                    }
+                }
+                else {
+                    auto pname = p->get_name(false,false);
+                    auto it = _params->find(pname);
+                    if (it==_params->end()) {
+                        add_param(p);
+                    }
+                    else{
+                        pair.second._p = it->second.first;
+                        it->second.second++;
+                    }
+                }
+            }
+            for (auto &pair:*_qterms) {
+                auto coef = pair.second._coef;
+                if (coef->is_function()){
+                    static_pointer_cast<func>(coef)->update_vars();
+                }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
+                auto p1 = pair.second._p->first;
+                auto p2 = pair.second._p->second;
+                if (p1->is_var()) {
+                    auto it1 = _vars->find(p1->get_name(false,false));
+                    if (it1==_vars->end()) {
+                        add_var(p1);
+                    }
+                    else{
+                        pair.second._p->first = it1->second.first;
+                        it1->second.second++;
+                    }
+                    auto it2 = _vars->find(p2->get_name(false,false));
+                    if (it2==_vars->end()) {
+                        add_var(p2);
+                    }
+                    else{
+                        pair.second._p->second = it2->second.first;
+                        it2->second.second++;
+                    }
+                }
+                else {
+                    auto it1 = _params->find(p1->get_name(false,false));
+                    if (it1==_params->end()) {
+                        add_param(p1);
+                    }
+                    else{
+                        pair.second._p->first = it1->second.first;
+                        it1->second.second++;
+                    }
+                    auto it2 = _params->find(p2->get_name(false,false));
+                    if (it2==_params->end()) {
+                        add_param(p2);
+                    }
+                    else{
+                        pair.second._p->second = it2->second.first;
+                        it2->second.second++;
+                    }
+                }
+            }
+            for (auto &pair:*_pterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    static_pointer_cast<func>(coef)->update_vars();
+                }
+                else if(coef->is_param()) {
+                    auto cp = static_pointer_cast<param_>(coef);
+                    auto pname = cp->get_name(false,false);
+                    auto p_exist = get_param(pname);
+                    if (!p_exist) {
+                        add_param(cp);
+                    }
+                    else {
+                        incr_occ_param(pname);
+                    }
+                }
+                auto list = pair.second._l;
+                for (auto &ppi: *list) {
+                    auto p = ppi.first;
+                    if (p->is_var()) {
+                        auto it = _vars->find(p->get_name(false,false));
+                        if (it==_vars->end()) {
+                            add_var(p);
+                        }
+                        else{
+                            ppi.first = it->second.first;
+                            it->second.second++;
+                        }
+                    }
+                    else {
+                        auto it = _params->find(p->get_name(false,false));
+                        if (it==_params->end()) {
+                            add_param(p);
+                        }
+                        else{
+                            ppi.first = it->second.first;
+                            it->second.second++;
+                        }
+                    }
+                }
+            }
+            if (_expr) {
+                embed(_expr);
+            }
+            if(_cst->is_function()){
+                static_pointer_cast<func>(_cst)->update_vars();
+                embed(*static_pointer_cast<func>(_cst));
+            }
+            for (auto &pair:*_lterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    embed(*static_pointer_cast<func>(coef));
+                }
+            }
+            for (auto &pair:*_qterms) {
+                auto coef = pair.second._coef;
+                if (coef->is_function()){
+                    embed(*static_pointer_cast<func>(coef));
+                }
+            }
+            for (auto &pair:*_pterms) {
+                auto coef = pair.second._coef;
+                if(coef->is_function()){
+                    embed(*static_pointer_cast<func>(coef));
+                }
+            }
+        }
         
         bool insert(const constant_& coef, const param_& p1, const param_& p2, bool coef_p1_tr=false){
             return insert(true, coef, p1, p2, coef_p1_tr);
