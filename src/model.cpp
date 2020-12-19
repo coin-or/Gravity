@@ -6184,7 +6184,7 @@ namespace gravity {
                                             batch_models[batch_model_count]->max(vark(key));
                                             
                                         }
-                                        batch_models[batch_model_count++]->reindex();
+                                        batch_models[batch_model_count++]->reset();
                                         //                                modelk->print();
                                         
                                     }

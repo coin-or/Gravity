@@ -811,6 +811,14 @@ namespace gravity {
          */
         void update_rows(const vector<bool>& keep_ids);
         
+        
+        /**
+         Update the function indexing and its variables/parameters by repeating the index n times.
+         @param[in] n number of times index is repeated
+         */
+        void repeat_id(int n);
+        
+        
         /**
          Update the variables/parameters indexing using the set ids.
          @param[in] ids indext set
