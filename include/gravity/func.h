@@ -3462,6 +3462,16 @@ namespace gravity {
             _range->second = ue._range->second;
             _all_convexity = ue._all_convexity;
             _all_sign = ue._all_sign;
+            if (ue._son->is_function()) {
+                auto f = static_pointer_cast<func>(ue._son);
+                if(f->_indices)
+                    _indices = f->_indices;
+            }
+            else if (ue._son->is_param() || ue._son->is_var() ){
+                auto p = static_pointer_cast<param_>(ue._son);
+                if(p->_indices)
+                    _indices = p->_indices;
+            }
             
         };
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -3478,6 +3488,26 @@ namespace gravity {
             _range->second = be._range->second;
             _all_convexity = be._all_convexity;
             _all_sign = be._all_sign;
+            if (be._lson->is_function()) {
+                auto f = static_pointer_cast<func>(be._lson);
+                if(f->_indices)
+                    _indices = f->_indices;
+            }
+            else if (be._lson->is_param() || be._lson->is_var() ){
+                auto p = static_pointer_cast<param_>(be._lson);
+                if(p->_indices)
+                    _indices = p->_indices;
+            }
+            if (be._rson->is_function()) {
+                auto f = static_pointer_cast<func>(be._rson);
+                if(f->_indices)
+                    _indices = f->_indices;
+            }
+            else if (be._rson->is_param() || be._rson->is_var() ){
+                auto p = static_pointer_cast<param_>(be._rson);
+                if(p->_indices)
+                    _indices = p->_indices;
+            }
         };
         
         template<class T2, typename enable_if<is_convertible<T2, type>::value && sizeof(T2) <= sizeof(type)>::type* = nullptr>
@@ -4733,7 +4763,7 @@ namespace gravity {
         }
         
         template<typename T>
-        func<type> replace(const var<T>& v, const func<T>& f) const;/**<  Replace v with function f everywhere it appears */
+        func<type> replace(const var<T>& v, const func<T>& f);/**<  Replace v with function f everywhere it appears */
         
         template<typename T> bool has_ids(const var<T>& v) const;/**<  Return true if some vars in the function share ids with v */
         
@@ -10133,6 +10163,8 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const constant<T1>& c, const param<T2>& p){
+        if(c.is_unit())
+            return func<T1>(p);
         func<T1> res;
         auto new_c(c);
         if(c._is_transposed){/* If this is a dot product resize the constant to match p's number of rows */
@@ -10151,6 +10183,8 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const constant<T1>& c, const param<T2>& p){
+        if(c.is_unit())
+            return func<T2>(p);
         func<T2> res;
         constant<T2> new_c(c);
         if(c._is_transposed){/* If this is a dot product resize the constant to match p's number of rows */
@@ -10169,6 +10203,8 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T2, T1>::value && sizeof(T2) < sizeof(T1)>::type* = nullptr>
     func<T1> operator*(const param<T1>& p, const constant<T2>& c){
+        if(c.is_unit())
+            return func<T1>(p);
         func<T1> res;
         res._range = get_product_range(p._range,c.range());
         res.update_all_sign();
@@ -10189,6 +10225,8 @@ namespace gravity {
     
     template<class T1,class T2, typename enable_if<is_convertible<T1, T2>::value && sizeof(T2) >= sizeof(T1)>::type* = nullptr>
     func<T2> operator*(const param<T1>& p, const constant<T2>& c){
+        if(c.is_unit())
+            return func<T2>(p);
         func<T2> res;
         res._range = get_product_range(p._range,c.range());
         res.update_all_sign();

@@ -223,7 +223,17 @@ namespace gravity {
             }
             return i*_dim[1]+j;
         };
-
+        
+        void update_rows(const vector<bool>& keep_ids) {
+            if(!_indices){
+                _indices = make_shared<indices>(range(1,_dim[0]));
+            }
+            _indices->filter_rows(keep_ids);
+            _dim[0]=_indices->size();
+            reset_range();
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
+        }
 
         string get_name(bool in_func, bool exclude_indexing) const{
 //            return _name;
@@ -1742,16 +1752,7 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("cannot call repeat_id(int n, int pos=0) on non-indexed parameter/variable");
             }
-            auto key_id = get_id_inst(pos);
-            indices res(*_indices);
-            res.set_name(res.get_name() + "repeat_id(" + to_string(n)+ "," + to_string(pos) + ")");
-            res._ids = make_shared<vector<vector<size_t>>>();
-            res._ids->resize(1);
-            res._ids->at(0).resize(n);
-            for(int i = 0; i< n; i++){
-                res._ids->at(0).at(i) = key_id;
-            }
-            return res;
+            return _indices->repeat_id(n,pos);
         }
         
         /* Return a subset of the current parameter index set corresponding to ids with negative values */
