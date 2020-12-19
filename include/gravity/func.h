@@ -281,8 +281,88 @@ namespace gravity {
         };
         
         
+        /** Return true if p appears only once in linear part of the function */
+        bool appear_once_linear(const shared_ptr<param_>& p) const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(lt.second._p->has_common_ids(p))
+                    n++;
+            }
+            return n==1;
+        }
+        
+        /** Return true if p appears in quadratic part of the function */
+        bool in_quad_part(const shared_ptr<param_>& p) const{
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->has_common_ids(p) || qt.second._p->second->has_common_ids(p))
+                    return true;
+            }
+            return false;
+        }
+        
+        
+        
+        /** Return the number of linear terms involving only continuous vars in this function */
+        int nb_cont_lterms() const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(!lt.second._p->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
+        /** Return the number of linear terms involving only integer vars in this function */
+        int nb_int_lterms() const{
+            int n = 0;
+            for (const auto &lt: *_lterms) {
+                if(lt.second._p->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving only continuous vars in this function */
+        int nb_cont_quad_terms() const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(!qt.second._p->first->_is_relaxed && !qt.second._p->second->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving only integers vars in this function */
+        int nb_int_quad_terms() const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->_is_relaxed && qt.second._p->second->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
+        /** Return the number of quadratic terms involving the product of a continuous and an integer var in this function */
+        int nb_hyb_quad_terms() const{
+            int n = 0;
+            for (const auto &qt: *_qterms) {
+                if(qt.second._p->first->_is_relaxed != qt.second._p->second->_is_relaxed)
+                    n++;
+            }
+            return n;
+        }
+        
         /** Return the number of linear terms in this function */
-        unsigned nb_linear_terms() const;
+        int nb_linear_terms() const{
+            return _lterms->size();
+        }
+        
+        /** Return the number of quadratic terms in this function */
+        int nb_quad_terms() const{
+            return _qterms->size();
+        }
+        
+        
         
         /** The function iterates over key references in _ids and keeps only the unique entries */
         void keep_unique_keys();
@@ -2445,6 +2525,57 @@ namespace gravity {
             }
         };
         
+        void delete_lterm(const param_& p){
+            string pname = p.get_name(false,false);
+            auto pair_it = _lterms->find(pname);
+            if (pair_it != _lterms->end()){
+                if (p.is_var()) {
+                    decr_occ_var(pname);
+                }
+                else{
+                    decr_occ_param(pname);
+                }
+                _lterms->erase(pair_it);
+                if(is_constant()){
+                    _ftype = const_;
+                    _val->resize(1);
+                }
+            }
+        }
+        void delete_qterm(const param_& p1, const param_& p2){
+            auto ps1 = p1.get_name(false,false);
+            auto ps2 = p2.get_name(false,false);
+            auto qname = ps1+","+ps2;
+            auto pair_it = _qterms->find(qname);
+            if (pair_it == _qterms->end()) {
+                qname = ps2+","+ps1;
+                pair_it = _qterms->find(qname);
+            }
+            if (pair_it == _qterms->end()) {
+                qname = ps1+","+ps2;
+            }
+            if (p1.is_var()) {
+                decr_occ_var(ps1);
+            }
+            else {
+                decr_occ_param(ps1);
+            }
+            if (p2.is_var()) {
+                decr_occ_var(ps2);
+            }
+            else {
+                decr_occ_param(ps2);
+            }
+            _qterms->erase(pair_it);
+            if(_qterms->empty()){
+                _ftype = lin_;
+            }
+            if(is_constant()){
+                _ftype = const_;
+                _val->resize(1);
+            }
+        }
+        
         bool is_rotated_soc(){
             if (!_lterms->empty() || _qterms->empty() || !_pterms->empty() || _expr) {
                 return false;
@@ -4596,6 +4727,8 @@ namespace gravity {
         template<typename T>
         func<type> replace(const var<T>& v, const func<T>& f) const;/**<  Replace v with function f everywhere it appears */
         
+        template<typename T> bool has_ids(const var<T>& v) const;/**<  Return true if some vars in the function share ids with v */
+        
         /* Get the scaling factor needed to make sure all coefficients are in [-unit,unit] */
         double get_scale_factor(double unit);
         
@@ -6175,6 +6308,14 @@ namespace gravity {
         
         inline bool is_zero() const { return zero_range();};
         
+        bool has_zero() const{
+            for (size_t i = 0; i < _val->size(); i++) {
+                if(_val->at(i)==zero<type>().eval())
+                    return true;
+            }
+            return false;
+        }
+        
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr> bool zero_range() const{
             //            return (func_is_number() && _range->first == Cpx(0,0) && _range->second == Cpx(0,0));
             return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
@@ -7201,7 +7342,7 @@ namespace gravity {
          @return convexity of function if q = coef*p1*p2 was to be added.
          */
         Convexity get_convexity(const qterm& q){
-            if(q._p->first == q._p->second){
+            if(q._p->first == q._p->second || *q._p->first == *q._p->second){
                 if (q._sign && (q._coef->is_positive() || q._coef->is_non_negative())) {
                     return convex_;
                 }

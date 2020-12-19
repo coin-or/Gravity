@@ -495,8 +495,16 @@ namespace gravity {
             }
         }
         
+        bool has_common_ids(const shared_ptr<param_>& p) const{
+            return get_vec_id()==p->get_vec_id() && !intersect(*p->_indices, *_indices).empty();
+        }
+        
         bool operator==(const param_& p) const {
-            return (_id==p._id && _type==p._type && _intype==p._intype && get_name(false,false)==p.get_name(false,false));
+            if (!(_id==p._id && _type==p._type && _intype==p._intype && get_name(false,true)==p.get_name(false,true)))
+                return false;
+            if(_indices==p._indices) return true;
+            if((_indices && !p._indices) || (p._indices && !_indices) || (*_indices != *p._indices)) return false;
+            return true;
         }
 
         size_t get_dim() const{
@@ -918,7 +926,9 @@ namespace gravity {
         }
 
         
-        
+        bool has_common_ids(const shared_ptr<param_>& p) const{
+            return get_vec_id()==p->get_vec_id() && !intersect(*p->_indices, *_indices).empty();
+        }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline type eval(size_t i) const {
@@ -1190,7 +1200,7 @@ namespace gravity {
                 return index;
             }
             else {
-                _val->resize(std::max(_val->size(),index+1));
+                _val->resize(std::max(_val->size(),index));
                 _dim[0] = std::max(_dim[0],_val->size());
 
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
@@ -1360,6 +1370,22 @@ namespace gravity {
 
         bool is_zero() const{
             return is_zero_();
+        }
+        
+        bool has_zero() const{
+            if(_indices){
+                for (size_t i = 0; i < _indices->size(); i++) {
+                    if(_val->at(get_id_inst(i))==zero<type>().eval())
+                        return true;
+                }
+            }
+            else {
+                for (size_t i = 0; i < _val->size(); i++) {
+                    if(_val->at(i)==zero<type>().eval())
+                        return true;
+                }
+            }
+            return false;
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/

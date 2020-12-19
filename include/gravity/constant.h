@@ -294,6 +294,7 @@ namespace gravity {
         virtual bool is_matrix_indexed() const{return false;};
         virtual bool is_constant() const{return false;};
         virtual bool is_zero() const{return false;}; /**< Returns true if constant equals 0 */
+        virtual bool has_zero() const{return false;}; /**< Returns true if constant includes a 0 value */
         virtual bool is_unit() const{return false;}; /**< Returns true if constant equals 1 */
         virtual bool is_neg_unit() const{return false;}; /**< Returns true if constant equals -1 */
         virtual bool is_positive() const{return false;}; /**< Returns true if constant is positive */
@@ -461,6 +462,8 @@ namespace gravity {
         /** Operators */
         
         bool is_zero() const { return zero_val();};
+
+        bool has_zero() const { return zero_val();};
         
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool zero_val() const{
             return (_val == Cpx(0,0));

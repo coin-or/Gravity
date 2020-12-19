@@ -411,7 +411,7 @@ namespace gravity{
         if(_coef_p1_tr){
             str += ")\u1D40";
         }
-        else if (p_new1==p_new2) {
+        else if (p_new1==p_new2 || *p_new1==*p_new2) {
             str += "²";
             return str;
         }
@@ -458,7 +458,7 @@ namespace gravity{
             if(_coef_p1_tr){
                 str += ")\u1D40";
             }
-            else if (p_new1==p_new2) {
+            else if (p_new1==p_new2 || *p_new1==*p_new2) {
                 str += "²";
                 return str;
             }

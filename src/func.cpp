@@ -4186,10 +4186,6 @@ namespace gravity{
 //
 //
 
-/** Return the number of linear terms in this function */
-unsigned func_::nb_linear_terms() const{
-    return _lterms->size();
-}
 
 
     
@@ -4253,6 +4249,16 @@ unsigned func_::nb_linear_terms() const{
         double factor = get_scale_factor(unit);
         *this *= factor;
     }
+
+template<typename type>
+template<typename T>
+bool func<type>::has_ids(const var<T>& v) const{/**<  Return true if some vars in the function share ids with v */
+    for (const auto &vp: *_vars) {
+        if(v.has_common_ids(vp.second.first))
+            return true;
+    }
+    return false;
+}
 
     template<typename type>
     template<typename T>
@@ -6134,6 +6140,7 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     template double func<double>::get_scale_factor(double);
     template void func<double>::update_rows(vector<bool> const&);
     template void func<double>::update_indices(vector<bool> const&);
+    template bool func<double>::has_ids(var<double> const&) const;
 //    template func<double> min(const func<double>& p1, const func<double>& p2);
 //    template func<double> max(const func<double>& p1, const func<double>& p2);
 

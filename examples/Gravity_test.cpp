@@ -23,6 +23,36 @@ using namespace std;
 using namespace gravity;
 
 
+TEST_CASE("testing set intersection unindexed") {
+    indices ids1("index_set1");
+    ids1 = indices(range(1,2), range(2,4));
+    indices ids2("index_set2");
+    ids2 = indices(range(1,5), range(2,4));
+    auto inter_set = intersect(ids1, ids2);
+    inter_set.print(); /* {(1,2) ; (1,3) ; (1,4) ; (2,2) ; (2,3) ; (2,4)} */
+    CHECK(inter_set.size()==6);
+}
+
+TEST_CASE("testing set intersection indexed") {
+    DebugOn("testing set intersection indexed" << endl);
+    indices ids1("index_set1");
+    ids1.add("1","2","3","4","5","6","7","8","9");
+    var<>  v1("v1");
+    v1.in(ids1);
+    
+    indices ids2("index_set2");
+    ids2.add("5,4", "3,5", "6,7", "7,8", "2,6", "8,9");
+    var<>  v2("v2");
+    v2 = v1.from(ids2);
+    
+    var<>  v3("v3");
+    v3 = v1.to(ids2);
+    
+    auto inter_set = intersect(*v2._indices, *v3._indices); //in this case, the keys are same, so the union should check not only keys but also ._ids in the individual index sets and add accordingly
+    inter_set.print();
+    CHECK(inter_set.size()==4); //in the _ids, the function should work in a way that inter_set = {(5) ; (6) ; (7) ; (8)}
+}
+
 TEST_CASE("testing readNL() function on ex4.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
@@ -418,73 +448,73 @@ TEST_CASE("hard nlp") {
     LB->print();
 }
 
-TEST_CASE("testing projection1") {
-    indices buses("buses");
-    buses.insert("1", "2", "3", "4");
-    indices node_pairs("bpairs");
-    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+//TEST_CASE("testing projection1") {
+//    indices buses("buses");
+//    buses.insert("1", "2", "3", "4");
+//    indices node_pairs("bpairs");
+//    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+//
+//    Model<> Mtest("Mtest");
+//    var<>  R_Wij("R_Wij", -1, 1);
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", -1, 1);
+//    var<>  Wii("Wii", 0.8, 1.21);
+//    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+//    Constraint<> SOC("SOC");
+//    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
+//    Mtest.add(SOC.in(node_pairs) == 0);
+//
+//    auto subset = node_pairs.exclude("4,1");
+//    Constraint<> PAD("PAD");
+//    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
+//    Mtest.add(PAD.in(subset)<=2);
+//
+//
+//    Constraint<> PAD2("PAD2");
+//    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
+//    Mtest.add(PAD2>=1);
+//
+//    Mtest.min(sum(R_Wij));
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_cons() == 8);
+//    Mtest.project();
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_eq() == 0);
+//    CHECK(Mtest.get_nb_ineq() == 12);
+//}
 
-    Model<> Mtest("Mtest");
-    var<>  R_Wij("R_Wij", -1, 1);
-    /* Imaginary part of Wij = ViVj */
-    var<>  Im_Wij("Im_Wij", -1, 1);
-    var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
-    Constraint<> SOC("SOC");
-    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
-    Mtest.add(SOC.in(node_pairs) == 0);
-
-    auto subset = node_pairs.exclude("4,1");
-    Constraint<> PAD("PAD");
-    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
-    Mtest.add(PAD.in(subset)<=2);
-
-
-    Constraint<> PAD2("PAD2");
-    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
-    Mtest.add(PAD2>=1);
-
-    Mtest.min(sum(R_Wij));
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 8);
-    Mtest.project();
-    Mtest.print();
-    CHECK(Mtest.get_nb_eq() == 0);
-    CHECK(Mtest.get_nb_ineq() == 12);
-}
-
-TEST_CASE("testing projection2") {
-    indices buses("buses");
-    buses.insert("1", "2", "3", "4");
-    indices node_pairs("bpairs");
-    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
-    auto subset = node_pairs.exclude("4,1");
-
-    Model<> Mtest("Mtest");
-    var<>  R_Wij("R_Wij");
-    /* Imaginary part of Wij = ViVj */
-    var<>  Im_Wij("Im_Wij", -1, 1);
-    var<>  Wii("Wii", 0.8, 1.21);
-    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
-
-    Constraint<> SOC("SOC");
-    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
-    Mtest.add(SOC.in(subset) == 0);
-
-
-    Constraint<> PAD("PAD");
-    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
-    Mtest.add(PAD.in(node_pairs)<=2);
-
-
-    Mtest.min(sum(R_Wij));
-    Mtest.print();
-    CHECK(Mtest.get_nb_cons() == 7);
-    Mtest.project();
-    Mtest.print();
-    CHECK(Mtest.get_nb_eq() == 0);
-    CHECK(Mtest.get_nb_ineq() == 4);
-}
+//TEST_CASE("testing projection2") {
+//    indices buses("buses");
+//    buses.insert("1", "2", "3", "4");
+//    indices node_pairs("bpairs");
+//    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+//    auto subset = node_pairs.exclude("4,1");
+//
+//    Model<> Mtest("Mtest");
+//    var<>  R_Wij("R_Wij");
+//    /* Imaginary part of Wij = ViVj */
+//    var<>  Im_Wij("Im_Wij", -1, 1);
+//    var<>  Wii("Wii", 0.8, 1.21);
+//    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+//
+//    Constraint<> SOC("SOC");
+//    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
+//    Mtest.add(SOC.in(subset) == 0);
+//
+//
+//    Constraint<> PAD("PAD");
+//    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
+//    Mtest.add(PAD.in(node_pairs)<=2);
+//
+//
+//    Mtest.min(sum(R_Wij));
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_cons() == 7);
+//    Mtest.project();
+//    Mtest.print();
+//    CHECK(Mtest.get_nb_eq() == 0);
+//    CHECK(Mtest.get_nb_ineq() == 4);
+//}
 //
 //
 //
