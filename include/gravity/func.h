@@ -6385,8 +6385,8 @@ namespace gravity {
         
         template<typename T=type,
         typename enable_if<is_arithmetic<T>::value>::type* = nullptr> inline bool zero_range() const{
-//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         
