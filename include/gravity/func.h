@@ -2469,6 +2469,7 @@ namespace gravity {
                         add_var(p_new);
                     }
                     else {
+                        p_new = p_exist;
                         incr_occ_var(pname);
                     }
                 }
@@ -2478,6 +2479,7 @@ namespace gravity {
                         add_param(p_new);
                     }
                     else {
+                        p_new = p_exist;
                         incr_occ_param(pname);
                     }
                 }
@@ -3681,10 +3683,32 @@ namespace gravity {
             }
             if(f._expr){
                 if (f._expr->is_uexpr()) {
-                    _expr = make_shared<uexpr<type>>(*static_pointer_cast<uexpr<type>>(f._expr));
+                    auto uex = *static_pointer_cast<uexpr<type>>(f._expr);
+                    if(uex._son->is_function()){
+                        auto f = static_pointer_cast<func<type>>(uex._son);
+                        func<type> new_f;
+                        new_f.deep_copy(*f);
+                        *uex._son = new_f;
+                    }
+                    _expr = make_shared<uexpr<type>>(uex);
                 }
                 else {
-                    _expr = make_shared<bexpr<type>>(*static_pointer_cast<bexpr<type>>(f._expr));
+                    auto bex = *static_pointer_cast<bexpr<type>>(f._expr);
+                    if(bex._lson->is_function()){
+                        auto f = static_pointer_cast<func<type>>(bex._lson);
+                        func<type> new_f;
+                        new_f.deep_copy(*f);
+                        *bex._lson = new_f;
+                        
+                    }
+                    if(bex._rson->is_function()){
+                        auto f = static_pointer_cast<func<type>>(bex._rson);
+                        func<type> new_f;
+                        new_f.deep_copy(*f);
+                        *bex._rson = new_f;
+                        
+                    }
+                    _expr = make_shared<bexpr<type>>(bex);
                 }
                 embed(_expr);
             }
