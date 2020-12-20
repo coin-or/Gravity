@@ -2530,7 +2530,7 @@ namespace gravity {
         };
         
         
-        param& operator=(const func<type>& f) {
+        param& operator=(func<type>& f) {
             copy_vals(f);
             if(f._indices)
                 *this = this->in(*f._indices);
@@ -2538,7 +2538,7 @@ namespace gravity {
         }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
-        void copy_vals(const func<T>& f){
+        void copy_vals(func<T>& f){
             if(f.func_is_number()){
                 for (size_t i = 0; i < _val->size(); i++) {
                     _val->at(i) = f._val->at(0);
@@ -2551,7 +2551,7 @@ namespace gravity {
                 auto dim = get_dim();
                 _val->resize(dim);
                 for (size_t i = 0; i < dim; i++) {
-                    _val->at(i) = f._val->at(i);
+                    _val->at(i) = f.eval(i);
                 }
                 reset_range();
             }

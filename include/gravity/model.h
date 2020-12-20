@@ -1042,6 +1042,8 @@ public:
         _jac_vals.clear();
         _hess_vals.clear();
         _hess_link.clear();
+        _params.clear();
+        _params_name.clear();
         _first_call_jac = true;
         _first_call_hess = true;
         _first_call_grad_obj = true;
@@ -1607,19 +1609,21 @@ public:
     template<typename T=type>
     void replace(const var<T>& v, const func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
         if(v.is_bounded_below()){
-            if(v.get_name(false,false)=="x.in{(14) ; (15)}")
-                cout << "ok";
-            Constraint<> v_lb(v.get_name(false,false)+"_LB");
+            Constraint<> v_lb(v.get_name(true,true)+"_in_"+v._indices->get_name()+"_LB");
             v_lb = f - v.get_lb().in(*v._indices);
-            add(v_lb.in(*v._indices) >= 0);
+            v_lb.in(*v._indices);
+            v_lb.clean_terms();
+            add(v_lb >= 0);
             v_lb.print();
         }
         if(v.is_bounded_above()) {
-            Constraint<> v_ub(v.get_name(false,false)+"_UB");
+            Constraint<> v_ub(v.get_name(true,true)+"_in_"+v._indices->get_name()+"_UB");
                 //                func<> new_f;
                 //                new_f.deep_copy(f);
             v_ub = f - v.get_ub().in(*v._indices);
-            add(v_ub.in(*v._indices) <= 0);
+            v_ub.in(*v._indices);
+            v_ub.clean_terms();
+            add(v_ub <= 0);
             v_ub.print();
         }
         while(_obj->has_ids(v)){/* Keep replacing until no change */
@@ -1641,7 +1645,7 @@ public:
             }
             while(c->has_ids(v)){/* Keep replacing until no change */
                     //                    c->print();
-                if(v.get_name(false,false)=="x.in{(16) ; (17)}" && c->_name =="NL_C_ub_2")
+                if(v.get_name(false,false)=="x.in{(13)}" && c->_name =="NL_C_ub_2")
                     cout << "ok";
                 DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                 DebugOn("Old constraint: " << endl);
@@ -2393,6 +2397,7 @@ public:
                     param<> cinv("cinv_"+f._to_str);
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
+                        finv.keep_unique_keys();
                         finv.eval_all();
                         cinv = finv;
                         f *= cinv;
@@ -2415,6 +2420,7 @@ public:
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
                         finv.eval_all();
+                        finv.keep_unique_keys();
                         cinv = finv;
                         f *= cinv;
                     }

@@ -5882,24 +5882,29 @@ template<typename type>
 void func<type>::clean_terms(){
     int index = 0;
     func<> new_f;
-    reset_occ();
-    new_f._vars = _vars;
-    new_f._params = _params;
+    if(_cst->is_function()){
+        auto c = static_pointer_cast<func<type>>(_cst);
+        c->eval_all();
+        shared_ptr<param<type>> p = make_shared<param<>>(_name+"_cst");
+        p->in(range(1,c->get_dim()));
+        p->copy_vals(*c);
+        _cst = p;
+        new_f.add_param(p);
+    }
+    else if (_cst->is_param()){
+        auto p = static_pointer_cast<param<type>>(_cst);
+        p->set_name(_name+"_cst");
+        new_f.add_param(p);
+    }
     for (auto &pair:*_lterms) {
         if(pair.second._coef->is_function()){
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->eval_all();
-            bool all_zeros = true;
-            for (int i = 0; i<c->get_nb_inst(); i++) {
-                if(c->_val->at(i)!=0)
-                    all_zeros = false;
-            }
-//            param<> p(_name+"_lin_coef"+to_string(index++));
-//            p.copy_vals(*c);
-//            p._indices = make_shared<indices>(range(1,p._dim[0]));
-            if(!all_zeros){
-//                pair.second._coef = make_shared<param<>>(p);
-                new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p);
+            param<type> p(_name+"_lin_coef"+to_string(index++));
+            p.in(range(1,c->get_dim()));
+            p.copy_vals(*c);
+            if(!p.is_zero()){
+                new_f.insert(pair.second._sign, p, *pair.second._p);
             }
         }
         else if(!pair.second._coef->is_zero()){
@@ -5912,17 +5917,11 @@ void func<type>::clean_terms(){
         if(pair.second._coef->is_function()){
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->eval_all();
-            bool all_zeros = true;
-            for (int i = 0; i<c->get_nb_inst(); i++) {
-                if(c->_val->at(i)!=0)
-                    all_zeros = false;
-            }
-//            param<> p(_name+"_lin_coef"+to_string(index++));
-//            p.copy_vals(*c);
-//            p._indices = make_shared<indices>(range(1,p._dim[0]));
-            if(!all_zeros){
-//                pair.second._coef = make_shared<param<>>(p);
-                new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
+            param<type> p(_name+"_quad_coef"+to_string(index++));
+            p.in(range(1,c->get_dim()));
+            p.copy_vals(*c);
+            if(!p.is_zero()){
+                new_f.insert(pair.second._sign, p, *pair.second._p->first, *pair.second._p->second);
             }
         }
         else if(!pair.second._coef->is_zero()){
@@ -5935,16 +5934,11 @@ void func<type>::clean_terms(){
         if(pair.second._coef->is_function()){
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->eval_all();
-            bool all_zeros = true;
-            for (int i = 0; i<c->get_nb_inst(); i++) {
-                if(c->_val->at(i)!=0)
-                    all_zeros = false;
-            }
-//            param<> p(_name+"_lin_coef"+to_string(index++));
-//            p.copy_vals(*c);
-//            p._indices = make_shared<indices>(range(1,p._dim[0]));
-            if(!all_zeros){
-//                pair.second._coef = make_shared<param<>>(p);
+            param<type> p(_name+"_poly_coef"+to_string(index++));
+            p.in(range(1,c->get_dim()));
+            p.copy_vals(*c);
+            if(!p.is_zero()){
+                pair.second._coef = make_shared<param<>>(p);
                 new_f.insert(pair.second);
             }
         }
@@ -5953,24 +5947,8 @@ void func<type>::clean_terms(){
         }
     }
     _pterms = new_f._pterms;
-    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-    auto iter = _vars->begin();
-    while (iter!=_vars->end()) {
-        auto v = iter->second.first;
-        if(iter->second.second>0)
-            new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
-        iter++;
-    }
-    _vars = new_vars;
-    iter = _params->begin();
-    while (iter!=_params->end()) {
-        auto p = iter->second.first;
-        if(iter->second.second>0)
-            new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
-        iter++;
-    }
-    _params = new_params;
+    _vars = new_f._vars;
+    _params = new_f._params;
 }
 
 template<typename type>
@@ -5996,8 +5974,22 @@ void func<type>::update_terms(){
         auto p = pair.second.first;
         p->_indices->set_name(p->_indices->to_str());
         string name = p->_name.substr(0, p->_name.find_last_of("."));
-        p->_name = name+".in"+p->_indices->get_name();
+        p->_name = name+"_in_"+p->_indices->get_name();
         new_params->insert(make_pair<>(p->get_name(false,false), pair.second));
+    }
+    if(_cst->is_function()){
+        auto c = static_pointer_cast<func<type>>(_cst);
+        c->eval_all();
+        shared_ptr<param<type>> p = make_shared<param<>>(_name+"_cst");
+        p->in(range(1,c->get_dim()));
+        p->copy_vals(*c);
+        _cst = p;
+        new_params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p,1)));
+    }
+    else if (_cst->is_param()){
+        auto p = static_pointer_cast<param<type>>(_cst);
+        p->set_name(_name+"_cst");
+        new_params->insert(make_pair<>(p->get_name(false,false), make_pair<>(p,1)));
     }
     _params = new_params;
     string key;
