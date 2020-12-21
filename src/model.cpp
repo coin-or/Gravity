@@ -5988,11 +5988,11 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
                     vi_ub_val=var_ub.eval(key);
                     if(vi_ub_val-v.get_lb(key)<=range_tol){
                         fixed_point[var_key+"|LB"]=true;
-                        DebugOn("vi_ub "<<vi_ub_val<<" vlb "<<v.get_lb(key)<<" "<<key_lb<<endl);
+                        DebugOff("vi_ub "<<vi_ub_val<<" vlb "<<v.get_lb(key)<<" "<<key_lb<<endl);
                     }
                     if(v.get_ub(key)-vi_ub_val<=range_tol){
                         fixed_point[var_key+"|UB"]=true;
-                        DebugOn("vi_ub "<<vi_ub_val<<" vlb "<<v.get_ub(key)<<" "<<key_ub<<endl);
+                        DebugOff("vi_ub "<<vi_ub_val<<" vlb "<<v.get_ub(key)<<" "<<key_ub<<endl);
                     }
                 }
             }

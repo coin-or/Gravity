@@ -1599,6 +1599,111 @@ var<> vk, var_ub;
         }
 template<typename type>
 template<typename T>
+bool Model<type>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol){
+std::map<int, double> map_lb, map_ub; 
+var<> var_ub;
+double vi_b, vi_ub_val, vi_star, vi_int;
+std::string viname, vikey, vidir;
+bool in_orig_model=false;
+for(auto &modeli:models){
+    if (modeli->_status==0 && !fixed_point[modeli->_name])
+    {
+        /* code */
+        auto miname=modeli->_name;
+        auto   mname=miname;
+        std::size_t pos = mname.find("|");
+        viname.assign(mname, 0, pos);
+        mname=mname.substr(pos+1);
+        pos=mname.find("|");
+        vikey.assign(mname, 0, pos);
+        vidir=mname.substr(pos+1);
+   
+    var<> vi=obbt_model->template get_var<T>(viname);
+    in_orig_model=false;
+    if(this->_vars_name.find(viname)!=this->_vars_name.end())
+{
+    var_ub=this->template get_var<T>(viname);
+    in_orig_model=true;
+    vi_ub_val=var_ub.eval(vikey);
+}
+
+if(vidir=="UB"){
+    vi_star=vi.get_ub(vikey);
+    vi_b=vi.get_lb(vikey);
+    if(in_orig_model){
+    vi_b=vi_ub_val;
+}
+vi_int=vi_star-vi_b;
+}
+ if(vidir=="LB"){
+    vi_star=vi.get_lb(vikey);
+    vi_b=vi.get_ub(vikey);
+    if(in_orig_model){
+    vi_b=vi_ub_val;
+}
+vi_int=vi_b-vi_star;
+}  
+
+for (auto &vj: modeli->_vars) {
+        auto nb_inst = vj.second->get_dim();
+        auto ldvj= vj.second->_l_dual;
+        auto udvj=vj.second->_u_dual;
+        auto vjkeys=vj.second->get_keys();
+        auto vjname=vj.second->_name;
+        auto vjid=vj.second->get_id();
+
+for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+ {
+    vjkey=(*vjkeys)[vpiter];
+    auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
+    auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
+
+if(objective_models.find(mjname_ub)==objective_models.end() && udv[vpiter] >= 1E-3)
+{
+var<> vj=modeli->template get_var<T>(vjname);
+auto lb_vj=vj.second->get_double_lb(vpiter);
+auto ub_vj=vj.second->get_double_ub(vpiter);
+auto lb_vj_new=ub_vj-(vi_int)/udv[vpiter];
+ if((lb_vj_new-lb_vj)>=range_tol){
+    if(map_lb.find(vjid+vpiter)!=map.end()){
+        if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
+            map_lb.at(vjid+vpiter)=lb_vj_new;
+        }
+    }
+    else{
+        map_lb.at(vjid+vpiter)=lb_vj_new;
+    }
+
+    }
+}
+
+if(objective_models.find(mjname_lb)==objective_models.end() && ldv[vpiter] >= 1E-3)
+{
+var<> vj=modeli->template get_var<T>(vjname);
+auto lb_vj=vj.second->get_double_lb(vpiter);
+auto ub_vj=vj.second->get_double_ub(vpiter);
+auto ub_vj_new=lb_vj+(vi_int)/ldv[vpiter];
+ if((ub_vj-ub_vj_new)>=range_tol){
+    if(map_ub.find(vjid+vpiter)!=map.end()){
+        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
+            map_ub.at(vjid+vpiter)=ub_vj_new;
+        }
+    }
+    else{
+        map_ub.at(vjid+vpiter)=ub_vj_new;
+    }
+
+    }
+}
+} 
+}
+}
+}
+
+}
+
+template<typename type>
+template<typename T>
 shared_ptr<Model<type>> Model<type>::build_model_IIS()
 {
     auto IIS = make_shared<Model<>>(_name+"IIS");
