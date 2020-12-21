@@ -1614,7 +1614,7 @@ public:
             v_lb.in(*v._indices);
             v_lb.clean_terms();
             add(v_lb >= 0);
-            v_lb.print();
+//            v_lb.print();
         }
         if(v.is_bounded_above()) {
             Constraint<> v_ub(v.get_name(true,true)+"_in_"+v._indices->get_name()+"_UB");
@@ -1624,16 +1624,16 @@ public:
             v_ub.in(*v._indices);
             v_ub.clean_terms();
             add(v_ub <= 0);
-            v_ub.print();
+//            v_ub.print();
         }
         while(_obj->has_ids(v)){/* Keep replacing until no change */
-            DebugOn("After replacing " << v.get_name(false,false) << " in obj: " << endl);
-            DebugOn("Old obj: " << endl);
-            _obj->print();
+            DebugOff("After replacing " << v.get_name(false,false) << " in obj: " << endl);
+            DebugOff("Old obj: " << endl);
+//            _obj->print();
             *_obj = _obj->replace(v, f);
             _obj->clean_terms(); /* put this in while loop above*/
-            DebugOn("Projected obj: " << endl);
-            _obj->print();
+            DebugOff("Projected obj: " << endl);
+//            _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
@@ -1645,22 +1645,20 @@ public:
             }
             while(c->has_ids(v)){/* Keep replacing until no change */
                     //                    c->print();
-                if(v.get_name(false,false)=="x.in{(13)}" && c->_name =="NL_C_ub_2")
-                    cout << "ok";
-                DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                DebugOn("Old constraint: " << endl);
-                c->print();
+                DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                DebugOff("Old constraint: " << endl);
+//                c->print();
                 int nb_inst = c->get_nb_instances();
                 auto new_c = c->replace(v, f);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=nb_inst){
-                    DebugOn("Variable indices :" << v._indices->to_str() << endl);
-                    DebugOn("Projected constraint: " << endl);
+                    DebugOff("Variable indices :" << v._indices->to_str() << endl);
+                    DebugOff("Projected constraint: " << endl);
                         //                        new_c.update_terms();
                     new_c.clean_terms();
                     c->clean_terms();
-                    DebugOn("Splitted constraint: " << endl);
-                    c->print();
-                    new_c.print();
+                    DebugOff("Splitted constraint: " << endl);
+//                    c->print();
+//                    new_c.print();
                     
                     if(new_c._ctype==eq){
                         eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
@@ -1670,20 +1668,20 @@ public:
                     }
                 }
                 else{
-                    DebugOn("Variable indices :");
-                    v._indices->print();
-                    DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                    DebugOn("Projected constraint: " << endl);
+                    DebugOff("Variable indices :");
+//                    v._indices->print();
+                    DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                    DebugOff("Projected constraint: " << endl);
                     new_c.clean_terms();
-                    new_c.print();
+//                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
                 }
             }
         }
         
-        DebugOn("Variable indices :");
-        v._indices->print();
+        DebugOff("Variable indices :");
+//        v._indices->print();
         DebugOn(" Variable " << v._name << " successfully projected" << endl);
             //            auto vid = *v._vec_id;
             //            _vars.erase(vid);
@@ -2340,14 +2338,8 @@ public:
             if(c->has_matrix_indexed_vars()){/* Also do with quadratic*/
                 continue;
             }
-            DebugOn("Using the following constraints to project: " << endl);
-                //                c->clean_terms();
-            c->print();
-            if(c->is_quadratic()){
-                DebugOn("Using a quadratic constraint to project!" << endl);
-            }
-                //                if(c->_name=="lin_eq_1_projected.in({(inst_3) ; (inst_4)})")
-                //                    cout << "ok";
+            DebugOff("Using the following constraints to project: " << endl);
+//            c->print();
             /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
@@ -5898,7 +5890,16 @@ public:
         str.append(size_header,'-');
         cout << str << endl;
         cout << "Number of variables = " << get_nb_vars() << endl;
-        cout << "Number of constraints = " << get_nb_cons() << " (" << get_nb_ineq() << " inequalities, " << get_nb_eq() << " equations)" << endl;
+        cout << "Number of constraints = " << get_nb_cons() << " (";
+        int nb_ineq = get_nb_ineq(), nb_eq = get_nb_eq();
+        if(nb_ineq==1)
+            cout << " 1 inequality, ";
+        else
+            cout << nb_ineq << " inequalities, ";
+        if(nb_eq==1)
+            cout << " 1 equation)" << endl;
+        else
+            cout << nb_eq << " equations)" << endl;
             //    compute_funcs();
         cout << "Objective: ";
         if(_objt==minimize){

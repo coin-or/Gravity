@@ -67,6 +67,74 @@ TEST_CASE("testing readNL() function on ex4.nl") {
     M.write();
 }
 
+TEST_CASE("testing projection1") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij", -1, 1);
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+    Constraint<> SOC("SOC");
+    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
+    Mtest.add(SOC.in(node_pairs) == 0);
+
+    auto subset = node_pairs.exclude("4,1");
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
+    Mtest.add(PAD.in(subset)<=2);
+
+
+    Constraint<> PAD2("PAD2");
+    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
+    Mtest.add(PAD2>=1);
+
+    Mtest.min(R_Wij("1,3") + R_Wij("4,1"));
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 8);
+    Mtest.project();
+    Mtest.print();
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 12);
+}
+
+TEST_CASE("testing projection2") {
+    indices buses("buses");
+    buses.insert("1", "2", "3", "4");
+    indices node_pairs("bpairs");
+    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
+    auto subset = node_pairs.exclude("4,1");
+
+    Model<> Mtest("Mtest");
+    var<>  R_Wij("R_Wij");
+    /* Imaginary part of Wij = ViVj */
+    var<>  Im_Wij("Im_Wij", -1, 1);
+    var<>  Wii("Wii", 0.8, 1.21);
+    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
+
+    Constraint<> SOC("SOC");
+    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
+    Mtest.add(SOC.in(subset) == 0);
+
+
+    Constraint<> PAD("PAD");
+    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
+    Mtest.add(PAD.in(node_pairs)<=2);
+
+
+    Mtest.min(R_Wij("1,2") + R_Wij("3,4"));
+    Mtest.print();
+    CHECK(Mtest.get_nb_cons() == 7);
+    Mtest.project();
+    Mtest.print();
+    CHECK(Mtest.get_nb_eq() == 0);
+    CHECK(Mtest.get_nb_ineq() == 4);
+}
+
 TEST_CASE("testing readNL() function on wastewater02m1.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/wastewater02m1.nl";
@@ -511,73 +579,7 @@ TEST_CASE("hard nlp") {
     LB->print();
 }
 
-//TEST_CASE("testing projection1") {
-//    indices buses("buses");
-//    buses.insert("1", "2", "3", "4");
-//    indices node_pairs("bpairs");
-//    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
-//
-//    Model<> Mtest("Mtest");
-//    var<>  R_Wij("R_Wij", -1, 1);
-//    /* Imaginary part of Wij = ViVj */
-//    var<>  Im_Wij("Im_Wij", -1, 1);
-//    var<>  Wii("Wii", 0.8, 1.21);
-//    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
-//    Constraint<> SOC("SOC");
-//    SOC = 2*R_Wij + pow(Im_Wij, 2) - 4*Wii.from(node_pairs);
-//    Mtest.add(SOC.in(node_pairs) == 0);
-//
-//    auto subset = node_pairs.exclude("4,1");
-//    Constraint<> PAD("PAD");
-//    PAD = 2*R_Wij.in(subset) - Im_Wij.in(subset);
-//    Mtest.add(PAD.in(subset)<=2);
-//
-//
-//    Constraint<> PAD2("PAD2");
-//    PAD2 = R_Wij("4,1") - 2*Im_Wij("4,1");
-//    Mtest.add(PAD2>=1);
-//
-//    Mtest.min(sum(R_Wij));
-//    Mtest.print();
-//    CHECK(Mtest.get_nb_cons() == 8);
-//    Mtest.project();
-//    Mtest.print();
-//    CHECK(Mtest.get_nb_eq() == 0);
-//    CHECK(Mtest.get_nb_ineq() == 12);
-//}
 
-//TEST_CASE("testing projection2") {
-//    indices buses("buses");
-//    buses.insert("1", "2", "3", "4");
-//    indices node_pairs("bpairs");
-//    node_pairs.insert("1,2", "1,3", "3,4", "4,1");
-//    auto subset = node_pairs.exclude("4,1");
-//
-//    Model<> Mtest("Mtest");
-//    var<>  R_Wij("R_Wij");
-//    /* Imaginary part of Wij = ViVj */
-//    var<>  Im_Wij("Im_Wij", -1, 1);
-//    var<>  Wii("Wii", 0.8, 1.21);
-//    Mtest.add(R_Wij.in(node_pairs), Im_Wij.in(node_pairs), Wii.in(buses));
-//
-//    Constraint<> SOC("SOC");
-//    SOC = 2*R_Wij.in(subset) + pow(Im_Wij.in(subset), 2) - 4*Wii.from(subset);
-//    Mtest.add(SOC.in(subset) == 0);
-//
-//
-//    Constraint<> PAD("PAD");
-//    PAD = 2*R_Wij.in(node_pairs) - Im_Wij.in(node_pairs);
-//    Mtest.add(PAD.in(node_pairs)<=2);
-//
-//
-//    Mtest.min(sum(R_Wij));
-//    Mtest.print();
-//    CHECK(Mtest.get_nb_cons() == 7);
-//    Mtest.project();
-//    Mtest.print();
-//    CHECK(Mtest.get_nb_eq() == 0);
-//    CHECK(Mtest.get_nb_ineq() == 4);
-//}
 //
 //
 //
