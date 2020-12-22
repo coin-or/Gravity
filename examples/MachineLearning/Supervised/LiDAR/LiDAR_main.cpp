@@ -153,7 +153,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="yes";
+        string algo = "ARMO", global_str = "global", convex_str = "convex", reform_str="yes";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -773,7 +773,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
 //        }
 //    }
     Model<> Reg("Reg");
-    var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+    var<> new_x1("new_x1", -1,1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1,1);
     var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
@@ -796,7 +796,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
 //                    var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
-    var<> delta("delta", pos_);
+    var<> delta("delta", 0, 12);
     var<> delta_min("delta_min", pos_);
     var<int> bin("bin",0,1);
     Reg.add(bin.in(cells));
@@ -1042,7 +1042,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
-    convex=true;
+    //convex=true;
     //vector<pair<double,double>> min_max_data;
     //vector<vector<pair<double,double>>> min_max_model(nm);
     //vector<int> nb_neighbors(nd);
@@ -1198,7 +1198,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
     //Can also try hull relaxation of the big-M here
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
     Constraint<> VI("VI");
     VI = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
@@ -1207,6 +1207,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     
    // VI.print_symbolic();
     bool valid_ineq=false;
+    bool vi_nonconvex=true;
     if(valid_ineq){
         Reg.add(new_nx.in(N1), new_ny.in(N1), new_nz.in(N1));
         
@@ -1226,7 +1227,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         if(vi_nonconvex){
         
         Constraint<> VI_nonconvex("VI_nonconvex");
-        VI_nonconvex = 2*((new_xm-new_nx)*new_x1+(new_ym-new_ny2)*new_y1+(new_zm-new_nz)*new_z1+ ((pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)));
+        VI_nonconvex = 2*((new_xm-new_nx)*new_x1+(new_ym-new_ny)*new_y1+(new_zm-new_nz)*new_z1)+ ((pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)));
             Reg.add(VI_nonconvex.in(N1)>=0);
         }
         else{
@@ -1236,31 +1237,31 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
             Reg.add(px.in(N1),py.in(N1),pz.in(N1),nlift.in(N1));
             
             Constraint<> Def_px_U("Def_px_U");
-            Def_px_U = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells));
-            Reg.add(Def_px_U.in(cells)<=bin.in(cells));
+            Def_px_U = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))-bin.in(cells);
+            Reg.add(Def_px_U.in(cells)<=0);
             
             Constraint<> Def_px_L("Def_px_L");
-            Def_px_L = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells));
-            Reg.add(Def_px_L.in(cells)+bin.in(cells)>=0);
+            Def_px_L = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))+bin.in(cells);
+            Reg.add(Def_px_L.in(cells)>=0);
             
             Constraint<> Def_py_U("Def_py_U");
-            Def_py_U = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells));
-            Reg.add(Def_py_U.in(cells)<=bin.in(cells));
+            Def_py_U = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))-bin.in(cells);
+            Reg.add(Def_py_U.in(cells)<=0);
             
             Constraint<> Def_py_L("Def_py_L");
-            Def_py_L = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells));
-            Reg.add(Def_py_L.in(cells)+bin.in(cells)>=0);
+            Def_py_L = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))+bin.in(cells);
+            Reg.add(Def_py_L.in(cells)>=0);
             
             Constraint<> Def_pz_U("Def_pz_U");
-            Def_pz_U = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells));
-            Reg.add(Def_pz_U.in(cells)<=bin.in(cells));
+            Def_pz_U = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))-bin.in(cells);
+            Reg.add(Def_pz_U.in(cells)<=0);
             
             Constraint<> Def_pz_L("Def_pz_L");
-            Def_pz_L = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells));
-            Reg.add(Def_pz_L.in(cells)+bin.in(cells)>=0);
+            Def_pz_L = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))+bin.in(cells);
+            Reg.add(Def_pz_L.in(cells)>=0);
             
             Constraint<> Def_nlift("Def_nlift");
-            Def_nlift = nlift-pow(new_nx,2)-pow(ny,2)-pow(nz,2));
+            Def_nlift = nlift-pow(nx,2)-pow(ny,2)-pow(nz,2);
             Reg.add(Def_nlift.in(N1)>=0);
             
         }
