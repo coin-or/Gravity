@@ -214,7 +214,7 @@ int main (int argc, char * argv[])
             point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 10;
+        int nb_ext = 100;
         bool global = global_str=="global";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
@@ -1042,13 +1042,14 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
+    convex=true;
     //vector<pair<double,double>> min_max_data;
     //vector<vector<pair<double,double>>> min_max_model(nm);
     //vector<int> nb_neighbors(nd);
     //vector<vector<int>> neighbors(nd);
     vector<double> zeros = {0,0,0};
     
-    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2"), nx2("nx2"), ny2("ny2"), nz2("nz2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
     //        return 0;
@@ -1077,6 +1078,35 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         y2.add_val(j_str,point_cloud_model.at(j).at(1));
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
     }
+    
+    double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000;
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        x=x2.eval(j_str);
+        y=y2.eval(j_str);
+        z=z2.eval(j_str);
+        
+        for (auto k = 0; k<nm; k++) {
+            if(k!=j){
+            auto k_str = to_string(k+1);
+            kx=x2.eval(k_str);
+            ky=y2.eval(k_str);
+            kz=z2.eval(k_str);
+                d=std::pow(kx-x,2)+std::pow(ky-y,2)+std::pow(kz-z,2);
+                if(d<dist_min){
+                    nx=kx;
+                    ny=ky;
+                    nz=kz;
+                    dist_min=d;
+                }
+            }
+        
+        }
+        nx2.add_val(j_str,nx);
+        ny2.add_val(j_str,ny);
+        nz2.add_val(j_str,nz);
+    }
+    
 //    for (auto i = 0; i< nd; i++) {
 //        double min_dist = numeric_limits<double>::max();
 //        for (auto j = 0; j< nm; j++) {
@@ -1105,9 +1135,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
 //        }
 //    }
     Model<> Reg("Reg");
-    var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
-    var<> new_xm("new_xm"), new_ym("new_ym"), new_zm("new_zm");
-    //var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+    var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
+    var<> new_nx("new_nx", -1, 1), new_ny("new_ny", -1, 1), new_nz("new_nz", -1, 1);
+    var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
+    var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
     //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
@@ -1129,7 +1160,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
 //                    var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
-    var<> delta("delta", pos_);
+    var<> delta("delta", 0,12);
+    
     var<int> bin("bin",0,1);
     Reg.add(bin.in(cells));
     DebugOn("Added binary variables" << endl);
@@ -1165,6 +1197,77 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
+    //Can also try hull relaxation of the big-M here
+    bool vi_M=false;
+    if(vi_M){
+    Constraint<> VI("VI");
+    VI = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
+        Reg.add(VI.in(cells)>=0);
+    }
+    
+   // VI.print_symbolic();
+    bool valid_ineq=false;
+    if(valid_ineq){
+        Reg.add(new_nx.in(N1), new_ny.in(N1), new_nz.in(N1));
+        
+        Constraint<> Def_newnx("Def_newnx");
+        Def_newnx = new_nx-product(nx2.in(N2),bin.in_matrix(1, 1));
+        Reg.add(Def_newnx.in(N1)==0);
+        
+        Constraint<> Def_newny("Def_newny");
+         Def_newny = new_ny-product(ny2.in(N2),bin.in_matrix(1, 1));
+         Reg.add(Def_newny.in(N1)==0);
+        
+        Constraint<> Def_newnz("Def_newnz");
+         Def_newnz = new_nz-product(nz2.in(N2),bin.in_matrix(1, 1));
+         Reg.add(Def_newnz.in(N1)==0);
+        
+        
+        if(vi_nonconvex){
+        
+        Constraint<> VI_nonconvex("VI_nonconvex");
+        VI_nonconvex = 2*((new_xm-new_nx)*new_x1+(new_ym-new_ny2)*new_y1+(new_zm-new_nz)*new_z1+ ((pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)));
+            Reg.add(VI_nonconvex.in(N1)>=0);
+        }
+        else{
+            
+            
+            var<> px("px", -1, 1), py("py", -1, 1), pz("pz", -1, 1), nlift("nlift", -1, 1);
+            Reg.add(px.in(N1),py.in(N1),pz.in(N1),nlift.in(N1));
+            
+            Constraint<> Def_px_U("Def_px_U");
+            Def_px_U = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells));
+            Reg.add(Def_px_U.in(cells)<=bin.in(cells));
+            
+            Constraint<> Def_px_L("Def_px_L");
+            Def_px_L = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells));
+            Reg.add(Def_px_L.in(cells)+bin.in(cells)>=0);
+            
+            Constraint<> Def_py_U("Def_py_U");
+            Def_py_U = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells));
+            Reg.add(Def_py_U.in(cells)<=bin.in(cells));
+            
+            Constraint<> Def_py_L("Def_py_L");
+            Def_py_L = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells));
+            Reg.add(Def_py_L.in(cells)+bin.in(cells)>=0);
+            
+            Constraint<> Def_pz_U("Def_pz_U");
+            Def_pz_U = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells));
+            Reg.add(Def_pz_U.in(cells)<=bin.in(cells));
+            
+            Constraint<> Def_pz_L("Def_pz_L");
+            Def_pz_L = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells));
+            Reg.add(Def_pz_L.in(cells)+bin.in(cells)>=0);
+            
+            Constraint<> Def_nlift("Def_nlift");
+            Def_nlift = nlift-pow(new_nx,2)-pow(ny,2)-pow(nz,2));
+            Reg.add(Def_nlift.in(N1)>=0);
+            
+        }
+                          
+                          
+        
+    }
     
     Constraint<> Norm2("Norm2");
       Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
