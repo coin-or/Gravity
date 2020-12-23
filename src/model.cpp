@@ -6154,7 +6154,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     double gap_new=-999, gap=0, ub_scale_value;
     const double gap_tol=rel_tol;
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 5, ub_solver_tol, 2000, 600);
+    UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
     ub_scale_value=this->get_obj_val();
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
     if(scale_objective){
@@ -6163,7 +6163,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         relaxed_model->reset();
         ub_scale_value=1.0;
     }
-    LBnonlin_solver.run(output = 5 , lb_solver_tol, 2000, 2000);
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 2000);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
