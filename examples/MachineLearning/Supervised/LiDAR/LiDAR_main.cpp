@@ -1085,7 +1085,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         x=x2.eval(j_str);
         y=y2.eval(j_str);
         z=z2.eval(j_str);
-        
+        dist_min=15;
         for (auto k = 0; k<nm; k++) {
             if(k!=j){
             auto k_str = to_string(k+1);
@@ -1198,17 +1198,15 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
     //Can also try hull relaxation of the big-M here
-    bool vi_M=true;
+    bool vi_M=false;
     if(vi_M){
-    Constraint<> VI("VI");
-    VI = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
-        Reg.add(VI.in(cells)>=0);
+    Constraint<> VI_M("VI_M");
+    VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
+        Reg.add(VI_M.in(cells)>=0);
     }
-    
+    else{
    // VI.print_symbolic();
-    bool valid_ineq=false;
-    bool vi_nonconvex=true;
-    if(valid_ineq){
+    bool vi_nonconvex=false;
         Reg.add(new_nx.in(N1), new_ny.in(N1), new_nz.in(N1));
         
         Constraint<> Def_newnx("Def_newnx");
@@ -1226,43 +1224,47 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         
         if(vi_nonconvex){
         
-        Constraint<> VI_nonconvex("VI_nonconvex");
-        VI_nonconvex = 2*((new_xm-new_nx)*new_x1+(new_ym-new_ny)*new_y1+(new_zm-new_nz)*new_z1)+ ((pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)));
+            Constraint<> VI_nonconvex("VI_nonconvex");
+            VI_nonconvex = 2*((new_xm-new_nx)*new_x1+(new_ym-new_ny)*new_y1+(new_zm-new_nz)*new_z1)+ ((pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)));
             Reg.add(VI_nonconvex.in(N1)>=0);
         }
         else{
             
             
-            var<> px("px", -1, 1), py("py", -1, 1), pz("pz", -1, 1), nlift("nlift", -1, 1);
+            var<> px("px", -1, 1), py("py", -1, 1), pz("pz", -1, 1), nlift("nlift", 0, 3);
             Reg.add(px.in(N1),py.in(N1),pz.in(N1),nlift.in(N1));
             
             Constraint<> Def_px_U("Def_px_U");
-            Def_px_U = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))-bin.in(cells);
+            Def_px_U = px.from(cells)-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))+bin.in(cells)-1;
             Reg.add(Def_px_U.in(cells)<=0);
             
             Constraint<> Def_px_L("Def_px_L");
-            Def_px_L = px-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))+bin.in(cells);
+            Def_px_L = px.from(cells)-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))-bin.in(cells)+1;
             Reg.add(Def_px_L.in(cells)>=0);
             
             Constraint<> Def_py_U("Def_py_U");
-            Def_py_U = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))-bin.in(cells);
+            Def_py_U = py.from(cells)-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))+bin.in(cells)-1;
             Reg.add(Def_py_U.in(cells)<=0);
             
             Constraint<> Def_py_L("Def_py_L");
-            Def_py_L = py-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))+bin.in(cells);
+            Def_py_L = py.from(cells)-new_y1.from(cells)*(y2.to(cells)-ny2.to(cells))-bin.in(cells)+1;
             Reg.add(Def_py_L.in(cells)>=0);
             
             Constraint<> Def_pz_U("Def_pz_U");
-            Def_pz_U = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))-bin.in(cells);
+            Def_pz_U = pz.from(cells)-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))+bin.in(cells)-1;
             Reg.add(Def_pz_U.in(cells)<=0);
             
             Constraint<> Def_pz_L("Def_pz_L");
-            Def_pz_L = pz-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))+bin.in(cells);
+            Def_pz_L = pz.from(cells)-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))-bin.in(cells)+1;
             Reg.add(Def_pz_L.in(cells)>=0);
             
             Constraint<> Def_nlift("Def_nlift");
-            Def_nlift = nlift-pow(nx,2)-pow(ny,2)-pow(nz,2);
+            Def_nlift = nlift-pow(new_nx,2)-pow(new_ny,2)-pow(new_nz,2);
             Reg.add(Def_nlift.in(N1)>=0);
+
+ 	    Constraint<> VI_convex("VI_convex");
+            VI_convex = 2*(px+py+pz)+nlift-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2));
+            Reg.add(VI_convex.in(N1)>=0);
             
         }
                           
