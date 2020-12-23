@@ -6663,12 +6663,12 @@ int Model<type>::readNL(const string& fname){
             }
             else {
                 if(c_lb>numeric_limits<double>::lowest()){
-                    Constraint<> c("NL_C_lb_"+to_string(index));
+                    Constraint<> c("NL_C_geq_"+to_string(index));
                     c += expr;
                     add(c.in(range(1,1)) >= c_lb);
                 }
                 if(c_ub<numeric_limits<double>::max()){
-                    Constraint<> c("NL_C_ub_"+to_string(index));
+                    Constraint<> c("NL_C_leq_"+to_string(index));
                     c += expr;
                     add(c.in(range(1,1)) <= c_ub);
                 }
@@ -6718,12 +6718,12 @@ int Model<type>::readNL(const string& fname){
                 }
                 else {
                     if(c_lb>numeric_limits<double>::lowest()){
-                        Constraint<> c("Lin_C_lb_"+to_string(index));
+                        Constraint<> c("Lin_C_geq_"+to_string(index));
                         c += expr;
                         add(c.in(range(1,1)) >= c_lb);
                     }
                     if(c_ub<numeric_limits<double>::max()){
-                        Constraint<> c("Lin_C_ub_"+to_string(index));
+                        Constraint<> c("Lin_C_leq_"+to_string(index));
                         c += expr;
                         add(c.in(range(1,1)) <= c_ub);
                     }

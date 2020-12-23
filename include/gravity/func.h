@@ -819,6 +819,11 @@ namespace gravity {
         void update_terms();
         
         /**
+         Reoder the function rows to match index_set's ids order
+         */
+        void reorder_rows(const vector<int>& order);
+        
+        /**
          Update the function terms by removing terms with zero coef
          */
         void clean_terms();

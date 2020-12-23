@@ -49,10 +49,10 @@ namespace gravity {
 
 template<typename type>
 const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
-    if(c1->is_linear() && !c2->is_linear())/* project linear first */
-        return true;
-    if(c2->is_linear() && !c1->is_linear())
-        return false;
+//    if(c1->is_linear() && !c2->is_linear())/* project linear first */
+//        return true;
+//    if(c2->is_linear() && !c1->is_linear())
+//        return false;
     if(c1->get_nb_inst() > c2->get_nb_inst())
         return true;
     return false;
@@ -1673,7 +1673,6 @@ public:
                     DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                     DebugOff("Projected constraint: " << endl);
                     new_c.clean_terms();
-//                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
                 }

@@ -571,6 +571,51 @@
             return res;
         }
         
+        bool has_different_order(const indices& ids) const{
+            if(_type == matrix_){/* If ids is matrix indexed */
+                throw invalid_argument("Function has_different_order(ids) cannot be called on a matrix-indexed set");
+            }
+            if(!is_indexed() || !ids.is_indexed() || size()!=ids.size()){
+                throw invalid_argument("In has_different_order(ids), both index sets need to be indexed and of same size!");
+            }
+            return ids._ids->at(0)!=_ids->at(0);
+        }
+        
+        vector<int> get_ids_order(const indices& ids) const{
+            vector<int> res;
+            if(_type == matrix_){/* If ids is matrix indexed */
+                throw invalid_argument("Function get_ids_order(ids) cannot be called on a matrix-indexed set");
+            }
+            if(!is_indexed() || !ids.is_indexed() || size()!=ids.size()){
+                throw invalid_argument("In get_ids_order(ids), both index sets need to be indexed and of same size!");
+            }
+            for (size_t idx:ids._ids->at(0)) {
+                int position = 0;
+                for (size_t idx2:_ids->at(0)) {
+                    if(idx2==idx){
+                        res.push_back(position);
+                        break;
+                    }
+                    position++;
+                }
+                
+            }
+            return res;
+        }
+        
+        void reorder_rows(const vector<int>& order) {
+            vector<size_t> res;
+            if(!is_indexed() || size()!=order.size()){
+                throw invalid_argument("In reorder(ids), ids needs to be indexed and of same size!");
+            }
+            for (int position:order) {
+                    res.push_back(_ids->at(0).at(position));
+            }
+            _ids->at(0) = res;
+            _name = to_str();
+        }
+        
+        
         bool has_key(const string& key) const{
              if(is_indexed()){/* If ids has key references, use those */
                  auto idx0 = _keys_map->at(key);

@@ -224,6 +224,16 @@ namespace gravity {
             return i*_dim[1]+j;
         };
         
+        void reorder_rows(const vector<int>& order) {
+            if(!_indices){
+                _indices = make_shared<indices>(range(1,_dim[0]));
+            }
+            _indices->reorder_rows(order);
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
+        }
+        
+        
         void update_rows(const vector<bool>& keep_ids) {
             if(!_indices){
                 _indices = make_shared<indices>(range(1,_dim[0]));
@@ -1399,7 +1409,7 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
 //            return (get_dim()==0);
         }
 
