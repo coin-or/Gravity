@@ -344,7 +344,7 @@ int main (int argc, char * argv[]) {
     //SPP->print();
 //    solver<> SPP_solv(SPP, ipopt);
 //    SPP_solv.run(5, 1e-6);
-    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     unsigned max_iter=1e3, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
     auto status=SPP_NC->run_obbt(SPP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);

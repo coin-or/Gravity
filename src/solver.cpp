@@ -7,7 +7,6 @@
 //
 
 #include <gravity/solver.h>
-#include <mutex>
 
 #ifdef USE_BONMIN
 #include <coin/BonBonminSetup.hpp>
@@ -1411,7 +1410,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
  */
 template<typename type>
 template<typename T>
-bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
+bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models,    map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int iter){
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
@@ -1443,12 +1442,12 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             if(dirk=="LB"){
                 boundk1=vk.get_lb(keyk);
                 interval=vk.get_ub(keyk)-objk;
-		boundk1=vk.get_lb(keyk); 
+                boundk1=vk.get_lb(keyk);
             }
             else{
                 boundk1=vk.get_ub(keyk);
                 interval=objk-vk.get_lb(keyk);
-		boundk1=vk.get_ub(keyk); 
+                boundk1=vk.get_ub(keyk);
             }
                 if(std::abs(interval)<=range_tol)
                 {
@@ -1459,7 +1458,9 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             // if new bound converges to previous bound, fixed point is reached and no need to update bounds
             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                      {
-                         fixed_point[msname]=true;
+                         if(iter>1){
+                             fixed_point[msname]=true;
+                         }
                      }
             else{/*Update bounds*/
                 if(dirk=="LB"){
@@ -1795,6 +1796,6 @@ template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
 template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
-template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+template bool Model<double>::obbt_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, map<string, bool>& fixed_point,  const map<string, double>& interval_original, map<string, double>& interval_new, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int iter);
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 }

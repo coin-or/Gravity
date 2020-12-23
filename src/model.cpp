@@ -6295,7 +6295,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     string dir_array[2]={"LB", "UB"};
     var<> v;
     bool close=false, terminate=false, xb_true=true, alg_batch_reset=true;
-    const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
+    const double fixed_tol_abs=range_tol, fixed_tol_rel=range_tol, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
     int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine;
     double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
@@ -6358,7 +6358,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                                             auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
-                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
+                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol, iter);
                                             sol_status.clear();
                                             sol_obj.clear();
                                             objective_models.clear();
