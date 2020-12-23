@@ -1232,7 +1232,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
             
             
             var<> px("px", -1, 1), py("py", -1, 1), pz("pz", -1, 1), nlift("nlift", 0, 3);
-            Reg.add(px.in(N1),py.in(N1),pz.in(N1),nlift.in(N1));
+            Reg.add(px.in(N1),py.in(N1),pz.in(N1));
             
             Constraint<> Def_px_U("Def_px_U");
             Def_px_U = px.from(cells)-new_x1.from(cells)*(x2.to(cells)-nx2.to(cells))+bin.in(cells)-1;
@@ -1258,15 +1258,24 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
             Def_pz_L = pz.from(cells)-new_z1.from(cells)*(z2.to(cells)-nz2.to(cells))-bin.in(cells)+1;
             Reg.add(Def_pz_L.in(cells)>=0);
             
+	    if(convex){
+	    Reg.add(nlift.in(N1));
+	  
             Constraint<> Def_nlift("Def_nlift");
             Def_nlift = nlift-pow(new_nx,2)-pow(new_ny,2)-pow(new_nz,2);
             Reg.add(Def_nlift.in(N1)>=0);
-
+            
+	  
  	    Constraint<> VI_convex("VI_convex");
             VI_convex = 2*(px+py+pz)+nlift-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2));
             Reg.add(VI_convex.in(N1)>=0);
-            
-        }
+            }
+else{
+ 	    Constraint<> VI_nc("VI_nc");                                                   
+            VI_nc = 2*(px+py+pz)+(pow(new_nx,2)+pow(new_ny,2)+pow(new_nz,2))-(pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2));            
+            Reg.add(VI_nc.in(N1)>=0); 
+}             
+}
                           
                           
         
