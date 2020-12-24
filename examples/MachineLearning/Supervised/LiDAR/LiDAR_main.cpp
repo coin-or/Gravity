@@ -153,7 +153,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "ARMO", global_str = "global", convex_str = "convex", reform_str="yes";
+        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="yes";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -1038,7 +1038,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
 
 /* Run the Reformulated Global ARMO model for registration, given in ARMO_inequalities */
 tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 1, shift_max = 0.25;
+    double angle_max = 3.14, shift_max = 0.5;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1142,20 +1142,20 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     
     //            var<> yaw("yaw", thetaz, thetaz), pitch("pitch", thetax, thetax), roll("roll", thetay, thetay);
     //            var<> x_shift("x_shift", 0.2163900, 0.2163900), y_shift("y_shift", -0.1497952, -0.1497952), z_shift("z_shift", 0.0745708, 0.0745708);
-    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+    var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
+    var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
+    var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
+    var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
 //    x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
 //    y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
 //    z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
-    var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosy_cosp("cosy_cosp", std::cos(angle_max), 1);
-    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
-    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
+    var<> siny_sinp("siny_sinp", -1, 1);
+    var<> cosy_sinp("cosy_sinp", -1, 1);
+    var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
+    var<> cosy_cosp("cosy_cosp", -1, 1);
+    var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
+    var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
+    var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
     var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
 //                    var<> yaw("yaw", -1e-6, 1e-6), pitch("pitch",-1e-6, 1e-6), roll("roll", -1e-6, 1e-6);
@@ -1198,13 +1198,14 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
     //Can also try hull relaxation of the big-M here
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
     Constraint<> VI_M("VI_M");
     VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
         Reg.add(VI_M.in(cells)>=0);
     }
-    else{
+bool vi_reform=false;
+    if(vi_reform){
    // VI.print_symbolic();
     bool vi_nonconvex=false;
         Reg.add(new_nx.in(N1), new_ny.in(N1), new_nz.in(N1));
@@ -1459,9 +1460,9 @@ else{
     //        }
     //    M.print_solution();
 //    roll.in(R(1));pitch.in(R(1));yaw.in(R(1));
-    pitch = std::asin(sinp.eval());
-    roll = std::asin(sinr.eval());
-    yaw = std::asin(siny.eval());
+    pitch = std::atan2(sinp.eval(), cosp.eval());
+    roll = std::atan2(sinr.eval(),cosr.eval());
+    yaw = std::atan2(siny.eval(),cosy.eval());
     DebugOn("Roll (degrees) = " << to_string_with_precision(roll.eval()*180/pi,12) << endl);
     DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch.eval()*180/pi,12) << endl);
     DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw.eval()*180/pi,12) << endl);
@@ -2252,6 +2253,9 @@ void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, doub
     double alpha = yaw*pi/180; // yaw in radians
     double shifted_x, shifted_y, shifted_z;
     size_t n = point_cloud.size();
+    DebugOn(roll<<" "<<pitch<<" "<<yaw<<endl);
+DebugOn(beta<<" "<<gamma<<" "<<alpha<<endl);
+DebugOn(cos(beta)<<endl<<sin(beta)<<endl<<cos(gamma)<<endl<<sin(gamma)<<endl<<cos(alpha)<<endl<<sin(alpha)<<endl);
     /* Apply rotation */
     for (auto i = 0; i< n; i++) {
         shifted_x = point_cloud[i][0];
