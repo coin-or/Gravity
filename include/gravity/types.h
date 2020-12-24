@@ -702,6 +702,32 @@
             return res;
         }
         
+        /* Return an index set repeating all the keys n times
+         @param[in] n, number of time repeating the same key
+         */
+        indices repeat_ids(int n) const{
+            indices res(*this);
+            res.set_name(res.get_name() + "repeat_ids(" + to_string(n)+")");
+            res._ids = make_shared<vector<vector<size_t>>>();
+            res._ids->resize(1);
+            int nb_total_keys = n*size();
+            res._ids->at(0).resize(nb_total_keys);
+            if(_type == matrix_){/* If ids is matrix indexed */
+                throw invalid_argument("Function repeat_ids(int n) cannot be called on a matrix indexed set");
+            }
+            else if(_ids){
+                for(int i = 0; i< nb_total_keys; i++){
+                    res._ids->at(0).at(i) = _ids->at(0).at(i%size());
+                }
+            }
+            else {/* copy all keys */
+                for(int i = 0; i< nb_total_keys; i++){
+                    res._ids->at(0).at(i) = i%size();
+                }
+            }
+            return res;
+        }
+        
         /* Delete rows where keep[i] is false. */
         void filter_rows(const vector<bool>& keep){
             bool all_true = true;
@@ -1555,6 +1581,30 @@
             }
         }
         
+        void clear_ids() {
+            if(_ids){
+                auto new_keys = make_shared<vector<string>>(_ids->at(0).size());
+                for(int i = 0; i< _ids->at(0).size(); i++){
+                    new_keys->at(i) = get_key(i);
+                }
+                _ids = nullptr;
+                _keys = new_keys;
+            }
+            _name = to_str();
+        }
+        
+        string get_key(size_t inst = 0) const {
+            if (_ids) {
+                if(_ids->at(0).size() <= inst){
+                    throw invalid_argument("indices::get_key(size_t inst) inst is out of range");
+                }
+                return _keys->at(_ids->at(0).at(inst));
+            }
+            if(_keys->size() <= inst){
+                throw invalid_argument("indices::get_key(size_t inst) inst is out of range");
+            }
+            return _keys->at(inst);
+        };
         
         inline size_t get_id_inst(size_t inst = 0) const {
             if (_ids) {

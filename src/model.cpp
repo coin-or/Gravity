@@ -350,7 +350,7 @@ namespace gravity {
             if(o1==o2) //if variables are same, calculate the bounds more efficiently
             {
                 auto it = _vars_name.find(name);
-                if(it!=_vars_name.end()){
+                if(it!=_vars_name.end() && !o1._indices->is_indexed()){
                     auto vlift = static_pointer_cast<var<type>>(it->second);
                     vlift->_lb->merge_vars(*vlift->_ub);
                     auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);

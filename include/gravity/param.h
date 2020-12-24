@@ -1765,6 +1765,19 @@ namespace gravity {
             return _indices->repeat_id(n,pos);
         }
         
+        /* Return an index set repeating all keys n times
+         @param[in] n, number of time repeating the same key
+         */
+        void repeat_ids(int n){
+            if(!_indices){
+                throw invalid_argument("cannot call repeat_ids(int n) on non-indexed parameter/variable");
+            }
+            *_indices = _indices->repeat_ids(n);
+            _dim[0]=_indices->size();
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
+        }
+        
         /* Return a subset of the current parameter index set corresponding to ids with negative values */
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
         indices get_negative_ids() const{

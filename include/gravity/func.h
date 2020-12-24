@@ -368,6 +368,7 @@ namespace gravity {
         /** The function iterates over key references in _ids and keeps only the unique entries */
         void keep_unique_keys();
         
+        void reset_ids();
         
         
         
@@ -821,7 +822,7 @@ namespace gravity {
         /**
          Reoder the function rows to match index_set's ids order
          */
-        void reorder_rows(const vector<int>& order);
+        void reorder_rows(const vector<int>& order, bool update_vars_params = true);
         
         /**
          Update the function terms by removing terms with zero coef
@@ -829,10 +830,11 @@ namespace gravity {
         void clean_terms();
         
         /**
-         Update the function indexing and its variables/parameters by repeating the index n times.
-         @param[in] n number of times index is repeated
+         Update the function indexing and its variables/parameters by repeating all indices n times.
+         @param[in] n number of times indices are repeated
+         @param[in] n update_vars_params update the indexing of all vars and params
          */
-        void repeat_id(int n);
+        void repeat_ids(int n, bool update_vars_params = true);
         
         
         /**

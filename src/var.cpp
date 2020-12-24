@@ -105,10 +105,24 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
         if (bag.second.size() == bag_size) {
             for (size_t i = 0; i< bag_size-1; i++) {
                 key = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                if(key.find("x")!=std::string::npos){
+                    auto key1 = bag.second[i]->_name.substr(bag.second[i]->_name.find("[")+1);
+                    key1 = key1.substr(0,key1.size()-1);
+                    auto key2 = bag.second[i+1]->_name.substr(bag.second[i+1]->_name.find("[")+1);
+                    key2 = key2.substr(0,key2.size()-1);
+                    key = key1 + "," + key2;
+                }
                 ids_vec[i].add_ref(key);
             }
             /* Loop back pair */
             key = bag.second[0]->_name + "," + bag.second[bag_size-1]->_name;
+            if(key.find("x")!=std::string::npos){
+                auto key1 = bag.second[0]->_name.substr(bag.second[0]->_name.find("[")+1);
+                key1 = key1.substr(0,key1.size()-1);
+                auto key2 = bag.second[bag_size-1]->_name.substr(bag.second[bag_size-1]->_name.find("[")+1);
+                key2 = key2.substr(0,key2.size()-1);
+                key = key1 + "," + key2;
+            }
             ids_vec[bag_size-1].add_ref(key);
         }
     }

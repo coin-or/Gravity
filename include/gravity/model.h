@@ -1607,7 +1607,7 @@ public:
     }
     
     template<typename T=type>
-    void replace(const var<T>& v, const func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
+    void replace(const var<T>& v, func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
         if(v.is_bounded_below()){
             Constraint<> v_lb(v.get_name(true,true)+"_in_"+v._indices->get_name()+"_LB");
             v_lb = f - v.get_lb().in(*v._indices);
@@ -1645,20 +1645,21 @@ public:
             }
             while(c->has_ids(v)){/* Keep replacing until no change */
                     //                    c->print();
-                DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                DebugOff("Old constraint: " << endl);
-//                c->print();
+                DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                DebugOn("Old constraint: " << endl);
+                c->print();
+                if(c->get_name()=="x_in_{(411) ; (412) ; (413) ; (414) ; (415) ; (416) ; (417) ; (418) ; (419) ; (420) ; (421) ; (422) ; (423) ; (424) ; (425) ; (426) ; (427) ; (428) ; (429) ; (430) ; (431) ; (432) ; (433) ; (434) ; (435) ; (436) ; (437) ; (438) ; (439) ; (440) ; (441) ; (442) ; (443) ; (444) ; (445) ; (446) ; (447) ; (448) ; (449) ; (450) ; (451) ; (452) ; (453) ; (454) ; (455) ; (456) ; (457) ; (458) ; (459) ; (460) ; (396) ; (397) ; (398) ; (399) ; (400) ; (245) ; (246) ; (247) ; (248) ; (249) ; (250) ; (251) ; (252) ; (253) ; (254) ; (255) ; (256) ; (257) ; (258) ; (259) ; (260) ; (261) ; (262) ; (263) ; (264) ; (265) ; (266) ; (267) ; (268) ; (269) ; (270) ; (271) ; (272) ; (273) ; (274) ; (275) ; (276) ; (277) ; (278) ; (279) ; (280) ; (281) ; (282) ; (283) ; (284) ; (285) ; (286) ; (287) ; (288) ; (289) ; (290) ; (291) ; (292) ; (293) ; (294) ; (230) ; (231) ; (232) ; (233) ; (234)}_LB" && v._indices->to_str()=="{(467) ; (468) ; (469) ; (470) ; (471) ; (472) ; (473) ; (474) ; (475)}")
+                    cout << "ok";
                 int nb_inst = c->get_nb_instances();
                 auto new_c = c->replace(v, f);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=nb_inst){
-                    DebugOff("Variable indices :" << v._indices->to_str() << endl);
-                    DebugOff("Projected constraint: " << endl);
-                        //                        new_c.update_terms();
+                    DebugOn("Variable indices :" << v._indices->to_str() << endl);
+                    DebugOn("Projected constraint: " << endl);
                     new_c.clean_terms();
+                    new_c.print();
                     c->clean_terms();
-                    DebugOff("Splitted constraint: " << endl);
-//                    c->print();
-//                    new_c.print();
+                    DebugOn("Splitted constraint: " << endl);
+                    c->print();
                     
                     if(new_c._ctype==eq){
                         eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
@@ -1668,14 +1669,17 @@ public:
                     }
                 }
                 else{
-                    DebugOff("Variable indices :");
-//                    v._indices->print();
-                    DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                    DebugOff("Projected constraint: " << endl);
+                    DebugOn("Variable indices :");
+                    v._indices->print();
+                    DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                    DebugOn("Projected constraint: " << endl);
                     new_c.clean_terms();
+                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
                 }
+                DebugOn("function uaed for projection: " << endl);
+                f.print();
             }
         }
         
@@ -2315,7 +2319,23 @@ public:
         DebugOn("Model after restructure: " << endl);
         print();
     }
-    
+    template<typename T=type,
+    typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+    void square_linear_constraints() {
+        auto x = get_var<double>("x");
+        Constraint<type> v_sqr("x_squared");
+        v_sqr += x*x - x*x.get_lb();
+        add(v_sqr.in(*x._indices) >= 0);
+        for (auto& c_pair:_cons) {
+            Constraint<type> c = *c_pair.second;
+            if (c.is_linear()) {
+                Constraint<type> c_sqr(c.get_name()+"_squared");
+                c_sqr += c*c;
+                add(c_sqr.in(*c._indices) >= 0);
+            }
+        }
+    }
+        
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     void project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
@@ -2388,7 +2408,7 @@ public:
                     param<> cinv("cinv_"+f._to_str);
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
-                        finv.keep_unique_keys();
+                        finv.reset_ids();
                         finv.eval_all();
                         cinv = finv;
                         f *= cinv;
@@ -2411,7 +2431,7 @@ public:
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
                         finv.eval_all();
-                        finv.keep_unique_keys();
+                        finv.reset_ids();
                         cinv = finv;
                         f *= cinv;
                     }

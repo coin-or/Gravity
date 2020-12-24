@@ -405,7 +405,7 @@ public:
                         str += "[" + to_string(inst) + "]: ";
                     }
                     else {
-                        str += "[" + this->_indices->_keys->at(inst) + "]: ";
+                        str += "[" + this->_indices->get_key(inst) + "]: ";
                     }
                 }
                 str += this->to_str(inst,prec);
