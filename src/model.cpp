@@ -6044,7 +6044,7 @@ void Model<type>::create_batch_models(vector<shared_ptr<Model<type>>>& batch_mod
         auto obj = *modelk->_obj;
         if(modelk->_cons_name.count("obj|ub")==0){
             Constraint<type> obj_ub("obj|ub");
-            obj_ub = obj - ub;
+            obj_ub = (obj - ub)*1000/ub_scale_value;
             modelk->add(obj_ub<=0);
         }
         batch_models.push_back(modelk);
@@ -6163,7 +6163,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         relaxed_model->reset();
         ub_scale_value=1.0;
     }
-    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 2000);
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;

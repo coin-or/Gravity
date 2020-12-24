@@ -1458,7 +1458,7 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
             // if new bound converges to previous bound, fixed point is reached and no need to update bounds
             if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
                      {
-                         if(iter>1){
+                        if(iter>1){
                              fixed_point[msname]=true;
                          }
                      }
