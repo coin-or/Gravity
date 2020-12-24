@@ -6044,7 +6044,8 @@ void Model<type>::create_batch_models(vector<shared_ptr<Model<type>>>& batch_mod
         auto obj = *modelk->_obj;
         if(modelk->_cons_name.count("obj|ub")==0){
             Constraint<type> obj_ub("obj|ub");
-            obj_ub = (obj - ub)*1000/ub_scale_value;
+            obj_ub = (obj - ub);
+           // obj_ub = (obj - ub)*1000/ub_scale_value;
             modelk->add(obj_ub<=0);
         }
         batch_models.push_back(modelk);

@@ -1440,12 +1440,10 @@ bool Model<type>::obbt_update_bounds(const std::vector<std::string> objective_mo
           
             // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
             if(dirk=="LB"){
-                boundk1=vk.get_lb(keyk);
                 interval=vk.get_ub(keyk)-objk;
                 boundk1=vk.get_lb(keyk);
             }
             else{
-                boundk1=vk.get_ub(keyk);
                 interval=objk-vk.get_lb(keyk);
                 boundk1=vk.get_ub(keyk);
             }

@@ -218,11 +218,12 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
-    bool scale_objective=true;
+    bool scale_objective;
     bool termination=true;
     //linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
+        scale_objective=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
@@ -245,6 +246,7 @@ int main (int argc, char * argv[]) {
     else{
         current=true;
         auto nonlin_obj=false;
+        scale_objective=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
         lower_bound = get<6>(res);
