@@ -416,7 +416,7 @@ public:
                 if(share_bounds)
                     p->share_bounds(_vars.at(pid));
             }
-            else  if(p->_name.find("xstar")==string::npos){
+            else  if(p->_name.find("xstar")==string::npos && (p->_name.find("-lb")!=string::npos || p->_name.find("-ub")!=string::npos)){
                 auto it = _params_name.insert({p->get_name(true,true), p});
                 if(it.second){
                     p->set_vec_id(_params.size());
@@ -435,7 +435,7 @@ public:
             }
             else if(coef->is_param()) {
                 auto p_cst = static_pointer_cast<param<type>>(coef);
-                if(p_cst->_name.find("xstar")==string::npos){
+                if(p_cst->_name.find("xstar")==string::npos && (p->_name.find("-lb")!=string::npos || p->_name.find("-ub")!=string::npos)){
                     auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
                     if(it.second){
                         p_cst->set_vec_id(_params.size());
@@ -460,7 +460,7 @@ public:
                 if(share_bounds)
                     p1->share_bounds(_vars.at(pid1));
             }
-            else  if(p1->_name.find("xstar")==string::npos){
+            else  if(p1->_name.find("xstar")==string::npos && (p1->_name.find("-lb")!=string::npos || p1->_name.find("-ub")!=string::npos)){
                 auto it = _params_name.insert({p1->get_name(true,true), p1});
                 if(it.second){
                     p1->set_vec_id(_params.size());
@@ -478,7 +478,7 @@ public:
                 if(share_bounds)
                     p2->share_bounds(_vars.at(pid2));
             }
-            else  if(p2->_name.find("xstar")==string::npos){
+            else  if(p2->_name.find("xstar")==string::npos && (p2->_name.find("-lb")!=string::npos || p2->_name.find("-ub")!=string::npos)){
                 auto it = _params_name.insert({p2->get_name(true,true), p2});
                 if(it.second){
                     p2->set_vec_id(_params.size());
@@ -496,7 +496,7 @@ public:
             }
             else if(coef->is_param()) {
                 auto p_cst = static_pointer_cast<param<type>>(coef);
-                if(p_cst->_name.find("xstar")==string::npos){
+                if(p_cst->_name.find("xstar")==string::npos && (p_cst->_name.find("-lb")!=string::npos || p_cst->_name.find("-ub")!=string::npos)){
                     auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
                     if(it.second){
                         p_cst->set_vec_id(_params.size());
@@ -520,7 +520,7 @@ public:
                     if(share_bounds)
                         ppi.first->share_bounds(_vars.at(pid));
                 }
-                else  if(p->_name.find("xstar")==string::npos){
+                else  if(p->_name.find("xstar")==string::npos && (p->_name.find("-lb")!=string::npos || p->_name.find("-ub")!=string::npos)){
                     auto it = _params_name.insert({p->get_name(true,true), p});
                     if(it.second){
                         p->set_vec_id(_params.size());
@@ -540,7 +540,7 @@ public:
             }
             else if(coef->is_param()) {
                 auto p_cst = static_pointer_cast<param<type>>(coef);
-                if(p_cst->_name.find("xstar")==string::npos){
+                if(p_cst->_name.find("xstar")==string::npos && (p_cst->_name.find("-lb")!=string::npos || p_cst->_name.find("-ub")!=string::npos)){
                     auto it = _params_name.insert({p_cst->get_name(true,true), p_cst});
                     if(it.second){
                         p_cst->set_vec_id(_params.size());
@@ -1627,13 +1627,13 @@ public:
 //            v_ub.print();
         }
         while(_obj->has_ids(v)){/* Keep replacing until no change */
-            DebugOff("After replacing " << v.get_name(false,false) << " in obj: " << endl);
-            DebugOff("Old obj: " << endl);
-//            _obj->print();
+            DebugOn("After replacing " << v.get_name(false,false) << " in obj: " << endl);
+            DebugOn("Old obj: " << endl);
+            _obj->print();
             *_obj = _obj->replace(v, f);
             _obj->clean_terms(); /* put this in while loop above*/
-            DebugOff("Projected obj: " << endl);
-//            _obj->print();
+            DebugOn("Projected obj: " << endl);
+            _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
@@ -1648,7 +1648,7 @@ public:
                 DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                 DebugOn("Old constraint: " << endl);
                 c->print();
-                if(c->get_name()=="x_in_{(411) ; (412) ; (413) ; (414) ; (415) ; (416) ; (417) ; (418) ; (419) ; (420) ; (421) ; (422) ; (423) ; (424) ; (425) ; (426) ; (427) ; (428) ; (429) ; (430) ; (431) ; (432) ; (433) ; (434) ; (435) ; (436) ; (437) ; (438) ; (439) ; (440) ; (441) ; (442) ; (443) ; (444) ; (445) ; (446) ; (447) ; (448) ; (449) ; (450) ; (451) ; (452) ; (453) ; (454) ; (455) ; (456) ; (457) ; (458) ; (459) ; (460) ; (396) ; (397) ; (398) ; (399) ; (400) ; (245) ; (246) ; (247) ; (248) ; (249) ; (250) ; (251) ; (252) ; (253) ; (254) ; (255) ; (256) ; (257) ; (258) ; (259) ; (260) ; (261) ; (262) ; (263) ; (264) ; (265) ; (266) ; (267) ; (268) ; (269) ; (270) ; (271) ; (272) ; (273) ; (274) ; (275) ; (276) ; (277) ; (278) ; (279) ; (280) ; (281) ; (282) ; (283) ; (284) ; (285) ; (286) ; (287) ; (288) ; (289) ; (290) ; (291) ; (292) ; (293) ; (294) ; (230) ; (231) ; (232) ; (233) ; (234)}_LB" && v._indices->to_str()=="{(467) ; (468) ; (469) ; (470) ; (471) ; (472) ; (473) ; (474) ; (475)}")
+                if(c->get_name()=="lin_eq_1_projected_in{(inst_1_0) ; (inst_2_1) ; (inst_3_2) ; (inst_4_3) ; (inst_5_4) ; (inst_6_5) ; (inst_7_6) ; (inst_8_7) ; (inst_9_8) ; (inst_10_9)}_projected_in{(inst_1_0_0) ; (inst_6_5_1)}_projected_in{(inst_6_5_1_0)}" && v.get_name(false,false)=="x.in{(478) ; (479) ; (480) ; (481) ; (482) ; (483) ; (484) ; (485)}")
                     cout << "ok";
                 int nb_inst = c->get_nb_instances();
                 auto new_c = c->replace(v, f);
@@ -1660,12 +1660,13 @@ public:
                     c->clean_terms();
                     DebugOn("Splitted constraint: " << endl);
                     c->print();
-                    
-                    if(new_c._ctype==eq){
-                        eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
-                    }
-                    else {
-                        this->add_constraint(new_c);
+                    if(!new_c.is_zero()){
+                        if(new_c._ctype==eq){
+                            eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
+                        }
+                        else {
+                            this->add_constraint(new_c);
+                        }
                     }
                 }
                 else{
@@ -1678,7 +1679,7 @@ public:
                     *c = new_c;
                     c->allocate_mem();
                 }
-                DebugOn("function uaed for projection: " << endl);
+                DebugOn("function used for projection: " << endl);
                 f.print();
             }
         }
@@ -2308,12 +2309,15 @@ public:
             }
             index++;
         }
+        for (auto& c_pair:_cons) {
+            c_pair.second->update_terms();
+            if(c_pair.second->is_zero())
+                delete_cstr.push_back(c_pair.second->get_name());
+        }
         for(const auto cstr_name: delete_cstr){
             remove(cstr_name);
         }
-        for (auto& c_pair:_cons) {
-            c_pair.second->update_terms();
-        }
+        
         reindex();
         reset();
         DebugOn("Model after restructure: " << endl);
@@ -2357,8 +2361,8 @@ public:
             if(c->has_matrix_indexed_vars()){/* Also do with quadratic*/
                 continue;
             }
-            DebugOff("Using the following constraints to project: " << endl);
-//            c->print();
+            DebugOn("Using the following constraints to project: " << endl);
+            c->print();
             /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
@@ -2452,6 +2456,10 @@ public:
             
             replace(vv,f,eq_list);
             delete_vars.push_back(v);
+        }
+        for (auto& c_pair:_cons) {
+            if(c_pair.second->is_zero())
+                delete_cstr.push_back(c_pair.second->get_name());
         }
         for(const auto cstr_name: delete_cstr){
             remove(cstr_name);

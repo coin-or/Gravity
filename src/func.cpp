@@ -5889,6 +5889,10 @@ void func<type>::clean_terms(){
     _pterms = new_f._pterms;
     _vars = new_f._vars;
     _params = new_f._params;
+    if(_lterms->empty() && _qterms->empty() && _pterms->empty() && !_expr && _cst->is_zero()){
+        _range->first = zero<type>().eval();
+        _range->second = zero<type>().eval();
+    }
 }
 
 template<typename type>
@@ -5910,12 +5914,12 @@ void func<type>::update_terms(){
     _vars = new_vars;
     iter = _params->begin();
     while (iter!=_params->end()) {
-        auto pair = (*iter++);
-        auto p = pair.second.first;
+        auto p = iter->second.first;
         p->_indices->set_name(p->_indices->to_str());
         string name = p->_name.substr(0, p->_name.find_last_of("."));
-        p->_name = name+"_in_"+p->_indices->get_name();
-        new_params->insert(make_pair<>(p->get_name(false,false), pair.second));
+        p->_name = name+".in"+p->_indices->get_name();
+        new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
+        iter++;
     }
     if(_cst->is_function()){
         auto c = static_pointer_cast<func<type>>(_cst);
@@ -5991,34 +5995,36 @@ void func<type>::update_terms(){
 template<typename type>
 void func<type>::repeat_ids(int n, bool update_vars_params){
     string key;
-    if(update_vars_params){
-        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        auto iter = _vars->begin();
-        while (iter!=_vars->end()) {
-            auto v = iter->second.first;
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+    auto iter = _vars->begin();
+    while (iter!=_vars->end()) {
+        auto v = iter->second.first;
+        if(update_vars_params){
             *v->_indices = v->_indices->repeat_ids(n);
             v->_dim[0]=v->_indices->size();
             v->_indices->set_name(v->_indices->get_name()+"_repeat_ids(" + to_string(n)+")");
             string name = v->_name.substr(0, v->_name.find_last_of("."));
             v->_name = name+".in"+v->_indices->get_name();
-            new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
-            iter++;
         }
-        _vars = new_vars;
-        iter = _params->begin();
-        while (iter!=_params->end()) {
-            auto pair = (*iter++);
-            auto p = pair.second.first;
+        new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
+        iter++;
+    }
+    _vars = new_vars;
+    iter = _params->begin();
+    while (iter!=_params->end()) {
+        auto p = iter->second.first;
+        if(update_vars_params){
             *p->_indices = p->_indices->repeat_ids(n);
             p->_dim[0]=p->_indices->size();
             p->_indices->set_name(p->_indices->get_name()+"_repeat_ids(" + to_string(n)+")");
             string name = p->_name.substr(0, p->_name.find_last_of("."));
             p->_name = name+".in"+p->_indices->get_name();
-            new_params->insert(make_pair<>(p->get_name(false,false), pair.second));
         }
-        _params = new_params;
+        new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
+        iter++;
     }
+    _params = new_params;
     if(_indices) {
         *_indices = _indices->repeat_ids(n);
         _indices->set_name(_indices->get_name()+"_repeat_ids(" + to_string(n)+")");
@@ -6082,6 +6088,7 @@ void func<type>::repeat_ids(int n, bool update_vars_params){
         new_pterms->insert(make_pair<>(name, pair.second));
     }
     _pterms = new_pterms;
+    this->update_vars();
 }
 
 /**
@@ -6090,26 +6097,29 @@ void func<type>::repeat_ids(int n, bool update_vars_params){
  */
 template<typename type>
 void func<type>::reorder_rows(const vector<int>& new_order, bool update_vars_params){
-    if(update_vars_params){
-        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
-        auto iter = _vars->begin();
-        while (iter!=_vars->end()) {
-            auto v = iter->second.first;
+    this->update_vars();
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_params = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+    shared_ptr<map<string, pair<shared_ptr<param_>, unsigned>>> new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
+    auto iter = _vars->begin();
+    while (iter!=_vars->end()) {
+        auto v = iter->second.first;
+        if(update_vars_params){
             v->reorder_rows(new_order);
-            new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
-            iter++;
         }
-        _vars = new_vars;
-        iter = _params->begin();
-        while (iter!=_params->end()) {
-            auto pair = (*iter++);
-            auto p = pair.second.first;
-            p->reorder_rows(new_order);
-            new_params->insert(make_pair<>(p->get_name(false,false), pair.second));
-        }
-        _params = new_params;
+        new_vars->insert(make_pair<>(v->get_name(false,false), iter->second));
+        iter++;
     }
+    _vars = new_vars;
+    iter = _params->begin();
+    while (iter!=_params->end()) {
+        auto p = iter->second.first;
+        if(update_vars_params){
+            p->reorder_rows(new_order);
+        }
+        new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
+        iter++;
+    }
+    _params = new_params;
     if(_indices && get_nb_inst()>1) {
         _indices->reorder_rows(new_order);
     }
@@ -6172,7 +6182,7 @@ void func<type>::reorder_rows(const vector<int>& new_order, bool update_vars_par
         new_f.insert(pair.second);
     }
     _pterms = new_f._pterms;
-    this->update_vars();
+//    this->update_vars();
 }
 
 
@@ -6181,7 +6191,7 @@ void func<type>::reorder_rows(const vector<int>& new_order, bool update_vars_par
  @param[in] keep_ids vector of booleans, specifying which ids to keep
  */
 template<typename type>
-void func<type>::update_rows(const vector<bool>& keep_ids) {
+void func<type>::update_rows(const vector<bool>& keep_ids, bool update_vars_params) {
     _nb_vars = 0;
     int nb_inst = 0;
     string key;
@@ -6192,7 +6202,8 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     while (iter!=_vars->end()) {
         auto v = iter->second.first;
         if(v->get_nb_inst()>1){
-            v->update_rows(keep_ids);
+            if(update_vars_params)
+                v->update_rows(keep_ids);
             update_vars = true;
         }
         if (!v->_is_vector) {// i.e., it is not transposed
@@ -6208,13 +6219,13 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
     _vars = new_vars;
     iter = _params->begin();
     while (iter!=_params->end()) {
-        auto pair = (*iter++);
-        auto p = pair.second.first;
-        if(p->get_nb_inst()>1){
+        auto p = iter->second.first;
+        if(p->get_nb_inst()>1 && update_vars_params){
             p->update_rows(keep_ids);
         }
         nb_inst = p->get_dim();
-        new_params->insert(make_pair<>(p->get_name(false,false), pair.second));
+        new_params->insert(make_pair<>(p->get_name(false,false), iter->second));
+        iter++;
     }
     _params = new_params;
     if(_indices && get_nb_inst()>1) {
@@ -6259,10 +6270,10 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->update_rows(keep_ids);
         }
-        else if(pair.second._coef->is_param()) {
-            auto c = static_pointer_cast<param<type>>(pair.second._coef);
-            c->update_rows(keep_ids);
-        }
+//        else if(pair.second._coef->is_param()) {
+//            auto c = static_pointer_cast<param<type>>(pair.second._coef);
+//            c->update_rows(keep_ids);
+//        }
         new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p);
         if(pair.second._p->is_matrix_indexed() && pair.second._p->_indices->nb_keys()==0){
             f_cpy.insert(!pair.second._sign, *pair.second._coef, *pair.second._p);
@@ -6275,10 +6286,10 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->update_rows(keep_ids);
         }
-        else if(pair.second._coef->is_param()) {
-            auto c = static_pointer_cast<param<type>>(pair.second._coef);
-            c->update_rows(keep_ids);
-        }
+//        else if(pair.second._coef->is_param()) {
+//            auto c = static_pointer_cast<param<type>>(pair.second._coef);
+//            c->update_rows(keep_ids);
+//        }
         new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
         if((pair.second._p->first->is_matrix_indexed() && pair.second._p->first->_indices->nb_keys()==0) || (pair.second._p->first->is_matrix_indexed() && pair.second._p->first->_indices->nb_keys()==0)){
             f_cpy.insert(!pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
@@ -6291,10 +6302,10 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
             auto c = static_pointer_cast<func<type>>(pair.second._coef);
             c->update_rows(keep_ids);
         }
-        else if(pair.second._coef->is_param()) {
-            auto c = static_pointer_cast<param<type>>(pair.second._coef);
-            c->update_rows(keep_ids);
-        }
+//        else if(pair.second._coef->is_param()) {
+//            auto c = static_pointer_cast<param<type>>(pair.second._coef);
+//            c->update_rows(keep_ids);
+//        }
         string name = "";
         for (auto &pair_vp:*pair.second._l) {
             name += pair_vp.first->get_name(false,false);
@@ -6623,7 +6634,7 @@ void func<type>::update_rows(const vector<bool>& keep_ids) {
 template func<double> func<double>::replace<double>(const var<double>&, const func<double>&);
 template void func<double>::scale_coefs(double);
 template double func<double>::get_scale_factor(double);
-template void func<double>::update_rows(vector<bool> const&);
+template void func<double>::update_rows(vector<bool> const&, bool update_vars_params);
 template void func<double>::update_indices(vector<bool> const&);
 template void func<double>::update_terms();
 template void func<double>::clean_terms();

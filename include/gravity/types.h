@@ -1583,14 +1583,13 @@
         
         void clear_ids() {
             if(_ids){
-                auto new_keys = make_shared<vector<string>>(_ids->at(0).size());
+                indices new_ids;
                 for(int i = 0; i< _ids->at(0).size(); i++){
-                    new_keys->at(i) = get_key(i);
+                    new_ids.insert(get_key(i)+"_"+to_string(i));/* check repeated entries*/
                 }
-                _ids = nullptr;
-                _keys = new_keys;
+                *this = new_ids;
+                _name = to_str();
             }
-            _name = to_str();
         }
         
         string get_key(size_t inst = 0) const {

@@ -811,7 +811,7 @@ namespace gravity {
          Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep a row if it corresponding entry in keep_id is true.
          @param[in] keep_ids vector of booleans, specifying which rows to keep
          */
-        void update_rows(const vector<bool>& keep_ids);
+        void update_rows(const vector<bool>& keep_ids, bool update_vars_params = true);
         
         
         /**
@@ -2486,6 +2486,7 @@ namespace gravity {
                         add_param(cp);
                     }
                     else {
+                        c_new = p_exist;
                         incr_occ_param(pname);
                     }
                 }
@@ -7901,11 +7902,12 @@ namespace gravity {
                 else if(coef->is_param()) {
                     auto cp = static_pointer_cast<param_>(coef);
                     auto pname = cp->get_name(false,false);
-                    auto p_exist = get_param(pname);
-                    if (!p_exist) {
+                    auto it = _params->find(pname);
+                    if (it==_params->end()) {
                         add_param(cp);
                     }
                     else {
+                        pair.second._coef = it->second.first;
                         incr_occ_param(pname);
                     }
                 }
@@ -7941,11 +7943,12 @@ namespace gravity {
                 else if(coef->is_param()) {
                     auto cp = static_pointer_cast<param_>(coef);
                     auto pname = cp->get_name(false,false);
-                    auto p_exist = get_param(pname);
-                    if (!p_exist) {
+                    auto it = _params->find(pname);
+                    if (it==_params->end()) {
                         add_param(cp);
                     }
                     else {
+                        pair.second._coef = it->second.first;
                         incr_occ_param(pname);
                     }
                 }
@@ -7996,11 +7999,12 @@ namespace gravity {
                 else if(coef->is_param()) {
                     auto cp = static_pointer_cast<param_>(coef);
                     auto pname = cp->get_name(false,false);
-                    auto p_exist = get_param(pname);
-                    if (!p_exist) {
+                    auto it = _params->find(pname);
+                    if (it==_params->end()) {
                         add_param(cp);
                     }
                     else {
+                        pair.second._coef = it->second.first;
                         incr_occ_param(pname);
                     }
                 }
@@ -8132,6 +8136,7 @@ namespace gravity {
                         add_param(cp);
                     }
                     else {
+                        c_new = p_exist;
                         incr_occ_param(pname);
                     }
                 }

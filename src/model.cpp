@@ -6578,8 +6578,8 @@ int Model<type>::readNL(const string& fname){
     DebugOn("Number of continuous variables = " << nb_cont << endl);
     DebugOn("Number of integer variables = " << nb_int << endl);
     
-    param<> x_ub("x_ub"), x_lb("x_lb");
-    param<int> y_ub("y_ub"), y_lb("y_lb");
+    param<> x_ub("x-ub"), x_lb("x-lb");
+    param<int> y_ub("y-ub"), y_lb("y-lb");
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {

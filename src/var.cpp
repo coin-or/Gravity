@@ -223,7 +223,7 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_lb() const {
         if(!_lift)
             return *static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
-        param<type> lb(this->_name+"_lb");
+        param<type> lb(this->_name+"-lb");
         _lb->eval_all();
         if(!_lb->func_is_number()){
             lb.index_in(*this->_indices);
@@ -317,7 +317,7 @@ shared_ptr<param<type>>    var<type>::get_square_ub() const{
     param<type>    var<type>::get_ub() const {
         if(!_lift)
             return *static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
-        param<type> ub(this->_name+"_ub");
+        param<type> ub(this->_name+"-ub");
         _ub->eval_all();
         if(!_ub->func_is_number()){
             ub.index_in(*this->_indices);
