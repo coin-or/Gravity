@@ -1627,13 +1627,13 @@ public:
 //            v_ub.print();
         }
         while(_obj->has_ids(v)){/* Keep replacing until no change */
-            DebugOn("After replacing " << v.get_name(false,false) << " in obj: " << endl);
-            DebugOn("Old obj: " << endl);
-            _obj->print();
+            DebugOff("After replacing " << v.get_name(false,false) << " in obj: " << endl);
+            DebugOff("Old obj: " << endl);
+//            _obj->print();
             *_obj = _obj->replace(v, f);
             _obj->clean_terms(); /* put this in while loop above*/
-            DebugOn("Projected obj: " << endl);
-            _obj->print();
+            DebugOff("Projected obj: " << endl);
+//            _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
@@ -1645,21 +1645,19 @@ public:
             }
             while(c->has_ids(v)){/* Keep replacing until no change */
                     //                    c->print();
-                DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                DebugOn("Old constraint: " << endl);
-                c->print();
-                if(c->get_name()=="lin_eq_1_projected_in{(inst_1_0) ; (inst_2_1) ; (inst_3_2) ; (inst_4_3) ; (inst_5_4) ; (inst_6_5) ; (inst_7_6) ; (inst_8_7) ; (inst_9_8) ; (inst_10_9)}_projected_in{(inst_1_0_0) ; (inst_6_5_1)}_projected_in{(inst_6_5_1_0)}" && v.get_name(false,false)=="x.in{(478) ; (479) ; (480) ; (481) ; (482) ; (483) ; (484) ; (485)}")
-                    cout << "ok";
+                DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                DebugOff("Old constraint: " << endl);
+//                c->print();
                 int nb_inst = c->get_nb_instances();
                 auto new_c = c->replace(v, f);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=nb_inst){
-                    DebugOn("Variable indices :" << v._indices->to_str() << endl);
-                    DebugOn("Projected constraint: " << endl);
+                    DebugOff("Variable indices :" << v._indices->to_str() << endl);
+                    DebugOff("Projected constraint: " << endl);
                     new_c.clean_terms();
-                    new_c.print();
+//                    new_c.print();
                     c->clean_terms();
-                    DebugOn("Splitted constraint: " << endl);
-                    c->print();
+                    DebugOff("Splitted constraint: " << endl);
+//                    c->print();
                     if(!new_c.is_zero()){
                         if(new_c._ctype==eq){
                             eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
@@ -1670,17 +1668,16 @@ public:
                     }
                 }
                 else{
-                    DebugOn("Variable indices :");
-                    v._indices->print();
-                    DebugOn("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                    DebugOn("Projected constraint: " << endl);
+                    DebugOff("Variable indices :" << v._indices->to_str() << endl);
+                    DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+                    DebugOff("Projected constraint: " << endl);
                     new_c.clean_terms();
-                    new_c.print();
+//                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
                 }
-                DebugOn("function used for projection: " << endl);
-                f.print();
+                DebugOff("function used for projection: " << endl);
+//                f.print();
             }
         }
         
@@ -1695,24 +1692,6 @@ public:
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     shared_ptr<Model<T>> relax(unsigned determinant_level = 0, bool add_Kim_Kojima = false, bool add_SDP_3d = false, bool add_RLT = false) const{/*<  return a convex relaxation of the current model */
-        
-        auto g = get_interaction_graph();
-        g.get_tree_decomp_bags();
-        auto bags_3d=g.decompose_bags_3d();
-        auto bag_size = bags_3d.size();
-        DebugOn("bags \n");
-        for(auto bag:bags_3d){
-            DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
-        }
-        
-        auto indices=g.get_pairs_chord(bags_3d);
-        auto pairs = indices[0];
-        auto pairs_from = indices[1];
-        auto pairs_to = indices[2];
-        DebugOn("Node pairs of chordal graph\n");
-        for(auto k: *pairs._keys){
-            DebugOn(k<<endl);
-        }
         
         shared_ptr<Model<T>> relax = make_shared<Model<T>>(_name+"_relaxed");
         for(auto &vp: _vars){
@@ -1855,6 +1834,24 @@ public:
             }
         }
         if(add_Kim_Kojima || add_SDP_3d){/* Need to extend Wij indices to include new chordal edges*/
+            auto g = get_interaction_graph();
+            g.get_tree_decomp_bags();
+            auto bags_3d=g.decompose_bags_3d();
+            auto bag_size = bags_3d.size();
+            DebugOn("bags \n");
+            for(auto bag:bags_3d){
+                DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
+            }
+            
+            auto indices=g.get_pairs_chord(bags_3d);
+            auto pairs = indices[0];
+            auto pairs_from = indices[1];
+            auto pairs_to = indices[2];
+            DebugOn("Node pairs of chordal graph\n");
+            for(auto k: *pairs._keys){
+                DebugOn(k<<endl);
+            }
+
             for(auto &vp: relax->_vars){
                 if (vp.second->get_intype()==double_) {
                     auto vv = static_pointer_cast<var<double>>(vp.second);
@@ -1943,7 +1940,7 @@ public:
                 }
             }
         }
-        relax->print();
+//        relax->print();
         return relax;
     }
     
@@ -2361,8 +2358,8 @@ public:
             if(c->has_matrix_indexed_vars()){/* Also do with quadratic*/
                 continue;
             }
-            DebugOn("Using the following constraints to project: " << endl);
-            c->print();
+            DebugOff("Using the following constraints to project: " << endl);
+//            c->print();
             /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {

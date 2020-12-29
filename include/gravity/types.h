@@ -1918,7 +1918,9 @@
                 //            else {
                 combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
                 //            }
-                res.add(combined_key);
+//                if(!res.has_key(combined_key))
+                    res.add(combined_key);
+//                res.add_ref(combined_key);
             }
         }
         return res;

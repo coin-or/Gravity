@@ -4286,11 +4286,11 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f){/**<  Replace 
                 }
                 auto vcast = *static_pointer_cast<var<T>>(vv);
                 if(f_cpy._indices && f_cpy._indices->size()<vcast._indices->size()){
-                    DebugOn("Need to call f_cpy repeat\n");
+                    DebugOff("Need to call f_cpy repeat\n");
                     f_cpy.repeat_ids(vcast._indices->size()/f_cpy._indices->size());
                 }
                 if(v_cpy._indices && v_cpy._indices->size()<vcast._indices->size()){
-                    DebugOn("Need to call v_cpy repeat\n");
+                    DebugOff("Need to call v_cpy repeat\n");
                     v_cpy.repeat_ids(vcast._indices->size()/v_cpy._indices->size());
                 }
                 if(v_cpy._indices->has_different_order(*vv->_indices)){
@@ -4348,7 +4348,7 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f){/**<  Replace 
                 new_this.reset_ids();
                 vcast.update_rows(keep_ids_vv);
                 if(f_cpy._indices && f_cpy._indices->size()<vcast._indices->size()){
-                    DebugOn("Need to call repeat\n");
+                    DebugOff("Need to call repeat\n");
                     f_cpy.repeat_ids(vcast._indices->size()/f_cpy._indices->size());
                 }
                 if(v_cpy._indices && v_cpy._indices->size()<vcast._indices->size()){
@@ -4356,7 +4356,7 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f){/**<  Replace 
                     v_cpy.repeat_ids(vcast._indices->size()/v_cpy._indices->size());
                 }
                 if(v_cpy._indices->has_different_order(*vcast._indices)){
-                    DebugOn("Need to call reorder indices\n");
+                    DebugOff("Need to call reorder indices\n");
                     vector<int> new_order = v_cpy._indices->get_ids_order(*vcast._indices);
                     f_cpy.reorder_rows(new_order);
                 }

@@ -151,25 +151,26 @@ TEST_CASE("testing readNL() function on wastewater02m1.nl") {
     s2.run(5,1e-6);
     CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
     M.project();
-    solver<> s3(M,ipopt);
-    s3.run(5,1e-6);
-    CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
-//    auto determinant_level = 1;
-//    bool add_Kim_Kojima = false, add_SDP_3d = false;
-//    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
-//    LB->print();
-//    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-//    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
-//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    LB->print();
-//    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
     DebugOn("Done Projecting!" << endl);
     int nb_eq = M.get_nb_eq();
     if(nb_eq==0)
         DebugOn("Was able to remove all equations!" << endl);
     else
         DebugOn("The model has " << nb_eq << " equation(s) left!" << endl);
+    CHECK(nb_eq==0);
+    solver<> s3(M,ipopt);
+    s3.run(5,1e-6);
+    CHECK(std::abs(M.get_obj_val() - 130.7025443)<1e-5);
+
+    auto determinant_level = 1;
+    bool add_Kim_Kojima = false, add_SDP_3d = false;
+    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-6, opt_rel_tol=1e-6, opt_abs_tol=1e6;
+    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
+    CHECK(final_gap<1e-3);
 }
 
 TEST_CASE("testing readNL() function on wastewater11m1.nl") {
@@ -200,10 +201,9 @@ TEST_CASE("testing readNL() function on wastewater11m1.nl") {
     CHECK(solve_status==0);
     CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-5);
 //    auto determinant_level = 1;
-//    bool add_Kim_Kojima = false, add_SDP_3d = true;
-//    M.square_linear_constraints();
+//    bool add_Kim_Kojima = false, add_SDP_3d = false;
+////    M.square_linear_constraints();
 //    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
-//    LB->print();
 //    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
 //    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
 //    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
@@ -237,15 +237,14 @@ TEST_CASE("testing readNL() function on wastewater12m2.nl") {
     solver<> s3(M,ipopt);
     solve_status = s3.run(5,1e-6);
     CHECK(solve_status==0);
-//    auto determinant_level = 1;
-//    bool add_Kim_Kojima = false, add_SDP_3d = true;
+//    auto determinant_level = 0;
+//    bool add_Kim_Kojima = false, add_SDP_3d = false;
 //    auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
-//    LB->print();
 //    double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
 //    unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
 //    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 //    M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    LB->print();
+////    LB->print();
 //    auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
 }
 
