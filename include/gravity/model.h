@@ -1378,7 +1378,7 @@ public:
     Constraint<type> lift(Constraint<type>& c, string model_type, bool add_McCormick = true);
     
     template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-    Constraint<type> lift(Constraint<type>& c, string model_type);
+    Constraint<type> lift(Constraint<type>& c, string model_type, bool add_McCormick = true);
     
     template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
     void add_real(const Constraint<Cpx>& c){
@@ -2021,7 +2021,7 @@ public:
                 }
             }
         }
-        relax->print();
+//        relax->print();
         return relax;
     }
     
@@ -2660,7 +2660,8 @@ public:
             DebugOn("constraint with same name: " << c.get_name() << endl);
             c.update_str();
             if(!_cons_name.at(c.get_name())->equal(c)) {
-                throw invalid_argument("rename constraint as this name has been used by another one: " + c.get_name());
+                DebugOn("rename constraint as this name has been used by another one: " + c.get_name());
+                return nullptr;
             }
             else{
                 DebugOn("Both constraints are identical, ignoring this one." << endl);

@@ -26,7 +26,7 @@ namespace gravity {
      **/
     template <typename type>
     template<class T, typename enable_if<is_same<T, Cpx>::value>::type*>
-    Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
+    Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool add_McCormick){
         if(c.is_constant() || c.is_linear()){
             return c;
         }
@@ -6583,12 +6583,12 @@ int Model<type>::readNL(const string& fname){
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, p.var(C_ids[i]).lb());
-        x_ub.set_val(i, p.var(C_ids[i]).ub());
+        x_lb.set_val(i, std::max(-1e12,p.var(C_ids[i]).lb()));
+        x_ub.set_val(i, std::min(1e12,p.var(C_ids[i]).ub()));
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, p.var(I_ids[i]).lb());
-        y_ub.set_val(i, p.var(I_ids[i]).ub());
+        y_lb.set_val(i, std::max(-1e12,p.var(I_ids[i]).lb()));
+        y_ub.set_val(i, std::min(1e12,p.var(I_ids[i]).ub()));
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -6749,7 +6749,7 @@ int Model<type>::readNL(const string& fname){
     
     template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
     
-    template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
+    template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type, bool);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type, bool);
     template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
     
