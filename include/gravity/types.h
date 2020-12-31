@@ -575,10 +575,10 @@
             if(_type == matrix_){/* If ids is matrix indexed */
                 throw invalid_argument("Function has_different_order(ids) cannot be called on a matrix-indexed set");
             }
-            if(!is_indexed() || !ids.is_indexed() || size()!=ids.size()){
-                throw invalid_argument("In has_different_order(ids), both index sets need to be indexed and of same size!");
+            if(!is_indexed() || !ids.is_indexed()){
+                throw invalid_argument("In has_different_order(ids), both index sets need to be indexed!");
             }
-            return ids._ids->at(0)!=_ids->at(0);
+            return size()!=ids.size() || ids._ids->at(0)!=_ids->at(0);
         }
         
         vector<int> get_ids_order(const indices& ids) const{
@@ -586,8 +586,8 @@
             if(_type == matrix_){/* If ids is matrix indexed */
                 throw invalid_argument("Function get_ids_order(ids) cannot be called on a matrix-indexed set");
             }
-            if(!is_indexed() || !ids.is_indexed() || size()!=ids.size()){
-                throw invalid_argument("In get_ids_order(ids), both index sets need to be indexed and of same size!");
+            if(!is_indexed() || !ids.is_indexed()){
+                throw invalid_argument("In get_ids_order(ids), both index sets need to be indexed!");
             }
             for (size_t idx:ids._ids->at(0)) {
                 int position = 0;
@@ -598,18 +598,23 @@
                     }
                     position++;
                 }
-                
             }
             return res;
         }
         
         void reorder_rows(const vector<int>& order) {
             vector<size_t> res;
-            if(!is_indexed() || size()!=order.size()){
-                throw invalid_argument("In reorder(ids), ids needs to be indexed and of same size!");
+            if(!is_indexed()){
+                _ids = make_shared<vector<vector<size_t>>>();
+                _ids->resize(1);
+                for (int position:order) {
+                    res.push_back(position);
+                }
             }
-            for (int position:order) {
+            else {
+                for (int position:order) {
                     res.push_back(_ids->at(0).at(position));
+                }
             }
             _ids->at(0) = res;
             _name = to_str();
@@ -618,7 +623,11 @@
         
         bool has_key(const string& key) const{
              if(is_indexed()){/* If ids has key references, use those */
-                 auto idx0 = _keys_map->at(key);
+                 auto res = _keys_map->find(key);
+                 if(res==_keys_map->end()){
+                     return false;
+                 }
+                 auto idx0 = res->second;
                  for (auto i= 0; i<_ids->size();i++) {
                      for (auto const idx :_ids->at(i)) {
                          if(idx0==idx)
@@ -1905,6 +1914,8 @@
                 //            bool same_key = true;
                 for (auto &ids: all_ids) {
                     auto idx = ids.get_id_inst(i);
+                    if(idx>= ids._keys->size())
+                        throw invalid_argument("in combine(const indices& ids1, Args&&... args), indexing issue");
                     key = ids._keys->at(idx);
                     //                if(prev_key!="" && key!=prev_key){
                     //                    same_key = false;
@@ -1918,9 +1929,9 @@
                 //            else {
                 combined_key = combined_key.substr(0, combined_key.size()-1);/* remove last comma */
                 //            }
-//                if(!res.has_key(combined_key))
+                if(!res.has_key(combined_key))
                     res.add(combined_key);
-//                res.add_ref(combined_key);
+                res.add_ref(combined_key);
             }
         }
         return res;

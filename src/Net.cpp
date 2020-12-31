@@ -588,7 +588,7 @@ void Net::get_tree_decomp_bags() {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
-                DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
+                DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);                
             }
         }
         if(unique_bags.insert(bag).second==true){
@@ -596,11 +596,10 @@ void Net::get_tree_decomp_bags() {
             if (bag.second.size()==3) {
                 nb++;
             }
-        }
-        
-        if (bag_copy.second.size()>max_size) {
-            max_size = bag_copy.second.size();
-        }
+            if (bag_copy.second.size()>max_size) {
+                max_size = bag_copy.second.size();
+            }
+        }        
         delete n;
     }
     

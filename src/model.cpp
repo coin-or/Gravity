@@ -227,7 +227,7 @@ namespace gravity {
     
     template <typename type>
     template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
-    Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
+    Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool add_McCormick_Constraints){
         if(c.is_constant() || c.is_linear()){
             return c;
         }
@@ -2968,8 +2968,8 @@ namespace gravity {
                     }
 #endif
                 }
-                else {
-                    add_McCormick(pair.first, vlift.in(unique_ids), o1.in(o1_ids), o2.in(o2_ids));
+                else if(add_McCormick_Constraints){
+                    add_McCormick(pair.first, vlift.in(ids), o1.in(o1_ids), o2.in(o2_ids));
                 }
             }
             else {
@@ -5881,7 +5881,7 @@ namespace gravity {
                         }
 #endif
                     }
-                    else {
+                    else if(add_McCormick_Constraints){
                         add_McCormick(pair.first, vlift->in(added), o1.in(o1_ids), o2.in(o2_ids));
                     }
                 }
@@ -5964,10 +5964,10 @@ namespace gravity {
         UB_solver.run(output = 5, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
-        if(!linearize)
-            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-        else
-            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+//        if(!linearize)
+//            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+//        else
+//            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
         LBnonlin_solver.run(output = 5, lb_solver_tol);
         if(relaxed_model->_status==0)
         {
@@ -6364,10 +6364,10 @@ namespace gravity {
                         obbt_model->_first_run = true;
                         //                    obbt_model->print();
                         solver<> LB_solver(obbt_model,lb_solver_type);
-                        if(!linearize)
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-                        else
-                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+//                        if(!linearize)
+//                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+//                        else
+//                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
                         LB_solver.run(output = 0, lb_solver_tol);
                         if(obbt_model->_status==0)
                         {
@@ -6750,7 +6750,7 @@ int Model<type>::readNL(const string& fname){
     template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
     
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
-    template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
+    template Constraint<> Model<>::lift(Constraint<>& c, string model_type, bool);
     template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
     
     

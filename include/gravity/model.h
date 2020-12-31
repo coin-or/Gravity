@@ -1375,7 +1375,7 @@ public:
      @note This function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables.
      **/
     template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-    Constraint<type> lift(Constraint<type>& c, string model_type);
+    Constraint<type> lift(Constraint<type>& c, string model_type, bool add_McCormick = true);
     
     template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
     Constraint<type> lift(Constraint<type>& c, string model_type);
@@ -1436,11 +1436,11 @@ public:
     
     
     
-    void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool split=true){
+    void add(Constraint<type>& c, bool convexify = false, string method_type = "on/off", bool split=true, bool add_McCormick = true){
         if (c.get_dim()==0) {
             return;
         }
-        add_constraint(c,convexify, method_type, split);
+        add_constraint(c,convexify, method_type, split, add_McCormick);
     }
     
     
@@ -1637,7 +1637,7 @@ public:
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
-        }        
+        }
         for (auto &c_p: _cons_name) {
             auto c = c_p.second;
             if (!c->_is_constraint || !c->has_sym_var(v)) {
@@ -1658,6 +1658,9 @@ public:
                     c->clean_terms();
                     DebugOff("Splitted constraint: " << endl);
 //                    c->print();
+                    if(c->_ctype==eq){
+                        eq_list.push_back(c);
+                    }
                     if(!new_c.is_zero()){
                         if(new_c._ctype==eq){
                             eq_list.push_back(this->add_constraint(new_c));/* Check  if nonlinear?*/
@@ -1675,6 +1678,9 @@ public:
 //                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
+                    if(c->_ctype==eq){
+                        eq_list.push_back(c);
+                    }
                 }
                 DebugOff("function used for projection: " << endl);
 //                f.print();
@@ -1786,58 +1792,14 @@ public:
             relax->set_objective(v_obj, _objt);
         }
         
-        if(determinant_level>1){
-            for(auto &vp: relax->_vars){
-                if (vp.second->get_intype()==double_) {
-                    auto vv = static_pointer_cast<var<double>>(vp.second);
-                    if(vv->_lift && vv->_name.find("^2")==string::npos){
-                        DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
-                        DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
-                        DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
-                        auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
-                        DebugOn("Diagonal element 1: " << name1 << endl);
-                        auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
-                        DebugOn("Diagonal element 2: " << name2 << endl);
-                        if (relax->_cons_name.count(name1+"_diag")==0) {
-                            auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
-                            Constraint<> diag(name1+"_diag");
-                            if(v1.is_non_negative()){
-                                diag = pow(v1,2) - v1.get_ub()*v1;
-                            }
-                            else {
-                                diag = pow(v1,2) - pow(v1.get_ub(),2);
-                            }
-                            relax->add(diag.in(*v1._indices)<=0,true);
-                        }
-                        if (relax->_cons_name.count(name2+"_diag")==0) {
-                            auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
-                            Constraint<> diag(name2+"_diag");
-                            if(v2.is_non_negative()){
-                                diag = pow(v2,2) - v2.get_ub()*v2;
-                            }
-                            else {
-                                diag = pow(v2,2) - pow(v2.get_ub(),2);
-                            }
-                            relax->add(diag.in(*v2._indices)<=0,true);
-                        }
-                        auto vdiag1 = relax->template get_var<double>(name1);
-                        auto vdiag2 = relax->template get_var<double>(name2);
-                            //                            vdiag1.initialize_all(1e3);
-                            //                            vdiag2.initialize_all(1e3);
-                            //                            Constraint<> SOC(vv->_name+"_SOC_diag");
-                            //                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                            //                            relax->add(SOC.in(*vv->_indices) == 0, true);
-                            //                            SOC.print();
-                            //                            relax->print();
-                    }
-                }
-            }
-        }
-        if(add_Kim_Kojima || add_SDP_3d){/* Need to extend Wij indices to include new chordal edges*/
+        
+        if(add_Kim_Kojima || add_SDP_3d || determinant_level>1){/* Need to extend Wij indices to include new chordal edges*/
             auto g = get_interaction_graph();
             g.get_tree_decomp_bags();
             auto bags_3d=g.decompose_bags_3d();
             auto bag_size = bags_3d.size();
+            if(bag_size==0)
+                return relax;
             DebugOn("bags \n");
             for(auto bag:bags_3d){
                 DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
@@ -1856,12 +1818,64 @@ public:
                 if (vp.second->get_intype()==double_) {
                     auto vv = static_pointer_cast<var<double>>(vp.second);
                     if(vv->_lift && vv->_name.find("^2")==string::npos){
-                        auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
+                        auto Vi = relax->template get_var<type>(vv->_original_vars[0]->get_name(true,true));
+                        auto Vi_ = Vi.in_bags(bags_3d, 3);
+                        /* Cycle constraints */
+                        bool add_cycle = false;
+                        if(add_cycle){
+                            Constraint<> Cycle("Cycle");
+                            Cycle = Vi_[0]*Vi_[2]*Vi_[0]*Vi_[1] - Vi_[0]*Vi_[0]*Vi_[1]*Vi_[2];
+                            relax->add(Cycle.in(range(0,bag_size-1)) == 0, true);
+                        }
+                        
+                        
+                       
+                        Constraint<> Wij1("Wij1");
+                        Wij1 = pow((Vi_[0]-Vi_[1]),2);
+                        relax->add(Wij1.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+                        relax->remove("Wij1_lifted");
+                        
+                        Constraint<> Wij2("Wij2");
+                        Wij2 = pow((Vi_[1]-Vi_[2]),2);
+                        relax->add(Wij2.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+                        relax->remove("Wij2_lifted");
+                        
+                        Constraint<> Wij3("Wij3");
+                        Wij3 = pow((Vi_[2]-Vi_[0]),2);
+                        relax->add(Wij3.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+                        relax->remove("Wij3_lifted");
+                        
+                        
+                        
+                        
+                        auto name_orig = vv->_original_vars[0]->get_name(true,true);
+                        auto name1 = "Lift("+name_orig+"^2)";
                         auto Wii = relax->template get_var<type>(name1);
+                        auto xi = relax->template get_var<type>(name_orig);
+                        
+                        auto f = xi*xi;
+                        f.in(*Wii._indices);
+                        f.eval_all();
+                        Wii.copy_vals(f);
+                        
                         DebugOn("Diagonal element : " << Wii._name << endl);
                         auto Wij_ = vv->pairs_in_bags(bags_3d, 3);
                         auto Wii_ = Wii.in_bags(bags_3d, 3);
                         if(add_Kim_Kojima){
+//                            Constraint<> SOC1("SOC1");
+//                            SOC1 = Wii_[0] * Wii_[1];
+//                            SOC1 -= pow(Wij_[0], 2);
+//                            relax->add(SOC1.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC2("SOC2");
+//                            SOC2 = Wii_[1] * Wii_[2];
+//                            SOC2 -= pow(Wij_[1], 2);
+//                            relax->add(SOC2.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC3("SOC3");
+//                            SOC3 = Wii_[0] * Wii_[2];
+//                            SOC3 -= pow(Wij_[2], 2);
+//                            relax->add(SOC3.in(range(1, bag_size)) >= 0);
                             Constraint<> SOC_Kojima1_0("SOC_Kojima1_0_diag");
                             SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
                             relax->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
@@ -1910,6 +1924,22 @@ public:
                             SDP3 -= pow(Wij_[2], 2) * Wii_[1];
                             SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
                             relax->add(SDP3.in(range(1, bag_size)) >= 0);
+                            
+                            
+//                            Constraint<> SOC1("SOC1");
+//                            SOC1 = Wii_[0] * Wii_[1];
+//                            SOC1 -= pow(Wij_[0], 2);
+//                            relax->add(SOC1.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC2("SOC2");
+//                            SOC2 = Wii_[1] * Wii_[2];
+//                            SOC2 -= pow(Wij_[1], 2);
+//                            relax->add(SOC2.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC3("SOC3");
+//                            SOC3 = Wii_[0] * Wii_[2];
+//                            SOC3 -= pow(Wij_[2], 2);
+//                            relax->add(SOC3.in(range(1, bag_size)) >= 0);
                         }
                             // SPP->add(SDP3.in(range(0, bag_size-1)) >= 0);
                             //                            Constraint<> SOC_Kojima1_0_NC("SOC_Kojima1_0_NC_diag");
@@ -1939,8 +1969,59 @@ public:
                     }
                 }
             }
+            if(add_Kim_Kojima || add_SDP_3d || determinant_level>1){
+                for(auto &vp: relax->_vars){
+                    if (vp.second->get_intype()==double_) {
+                        auto vv = static_pointer_cast<var<double>>(vp.second);
+                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+                            DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
+                            DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
+                            DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
+                            auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
+                            DebugOn("Diagonal element 1: " << name1 << endl);
+                            auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
+                            DebugOn("Diagonal element 2: " << name2 << endl);
+    //                        if (relax->_cons_name.count(name1+"_diag")==0) {
+    //                            auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
+    //                            Constraint<> diag(name1+"_diag");
+    //                            if(v1.is_non_negative()){
+    //                                diag = pow(v1,2) - v1.get_ub()*v1;
+    //                            }
+    //                            else {
+    //                                diag = pow(v1,2) - pow(v1.get_ub(),2);
+    //                            }
+    //                            relax->add(diag.in(*v1._indices)<=0,true);
+    //                        }
+    //                        if (relax->_cons_name.count(name2+"_diag")==0) {
+    //                            auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
+    //                            Constraint<> diag(name2+"_diag");
+    //                            if(v2.is_non_negative()){
+    //                                diag = pow(v2,2) - v2.get_ub()*v2;
+    //                            }
+    //                            else {
+    //                                diag = pow(v2,2) - pow(v2.get_ub(),2);
+    //                            }
+    //                            relax->add(diag.in(*v2._indices)<=0,true);
+    //                        }
+                            auto vdiag1 = relax->template get_var<double>(name1);
+                            auto vdiag2 = relax->template get_var<double>(name2);
+                            auto f = (*vv->_original_vars[0])*(*vv->_original_vars[1]);
+                            f.in(*vv->_indices);
+                            f.eval_all();
+                            vv->copy_vals(f);
+    //                        vdiag1.initialize_all(1);
+    //                        vdiag2.initialize_all(1);
+                            Constraint<> SOC(vv->_name+"_SOC_diag");
+                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+                            relax->add(SOC.in(*vv->_indices) <= 0);
+                                //                            SOC.print();
+                                //                            relax->print();
+                        }
+                    }
+                }
+            }
         }
-//        relax->print();
+        relax->print();
         return relax;
     }
     
@@ -2323,10 +2404,10 @@ public:
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     void square_linear_constraints() {
-        auto x = get_var<double>("x");
-        Constraint<type> v_sqr("x_squared");
-        v_sqr += x*x - x*x.get_lb();
-        add(v_sqr.in(*x._indices) >= 0);
+//        auto x = get_var<double>("x");
+//        Constraint<type> v_sqr("x_squared");
+//        v_sqr += x*x - x*x.get_lb();
+//        add(v_sqr.in(*x._indices) >= 1e-6);
         for (auto& c_pair:_cons) {
             Constraint<type> c = *c_pair.second;
             if (c.is_linear()) {
@@ -2340,6 +2421,7 @@ public:
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     void project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
+        int nb_eqs = get_nb_eq();
         vector<string> delete_cstr;
         vector<shared_ptr<param_>> delete_vars;
         list<shared_ptr<Constraint<type>>> eq_list; /* sorted list of equations */
@@ -2353,7 +2435,7 @@ public:
             shared_ptr<Constraint<type>> c = eq_list.front();
             eq_list.pop_front();
             if(c->_lterms->empty()){
-                break;
+                continue;
             }
             if(c->has_matrix_indexed_vars()){/* Also do with quadratic*/
                 continue;
@@ -2364,7 +2446,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ /* && c->appear_once_linear(v) only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -2461,18 +2543,16 @@ public:
         for(const auto cstr_name: delete_cstr){
             remove(cstr_name);
         }
-        int nb_proj = 0;
+        
         for(const auto v: delete_vars){
-                //                del_var(*v);
-            nb_proj += v->_indices->size();
-            DebugOn("Deleted vars: " << v->_indices->to_str() << endl);
+            for(int i = 0; i<v->_indices->size();i++){
+                v->_off[v->get_id_inst(i)]=true;
+            }
         }
-            //                for (auto& c_pair:_cons) {
-            //                    c_pair.second->clean_terms();
-            //                }
-        DebugOn("Number of projeted variables = " << nb_proj << endl);
         reindex();
         reset();
+        int nb_proj = nb_eqs - get_nb_eq();
+        DebugOn("Number of projeted variables = " << nb_proj << endl);
         DebugOn("Model after projetion: " << endl);
         print();
     }
@@ -2484,7 +2564,7 @@ public:
      @return a pointer to the added constraint
      @note If lift = true, this function will add constraints linking the lifted variables to the original ones, if a variable's partition is greater than 1, it will also add the disjunctive constraints corresponding to the partitionning of the variables. Note also that if this is an equation f(x) = 0 s.t. f(x)<=0 or f(x)>=0 is convex, will add the convex inequality to the model.
      **/
-    shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off", bool split=true){
+    shared_ptr<Constraint<type>> add_constraint(Constraint<type>& c, bool lift_flag = false, string method_type = "on/off", bool split=true, bool add_McCormick=true){
         if (c.get_dim()==0) {
             return nullptr;
         }
@@ -2539,7 +2619,7 @@ public:
                 }
                 
                 /* Call the lift function and add corresponding constraints */
-                auto lifted = lift(*newc, method_type);
+                auto lifted = lift(*newc, method_type,add_McCormick);
                 return add_constraint(lifted);
             }
             
@@ -5150,10 +5230,10 @@ public:
         }
         _obj->_new = true;
         _obj->_dfdx->clear();
-            //            for(auto &v_p: _vars)
-            //            {
-            //                v_p.second->reset_bounds();
-            //            }
+        for(auto &v_p: _vars)
+        {
+            v_p.second->_new = true;
+        }
     }
     
     /* Build the interaction graph with symbolic variables as nodes, an edge links two variables if they appear together in a constraint or if they are linked in a nonlinear fashion in the objective
