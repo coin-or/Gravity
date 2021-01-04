@@ -235,6 +235,8 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
     if(c.is_nonlinear() || c.is_polynomial()){
         throw invalid_argument("lift can only be called on quadratic constraints for now");
     }
+    bool soc_eq = c.check_soc() && c.is_eq();
+    
     Constraint<type> lifted(c._name+"_lifted");
     /* Add constant part */
     if (!c.get_cst()->is_zero()) {
@@ -262,7 +264,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
     }
     /* Quadratic part */
     for (auto &pair:*c._qterms) {
+        bool lift_sign; /* if C is an equality SOC, only add one side relaxation since the other side is convex */
         auto qterm = pair.second;
+        lift_sign = (qterm._sign ^ qterm._coef->is_negative());
+        if (c.func<type>::is_concave())
+        {
+            DebugOff("Changing the sign of the lifted variable." << endl);
+            lift_sign = !lift_sign;
+        }
+        else{
+            DebugOff("Keeping the sign of the lifted variable same." << endl);
+        }
         lterm lt;
         lt._sign = qterm._sign;
         auto x1_ptr = static_pointer_cast<var<type>>(qterm._p->first);
@@ -338,6 +350,20 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             vlift._original_vars.push_back(make_shared<var<type>>(x1.in(x1_ids)));
             vlift._original_vars.push_back(make_shared<var<type>>(x2.in(x2_ids)));
             add(vlift.in(unique_ids));
+            if(soc_eq){
+                if(lift_sign){
+                    vlift._lift_ub = true;
+                    vlift._lift_lb = false;
+                }
+                else{
+                    vlift._lift_ub = false;
+                    vlift._lift_lb = true;
+                }
+            }
+            else{
+                vlift._lift_ub = true;
+                vlift._lift_lb = true;
+            }
             lt._p = make_shared<var<type>>(vlift.in(ids));
             if(add_McCormick_Constraints){
                 add_McCormick(pair.first, vlift.in(unique_ids), x1.in(x1_ids), x2.in(x2_ids));
@@ -433,6 +459,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
         lt._coef = qterm._coef;
         lifted.insert(lt);
     }
+    
     lifted._range = c._range;
     lifted._all_convexity = linear_;
     lifted._all_sign = c._all_sign;
@@ -6185,10 +6212,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
         UB_solver.run(output = 5, ub_solver_tol);
         DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
-//        if(!linearize)
-//            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-//        else
-//            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+        if(!linearize)
+            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+        else
+            LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
         LBnonlin_solver.run(output = 5, lb_solver_tol);
         if(relaxed_model->_status==0)
         {

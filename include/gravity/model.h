@@ -4206,7 +4206,7 @@ public:
             add(MC4.in(*vlift._indices));
         }
         else {
-            if (true || vlift._lift_ub){
+            if (vlift._lift_ub){
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
@@ -4214,7 +4214,7 @@ public:
                 add(MC4.in(*vlift._indices));
             }
             
-            if (true || vlift._lift_lb){
+            if (vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
                 MC5 += vlift;
                 

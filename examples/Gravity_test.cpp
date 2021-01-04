@@ -303,7 +303,7 @@ TEST_CASE("testing readNL() function on wastewater11m1.nl") {
     solver<> s1(M,ipopt);
     int solve_status = s1.run(5,1e-6);
     CHECK(solve_status==0);
-    CHECK(std::abs(M.get_obj_val() - 2240.470592)<1e-4);
+    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
     M.restructure();
     DebugOn("Done Restructuring!");
     solver<> s2(M,ipopt);
@@ -323,12 +323,12 @@ TEST_CASE("testing readNL() function on wastewater11m1.nl") {
     CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
     bool run_obbt = false;
     if(run_obbt){
-        M.square_linear_constraints();
-        M.reindex();
-        M.reset();
-        solver<> s4(M,ipopt);
-        solve_status = s4.run(5,1e-6);
-        CHECK(solve_status==0);
+//        M.square_linear_constraints();
+//        M.reindex();
+//        M.reset();
+//        solver<> s4(M,ipopt);
+//        solve_status = s4.run(5,1e-6);
+//        CHECK(solve_status==0);
         auto determinant_level = 3;
         bool add_Kim_Kojima = false, add_SDP_3d = false;
         auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
