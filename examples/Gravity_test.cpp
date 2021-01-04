@@ -196,7 +196,7 @@ TEST_CASE("testing readNL() function on camshape100.nl") {
     solve_status = s3.run(5,1e-6);
     CHECK(solve_status==0);
 //    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
-    bool run_obbt = true;
+    bool run_obbt = false;
     if(run_obbt){
 //        M.square_linear_constraints();
 //        M.reindex();
@@ -332,9 +332,10 @@ TEST_CASE("testing readNL() function on wastewater11m1.nl") {
         auto determinant_level = 3;
         bool add_Kim_Kojima = false, add_SDP_3d = false;
         auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+        LB->print();
         double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
         unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
-        SolverType ub_solver_type = ipopt, lb_solver_type = cplex;
+        SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
         M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=8, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
     }
