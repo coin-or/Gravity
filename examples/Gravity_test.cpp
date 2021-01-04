@@ -136,55 +136,89 @@ TEST_CASE("testing projection2") {
 }
 
 
-//TEST_CASE("testing readNL() function on camshape100.nl") {
-//    Model<> M;
-//    string NL_file = string(prj_dir)+"/data_sets/NL/camshape100.nl";
-//    int status = M.readNL(NL_file);
-////    M.print();
-//    CHECK(status==0);
-//    solver<> s1(M,ipopt);
-//    int solve_status = s1.run(5,1e-6);
-////    CHECK(solve_status==0);
-////    CHECK(std::abs(M.get_obj_val() - 2240.470592)<1e-4);
-////    M.restructure();
-////    DebugOn("Done Restructuring!");
-////    solver<> s2(M,ipopt);
-////    solve_status = s2.run(5,1e-6);
-////    CHECK(solve_status==0);
-////    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
-////    M.project();
-////    DebugOn("Done Projecting!");
-////    int nb_eq = M.get_nb_eq();
-////    if(nb_eq==0)
-////        DebugOn("Was able to remove all equations!" << endl);
-////    else
-////        DebugOn("The model has " << nb_eq << " equation(s) left!" << endl);
-////    solver<> s3(M,ipopt);
-////    solve_status = s3.run(5,1e-6);
-////    CHECK(solve_status==0);
-////    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
-//    bool run_obbt = true;
-//    if(run_obbt){
-////        M.square_linear_constraints();
-////        M.reindex();
-////        M.reset();
-////        solver<> s4(M,ipopt);
-////        solve_status = s4.run(5,1e-6);
-////        CHECK(solve_status==0);
-//        auto determinant_level = 1;
-//        bool add_Kim_Kojima = false, add_SDP_3d = false;
-//        auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
-//        double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-//        unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
-//        SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//        LB->print();
-//        M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=8, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//        LB->print();
-//        auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
-//    }
-//}
+TEST_CASE("Model relax()") {
+    Model<> M("Test");
+    param<> lb("x_lb");
+    lb = {100,1000,1000,10,10,10,10,10};
+    param<> ub("x_lb");
+    ub = {10000,10000,10000,1000,1000,1000,1000,1000};
+    var<> x("x",lb,ub);
+    auto x_ids = indices("x_ids");
+    x_ids = range(1,8);
+    M.add(x.in(x_ids));
+    Constraint<> lin1("lin1");
+    lin1 += x(1) + x(4) - 2*x(6) - 4*x(8);
+    M.add(lin1 >= 200);
+    
+    Constraint<> quad1("quad1");
+    quad1 += x(2)*x(5) + 2*x(4)*x(1) - 3*x(6)*x(7) + 0.5*x(8);
+    M.add(quad1 <= 500);
+    
+    M.min(x(4) + x(6));
+    M.print();
+    solver<> s(M,ipopt);
+    int solve_status = s.run(5,1e-6);
+    CHECK(solve_status==0);
+    
+    auto LB = M.relax();
+    LB->print();
+    
+    solver<> s_LB(LB,ipopt);
+    solve_status = s_LB.run(5,1e-6);
+    CHECK(solve_status==0);
+    
+}
 
-TEST_CASE("testing readNL() function on waterlund25.nl") {
+TEST_CASE("testing readNL() function on camshape100.nl") {
+    Model<> M;
+    string NL_file = string(prj_dir)+"/data_sets/NL/camshape100.nl";
+    int status = M.readNL(NL_file);
+    M.print();
+    CHECK(status==0);
+    solver<> s1(M,ipopt);
+    int solve_status = s1.run(5,1e-6);
+    CHECK(solve_status==0);
+//    CHECK(std::abs(M.get_obj_val() - 2240.470592)<1e-4);
+    M.restructure();
+    DebugOn("Done Restructuring!");
+    solver<> s2(M,ipopt);
+    solve_status = s2.run(5,1e-6);
+    CHECK(solve_status==0);
+//    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
+    M.project();
+    DebugOn("Done Projecting!");
+    int nb_eq = M.get_nb_eq();
+    if(nb_eq==0)
+        DebugOn("Was able to remove all equations!" << endl);
+    else
+        DebugOn("The model has " << nb_eq << " equation(s) left!" << endl);
+    solver<> s3(M,ipopt);
+    solve_status = s3.run(5,1e-6);
+    CHECK(solve_status==0);
+//    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
+    bool run_obbt = false;
+    if(run_obbt){
+//        M.square_linear_constraints();
+//        M.reindex();
+//        M.reset();
+//        solver<> s4(M,ipopt);
+//        solve_status = s4.run(5,1e-6);
+//        CHECK(solve_status==0);
+        auto determinant_level = 1;
+        bool add_Kim_Kojima = false, add_SDP_3d = false;
+        auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
+        double max_time = 500,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+        unsigned max_iter=300, nb_threads = thread::hardware_concurrency();
+        SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+        LB->print();
+        M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=8, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        LB->print();
+        LB->print_constraints_stats(1e-6);
+        auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
+    }
+}
+
+TEST_CASE("testing readNL() function on waterund25.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/waterund25.nl";
     int status = M.readNL(NL_file);
@@ -300,7 +334,7 @@ TEST_CASE("testing readNL() function on wastewater11m1.nl") {
         auto LB = M.relax(determinant_level,add_Kim_Kojima, add_SDP_3d);
         double max_time = 54000,ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-4, opt_rel_tol=1e-2, opt_abs_tol=1e6;
         unsigned max_iter=30, nb_threads = thread::hardware_concurrency();
-        SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+        SolverType ub_solver_type = ipopt, lb_solver_type = cplex;
         M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=8, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         auto final_gap = 100*(M.get_obj_val() - LB->get_obj_val())/std::abs(M.get_obj_val());
     }
@@ -1564,8 +1598,10 @@ TEST_CASE("testing SDPOPF"){
     solver<> UB(OPF,ipopt);
     solver<> LB(SDP,ipopt);
     auto time_start = get_wall_time();
-    UB.run(output=5, tol=1e-6);
-    LB.run(output=5, tol=1e-6);
+    auto status = UB.run(output=5, tol=1e-6);
+    CHECK(status==0);
+    status = LB.run(output=5, tol=1e-6);
+    CHECK(status==0);
     auto final_gap = 100*(OPF->get_obj_val() - SDP->get_obj_val())/std::abs(OPF->get_obj_val());
     auto time_end = get_wall_time();
     DebugOn("Total wall time = " << time_end - time_start << " secs" << endl);

@@ -233,6 +233,14 @@ namespace gravity {
             _name = name+".in"+_indices->get_name();
         }
         
+        void update_dim(){
+            if(_indices){
+                _dim[0]=_indices->size();
+                reset_range();
+            }            
+//            string name = _name.substr(0, _name.find_last_of("."));
+//            _name = name+".in"+_indices->get_name();
+        }
         
         void update_rows(const vector<bool>& keep_ids) {
             if(!_indices){
@@ -1611,7 +1619,7 @@ namespace gravity {
             if (it1 == _indices->_keys_map->end()){
                 throw invalid_argument("In operator()(string key1, Args&&... args), unknown key");
             }
-            res._name += ".in["+key._name+"]";
+            res._name += ".in{("+key._name+")}";
             res._indices->set_name(res._name);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);

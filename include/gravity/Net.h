@@ -178,7 +178,7 @@ public:
     
     void Fast_Horton(Net *net);
 
-    vector<gravity::indices> get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
+    vector<gravity::indices> get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags, shared_ptr<gravity::indices> ids = nullptr);
     
     vector<gravity::indices> pool_get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags);
     

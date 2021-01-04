@@ -276,16 +276,16 @@ type    var<type>::get_ub(size_t i) const {
         return nullptr;
     }
 
-/* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
-//ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),prod_b3);
+/* If this is a lifted variable lifted(x^2)= x^2, return the lower bound on x*/
+/* ub = max(lb^2,ub^2) */
 template<typename type>
 shared_ptr<param<type>>    var<type>::get_square_lb() const{
     assert(_lift);
     auto lson = static_pointer_cast<func<type>>(_ub->_expr->get_lson());
-    auto lson2 = static_pointer_cast<func<type>>(lson->_expr->get_lson());
-    return static_pointer_cast<param<type>>(lson2->_params->begin()->second.first);
+    return static_pointer_cast<param<type>>(lson->_params->begin()->second.first);
 }
-
+/* If this is a lifted variable lifted(x^2)= x^2, return the upper bound on x*/
+/* ub = max(lb^2,ub^2) */
 template<typename type>
 shared_ptr<param<type>>    var<type>::get_square_ub() const{
     assert(_lift);

@@ -875,6 +875,9 @@ namespace gravity {
             //            }
             _indices = make_shared<indices>(ids.deep_copy());
             _dim[0] = std::max(_dim[0], ids.size());
+//            if(_dim[0]>ids.size())
+//                DebugOn("reducing function size()!");
+//            _dim[0] = ids.size();
             if(_expr){// TODO take care of nonlinear part
                 _expr->in(ids);
             }
@@ -882,6 +885,7 @@ namespace gravity {
                 auto rhs_f = static_pointer_cast<func<type>>(_cst);
                 rhs_f->index_in(ids);
             }
+            allocate_mem();
             return *this;
         }
         

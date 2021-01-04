@@ -1453,12 +1453,20 @@ vector<indices> Net::pool_get_pairs_chord(const vector<pair<string,vector<Node*>
 
 
 
-vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& bags, shared_ptr<gravity::indices> ids){
     vector<indices> res;
     auto pairs = indices("pairs_chordal");
-    auto pairs_from = indices(nodes);
+    indices pairs_from;
+    if(!ids)
+        pairs_from = indices(nodes);
+    else
+        pairs_from = *ids;
     pairs_from.set_name("pairs_chordal_from");
-    auto pairs_to = indices(nodes);
+    indices pairs_to;
+    if(!ids)
+        pairs_to = indices(nodes);
+    else
+        pairs_to = *ids;
     pairs_to.set_name("pairs_chordal_to");
 //    if(!this->node_pairs_chord.empty()){
 //        return this->node_pairs_chord;
@@ -1473,15 +1481,39 @@ vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& b
            
                 if(bag.second[i]->_name <= bag.second[i+1]->_name){
                     auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
-                    pairs.add(name);
-                    pairs_from.add_ref(bag.second[i]->_name);
-                    pairs_to.add_ref(bag.second[i+1]->_name);
+                    if(name.find("x")!=std::string::npos){
+                        auto key1 = bag.second[i]->_name.substr(bag.second[i]->_name.find("[")+1);
+                        key1 = key1.substr(0,key1.size()-1);
+                        auto key2 = bag.second[i+1]->_name.substr(bag.second[i+1]->_name.find("[")+1);
+                        key2 = key2.substr(0,key2.size()-1);
+                        key = key1 + "," + key2;
+                        pairs.add(key);
+                        pairs_from.add_ref(key1);
+                        pairs_to.add_ref(key2);
+                    }
+                    else{
+                        pairs.add(name);
+                        pairs_from.add_ref(bag.second[i]->_name);
+                        pairs_to.add_ref(bag.second[i+1]->_name);
+                    }
                 }
                 else {
                     auto name = bag.second[i+1]->_name + "," + bag.second[i]->_name;
-                    pairs.add(name);
-                    pairs_from.add_ref(bag.second[i+1]->_name);
-                    pairs_to.add_ref(bag.second[i]->_name);
+                    if(name.find("x")!=std::string::npos){
+                        auto key1 = bag.second[i+1]->_name.substr(bag.second[i+1]->_name.find("[")+1);
+                        key1 = key1.substr(0,key1.size()-1);
+                        auto key2 = bag.second[i]->_name.substr(bag.second[i]->_name.find("[")+1);
+                        key2 = key2.substr(0,key2.size()-1);
+                        key = key1 + "," + key2;
+                        pairs.add(key);
+                        pairs_from.add_ref(key1);
+                        pairs_to.add_ref(key2);
+                    }
+                    else{
+                        pairs.add(name);
+                        pairs_from.add_ref(bag.second[i+1]->_name);
+                        pairs_to.add_ref(bag.second[i]->_name);
+                    }
                 }
             }
         }
@@ -1489,15 +1521,39 @@ vector<indices> Net::get_pairs_chord(const vector<pair<string,vector<Node*>>>& b
         if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
             if(bag.second[0]->_name <= bag.second[bag.second.size()-1]->_name){
                 auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
-                pairs.add(name);
-                pairs_from.add_ref(bag.second[0]->_name);
-                pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
+                if(name.find("x")!=std::string::npos){
+                    auto key1 = bag.second[0]->_name.substr(bag.second[0]->_name.find("[")+1);
+                    key1 = key1.substr(0,key1.size()-1);
+                    auto key2 = bag.second[bag.second.size()-1]->_name.substr(bag.second[bag.second.size()-1]->_name.find("[")+1);
+                    key2 = key2.substr(0,key2.size()-1);
+                    key = key1 + "," + key2;
+                    pairs.add(key);
+                    pairs_from.add_ref(key1);
+                    pairs_to.add_ref(key2);
+                }
+                else{
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[0]->_name);
+                    pairs_to.add_ref(bag.second[bag.second.size()-1]->_name);
+                }
             }
             else {
                 auto name = bag.second[bag.second.size()-1]->_name + "," + bag.second[0]->_name;
-                pairs.add(name);
-                pairs_from.add_ref(bag.second[bag.second.size()-1]->_name);
-                pairs_to.add_ref(bag.second[0]->_name);
+                if(name.find("x")!=std::string::npos){
+                    auto key1 = bag.second[bag.second.size()-1]->_name.substr(bag.second[bag.second.size()-1]->_name.find("[")+1);
+                    key1 = key1.substr(0,key1.size()-1);
+                    auto key2 = bag.second[0]->_name.substr(bag.second[0]->_name.find("[")+1);
+                    key2 = key2.substr(0,key2.size()-1);
+                    key = key1 + "," + key2;
+                    pairs.add(key);
+                    pairs_from.add_ref(key1);
+                    pairs_to.add_ref(key2);
+                }
+                else{
+                    pairs.add(name);
+                    pairs_from.add_ref(bag.second[bag.second.size()-1]->_name);
+                    pairs_to.add_ref(bag.second[0]->_name);
+                }
             }
         }
     }

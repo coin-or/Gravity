@@ -264,6 +264,9 @@
             else if(_type==to_){
                 name = "to("+name+")";
             }
+//            if(size()==1){
+//                return "[" + get_key() + "]";
+//            }
             return name;
         }
         
@@ -682,15 +685,34 @@
         }
         
         /** Returns an index set based on the references stored in _ids. The function iterates over key references in _ids and keeps only the unique entries */
+//        indices get_unique_keys() const{
+//            indices res(_name);
+//            res._type = unindexed_;
+//            res._keys = _keys;
+//            res._keys_map = _keys_map;
+//            res._excluded_keys = _excluded_keys;
+//            res._dim = make_shared<vector<size_t>>();
+//            res._dim->resize(1);
+//            res._dim->at(0) = res._keys->size();
+//            return res;
+//        }
         indices get_unique_keys() const{
             indices res(_name);
-            res._type = unindexed_;
-            res._keys = _keys;
-            res._keys_map = _keys_map;
-            res._excluded_keys = _excluded_keys;
-            res._dim = make_shared<vector<size_t>>();
-            res._dim->resize(1);
-            res._dim->at(0) = res._keys->size();
+            set<size_t> unique_ids;
+            if(_ids){
+                for (auto &idx:_ids->at(0)) {
+                    if(unique_ids.insert(idx).second){
+                        res.add(_keys->at(idx));
+                    }
+                }
+                return res;
+            }
+            set<string> unique_keys;
+            for (auto &key:*_keys) {
+                if(unique_keys.insert(key).second){
+                    res.add(key);
+                }
+            }
             return res;
         }
         
@@ -970,6 +992,17 @@
                         res.push_back(true);
                     }
                     else {
+                        res.push_back(false);
+                    }
+                }
+            }
+            else{
+                set<string> unique_keys;
+                for (auto &key:*_keys) {
+                    if(unique_keys.insert(key).second){
+                        res.push_back(true);
+                    }
+                    else{
                         res.push_back(false);
                     }
                 }
@@ -1590,14 +1623,15 @@
             }
         }
         
-        void clear_ids() {
+        void clear_ids(bool rename = true) {
             if(_ids){
                 indices new_ids;
                 for(int i = 0; i< _ids->at(0).size(); i++){
                     new_ids.insert(get_key(i)+"_"+to_string(i));/* check repeated entries*/
                 }
                 *this = new_ids;
-                _name = to_str();
+                if(rename)
+                    _name = to_str();
             }
         }
         

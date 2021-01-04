@@ -438,7 +438,11 @@ public:
         if(i>=nb_terms){
             throw invalid_argument("in call to get_lterm_cont_var_id(), out of bounds index");
         }
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for (int j = 0; j<nb_terms; j++) {
             if(!iter->second._p->_is_relaxed){
                 if(idx==i)
@@ -569,7 +573,11 @@ public:
         if(i>=nb_terms){
             throw invalid_argument("in call to eval_lterm_coef(), out of bounds index");
         }
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for (int j = 0; j<nb_terms; j++) {
             if(iter->second._p->_is_relaxed){
                 if(idx==i)
@@ -625,7 +633,11 @@ public:
     type eval_lterm_cont_coef(int i) const{
         int nb_terms = this->nb_linear_terms();
         int idx = 0;
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for (int j = 0; j<nb_terms; j++) {
             if(!iter->second._p->_is_relaxed){
                 if(idx==i){
@@ -748,7 +760,11 @@ public:
     type eval_lterm_int_coef(int i) const{
         int nb_terms = this->nb_linear_terms();
         int idx = 0;
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for (int j = 0; j<nb_terms; j++) {
             if(iter->second._p->_is_relaxed){
                 if(idx==i){
@@ -807,7 +823,11 @@ public:
         if(nb_cont_lin_terms!=this->nb_cont_lterms() || nb_int_lin_terms!=this->nb_int_lterms() || nb_cont_quad_terms!= this->nb_cont_quad_terms() || nb_int_quad_terms != this->nb_int_quad_terms() || nb_hyb_quad_terms != this->nb_hyb_quad_terms()){
             throw invalid_argument("adding row with different sparsity structure");
         }
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for(int i = 0;i < nb_cont_lin_terms; i++){/* terms with continuous variables */
             auto l = iter++;
             if(l->second._coef->is_param()) {
@@ -861,8 +881,10 @@ public:
                 p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_cont_coef(i));
                 l->second._coef = p;
             }
-            l->second._p->first->_indices->add_ref(con->get_qterm_cont_var_id1(i));
-            l->second._p->second->_indices->add_ref(con->get_qterm_cont_var_id2(i));
+            if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
+                l->second._p->first->_indices->add_ref(con->get_qterm_cont_var_id1(i));
+            if(l->second._p->second->_indices->size()<this->_dim[0])
+                l->second._p->second->_indices->add_ref(con->get_qterm_cont_var_id2(i));
         }
         for(int i = 0;i < nb_int_quad_terms; i++){/* terms with integer variables */
             auto l =  qiter++;
@@ -880,8 +902,10 @@ public:
                 p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
                 l->second._coef = p;
             }
-            l->second._p->first->_indices->add_ref(con->get_qterm_int_var_id1(i));
-            l->second._p->second->_indices->add_ref(con->get_qterm_int_var_id2(i));
+            if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
+                l->second._p->first->_indices->add_ref(con->get_qterm_int_var_id1(i));
+            if(l->second._p->second->_indices->size()<this->_dim[0])
+                l->second._p->second->_indices->add_ref(con->get_qterm_int_var_id2(i));
         }
         for(int i = 0;i < nb_hyb_quad_terms; i++){/* terms with mixed cont*integer variables */
             auto l =  qiter++;
@@ -899,8 +923,10 @@ public:
                 p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
                 l->second._coef = p;
             }
-            l->second._p->first->_indices->add_ref(con->get_qterm_hyb_var_id1(i));
-            l->second._p->second->_indices->add_ref(con->get_qterm_hyb_var_id2(i));
+            if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
+                l->second._p->first->_indices->add_ref(con->get_qterm_hyb_var_id1(i));
+            if(l->second._p->second->_indices->size()<this->_dim[0])
+                l->second._p->second->_indices->add_ref(con->get_qterm_hyb_var_id2(i));
         }
             //Set value of the constant
         if(this->_cst->is_param()){
@@ -937,7 +963,11 @@ public:
         if(nb_cont_vars!=this->nb_cont_lterms() || nb_int_vars!=this->nb_int_lterms()){
             throw invalid_argument("adding row with different sparsity structure");
         }
-        auto iter =this->_lterms->begin();
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+        }
+        auto iter =ordered_lterms.begin();
         for(int i = 0;i < nb_cont_vars; i++){/* terms with continuous variables */
             auto l = iter++;
             if(l->second._coef->is_param()) {

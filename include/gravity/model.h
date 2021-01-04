@@ -1631,7 +1631,7 @@ public:
             DebugOff("Old obj: " << endl);
 //            _obj->print();
             *_obj = _obj->replace(v, f);
-            _obj->clean_terms(); /* put this in while loop above*/
+            _obj->clean_terms();
             DebugOff("Projected obj: " << endl);
 //            _obj->print();
             _obj->_dim[0] = 1;
@@ -1804,8 +1804,8 @@ public:
             for(auto bag:bags_3d){
                 DebugOn(bag.second[0]->_name<<"\t"<<bag.second[1]->_name<<"\t"<<bag.second[2]->_name<<"\n");
             }
-            
-            auto indices=g.get_pairs_chord(bags_3d);
+            auto xi = relax->template get_var<type>("x");
+            auto indices=g.get_pairs_chord(bags_3d,xi._indices);
             auto pairs = indices[0];
             auto pairs_from = indices[1];
             auto pairs_to = indices[2];
@@ -1813,38 +1813,89 @@ public:
             for(auto k: *pairs._keys){
                 DebugOn(k<<endl);
             }
+            
+            Constraint<> Square("Square");
+            Square = pow((xi.in(pairs_from)-xi.in(pairs_to)),2);
+            relax->add(Square.in(pairs) >= 0, true, "on/off", true, false);
+            relax->remove("Square_lifted");
+            
+            auto xi2 = relax->template get_var<type>("Lift(x^2)");
+            auto xij = relax->template get_var<type>("Lift(x;x)");
+            Constraint<> SOC("SOC");
+            SOC = pow(xij.in(pairs), 2) - xi2.in(pairs_from)*xi2.in(pairs_to);
+            relax->add(SOC.in(pairs) == 0, true);
+            
+            
+            if(add_SDP_3d){
+                auto Wij_ = xij.pairs_in_bags(bags_3d, 3);
+                auto Wii_ = xi2.in_bags(bags_3d, 3);
+                
+//                Constraint<> SDP3("SDP_3D_diag");
+//                SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+//                SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+//                SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+//                SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+//                SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//                relax->add(SDP3.in(range(1, bag_size)) >= 0);
+
+                
+                bool add_cycle = true;
+                if(add_cycle){
+                    Constraint<> Cycle1("Cycle1");
+                    Cycle1 = Wij_[2]*Wij_[0] - Wii_[0]*Wij_[1];
+                    relax->add(Cycle1.in(range(0,bag_size-1)) == 0, true);
+                    
+//                                Constraint<> Cycle2("Cycle2");
+//                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
+//                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                    
+                    Constraint<> Cycle3("Cycle3");
+                    Cycle3 = Wij_[1]*Wij_[2] - Wii_[2]*Wij_[0];
+                    relax->add(Cycle3.in(range(0,bag_size-1)) == 0, true);
+                }
+                
+//                            Constraint<> SOC1("SOC1");
+//                            SOC1 = Wii_[0] * Wii_[1];
+//                            SOC1 -= pow(Wij_[0], 2);
+//                            relax->add(SOC1.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC2("SOC2");
+//                            SOC2 = Wii_[1] * Wii_[2];
+//                            SOC2 -= pow(Wij_[1], 2);
+//                            relax->add(SOC2.in(range(1, bag_size)) >= 0);
+//
+//                            Constraint<> SOC3("SOC3");
+//                            SOC3 = Wii_[0] * Wii_[2];
+//                            SOC3 -= pow(Wij_[2], 2);
+//                            relax->add(SOC3.in(range(1, bag_size)) >= 0);
+            }
+            
 
             for(auto &vp: relax->_vars){
                 if (vp.second->get_intype()==double_) {
                     auto vv = static_pointer_cast<var<double>>(vp.second);
-                    if(vv->_lift && vv->_name.find("^2")==string::npos){
+                    if(vv->_original_vars.size()>3 && vv->_name.find("^2")==string::npos){
                         auto Vi = relax->template get_var<type>(vv->_original_vars[0]->get_name(true,true));
                         auto Vi_ = Vi.in_bags(bags_3d, 3);
                         /* Cycle constraints */
-                        bool add_cycle = false;
-                        if(add_cycle){
-                            Constraint<> Cycle("Cycle");
-                            Cycle = Vi_[0]*Vi_[2]*Vi_[0]*Vi_[1] - Vi_[0]*Vi_[0]*Vi_[1]*Vi_[2];
-                            relax->add(Cycle.in(range(0,bag_size-1)) == 0, true);
-                        }
                         
                         
                        
-                        Constraint<> Wij1("Wij1");
-                        Wij1 = pow((Vi_[0]-Vi_[1]),2);
-                        relax->add(Wij1.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
-                        relax->remove("Wij1_lifted");
-                        
-                        Constraint<> Wij2("Wij2");
-                        Wij2 = pow((Vi_[1]-Vi_[2]),2);
-                        relax->add(Wij2.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
-                        relax->remove("Wij2_lifted");
-                        
-                        Constraint<> Wij3("Wij3");
-                        Wij3 = pow((Vi_[2]-Vi_[0]),2);
-                        relax->add(Wij3.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
-                        relax->remove("Wij3_lifted");
-                        
+//                        Constraint<> Wij1("Wij1");
+//                        Wij1 = pow((Vi_[0]-Vi_[1]),2);
+//                        relax->add(Wij1.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+//                        relax->remove("Wij1_lifted");
+//
+//                        Constraint<> Wij2("Wij2");
+//                        Wij2 = pow((Vi_[1]-Vi_[2]),2);
+//                        relax->add(Wij2.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+//                        relax->remove("Wij2_lifted");
+//
+//                        Constraint<> Wij3("Wij3");
+//                        Wij3 = pow((Vi_[2]-Vi_[0]),2);
+//                        relax->add(Wij3.in(range(0,bag_size-1)) >= 0, true, "on/off", true, false);
+//                        relax->remove("Wij3_lifted");
+//
                         
                         
                         
@@ -1876,29 +1927,83 @@ public:
 //                            SOC3 = Wii_[0] * Wii_[2];
 //                            SOC3 -= pow(Wij_[2], 2);
 //                            relax->add(SOC3.in(range(1, bag_size)) >= 0);
+                            
+                            func<type> f = Wii_[1]+Wii_[2]+2*Wij_[1];
+                            f.eval_all();
+                            param<type> lb_Wi_ij1("lb_Wi_ij1");
+                            lb_Wi_ij1.in(range(0,bag_size-1));
+                            lb_Wi_ij1 = f._range->first;
+                            
+                            param<type> ub_Wi_ij1("ub_Wi_ij1");
+                            ub_Wi_ij1.in(range(0,bag_size-1));
+                            ub_Wi_ij1 = f._range->second;
+                            var<type> Wi_ij1("Wi_ij1", lb_Wi_ij1, ub_Wi_ij1);
+                            relax->add(Wi_ij1.in(range(0,bag_size-1)));
+                            
+                            Constraint<type> Wi_ij1_lin("Wi_ij1_lin");
+                            Wi_ij1_lin += Wi_ij1 - (Wii_[1]+Wii_[2]+2*Wij_[1]);
+                            relax->add(Wi_ij1_lin.in(range(0,bag_size-1)) == 0);
+                            
                             Constraint<> SOC_Kojima1_0("SOC_Kojima1_0_diag");
-                            SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+//                            SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]+2*Wij_[1]);
+                            SOC_Kojima1_0 = pow(Wij_[0] + Wij_[2], 2) - Wii_[0]*Wi_ij1;
                             relax->add(SOC_Kojima1_0.in(range(0,bag_size-1)) <= 0);
                             
+                                
+                            func<type> f2 = Wii_[0]+Wii_[2]+2*Wij_[2];
+                            f2.eval_all();
+                            param<type> lb_Wi_ij2("lb_Wi_ij2");
+                            lb_Wi_ij2.in(range(0,bag_size-1));
+                            lb_Wi_ij2 = f2._range->first;
+                            
+                            param<type> ub_Wi_ij2("ub_Wi_ij2");
+                            ub_Wi_ij2.in(range(0,bag_size-1));
+                            ub_Wi_ij2 = f2._range->second;
+                            var<type> Wi_ij2("Wi_ij2", lb_Wi_ij2, ub_Wi_ij2);
+                            relax->add(Wi_ij2.in(range(0,bag_size-1)));
+                            
+                            Constraint<type> Wi_ij2_lin("Wi_ij2_lin");
+                            Wi_ij2_lin += Wi_ij2 - (Wii_[0]+Wii_[2]+2*Wij_[2]);
+                            relax->add(Wi_ij2_lin.in(range(0,bag_size-1)) == 0);
+                            
                             Constraint<> SOC_Kojima2_0("SOC_Kojima2_0_diag");
-                            SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+//                            SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*(Wii_[0]+Wii_[2]+2*Wij_[2]);
+                            SOC_Kojima2_0 = pow(Wij_[0] + Wij_[1], 2)  - Wii_[1]*Wi_ij2;
                             relax->add(SOC_Kojima2_0.in(range(0,bag_size-1)) <= 0);
                             
+                            
+                            func<type> f3 = Wii_[0]+Wii_[1]+2*Wij_[0];
+                            f3.eval_all();
+                            param<type> lb_Wi_ij3("lb_Wi_ij3");
+                            lb_Wi_ij3.in(range(0,bag_size-1));
+                            lb_Wi_ij3 = f3._range->first;
+                            
+                            param<type> ub_Wi_ij3("ub_Wi_ij3");
+                            ub_Wi_ij3.in(range(0,bag_size-1));
+                            ub_Wi_ij3 = f3._range->second;
+                            var<type> Wi_ij3("Wi_ij3", lb_Wi_ij3, ub_Wi_ij3);
+                            relax->add(Wi_ij3.in(range(0,bag_size-1)));
+                            
+                            Constraint<type> Wi_ij3_lin("Wi_ij3_lin");
+                            Wi_ij3_lin += Wi_ij3 - (Wii_[0]+Wii_[1]+2*Wij_[0]);
+                            relax->add(Wi_ij3_lin.in(range(0,bag_size-1)) == 0);
+                            
                             Constraint<> SOC_Kojima3_0("SOC_Kojima3_0_diag");
-                            SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+//                            SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]+2*Wij_[0]);
+                            SOC_Kojima3_0 = pow(Wij_[2] + Wij_[1], 2) - Wii_[2]*Wi_ij3;
                             relax->add(SOC_Kojima3_0.in(range(0,bag_size-1)) <= 0);
                             
-                            Constraint<> SOC_Kojima1_90("SOC_Kojima1_90_diag");
-                            SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
-                            relax->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
-                            
-                            Constraint<> SOC_Kojima2_90("SOC_Kojima2_90_diag");
-                            SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
-                            relax->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
-                            
-                            Constraint<> SOC_Kojima3_90("SOC_Kojima3_90_diag");
-                            SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
-                            relax->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
+//                            Constraint<> SOC_Kojima1_90("SOC_Kojima1_90_diag");
+//                            SOC_Kojima1_90 = pow(Wij_[0], 2) + pow(Wij_[2], 2) - Wii_[0]*(Wii_[1]+Wii_[2]);
+//                            relax->add(SOC_Kojima1_90.in(range(0,bag_size-1)) <= 0);
+//
+//                            Constraint<> SOC_Kojima2_90("SOC_Kojima2_90_diag");
+//                            SOC_Kojima2_90 = pow(Wij_[0], 2) + pow(Wij_[1], 2) - Wii_[1]*(Wii_[0]+Wii_[2]);
+//                            relax->add(SOC_Kojima2_90.in(range(0,bag_size-1)) <= 0);
+//
+//                            Constraint<> SOC_Kojima3_90("SOC_Kojima3_90_diag");
+//                            SOC_Kojima3_90 = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
+//                            relax->add(SOC_Kojima3_90.in(range(0,bag_size-1)) <= 0);
                         }
                             //
                             //                            const double root2=std::sqrt(2.0);
@@ -1917,14 +2022,28 @@ public:
                             //                            relax->add(SOC_Kojima3_45.in(range(0,bag_size-1)) <= 0);
                         
                         if(add_SDP_3d){
-                            Constraint<> SDP3("SDP_3D_diag");
-                            SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-                            SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-                            SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-                            SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-                            SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-                            relax->add(SDP3.in(range(1, bag_size)) >= 0);
+//                            Constraint<> SDP3("SDP_3D_diag");
+//                            SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+//                            SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+//                            SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+//                            SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+//                            SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//                            relax->add(SDP3.in(range(1, bag_size)) >= 0);
                             
+                            bool add_cycle = true;
+                            if(add_cycle){
+                                Constraint<> Cycle1("Cycle1");
+                                Cycle1 = Wij_[2]*Wij_[0] - Wii_[0]*Wij_[1];
+                                relax->add(Cycle1.in(range(0,bag_size-1)) == 0, true);
+                                
+//                                Constraint<> Cycle2("Cycle2");
+//                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
+//                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                                
+                                Constraint<> Cycle3("Cycle3");
+                                Cycle3 = Wij_[1]*Wij_[2] - Wii_[2]*Wij_[0];
+                                relax->add(Cycle3.in(range(0,bag_size-1)) == 0, true);
+                            }
                             
 //                            Constraint<> SOC1("SOC1");
 //                            SOC1 = Wii_[0] * Wii_[1];
@@ -1966,60 +2085,64 @@ public:
                             //                            SOC_Kojima3_90_NC = pow(Wij_[2], 2) + pow(Wij_[1], 2) - Wii_[2]*(Wii_[0]+Wii_[1]);
                             //                            relax->add(SOC_Kojima3_90_NC.in(range(0,bag_size-1)) >= 0, true);
                             //                            break;
+//                        DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
+//                        DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
+//                        DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
+//                        name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
+//                        DebugOn("Diagonal element 1: " << name1 << endl);
+//                        auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
+//                        DebugOn("Diagonal element 2: " << name2 << endl);
+//                        auto vdiag1 = relax->template get_var<double>(name1);
+//                        auto vdiag2 = relax->template get_var<double>(name2);
+//                        f = (*vv->_original_vars[0])*(*vv->_original_vars[1]);
+//                        f.in(*vv->_indices);
+//                        f.eval_all();
+//                        vv->copy_vals(f);
+//                        vdiag1.initialize_all(1);
+//                        vdiag2.initialize_all(1);
+//                        Constraint<> SOC(vv->_name+"_SOC_diag");
+//                        SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+//                        relax->add(SOC.in(*vv->_indices) <= 0);
+                        
+                        break;
                     }
                 }
             }
-            if(add_Kim_Kojima || add_SDP_3d || determinant_level>1){
-                for(auto &vp: relax->_vars){
-                    if (vp.second->get_intype()==double_) {
-                        auto vv = static_pointer_cast<var<double>>(vp.second);
-                        if(vv->_lift && vv->_name.find("^2")==string::npos){
-                            DebugOn("OffDiagonal element: " << vv->get_name(true,true) << endl);
-                            DebugOn("Original var1: " << vv->_original_vars[0]->get_name(true,true) << endl);
-                            DebugOn("Original var2: " << vv->_original_vars[1]->get_name(true,true) << endl);
-                            auto name1 = "Lift("+vv->_original_vars[0]->get_name(true,true)+"^2)";
-                            DebugOn("Diagonal element 1: " << name1 << endl);
-                            auto name2 = "Lift("+vv->_original_vars[1]->get_name(true,true)+"^2)";
-                            DebugOn("Diagonal element 2: " << name2 << endl);
-    //                        if (relax->_cons_name.count(name1+"_diag")==0) {
-    //                            auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
-    //                            Constraint<> diag(name1+"_diag");
-    //                            if(v1.is_non_negative()){
-    //                                diag = pow(v1,2) - v1.get_ub()*v1;
-    //                            }
-    //                            else {
-    //                                diag = pow(v1,2) - pow(v1.get_ub(),2);
-    //                            }
-    //                            relax->add(diag.in(*v1._indices)<=0,true);
-    //                        }
-    //                        if (relax->_cons_name.count(name2+"_diag")==0) {
-    //                            auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
-    //                            Constraint<> diag(name2+"_diag");
-    //                            if(v2.is_non_negative()){
-    //                                diag = pow(v2,2) - v2.get_ub()*v2;
-    //                            }
-    //                            else {
-    //                                diag = pow(v2,2) - pow(v2.get_ub(),2);
-    //                            }
-    //                            relax->add(diag.in(*v2._indices)<=0,true);
-    //                        }
-                            auto vdiag1 = relax->template get_var<double>(name1);
-                            auto vdiag2 = relax->template get_var<double>(name2);
-                            auto f = (*vv->_original_vars[0])*(*vv->_original_vars[1]);
-                            f.in(*vv->_indices);
-                            f.eval_all();
-                            vv->copy_vals(f);
-    //                        vdiag1.initialize_all(1);
-    //                        vdiag2.initialize_all(1);
-                            Constraint<> SOC(vv->_name+"_SOC_diag");
-                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                            relax->add(SOC.in(*vv->_indices) <= 0);
-                                //                            SOC.print();
-                                //                            relax->print();
-                        }
-                    }
-                }
-            }
+//            if(add_Kim_Kojima || add_SDP_3d || determinant_level>1){
+//                for(auto &vp: relax->_vars){
+//                    if (vp.second->get_intype()==double_) {
+//                        auto vv = static_pointer_cast<var<double>>(vp.second);
+//                        if(vv->_lift && vv->_name.find("^2")==string::npos){
+//
+//    //                        if (relax->_cons_name.count(name1+"_diag")==0) {
+//    //                            auto v1 = relax->template get_var<double>(vv->_original_vars[0]->get_name(true,true));
+//    //                            Constraint<> diag(name1+"_diag");
+//    //                            if(v1.is_non_negative()){
+//    //                                diag = pow(v1,2) - v1.get_ub()*v1;
+//    //                            }
+//    //                            else {
+//    //                                diag = pow(v1,2) - pow(v1.get_ub(),2);
+//    //                            }
+//    //                            relax->add(diag.in(*v1._indices)<=0,true);
+//    //                        }
+//    //                        if (relax->_cons_name.count(name2+"_diag")==0) {
+//    //                            auto v2 = relax->template get_var<double>(vv->_original_vars[1]->get_name(true,true));
+//    //                            Constraint<> diag(name2+"_diag");
+//    //                            if(v2.is_non_negative()){
+//    //                                diag = pow(v2,2) - v2.get_ub()*v2;
+//    //                            }
+//    //                            else {
+//    //                                diag = pow(v2,2) - pow(v2.get_ub(),2);
+//    //                            }
+//    //                            relax->add(diag.in(*v2._indices)<=0,true);
+//    //                        }
+//
+//                                //                            SOC.print();
+//                                //                            relax->print();
+//                        }
+//                    }
+//                }
+//            }
         }
 //        relax->print();
         return relax;
@@ -2078,7 +2201,7 @@ public:
             y = get_var<double>("y");
         for( const auto & iter: lin_eq_sparsity){
             auto con_vec = iter.second;
-            if(con_vec.size()>1){
+            if(con_vec.size()>0){
                 auto con0 = con_vec[0];
                 Constraint<> eq("lin_eq_"+to_string(index));
                 param<> c0("c0_eq_"+to_string(index));
@@ -2128,7 +2251,7 @@ public:
         index = 0;
         for( const auto & iter: quad_eq_sparsity){
             auto con_vec = iter.second;
-            if(con_vec.size()>1){
+            if(con_vec.size()>0){
                 auto con0 = con_vec[0];
                 Constraint<> eq("quad_eq_"+to_string(index));
                 param<> c0("c0_quad_eq_"+to_string(index));
@@ -2226,7 +2349,7 @@ public:
         index = 0;
         for( const auto & iter: lin_ineq_sparsity){
             auto con_vec = iter.second;
-            if(con_vec.size()>1){
+            if(con_vec.size()>0){
                 auto con0 = con_vec[0];
                 bool is_geq = con0->is_geq();
                 Constraint<> leq("lin_ineq_"+to_string(index));
@@ -2288,7 +2411,7 @@ public:
         index = 0;
         for( const auto & iter: quad_ineq_sparsity){
             auto con_vec = iter.second;
-            if(con_vec.size()>1){
+            if(con_vec.size()>0){
                 auto con0 = con_vec[0];
                 if(con0->is_geq())/* If >= inequality, reverse sign of coefs */
                     *con0 *= -1;
@@ -2387,15 +2510,14 @@ public:
             }
             index++;
         }
+        for(const auto cstr_name: delete_cstr){
+            remove(cstr_name);
+        }
         for (auto& c_pair:_cons) {
             c_pair.second->update_terms();
             if(c_pair.second->is_zero())
                 delete_cstr.push_back(c_pair.second->get_name());
         }
-        for(const auto cstr_name: delete_cstr){
-            remove(cstr_name);
-        }
-        
         reindex();
         reset();
         DebugOn("Model after restructure: " << endl);
@@ -2446,7 +2568,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ /* && c->appear_once_linear(v) only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -4084,7 +4206,7 @@ public:
             add(MC4.in(*vlift._indices));
         }
         else {
-            if (vlift._lift_ub){
+            if (true || vlift._lift_ub){
                 Constraint<type> MC4(name+"_Secant");
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
@@ -4092,7 +4214,7 @@ public:
                 add(MC4.in(*vlift._indices));
             }
             
-            if (vlift._lift_lb){
+            if (true || vlift._lift_lb){
                 Constraint<type> MC5(name+"_McCormick_squared");
                 MC5 += vlift;
                 
@@ -6854,22 +6976,19 @@ public:
                 }
             }
                 //add the secant constraint if the quadratic term appears on the LHS
-            if (vlift._lift_ub){
                 Constraint<type> MC_secant(name+"_secant");
                 MC_secant = vlift.from_ith(0,inst_partition) - Vpar*v1.from_ith(0,inst_partition) + Cpar;
                 MC_secant.in(inst_partition) <= 0;
                 add_on_off_multivariate_refined(MC_secant, on);
-            }
             
                 //add the global lb constraint if the quadratic term appears on the RHS
-            if (vlift._lift_lb){
                 Constraint<type> MC_squared(name+"_McCormick_squared");
                 MC_squared += vlift;
                 MC_squared -= v1*v1;
                 MC_squared >= 0;
                 MC_squared._relaxed = true; /* MC_squared is a relaxation of a non-convex constraint */
                 add(MC_squared.in(*vlift._indices));
-            }
+            
             
                 //add the on-off bound constraints on the variables
             Constraint<type> v1_on_off_LB(name+"_v1_on_off_LB");
