@@ -1830,16 +1830,16 @@ public:
                 auto Wij_ = xij.pairs_in_bags(bags_3d, 3);
                 auto Wii_ = xi2.in_bags(bags_3d, 3);
                 
-//                Constraint<> SDP3("SDP_3D_diag");
-//                SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
-//                SDP3 -= pow(Wij_[0], 2) * Wii_[2];
-//                SDP3 -= pow(Wij_[1], 2) * Wii_[0];
-//                SDP3 -= pow(Wij_[2], 2) * Wii_[1];
-//                SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-//                relax->add(SDP3.in(range(1, bag_size)) >= 0);
+                Constraint<> SDP3("SDP_3D_diag");
+                SDP3 = 2 * Wij_[0] * Wij_[1] * Wij_[2];
+                SDP3 -= pow(Wij_[0], 2) * Wii_[2];
+                SDP3 -= pow(Wij_[1], 2) * Wii_[0];
+                SDP3 -= pow(Wij_[2], 2) * Wii_[1];
+                SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+                relax->add(SDP3.in(range(1, bag_size)) >= 0);
 
                 
-                bool add_cycle = true;
+                bool add_cycle = false;
                 if(add_cycle){
                     Constraint<> Cycle1("Cycle1");
                     Cycle1 = Wij_[2]*Wij_[0] - Wii_[0]*Wij_[1];

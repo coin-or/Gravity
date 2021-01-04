@@ -196,7 +196,7 @@ TEST_CASE("testing readNL() function on camshape100.nl") {
     solve_status = s3.run(5,1e-6);
     CHECK(solve_status==0);
 //    CHECK(std::abs(M.get_obj_val() - 2204.941143)<1e-4);
-    bool run_obbt = false;
+    bool run_obbt = true;
     if(run_obbt){
 //        M.square_linear_constraints();
 //        M.reindex();

@@ -334,7 +334,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                 ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),gravity::max(prod_b3,prod_b4).in(unique_ids));
             }
             var<type> vlift(lifted_name, lb, ub);
-//            vlift._lift = true;
+            vlift._lift = true;
             vlift._original_vars.push_back(make_shared<var<type>>(x1.in(x1_ids)));
             vlift._original_vars.push_back(make_shared<var<type>>(x2.in(x2_ids)));
             add(vlift.in(unique_ids));
@@ -347,15 +347,15 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             auto vlift = static_pointer_cast<var<type>>(it->second);
             auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
             unique_ids.filter_refs(new_ids);/* Only keep new indices */
-//            vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
+            vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
             if(is_square){
                 x1_ids.filter_refs(new_ids);
-//                auto x_lb = vlift->get_square_lb();
-//                auto x_ub = vlift->get_square_ub();
-//                x_lb->_indices->add_refs(x1_ids);
-//                x_ub->_indices->add_refs(x1_ids);
-//                x_lb->update_dim();
-//                x_ub->update_dim();
+                auto x_lb = vlift->get_square_lb();
+                auto x_ub = vlift->get_square_ub();
+                x_lb->_indices->add_refs(x1_ids);
+                x_ub->_indices->add_refs(x1_ids);
+                x_lb->update_dim();
+                x_ub->update_dim();
                 vlift->_original_vars[0]->_indices->add_refs(x1_ids);
                 vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
                 vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
@@ -363,18 +363,18 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             else{
                 x1_ids.filter_refs(new_ids);
                 x2_ids.filter_refs(new_ids);
-//                auto x1_lb = vlift->get_bilinear_lb1();
-//                auto x1_ub = vlift->get_bilinear_ub1();
-//                x1_lb->_indices->add_refs(x1_ids);
-//                x1_ub->_indices->add_refs(x1_ids);
-//                x1_lb->update_dim();
-//                x1_ub->update_dim();
-//                auto x2_lb = vlift->get_bilinear_lb2();
-//                auto x2_ub = vlift->get_bilinear_ub2();
-//                x2_lb->_indices->add_refs(x2_ids);
-//                x2_ub->_indices->add_refs(x2_ids);
-//                x2_lb->update_dim();
-//                x2_ub->update_dim();
+                auto x1_lb = vlift->get_bilinear_lb1();
+                auto x1_ub = vlift->get_bilinear_ub1();
+                x1_lb->_indices->add_refs(x1_ids);
+                x1_ub->_indices->add_refs(x1_ids);
+                x1_lb->update_dim();
+                x1_ub->update_dim();
+                auto x2_lb = vlift->get_bilinear_lb2();
+                auto x2_ub = vlift->get_bilinear_ub2();
+                x2_lb->_indices->add_refs(x2_ids);
+                x2_ub->_indices->add_refs(x2_ids);
+                x2_lb->update_dim();
+                x2_ub->update_dim();
                 vlift->_original_vars[0]->_indices->add_refs(x1_ids);
                 vlift->_original_vars[1]->_indices->add_refs(x2_ids);
                 vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
@@ -384,43 +384,42 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             }
             auto added = vlift->_indices->add(unique_ids);
             if(!added.empty()){
-//                vlift->get_lb()._indices->add_refs(unique_ids);
-//                vlift->get_ub()._indices->add_refs(unique_ids);
-//                vlift->_lb->index_in(*vlift->_indices);
-//                vlift->_lb->uneval();
-//                vlift->_lb->eval_all();
-//                vlift->_ub->index_in(*vlift->_indices);
-//                vlift->_ub->uneval();
-//                vlift->_ub->eval_all();
+                vlift->get_lb()._indices->add_refs(unique_ids);
+                vlift->get_ub()._indices->add_refs(unique_ids);
+                vlift->_lb->index_in(*vlift->_indices);
+                vlift->_lb->uneval();
+                vlift->_lb->eval_all();
+                vlift->_ub->index_in(*vlift->_indices);
+                vlift->_ub->uneval();
+                vlift->_ub->eval_all();
                 /* Create the lifted variable with correct lower and upper bounds */
                 /* Get the unindexed variables from the model */
 
-                /* Get the */
-                auto lb1 = x1_unindexed.get_lb().in(*vlift->_original_vars[0]->_indices);auto ub1 = x1_unindexed.get_ub().in(*vlift->_original_vars[0]->_indices);
-                if(is_square){
-                    func<double> prod_b1 = pow(lb1,2);
-                    func<double> prod_b2 = pow(ub1,2);
-                    func<double> prod_b3 = lb1*ub1;
-                    lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(*vlift->_indices), prod_b3).in(*vlift->_indices), func<type>());
-                    ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
-                }
-                else {
-                    auto lb2 = x2_unindexed.get_lb().in(*vlift->_original_vars[1]->_indices);auto ub2 = x2_unindexed.get_ub().in(*vlift->_original_vars[1]->_indices);
-                    func<double> prod_b1 = lb1*lb2;
-                    func<double> prod_b2 = lb1*ub2;
-                    func<double> prod_b3 = ub1*lb2;
-                    func<double> prod_b4 = ub1*ub2;
-                    lb = gravity::min(gravity::min(prod_b1,prod_b2).in(*vlift->_indices),gravity::min(prod_b3,prod_b4).in(*vlift->_indices));
-                    ub = gravity::max(gravity::max(prod_b1,prod_b2).in(*vlift->_indices),gravity::max(prod_b3,prod_b4).in(*vlift->_indices));
-                }
-                lb.uneval();ub.uneval();
-                lb.eval_all();ub.eval_all();
-                auto lb_param = vlift->_lb->_params->begin()->second.first;
-                auto ub_param = vlift->_ub->_params->begin()->second.first;
-                static_pointer_cast<param<T>>(lb_param)->_val = lb._val;
-                static_pointer_cast<param<T>>(ub_param)->_val = ub._val;
-                vlift->_lb->_val = lb._val;
-                vlift->_ub->_val = ub._val;
+//                auto lb1 = x1_unindexed.get_lb().in(*vlift->_original_vars[0]->_indices);auto ub1 = x1_unindexed.get_ub().in(*vlift->_original_vars[0]->_indices);
+//                if(is_square){
+//                    func<double> prod_b1 = pow(lb1,2);
+//                    func<double> prod_b2 = pow(ub1,2);
+//                    func<double> prod_b3 = lb1*ub1;
+//                    lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(*vlift->_indices), prod_b3).in(*vlift->_indices), func<type>());
+//                    ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
+//                }
+//                else {
+//                    auto lb2 = x2_unindexed.get_lb().in(*vlift->_original_vars[1]->_indices);auto ub2 = x2_unindexed.get_ub().in(*vlift->_original_vars[1]->_indices);
+//                    func<double> prod_b1 = lb1*lb2;
+//                    func<double> prod_b2 = lb1*ub2;
+//                    func<double> prod_b3 = ub1*lb2;
+//                    func<double> prod_b4 = ub1*ub2;
+//                    lb = gravity::min(gravity::min(prod_b1,prod_b2).in(*vlift->_indices),gravity::min(prod_b3,prod_b4).in(*vlift->_indices));
+//                    ub = gravity::max(gravity::max(prod_b1,prod_b2).in(*vlift->_indices),gravity::max(prod_b3,prod_b4).in(*vlift->_indices));
+//                }
+//                lb.uneval();ub.uneval();
+//                lb.eval_all();ub.eval_all();
+//                auto lb_param = vlift->_lb->_params->begin()->second.first;
+//                auto ub_param = vlift->_ub->_params->begin()->second.first;
+//                static_pointer_cast<param<T>>(lb_param)->_val = lb._val;
+//                static_pointer_cast<param<T>>(ub_param)->_val = ub._val;
+//                vlift->_lb->_val = lb._val;
+//                vlift->_ub->_val = ub._val;
 //                vlift->_lb->uneval();vlift->_ub->uneval();
 //                vlift->_lb->eval_all();vlift->_ub->eval_all();
                 vlift->update_dim();
