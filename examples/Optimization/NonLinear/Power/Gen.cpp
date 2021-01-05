@@ -29,7 +29,10 @@ Gen::Gen(const string& name):_cost(new GenCost()){
 }
 
 Gen::~Gen(){
-    delete _cost;
+    if(_cost){
+        delete _cost;
+        _cost = nullptr;
+    }
 }
 
 //void Gen::init_complex(){

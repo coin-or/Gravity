@@ -588,7 +588,7 @@ void Net::get_tree_decomp_bags() {
                 arc->_free = true;
                 arc->connect();
                 graph_clone->add_undirected_arc(arc);
-                DebugOn("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);                
+                DebugOff("adding edge "<<u->_name<<"\t"<<nn->_name<<endl);
             }
         }
         if(unique_bags.insert(bag).second==true){
@@ -641,11 +641,11 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
                             if(print_bags){
-                                DebugOn("new bag = { ");
+                                DebugOff("new bag = { ");
                                 for (int i=0; i<new_bag.second.size();     i++) {
-                                    DebugOn(new_bag.second.at(i)->_name << " ");
+                                    DebugOff(new_bag.second.at(i)->_name << " ");
                                 }
-                                DebugOn("}" << endl);
+                                DebugOff("}" << endl);
                             }
                         }
                     }
@@ -653,7 +653,7 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
             }
         }
     }
-    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
+    DebugOff("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
 void Net::pool_get_tree_decomp_bags() {
@@ -677,8 +677,8 @@ void Net::pool_get_tree_decomp_bags() {
             graph_clone->remove_end_node();
             continue;
         }
-        Debug(n->_name << endl);
-        Debug(graph_clone->nodes.size() << endl);
+        DebugOff(n->_name << endl);
+        DebugOff(graph_clone->nodes.size() << endl);
         pair<string,vector<Node*>> bag_copy;
         pair<string,vector<Node*>> bag;
         DebugOff("new bag = { ");
@@ -756,8 +756,8 @@ void Net::pool_get_tree_decomp_bags() {
     }
     
     
-    DebugOn("\n Number of 3D bags = " << nb << endl);
-    DebugOn("\n Max clique size = " << max_size << endl);
+    DebugOff("\n Number of 3D bags = " << nb << endl);
+    DebugOff("\n Max clique size = " << max_size << endl);
     if(max_size==2){
         this->_tree = true;
     }
@@ -793,11 +793,11 @@ std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_b
                         if(unique_bags.insert(new_bag).second){
                             res.push_back(new_bag);
                             if(print_bags){
-                                DebugOn("new bag = { ");
+                                DebugOff("new bag = { ");
                                 for (int i=0; i<new_bag.second.size();     i++) {
-                                    DebugOn(new_bag.second.at(i)->_name << " ");
+                                    DebugOff(new_bag.second.at(i)->_name << " ");
                                 }
-                                DebugOn("}" << endl);
+                                DebugOff("}" << endl);
                             }
                             
                         }
@@ -806,7 +806,7 @@ std::vector<pair<string,vector<Node*>>> Net::pool_decompose_bags_3d(bool print_b
             }
         }
     }
-    DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);
+    DebugOff("Total number of 3D bags after decompsition = " << res.size() << endl);
     return res;
 }
 

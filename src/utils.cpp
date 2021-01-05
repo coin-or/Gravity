@@ -255,7 +255,7 @@ Sign sign_product(Sign s1, Sign s2){
     return s1;
 }
 
-/*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,2,4,6,10, i.e., [0,2], [2,4], [4,6], [6,10] if possible the function will split mem into equal chuncks, if not the last chunck will be slightly larger */
+/*Split "mem" into "parts", e.g. if mem = 10 and parts = 4 you will have: 0,3,6,8,10, i.e., [0,3], [3,6], [6,8], [8,10] if possible the function will split mem into equal chuncks, if not the first few chunks will be larger by 1*/
 std::vector<size_t> bounds(unsigned parts, size_t mem) {
     std::vector<size_t>bnd;
     unsigned new_parts = parts;
@@ -269,11 +269,171 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     bnd.push_back(N1);
     for (size_t i = 0; i < new_parts; ++i) {
         N2 = N1 + delta;
-        if (i == new_parts - 1)
-            N2 += reminder;
+        if(i<reminder){
+            N2+=1;
+        }
         bnd.push_back(N2);
         N1 = N2;
     }
+    if(bnd.back()!=mem){
+        DebugOn("Error in computing limits");
+    }
     return bnd;
 }
-
+/*Split "objective_models" into "parts", e.g. if objective_models.size = 10 and parts = 4 you will have: 3,6,8,10, i.e., [0,3], [3,6], [6,8], [8,10] if possible the function will split mem into equal chuncks, if not the first few chunks will be larger by 1. Further try to assign memory such that it is similar to previous assignment of same memory chunks if any. Previous assignment of string in objective_models to part number is stored in old_map. Once assigned old map is updated to reflect new assignment  */
+std::vector<size_t> bounds_reassign(unsigned parts, vector<string>& objective_models, map<string,int>& old_map) {
+    std::vector<size_t>bnd;
+    std::vector<std::string> unassign, new_objective_models;
+    size_t mem=objective_models.size();
+    unsigned new_parts = parts;
+    size_t delta = mem / new_parts;
+    size_t remainder = mem % new_parts;
+    if(parts>mem){
+        DebugOff("In function std::vector<size_t> bounds(unsigned parts, size_t mem), parts cannot be strictly greater than mem");
+        new_parts = mem;
+    }
+    for (auto i=0;i<=new_parts;i++){
+        bnd.push_back(0);
+    }
+    int wid, wmax;
+    /*Assigns s to a wid in old_map: if such a wid is found, if wid+1<bnd.size(), if bnd[wid+1] < wmax. If s is not assigned it is put on the list unassign */
+    for(auto &s:objective_models){
+        if(old_map.find(s)!=old_map.end()){
+            wid=old_map.at(s);
+            if(wid<remainder){
+                wmax=delta+1;
+            }
+            else{
+                wmax=delta;
+            }
+            if(wid+1<bnd.size()){
+                if(bnd[wid+1] < wmax){
+                    bnd[wid+1]++;
+                }
+                else{
+                    unassign.push_back(s);
+                }
+            }
+            else{
+                unassign.push_back(s);
+            }
+        }
+        else{
+            unassign.push_back(s);
+        }
+    }
+    //Initialize wmax for wid 0
+    wid=0;
+    if(wid<remainder){
+        wmax=delta+1;
+    }
+    else{
+        wmax=delta;
+    }
+    //Assign all models in unassigned to wid, starting from wid=0, till each wid is filled upto its wmax.
+    for(auto u=unassign.begin();u<unassign.end();u++){
+        if(bnd[wid+1] < wmax){
+            old_map[*u]=wid;
+            bnd[wid+1]++;
+        }
+        else{
+            wid++;
+            u--;
+            if(wid<remainder){
+                wmax=delta+1;
+            }
+            else{
+                wmax=delta;
+            }
+        }
+    }
+    //reordering objective_models into new_objective_models, where the order of the strings is all strings assigned to wid 0, then all strings assigned to wid1 and so on.
+    for(auto w=bnd.begin();w<bnd.end()-1;w++){
+        for(auto it=objective_models.begin();it!=objective_models.end();it++){
+            if(old_map[*it]==(w - bnd.begin())){
+                new_objective_models.push_back(*it);
+            }
+        }
+    }
+    //adding previous w to make bnds assignment cumulative.
+    for(auto w=bnd.begin()+1;w<bnd.end();w++){
+        *w=*w+*(w-1);
+    }
+    objective_models=new_objective_models;
+    if(bnd.back()!=mem){
+        DebugOn("Error1 in computing limits");
+    }
+    if(bnd.size()!=new_parts+1){
+        DebugOn("Error2 in computing limits");
+    }
+    if(objective_models.size()!=mem){
+        DebugOn("Error3 in computing limits");
+    }
+    return bnd;
+    
+}
+void set_activetol_initrefine(double& active_tol, double& active_root_tol, double viol_obbt_init,double viol_root_init, int& nb_init_refine, int nb_root_refine, double lb_solver_tol, int run_obbt_iter){
+    if(run_obbt_iter==1){
+        active_tol=viol_obbt_init;
+        active_root_tol=viol_root_init;
+        nb_init_refine=nb_root_refine;
+    }
+    else if(run_obbt_iter<=2){
+        active_tol=1e-6;
+        active_root_tol=1e-6;
+        nb_init_refine=1;
+    }
+    else{
+        active_tol=lb_solver_tol;
+        active_root_tol=lb_solver_tol;
+        nb_init_refine=1;
+    }
+}
+/* function to initializa vbasis and cbasis
+ @param[in] vbasis- Contains nb_threads number of double vectors. To Hold variable basis of each model in nb_threads
+ @param[in] cbasis- Contains nb_threads number of double vectors. To Hold constraint basis of each model in nb_threads
+ @param[in] vrbasis- Variable basis to be copied into vbasis
+ @param[in] crbasis- Constraint basis to be copied into cbasis
+ @param[in] nb_threads- Parameter for nb_threads
+ */
+void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::map<std::string,double>>& cbasis, const std::vector<double>& vrbasis, const std::map<std::string,double>& crbasis, int nb_threads){
+    if(stype==gurobi){
+        for(auto i=0;i<nb_threads;i++){
+            vbasis.at(i)=vrbasis;
+            cbasis.at(i)=crbasis;
+        }
+    }
+}
+void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef){
+    bool near_zero=true;
+    scale=1.0;
+    oa_cut=true;
+    for (auto j = 0; j<c_val.size(); j++) {
+        if(c_val[j]!=0 && std::abs(c_val[j])<min_coef){
+            if(min_coef/std::abs(c_val[j])>scale){
+                scale=min_coef/std::abs(c_val[j]);
+            }
+        }
+        if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+            near_zero=true;
+        }
+        else{
+            near_zero=false;
+        }
+    }
+    oa_cut=true;
+    if(near_zero){
+        oa_cut=false;
+    }
+    for (auto j = 0; j<c_val.size(); j++) {
+        auto a=c_val[j]*scale;
+        if(a>max_coef){
+            oa_cut=false;
+            break;
+        }
+        if(std::abs(a)<=1e-12){
+            oa_cut=false;
+            break;
+        }
+    }
+}

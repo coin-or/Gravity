@@ -127,7 +127,7 @@ public:
     indices _eff_pieces;/**< Set of indices for pieces for the efficiency curves */
     param<double> tbound_max_tan, tbound_min_tan;  /** tan (th_min), tan(th_max) **/
     param<double> r,x,g, b, ch, tr, as, S_max, wr_min, wr_max, wi_min, wi_max, cc, dd; /**< Power lines parameters, resp., impedance, line charging, and thermal limits. w params are for lifted variavles in W space */
-    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, bt = param<>("bt"), cht= param<>("cht"), ch_half=param<>("ch_half"), cht_half=param<>("cht_half"), rty=param<>("rty"), ity=param<>("ity"); /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
+    param<double> g_ff, g_ft, g_tt, g_tf, b_ff, b_ft, b_tf, b_tt, bt = param<>("bt"), cht= param<>("cht"), ch_half=param<>("ch_half"),ch_half_sq=param<>("ch_half_sq"),g_sq=param<>("g_sq"),b_sq=param<>("b_sq"), cht_half=param<>("cht_half"), rty=param<>("rty"), ity=param<>("ity"); /**< Transformers phase shifters parameters, e.g., g_ft = (-a->b*a->cc - a->g*a->dd)/(pow(a->cc,2)+pow(a->dd,2)) where a->cc = a->tr*cos(a->as) and a->dd = a->tr*sin(a->as);*/
     param<Cpx> Y, Ych,T, Ysh, Sd, Sg_min, Sg_max, V_min, V_max, Smax = param<Cpx>("Smax");
     
     /** Set of all diesel generators */
@@ -204,6 +204,7 @@ public:
     //    indices typical_days = time("week");
     indices Nt, Nt_load, Nt_no_load, Et, Gt, exist_Gt, exist_Bt, exist_Et, pot_Et, pot_Gt, pot_Bt, Bt, Bt1, Gt1, Wt, PVt, PV_pot_t, pot_gen, pot_batt, pot_edges ;
     indices Et_opt, Gt_opt, Bt_opt, Bt1_opt, Wt_opt, PVt_opt;
+    indices gensc2_pos=indices("gensc2_pos");
     
     
     /** Investment Binary Variables */
@@ -301,6 +302,8 @@ public:
     indices out_arcs_per_node() const;
     indices in_arcs_per_node() const;
     void update_pij_bounds();
+    
+    
     
     unique_ptr<Model<>> build_fixed_ACOPF_N_1(PowerModelType Model, int output, double tol, double obj_pen, const vector<indices>& ids_p, const vector<indices>& ids_n);
     double solve_acopf(PowerModelType Model=ACPOL, int output=0, double tol=1e-6);

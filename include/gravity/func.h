@@ -873,7 +873,8 @@ namespace gravity {
             //                    p->index_in(ids);
             //                }
             //            }
-            _indices = make_shared<indices>(ids.deep_copy());
+            _indices = make_shared<indices>();
+            _indices->deep_copy(ids);
             _dim[0] = std::max(_dim[0], ids.size());
 //            if(_dim[0]>ids.size())
 //                DebugOn("reducing function size()!");
@@ -1181,7 +1182,7 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                if(v->_name==var_name){
+                if(v->get_name(true,true)==var_name){
                     continue;
                 }
                 if(v->_is_vector)
@@ -1261,6 +1262,96 @@ namespace gravity {
                     
                 }
             }
+        }
+        vector<double> get_lb(int inst_i){
+            vector<double> res;
+            size_t posv;
+            double lbv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        lbv=v->get_double_lb(posv);
+                        res.push_back(lbv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    lbv=v->get_double_lb(posv);
+                    res.push_back(lbv);
+                    
+                }
+            }
+            return res;
+        }
+        vector<double> get_ub(int inst_i){
+            vector<double> res;
+            size_t posv;
+            double ubv;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        ubv=v->get_double_ub(posv);
+                        res.push_back(ubv);
+                    }
+                    
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    ubv=v->get_double_ub(posv);
+                    res.push_back(ubv);
+                    
+                }
+            }
+            return res;
+        }
+        bool xval_within_bounds(int inst_i, vector<double> xval){
+            bool success=true;
+            size_t posv;
+            double lbv,ubv;
+            int current=0;
+            for(auto &it: *_vars)
+            {
+                auto v = it.second.first;
+                if(v->_is_vector)
+                {
+                    for (auto i=0;i<v->_dim[0];i++)
+                    {
+                        posv=i;
+                        lbv=v->get_double_lb(posv);
+                        ubv=v->get_double_ub(posv);
+                        if(xval[current]<lbv||xval[current]>ubv){
+                            success=false;
+                            return success;
+                        }
+                        current++;
+                    }
+                }
+                else
+                {
+                    posv=v->get_id_inst(inst_i);
+                    lbv=v->get_double_lb(posv);
+                    ubv=v->get_double_ub(posv);
+                    if(xval[current]<lbv||xval[current]>ubv){
+                        success=false;
+                        return success;
+                    }
+                    current++;
+                }
+            }
+            return success;
         }
         /** Get a set of active points by uniformly discretizing the variable domain
          @param[in] nb_discr:
@@ -1468,7 +1559,205 @@ namespace gravity {
             return res;
         }
         
+        func<type> get_outer_app(const indices& idx, double scale_fact){
+            const double zero_tol=1e-8;
+            double t;
+            auto cpy = *this;
+            auto keep = this->_indices->get_common_refs(idx);
+            
+            for(auto &it: *cpy._vars){
+                auto v = it.second.first;
+                if(!v->_is_vector){
+                    v->_indices->filter_refs(keep);
+                }
+            }
+            
+            func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+            param<type> f_xstar("f_xstar_"+_name);
+            f_xstar = cpy;
+            f_xstar._indices->filter_refs(keep);
+            for(auto &it: *cpy._vars){
+                auto v = it.second.first;
+                param<type> xstar("xstar_"+v->_name);
+                xstar.in(*v->_indices);
+                xstar.copy_vals(v);
+                param<type> df_xstar("df_xstar_"+v->_name);
+                auto df = *compute_derivative(*v);
+                df.uneval();
+                df.eval_all();
+                indices df_xstar_ind("df_xstar"+v->_name+"_ind");
+                for(auto key:*(cpy._indices->_keys)){
+                    df_xstar_ind.add(key);
+                }
+                
+                df_xstar.in(df_xstar_ind);
+                df_xstar.copy_vals(df);
+                df_xstar._indices->filter_refs(keep);
+                for(auto key:*(df_xstar._indices->_keys)){
+                    t=(df_xstar.eval(key))*scale_fact;
+                    df_xstar.set_val(key, t);
+                }
+                switch (v->get_intype()) {
+                    case binary_:
+                        
+                        res += df_xstar*(*static_pointer_cast<var<bool>>(v));
+                        break;
+                    case short_:
+                        res += df_xstar*(*static_pointer_cast<var<short>>(v));
+                        break;
+                    case integer_:
+                        res += df_xstar*(*static_pointer_cast<var<int>>(v));
+                        break;
+                    case float_:
+                        res += df_xstar*(*static_pointer_cast<var<float>>(v));
+                        break;
+                        break;
+                    case double_:
+                        res += df_xstar*(*static_pointer_cast<var<double>>(v));
+                        break;
+                    default:
+                        break;
+                }
+                
+                res -= df_xstar*xstar;
+            }
+            res += f_xstar*scale_fact;
+            res.index_in(idx);
+            if(!res._cst->is_zero() && res._cst->is_function()){
+                param<type> rhs("xstar_rhs_"+_name);
+                auto rhs_f = static_pointer_cast<func<type>>(res._cst);
+                rhs_f->eval_all();
+                rhs = *rhs_f;
+                res._cst = rhs.copy();
+            }
+            //            merge_vars(r
+            //                es);
+            
+            //            for(auto &it: *_vars){
+            //                auto v = it.second.first;
+            //                auto vname=v->_name;
+            //                DebugOn(vname<<endl);
+            //            }
+            return res;
+        }
         
+        func<type> get_outer_app(const indices& idx, double scale_fact, bool choose_scale, double min_coef){
+                const double zero_tol=1e-8;
+                double t;
+                auto cpy = *this;
+                auto keep = this->_indices->get_common_refs(idx);
+                
+                for(auto &it: *cpy._vars){
+                    auto v = it.second.first;
+                    if(!v->_is_vector){
+                        v->_indices->filter_refs(keep);
+                    }
+                }
+                
+                func<type> res; // res = gradf(x*)*(x-x*) + f(x*)
+                param<type> f_xstar("f_xstar_"+_name);
+                f_xstar = cpy;
+                f_xstar._indices->filter_refs(keep);
+            vector<double> scale;
+            vector<param<type>> v_df_xstar;
+            for(auto key: *f_xstar._indices->_keys){
+                if(choose_scale){
+                scale.push_back(1);
+                }else{
+                    scale.push_back(scale_fact);
+                }
+            }
+            int count=0;
+            
+            for(auto &it: *cpy._vars){
+            auto v = it.second.first;
+            param<type> df_xstar("df_xstar_"+v->_name);
+            auto df = *compute_derivative(*v);
+            df.uneval();
+            df.eval_all();
+            indices df_xstar_ind("df_xstar"+v->_name+"_ind");
+            for(auto key:*(cpy._indices->_keys)){
+                df_xstar_ind.add(key);
+            }
+            df_xstar.in(df_xstar_ind);
+            df_xstar.copy_vals(df);
+            df_xstar._indices->filter_refs(keep);
+                if(choose_scale){
+            count=0;
+            for(auto key:*(df_xstar._indices->_keys)){
+                t=(df_xstar.eval(key));
+                if(std::abs(t)<min_coef && t!=0){
+                    if(min_coef/std::abs(t)>scale[count]){
+                    scale[count]= min_coef/std::abs(t);
+                    }
+                }
+                count++;
+            }
+                }
+            v_df_xstar.push_back(df_xstar);
+            }
+            count=0;
+            for(auto key:*f_xstar._indices->_keys){
+                t=(f_xstar.eval(key))*scale[count];
+                f_xstar.set_val(key, t);
+                count++;
+            }
+            int vcount=0;
+                for(auto &it: *cpy._vars){
+                    auto v = it.second.first;
+                    param<type> xstar("xstar_"+v->_name);
+                    xstar.in(*v->_indices);
+                    xstar.copy_vals(v);
+                    param<type> df_xstar=v_df_xstar.at(vcount++);
+                    count=0;
+                    for(auto key:*(df_xstar._indices->_keys)){
+                        t=(df_xstar.eval(key))*scale[count];
+                        df_xstar.set_val(key, t);
+                        count++;
+                    }
+                    switch (v->get_intype()) {
+                        case binary_:
+                            
+                            res += df_xstar*(*static_pointer_cast<var<bool>>(v));
+                            break;
+                        case short_:
+                            res += df_xstar*(*static_pointer_cast<var<short>>(v));
+                            break;
+                        case integer_:
+                            res += df_xstar*(*static_pointer_cast<var<int>>(v));
+                            break;
+                        case float_:
+                            res += df_xstar*(*static_pointer_cast<var<float>>(v));
+                            break;
+                            break;
+                        case double_:
+                            res += df_xstar*(*static_pointer_cast<var<double>>(v));
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    res -= df_xstar*xstar;
+                }
+                res += f_xstar;
+                res.index_in(idx);
+                if(!res._cst->is_zero() && res._cst->is_function()){
+                    param<type> rhs("xstar_rhs_"+_name);
+                    auto rhs_f = static_pointer_cast<func<type>>(res._cst);
+                    rhs_f->eval_all();
+                    rhs = *rhs_f;
+                    res._cst = rhs.copy();
+                }
+                //            merge_vars(r
+                //                es);
+                
+                //            for(auto &it: *_vars){
+                //                auto v = it.second.first;
+                //                auto vname=v->_name;
+                //                DebugOn(vname<<endl);
+                //            }
+                return res;
+            }
         
         
         
@@ -3761,7 +4050,8 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(f._indices->deep_copy());
+                _indices = make_shared<indices>();
+                _indices->deep_copy(*f._indices);
             }
             else {
                 _indices = nullptr;
@@ -3916,7 +4206,8 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>(f._indices->deep_copy());
+                _indices = make_shared<indices>();
+                _indices->shallow_copy(f._indices);
             }
             else {
                 _indices = nullptr;

@@ -1,16 +1,17 @@
-    #include <stdio.h>
-    #include <iostream>
-    #include <string>
-    #include <stdio.h>
-    #include <cstring>
-    #include <fstream>
-    #include "../PoolNet.h"
-    #include <gravity/solver.h>
-    #include <stdio.h>
-    #include <stdlib.h>
-    #ifdef USE_OPT_PARSER
-    #include <optionParser.hpp>
-    #endif
+
+#include <stdio.h>
+#include <iostream>
+#include <string>
+#include <stdio.h>
+#include <cstring>
+#include <fstream>
+#include "../PoolNet.h"
+#include <gravity/solver.h>
+#include <stdio.h>
+#include <stdlib.h>
+#ifdef USE_OPT_PARSER
+#include <optionParser.hpp>
+#endif
 
     using namespace std;
     using namespace gravity;
@@ -19,16 +20,13 @@
     /* main */
     int main (int argc, char * argv[]) {
         
-        PoolNet poolnet;
-        
-
+        PoolNet poolnet;       
         string fname=string(prj_dir)+"/data_sets/Pooling/Adhya1_gms.txt";
      
 
         if(argc==2){
             fname=argv[1];
         }
-
         poolnet.readgrid(fname);
         SolverType solv_type = ipopt;
         
@@ -354,6 +352,7 @@
         double gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
         
         assert(gap_final<5);
+
     //    SPP->print();
     //    SPP->print_solution();
     //    SPP->print_constraints_stats(1e-6);

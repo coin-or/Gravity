@@ -70,7 +70,6 @@ int main (int argc, char * argv[])
     PowerNet grid;
     grid.readgrid(fname);
     
-    
     /* Grid Stats */
     auto node_pairs = grid.get_node_pairs();
     auto nb_gen = grid.get_nb_active_gens();
@@ -193,7 +192,7 @@ int main (int argc, char * argv[])
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_to.in(arcs));
+   // SOCP.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -225,6 +224,9 @@ int main (int argc, char * argv[])
         solver<> SCOPF_GRB(SOCP, gurobi);
         auto solver_time_start = get_wall_time();
         SCOPF_GRB.run(output = 5, tol = 1e-6);
+        SOCP.add(Thermal_Limit_to.in(arcs));
+        SOCP.reindex();
+        SCOPF_GRB.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

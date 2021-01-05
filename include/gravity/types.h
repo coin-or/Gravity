@@ -1030,11 +1030,6 @@
     //            if(keep.size()!=_ids->at(0).size()){
     //                throw invalid_argument("in filter_refs(const vector<bool>& keep): keep has a different size than index set");
     //            }
-    //            vector<vector<size_t>> new_ids;
-    //            new_ids.resize(1);
-    //            for (auto idx = 0; idx<keep.size();idx++) {
-    //                if(keep[idx]){
-    //                    new_ids.at(0).push_back(_ids->at(0).at(idx));
     //                }
     //            }
     //            *_ids = new_ids;

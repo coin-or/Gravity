@@ -32,6 +32,10 @@ op::OptionParser readOptions(int argc, char * argv[]);
 //the last chunck will be slightly larger
 std::vector<size_t> bounds(unsigned parts, size_t mem);
 
+std::vector<size_t> bounds_reassign(unsigned parts, std::vector<std::string>& objective_models, std::map<std::string,int>& old_map);
+void set_activetol_initrefine(double& active_tol, double& active_root_tol, double viol_obbt_init,double viol_root_init, int& nb_init_refine, int nb_root_refine, double lb_solver_tol, int run_obbt_iter);
+void initialize_basis_vectors(gravity::SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::map<std::string,double>>& cbasis, const std::vector<double>& vrbasis, const std::map<std::string,double>& crbasis, int nb_threads);
+void get_row_scaling(const std::vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef);
 
 gravity::Sign reverse(gravity::Sign s);
 
