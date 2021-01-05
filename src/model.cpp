@@ -6614,10 +6614,10 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                         obbt_model->_first_run = true;
                         //                    obbt_model->print();
                         solver<> LB_solver(obbt_model,lb_solver_type);
-//                        if(!linearize)
-//                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
-//                        else
-//                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
+                        if(!linearize)
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
+                        else
+                            LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
                         LB_solver.run(output = 0, lb_solver_tol);
                         if(obbt_model->_status==0)
                         {

@@ -1823,7 +1823,11 @@ public:
             auto xij = relax->template get_var<type>("Lift(x;x)");
             Constraint<> SOC("SOC");
             SOC = pow(xij.in(pairs), 2) - xi2.in(pairs_from)*xi2.in(pairs_to);
-            relax->add(SOC.in(pairs) == 0, true);
+            relax->add(SOC.in(pairs) <= 0);
+            
+//            Constraint<> SOC_NC("SOC_NC");
+//            SOC_NC = pow(xij.in(pairs), 2) - xi2.in(pairs_from)*xi2.in(pairs_to);
+//            relax->add(SOC_NC.in(pairs) >= 0, true);
             
             
             if(add_SDP_3d){
@@ -2525,17 +2529,55 @@ public:
     }
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-    void square_linear_constraints() {
-//        auto x = get_var<double>("x");
-//        Constraint<type> v_sqr("x_squared");
-//        v_sqr += x*x - x*x.get_lb();
-//        add(v_sqr.in(*x._indices) >= 1e-6);
+    void add_bound_RLTs(bool LB = true, bool UB = false, int nb = 1) {
         for (auto& c_pair:_cons) {
             Constraint<type> c = *c_pair.second;
             if (c.is_linear()) {
-                Constraint<type> c_sqr(c.get_name()+"_squared");
-                c_sqr += c*c;
-                add(c_sqr.in(*c._indices) >= 0);
+                int idx = 0;
+                for (auto& lterm: c.get_lterms()) {
+                    if(idx>=nb)
+                        break;
+                    auto v = lterm.second._p;
+                    if(v->get_intype()==double_) {
+                        auto vv = *static_pointer_cast<var<double>>(v);
+                        if(LB){
+                            Constraint<type> c_RLT_LB(c.get_name()+"_RLT_LB_"+to_string(idx++));
+                            c_RLT_LB += c * (vv - vv.get_lb().in(*vv._indices));
+                            if(c.is_geq())
+                                add(c_RLT_LB.in(*c._indices) >= 0);
+                            else if (c.is_leq())
+                                add(c_RLT_LB.in(*c._indices) <= 0);
+                        }
+                        if(UB){
+                            Constraint<type> c_RLT_UB(c.get_name()+"_RLT_UB_"+to_string(idx++));
+                            c_RLT_UB += c * (vv.get_ub().in(*vv._indices) - vv);
+                            if(c.is_geq())
+                                add(c_RLT_UB.in(*c._indices) >= 0);
+                            else if (c.is_leq())
+                                add(c_RLT_UB.in(*c._indices) <= 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    template<typename T=type,
+    typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+    void add_eq_RLTs() {
+        for (auto& c_pair:_cons) {
+            Constraint<type> c = *c_pair.second;
+            if (c.is_linear() && c.is_eq()) {
+                int idx = 0;
+                for (auto& lterm: c.get_lterms()) {
+                    auto v = lterm.second._p;
+                    if(v->get_intype()==double_) {
+                        auto vv = *static_pointer_cast<var<double>>(v);
+                        Constraint<type> c_RLT_eq(c.get_name()+"RLT_eq_"+to_string(idx++));
+                        c_RLT_eq += c * vv;
+                        add(c_RLT_eq.in(*c._indices) == 0);
+                    }
+                }
             }
         }
     }
@@ -2668,7 +2710,8 @@ public:
         
         for(const auto v: delete_vars){
             for(int i = 0; i<v->_indices->size();i++){
-                v->_off[v->get_id_inst(i)]=true;
+                auto model_v = get_var_ptr(v->get_name(true,true));
+                model_v->_off[v->get_id_inst(i)]=true;
             }
         }
         reindex();
