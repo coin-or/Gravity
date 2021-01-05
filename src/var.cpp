@@ -88,7 +88,7 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
     vector<var<type>> var<type>::pairs_in_bags(const vector<pair<string,vector<Node*>>>& bags, size_t bag_size){
     vector<var<type>> res;
     vector<indices> ids_vec;
-    string key;
+    string key, rev_key;
     res.resize(bag_size);
     ids_vec.resize(bag_size);
 //    set<vector<Node*>> unique_bags;
@@ -105,11 +105,45 @@ template<typename type> var<type>& var<type>::operator=(var<type>&& v) {
         if (bag.second.size() == bag_size) {
             for (size_t i = 0; i< bag_size-1; i++) {
                 key = bag.second[i]->_name + "," + bag.second[i+1]->_name;
-                ids_vec[i].add_ref(key);
+                rev_key = bag.second[i+1]->_name + "," + bag.second[i]->_name;
+                if(key.find("x")!=std::string::npos){
+                    auto key1 = bag.second[i]->_name.substr(bag.second[i]->_name.find("[")+1);
+                    key1 = key1.substr(0,key1.size()-1);
+                    auto key2 = bag.second[i+1]->_name.substr(bag.second[i+1]->_name.find("[")+1);
+                    key2 = key2.substr(0,key2.size()-1);
+                    key = key1 + "," + key2;
+                    rev_key = key2 + "," + key1;
+                }
+                if(ids_vec[i]._keys_map->count(key)!=0) {
+                    ids_vec[i].add_ref(key);
+                }
+                else if(ids_vec[i]._keys_map->count(rev_key)!=0){
+                    ids_vec[i].add_ref(rev_key);
+                }
+                else{
+                    throw invalid_argument("key not found");
+                }
             }
             /* Loop back pair */
             key = bag.second[0]->_name + "," + bag.second[bag_size-1]->_name;
-            ids_vec[bag_size-1].add_ref(key);
+            rev_key =  bag.second[bag_size-1]->_name + "," + bag.second[0]->_name;
+            if(key.find("x")!=std::string::npos){
+                auto key1 = bag.second[0]->_name.substr(bag.second[0]->_name.find("[")+1);
+                key1 = key1.substr(0,key1.size()-1);
+                auto key2 = bag.second[bag_size-1]->_name.substr(bag.second[bag_size-1]->_name.find("[")+1);
+                key2 = key2.substr(0,key2.size()-1);
+                key = key1 + "," + key2;
+                rev_key = key2 + "," + key1;
+            }
+            if(ids_vec[bag_size-1]._keys_map->count(key)!=0){
+                ids_vec[bag_size-1].add_ref(key);
+            }
+            else if(ids_vec[bag_size-1]._keys_map->count(rev_key)!=0){
+                ids_vec[bag_size-1].add_ref(rev_key);
+            }
+            else{
+                throw invalid_argument("key not found");
+            }
         }
     }
     for (auto i = 0; i<bag_size; i++) {
@@ -153,7 +187,12 @@ vector<var<type>> var<type>::in_bags(const vector<pair<string,vector<Node*>>>& b
         /* Make sure it's a new bag with size=bag_size */
         if (bag.second.size() == bag_size && unique_bags.insert(bag).second) {
             for (size_t i = 0; i< bag_size; i++) {
-                ids_vec[i].add_ref(bag.second[i]->_name);
+                auto key = bag.second[i]->_name;
+                if(key.find("x")!=std::string::npos){
+                    key = key.substr(key.find("[")+1);
+                    key = key.substr(0,key.size()-1);
+                }
+                ids_vec[i].add_ref(key);
             }
         }
     }
@@ -209,7 +248,7 @@ type    var<type>::get_ub(size_t i) const {
     param<type>    var<type>::get_lb() const {
         if(!_lift)
             return *static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
-        param<type> lb(this->_name+"_lb");
+        param<type> lb(this->_name+"-lb");
         _lb->eval_all();
         if(!_lb->func_is_number()){
             lb.index_in(*this->_indices);
@@ -237,16 +276,16 @@ type    var<type>::get_ub(size_t i) const {
         return nullptr;
     }
 
-/* If this is a lifted variable lifted(x^2)= x^2, return the lowerbound on x*/
-//ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),prod_b3);
+/* If this is a lifted variable lifted(x^2)= x^2, return the lower bound on x*/
+/* ub = max(lb^2,ub^2) */
 template<typename type>
 shared_ptr<param<type>>    var<type>::get_square_lb() const{
     assert(_lift);
     auto lson = static_pointer_cast<func<type>>(_ub->_expr->get_lson());
-    auto lson2 = static_pointer_cast<func<type>>(lson->_expr->get_lson());
-    return static_pointer_cast<param<type>>(lson2->_params->begin()->second.first);
+    return static_pointer_cast<param<type>>(lson->_params->begin()->second.first);
 }
-
+/* If this is a lifted variable lifted(x^2)= x^2, return the upper bound on x*/
+/* ub = max(lb^2,ub^2) */
 template<typename type>
 shared_ptr<param<type>>    var<type>::get_square_ub() const{
     assert(_lift);
@@ -303,7 +342,7 @@ shared_ptr<param<type>>    var<type>::get_square_ub() const{
     param<type>    var<type>::get_ub() const {
         if(!_lift)
             return *static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
-        param<type> ub(this->_name+"_ub");
+        param<type> ub(this->_name+"-ub");
         _ub->eval_all();
         if(!_ub->func_is_number()){
             ub.index_in(*this->_indices);
@@ -312,7 +351,7 @@ shared_ptr<param<type>>    var<type>::get_square_ub() const{
         ub._range = _ub->_range;
         ub._dim[0] = _ub->_dim[0];
         ub._dim[1] = _ub->_dim[1];
-        return ub;        
+        return ub;
     };
     
 //    template <typename type>
@@ -423,6 +462,7 @@ template<typename type> void   var<type>::set_lb(type val) {
         _lb->set_val(val);
         param<type>::_range->first = val;
     }
+    _lb->_evaluated = true;
 }
     
 template<typename type> void  var<type>::set_lb(const string& key, type val){
@@ -522,7 +562,10 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
         return str;
     }
     if(_lb->func_is_number() && _ub->func_is_number()){
-        str += " ∈ [" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"]^" + to_string(this->get_dim()) + "\n";
+        if(this->_is_relaxed)
+            str += " ∈ {" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"}^" + to_string(this->get_dim()) + "\n";
+        else
+            str += " ∈ [" + _lb->to_str(0,3) +"," + _ub->to_str(0,3) +"]^" + to_string(this->get_dim()) + "\n";
         return str;
     }
     str += " : ";
@@ -534,14 +577,20 @@ template<typename type> string var<type>::to_str_bounds(bool bounds, int prec) {
             }
             auto idx = this->get_id_inst(i);
             str += "(" + this->_indices->_keys->at(idx) + ") ∈ ";
-            str += " [" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "]\n";
+            if(this->_is_relaxed)
+                str += " {" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "}\n";
+            else
+                str += " [" + _lb->to_str(i,prec) + "," + _ub->to_str(i,prec) + "]\n";
             str += " \n";
         }
     }
     else {
         for (size_t idx = 0; idx < this->_dim[0]; idx++) {
             str += "["+to_string(idx) + "] = ";
-            str += " [" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "]\n";
+            if(this->_is_relaxed)
+                str += " {" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "}\n";
+            else
+                str += " [" + _lb->to_str(idx,prec) + "," + _ub->to_str(idx,prec) + "]\n";
             str += " \n";
         }
     }

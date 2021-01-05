@@ -18,12 +18,13 @@
 #ifdef USE_IPOPT
 #include <gravity/IpoptProgram.h>
 //#include "IpoptInterfaceCommon.h"
-#include <coin/IpRegOptions.hpp>
-#include <coin/IpJournalist.hpp>
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpSolveStatistics.hpp>
+#include <IpRegOptions.hpp>
+#include <IpJournalist.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpSolveStatistics.hpp>
 #include <future>
 #include <thread>
+#include <pthread.h>
 
 
 using Ipopt::IsValid;
@@ -312,6 +313,7 @@ namespace gravity {
                     iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                     //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                     //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
+
                     iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-2);
                     //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
                     //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
@@ -320,9 +322,11 @@ namespace gravity {
                     /** Hot start if already solved */
                     if (!_model->_first_run) {
                         mu_init = std::exp(-1)/std::exp(2);
+
                         DebugOn("Using Hot Start!\n");
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
+                        DebugOn("Using Warm Start\n");
                     }
                     iapp->Options()->SetStringValue("sb", "yes");
 //                    _model->_first_run = false;

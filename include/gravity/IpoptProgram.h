@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 #ifdef USE_IPOPT
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpTNLP.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpTNLP.hpp>
 #endif
 #include <gravity/model.h>
 
@@ -32,7 +32,6 @@ public:
     
     
     void update_model(){
-//        _model->reset_funcs();
         _model->fill_in_maps();
     }
     
@@ -94,19 +93,10 @@ public:
     /** Method to return the bounds for my problem */
     bool get_bounds_info(Index n, Number* x_l, Number* x_u,
                                        Index m, Number* g_l, Number* g_u){
-        //    printf("n = %d;\n", n);
         assert(n==_model->get_nb_vars());
         assert(m==_model->get_nb_cons());
         _model->fill_in_var_bounds(x_l , x_u);
-        //    for (int i = 0; i<n; i++) {
-        //        if (x_l[i]==x_u[i]) {
-        //            printf("%f <= x[%d] <= %f\n",x_l[i], i, x_u[i]);
-        //        }
-        //    }
         _model->fill_in_cstr_bounds(g_l , g_u);
-        //    for (int i = 0; i<m; i++) {
-        //        printf("%f <= g[%d] <= %f\n",g_l[i], i, g_u[i]);
-        //    }
         
         return true;
     }
@@ -133,13 +123,6 @@ public:
         if (init_lambda && init_z) {
             _model->fill_in_duals(lambda,z_L,z_U);
         }
-//            DebugOn("initial point = \n");
-//            DebugOn("x = [ ");
-//            for (int i = 0; i<n; i++) {
-//                DebugOn(std::setprecision(30)<<x[i] << " ");
-//            }
-//            DebugOn("]\n");
-        
         return true;
     }
     
@@ -178,7 +161,6 @@ public:
     bool eval_g_(Index n, const Number* x, bool new_x, Index m, Number* g){
         
         assert(n==_model->get_nb_vars());
-        //    if (!new_x)
         _model->fill_in_cstr(x, g, new_x);
         return true;
     }
@@ -204,9 +186,7 @@ public:
         if (values == NULL){
             _model->fill_in_jac_nnz(iRow, jCol);
         } else {
-            //        if (!new_x) {
             _model->fill_in_jac(x, values, new_x);
-            //        }
         }
         
         return true;
@@ -235,20 +215,7 @@ public:
         if (values == NULL){
             _model->fill_in_hess_nnz(iRow, jCol);
         } else {
-            //        if(!new_x)
             _model->fill_in_hess(x, obj_factor, lambda, values, new_x);
-            //        int nr_threads = 6;
-            //        std::vector<std::thread> threads;
-            //            //Split constraints into nr_threads parts
-            //        std::vector<int> limits = bounds2(nr_threads, (int)n);
-            //            //Launch nr_threads threads:
-            //        for (int i = 0; i < nr_threads; ++i) {
-            //            threads.push_back(std::thread(&_model::fill_in_hess_multithread, _model, x, obj_factor, lambda, values, limits[i], limits[i+1]));
-            //        }
-            //            //Join the threads with the main thread
-            //        for(auto &t : threads){
-            //            t.join();
-            //        }
         }
         
         return true;
@@ -256,15 +223,11 @@ public:
     
     bool get_variables_linearity(Index n, LinearityType* var_types){
         assert(n==_model->get_nb_vars());
-        //    _model->fill_in_var_linearity(var_types);
-        //    return true;
         return false;
     }
     
     bool get_constraints_linearity(Index m, LinearityType* const_types){
         assert(m==_model->get_nb_cons());
-        //    _model->fill_in_cstr_linearity(const_types);
-        //    return true;
         return false;
     }
 

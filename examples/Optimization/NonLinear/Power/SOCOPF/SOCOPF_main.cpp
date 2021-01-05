@@ -20,7 +20,7 @@ int main (int argc, char * argv[])
     bool use_cplex = false, use_gurobi = false;
     double tol = 1e-6;
     double solver_time_end, total_time_end, solve_time, total_time;
-    string mehrotra = "no", log_level="0";
+    string mehrotra = "no", log_level="0", lin_solver="mumps";
     string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     
     string path = argv[0];
@@ -54,6 +54,16 @@ int main (int argc, char * argv[])
     }
     else if(solver_str.compare("cplex")==0) {
         use_cplex = true;
+    }
+#else
+    if(argc>=2){
+        fname=argv[1];
+    }
+    else{
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    }
+    if(argc>=3){
+        lin_solver=argv[2];
     }
 #endif
     double total_time_start = get_wall_time();
@@ -225,10 +235,8 @@ int main (int argc, char * argv[])
     else {
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
+        SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
-        SOCOPF.run(output=5, tol=1e-6);
-        SOCP.add(Thermal_Limit_to.in(arcs));
-        SOCP.reindex();
         SOCOPF.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();

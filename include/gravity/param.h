@@ -93,7 +93,7 @@ namespace gravity {
             _imag = p._imag; _mag = p._mag; _ang = p._ang;
             _indices = p._indices;
             _off=p._off;
-            _in=make_shared<bool>(*p._in);
+            _in=p._in;
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
         }
@@ -223,7 +223,35 @@ namespace gravity {
             }
             return i*_dim[1]+j;
         };
-
+        
+        void reorder_rows(const vector<int>& order) {
+            if(!_indices){
+                _indices = make_shared<indices>(range(1,_dim[0]));
+            }
+            _indices->reorder_rows(order);
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
+        }
+        
+        void update_dim(){
+            if(_indices){
+                _dim[0]=_indices->size();
+                reset_range();
+            }            
+//            string name = _name.substr(0, _name.find_last_of("."));
+//            _name = name+".in"+_indices->get_name();
+        }
+        
+        void update_rows(const vector<bool>& keep_ids) {
+            if(!_indices){
+                _indices = make_shared<indices>(range(1,_dim[0]));
+            }
+            _indices->filter_rows(keep_ids);
+            _dim[0]=_indices->size();
+            reset_range();
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
+        }
 
         string get_name(bool in_func, bool exclude_indexing) const{
 //            return _name;
@@ -495,8 +523,16 @@ namespace gravity {
             }
         }
         
+        bool has_common_ids(const shared_ptr<param_>& p) const{
+            return get_vec_id()==p->get_vec_id() && !intersect(*p->_indices, *_indices).empty();
+        }
+        
         bool operator==(const param_& p) const {
-            return (_id==p._id && _type==p._type && _intype==p._intype && get_name(false,false)==p.get_name(false,false));
+            if (!(_id==p._id && _type==p._type && _intype==p._intype && get_name(false,true)==p.get_name(false,true)))
+                return false;
+            if(_indices==p._indices) return true;
+            if((_indices && !p._indices) || (p._indices && !_indices) || (*_indices != *p._indices)) return false;
+            return true;
         }
 
         size_t get_dim() const{
@@ -922,7 +958,9 @@ namespace gravity {
         }
 
         
-        
+        bool has_common_ids(const shared_ptr<param_>& p) const{
+            return get_vec_id()==p->get_vec_id() && !intersect(*p->_indices, *_indices).empty();
+        }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         inline type eval(size_t i) const {
@@ -1194,6 +1232,9 @@ namespace gravity {
                 return index;
             }
             else {
+                _val->resize(std::max(_val->size(),index));
+                _dim[0] = std::max(_dim[0],_val->size());
+
                 Warning("WARNING: calling add_val(const string& key, T val) with an existing key, overriding existing value" << endl);
                 set_val(key,val);
                 if(_indices->_ids){
@@ -1363,9 +1404,25 @@ namespace gravity {
             return is_zero_();
         }
         
+        bool has_zero() const{
+            if(_indices){
+                for (size_t i = 0; i < _indices->size(); i++) {
+                    if(_val->at(get_id_inst(i))==zero<type>().eval())
+                        return true;
+                }
+            }
+            else {
+                for (size_t i = 0; i < _val->size(); i++) {
+                    if(_val->at(i)==zero<type>().eval())
+                        return true;
+                }
+            }
+            return false;
+        }
+        
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-            return (get_dim()==0);
+            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
@@ -1566,7 +1623,7 @@ namespace gravity {
             if (it1 == _indices->_keys_map->end()){
                 throw invalid_argument("In operator()(string key1, Args&&... args), unknown key");
             }
-            res._name += ".in["+key._name+"]";
+            res._name += ".in{("+key._name+")}";
             res._indices->set_name(res._name);
             res._indices->_ids = make_shared<vector<vector<size_t>>>();
             res._indices->_ids->resize(1);
@@ -1717,16 +1774,20 @@ namespace gravity {
             if(!_indices){
                 throw invalid_argument("cannot call repeat_id(int n, int pos=0) on non-indexed parameter/variable");
             }
-            auto key_id = get_id_inst(pos);
-            indices res(*_indices);
-            res.set_name(res.get_name() + "repeat_id(" + to_string(n)+ "," + to_string(pos) + ")");
-            res._ids = make_shared<vector<vector<size_t>>>();
-            res._ids->resize(1);
-            res._ids->at(0).resize(n);
-            for(int i = 0; i< n; i++){
-                res._ids->at(0).at(i) = key_id;
+            return _indices->repeat_id(n,pos);
+        }
+        
+        /* Return an index set repeating all keys n times
+         @param[in] n, number of time repeating the same key
+         */
+        void repeat_ids(int n){
+            if(!_indices){
+                throw invalid_argument("cannot call repeat_ids(int n) on non-indexed parameter/variable");
             }
-            return res;
+            *_indices = _indices->repeat_ids(n);
+            _dim[0]=_indices->size();
+            string name = _name.substr(0, _name.find_last_of("."));
+            _name = name+".in"+_indices->get_name();
         }
         
         /* Return a subset of the current parameter index set corresponding to ids with negative values */
@@ -2506,7 +2567,7 @@ namespace gravity {
         };
         
         
-        param& operator=(const func<type>& f) {
+        param& operator=(func<type>& f) {
             copy_vals(f);
             if(f._indices)
                 *this = this->in(*f._indices);
@@ -2514,7 +2575,7 @@ namespace gravity {
         }
         
         template<typename T, typename=enable_if<is_convertible<T,type>::value>>
-        void copy_vals(const func<T>& f){
+        void copy_vals(func<T>& f){
             if(f.func_is_number()){
                 for (size_t i = 0; i < _val->size(); i++) {
                     _val->at(i) = f._val->at(0);
@@ -2527,7 +2588,7 @@ namespace gravity {
                 auto dim = get_dim();
                 _val->resize(dim);
                 for (size_t i = 0; i < dim; i++) {
-                    _val->at(i) = f._val->at(i);
+                    _val->at(i) = f.eval(i);
                 }
                 reset_range();
             }

@@ -1,5 +1,6 @@
 [![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Build Status](https://travis-ci.org/coin-or/Gravity.svg?branch=master)](https://travis-ci.org/coin-or/Gravity)
+![CMake](https://github.com/coin-or/Gravity/workflows/CMake/badge.svg)
 [![Code Coverage](https://codecov.io/gh/coin-or/gravity/branch/master/graph/badge.svg)](https://codecov.io/gh/coin-or/Gravity)
 [![download](https://img.shields.io/badge/download%20%20-latest-blue.svg)](https://github.com/coin-or/Gravity/releases)
 
@@ -12,7 +13,7 @@
 
 <p align="center"> Created by Hassan Hijazi. </p>
 
-<H2 align="center"> www.allinsights.io/gravity </H2>
+<H2 align="center"> www.gravityopt.com </H2>
 
 
 
@@ -23,7 +24,20 @@ Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](htt
 [<img 
 src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
 
-### ** Contributors **
+## Citing
+The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
+
+Bibtex ref:
+`@article{Gravity,
+  title={Gravity: A Mathematical Modeling Language for Optimization and Machine Learning},
+  author={Hassan Hijazi and Guanglei Wang and Carleton Coffrin},
+  journal={Machine Learning Open Source Software Workshop at NeurIPS 2018},
+  year={2018},
+  note = {Available at \url{www.gravityopt.com}.},
+  publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
+}`
+
+## Contributors
 Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
 
 Guanglei Wang, Ksenia Bestuzheva, Carleton Coffrin, Smitha Gopinath, Mertcan Yetkin
@@ -70,4 +84,4 @@ Performance Profile on Inverse Ising Model
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
 
 
-Click [here](https://www.allinsights.io/numerical-results) for more details.
+Click [here](www.gravityopt.com) for more details.

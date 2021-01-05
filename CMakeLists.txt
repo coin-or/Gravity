@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.2)
 
 project(Gravity)
 
+enable_testing()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(MACOSX_RPATH 1) 
 # Debug mode
@@ -14,7 +16,11 @@ option(Cov "Turn on coverage" OFF)
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (optional)
-option(Ipopt "Link to IPOPT libraries" OFF)
+option(Ipopt "Link to IPOPT libraries" ON)
+
+option(MP "Link to AMPL MP libraries" ON)
+
+option(CoinUtils "Link to CoinUtils libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -57,14 +63,6 @@ if (OpenMPI)
 #   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
-# Find Ipopt.
-if (Ipopt)
-	message(STATUS "Enable IPOPT")
-	add_definitions(-DUSE_IPOPT)
-	find_package(IPOPT REQUIRED)
-	include_directories(${IPOPT_INCLUDE_DIRS}/..)
-	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
-endif()
 
 # Find xlnt
 if (Xlnt)
@@ -164,6 +162,64 @@ set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
 include(ExternalProject)
+#CoinUtils
+if (CoinUtils)
+message(STATUS "Enable CoinUtils")
+add_definitions(-DUSE_CoinUtils)
+find_package(CoinUtils QUIET)
+if (CoinUtils_FOUND)
+ message("-- Found CoinUtils: ${CoinUtils_INCLUDE_DIRS}")
+ include_directories(${CoinUtils_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${CoinUtils_LIBRARIES})
+else(CoinUtils_FOUND)
+ set(ADD_CoinUtils TRUE)
+ message(STATUS "Will download CoinUtils library from https://github.com/coin-or/CoinUtils")
+ include(ExternalCoinUtils)
+ if(APPLE)
+  set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.dylib)
+ elseif(UNIX)
+  set(CoinUtils_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build/lib/libCoinUtils.so)
+ endif(APPLE)
+endif()
+endif()
+
+#MP
+if (MP)
+message(STATUS "Enable AMPL MP")
+add_definitions(-DUSE_MP)
+find_package(MP QUIET)
+if (MP_FOUND)
+ message("-- Found AMPL MP: ${CoinUtils_INCLUDE_DIRS}")
+ include_directories(${MP_INCLUDE_DIRS}/..)
+ set(LIBS ${LIBS} ${MP_LIBRARIES})
+else(MP_FOUND)
+ set(ADD_MP TRUE)
+ message(STATUS "Will download AMPL MP library from https://github.com/ampl/mp.git")
+ include(ExternalMP)
+ set(MP_LIBRARY ${THIRDPARTY_INSTALL_PATH}/Install/MP/build/lib/libmp.a)
+endif()
+endif()
+
+
+#Ipopt
+if (Ipopt)
+message(STATUS "Enable IPOPT")
+add_definitions(-DUSE_IPOPT)
+find_package(IPOPT QUIET)
+if (IPOPT_FOUND)
+ message("-- Found IPOPT: ${IPOPT_INCLUDE_DIRS}")
+ include_directories(${IPOPT_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+else(IPOPT_FOUND)
+set(ADD_IPOPT TRUE)
+if(APPLE)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.dylib)
+elseif(UNIX)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
+endif(APPLE) 
+ include(ExternalIpopt)
+endif (IPOPT_FOUND)
+endif()
 # Eigen
 #find_package(Eigen QUIET)
 #if (EIGEN_FOUND)
@@ -240,7 +296,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'"
 
 
 if(UNIX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -ldl")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -pthread")
 endif()
 
 

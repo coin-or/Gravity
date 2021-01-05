@@ -33,8 +33,8 @@ namespace gravity {
         Convexity                              _all_convexity = linear_; /**< If all instances of this expression have the same convexity type, it stores it here, i.e. linear, convex, concave, otherwise it stores unknown. >>**/
         Sign                                   _all_sign = zero_; /**< If all instances of this expression have the same sign, it stores it here, otherwise it stores unknown. >>**/
 
-        shared_ptr<pair<type,type>>            _range = make_shared<pair<type,type>>(); /**< (Min,Max) values of expression **/
-        string                                 _to_str = "noname"; /**< A string representation of the expression */
+        shared_ptr<pair<type,type>>            _range; /**< (Min,Max) values of expression **/
+        string                                 _to_str; /**< A string representation of the expression */
         
         virtual void in(const indices& ids){};
         virtual shared_ptr<constant_> get_lson() const {return nullptr;};
@@ -223,6 +223,7 @@ namespace gravity {
         
         uexpr(){
             this->_type = uexp_c;
+	    this->_range = make_shared<pair<type,type>>();
         }
         
         void print() {
@@ -341,6 +342,8 @@ namespace gravity {
         
         bexpr(){
             this->_type = bexp_c;
+	    this->_to_str = "noname";
+	    this->_range = make_shared<pair<type,type>>();
         }
         
         shared_ptr<constant_> get_lson() const {return _lson;};

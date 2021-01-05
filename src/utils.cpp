@@ -2,6 +2,36 @@
 using namespace std;
 using namespace gravity;
 
+gravity::indices gravity::intersect(const gravity::indices& s1, const gravity::indices& s2){
+    gravity::indices res("intersect(" + s1.get_name()+","+s2.get_name()+")");
+    if(s1._type == matrix_){/* If ids is matrix indexed */
+        auto nb_rows = s1.get_nb_rows();
+        for (size_t i = 0; i<nb_rows; i++) {
+            for (size_t j = 0; j<s1._ids->at(i).size(); j++) {
+                auto idx = s1._ids->at(i).at(j);
+                if(s2.has_key(s1._keys->at(idx))){
+                    res.insert(s1._keys->at(idx));
+                }
+            }
+        }
+    }
+    else if(s1.is_indexed()){/* If ids has key references, use those */
+        for (auto &idx:s1._ids->at(0)) {
+            if(s2.has_key(s1._keys->at(idx))){
+                res.insert(s1._keys->at(idx));
+            }
+        }
+    }
+    else {
+        for (auto &key:*s1._keys) {
+            if(s2.has_key(key)){
+                res.insert(key);
+            }
+        }
+    }
+    return res;
+}
+
 gravity::indices time(unsigned p1 ,unsigned p2){
     auto res = range(p1,p2);
     res._time_extended = true;
@@ -9,7 +39,7 @@ gravity::indices time(unsigned p1 ,unsigned p2){
 }
 
 gravity::indices gravity::range(size_t p1 ,size_t p2){
-    indices res("range("+to_string(p1)+"<"+to_string(p2)+")");
+    indices res("range("+to_string(p1)+":"+to_string(p2)+")");
     auto n = p2 - p1 + 1;
     assert(n >= 0);
     res._keys_map = make_shared<map<string,size_t>>();
