@@ -6404,6 +6404,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                         }
                         /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
+                        obbt_model->print();
                         relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
                         if(linearize && !terminate){
                             if(!alg_batch_reset){

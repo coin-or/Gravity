@@ -1418,6 +1418,7 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
+    std::map<int, double> map_lb,map_ub;
     double objk;
     bool bound_converge=true;
     for (auto s=0;s<objective_models.size();s++)
@@ -1435,7 +1436,7 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             dirk=mkname.substr(pos+1);
             objk=sol_obj.at(s);
 
-this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
+            this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
 
 
          
@@ -1452,6 +1453,48 @@ this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models
                 DebugOn("failed "<<objective_models.at(s)<<endl);
             fail++;
         }
+    }
+    this->generate_lagrange_bounds(objective_models, models, obbt_model, fixed_point, range_tol, zero_tol, map_lb, map_ub);
+    auto id_old=0, dim=0;
+    auto v_old=obbt_model->_vars.at(0);
+    string vname, keyname, dirname;
+    for(auto &it:map_ub){
+        dirname="UB";
+    for(auto& v_p: obbt_model->_vars)
+    {
+        auto v = v_p.second;
+        auto id=v->get_id();
+        if(it.first>=id_old && it.first<id){
+            vname=v_old->_name;
+            auto inst=it.first-id_old;
+            auto keys=v_old->get_keys();
+            keyname=(*keys)[inst];
+            break;
+        }
+        id_old=id;
+        v_old=v;
+    }
+        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
+        
+    }
+    for(auto &it:map_lb){
+        dirname="LB";
+    for(auto& v_p: obbt_model->_vars)
+    {
+        auto v = v_p.second;
+        auto id=v->get_id();
+        if(it.first>=id_old && it.first<id){
+            vname=v_old->_name;
+            auto inst=it.first-id_old;
+            auto keys=v_old->get_keys();
+            keyname=(*keys)[inst];
+            break;
+        }
+        id_old=id;
+        v_old=v;
+    }
+        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
+        
     }
     return 0;
 }
@@ -1599,14 +1642,14 @@ var<> vk, var_ub;
         }
 template<typename type>
 template<typename T>
-bool Model<type>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol){
-std::map<int, double> map_lb, map_ub; 
-var<> var_ub;
-double vi_b, vi_ub_val, vi_star, vi_int;
+void Model<type>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
+
+double vi_ub, vi_lb, vi_int;
 std::string viname, vikey, vidir;
 bool in_orig_model=false;
 for(auto &modeli:models){
-    if (modeli->_status==0 && !fixed_point[modeli->_name])
+  
+    if (modeli->_status==0)
     {
         /* code */
         auto miname=modeli->_name;
@@ -1617,85 +1660,71 @@ for(auto &modeli:models){
         pos=mname.find("|");
         vikey.assign(mname, 0, pos);
         vidir=mname.substr(pos+1);
-   
-    var<> vi=obbt_model->template get_var<T>(viname);
-    in_orig_model=false;
-    if(this->_vars_name.find(viname)!=this->_vars_name.end())
-{
-    var_ub=this->template get_var<T>(viname);
-    in_orig_model=true;
-    vi_ub_val=var_ub.eval(vikey);
-}
+        
+        /*if!fixed_point in both dirs implies that the interval is not closed hence we check only in this case*/
+        if(!fixed_point[viname+"|"+vikey+"|LB"] || !fixed_point[viname+"|"+vikey+"|UB"]){
+        
+        var<> vi=obbt_model->template get_var<T>(viname);
+        vi_ub=vi.get_ub(vikey);
+        vi_lb=vi.get_lb(vikey);
+        vi_int=vi_ub-vi_lb;
+  
 
-if(vidir=="UB"){
-    vi_star=vi.get_ub(vikey);
-    vi_b=vi.get_lb(vikey);
-    if(in_orig_model){
-    vi_b=vi_ub_val;
-}
-vi_int=vi_star-vi_b;
-}
- if(vidir=="LB"){
-    vi_star=vi.get_lb(vikey);
-    vi_b=vi.get_ub(vikey);
-    if(in_orig_model){
-    vi_b=vi_ub_val;
-}
-vi_int=vi_b-vi_star;
-}  
-
-for (auto &vj: modeli->_vars) {
-        auto nb_inst = vj.second->get_dim();
-        auto ldvj= vj.second->_l_dual;
-        auto udvj=vj.second->_u_dual;
-        auto vjkeys=vj.second->get_keys();
-        auto vjname=vj.second->_name;
-        auto vjid=vj.second->get_id();
+for (auto &vjp: modeli->_vars) {
+        auto nb_inst = vjp.second->get_dim();
+        auto ldvj= vjp.second->_l_dual;
+        auto udvj=vjp.second->_u_dual;
+        auto vjkeys=vjp.second->get_keys();
+        auto vjname=vjp.second->_name;
+        auto vjid=vjp.second->get_id();
 
 for(auto vpiter=0;vpiter<nb_inst;vpiter++)
  {
-    vjkey=(*vjkeys)[vpiter];
+    auto vjkey=(*vjkeys)[vpiter];
     auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
     auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
-
-if(objective_models.find(mjname_ub)==objective_models.end() && udv[vpiter] >= 1E-3)
+     if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
+    if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end())
 {
 var<> vj=modeli->template get_var<T>(vjname);
-auto lb_vj=vj.second->get_double_lb(vpiter);
-auto ub_vj=vj.second->get_double_ub(vpiter);
-auto lb_vj_new=ub_vj-(vi_int)/udv[vpiter];
- if((lb_vj_new-lb_vj)>=range_tol){
-    if(map_lb.find(vjid+vpiter)!=map.end()){
+auto lb_vj=vj.get_lb(vjkey);
+auto ub_vj=vj.get_ub(vjkey);
+auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
+ if((lb_vj_new-lb_vj)>=range_tol && lb_vj_new<=ub_vj){
+    if(map_lb.find(vjid+vpiter)!=map_lb.end()){
         if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
             map_lb.at(vjid+vpiter)=lb_vj_new;
         }
     }
     else{
-        map_lb.at(vjid+vpiter)=lb_vj_new;
+        map_lb[vjid+vpiter]=lb_vj_new;
     }
 
     }
 }
 
-if(objective_models.find(mjname_lb)==objective_models.end() && ldv[vpiter] >= 1E-3)
+    if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end() && vjname!="Wii")
 {
-var<> vj=modeli->template get_var<T>(vjname);
-auto lb_vj=vj.second->get_double_lb(vpiter);
-auto ub_vj=vj.second->get_double_ub(vpiter);
-auto ub_vj_new=lb_vj+(vi_int)/ldv[vpiter];
- if((ub_vj-ub_vj_new)>=range_tol){
-    if(map_ub.find(vjid+vpiter)!=map.end()){
+    var<> vj=modeli->template get_var<T>(vjname);
+    auto lb_vj=vj.get_lb(vjkey);
+    auto ub_vj=vj.get_ub(vjkey);
+auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
+ if((ub_vj-ub_vj_new)>=range_tol && ub_vj_new>=lb_vj){
+    if(map_ub.find(vjid+vpiter)!=map_ub.end()){
         if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
             map_ub.at(vjid+vpiter)=ub_vj_new;
         }
     }
     else{
-        map_ub.at(vjid+vpiter)=ub_vj_new;
+        DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
+        map_ub[vjid+vpiter]=ub_vj_new;
     }
 
     }
 }
-} 
+     }
+}
+}
 }
 }
 }
@@ -1930,4 +1959,5 @@ template bool Model<double>::root_refine(const Model<double>& interior_model, sh
 template bool Model<double>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
 template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
+template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 }
