@@ -6311,6 +6311,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     cbasis.resize(nb_threads);
     map<string, bool> fixed_point;
     map<string, double> interval_original, interval_new, ub_original, lb_original;
+    map<int, double> map_lb,map_ub;
     string vname, var_key, mname, cut_type="allvar";
     string dir_array[2]={"LB", "UB"};
     var<> v;
@@ -6378,11 +6379,14 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                                             auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
-                                            auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
-                                           // auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol);
+                                            auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, iter);
+                                            this->generate_lagrange_bounds(objective_models, batch_models, obbt_model, fixed_point, range_tol, zero_tol, map_lb, map_ub);
+                                            this->obbt_update_lagrange_bounds(batch_models, obbt_model,   fixed_point, interval_original, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol, iter, map_lb, map_ub);
                                             sol_status.clear();
                                             sol_obj.clear();
                                             objective_models.clear();
+                                            map_lb.clear();
+                                            map_ub.clear();
                                             solver_time=get_wall_time()-solver_time_start;     
 #ifdef USE_MPI
                                             if(worker_id==0)

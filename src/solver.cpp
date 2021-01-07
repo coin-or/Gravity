@@ -310,7 +310,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         for (size_t i = 0; i < nr_threads_; ++i) {
             if(viol_i.at(i)==1 && models[i]->_status==0){
                 if(l>=1)
-                DebugOff("resolving"<<endl);
+                    DebugOff("resolving"<<endl);
                 threads.push_back(thread(run_models_solver<double>, ref(models), ref(batch_solvers), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
             }
         }
@@ -352,7 +352,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     if(stype==gurobi && initialize_primal){
         for(auto&s: batch_solvers){
             if(sol_status.at(count)==0){
-                    s->get_pstart(vbasis.at(count), cbasis.at(count));
+                s->get_pstart(vbasis.at(count), cbasis.at(count));
             }
             count++;
         }
@@ -682,7 +682,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         }
                     }
                 }
-              //  OA_sol=con->get_outer_app(activeset, scale);
+                //  OA_sol=con->get_outer_app(activeset, scale);
                 OA_sol=con->get_outer_app(activeset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(activeset)<=0);
@@ -707,7 +707,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         allset.add(keyi);
                     }
                 }
-               // OA_sol=con->get_outer_app(allset, scale);
+                // OA_sol=con->get_outer_app(allset, scale);
                 OA_sol=con->get_outer_app(allset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
@@ -818,7 +818,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                             activeset.add((*con->_indices->_keys)[i]);
                             Constraint<> OA_cut(con_lin_name);
                             //OA_cut=con->get_outer_app(activeset, scale);
-                             OA_cut=con->get_outer_app(activeset, scale, true, 1e-3);
+                            OA_cut=con->get_outer_app(activeset, scale, true, 1e-3);
                             if(con->_ctype==leq){
                                 lin->add(OA_cut.in(activeset)<=0);
                             }
@@ -1348,39 +1348,39 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*upper_bound/ub_scale_value;
-           // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
+            // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
-            DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
+                DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound))*100<<"% "<<lin_count<<endl);
             if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
                 break;
             }
-/*	if(gap_old-gap<=0.01){
-#ifdef USE_MPI
-            if(worker_id==0)
-#endif
-		DebugOn("gap less than 0.01"<<endl);
-		break;
-}
-            gap_old=gap;*/
+            /*	if(gap_old-gap<=0.01){
+             #ifdef USE_MPI
+             if(worker_id==0)
+             #endif
+             DebugOn("gap less than 0.01"<<endl);
+             break;
+             }
+             gap_old=gap;*/
             obbt_model->get_solution(solution);
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
         }
         else{
 #ifdef USE_MPI
             if(worker_id==0)
-		{
+            {
 #endif
-            DebugOn("lower bounding failed in root refine"<<lin_count<<endl);
-	    	LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
-	    	obbt_model->print();
+                DebugOn("lower bounding failed in root refine"<<lin_count<<endl);
+                LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
+                obbt_model->print();
 #ifdef USE_MPI                                                                        
-}
+            }
 #endif 
- lower_bound=numeric_limits<double>::min(); 
+            lower_bound=numeric_limits<double>::min();
             break;
         }
         lin_count++;
@@ -1411,14 +1411,13 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
  */
 template<typename type>
 template<typename T>
-bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol){
+bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter){
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     std::string msname, mkname,vkname,keyk,dirk, var_key_k;
-    std::map<int, double> map_lb,map_ub;
     double objk;
     bool bound_converge=true;
     for (auto s=0;s<objective_models.size();s++)
@@ -1435,11 +1434,11 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             keyk.assign(mkname, 0, pos);
             dirk=mkname.substr(pos+1);
             objk=sol_obj.at(s);
-
-            this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
-
-
-         
+            
+            this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+            
+            
+            
 #ifdef USE_MPI                                                                          
             if(worker_id==0)
 #endif
@@ -1454,281 +1453,279 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             fail++;
         }
     }
-    this->generate_lagrange_bounds(objective_models, models, obbt_model, fixed_point, range_tol, zero_tol, map_lb, map_ub);
-    auto id_old=0, dim=0;
-    auto v_old=obbt_model->_vars.at(0);
-    string vname, keyname, dirname;
-    for(auto &it:map_ub){
-        dirname="UB";
-    for(auto& v_p: obbt_model->_vars)
-    {
-        auto v = v_p.second;
-        auto id=v->get_id();
-        if(it.first>=id_old && it.first<id){
-            vname=v_old->_name;
-            auto inst=it.first-id_old;
-            auto keys=v_old->get_keys();
-            keyname=(*keys)[inst];
-            break;
-        }
-        id_old=id;
-        v_old=v;
-    }
-        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
-        
-    }
-    for(auto &it:map_lb){
-        dirname="LB";
-    for(auto& v_p: obbt_model->_vars)
-    {
-        auto v = v_p.second;
-        auto id=v->get_id();
-        if(it.first>=id_old && it.first<id){
-            vname=v_old->_name;
-            auto inst=it.first-id_old;
-            auto keys=v_old->get_keys();
-            keyname=(*keys)[inst];
-            break;
-        }
-        id_old=id;
-        v_old=v;
-    }
-        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol);
-        
-    }
+
     return 0;
 }
 
 template<typename type>
 template<typename T>
-bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol)
+bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter)
 {    
-double boundk1, temp, tempa, mid, left, right, interval, vi_ub_val;
-bool in_orig_model;    
-var<> vk, var_ub;
-            auto var_key_k=vkname+"|"+keyk;
-            auto update_lb=false;
-            auto update_ub=false;
-            vk=obbt_model->template get_var<T>(vkname);
-            in_orig_model=false;
-            if(this->_vars_name.find(vk._name)!=this->_vars_name.end()){
-                var_ub=this->template get_var<T>(vkname);
-                in_orig_model=true;
-                vi_ub_val=var_ub.eval(keyk);
-                if(dirk=="LB"){
-                interval=vi_ub_val-objk;
-                if(interval<=range_tol)
-                {
-                    fixed_point[var_key_k+"|LB"]=true;
-                }
-                }
-                else{
-                interval=objk-vi_ub_val; 
-                if(interval<=range_tol)
-                {
-                    fixed_point[var_key_k+"|UB"]=true;
-                }
-                }
-            }
-            // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
-            if(dirk=="LB"){
-                boundk1=vk.get_lb(keyk);
-                interval=vk.get_ub(keyk)-objk;
-            }
-            else{
-                boundk1=vk.get_ub(keyk);
-                interval=objk-vk.get_lb(keyk); 
-            }
-                if(std::abs(interval)<=range_tol)
-                {
-                    fixed_point[var_key_k+"|LB"]=true;
-                    fixed_point[var_key_k+"|UB"]=true;
-                }
-           
-            // if new bound converges to previous bound, fixed point is reached and no need to update bounds
-            if(bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
-                     {
-                         fixed_point[msname]=true;
-                     }
-            else{/*Update bounds*/
-                if(dirk=="LB"){
-                    //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                    objk=std::max(objk-range_tol, boundk1);
-                    vk.set_lb(keyk, objk);
-                    update_lb=true;
-                }
-                else{
-                    //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                    objk=std::min(objk+range_tol, boundk1);
-                    vk.set_ub(keyk, objk);
-                    update_ub=true;
-                }
-                //If crossover in bounds,just exchange them
-                if(vk.get_ub(keyk)<vk.get_lb(keyk))
-                {
-                    fixed_point[var_key_k+"|LB"]=true;
-                    fixed_point[var_key_k+"|UB"]=true;
-                    temp=vk.get_ub(keyk);
-                    tempa=vk.get_lb(keyk);
-                    vk.set_ub(keyk, tempa);
-                    vk.set_lb(keyk, temp);
-                    update_lb=true;
-                    update_ub=true;
-                }
-                /*If fixed point not reached for any variable, terminate is false*/
-                if(!fixed_point[msname]){
-                    if(!vk._lift){
-                        terminate=false;
-                    }
-                }
-            }
-
-            //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
-            if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+    double boundk1, temp, tempa, mid, left, right, interval, vi_ub_val;
+    bool in_orig_model;
+    var<> vk, var_ub;
+    auto var_key_k=vkname+"|"+keyk;
+    auto update_lb=false;
+    auto update_ub=false;
+    vk=obbt_model->template get_var<T>(vkname);
+    in_orig_model=false;
+    if(this->_vars_name.find(vk._name)!=this->_vars_name.end()){
+        var_ub=this->template get_var<T>(vkname);
+        in_orig_model=true;
+        vi_ub_val=var_ub.eval(keyk);
+        if(dirk=="LB"){
+            interval=vi_ub_val-objk;
+            if(interval<=range_tol)
             {
-                //If original interval is itself smaller than range_tol, do not have to reset interval
-                if(interval_original.at(var_key_k)>=range_tol)
-                {
-                    DebugOff("Entered reset");
-                    //Mid is the midpoint of interval
-                    mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
-                    left=mid-range_tol/2.0;
-                    right=mid+range_tol/2.0;
-                    //If resized interval does not cross original bounds, reset
-                    if(right<=ub_original.at(var_key_k) && left>=lb_original.at(var_key_k))
-                    {
-                        vk.set_ub(keyk, right);
-                        vk.set_lb(keyk, left);
-                        update_lb=true;
-                        update_ub=true;
-                    }
-                    //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
-                    else if(right>ub_original.at(var_key_k))
-                    {
-                        
-                        vk.set_ub(keyk, ub_original.at(var_key_k));
-                        vk.set_lb(keyk, ub_original.at(var_key_k)-range_tol);
-                        update_lb=true;
-                        update_ub=true;
-                    }
-                    //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
-                    else if(left<lb_original.at(var_key_k))
-                    {
-                        vk.set_lb(keyk, lb_original.at(var_key_k));
-                        vk.set_ub(keyk, lb_original.at(var_key_k)+range_tol);
-                        update_lb=true;
-                        update_ub=true;
-                        
-                    }
-                    //In the resized interval both original lower and upper bounds can not be crossed, because original interval is greater
-                    //than range_tol
-                    
-                }
+                fixed_point[var_key_k+"|LB"]=true;
             }
-            if(update_lb||update_ub){
-                for(auto &mod:models){
-                    auto vkmod=mod->template get_var<T>(vkname);
-                    if(update_lb){
-                        vkmod.set_lb(keyk, vk.get_lb(keyk));
-                        DebugOff(vk.get_lb(keyk)<<endl);
-                    }
-                    if(update_ub){
-                        vkmod.set_ub(keyk, vk.get_ub(keyk));
-                        DebugOff(vk.get_ub(keyk)<<endl);
-                    }
-                }
-            }
-            return true;
         }
+        else{
+            interval=objk-vi_ub_val;
+            if(interval<=range_tol)
+            {
+                fixed_point[var_key_k+"|UB"]=true;
+            }
+        }
+    }
+    // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
+    if(dirk=="LB"){
+        boundk1=vk.get_lb(keyk);
+        interval=vk.get_ub(keyk)-objk;
+    }
+    else{
+        boundk1=vk.get_ub(keyk);
+        interval=objk-vk.get_lb(keyk);
+    }
+    if(std::abs(interval)<=range_tol)
+    {
+        fixed_point[var_key_k+"|LB"]=true;
+        fixed_point[var_key_k+"|UB"]=true;
+    }
+    
+    // if new bound converges to previous bound, fixed point is reached and no need to update bounds
+    if(bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+    {
+        if(run_obbt_iter>1){
+            fixed_point[msname]=true;
+        }
+    }
+    else{/*Update bounds*/
+        if(dirk=="LB"){
+            //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
+            objk=std::max(objk-range_tol, boundk1);
+            vk.set_lb(keyk, objk);
+            update_lb=true;
+        }
+        else{
+            //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
+            objk=std::min(objk+range_tol, boundk1);
+            vk.set_ub(keyk, objk);
+            update_ub=true;
+        }
+        //If crossover in bounds,just exchange them
+        if(vk.get_ub(keyk)<vk.get_lb(keyk))
+        {
+            fixed_point[var_key_k+"|LB"]=true;
+            fixed_point[var_key_k+"|UB"]=true;
+            temp=vk.get_ub(keyk);
+            tempa=vk.get_lb(keyk);
+            vk.set_ub(keyk, tempa);
+            vk.set_lb(keyk, temp);
+            update_lb=true;
+            update_ub=true;
+        }
+        /*If fixed point not reached for any variable, terminate is false*/
+        if(!fixed_point[msname]){
+            if(!vk._lift){
+                terminate=false;
+            }
+        }
+    }
+    
+    //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
+    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+    {
+        //If original interval is itself smaller than range_tol, do not have to reset interval
+        if(interval_original.at(var_key_k)>=range_tol)
+        {
+            DebugOff("Entered reset");
+            //Mid is the midpoint of interval
+            mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
+            left=mid-range_tol/2.0;
+            right=mid+range_tol/2.0;
+            //If resized interval does not cross original bounds, reset
+            if(right<=ub_original.at(var_key_k) && left>=lb_original.at(var_key_k))
+            {
+                vk.set_ub(keyk, right);
+                vk.set_lb(keyk, left);
+                update_lb=true;
+                update_ub=true;
+            }
+            //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
+            else if(right>ub_original.at(var_key_k))
+            {
+                
+                vk.set_ub(keyk, ub_original.at(var_key_k));
+                vk.set_lb(keyk, ub_original.at(var_key_k)-range_tol);
+                update_lb=true;
+                update_ub=true;
+            }
+            //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
+            else if(left<lb_original.at(var_key_k))
+            {
+                vk.set_lb(keyk, lb_original.at(var_key_k));
+                vk.set_ub(keyk, lb_original.at(var_key_k)+range_tol);
+                update_lb=true;
+                update_ub=true;
+                
+            }
+            //In the resized interval both original lower and upper bounds can not be crossed, because original interval is greater
+            //than range_tol
+        }
+    }
+    if(update_lb||update_ub){
+        for(auto &mod:models){
+            auto vkmod=mod->template get_var<T>(vkname);
+            if(update_lb){
+                vkmod.set_lb(keyk, vk.get_lb(keyk));
+                DebugOff(vk.get_lb(keyk)<<endl);
+            }
+            if(update_ub){
+                vkmod.set_ub(keyk, vk.get_ub(keyk));
+                DebugOff(vk.get_ub(keyk)<<endl);
+            }
+        }
+    }
+    return true;
+}
+template<typename type>
+template<typename T>
+bool Model<type>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
+    auto id_old=0;
+    string vname, keyname, dirname;
+    for(auto &it:map_ub){
+        dirname="UB";
+        auto v_old=obbt_model->_vars.at(0);
+        for(auto& v_p: obbt_model->_vars)
+        {
+            auto v = v_p.second;
+            auto id=v->get_id();
+            if(it.first>=id_old && it.first<id){
+                vname=v_old->_name;
+                auto inst=it.first-id_old;
+                auto keys=v_old->get_keys();
+                keyname=(*keys)[inst];
+                break;
+            }
+            id_old=id;
+            v_old=v;
+        }
+        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        
+    }
+    
+    for(auto &it:map_lb){
+        dirname="LB";
+        auto v_old=obbt_model->_vars.at(0);
+        for(auto& v_p: obbt_model->_vars)
+        {
+            auto v = v_p.second;
+            auto id=v->get_id();
+            if(it.first>=id_old && it.first<id){
+                vname=v_old->_name;
+                auto inst=it.first-id_old;
+                auto keys=v_old->get_keys();
+                keyname=(*keys)[inst];
+                break;
+            }
+            id_old=id;
+            v_old=v;
+        }
+        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        
+    }
+    
+}
 template<typename type>
 template<typename T>
 void Model<type>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
-
-double vi_ub, vi_lb, vi_int;
-std::string viname, vikey, vidir;
-bool in_orig_model=false;
-for(auto &modeli:models){
-  
-    if (modeli->_status==0)
-    {
-        /* code */
-        auto miname=modeli->_name;
-        auto   mname=miname;
-        std::size_t pos = mname.find("|");
-        viname.assign(mname, 0, pos);
-        mname=mname.substr(pos+1);
-        pos=mname.find("|");
-        vikey.assign(mname, 0, pos);
-        vidir=mname.substr(pos+1);
-        
-        /*if!fixed_point in both dirs implies that the interval is not closed hence we check only in this case*/
-        if(!fixed_point[viname+"|"+vikey+"|LB"] || !fixed_point[viname+"|"+vikey+"|UB"]){
-        
-        var<> vi=obbt_model->template get_var<T>(viname);
-        vi_ub=vi.get_ub(vikey);
-        vi_lb=vi.get_lb(vikey);
-        vi_int=vi_ub-vi_lb;
-  
-
-for (auto &vjp: modeli->_vars) {
-        auto nb_inst = vjp.second->get_dim();
-        auto ldvj= vjp.second->_l_dual;
-        auto udvj=vjp.second->_u_dual;
-        auto vjkeys=vjp.second->get_keys();
-        auto vjname=vjp.second->_name;
-        auto vjid=vjp.second->get_id();
-
-for(auto vpiter=0;vpiter<nb_inst;vpiter++)
- {
-    auto vjkey=(*vjkeys)[vpiter];
-    auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
-    auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
-     if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
-    if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end())
-{
-var<> vj=modeli->template get_var<T>(vjname);
-auto lb_vj=vj.get_lb(vjkey);
-auto ub_vj=vj.get_ub(vjkey);
-auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
- if((lb_vj_new-lb_vj)>=range_tol && lb_vj_new<=ub_vj){
-    if(map_lb.find(vjid+vpiter)!=map_lb.end()){
-        if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
-            map_lb.at(vjid+vpiter)=lb_vj_new;
+    double vi_ub, vi_lb, vi_int;
+    std::string viname, vikey, vidir;
+    bool in_orig_model=false;
+    for(auto &modeli:models){
+        if (modeli->_status==0)
+        {
+            /* code */
+            auto miname=modeli->_name;
+            auto   mname=miname;
+            std::size_t pos = mname.find("|");
+            viname.assign(mname, 0, pos);
+            mname=mname.substr(pos+1);
+            pos=mname.find("|");
+            vikey.assign(mname, 0, pos);
+            vidir=mname.substr(pos+1);
+            /*if!fixed_point in both dirs implies that the interval is not closed hence we check only in this case*/
+            if(!fixed_point[viname+"|"+vikey+"|LB"] || !fixed_point[viname+"|"+vikey+"|UB"]){
+                var<> vi=obbt_model->template get_var<T>(viname);
+                vi_ub=vi.get_ub(vikey);
+                vi_lb=vi.get_lb(vikey);
+                vi_int=vi_ub-vi_lb;
+                for (auto &vjp: modeli->_vars) {
+                    auto nb_inst = vjp.second->get_dim();
+                    auto ldvj= vjp.second->_l_dual;
+                    auto udvj=vjp.second->_u_dual;
+                    auto vjkeys=vjp.second->get_keys();
+                    auto vjname=vjp.second->_name;
+                    auto vjid=vjp.second->get_id();
+                    for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+                    {
+                        auto vjkey=(*vjkeys)[vpiter];
+                        auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
+                        auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
+                        if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
+                            if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end())
+                            {
+                                var<> vj=modeli->template get_var<T>(vjname);
+                                auto lb_vj=vj.get_lb(vjkey);
+                                auto ub_vj=vj.get_ub(vjkey);
+                                auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
+                                if((lb_vj_new-lb_vj)>=range_tol && lb_vj_new<=ub_vj){
+                                    if(map_lb.find(vjid+vpiter)!=map_lb.end()){
+                                        if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
+                                            map_lb.at(vjid+vpiter)=lb_vj_new;
+                                        }
+                                    }
+                                    else{
+                                        map_lb[vjid+vpiter]=lb_vj_new;
+                                    }
+                                    
+                                }
+                            }
+                            if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end() && vjname!="Wii")
+                            {
+                                var<> vj=modeli->template get_var<T>(vjname);
+                                auto lb_vj=vj.get_lb(vjkey);
+                                auto ub_vj=vj.get_ub(vjkey);
+                                auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
+                                if((ub_vj-ub_vj_new)>=range_tol && ub_vj_new>=lb_vj){
+                                    if(map_ub.find(vjid+vpiter)!=map_ub.end()){
+                                        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
+                                            map_ub.at(vjid+vpiter)=ub_vj_new;
+                                        }
+                                    }
+                                    else{
+                                        DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
+                                        map_ub[vjid+vpiter]=ub_vj_new;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    else{
-        map_lb[vjid+vpiter]=lb_vj_new;
-    }
-
-    }
-}
-
-    if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end() && vjname!="Wii")
-{
-    var<> vj=modeli->template get_var<T>(vjname);
-    auto lb_vj=vj.get_lb(vjkey);
-    auto ub_vj=vj.get_ub(vjkey);
-auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
- if((ub_vj-ub_vj_new)>=range_tol && ub_vj_new>=lb_vj){
-    if(map_ub.find(vjid+vpiter)!=map_ub.end()){
-        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
-            map_ub.at(vjid+vpiter)=ub_vj_new;
-        }
-    }
-    else{
-        DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
-        map_ub[vjid+vpiter]=ub_vj_new;
-    }
-
-    }
-}
-     }
-}
-}
-}
-}
-}
-
 }
 
 template<typename type>
@@ -1956,8 +1953,9 @@ template Model<double> Model<double>::build_model_interior() const;
 template shared_ptr<Model<double>> Model<double>::build_model_IIS();
 template bool Model<double>::add_iterative(const Model<double>& interior, vector<double>& obbt_solution, shared_ptr<Model<double>>& lin, string modelname, int& nb_oacuts, double active_tol);
 template bool Model<double>::root_refine(const Model<double>& interior_model, shared_ptr<Model<double>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
-template bool Model<double>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
-template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol);
+template bool Model<double>::obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
+template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 }
