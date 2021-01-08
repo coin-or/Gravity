@@ -642,8 +642,6 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
 int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string modelname, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool initialize_resolve);
 int initialize_run_parallel(const std::vector<std::string> objective_models_worker, std::vector<shared_ptr<gravity::Model<double>>>& models,  gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis);
 #ifdef USE_MPI
-
-
 template<typename type>
 void send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const vector<size_t>& limits){
     int worker_id, nb_workers;
@@ -663,8 +661,7 @@ void send_status(const vector<shared_ptr<gravity::Model<type>>>& models, const v
     }
     MPI_Barrier(MPI_COMM_WORLD);
 }
-template<typename type>
-void send_lagrange_bounds(int nb_workers_, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
+inline void send_lagrange_bounds(int nb_workers_, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -672,6 +669,7 @@ void send_lagrange_bounds(int nb_workers_, std::map<int, double>& map_lb, std::m
     int size_vb=0, c_old=0, size_vb_all=0;
     vector<int> size_vec, d;
     size_vec.resize(nb_workers, 0);
+    vidb_w.resize(0);
     DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my bounds " << endl);
     if(worker_id<nb_workers_){
         for (auto &m:map_lb) {
@@ -695,7 +693,7 @@ void send_lagrange_bounds(int nb_workers_, std::map<int, double>& map_lb, std::m
     }
     d.pop_back();
     vidb_all.resize(size_vb_all);
-    
+    if(size_vb_all>0)
     MPI_Allgatherv(&vidb_w[0], size_vec[worker_id], MPI_DOUBLE,
                    &vidb_all[0], &size_vec[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
     

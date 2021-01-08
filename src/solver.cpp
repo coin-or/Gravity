@@ -935,7 +935,7 @@ bool Model<type>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Mo
         this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
         
     }
-    
+    return true;
 }
 template<typename type>
 template<typename T>
