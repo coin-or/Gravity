@@ -892,6 +892,11 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
 template<typename type>
 template<typename T>
 bool Model<type>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     auto id_old=0;
     auto in_it_start=obbt_model->_vars.begin()++;
     auto v_old=obbt_model->_vars.at(0);
