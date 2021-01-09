@@ -974,7 +974,7 @@ void Model<type>::generate_lagrange_bounds(const std::vector<std::string> object
                         auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
                         auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
                         if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
-                            if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end())
+                            if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end())
                             {
                                 var<> vj=modeli->template get_var<T>(vjname);
                                 auto lb_vj=vj.get_lb(vjkey);
@@ -982,7 +982,7 @@ void Model<type>::generate_lagrange_bounds(const std::vector<std::string> object
                                 auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
                                 if((lb_vj_new-lb_vj)>=range_tol && lb_vj_new<=ub_vj){
                                     if(map_lb.find(vjid+vpiter)!=map_lb.end()){
-                                        if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
+                                        if((lb_vj_new-map_lb.at(vjid+vpiter))>=0){
                                             map_lb.at(vjid+vpiter)=lb_vj_new;
                                         }
                                     }
@@ -992,7 +992,7 @@ void Model<type>::generate_lagrange_bounds(const std::vector<std::string> object
                                     
                                 }
                             }
-                            if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end() && vjname!="Wii")
+                            if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end() && vjname!="Wii")
                             {
                                 var<> vj=modeli->template get_var<T>(vjname);
                                 auto lb_vj=vj.get_lb(vjkey);
@@ -1000,12 +1000,12 @@ void Model<type>::generate_lagrange_bounds(const std::vector<std::string> object
                                 auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
                                 if((ub_vj-ub_vj_new)>=range_tol && ub_vj_new>=lb_vj){
                                     if(map_ub.find(vjid+vpiter)!=map_ub.end()){
-                                        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
+                                        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=0){
                                             map_ub.at(vjid+vpiter)=ub_vj_new;
                                         }
                                     }
                                     else{
-                                        DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
+                                        //DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
                                         map_ub[vjid+vpiter]=ub_vj_new;
                                     }
                                 }

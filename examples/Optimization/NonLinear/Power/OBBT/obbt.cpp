@@ -222,6 +222,7 @@ int main (int argc, char * argv[]) {
     bool termination=true;
     //linearize=true;
     if(!linearize){
+	scale_objective=true;
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
