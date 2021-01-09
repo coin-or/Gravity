@@ -743,7 +743,7 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             fail++;
         }
     }
-
+    
     return 0;
 }
 
@@ -893,46 +893,69 @@ template<typename type>
 template<typename T>
 bool Model<type>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub){
     auto id_old=0;
+    auto in_it_start=obbt_model->_vars.begin()++;
+    auto v_old=obbt_model->_vars.at(0);
+    bool found=false;
     string vname, keyname, dirname;
     for(auto &it:map_ub){
         dirname="UB";
-        auto v_old=obbt_model->_vars.at(0);
-        for(auto& v_p: obbt_model->_vars)
+        found=false;
+        for(auto in_it=in_it_start;in_it!=obbt_model->_vars.end();in_it++)
         {
-            auto v = v_p.second;
+            auto v = (*in_it).second;
             auto id=v->get_id();
             if(it.first>=id_old && it.first<id){
                 vname=v_old->_name;
                 auto inst=it.first-id_old;
                 auto keys=v_old->get_keys();
                 keyname=(*keys)[inst];
+                in_it_start=in_it;
+                found=true;
                 break;
             }
             id_old=id;
             v_old=v;
         }
-        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        if(found){
+            this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        }else{
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+                DebugOn("Not found ub" <<it.first<<" "<<it.second<<endl);
+        }
         
     }
-    
+    id_old=0;
+    in_it_start=obbt_model->_vars.begin()++;
+    v_old=obbt_model->_vars.at(0);
     for(auto &it:map_lb){
         dirname="LB";
-        auto v_old=obbt_model->_vars.at(0);
-        for(auto& v_p: obbt_model->_vars)
+        found=false;
+        for(auto in_it=in_it_start;in_it!=obbt_model->_vars.end();in_it++)
         {
-            auto v = v_p.second;
+            auto v = (*in_it).second;
             auto id=v->get_id();
             if(it.first>=id_old && it.first<id){
                 vname=v_old->_name;
                 auto inst=it.first-id_old;
                 auto keys=v_old->get_keys();
                 keyname=(*keys)[inst];
+                in_it_start=in_it;
+                found=true;
                 break;
             }
             id_old=id;
             v_old=v;
         }
-        this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        if(found){
+            this->obbt_update_bounds(false,it.second, vname+"|"+keyname+"|"+dirname,vname, keyname, dirname,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
+        }else{
+#ifdef USE_MPI
+            if(worker_id==0)
+#endif
+                DebugOn("Not found lb" <<it.first<<" "<<it.second<<endl);
+        }
         
     }
     return true;
@@ -956,58 +979,59 @@ void Model<type>::generate_lagrange_bounds(const std::vector<std::string> object
             vikey.assign(mname, 0, pos);
             vidir=mname.substr(pos+1);
             /*if!fixed_point in both dirs implies that the interval is not closed hence we check only in this case*/
-            if(!fixed_point[viname+"|"+vikey+"|LB"] || !fixed_point[viname+"|"+vikey+"|UB"]){
-                var<> vi=obbt_model->template get_var<T>(viname);
-                vi_ub=vi.get_ub(vikey);
-                vi_lb=vi.get_lb(vikey);
-                vi_int=vi_ub-vi_lb;
-                for (auto &vjp: modeli->_vars) {
-                    auto nb_inst = vjp.second->get_dim();
-                    auto ldvj= vjp.second->_l_dual;
-                    auto udvj=vjp.second->_u_dual;
-                    auto vjkeys=vjp.second->get_keys();
-                    auto vjname=vjp.second->_name;
-                    auto vjid=vjp.second->get_id();
-                    for(auto vpiter=0;vpiter<nb_inst;vpiter++)
-                    {
-                        auto vjkey=(*vjkeys)[vpiter];
-                        auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
-                        auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
-                        if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
-                            if(udvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_lb)==objective_models.end())
-                            {
-                                var<> vj=modeli->template get_var<T>(vjname);
-                                auto lb_vj=vj.get_lb(vjkey);
-                                auto ub_vj=vj.get_ub(vjkey);
-                                auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
-                                if((lb_vj_new-lb_vj)>=range_tol && lb_vj_new<=ub_vj){
-                                    if(map_lb.find(vjid+vpiter)!=map_lb.end()){
-                                        if((lb_vj_new-map_lb.at(vjid+vpiter))>=0){
-                                            map_lb.at(vjid+vpiter)=lb_vj_new;
-                                        }
+            var<> vi=obbt_model->template get_var<T>(viname);
+            vi_ub=vi.get_ub(vikey);
+            vi_lb=vi.get_lb(vikey);
+            vi_int=vi_ub-vi_lb;
+            for (auto &vjp: modeli->_vars) {
+                auto nb_inst = vjp.second->get_dim();
+                auto ldvj= vjp.second->_l_dual;
+                auto udvj=vjp.second->_u_dual;
+                auto vjkeys=vjp.second->get_keys();
+                auto vjname=vjp.second->_name;
+                auto vjid=vjp.second->get_id();
+                for(auto vpiter=0;vpiter<nb_inst;vpiter++)
+                {
+                    auto vjkey=(*vjkeys)[vpiter];
+                    auto mjname_lb=vjname+"|"+(*vjkeys)[vpiter]+"|LB";
+                    auto mjname_ub=vjname+"|"+(*vjkeys)[vpiter]+"|UB";
+                    if(!(fixed_point[mjname_lb] && fixed_point[mjname_ub])){
+                        if(udvj[vpiter] >= 1E-3)
+                        {
+                            var<> vj=modeli->template get_var<T>(vjname);
+                            auto lb_vj=vj.get_lb(vjkey);
+                            auto ub_vj=vj.get_ub(vjkey);
+                            auto lb_vj_new=ub_vj-(vi_int)/udvj[vpiter];
+                            if((lb_vj_new-lb_vj)>=range_tol){
+                                if(map_lb.find(vjid+vpiter)!=map_lb.end()){
+                                    if((lb_vj_new-map_lb.at(vjid+vpiter))>=range_tol){
+                                        map_lb.at(vjid+vpiter)=lb_vj_new;
+                                        DebugOff(vjname<<"\t"<<vjkey<<"\t"<<lb_vj_new<<" LB"<<endl);
                                     }
-                                    else{
-                                        map_lb[vjid+vpiter]=lb_vj_new;
-                                    }
-                                    
                                 }
+                                else{
+                                    DebugOff(vjname<<"\t"<<vjkey<<"\t"<<lb_vj_new<<" LB"<<endl);
+                                    map_lb[vjid+vpiter]=lb_vj_new;
+                                }
+                                
                             }
-                            if(ldvj[vpiter] >= 1E-3 && std::find(objective_models.begin(), objective_models.end(), mjname_ub)==objective_models.end() && vjname!="Wii")
-                            {
-                                var<> vj=modeli->template get_var<T>(vjname);
-                                auto lb_vj=vj.get_lb(vjkey);
-                                auto ub_vj=vj.get_ub(vjkey);
-                                auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
-                                if((ub_vj-ub_vj_new)>=range_tol && ub_vj_new>=lb_vj){
-                                    if(map_ub.find(vjid+vpiter)!=map_ub.end()){
-                                        if((map_ub.at(vjid+vpiter)-ub_vj_new)>=0){
-                                            map_ub.at(vjid+vpiter)=ub_vj_new;
-                                        }
+                        }
+                        if(ldvj[vpiter] >= 1E-3 && vjname!="Wii")
+                        {
+                            var<> vj=modeli->template get_var<T>(vjname);
+                            auto lb_vj=vj.get_lb(vjkey);
+                            auto ub_vj=vj.get_ub(vjkey);
+                            auto ub_vj_new=lb_vj+(vi_int)/ldvj[vpiter];
+                            if((ub_vj-ub_vj_new)>=range_tol){
+                                if(map_ub.find(vjid+vpiter)!=map_ub.end()){
+                                    if((map_ub.at(vjid+vpiter)-ub_vj_new)>=range_tol){
+                                        DebugOff(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<" UB"<<endl);
+                                        map_ub.at(vjid+vpiter)=ub_vj_new;
                                     }
-                                    else{
-                                        //DebugOn(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<endl);
-                                        map_ub[vjid+vpiter]=ub_vj_new;
-                                    }
+                                }
+                                else{
+                                    DebugOff(vjname<<"\t"<<vjkey<<"\t"<<ub_vj_new<<" UB"<<endl);
+                                    map_ub[vjid+vpiter]=ub_vj_new;
                                 }
                             }
                         }
