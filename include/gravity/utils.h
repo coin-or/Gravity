@@ -53,6 +53,8 @@ void set_activetol_initrefine(double& active_tol, double& active_root_tol, doubl
 void initialize_basis_vectors(gravity::SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::map<std::string,double>>& cbasis, const std::vector<double>& vrbasis, const std::map<std::string,double>& crbasis, int nb_threads);
 void get_row_scaling(const std::vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef);
 
+std::string dash_string(std::string orig);
+
 gravity::Sign reverse(gravity::Sign s);
 
 gravity::Sign sign_add(gravity::Sign s1, gravity::Sign s2);

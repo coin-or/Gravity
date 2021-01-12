@@ -186,7 +186,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
     std::string mname, msname,vname, key, dir, modelname;
     var<> var;
     vector<shared_ptr<solver<double>>> batch_solvers;
-    int viol=0, count=0, ncuts=0;
+    int viol=0, count=0, ncuts=0, nref;
     vector<int> viol_i;
     if(objective_models.size()==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
@@ -273,10 +273,13 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
             }
         }
         threads.clear();
+        nref=l+1;
         if(viol==0){
             break;
         }
     }
+    if(nref>1)
+    DebugOn("nrefine "<<nref<<" ncuts "<<ncuts<<endl<<endl);
     count=0;
     sol_status.resize(objective_models.size(),-1);
     sol_obj.resize(objective_models.size(),-1.0);

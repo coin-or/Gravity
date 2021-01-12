@@ -140,28 +140,28 @@ int main (int argc, char * argv[]) {
         solver_str=argv[6];
     }
     if(argc>7){
-          nb_refine_s=argv[7];
-      }
+        nb_refine_s=argv[7];
+    }
     if(argc>8){
-          nb_root_refine_s=argv[8];
-      }
+        nb_root_refine_s=argv[8];
+    }
     if(argc>9){
-          viol_obbt_init_s=argv[9];
-      }
+        viol_obbt_init_s=argv[9];
+    }
     if(argc>10){
-          viol_root_init_s=argv[10];
-      }
+        viol_root_init_s=argv[10];
+    }
     if(argc>11){
-          init_prim_s=argv[11];
-      }
+        init_prim_s=argv[11];
+    }
     
-   
+    
     if (linearize_s.compare("yes")==0) {
         linearize = true;
     }
     if (init_prim_s.compare("yes")==0) {
-           initialize_primal = true;
-       }
+        initialize_primal = true;
+    }
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
@@ -212,6 +212,8 @@ int main (int argc, char * argv[]) {
     double lower_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     
     auto OPF=build_ACOPF(grid, ACRECT);
+    string name=dash_string(grid._name);
+    DebugOn(name<<endl);
     //OPF->print();
     double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
@@ -222,7 +224,7 @@ int main (int argc, char * argv[]) {
     bool termination=true;
     //linearize=true;
     if(!linearize){
-	scale_objective=true;
+        scale_objective=true;
         auto nonlin_obj=true;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
@@ -269,15 +271,25 @@ int main (int argc, char * argv[]) {
 #endif
         
     }
+    
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
+    string param_file_name=string(prj_dir)+"/results_obbt/"+"param.txt";
+    string summary_file_name=string(prj_dir)+"/results_obbt/"+"summary.txt";
     
     auto upper_bound = OPF->get_obj_val();
     auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
 #ifdef USE_MPI
     if(worker_id==0){
+        ofstream foutp(param_file_name.c_str());
+        foutp<<"$nref^{U}_{batch}$= "<<nb_refine<<", $nref^{U}_{root}$= "<<nb_root_refine<<", $viol^{I}_{batch}$= "<< viol_obbt_init<<", $viol^{I}_{root}$= "<<viol_root_init<<", linearize= "<<linearize<<", $f$= "<<2<<endl;
+        foutp.close();
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<"\t"<<termination<<endl;
+        fout<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" & "<<oacuts<<" & "<<oacuts_init<<" & "<<fail<<" & "<<termination<<" \\"<<"\\"<<endl;
+        ofstream fouta;
+        fouta.open(summary_file_name.c_str(),std::ios_base::app);
+        fouta<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" \\"<<"\\"<<endl;
+        fouta.close();
         if(lower_bound==numeric_limits<double>::min()){
             fout<<"Lower bound not solved to optimality"<<endl;
         }
