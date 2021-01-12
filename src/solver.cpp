@@ -796,7 +796,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     // if new bound converges to previous bound, fixed point is reached and no need to update bounds
     if(bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
     {
-        if(run_obbt_iter>1){
+        if(run_obbt_iter>2){
             fixed_point[msname]=true;
         }
     }
