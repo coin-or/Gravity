@@ -374,6 +374,20 @@ void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>
         }
     }
 }
+
+std::string dash_string(std::string orig){
+    std::string res="";
+    for(auto i=0;i<orig.size();i++){
+        if(orig[i]=='_'){
+            res.append("\\");
+            res+=orig[i];
+        }
+        else{
+            res+=orig[i];
+        }
+    }
+    return res;
+}
 void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef){
     bool near_zero=true;
     scale=1.0;
