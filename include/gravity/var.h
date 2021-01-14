@@ -1032,8 +1032,6 @@ namespace gravity {
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
             }
-            _lb->reset();
-            _ub->reset();
             _lb->_val->resize(dim);
             _ub->_val->resize(dim);
             for (size_t i = 0; i < dim; i++) {
