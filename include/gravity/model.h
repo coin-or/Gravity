@@ -7365,7 +7365,7 @@ namespace gravity {
          */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, int oacuts=0, int oacuts_init=0, int run_obbt_iter=1, double ub_value=1e6, double solver_time_start=0, int nb_refine=1, int nb_root_refine=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
+        std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false,bool lag=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, int oacuts=0, int oacuts_init=0, int run_obbt_iter=1, double ub_value=1e6, double solver_time_start=0, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
         
         /* Run Optimality Based Bound Tightening
          @param[in] relaxed_model a convex relaxtion of the current model
@@ -7373,7 +7373,7 @@ namespace gravity {
          */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, int nb_refine=1, int nb_root_refine=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
+        std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, bool lag=false, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
         
         
         //        void add_on_off(var<>& v, var<bool>& on){
