@@ -5972,7 +5972,7 @@ namespace gravity {
         if(relaxed_model->_status==0)
         {
             lower_bound_nonlin_init = relaxed_model->get_obj_val();
-            DebugOn("Initial lower bound = "<<this->get_obj_val()<<endl);
+            DebugOn("Initial lower bound = "<<relaxed_model->get_obj_val()<<endl);
         }
         shared_ptr<Model<>> obbt_model=relaxed_model;
         Model<> interior_model;
@@ -6379,29 +6379,29 @@ namespace gravity {
                             }
                             DebugOn("Number of OA cuts = "<< nb_OA_cuts<<endl);
                             }
-                            DebugOn("Updating bounds on original problem and resolving"<<endl);
-                            this->copy_bounds(obbt_model);
-                            this->copy_solution(obbt_model);
-                            solver<> UB_solver(*this,ub_solver_type);
-                            UB_solver.run(output = 0, ub_solver_tol);
-                            auto new_ub = get_obj_val();
-                            if(new_ub<upper_bound){
-                                upper_bound = new_ub;
-                                get_solution(ub_sol);
-                                DebugOn("Found a better feasible point!"<<endl);
-                                DebugOn("New upper bound = "<< upper_bound << endl);
-                                auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
-                                ub->set_val(upper_bound);
-                                for(auto &mod:batch_models){
-                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-                                    ub->set_val(upper_bound);
-                                    mod->reset_constrs();
-                                }
-                            }
-                            else {
-                                set_solution(ub_sol);
-                                _obj->set_val(upper_bound);
-                            }
+//                            DebugOn("Updating bounds on original problem and resolving"<<endl);
+//                            this->copy_bounds(obbt_model);
+//                            this->copy_solution(obbt_model);
+//                            solver<> UB_solver(*this,ub_solver_type);
+//                            UB_solver.run(output = 0, ub_solver_tol);
+//                            auto new_ub = get_obj_val();
+//                            if(new_ub<upper_bound){
+//                                upper_bound = new_ub;
+//                                get_solution(ub_sol);
+//                                DebugOn("Found a better feasible point!"<<endl);
+//                                DebugOn("New upper bound = "<< upper_bound << endl);
+//                                auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
+//                                ub->set_val(upper_bound);
+//                                for(auto &mod:batch_models){
+//                                    auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+//                                    ub->set_val(upper_bound);
+//                                    mod->reset_constrs();
+//                                }
+//                            }
+//                            else {
+//                                set_solution(ub_sol);
+//                                _obj->set_val(upper_bound);
+//                            }
                         }
                         else {
                             DebugOn("Failed to solve OBBT Model " << obbt_model->_name <<endl);
@@ -6469,7 +6469,8 @@ namespace gravity {
                 avg=sum/num_var;
                 
                 DebugOn("Average interval reduction\t"<<avg<<endl);
-                
+                obbt_model->print();
+                obbt_model->print_solution();
                 if(!close)
                 {
                     
