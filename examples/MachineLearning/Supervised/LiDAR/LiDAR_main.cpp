@@ -1548,7 +1548,7 @@ angle_max=1;
 
     var<> delta("delta", 0,12);
     
-    var<int> bin("bin",0,1);
+    var<> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOn("Added binary variables" << endl);
     Reg->add(delta.in(N1));
@@ -1593,6 +1593,7 @@ angle_max=1;
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
     //Can also try hull relaxation of the big-M here
+    if(convex){
     bool vi_M=false;
     if(vi_M){
     Constraint<> VI_M("VI_M");
@@ -1675,6 +1676,7 @@ else{
                           
                           
         
+    }
     }
     
     Constraint<> Norm2("Norm2");
