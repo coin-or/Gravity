@@ -130,6 +130,7 @@ namespace gravity {
             if (_stype==ipopt) {
 #ifdef USE_IPOPT
                 _model->replace_integers();
+                _model->print();
                 SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                 iapp->RethrowNonIpoptException(true);
                 ApplicationReturnStatus status = iapp->Initialize();
