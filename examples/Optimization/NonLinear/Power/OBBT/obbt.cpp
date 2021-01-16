@@ -35,7 +35,7 @@ int main (int argc, char * argv[]) {
     string current_s = "yes";
     string time_s = "1000";
     string sdp_kim_s="yes";
-    string threads_s="8";
+    string threads_s="1";
     string nb_refine_s="10";
     string nb_root_refine_s="10";
     string nb_root_ref_init_s="10";
@@ -227,14 +227,6 @@ int main (int argc, char * argv[]) {
     double lower_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     
     auto OPF=build_ACOPF(grid, ACRECT);
-    OPF->print();
-//    auto Pg = OPF->get_var<double>("Pg");
-//    Pg(0) = 1.8143;
-//    Pg(1) = 2.2087;
-//    auto Qg = OPF->get_var<double>("Qg");
-//    Qg(0) = 1.2409;
-//    Qg(1) = -0.3;
-    
     string name=dash_string(grid._name);
     DebugOn(name<<endl);
     //OPF->print();
