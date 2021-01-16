@@ -2496,8 +2496,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     PAD_UB = Im_Wij.in(node_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(node_pairs);
     SDPOPF->add(PAD_UB.in(node_pairs));
-    
-    
+    PAD_UB.print();
+
+
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(node_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(node_pairs);

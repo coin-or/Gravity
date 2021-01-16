@@ -6203,7 +6203,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*upper_bound/ub_scale_value;;
-        DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+        DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
     }
     shared_ptr<Model<>> obbt_model=relaxed_model->copy();
     obbt_model->_status=relaxed_model->_status;
@@ -6423,7 +6423,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #ifdef USE_MPI
                                 if(worker_id==0)
 #endif
-                                    DebugOn("batch: "<<solver_time<<endl);
+                                    DebugOff("batch: "<<solver_time<<endl);
                             }
                             solver_time=get_wall_time()-solver_time_start;
                             if(solver_time>=max_time){
@@ -6449,26 +6449,48 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                 }
             }
             solver_time= get_wall_time()-solver_time_start;
-            bool update=false;
+            bool update=true;
+            obbt_model->print();
             if(!terminate && update){
                 this->copy_bounds(obbt_model);
                 this->copy_solution(obbt_model);
+                this->initialize_uniform();
                 solver<> UB_solver(*this,ub_solver_type);
                 UB_solver.run(5, ub_solver_tol);
                 if(this->_status==0){
                     auto new_ub = get_obj_val();
-                    if(new_ub<upper_bound){
+                    if(new_ub<upper_bound-1e-6){
                         upper_bound = new_ub;
+                        ub_scale_value = upper_bound;
                         get_solution(ub_sol);
                         DebugOn("Found a better feasible point!"<<endl);
+                        print_solution();
                         DebugOn("New upper bound = "<< upper_bound << endl);
-                        auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
-                        ub->set_val(upper_bound);
+//                        auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
+//                        ub->set_val(upper_bound);
+
+
                         for(auto &mod:batch_models){
-                            auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-                            ub->set_val(upper_bound);
-                            mod->reset_constrs();
+                            if(mod->_cons_name.count("obj|ub")==0){
+                                param<> ub("ub");
+                                ub = upper_bound;
+                                auto obj = *mod->_obj;
+                                Constraint<type> obj_ub("obj|ub");
+                                obj_ub = obj - ub;
+                                mod->add(obj_ub<=0);
+                            }
+                            else {
+                                auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                                ub->set_val(upper_bound);
+                                mod->reset_constrs();
+                            }
                         }
+                        DebugOn("I have updated all batch models with new ub!\n");
+                        obbt_model->print();
+//                        solver<> LB_solver(obbt_model,lb_solver_type);
+//                        LB_solver.run(5, lb_solver_tol, max_iter, max_time);
+                        /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
+                        relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
                     }
                 }
                 else {

@@ -4463,8 +4463,8 @@ namespace gravity {
 
         void copy_bounds(const shared_ptr<Model<type>>& relaxation){
                for (auto &vpr: relaxation->_vars) {
-                   auto it = _vars.find(vpr.first);
-                   if (it != _vars.end()){
+                   auto it = _vars_name.find(vpr.second->_name);
+                   if (it != _vars_name.end()){
                        it->second->copy_bounds(vpr.second);
                    }
                }
@@ -4472,8 +4472,8 @@ namespace gravity {
         
         void copy_solution(const shared_ptr<Model<type>>& relaxation){
             for (auto &vpr: relaxation->_vars) {
-                auto it = _vars.find(vpr.first);
-                if (it != _vars.end()){
+                auto it = _vars_name.find(vpr.second->_name);
+                if (it != _vars_name.end()){
                     it->second->copy_vals(vpr.second);
                 }
             }
