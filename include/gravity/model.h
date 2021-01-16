@@ -4460,15 +4460,15 @@ namespace gravity {
                 vp.second->initialize_midpoint();
             }
         };
-        
+
         void copy_bounds(const shared_ptr<Model<type>>& relaxation){
-            for (auto &vpr: relaxation->_vars) {
-                auto it = _vars.find(vpr.first);
-                if (it != _vars.end()){
-                    it->second->copy_bounds(vpr.second);
-                }
-            }
-        }
+               for (auto &vpr: relaxation->_vars) {
+                   auto it = _vars.find(vpr.first);
+                   if (it != _vars.end()){
+                       it->second->copy_bounds(vpr.second);
+                   }
+               }
+           }
         
         void copy_solution(const shared_ptr<Model<type>>& relaxation){
             for (auto &vpr: relaxation->_vars) {
@@ -6292,7 +6292,7 @@ namespace gravity {
         template<typename T=type>
         double populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
         template<typename T=type>
-        void create_batch_models(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value);
+        void create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value);
         template<typename T=type>
         void compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
         template<typename T=type>

@@ -242,7 +242,9 @@ int main (int argc, char * argv[]) {
         scale_objective=true;
         auto nonlin_obj=true;
         current=true;
+        //OPF->print();
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        //SDP->print();
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, lag);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);
