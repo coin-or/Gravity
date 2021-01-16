@@ -6464,7 +6464,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                         ub_scale_value = upper_bound;
                         get_solution(ub_sol);
                         DebugOn("Found a better feasible point!"<<endl);
-                        print_solution();
+//                        print_solution();
                         DebugOn("New upper bound = "<< upper_bound << endl);
 //                        auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
 //                        ub->set_val(upper_bound);
@@ -6486,7 +6486,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
                         }
                         DebugOn("I have updated all batch models with new ub!\n");
-                        obbt_model->print();
+//                        obbt_model->print();
 //                        solver<> LB_solver(obbt_model,lb_solver_type);
 //                        LB_solver.run(5, lb_solver_tol, max_iter, max_time);
                         /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
