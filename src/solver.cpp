@@ -745,7 +745,7 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             if(worker_id==0)
 #endif
                 DebugOn("failed "<<objective_models.at(s)<<endl);
-            models[s]->print();
+//            models[s]->print();
             fail++;
         }
     }
