@@ -855,30 +855,29 @@ namespace gravity {
          @return current function
          */
         func& in(const indices& ids){//TODO assert each var and param that is not transposed has same dim as ids
-            //            _nb_vars = 0;
-            //            string key;
-            //            auto iter = _vars->begin();
-            //            while (iter!=_vars->end()) {
-            //                auto pair = (*iter++);
-            //                auto v = pair.second.first;
-            //                if (!v->is_indexed() && !v->_is_vector) {// i.e., it is not transposed
-            //                    v->index_in(ids);
-            //                }
-            //            }
-            //            iter = _params->begin();
-            //            while (iter!=_params->end()) {
-            //                auto pair = (*iter++);
-            //                auto p = pair.second.first;
-            //                if (!p->is_indexed() && !p->_is_transposed) {// i.e., it is not transposed
-            //                    p->index_in(ids);
-            //                }
-            //            }
-            _indices = make_shared<indices>();
-            _indices->deep_copy(ids);
+                                     //            _nb_vars = 0;
+                                     //            string key;
+                                     //            auto iter = _vars->begin();
+                                     //            while (iter!=_vars->end()) {
+                                     //                auto pair = (*iter++);
+                                     //                auto v = pair.second.first;
+                                     //                if (!v->is_indexed() && !v->_is_vector) {// i.e., it is not transposed
+                                     //                    v->index_in(ids);
+                                     //                }
+                                     //            }
+                                     //            iter = _params->begin();
+                                     //            while (iter!=_params->end()) {
+                                     //                auto pair = (*iter++);
+                                     //                auto p = pair.second.first;
+                                     //                if (!p->is_indexed() && !p->_is_transposed) {// i.e., it is not transposed
+                                     //                    p->index_in(ids);
+                                     //                }
+                                     //            }
+            _indices = make_shared<indices>(ids.deep_copy());
             _dim[0] = std::max(_dim[0], ids.size());
-//            if(_dim[0]>ids.size())
-//                DebugOn("reducing function size()!");
-//            _dim[0] = ids.size();
+                //            if(_dim[0]>ids.size())
+                //                DebugOn("reducing function size()!");
+                //            _dim[0] = ids.size();
             if(_expr){// TODO take care of nonlinear part
                 _expr->in(ids);
             }
@@ -4050,8 +4049,7 @@ namespace gravity {
                 _cst = constant<type>(coef.eval()).copy();
             }
             if(f._indices){
-                _indices = make_shared<indices>();
-                _indices->deep_copy(*f._indices);
+                _indices = make_shared<indices>(f._indices->deep_copy());
             }
             else {
                 _indices = nullptr;
@@ -6714,8 +6712,8 @@ namespace gravity {
 //                }
 //                return true;
 //            }
-            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
-//            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
+//            return (get_dim()==0 || (_range->first == 0 && _range->second == 0));
+            return (get_dim()==0 || (func_is_number() && _range->first == 0 && _range->second == 0));
         }
         
         

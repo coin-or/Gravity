@@ -52,7 +52,7 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
     bool linearize=false;
     bool initialize_primal=false;
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
     
     
 #ifdef USE_OPT_PARSER
@@ -223,9 +223,10 @@ int main (int argc, char * argv[]) {
     //linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
-        scale_objective=true;
+        scale_objective=false;
         current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        SDP->print();
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         lower_bound = get<6>(res);
         lower_bound_nonlin_init = get<3>(res);

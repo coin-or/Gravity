@@ -766,13 +766,9 @@ namespace gravity {
             res._is_imag = _is_imag;
             res._real = _real;
             res._imag = _imag; res._mag = res._mag; res._ang = _ang;
-            bool mutable_param = _name.find("xstar")!=string::npos;
             if(_indices){
                 res._indices = make_shared<indices>();
-                if(mutable_param)
-                    res._indices->deep_copy(*_indices);
-                else
-                    res._indices->shallow_copy(*_indices);
+                res._indices->shallow_copy(_indices);
             }
             res._dim[0] = _dim[0];
             res._dim[1] = _dim[1];
@@ -809,7 +805,7 @@ namespace gravity {
                 _ang = p._ang->pcopy();
             if(p._indices){
                 _indices = make_shared<indices>();
-                _indices->shallow_copy(*p._indices);
+                _indices->shallow_copy(p._indices);
             }
             _dim[0] = p._dim[0];
             _dim[1] = p._dim[1];
@@ -1851,13 +1847,12 @@ namespace gravity {
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
          @param[in] start_position
          @param[in] ids_ index set
-         */        
+         */
         param in_ignore_ith(unsigned start_position, unsigned nb_entries, const indices& ids) {
             if(!_indices){
                 throw invalid_argument("unindexed param/var, first call in()");
             }
-            indices ids_cpy;
-            ids_cpy.deep_copy(ids);
+            auto ids_cpy = ids.deep_copy();
             return this->in(ids_cpy.ignore_ith(start_position, nb_entries));
         }
     
@@ -1871,8 +1866,7 @@ namespace gravity {
             }
             /** Number of comma separated keys in current variable */
             auto nb_entries = count(_indices->_keys->front().begin(), _indices->_keys->front().end(), ',');
-            indices ids_cpy;
-            ids_cpy.deep_copy(ids);
+            auto ids_cpy = ids.deep_copy();
             return this->in(ids_cpy.from_ith(start_position, nb_entries+1));
         }
         

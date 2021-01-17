@@ -1018,6 +1018,8 @@ public:
             rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
             this->_cst = rhs_p;
         }
+    }
+    
     bool check_convex_region(int inst){
         bool convex_region=true;
         vector<double> xres;

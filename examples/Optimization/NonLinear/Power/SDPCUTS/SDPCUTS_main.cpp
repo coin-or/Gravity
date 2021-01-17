@@ -118,7 +118,8 @@ int main (int argc, char * argv[]) {
     loss=true;
 #else
     if(argc==2){
-        fname=argv[1];    }
+        fname=argv[1];        
+    }
     else{
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }

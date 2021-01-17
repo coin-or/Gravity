@@ -12,7 +12,80 @@
 
 using namespace std;
 namespace gravity {
+static int max_line_len;
+static char* line = nullptr;
 
+char* readLine(FILE *input)
+{
+    size_t len;
+    if(fgets(line,max_line_len,input) == NULL)
+        return NULL;
+    
+    while(strrchr(line,'\n') == NULL)
+    {
+        max_line_len *= 2;
+        line = (char *) realloc(line,max_line_len);
+        len = strlen(line);
+        if(fgets(line+len,max_line_len-len,input) == NULL)
+            break;
+    }
+    return line;
+}
+
+void skip_lines(FILE *input, size_t nb_lines){
+    for (size_t i = 0; i<nb_lines; i++) {
+        readLine(input);
+    }
+}
+
+char *mystrtok(char **m,char *s,char c)
+{
+    char *p1=s?s:*m;
+    if( !*p1 )
+        return 0;
+    *m=strchr(p1,c);
+    if(*m && c==' '){
+        while(*m[0]==c){
+            *(*m)++=0;
+        }
+        if(! *m )
+            *m=p1+strlen(p1);
+        return p1;
+    }
+    if( *m )
+        *(*m)++=0;
+    else
+        *m=p1+strlen(p1);
+    return p1;
+}
+    /** Read solution point to file */
+    template <typename type>
+    void Model<type>::read_solution(const string& fname){
+        FILE *fp = fopen(fname.c_str(),"r");
+        if(fp == NULL)
+        {
+                cout << "Can’t open input file " << fname;
+                exit(1);
+        }
+        max_line_len = 1024;
+        line = new char[max_line_len];
+        auto n = get_nb_vars();
+        double* sol = new double[n];
+        skip_lines(fp,2);
+        double val;
+        char* p;
+        for(int i = 0; i<n; i++)
+        {
+            readLine(fp);
+            mystrtok(&p,line,' ');
+            mystrtok(&p,NULL,' ');
+            sol[i] = atof(mystrtok(&p,NULL,' '));
+        }
+        set_x(sol);
+        delete[] sol;
+        delete[] line;
+        fclose(fp);
+    }
 
 const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2) {
     return v1.second->get_nb_rows() > v2.second->get_nb_rows();
@@ -31,23 +104,46 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         if(c.is_constant() || c.is_linear()){
             return c;
         }
-        else if (c.get_cst()->is_param()) {
-            auto f_cst = static_pointer_cast<param<Cpx>>(c.get_cst());
-            lifted.add_cst(*f_cst);
+        if(c.is_nonlinear() || c.is_polynomial()){
+            throw invalid_argument("lift can only be called on quadratic constraints for now");
         }
-        else {
-            auto f_cst = static_pointer_cast<func<Cpx>>(c.get_cst());
-            lifted.add_cst(*f_cst);
+        /* Lambda models are taken from Padberg's paper as they are described in type II and type III */
+        if((model_type != "on/off") && (model_type != "lambda_II") && (model_type != "lambda_III")){
+            throw invalid_argument("model_type can only be one of the following: 'on/off', 'lambda_II', 'lambda_III' ");
         }
-        if (lifted._cst->is_function()) {
-            lifted.embed(*static_pointer_cast<func<Cpx>>(lifted._cst));
+        Constraint<Cpx> lifted(c._name+"_lifted");
+        if (!c.get_cst()->is_zero()) {
+            if (c.get_cst()->is_number()) {
+                auto f_cst = static_pointer_cast<constant<Cpx>>(c.get_cst());
+                lifted.add_cst(*f_cst);
+            }
+            else if (c.get_cst()->is_param()) {
+                auto f_cst = static_pointer_cast<param<Cpx>>(c.get_cst());
+                lifted.add_cst(*f_cst);
+            }
+            else {
+                auto f_cst = static_pointer_cast<func<Cpx>>(c.get_cst());
+                lifted.add_cst(*f_cst);
+            }
+            if (lifted._cst->is_function()) {
+                lifted.embed(*static_pointer_cast<func<Cpx>>(lifted._cst));
+            }
         }
-    }
-    for (auto &pair:*c._lterms) {
-        auto term = pair.second;
-        if (term._coef->is_function()) {
-            auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
-            term._coef = func<Cpx>(coef).copy();
+        for (auto &pair:*c._lterms) {
+            auto term = pair.second;
+            if (term._coef->is_function()) {
+                auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
+                term._coef = func<Cpx>(coef).copy();
+            }
+            else if(term._coef->is_param()) {
+                auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
+                term._coef = param<Cpx>(coef).copy();
+            }
+            else if(term._coef->is_number()) {
+                auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
+                term._coef = constant<Cpx>(coef).copy();//TODO if T2==type no need to cast
+            }
+            lifted.insert(term);
         }
         bool lift_sign; /* create lift_sign for correct lower/upper bounding of the variables */
         for (auto &pair:*c._qterms) {
@@ -141,90 +237,34 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             lifted.insert(lt);
         }
-        else if(term._coef->is_number()) {
-            auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
-            term._coef = constant<Cpx>(coef).copy();//TODO if T2==type no need to cast
-        }
-        lifted.insert(term);
-    }
-    bool lift_sign; /* create lift_sign for correct lower/upper bounding of the variables */
-    for (auto &pair:*c._qterms) {
-        auto term = pair.second;
-        lterm lt;
-        lt._sign = term._sign;
-        if (term._coef->is_function()) {
-            auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
-            lt._coef = func<Cpx>(coef).copy();
-        }
-        else if(term._coef->is_param()) {
-            auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
-            lt._coef = param<Cpx>(coef).copy();
-        }
-        else if(term._coef->is_number()) {
-            auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
-            lt._coef = constant<Cpx>(coef).copy();
-            lift_sign = (term._sign ^ coef.is_negative()); //TODO: update prod_sign in other cases of coef type. Don't know how to do!
-        }
-        
-        if (c.func<Cpx>::is_concave()) //reverse the sign if the constraint is concave
-        {
-            DebugOn("Changing the sign of the lifted variable." << endl);
-            lift_sign = !lift_sign;
-        }
-        else{
-            DebugOn("Keeping the sign of the lifted variable same." << endl);
-        }
-        
-        //arrange the variables so that if they have the same base name, use them ordered in name
-        auto o1 = *static_pointer_cast<var<Cpx>>(term._p->first);
-        auto o2 = *static_pointer_cast<var<Cpx>>(term._p->second);
-        if((o1 != o2) && (o1.get_name(true,true) == o2.get_name(true,true)) && (o1._name > o2._name) ){
-            o2 = *static_pointer_cast<var<Cpx>>(term._p->first);
-            o1 = *static_pointer_cast<var<Cpx>>(term._p->second);
-            DebugOff("O1 name "<< o1._name << endl);
-            DebugOff("O2 name "<< o2._name << endl);
-        }
-        
-        string name;
-        indices ids;
-        if(o1==o2){
-            name = "Lift("+o1.get_name(true,true)+"^2)";
-            ids = *o1._indices;
-        }
-        else {
-            name = "Lift("+o1.get_name(true,true)+"|"+o2.get_name(true,true)+")";
-            ids = combine(*o1._indices,*o2._indices);
-        }
-        auto unique_ids = ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
-        auto o1_ids = *o1._indices;
-        auto o2_ids = *o2._indices;
-        if(unique_ids.size()!=ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-            auto keep_refs = ids.get_unique_refs();
-            o1_ids.filter_refs(keep_refs);
-            o2_ids.filter_refs(keep_refs);
-        }
-        param<Cpx> lb("lb"), ub("ub");
-        lb.in(unique_ids);ub.in(unique_ids);
-        auto it = _vars_name.find(name);
-        auto name1 = o1.get_name(true,true);
-        auto name2 = o2.get_name(true,true);
-        if(it==_vars_name.end()){
-            /* create the lifted variable with proper lower and upper bounds */
-            var<Cpx> vlift(name, lb, ub);
-            vlift._lift = true;
-            add(vlift.in(unique_ids));
-            lt._p = make_shared<var<Cpx>>(vlift.in(ids));
-        }
-        else {
-            auto vlift = static_pointer_cast<var<Cpx>>(it->second);
-            auto added = vlift->add_bounds(lb,ub);
-            lt._p = make_shared<var<Cpx>>(vlift->in(ids));
-            if(!added.empty()){
-                assert(o1._indices->size()==o2._indices->size());
-                if(added.size()!=o1._indices->size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = ids.get_diff_refs(added);
-                    o1_ids.filter_refs(keep_refs);
-                    o2_ids.filter_refs(keep_refs);
+        for (auto &pair:*c._pterms) {
+            auto term = pair.second;
+            lterm lt;
+            lt._sign = term._sign;
+            if (term._coef->is_function()) {
+                auto coef = *static_pointer_cast<func<Cpx>>(term._coef);
+                lt._coef = func<Cpx>(coef).copy();
+            }
+            else if(term._coef->is_param()) {
+                auto coef = *static_pointer_cast<param<Cpx>>(term._coef);
+                lt._coef = param<Cpx>(coef).copy();
+            }
+            else if(term._coef->is_number()) {
+                auto coef = *static_pointer_cast<constant<Cpx>>(term._coef);
+                lt._coef = constant<Cpx>(coef).copy();
+            }
+            func<Cpx> prod = 1;
+            string prod_name = "Lift(";
+            auto list = pair.second._l;
+            for (auto &ppi: *list) {
+                auto p = ppi.first;
+                auto orig_var = *static_pointer_cast<var<Cpx>>(p);
+                if(ppi.second>1){
+                    prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")^"+to_string(ppi.second);
+                    //TODO Lift univarite power function
+                }
+                else{
+                    prod_name += orig_var.get_name(true,true)+"("+orig_var._indices->get_name()+")";
                 }
                 prod *= pow(orig_var,ppi.second);
             }
@@ -246,8 +286,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 vlift = *static_pointer_cast<var<Cpx>>(it->second);
                 lt._p = make_shared<var<Cpx>>(vlift);
             }
+            lifted.insert(lt);
         }
-        lifted.insert(lt);
+        lifted._range = c._range;
+        lifted._all_convexity = linear_;
+        lifted._all_sign = c._all_sign;
+        lifted._ftype = lin_;
+        lifted._ctype = c._ctype;
+        lifted._indices = c._indices;
+        lifted._dim[0] = c._dim[0];
+        lifted._dim[1] = c._dim[1];
+        return lifted;
     }
 
 
@@ -267,15 +316,15 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
     if (!c.get_cst()->is_zero()) {
         if (c.get_cst()->is_number()) {
             auto f_cst = static_pointer_cast<constant<type>>(c.get_cst());
-            lifted += *f_cst;
+            lifted.add_cst(*f_cst);
         }
         else if (c.get_cst()->is_param()) {
             auto f_cst = static_pointer_cast<param<type>>(c.get_cst());
-            lifted += *f_cst;
+            lifted.add_cst(*f_cst);
         }
         else if (c.get_cst()->is_function()) {
             auto f_cst = static_pointer_cast<func<type>>(c.get_cst());
-            lifted += *f_cst;
+            lifted.add_cst(*f_cst);
             if(lifted._cst->is_function())
                 lifted.embed(*static_pointer_cast<func<type>>(lifted._cst));
         }
@@ -780,22 +829,24 @@ double Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& o
 }
 template <typename type>
 template<typename T>
-void Model<type>::create_batch_models(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value){
+void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value){
     for(auto i=0;i<nb_threads;i++){
-        auto modelk = this->copy();
-        param<> ub("ub");
-        ub = ub_scale_value;
-        auto obj = *modelk->_obj;
-        if(modelk->_cons_name.count("obj|ub")==0){
-            Constraint<type> obj_ub("obj|ub");
-            obj_ub = (obj - ub);
-           // obj_ub = (obj - ub)*1000/ub_scale_value;
-            modelk->add(obj_ub<=0);
+        auto modelk = obbt_model->copy();
+        if(this->_status==0){
+            param<> ub("ub");
+            ub = ub_scale_value;
+            auto obj = *modelk->_obj;
+            if(modelk->_cons_name.count("obj|ub")==0){
+                Constraint<type> obj_ub("obj|ub");
+                obj_ub = obj - ub;
+                modelk->add(obj_ub<=0);
+            }
         }
         batch_models.push_back(modelk);
         batch_models.at(i)->set_name(to_string(i));
     }
 }
+
 template <typename type>
 template<typename T>
 void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
@@ -896,11 +947,17 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
     time_start = get_wall_time();
 #endif
-    double gap_new=-999, gap=0, ub_scale_value;
+    double gap_new=-999, gap=0, ub_scale_value = 0, upper_bound = 0;
     const double gap_tol=rel_tol;
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
-    ub_scale_value=this->get_obj_val();
+    if(this->_status==0){
+        upper_bound=this->get_obj_val();
+    }
+    else{
+        upper_bound=this->_obj->_range->second;
+    }
+    ub_scale_value=upper_bound;
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
     if(scale_objective){
         auto obj = *relaxed_model->_obj/ub_scale_value;
@@ -926,7 +983,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     }
     int run_obbt_iter=1;
     auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
-    double upper_bound = get<5>(status);
+    upper_bound = get<5>(status);
     
     total_iter += get<1>(status);
     auto lower_bound=get<6>(status);
@@ -979,15 +1036,15 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     get<9>(res)=oacuts_init;
     get<10>(res)=fail;
     upper_bound=get<5>(status);
-    DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
-    DebugOff("Total number of OBBT iterations = " << total_iter << endl);
-    DebugOff("Number of global iterations = " << global_iter << endl);
+    DebugOn("Total wall-clock time spent in OBBT = " << total_time << endl);
+    DebugOn("Total number of OBBT iterations = " << total_iter << endl);
+    DebugOn("Number of global iterations = " << global_iter << endl);
     auto gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
-    DebugOff("Initial gap = "<<gapnl<<"%"<<endl);
+    DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
     if(obbt_model->_status==0){
         auto lower_bound_final=get<6>(status);
         auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
-        DebugOff("Final gap = " << to_string(gap_final) << "%."<<endl);
+        DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
     }
     return res;
 }
@@ -1045,8 +1102,18 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
     map<string,int> old_map;
+    vector<double> ub_sol;
+    ub_sol.resize(this->_nb_vars);
     if(this->_status==0){
         upper_bound=this->get_obj_val();
+        get_solution(ub_sol);
+    }
+    else{
+        DebugOn("Upper bounding problem not solved to optimality, using bounds on objective funtion to compute gap"<<endl);
+        upper_bound=this->_obj->_range->second;
+    }
+//    if(this->_status==0){
+//        upper_bound=this->get_obj_val();
         if(relaxed_model->_status==0){
             lower_bound_nonlin_init=relaxed_model->get_obj_val()*upper_bound/ub_scale_value;
             lower_bound_init = lower_bound_nonlin_init;
@@ -1068,7 +1135,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                     obbt_model->populate_original_interval(fixed_point, ub_original,lb_original, interval_original,interval_new,  count_skip, count_var);
                     solver_time= get_wall_time()-solver_time_start;
                     /*Create nb_threads copy of obbt_models*/
-                    obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
+                    this->create_batch_models(obbt_model, batch_models, nb_threads, ub_scale_value);
                     if(linearize){
                         if(initialize_primal && lb_solver_type==gurobi){
                             initialize_basis_vectors(lb_solver_type, vbasis,cbasis,vrbasis,crbasis,nb_threads);
@@ -1103,7 +1170,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
                                             auto viol= run_parallel_new(objective_models, sol_obj, sol_status, batch_models, relaxed_model, interior_model, cut_type, active_tol, lb_solver_type, obbt_subproblem_tol, nb_threads, "ma27", 10000, 600, linearize, nb_refine, vbasis, cbasis, initialize_primal);
 #endif
-                                            auto b=obbt_model->obbt_update_bounds( objective_models, sol_obj,  sol_status, batch_models,  fixed_point, interval_original, interval_new, ub_original, lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel, zero_tol, iter);
+                                            auto b=this->obbt_batch_update_bounds( objective_models,  sol_obj, sol_status,  batch_models,obbt_model,  fixed_point,  interval_original,  ub_original,  lb_original, terminate,  fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, iter);
                                             sol_status.clear();
                                             sol_obj.clear();
                                             objective_models.clear();
@@ -1136,13 +1203,61 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             }
 			    else{
                                 batch_models.clear();
-                                obbt_model->create_batch_models(batch_models, nb_threads, ub_scale_value);
+                                this->create_batch_models(obbt_model, batch_models, nb_threads, ub_scale_value);
                                 if(initialize_primal && lb_solver_type==gurobi){
                                      initialize_basis_vectors(lb_solver_type, vbasis,cbasis,vrbasis,crbasis,nb_threads);
                                }
                             }
                         }
                         solver_time= get_wall_time()-solver_time_start;
+                        bool update=true;
+                        if(!terminate && update){
+                            this->copy_bounds(obbt_model);
+                            this->copy_solution(obbt_model);
+                            this->initialize_uniform();
+                            solver<> UB_solver(*this,ub_solver_type);
+                            UB_solver.run(5, ub_solver_tol);
+                            if(this->_status==0){
+                                auto new_ub = get_obj_val();
+                                if(new_ub<upper_bound-1e-6){
+                                    upper_bound = new_ub;
+                                    ub_scale_value = upper_bound;
+                                    get_solution(ub_sol);
+                                    DebugOn("Found a better feasible point!"<<endl);
+            //                        print_solution();
+                                    DebugOn("New upper bound = "<< upper_bound << endl);
+            //                        auto ub = static_pointer_cast<param<>>(obbt_model->get_constraint("obj|ub")->_params->begin()->second.first);
+            //                        ub->set_val(upper_bound);
+
+
+                                    for(auto &mod:batch_models){
+                                        if(mod->_cons_name.count("obj|ub")==0){
+                                            param<> ub("ub");
+                                            ub = upper_bound;
+                                            auto obj = *mod->_obj;
+                                            Constraint<type> obj_ub("obj|ub");
+                                            obj_ub = obj - ub;
+                                            mod->add(obj_ub<=0);
+                                        }
+                                        else {
+                                            auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                                            ub->set_val(upper_bound);
+                                            mod->reset_constrs();
+                                        }
+                                    }
+                                    DebugOn("I have updated all batch models with new ub!\n");
+            //                        obbt_model->print();
+            //                        solver<> LB_solver(obbt_model,lb_solver_type);
+            //                        LB_solver.run(5, lb_solver_tol, max_iter, max_time);
+                                    /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
+                                    relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+                                }
+                            }
+                            else {
+                                set_solution(ub_sol);
+                                _obj->set_val(upper_bound);
+                            }
+                        }
 #ifdef USE_MPI
                         if(worker_id==0)
 #endif
@@ -1161,11 +1276,6 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             DebugOn("Lower bounding problem not solved to optimality, cannot compute initial gap"<<endl);
             lower_bound=numeric_limits<double>::min();
         }
-    }
-    else{
-        DebugOn("Upper bounding problem not solved to optimality, cannot compute gap"<<endl);
-        upper_bound=numeric_limits<double>::min();
-    }
     std::get<0>(res) = terminate;
     std::get<1>(res) = iter;
     std::get<2>(res) = solver_time;
@@ -1183,11 +1293,13 @@ template std::tuple<bool,int,double,double,double,double,double,double,int,int,i
 
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start, int nb_refine, int nb_root_refine, double viol_obbt_init, double viol_root_init, bool initialize_primal);
 
-template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
-template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
+template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
+template void gravity::Model<double>::read_solution(const string& fname);
+template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type, bool);
+template Constraint<> Model<>::lift(Constraint<>& c, string model_type, bool);
 template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
 template double Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
-template void Model<double>::create_batch_models(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
+template void Model<double>::create_batch_models(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double ub_scale_value);
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
 

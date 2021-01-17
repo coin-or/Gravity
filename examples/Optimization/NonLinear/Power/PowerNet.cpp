@@ -735,10 +735,17 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         
         arc->tbound.max = atof(word.c_str())*pi/180.;
         if (arc->tbound.min==0 && arc->tbound.max==0) {
-            DebugOff("Angle bounds are equal to zero. Setting them to -+60");
-            arc->tbound.min = -60.*pi/180.;
-            arc->tbound.max = 60.*pi/180.;
-            
+            DebugOn("Angle bounds are equal to zero. Setting them to -+60"<<endl);
+            arc->tbound.min = -pi/3.;
+            arc->tbound.max = pi/3.;
+        }
+        if (arc->tbound.min<-pi/3) {
+            DebugOn("Lower bound on phase angles is smaller than -60, setting it to -60"<<endl);
+            arc->tbound.min = -pi/3.;
+        }
+        if (arc->tbound.max>pi/3) {
+            DebugOn("Upper bound on phase angles is larger than 60, setting it to 60"<<endl);
+            arc->tbound.max =  pi/3.;
         }
         if (reversed && reverse_arcs) {
             arc->g /= pow(arc->tr,2);

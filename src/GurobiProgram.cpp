@@ -10,7 +10,6 @@
 //    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
 ////    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
 //    grb_env->set(GRB_IntParam_Threads,1);
-
 ////       grb_env->set(GRB_IntParam_Presolve,0);
 ////      grb_env->set(GRB_IntParam_NumericFocus,3);
 ////     grb_env->set(GRB_IntParam_NonConvex,2);
@@ -41,7 +40,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             
             //grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
-	        //grb_mod->set(GRB_IntParam_Method, 0);
+            //grb_mod->set(GRB_IntParam_Method, 0);
             found_token = true;
         }
         catch(GRBException e) {
@@ -59,7 +58,26 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     //DebugOn("found token "<<endl);
 }
 
-
+//GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
+//    grb_env = new GRBEnv();
+//    //grb_env->set(GRB_IntParam_Presolve,0);
+//    //grb_env->set(GRB_DoubleParam_NodeLimit,1);
+//    grb_env->set(GRB_DoubleParam_TimeLimit,7200);
+//    //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
+//        grb_env->set(GRB_IntParam_Threads,1);
+////    grb_env->set(GRB_IntParam_Presolve,0);
+////    grb_env->set(GRB_IntParam_NumericFocus,3);
+////    grb_env->set(GRB_IntParam_NonConvex,2);
+//    //grb_env->set(GRB_DoubleParam_FeasibilityTol, 1E-6);
+//    grb_env->set(GRB_DoubleParam_OptimalityTol, 1E-6);
+//
+//    grb_env->set(GRB_IntParam_OutputFlag,1);
+//    grb_mod = new GRBModel(*grb_env);
+////    grb_env->set(GRB_IntParam_ƒFlag,2);
+////    _model = m;
+//    m->fill_in_maps();
+//    m->compute_funcs();
+//}
 
 
 GurobiProgram::~GurobiProgram() {
@@ -150,9 +168,9 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
         cout.precision(3);
         cout << "Results: " << grb_mod->get(GRB_DoubleAttr_ObjVal) << " & ";
         cout.precision(4);
-    	cout << (grb_mod->get(GRB_DoubleAttr_MIPGap))*100 << "% & ";
-    	cout.precision(0);
-    	cout << grb_mod->get(GRB_DoubleAttr_NodeCount) << " & ";
+        cout << (grb_mod->get(GRB_DoubleAttr_MIPGap))*100 << "% & ";
+        cout.precision(0);
+        cout << grb_mod->get(GRB_DoubleAttr_NodeCount) << " & ";
         cout.precision(2);
         cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
     }
@@ -175,8 +193,8 @@ void GurobiProgram::prepare_model(){
 //    print_constraints();
 }
 void GurobiProgram::initialize_basis(const std::vector<double>& vbasis, const std::vector<double>& cbasis){
-	grb_mod->update();    
-	int nv=grb_mod->get(GRB_IntAttr_NumVars);
+    grb_mod->update();
+    int nv=grb_mod->get(GRB_IntAttr_NumVars);
     int nc=grb_mod->get(GRB_IntAttr_NumConstrs);
     int count=0;
     for(auto &gv:_grb_vars){
@@ -190,9 +208,9 @@ void GurobiProgram::initialize_basis(const std::vector<double>& vbasis, const st
     for(auto i=0;i<cbasis.size();i++){
         gcons[i].set(GRB_IntAttr_CBasis, cbasis[i]);
     }
-  for(auto i=cbasis.size();i<nc;i++){                        
-        gcons[i].set(GRB_IntAttr_CBasis, 0);          
-    }  
+  for(auto i=cbasis.size();i<nc;i++){
+        gcons[i].set(GRB_IntAttr_CBasis, 0);
+    }
 delete[] gcons;
 gcons=nullptr;
 }
@@ -453,9 +471,9 @@ void GurobiProgram::fill_in_grb_vmap(){
 //    }
 }
 
-void GurobiProgram::create_grb_constraints(bool use_gravity_name){
+void GurobiProgram::create_grb_constraints(){
     char sense;
-    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0, c_idx = 0;
+    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
     GRBLinExpr lterm, linlhs;
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
@@ -511,17 +529,12 @@ void GurobiProgram::create_grb_constraints(bool use_gravity_name){
                         linlhs += lterm;
                     }
                     linlhs += c->eval(c->get_cst(), i);
-                if(use_gravity_name){
-                    if(c->_indices)
-                        grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
-                    else
-                        grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                        if(c->_indices)
+                            grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                        else
+                            grb_mod->addConstr(linlhs,sense,0,c->get_name());
+                            //DebugOn("added constraint"<<endl);
                 }
-                else{
-                    grb_mod->addConstr(linlhs,sense,0,"C("+to_string(c_idx++)+")");
-                }
-//                }
-
             }
         }
         else {
@@ -591,14 +604,12 @@ void GurobiProgram::create_grb_constraints(bool use_gravity_name){
                         }
                     }
                     quadlhs += c->eval(c->get_cst(), i);
-                if(use_gravity_name){
-                    if(c->_indices)
-                        grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
-                    else
-                        grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
-                }
-                else{
-                    grb_mod->addQConstr(quadlhs,sense,0,"C("+to_string(c_idx++)+")");
+                    
+                if(c->_indices)
+                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                else
+                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
+//                grb_mod->re
                 }
             }
         }
@@ -641,6 +652,7 @@ void GurobiProgram::set_grb_objective(){
         }
     for (auto& it1: _model->_obj->get_qterms()) {
         if (it1.second._coef_p1_tr) { // qterm = (coef*p1)^T*p2
+//            assert(it_qterm.second._p->first->_dim[1]==1 && it_qterm.second._coef->_dim[0]==it_qterm.second._p->second->_dim[0]);
             for (auto i = 0; i<it1.second._p->first->get_dim(); i++) {
                 for (auto j = 0; j<it1.second._p->first->get_dim(); j++) {
                     coeff = _model->_obj->eval(it1.second._coef,i,j);
