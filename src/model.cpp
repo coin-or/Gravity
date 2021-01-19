@@ -6173,7 +6173,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
 #else
     time_start = get_wall_time();
 #endif
-    double gap_new=-999, gap=0, lb_scale_value, upper_bound;
+    double gap_new=-999, gap=0, lb_scale_value, upper_bound, upper_bound_orig;
     const double gap_tol=rel_tol,zero_tol=1e-6;
     /*To deal with maximize problems*/
     auto objt_orig=this->_objt;
@@ -6191,6 +6191,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     else{
         upper_bound=this->_obj->_range->second;
     }
+    upper_bound_orig=upper_bound;
     lb_scale_value=1.0;
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
     if(scale_objective){
@@ -6281,7 +6282,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
     DebugOff("Total number of OBBT iterations = " << total_iter << endl);
     DebugOff("Number of global iterations = " << global_iter << endl);
-    auto gapnl=(upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)*100;
+    auto gapnl=(upper_bound_orig-lower_bound_nonlin_init)/(std::abs(upper_bound_orig)+zero_tol)*100;
     DebugOff("Initial gap = "<<gapnl<<"%"<<endl);
     if(obbt_model->_status==0){
         auto lower_bound_final=get<6>(status);
@@ -6442,7 +6443,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
             relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
             solver_time= get_wall_time()-solver_time_start;
-            bool update=true;
+            bool update=false;
             obbt_model->print();
             if(!terminate && update){
                 this->copy_bounds(obbt_model);
