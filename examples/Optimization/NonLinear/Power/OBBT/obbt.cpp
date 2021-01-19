@@ -299,7 +299,14 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     if(worker_id==0){
         ofstream foutp(param_file_name.c_str());
-        foutp<<"$nref^{U}_{batch}$= "<<nb_refine<<", $nref^{U}_{root}$= "<<nb_root_refine<<", $viol^{I}_{batch}$= "<< viol_obbt_init<<", $viol^{I}_{root}$= "<<viol_root_init<<", linearize= "<<linearize<<", $f$= "<<2<<endl;
+        if(linearize){
+        foutp<<"$nref^{U}_{batch}$= "<<nb_refine<<", $nref^{U}_{root}$= "<<nb_root_refine<<", $nb^I_{root}$ "<<nb_root_ref_init<
+        <" $viol^{I}_{batch}$= "<< viol_obbt_init<<", $viol^{I}_{root}$= "<<viol_root_init<<", linearize= "<<linearize<<", lag "
+        <<lag<<endl;
+        }
+        else{
+        foutp<<"Lagrange Update "<<lag<<" Nonlinear "<<endl;
+        }
         foutp.close();
         ofstream fout(result_name.c_str());
         fout<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" & "<<oacuts<<" & "<<oacuts_init<<" & "<<fail<<" & "<<termination<<" \\"<<"\\"<<endl;
