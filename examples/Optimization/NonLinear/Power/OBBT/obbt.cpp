@@ -239,7 +239,7 @@ int main (int argc, char * argv[]) {
     bool termination=true;
     //linearize=true;
     if(!linearize){
-        scale_objective=false;
+        scale_objective=true;
         auto nonlin_obj=true;
         current=true;
         //OPF->print();
