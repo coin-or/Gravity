@@ -216,7 +216,7 @@ int main (int argc, char * argv[])
             point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 100;
+        int nb_ext = 10;
         bool global = global_str=="global";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
@@ -266,7 +266,7 @@ int main (int argc, char * argv[])
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-            unsigned max_iter=1e3, max_time=1e3;
+            unsigned max_iter=1e3, max_time=300;
             int nb_threads=12;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
@@ -1688,21 +1688,21 @@ else{
     if(!convex)
         Reg->add(trigR==1);
     else
-        Reg->add(trigR<=1);
+        Reg->add(trigR==1,true);
 
     Constraint<> trigP("trigP");
     trigP = pow(cosp,2) + pow(sinp,2);
     if(!convex)
         Reg->add(trigP==1);
     else
-        Reg->add(trigP<=1);
+        Reg->add(trigP==1,true);
 
     Constraint<> trigY("trigY");
     trigY = pow(cosy,2) + pow(siny,2);
     if(!convex)
         Reg->add(trigY==1);
     else
-        Reg->add(trigY<=1);
+        Reg->add(trigY==1, true);
     
     
     if(!convex){
@@ -1788,19 +1788,19 @@ else{
     else
         Reg->min(sum(z_diff)/cells.size());
     
-        Reg->print();
+      //  Reg->print();
     
     if(convex){
 //        Reg.replace_integers();
 //        auto Rel = Reg.relax();
         solver<> S(Reg,ipopt);
-        S.run();
+       // S.run();
     }
     else {
         solver<> S(Reg,ipopt);
-        S.run();
+        //S.run();
     }
-    Reg->print_solution();
+    //Reg->print_solution();
 //        S.run(0, 1e-10, 1000);
     
 
