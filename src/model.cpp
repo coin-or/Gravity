@@ -6073,6 +6073,60 @@ void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vecto
 }
 template <typename type>
 template<typename T>
+void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol){
+    {
+        this->copy_bounds(obbt_model);
+        this->copy_solution(obbt_model);
+        this->initialize_uniform();
+        auto status_old=this->_status;
+        solver<> UB_solver(*this,ub_solver_type);
+        UB_solver.run(5, ub_solver_tol);
+        if(this->_status==0){
+            auto new_ub = get_obj_val();
+            if(new_ub<=upper_bound-1e-3){
+                upper_bound = new_ub;
+                get_solution(ub_sol);
+                DebugOn("Found a better feasible point!"<<endl);
+                DebugOn("New upper bound = "<< upper_bound << endl);
+                if(!linearize){
+                for(auto &mod:batch_models){
+                    if(mod->_cons_name.count("obj|ub")==0){
+                        param<> ub("ub");
+                        ub = upper_bound/lb_scale_value;
+                        func<double> obj;
+                        obj.deep_copy(*obbt_model->_obj);
+                        Constraint<type> obj_ub("obj|ub");
+                        obj_ub = obj - ub;
+                        mod->add(obj_ub<=0);
+                    }
+                    else {
+                        auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                        ub->set_val(upper_bound/lb_scale_value);
+                        mod->reset_constrs();
+                    }
+                }
+                
+                DebugOn("I have updated all batch models with new ub!\n");
+                }
+                if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+                {
+                    terminate=true;
+                    gap=(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100;
+                }
+
+            }
+        }
+        else {
+            if(status_old==0){
+            set_solution(ub_sol);
+            _obj->set_val(upper_bound);
+            _status=0;
+            }
+        }
+    }
+}
+template <typename type>
+template<typename T>
 void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value){
     double lb, lb_old;
     lb=std::max(lower_bound_lin, lower_bound_nonlin_init)/upper_bound*ub_scale_value;
@@ -6444,53 +6498,10 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
             solver_time= get_wall_time()-solver_time_start;
             bool update=false;
-            obbt_model->print();
-            if(!terminate && update){
-                this->copy_bounds(obbt_model);
-                this->copy_solution(obbt_model);
-                this->initialize_uniform();
-                solver<> UB_solver(*this,ub_solver_type);
-                UB_solver.run(5, ub_solver_tol);
-                if(this->_status==0){
-                    auto new_ub = get_obj_val();
-                    if(new_ub<upper_bound-1e-6){
-                        upper_bound = new_ub;
-                        get_solution(ub_sol);
-                        DebugOn("Found a better feasible point!"<<endl);
-                        DebugOn("New upper bound = "<< upper_bound << endl);
-                        if(!linearize){
-                        for(auto &mod:batch_models){
-                            if(mod->_cons_name.count("obj|ub")==0){
-                                param<> ub("ub");
-                                ub = upper_bound/lb_scale_value;
-                                auto obj = *mod->_obj;
-                                Constraint<type> obj_ub("obj|ub");
-                                obj_ub = obj - ub;
-                                mod->add(obj_ub<=0);
-                            }
-                            else {
-                                auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
-                                ub->set_val(upper_bound/lb_scale_value);
-                                mod->reset_constrs();
-                            }
-                        }
-                        
-                        DebugOn("I have updated all batch models with new ub!\n");
-                        }
-                        if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
-                        {
-                            terminate=true;
-                            gap=(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100;
-                        }
-
-                    }
-                }
-                else {
-                    set_solution(ub_sol);
-                    _obj->set_val(upper_bound);
-                }
+            //obbt_model->print();
+            if(!terminate){
+                this->update_upper_bound(obbt_model, batch_models, ub_sol,  ub_solver_type,  ub_solver_tol,  terminate,  linearize,  upper_bound, lb_scale_value, lower_bound,   gap,   abs_tol,  rel_tol, zero_tol);
             }
-      
             if(linearize && !terminate){
                 batch_models.clear();
                 this->create_batch_models(obbt_model, batch_models, nb_threads, upper_bound, lb_scale_value);
@@ -6533,6 +6544,7 @@ template double Model<double>::populate_final_interval_gap(const shared_ptr<Mode
 template void Model<double>::create_batch_models(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double upper_bound,  double lb_scale_value);
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
+template void Model<double>::update_upper_bound(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
 
 
 //    template func<double> constant<double>::get_real() const;
