@@ -1548,7 +1548,7 @@ angle_max=1;
 
     var<> delta("delta", 0,12);
     
-    var<> bin("bin",0,1);
+    var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOn("Added binary variables" << endl);
     Reg->add(delta.in(N1));
