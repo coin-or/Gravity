@@ -617,6 +617,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 obj_cpy.deep_copy(*m._obj);
                 set_objective(obj_cpy, _objt);
             }
+            _int_vars = m._int_vars;
             return *this;
         }
         
@@ -1889,6 +1890,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                 }
             }
+            relax->_int_vars = _int_vars;
             relax->print();
             return relax;
         }
@@ -5454,26 +5456,31 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     param<type> lb(new_v->get_name(true,true)+"-lb_relaxed");
                     lb.index_in(*new_v->_indices);
                     *new_v->_lb = lb;
+                    new_v->_lb->allocate_mem();
                     param<type> ub(new_v->get_name(true,true)+"-ub_relaxed");
                     ub.index_in(*new_v->_indices);
                     *new_v->_ub = ub;
+                    new_v->_ub->allocate_mem();
                     new_v->copy_vals(v);
                     new_v->copy_bounds(v);
                     v_p.second = new_v;
                 }
             }
+//            this->print();
             for (auto &v_p:this->_vars) {
                 if (v_p.second->is_integer() || v_p.second->is_binary()) {
                     auto name = v_p.second->_name;
                     v_p.second = this->get_var_ptr(name);
                 }
             }
+//            this->print();
             if(has_int){
                 this->_obj->relax(this->_vars);
                 for (auto &c_p: this->_cons) {
                     c_p.second->relax(this->_vars);
                 }
             }
+//            this->print();
         }
         
         
