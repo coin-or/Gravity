@@ -5462,18 +5462,21 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     v_p.second = new_v;
                 }
             }
+            this->print();
             for (auto &v_p:this->_vars) {
                 if (v_p.second->is_integer() || v_p.second->is_binary()) {
                     auto name = v_p.second->_name;
                     v_p.second = this->get_var_ptr(name);
                 }
             }
+            this->print();
             if(has_int){
                 this->_obj->relax(this->_vars);
                 for (auto &c_p: this->_cons) {
                     c_p.second->relax(this->_vars);
                 }
             }
+            this->print();
         }
         
         
