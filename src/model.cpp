@@ -1045,6 +1045,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         auto lower_bound_final=get<6>(status);
         auto gap_final = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
         DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
+        DebugOn("Final upper bound = " << upper_bound <<endl);
+        DebugOn("Final lower bound = " << lower_bound_final <<endl);
     }
     return res;
 }
@@ -1216,7 +1218,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                             this->copy_solution(obbt_model);
                             this->initialize_uniform();
                             solver<> UB_solver(*this,ub_solver_type);
-                            UB_solver.run(5, ub_solver_tol);
+                            UB_solver.run(0, ub_solver_tol);
                             if(this->_status==0){
                                 auto new_ub = get_obj_val();
                                 if(new_ub<upper_bound-1e-6){
@@ -1234,7 +1236,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
                                         if(mod->_cons_name.count("obj|ub")==0){
                                             param<> ub("ub");
                                             ub = upper_bound;
-                                            auto obj = *mod->_obj;
+                                            func<double> obj;
+                                            obj.deep_copy(*obbt_model->_obj);
                                             Constraint<type> obj_ub("obj|ub");
                                             obj_ub = obj - ub;
                                             mod->add(obj_ub<=0);
