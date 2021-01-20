@@ -5451,10 +5451,10 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     auto new_v = make_shared<var<double>>(v_p.second->_name);
                     new_v->shallow_copy(*v);
                     new_v->_is_relaxed = true;
-                    param<type> lb(new_v->get_name(true,true)+"-lb");
+                    param<type> lb(new_v->get_name(true,true)+"-lb_relaxed");
                     lb.index_in(*new_v->_indices);
                     *new_v->_lb = lb;
-                    param<type> ub(new_v->get_name(true,true)+"-ub");
+                    param<type> ub(new_v->get_name(true,true)+"-ub_relaxed");
                     ub.index_in(*new_v->_indices);
                     *new_v->_ub = ub;
                     new_v->copy_vals(v);
