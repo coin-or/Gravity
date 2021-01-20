@@ -6075,19 +6075,30 @@ template <typename type>
 template<typename T>
 void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol){
     {
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
         this->copy_bounds(obbt_model);
         this->copy_solution(obbt_model);
         this->initialize_uniform();
         auto status_old=this->_status;
         solver<> UB_solver(*this,ub_solver_type);
-        UB_solver.run(5, ub_solver_tol);
+        UB_solver.run(0, ub_solver_tol);
         if(this->_status==0){
             auto new_ub = get_obj_val();
             if(new_ub<=upper_bound-1e-3){
                 upper_bound = new_ub;
                 get_solution(ub_sol);
+#ifdef USE_MPI
+                if(worker_id==0){
+#endif
                 DebugOn("Found a better feasible point!"<<endl);
                 DebugOn("New upper bound = "<< upper_bound << endl);
+#ifdef USE_MPI
+                }
+#endif
                 if(!linearize){
                 for(auto &mod:batch_models){
                     if(mod->_cons_name.count("obj|ub")==0){
@@ -6106,7 +6117,7 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
                     }
                 }
                 
-                DebugOn("I have updated all batch models with new ub!\n");
+                DebugOff("I have updated all batch models with new ub!\n");
                 }
                 if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                 {
@@ -6210,13 +6221,13 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal) {
+std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal) {
 #ifdef USE_MPI
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    std::tuple<bool,int,double,double,double,double,double,double,int,int,int> res;
+    std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> res;
     int total_iter=0, global_iter=1,fail=0;
     int output, oacuts_init=0, oacuts=0;
     double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::min();
@@ -6238,7 +6249,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         this->min(obj_m);
     }
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 5, ub_solver_tol, 2000, 600);
+    UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
     if(this->_status==0){
         upper_bound=this->get_obj_val();
     }
@@ -6254,7 +6265,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         relaxed_model->reset();
         lb_scale_value=upper_bound;
     }
-    LBnonlin_solver.run(output = 5 , lb_solver_tol, 2000, 600);
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
@@ -6325,6 +6336,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     get<8>(res)=get<8>(status);
     get<9>(res)=oacuts_init;
     get<10>(res)=fail;
+    get<11>(res)=upper_bound_orig;
     upper_bound=get<5>(status);
     /*To deal with maximize problems*/
     if(objt_orig==maximize){
@@ -6516,7 +6528,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         }
         /*average interval reduction,final interval, sanity check on bounds*/
         avg=this->populate_final_interval_gap(obbt_model,  interval_original, interval_new, sum,  xb_true, zero_tol, count_var);
-        obbt_model->print();
+        //obbt_model->print();
     }
    
     std::get<0>(res) = terminate;
@@ -6532,7 +6544,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     std::get<10>(res)=fail;
     return res;
 }
-template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal);
+template std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal);
 
 template std::tuple<bool,int,double,double,double,double,double,double,int,int,int> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool lag, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, int oacuts, int oacuts_init, int run_obbt_iter, double ub_value, double solver_time_start, int nb_refine, int nb_root_refine,int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal, bool scaling);
 
