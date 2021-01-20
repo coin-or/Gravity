@@ -1032,13 +1032,17 @@ namespace gravity {
             if(dim!=this->get_dim()){
                 throw invalid_argument("calling function copy_bounds with non-matching dimensions");
             }
-            _lb->_val->resize(dim);
-            _ub->_val->resize(dim);
+            auto lb_param = static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
+            auto ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
             for (size_t i = 0; i < dim; i++) {
                 _lb->_val->at(i) = p->get_double_lb(i);
                 _lb->update_range(_lb->_val->at(i));
                 _ub->_val->at(i) = p->get_double_ub(i);
                 _ub->update_range(_ub->_val->at(i));
+                lb_param->_val->at(i) = p->get_double_lb(i);
+                lb_param->update_range(_lb->_val->at(i));
+                ub_param->_val->at(i) = p->get_double_ub(i);
+                lb_param->update_range(_ub->_val->at(i));
             }
             this->_range->first = _lb->_range->first;
             this->_range->second = _ub->_range->second;

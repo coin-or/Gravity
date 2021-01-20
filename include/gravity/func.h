@@ -7686,7 +7686,7 @@ namespace gravity {
         void relax(const map<size_t, shared_ptr<param_>>& vars){
             auto new_vars = make_shared<map<string, pair<shared_ptr<param_>, unsigned>>>();
             bool has_int = false;
-            for (auto &v_p:*_vars) {
+            for (auto &v_p:*_vars){
                 auto old_var = v_p.second.first;
                 auto nb_occ = v_p.second.second;
                 auto new_var = vars.at(old_var->get_vec_id())->pcopy();
@@ -7697,11 +7697,10 @@ namespace gravity {
                     new_var->_is_relaxed = true;
                 }
             }
-            if (!has_int) {
+            if (!has_int){
                 return;
             }
-            
-            for (auto &lt:get_lterms()) {
+            for (auto &lt:get_lterms()){
                 lt.second._p = new_vars->at(lt.second._p->get_name(false,false)).first;
             }
             for (auto &lt:get_qterms()) {

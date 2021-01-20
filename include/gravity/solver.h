@@ -130,6 +130,8 @@ namespace gravity {
             if (_stype==ipopt) {
 #ifdef USE_IPOPT
                 _model->replace_integers();
+               // DebugOn("after replace integers"<<endl);
+              //  _model->print();
                 SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                 iapp->RethrowNonIpoptException(true);
                 ApplicationReturnStatus status = iapp->Initialize();
@@ -277,7 +279,7 @@ namespace gravity {
                         mu_init = std::exp(-1)/std::exp(2);
                         iapp->Options()->SetNumericValue("mu_init", mu_init);
                         iapp->Options()->SetStringValue("warm_start_init_point", "yes");
-                        DebugOn("Using Warm Start\n");
+                        DebugOff("Using Warm Start\n");
                     }
                     _model->_first_run = false;
                     iapp->Options()->SetIntegerValue("max_iter", max_iter);
@@ -336,7 +338,20 @@ namespace gravity {
                         *_model->_obj *= -1;
                         _model->_obj->_val->at(0) *= -1;
                     }
-                    DebugOn("Return status = " << status << endl);
+                    /* Check if the objective has only one variable and it's an integer, then round objective value */
+                    if(_model->_obj->get_nb_vars()==1 && _model->_obj->_vars->begin()->second.first->_is_relaxed){
+                        if(_model->_objt==maximize){
+                            int fl = floor(_model->_obj->_val->at(0));
+                            if(_model->_obj->_val->at(0) - fl > tol)
+                                _model->_obj->_val->at(0) = fl;
+                        }
+                        else{
+                            int cl = ceil(_model->_obj->_val->at(0));
+                            if(cl - _model->_obj->_val->at(0) > tol)
+                                _model->_obj->_val->at(0) = cl;
+                        }
+                    }
+                    DebugOff("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {
                         optimal = true;
                         _model->round_solution();
