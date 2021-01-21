@@ -7332,7 +7332,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
          */
         template<typename T=type,
         typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,double,double,double> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr);
+        std::tuple<bool,int,double,double,double,double,double,double> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, double upper_bound_orig=1e6);
 
         
         /* Run Optimality Based Bound Tightening
