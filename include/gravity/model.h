@@ -4455,22 +4455,22 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         };
         
         void copy_bounds(const shared_ptr<Model<type>>& relaxation){
-            for (auto &vpr: relaxation->_vars) {
-                auto it = _vars.find(vpr.first);
-                if (it != _vars.end()){
-                    it->second->copy_bounds(vpr.second);
+                       for (auto &vpr: relaxation->_vars) {
+                           auto it = _vars_name.find(vpr.second->_name);
+                           if (it != _vars_name.end()){
+                               it->second->copy_bounds(vpr.second);
+                           }
+                       }
+                   }
+                
+                void copy_solution(const shared_ptr<Model<type>>& relaxation){
+                    for (auto &vpr: relaxation->_vars) {
+                        auto it = _vars_name.find(vpr.second->_name);
+                        if (it != _vars_name.end()){
+                            it->second->copy_vals(vpr.second);
+                        }
+                    }
                 }
-            }
-        }
-        
-        void copy_solution(const shared_ptr<Model<type>>& relaxation){
-            for (auto &vpr: relaxation->_vars) {
-                auto it = _vars.find(vpr.first);
-                if (it != _vars.end()){
-                    it->second->copy_vals(vpr.second);
-                }
-            }
-        }
         
         /** Initialize all variables using random value in bounds drawn from a uniform distribution
         */
@@ -6265,9 +6265,11 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         Model<type> build_model_interior() const;
         template<typename T=type>
-        double upper_bound_integral();
+        double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol);
         template<typename T=type>
         shared_ptr<Model<type>> build_model_IIS();
+        template<typename T=type>
+        void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
         //template<typename T=type>
         /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/

@@ -1690,13 +1690,13 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     if(!convex)
         Reg->add(trigR==1);
     else
-        Reg->add(trigR==1,true);
+        Reg->add(trigR==1, true);
     Constraint<> trigP("trigP");
     trigP = pow(cosp,2) + pow(sinp,2);
     if(!convex)
         Reg->add(trigP==1);
     else
-        Reg->add(trigP==1,true);
+        Reg->add(trigP==1, true);
 
     Constraint<> trigY("trigY");
     trigY = pow(cosy,2) + pow(siny,2);
