@@ -6222,13 +6222,13 @@ namespace gravity {
                                                     {
                                                         boundk1=vk.get_lb(keyk);
                                                         //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                        objk=std::max(objk-range_tol, boundk1);
+                                                        objk=std::max(objk, boundk1);
                                                     }
                                                     else
                                                     {
                                                         boundk1=vk.get_ub(keyk);
                                                         //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                        objk=std::min(objk+range_tol, boundk1);
+                                                        objk=std::min(objk, boundk1);
                                                         
                                                     }
                                                     if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
@@ -6264,7 +6264,7 @@ namespace gravity {
                                                         }
                                                     }
                                                     //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
-                                                    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+                                                    if(!vk._is_relaxed && std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                                     {
                                                         //If original interval is itself smaller than range_tol, do not have to reset interval
                                                         if(interval_original[var_key_k]>=range_tol)
@@ -6327,7 +6327,7 @@ namespace gravity {
                                                 }
                                                 else
                                                 {
-                                                    //                                            model->print();
+//                                                    model->print();
                                                     DebugOn("OBBT step has failed in iteration\t"<<iter<<endl);
                                                     
                                                 }
