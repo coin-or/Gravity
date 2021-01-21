@@ -343,7 +343,7 @@ namespace gravity {
                         auto obj_val = std::abs(_model->_obj->_val->at(0));
                         if(_model->_objt==maximize){
                                                     int fl = floor(_model->_obj->_val->at(0));
-                            int cl = ceil(_model->_obj->_val->at(0));
+                                                    int cl = ceil(_model->_obj->_val->at(0));
                                                     if(cl-_model->_obj->_val->at(0) > 1e-3)
                                                         _model->_obj->_val->at(0) = fl;
                                                     else{
