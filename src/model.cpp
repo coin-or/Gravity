@@ -6008,7 +6008,7 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
     UB_solver.run(0, ub_solver_tol);
     if(this->_status==0){
         auto new_ub = this->upper_bound_integral(ub_solver_type, ub_solver_tol);
-            if(new_ub<=upper_bound-1e-3){
+            if(new_ub<=(upper_bound-1e-3)){
                 upper_bound = new_ub;
                 get_solution(ub_sol);
 #ifdef USE_MPI
@@ -6068,6 +6068,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     UB_solver.run(output = 0, ub_solver_tol);
     this->get_solution(ub_sol);
     double upper_bound=this->upper_bound_integral(ub_solver_type, ub_solver_tol);
+    double upper_bound_orig=upper_bound;
     DebugOn("Upper bound = "<<upper_bound<<endl);
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
     if(!linearize)
@@ -6128,7 +6129,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model) {
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, double upper_bound_orig) {
     
     std::tuple<bool,int,double, double, double, double, double, double> res;
 #ifdef USE_MPI
@@ -6171,6 +6172,8 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         lower_bound_init = obbt_model->get_obj_val();
         lower_bound = lower_bound_init;
         upper_bound=this->upper_bound_integral(ub_solver_type, ub_solver_tol);
+        if(upper_bound>=upper_bound_orig)
+            upper_bound=upper_bound_orig;
         get_solution(ub_sol);/* store current solution */
         gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
@@ -6645,7 +6648,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 
 template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
 
-template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
+template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, double upper_bound_orig);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
