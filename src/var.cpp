@@ -436,6 +436,9 @@ template<typename type> void  var<type>::set_lb(const string& key, type val){
     if(key_it== _lb->_indices->_keys_map->end()){
         throw invalid_argument("in set_ub(string, val), unknown key " + key);
     }
+    auto lb_param = static_pointer_cast<param<type>>(_lb->_params->begin()->second.first);
+    lb_param->_val->at(key_it->second) = val;
+    lb_param->update_range(val);
     _lb->eval_all();
     _lb->_val->at(key_it->second) = val;
     _lb->update_range(val);
@@ -453,6 +456,9 @@ template<typename type> void  var<type>::set_ub(const string& key, type val){
     if(key_it== _ub->_indices->_keys_map->end()){
         throw invalid_argument("in set_ub(string, val), unknown key " + key);
     }
+    auto ub_param = static_pointer_cast<param<type>>(_ub->_params->begin()->second.first);
+    ub_param->_val->at(key_it->second) = val;
+    ub_param->update_range(val);
     _ub->eval_all();
     _ub->_val->at(key_it->second) = val;
     _ub->update_range(val);
