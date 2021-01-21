@@ -341,18 +341,38 @@ namespace gravity {
                     /* Check if the objective has only one variable and it's an integer, then round objective value */
                     if(_model->_obj->get_nb_vars()==1 && _model->_obj->_vars->begin()->second.first->_is_relaxed){
                         auto obj_val = std::abs(_model->_obj->_val->at(0));
-                        if(_model->_objt==maximize){ /* round down */
-                            auto dec_part = std::abs(round(obj_val) - obj_val);
-                            if(dec_part > 2*tol){
-                                _model->_obj->_val->at(0) = floor(_model->_obj->_val->at(0));
-                            }
-                        }
-                        else{
-                            auto dec_part = std::abs(round(obj_val) - obj_val);
-                            if(dec_part > 2*tol){
-                                _model->_obj->_val->at(0) = ceil(_model->_obj->_val->at(0));
-                            }
-                        }
+                        if(_model->_objt==maximize){
+                                                    int fl = floor(_model->_obj->_val->at(0));
+                            int cl = ceil(_model->_obj->_val->at(0));
+                                                    if(cl-_model->_obj->_val->at(0) > 1e-3)
+                                                        _model->_obj->_val->at(0) = fl;
+                                                    else{
+                                                        _model->_obj->_val->at(0) = cl;
+                                                    }
+                                                }
+                                                else{
+                                                    int fl = floor(_model->_obj->_val->at(0));
+                                                    int cl = ceil(_model->_obj->_val->at(0));
+                                                    if(_model->_obj->_val->at(0)-fl > 1e-3)
+                                                        _model->_obj->_val->at(0) = cl;
+                                                    else{
+                                                        _model->_obj->_val->at(0) = fl;
+                                                    }
+                                                }
+                        
+                        
+//                        if(_model->_objt==maximize){ /* round down */
+//                            auto dec_part = std::abs(round(obj_val) - obj_val);
+//                            if(dec_part > 2*tol){
+//                                _model->_obj->_val->at(0) = floor(_model->_obj->_val->at(0));
+//                            }
+//                        }
+//                        else{
+//                            auto dec_part = std::abs(round(obj_val) - obj_val);
+//                            if(dec_part > 2*tol){
+//                                _model->_obj->_val->at(0) = ceil(_model->_obj->_val->at(0));
+//                            }
+//                        }
                     }
                     DebugOff("Return status = " << status << endl);
                     if (status == Solve_Succeeded) {

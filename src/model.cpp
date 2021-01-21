@@ -5951,7 +5951,30 @@ namespace gravity {
         lifted._dim[1] = c._dim[1];
         return lifted;
     }
-    
+template<typename type>
+template<typename T>
+double Model<type>::upper_bound_integral(){
+    auto modelub=this->copy();
+    bool has_int=false;
+    for(auto p:modelub->_vars){
+        if(p.second->_is_relaxed){
+            has_int=true;
+            auto v=modelub->template get_var<double>(p.second->_name);
+            for(auto key:*v._indices->_keys){
+                auto value=v.eval(key);
+                v.set_lb(key, value);
+                v.set_ub(key, value);
+            }
+        }
+    }
+    modelub->print();
+    if(has_int){
+        solver<> UB_solver(modelub,ipopt);
+        UB_solver.run(5, 1e-6);
+    }
+    modelub->print_solution();
+    return modelub->get_obj_val();
+}
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<T,double>::value>::type*>
@@ -5962,7 +5985,8 @@ namespace gravity {
         double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
         solver<> UB_solver(*this,ub_solver_type);
         UB_solver.run(output = 5, ub_solver_tol);
-        DebugOn("Upper bound = "<<this->get_obj_val()<<endl);
+        double upper_bound=this->upper_bound_integral();
+        DebugOn("Upper bound = "<<upper_bound<<endl);
         solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
         if(!linearize)
             LBnonlin_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
@@ -5983,7 +6007,7 @@ namespace gravity {
         }
 
         auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
-        double upper_bound = get<5>(status);
+        upper_bound = get<5>(status);
         
         total_iter += get<1>(status);
         auto lower_bound=obbt_model->get_obj_val();
@@ -6019,7 +6043,6 @@ namespace gravity {
         DebugOn("Final gap = " << to_string(gap_final) << "%."<<endl);
         return res;
     }
-    
     template <typename type>
     template<typename T,
     typename std::enable_if<is_same<T,double>::value>::type*>
@@ -6065,7 +6088,7 @@ namespace gravity {
             lower_bound_nonlin_init=relaxed_model->get_obj_val();
             lower_bound_init = obbt_model->get_obj_val();
             lower_bound = lower_bound_init;
-            upper_bound=this->get_obj_val();
+            upper_bound=this->upper_bound_integral();
             get_solution(ub_sol);/* store current solution */
             gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
             DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
@@ -6080,14 +6103,6 @@ namespace gravity {
                     // obbt_model->print();
                     DebugOn("Initial linear gap = "<<gaplin<<"%"<<endl);
                 }
-                param<> ub("ub");
-                ub = this->get_obj_val();
-                auto obj = *obbt_model->_obj;
-                Constraint<type> obj_ub("obj|ub");
-                obj_ub = obj - ub;
-                obbt_model->add(obj_ub<=0);
-                
-                
                 /**/
                 terminate=false;
                 for(auto &it:obbt_model->_vars_name)
@@ -6128,9 +6143,16 @@ namespace gravity {
                     }
                     
                 }
+               
                 solver_time= get_wall_time()-solver_time_start;
                 for(auto i=0;i<nb_total_threads;i++){
                     auto modelk = obbt_model->copy();
+                    param<> ub("ub");
+                    ub = this->get_obj_val();
+                    auto obj = *modelk->_obj;
+                    Constraint<type> obj_ub("obj|ub");
+                    obj_ub = obj - upper_bound;
+                    modelk->add(obj_ub<=0);
                     batch_models.push_back(modelk);
                 }
                 while(solver_time<=max_time && !terminate && iter<max_iter)
@@ -6173,7 +6195,7 @@ namespace gravity {
                                     if(fixed_point[mname]==false){
                                         batch_models[batch_model_count]->set_name(mname);
                                         vark=batch_models[batch_model_count]->template get_var<T>(vname);
-                                        vark.initialize_midpoint();
+                                       // vark.initialize_midpoint();
                                         if(dir=="LB")
                                         {
                                             batch_models[batch_model_count]->min(vark(key));
@@ -6222,13 +6244,16 @@ namespace gravity {
                                                     {
                                                         boundk1=vk.get_lb(keyk);
                                                         //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-                                                        objk=std::max(objk, boundk1);
+                    
+                                                        if(!vk._is_relaxed)
+                                                            objk=std::max(objk-range_tol, boundk1);
                                                     }
                                                     else
                                                     {
                                                         boundk1=vk.get_ub(keyk);
                                                         //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-                                                        objk=std::min(objk, boundk1);
+                                                        if(!vk._is_relaxed)
+                                                            objk=std::min(objk+range_tol, boundk1);
                                                         
                                                     }
                                                     if((std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
@@ -6240,10 +6265,20 @@ namespace gravity {
                                                         if(dirk=="LB"){
                                                             vk.set_lb(keyk, objk);
                                                             update_lb=true;
+                                                            if(vk._is_relaxed){
+                                                                fixed_point[var_key_k+"|LB"]=true;
+                                                                fixed_point[var_key_k+"|UB"]=true;
+
+                                                            }
                                                         }
                                                         else{
                                                             vk.set_ub(keyk, objk);
                                                             update_ub=true;
+                                                            if(vk._is_relaxed){
+                                                                fixed_point[var_key_k+"|LB"]=true;
+                                                                fixed_point[var_key_k+"|UB"]=true;
+
+                                                            }
                                                         }
                                                         //If crossover in bounds,just exchange them
                                                         if(vk.get_ub(keyk)<vk.get_lb(keyk))
@@ -6256,7 +6291,6 @@ namespace gravity {
                                                             vk.set_lb(keyk, temp);
                                                             update_lb=true;
                                                             update_ub=true;
-                                                            
                                                         }
                                                         else if(!vk._lift){
                                                             fixed_point[model->get_name()]=false;
@@ -6266,6 +6300,7 @@ namespace gravity {
                                                     //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
                                                     if(!vk._is_relaxed && std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
                                                     {
+                                                        obbt_model->print();
                                                         //If original interval is itself smaller than range_tol, do not have to reset interval
                                                         if(interval_original[var_key_k]>=range_tol)
                                                         {
@@ -6366,7 +6401,7 @@ namespace gravity {
                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*1e-2);
                         else
                             LB_solver.set_option("bound_relax_factor", lb_solver_tol*0.9e-1);
-                        LB_solver.run(output = 0, lb_solver_tol);
+                        LB_solver.run(output = 5, lb_solver_tol);
                         if(obbt_model->_status==0)
                         {
                             lower_bound=obbt_model->get_obj_val();
@@ -6554,7 +6589,7 @@ namespace gravity {
     
     template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
     template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
-    
+    template double Model<double>::upper_bound_integral();
     
     
     //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);

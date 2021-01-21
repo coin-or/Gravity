@@ -6264,7 +6264,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         /** Returns a model such that when optimized will return an iterior point to the current model**/
         template<typename T=type>
         Model<type> build_model_interior() const;
-        
+        template<typename T=type>
+        double upper_bound_integral();
         template<typename T=type>
         shared_ptr<Model<type>> build_model_IIS();
         void add_outer_app_uniform(int nb_discr, Constraint<> con);
