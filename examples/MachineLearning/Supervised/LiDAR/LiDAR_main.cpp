@@ -116,7 +116,7 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
 void plot(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, double point_thick = 0.1);
 
 /* Run Go-ICP on point clouds, return best solution */
-tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
+tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 /* Run the ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -233,6 +233,7 @@ int main (int argc, char * argv[])
         }
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
         vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
+        tuple<double,double,double,double,double,double,double> res_icp;
         tuple<double,double,double,double,double,double> res, res1, res2;
         
         auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
@@ -241,8 +242,8 @@ int main (int argc, char * argv[])
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
             if(run_goICP){/* Run GoICP inline */
-                res = run_GoICP(point_cloud_model, point_cloud_data);
-                auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+                res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+                auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
                 apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             }
             else {
@@ -250,10 +251,10 @@ int main (int argc, char * argv[])
                     bool convex = convex_str=="convex";
                     bool reform= reform_str=="yes";
                     if(reform){
-                        res=run_ARMO_Global_reform(convex, "full", ext_model, ext_data);
+                        res1=run_ARMO_Global_reform(convex, "full", ext_model, ext_data);
                     }
                     else{
-                        res = run_ARMO_Global(convex, "full", ext_model, ext_data);
+                        res1 = run_ARMO_Global(convex, "full", ext_model, ext_data);
                     }
                     auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
                     apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
@@ -268,13 +269,19 @@ int main (int argc, char * argv[])
             }
         }
         else{
+            res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+            auto upper_bound=get<6>(res_icp);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
+            //solver<> S(Reg,gurobi);
+            //S.run();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
             unsigned max_iter=1e3, max_time=300;
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol,false,upper_bound);
         }
         bool compute_L2_error = true;
         if(compute_L2_error){
@@ -1498,7 +1505,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         nz2.add_val(j_str,nz);
     }
     
-    
+
     idx1 = 0;
     indices N1("N1"),N2("N2");
     DebugOn("nd = " << nd << endl);
@@ -1519,27 +1526,27 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     
-    /*  bool bounded=true;
-     if(!bounded){
-     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
-     var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
-     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
-     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
-     var<> siny_sinp("siny_sinp", -1, 1);
-     var<> cosy_sinp("cosy_sinp", -1, 1);
-     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
-     var<> cosy_cosp("cosy_cosp", -1, 1);
-     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
-     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
-     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
-     }*/
-    
+      bool bounded=true;
+//     if(!bounded){
+//     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
+//     var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
+//     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
+//     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
+//     var<> siny_sinp("siny_sinp", -1, 1);
+//     var<> cosy_sinp("cosy_sinp", -1, 1);
+//     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
+//     var<> cosy_cosp("cosy_cosp", -1, 1);
+//     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
+//     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
+//     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
+//     }else{
+//
     angle_max=1;
     var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
     var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
     var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
     var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    
+
     var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
     var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
     var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
@@ -1547,6 +1554,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
     var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
     var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
+//
+//     }
+    
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
     
     var<> delta("delta", 0,12);
@@ -1596,10 +1606,10 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
     if(convex){
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
         Constraint<> VI_M("VI_M");
-        VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
+        VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(6)*(1-bin.in(cells));
         Reg->add(VI_M.in(cells)>=0);
     }
     bool vi_reform=false;
@@ -1794,11 +1804,16 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     if(convex){
             //        Reg.replace_integers();
             //        auto Rel = Reg.relax();
-        solver<> S(Reg,ipopt);
-       // S.run();
+        DebugOn("running convex model from model_build"<<endl);
+      //  Reg->print();
+//        solver<> S(Reg,gurobi);
+//        S.run();
+//        Reg->print_solution();
+//        Reg->reset();
+//        Reg->reset_constrs();
     }
     else {
-        solver<> S(Reg,ipopt);
+        //solver<> S(Reg,ipopt);
         //S.run();
     }
     //Reg->print_solution();
@@ -2881,7 +2896,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 #endif
 
 /* Run Go-ICP on point clouds */
-tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
     int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
@@ -2960,7 +2975,8 @@ tuple<double,double,double,double,double,double> run_GoICP(const vector<vector<d
     DebugOn("tx = " << tx << endl);
     DebugOn("ty = " << ty << endl);
     DebugOn("tz = " << tz << endl);
-    return {roll,pitch,yaw,tx,ty,tz};
+    DebugOn("err "<<goicp.optError<<endl);
+    return {roll,pitch,yaw,tx,ty,tz,goicp.optError};
 }
 
 tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
