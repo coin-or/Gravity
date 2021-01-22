@@ -271,8 +271,8 @@ int main (int argc, char * argv[])
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-            unsigned max_iter=1e3, max_time=300;
-            int nb_threads=1;
+            unsigned max_iter=1e3, max_time=3000;
+            int nb_threads=64;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         }
@@ -1214,7 +1214,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
         //Can also try hull relaxation of the big-M here
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
         Constraint<> VI_M("VI_M");
         VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
