@@ -6031,7 +6031,8 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
                             mod->add(obj_ub<=0);
                         }
                         else {
-                            auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                            auto cstr = mod->get_constraint("obj|ub");
+                            auto ub = static_pointer_cast<param<>>(cstr->_params->begin()->second.first);
                             ub->set_val(upper_bound/lb_scale_value);
                             mod->reset_constrs();
                         }
