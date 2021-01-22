@@ -6031,7 +6031,8 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
                             mod->add(obj_ub<=0);
                         }
                         else {
-                            auto ub = static_pointer_cast<param<>>(mod->get_constraint("obj|ub")->_params->begin()->second.first);
+                            auto cstr = mod->get_constraint("obj|ub");
+                            auto ub = static_pointer_cast<param<>>(cstr->_params->begin()->second.first);
                             ub->set_val(upper_bound/lb_scale_value);
                             mod->reset_constrs();
                         }
@@ -6058,17 +6059,22 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize) {
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, double upper_bound_prev) {
     std::tuple<bool,int,double,double,double,double,double,double> res;
     int total_iter=0, global_iter=1;
     int output;
     double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::lowest();
+    double upper_bound, upper_bound_orig, upper_bound_best;
     vector<double> ub_sol(this->_nb_vars);
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 0, ub_solver_tol);
     this->get_solution(ub_sol);
-    double upper_bound=this->upper_bound_integral(ub_solver_type, ub_solver_tol);
-    double upper_bound_orig=upper_bound;
+    upper_bound=this->upper_bound_integral(ub_solver_type, ub_solver_tol);
+    if(upper_bound >= upper_bound_prev){
+        upper_bound=upper_bound_prev;
+    }
+    upper_bound_orig=upper_bound;
+    upper_bound_best=upper_bound;
     DebugOn("Upper bound = "<<upper_bound<<endl);
     solver<> LBnonlin_solver(relaxed_model,lb_solver_type);
     if(!linearize)
@@ -6089,7 +6095,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         obbt_model=lin_model;
     }
     
-    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model,upper_bound_orig);
+    auto status = run_obbt_one_iteration(upper_bound_best, relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
     upper_bound = get<5>(status);
     
     total_iter += get<1>(status);
@@ -6098,7 +6104,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
         if(total_iter>= max_iter)
             break;
-        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, upper_bound_orig);
+        status = run_obbt_one_iteration(upper_bound_best, relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
         total_iter += get<1>(status);
         if(get<1>(status)>0)
             global_iter++;
@@ -6129,7 +6135,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
-std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model, double upper_bound_orig) {
+std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_obbt_one_iteration(double& upper_bound_best, shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<T>> obbt_model, Model<T> & interior_model) {
     
     std::tuple<bool,int,double, double, double, double, double, double> res;
 #ifdef USE_MPI
@@ -6172,8 +6178,11 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         lower_bound_init = obbt_model->get_obj_val();
         lower_bound = lower_bound_init;
         upper_bound=this->upper_bound_integral(ub_solver_type, ub_solver_tol);
-        if(upper_bound>=upper_bound_orig)
-            upper_bound=upper_bound_orig;
+        if(upper_bound>=upper_bound_best)
+            upper_bound=upper_bound_best;
+        else{
+            upper_bound_best=upper_bound;
+        }
         get_solution(ub_sol);/* store current solution */
         gapnl=(upper_bound-lower_bound_nonlin_init)/std::abs(upper_bound)*100;
         DebugOn("Initial nolinear gap = "<<gapnl<<"%"<<endl);
@@ -6233,10 +6242,10 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
             for(auto i=0;i<nb_total_threads;i++){
                 auto modelk = obbt_model->copy();
                 param<> ub("ub");
-                ub = this->get_obj_val();
+                ub = upper_bound;
                 auto obj = *modelk->_obj;
                 Constraint<type> obj_ub("obj|ub");
-                obj_ub = obj - upper_bound;
+                obj_ub = obj - ub;
                 modelk->add(obj_ub<=0);
                 batch_models.push_back(modelk);
             }
@@ -6506,6 +6515,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
                     }
                     
                     this->update_upper_bound(obbt_model, batch_models, ub_sol,  ub_solver_type, ub_solver_tol,  terminate, linearize,  upper_bound, 1, lower_bound,   gap,   abs_tol,  rel_tol,  zero_tol);
+                        upper_bound_best=upper_bound;
                     if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                     {
                         DebugOn("Gap closed at iter "<< iter<<endl);
@@ -6646,9 +6656,9 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
 
 
 
-template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize);
+template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, double upper_bound_prev);
 
-template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model, double upper_bound_orig);
+template std::tuple<bool,int,double,double,double,double,double,double> gravity::Model<double>::run_obbt_one_iteration<double, (void*)0>(double& upper_bound_best, shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, shared_ptr<Model<double>> obbt_model, Model<double> & interior_model);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
