@@ -6089,7 +6089,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
         obbt_model=lin_model;
     }
     
-    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model,upper_bound_orig);
+    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
     upper_bound = get<5>(status);
     
     total_iter += get<1>(status);
@@ -6098,7 +6098,7 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
     while(get<1>(status)>1 && (gap > rel_tol || (upper_bound-lower_bound)>abs_tol)){
         if(total_iter>= max_iter)
             break;
-        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, upper_bound_orig);
+        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model);
         total_iter += get<1>(status);
         if(get<1>(status)>0)
             global_iter++;
