@@ -6234,10 +6234,10 @@ std::tuple<bool,int,double,double,double,double,double,double> Model<type>::run_
             for(auto i=0;i<nb_total_threads;i++){
                 auto modelk = obbt_model->copy();
                 param<> ub("ub");
-                ub = this->get_obj_val();
+                ub = upper_bound;
                 auto obj = *modelk->_obj;
                 Constraint<type> obj_ub("obj|ub");
-                obj_ub = obj - upper_bound;
+                obj_ub = obj - ub;
                 modelk->add(obj_ub<=0);
                 batch_models.push_back(modelk);
             }
