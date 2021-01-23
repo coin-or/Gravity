@@ -152,6 +152,12 @@ int main (int argc, char * argv[])
     if(argc>1){
         prob_type = argv[1];
     }
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
@@ -221,7 +227,7 @@ int main (int argc, char * argv[])
             point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 10;
+        int nb_ext = 100;
         bool global = global_str=="global";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
@@ -242,7 +248,7 @@ int main (int argc, char * argv[])
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
             if(run_goICP){/* Run GoICP inline */
-                res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+                res_icp = run_GoICP(ext_model, ext_data);
                 auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
                 apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             }
@@ -269,10 +275,10 @@ int main (int argc, char * argv[])
             }
         }
         else{
-            res_icp = run_GoICP(point_cloud_model, point_cloud_data);
-            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+     	       res_icp = run_GoICP(ext_model, ext_data);
+       	     auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
             auto upper_bound=get<6>(res_icp);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+           //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
             //solver<> S(Reg,gurobi);
@@ -441,7 +447,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
 
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-4;
+    goicp.MSEThresh = 1e-2;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -1541,7 +1547,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
 //     }else{
 //
-    angle_max=1;
+    angle_max=3.141/12.0;
     var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
     var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
     var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
@@ -2899,7 +2905,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 3000;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
