@@ -152,6 +152,12 @@ int main (int argc, char * argv[])
     if(argc>1){
         prob_type = argv[1];
     }
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
@@ -221,7 +227,7 @@ int main (int argc, char * argv[])
             point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 10;
+        int nb_ext = 100;
         bool global = global_str=="global";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
@@ -242,7 +248,7 @@ int main (int argc, char * argv[])
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
             if(run_goICP){/* Run GoICP inline */
-                res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+                res_icp = run_GoICP(ext_model, ext_data);
                 auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
                 apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             }
@@ -269,17 +275,18 @@ int main (int argc, char * argv[])
             }
         }
         else{
-//            res_icp = run_GoICP(point_cloud_model, point_cloud_data);
-//            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-//            auto upper_bound=get<6>(res_icp);
-//            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+
+     	       res_icp = run_GoICP(ext_model, ext_data);
+       	     auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+            auto upper_bound=get<6>(res_icp);
+           //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
             //solver<> S(Reg,gurobi);
             //S.run();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-            unsigned max_iter=1e3, max_time=300;
-            int nb_threads=1;
+            unsigned max_iter=1e3, max_time=3000;
+            int nb_threads=64;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol,false);
         }
@@ -1221,7 +1228,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
         //Can also try hull relaxation of the big-M here
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
         Constraint<> VI_M("VI_M");
         VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
@@ -1557,7 +1564,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
 //    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
 //    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
-//
+
 //     }
     
     var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
