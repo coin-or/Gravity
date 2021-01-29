@@ -269,10 +269,10 @@ int main (int argc, char * argv[])
             }
         }
         else{
-            res_icp = run_GoICP(point_cloud_model, point_cloud_data);
-            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-            auto upper_bound=get<6>(res_icp);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+//            res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+//            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+//            auto upper_bound=get<6>(res_icp);
+//            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
             //solver<> S(Reg,gurobi);
@@ -281,7 +281,7 @@ int main (int argc, char * argv[])
             unsigned max_iter=1e3, max_time=300;
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol,false,upper_bound);
+            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol,false);
         }
         bool compute_L2_error = true;
         if(compute_L2_error){
@@ -441,7 +441,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
 
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-4;
+    goicp.MSEThresh = 1e-2;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -1477,7 +1477,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
     }
     
-    double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000;
+    double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000,dist_max=0;
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
         x=x2.eval(j_str);
@@ -1497,6 +1497,8 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
                     nz=kz;
                     dist_min=d;
                 }
+                if(d>dist_max)
+                    dist_max=d;
             }
             
         }
@@ -1505,7 +1507,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         nz2.add_val(j_str,nz);
     }
     
-
+    DebugOn("distance max "<< dist_max<<endl);
     idx1 = 0;
     indices N1("N1"),N2("N2");
     DebugOn("nd = " << nd << endl);
@@ -1523,37 +1525,38 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
     var<> new_nx("new_nx", -1, 1), new_ny("new_ny", -1, 1), new_nz("new_nz", -1, 1);
     var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
+    var<> rot_x1("new_xm", -1, 1), rot_y1("new_ym", -1, 1), rot_z1("new_zm", -1, 1);
     var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     
       bool bounded=true;
 //     if(!bounded){
-//     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
-//     var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
-//     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
-//     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
-//     var<> siny_sinp("siny_sinp", -1, 1);
-//     var<> cosy_sinp("cosy_sinp", -1, 1);
-//     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
-//     var<> cosy_cosp("cosy_cosp", -1, 1);
-//     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
-//     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
-//     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
+     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
+     var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
+     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
+     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
+     var<> siny_sinp("siny_sinp", -1, 1);
+     var<> cosy_sinp("cosy_sinp", -1, 1);
+     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
+     var<> cosy_cosp("cosy_cosp", -1, 1);
+     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
+     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
+     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
 //     }else{
 //
-    angle_max=1;
-    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-
-    var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
-    var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosy_cosp("cosy_cosp", std::cos(angle_max), 1);
-    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
-    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
+//    angle_max=1;
+//    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
+//    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
+//    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
+//    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+//
+//    var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+//    var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
+//    var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+//    var<> cosy_cosp("cosy_cosp", std::cos(angle_max), 1);
+//    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
+//    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+//    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
 //
 //     }
     
@@ -1605,8 +1608,10 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
+    
+    
     if(convex){
-    bool vi_M=true;
+    bool vi_M=false;
     if(vi_M){
         Constraint<> VI_M("VI_M");
         VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(6)*(1-bin.in(cells));
@@ -1739,18 +1744,18 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     if(!convex){
         /* alpha = yaw_, beta = roll and gamma = pitch */
         Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
+        x_rot1 += new_x1 + x_shift.in(ids1);
         x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
         Reg->add(x_rot1.in(N1)==0);
         
         
         Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
+        y_rot1 += new_y1 + y_shift.in(ids1);
         y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
         Reg->add(y_rot1.in(N1)==0);
         
         Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
+        z_rot1 += new_z1 + z_shift.in(ids1);
         z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
         Reg->add(z_rot1.in(N1)==0);
     }
@@ -1769,23 +1774,38 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
         Reg->add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
         
+        Reg->add(rot_x1.in(N1), rot_y1.in(N1), rot_z1.in(N1));
         
         Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
+        x_rot1 += rot_x1;
         x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
         Reg->add(x_rot1.in(N1)==0);
         
         
         Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
+        y_rot1 += rot_y1;
         y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
         Reg->add(y_rot1.in(N1)==0);
         
         Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
+        z_rot1 += rot_z1;
         z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
         Reg->add(z_rot1.in(N1)==0);
+        
+        Constraint<> x_tran("x_tran");
+        x_tran=x_rot1+x_shift;
+        Reg->add(x_tran.in(N1)==0);
+        
+        Constraint<> y_tran("y_tran");
+        y_tran=y_rot1+y_shift;
+        Reg->add(x_tran.in(N1)==0);
+        
+        Constraint<> z_tran("x_tran");
+        z_tran=z_rot1+z_shift;
+        Reg->add(x_tran.in(N1)==0);
+        
     }
+    
     
     
     
@@ -1802,6 +1822,10 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
       //  Reg->print();
     
     if(convex){
+//        Constraint<> u("u");
+//        u=pow(new_xm-x2.in);
+        //Reg->add(z_rot1.in(N1)==0);
+        
             //        Reg.replace_integers();
             //        auto Rel = Reg.relax();
         DebugOn("running convex model from model_build"<<endl);
@@ -2899,7 +2923,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 3000;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
