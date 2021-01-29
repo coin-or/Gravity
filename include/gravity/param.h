@@ -1417,7 +1417,8 @@ namespace gravity {
         }
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
-            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+            return (get_dim()==0 || (std::abs(_range->first) == 0 && std::abs(_range->second) == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
 //            return (get_dim()==0);
         }
 

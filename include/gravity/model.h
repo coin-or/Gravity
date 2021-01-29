@@ -1627,7 +1627,8 @@ public:
             add(v_ub <= 0);
                 //            v_ub.print();
         }
-        while(_obj->has_ids(v)){/* Keep replacing until no change */
+        int nb_it = 0, max_nb_iters = 100;
+        while(_obj->has_ids(v) && nb_it++ < max_nb_iters){/* Keep replacing until no change */
             DebugOff("After replacing " << v.get_name(false,false) << " in obj: " << endl);
             DebugOff("Old obj: " << endl);
                 //            _obj->print();
@@ -1639,12 +1640,14 @@ public:
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
         }
+        
         for (auto &c_p: _cons_name) {
             auto c = c_p.second;
             if (!c->_is_constraint || !c->has_sym_var(v)) {
                 continue;
             }
-            while(c->has_ids(v)){/* Keep replacing until no change */
+            nb_it = 0;
+            while(c->has_ids(v) && nb_it++ < max_nb_iters){/* Keep replacing until no change */
                     //                    c->print();
                 DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                 DebugOff("Old constraint: " << endl);
@@ -2165,7 +2168,8 @@ public:
         list<shared_ptr<Constraint<type>>> quad_eq_list; /* list of quadratic equations */
         list<shared_ptr<Constraint<type>>> quad_ineq_list; /* list of quadratic inequalities */
         map<pair<int,int>,vector<shared_ptr<Constraint<type>>>> lin_eq_sparsity, lin_ineq_sparsity;
-        map<tuple<int,int,int,int,int>,vector<shared_ptr<Constraint<type>>>> quad_eq_sparsity, quad_ineq_sparsity;
+        map<tuple<int,int,int,int,int>,vector<shared_ptr<Constraint<type>>>> quad_eq_sparsity;
+        map<tuple<int,int,int,int,int,bool>,vector<shared_ptr<Constraint<type>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
             /* start with linear constraints */
@@ -2194,7 +2198,7 @@ public:
                 }
                 else {
                     quad_ineq_list.push_back(c_pair.second);
-                    quad_ineq_sparsity[{nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms}].push_back(c_pair.second);
+                    quad_ineq_sparsity[{c_pair.second->is_convex(),nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms}].push_back(c_pair.second);
                 }
             }
         }
@@ -2423,11 +2427,11 @@ public:
                 Constraint<> leq("quad_ineq_"+to_string(index));
                 param<> c0("c0_quad_ineq_"+to_string(index));
                 c0 = con0->eval_cst(0);
-                int nb_cont_lin_terms = get<0>(iter.first);
-                int nb_int_lin_terms = get<1>(iter.first);
-                int nb_cont_quad_terms = get<2>(iter.first);
-                int nb_int_quad_terms = get<3>(iter.first);
-                int nb_hyb_quad_terms = get<4>(iter.first);
+                int nb_cont_lin_terms = get<1>(iter.first);
+                int nb_int_lin_terms = get<2>(iter.first);
+                int nb_cont_quad_terms = get<3>(iter.first);
+                int nb_int_quad_terms = get<4>(iter.first);
+                int nb_hyb_quad_terms = get<5>(iter.first);
                 vector<indices> x_ids(nb_cont_lin_terms);/* indices for each symbolic continuous variable */
                 vector<indices> y_ids(nb_int_lin_terms);/* indices for each symbolic integer variable */
                 vector<param<>> x_coefs(nb_cont_lin_terms);/* coefficient multiplying each symbolic continuous variable */
@@ -5708,8 +5712,8 @@ public:
                     }
                 }
                 else {
-                    auto p1_name = p1->get_name(false,false);
-                    auto p2_name = p2->get_name(false,false);
+                    auto p1_name = p1->get_name(0);
+                    auto p2_name = p2->get_name(0);
                     n1 = g.get_node(p1_name);
                     if(n1==nullptr){
                         n1 = new Node(p1_name);

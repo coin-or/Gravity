@@ -471,9 +471,9 @@ void GurobiProgram::fill_in_grb_vmap(){
 //    }
 }
 
-void GurobiProgram::create_grb_constraints(){
+void GurobiProgram::create_grb_constraints(bool use_gravity_name){
     char sense;
-    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0;
+    size_t idx = 0, idx_inst = 0, idx1 = 0, idx2 = 0, idx_inst1 = 0, idx_inst2 = 0, nb_inst = 0, inst = 0, c_idx = 0;
     GRBLinExpr lterm, linlhs;
     GRBQuadExpr quadlhs;
     GRBVar gvar1, gvar2;
@@ -529,11 +529,15 @@ void GurobiProgram::create_grb_constraints(){
                         linlhs += lterm;
                     }
                     linlhs += c->eval(c->get_cst(), i);
+                    if(use_gravity_name){
                         if(c->_indices)
                             grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                         else
                             grb_mod->addConstr(linlhs,sense,0,c->get_name());
-                            //DebugOn("added constraint"<<endl);
+                    }
+                    else {
+                        grb_mod->addConstr(linlhs,sense,0,"C("+to_string(c_idx++)+")");
+                    }
                 }
             }
         }
@@ -604,12 +608,15 @@ void GurobiProgram::create_grb_constraints(){
                         }
                     }
                     quadlhs += c->eval(c->get_cst(), i);
-                    
-                if(c->_indices)
-                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
-                else
-                    grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
-//                grb_mod->re
+                    if(use_gravity_name){
+                        if(c->_indices)
+                            grb_mod->addQConstr(quadlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
+                        else
+                            grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
+                    }
+                    else{
+                        grb_mod->addQConstr(quadlhs,sense,0,"C("+to_string(c_idx++)+")");
+                    }
                 }
             }
         }

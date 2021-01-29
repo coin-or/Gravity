@@ -908,7 +908,7 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
         }
         close=this->root_refine(interior_model, obbt_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", max_iter, max_time, vrbasis, crbasis, initialize_primal);
     }
-    DebugOff("lower bound "<<lower_bound<<endl);
+    DebugOn("lower bound "<<lower_bound<<endl);
     if(obbt_model->_status==0)
     {
         gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
@@ -968,8 +968,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
     if(relaxed_model->_status==0)
     {
-        lower_bound_nonlin_init = relaxed_model->get_obj_val()*this->get_obj_val()/ub_scale_value;;
-        DebugOff("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+        lower_bound_nonlin_init = relaxed_model->get_obj_val();
+        DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
     }
     shared_ptr<Model<>> obbt_model=relaxed_model->copy();
     obbt_model->_status=relaxed_model->_status;
@@ -982,7 +982,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         oacuts=lin_model->_nb_cons;
     }
     int run_obbt_iter=1;
-    auto status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
+    auto status = run_obbt_one_iteration(relaxed_model, max_time, 50, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
     upper_bound = get<5>(status);
     
     total_iter += get<1>(status);
@@ -993,11 +993,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         //MPI_Barrier(MPI_COMM_WORLD);
         auto time=get_wall_time()-time_start;
         if(time>=max_time){
-            DebugOff("Maximum time exceeded"<<endl);
+            DebugOn("Maximum time exceeded"<<endl);
             break;
         }
         if(total_iter>= max_iter){
-            DebugOff("Maximum iterations exceeded"<<endl);
+            DebugOn("Maximum iterations exceeded"<<endl);
             break;
         }
         if(!linearize && get<1>(status)==1 && max_iter>1)
@@ -1006,7 +1006,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             break;
         oacuts=get<8>(status);
         run_obbt_iter++;
-        status = run_obbt_one_iteration(relaxed_model, max_time, max_iter, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
+        status = run_obbt_one_iteration(relaxed_model, max_time, 50, rel_tol, abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, obbt_model, interior_model, oacuts, oacuts_init, run_obbt_iter, ub_scale_value, time_start, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
         lower_bound=get<6>(status);
         gap_new = (upper_bound - lower_bound)/std::abs(upper_bound)*100;
         total_iter += get<1>(status);
@@ -1253,7 +1253,11 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             //                        solver<> LB_solver(obbt_model,lb_solver_type);
             //                        LB_solver.run(5, lb_solver_tol, max_iter, max_time);
                                     /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
-                                    relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, ub_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+                                    if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+                                    {
+                                        terminate=true;
+                                        gap=(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100;
+                                    }
                                 }
                             }
                             else {

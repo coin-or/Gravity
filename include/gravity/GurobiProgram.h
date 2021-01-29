@@ -38,7 +38,7 @@ public:
     void get_pstart(std::vector<double>& vbasis, std::map<std::string, double>& cbasis);
 
     void fill_in_grb_vmap();
-    void create_grb_constraints();
+    void create_grb_constraints(bool use_gravity_name = false);
     void set_grb_objective();
 
     void print_constraints();
