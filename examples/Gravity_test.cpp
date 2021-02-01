@@ -109,12 +109,12 @@ TEST_CASE("testing RONM.nl") {
 //        LB->scale_coefs(1e3);
 //        LB->scale_vars(1e2);
         LB->print();
-        auto res = M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=8, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+        auto res = M.run_obbt(LB, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         auto upper_bound=get<5>(res);
         auto lower_bound_final=get<6>(res);
         auto final_gap = 100*(upper_bound - lower_bound_final)/std::abs(upper_bound);
        // CHECK(final_gap<1e-2);
-        exit(0);
+        //exit(0);
     }
 }
 
