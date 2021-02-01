@@ -7091,15 +7091,23 @@ public:
     template<typename T=type>
     bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol,  int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
     template<typename T=type>
+    double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol);
+    template<typename T=type>
+    void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
+    template<typename T=type>
+            void generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+            template<typename T=type>
+            bool obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+    template<typename T=type>
     bool obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
     template<typename T=type>
     bool obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
     template<typename T=type>
-    void populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
+    void populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol);
     template<typename T=type>
     double populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
     template<typename T=type>
-    void create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double ub_scale_value);
+    void create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double upper_bound, double lb_scale_value);
     template<typename T=type>
     void compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
     template<typename T=type>
@@ -8169,7 +8177,8 @@ public:
      */
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-    std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, int oacuts=0, int oacuts_init=0, int run_obbt_iter=1, double ub_value=1e6, double solver_time_start=0, int nb_refine=1, int nb_root_refine=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
+    std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, bool linearize=false, bool lag=false, int run_obbt_iter=1, double lb_scale_value=1e6, double solver_time_start=0, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false, double upper_bound_best=1e10);
+
     
     /* Run Optimality Based Bound Tightening
      @param[in] relaxed_model a convex relaxtion of the current model
@@ -8177,8 +8186,9 @@ public:
      */
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-    std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, int nb_refine=1, int nb_root_refine=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false);
+    std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, bool lag=false, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false, double upper_bound_prev=1e10);
     
+  
     
         //        void add_on_off(var<>& v, var<bool>& on){
         //    if(v.get_ub() != v.get_ub_off()) {

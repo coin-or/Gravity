@@ -120,11 +120,11 @@ namespace gravity {
         virtual void share_bounds(shared_ptr<param_> p){};
 
         
-        virtual void print_vals(int prec){};
+        virtual void print_vals(int prec=10){};
         
         virtual void print_symbolic() const{};
         
-        virtual void print(int prec){};                
+        virtual void print(int prec=10){};
 
         void set_id(size_t idx) {
             *_id = idx;

@@ -431,7 +431,7 @@ namespace gravity {
             }
         }
         virtual void print(){};
-        virtual void print(int prec){};
+        virtual void print(int prec=10){};
         virtual void print(size_t index, int prec = 10) {};
         virtual void print(size_t i, size_t j, int prec = 10) {};
         
