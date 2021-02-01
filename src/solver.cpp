@@ -777,7 +777,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     }
     
     // if new bound converges to previous bound, fixed point is reached and no need to update bounds
-    if(bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
+    if(!vk._is_relaxed && bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
     {
         if(run_obbt_iter>1){
             fixed_point[msname]=true;
@@ -786,13 +786,17 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     else{/*Update bounds*/
         if(dirk=="LB"){
             //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
-            objk=std::max(objk-range_tol, boundk1);
+            if(!vk._is_relaxed){
+                objk=std::max(objk-range_tol, boundk1);
+            }
             vk.set_lb(keyk, objk);
             update_lb=true;
         }
         else{
             //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
-            objk=std::min(objk+range_tol, boundk1);
+            if(!vk._is_relaxed){
+                objk=std::min(objk+range_tol, boundk1);
+            }
             vk.set_ub(keyk, objk);
             update_ub=true;
         }
@@ -817,12 +821,12 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     }
     
     //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
-    if(std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
+    if(!vk._is_relaxed && std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
     {
         //If original interval is itself smaller than range_tol, do not have to reset interval
         if(interval_original.at(var_key_k)>=range_tol)
         {
-            DebugOn("Entered reset");
+            DebugOff("Entered reset"<<endl);
             //Mid is the midpoint of interval
             mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
             left=mid-range_tol/2.0;

@@ -912,7 +912,7 @@ void Model<type>::update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector
                 DebugOff("I have updated all batch models with new ub!\n");
                 }
                 gap=(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100;
-                DebugOn("Gap "<<std::setprecision(9)<<gap<<" ub "<<std::setprecision(9)<<upper_bound<<" lb "<<std::setprecision(9)<<lower_bound<<endl);
+                DebugOff("Gap "<<std::setprecision(9)<<gap<<" ub "<<std::setprecision(9)<<upper_bound<<" lb "<<std::setprecision(9)<<lower_bound<<endl);
                 if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
                 {
                     terminate=true;
