@@ -247,3 +247,68 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     return bnd;
 }
 
+void set_activetol_initrefine(double& active_tol, double& active_root_tol, double viol_obbt_init,double viol_root_init, int& nb_init_refine, int nb_root_refine, double lb_solver_tol, int run_obbt_iter){
+    if(run_obbt_iter==1){
+        active_tol=viol_obbt_init;
+        active_root_tol=viol_root_init;
+        nb_init_refine=nb_root_refine;
+    }
+    else if(run_obbt_iter<=2){
+        active_tol=1e-6;
+        active_root_tol=1e-6;
+        nb_init_refine=1;
+    }
+    else{
+        active_tol=lb_solver_tol;
+        active_root_tol=lb_solver_tol;
+        nb_init_refine=1;
+    }
+}
+/* function to initializa vbasis and cbasis
+ @param[in] vbasis- Contains nb_threads number of double vectors. To Hold variable basis of each model in nb_threads
+ @param[in] cbasis- Contains nb_threads number of double vectors. To Hold constraint basis of each model in nb_threads
+ @param[in] vrbasis- Variable basis to be copied into vbasis
+ @param[in] crbasis- Constraint basis to be copied into cbasis
+ @param[in] nb_threads- Parameter for nb_threads
+ */
+void initialize_basis_vectors(SolverType stype, std::vector<std::vector<double>>& vbasis,std::vector<std::map<std::string,double>>& cbasis, const std::vector<double>& vrbasis, const std::map<std::string,double>& crbasis, int nb_threads){
+    if(stype==gurobi){
+        for(auto i=0;i<nb_threads;i++){
+            vbasis.at(i)=vrbasis;
+            cbasis.at(i)=crbasis;
+        }
+    }
+}
+void get_row_scaling(const vector<double>& c_val, double& scale, bool& oa_cut, const double zero_tol, const double min_coef, const double max_coef){
+    bool near_zero=true;
+    scale=1.0;
+    oa_cut=true;
+    for (auto j = 0; j<c_val.size(); j++) {
+        if(c_val[j]!=0 && std::abs(c_val[j])<min_coef){
+            if(min_coef/std::abs(c_val[j])>scale){
+                scale=min_coef/std::abs(c_val[j]);
+            }
+        }
+        if(near_zero && c_val[j]!=0 && std::abs(c_val[j])<zero_tol){
+            near_zero=true;
+        }
+        else{
+            near_zero=false;
+        }
+    }
+    oa_cut=true;
+    if(near_zero){
+        oa_cut=false;
+    }
+    for (auto j = 0; j<c_val.size(); j++) {
+        auto a=c_val[j]*scale;
+        if(a>max_coef){
+            oa_cut=false;
+            break;
+        }
+        if(std::abs(a)<=1e-12){
+            oa_cut=false;
+            break;
+        }
+    }
+}

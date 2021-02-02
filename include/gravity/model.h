@@ -2507,7 +2507,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        bool has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
+        bool has_violated_constraints_old(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
             //    if (!_has_lazy) {
             //        return false;
             //    }
@@ -2640,7 +2640,148 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return violated;
         }
         
-        
+        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+            std::pair<bool,bool> has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
+                //    if (!_has_lazy) {
+                //        return false;
+                //    }
+                //    int cid = 0;
+                size_t nb_inst = 0, nb_viol = 0, nb_viol_all = 0;
+                size_t nb_active = 0, nb_active_all = 0;
+                double diff = 0;
+                shared_ptr<Constraint<type>> c = nullptr;
+                bool violated = false;
+                bool solver_violated=false;
+                std::pair<bool,bool> res;
+                for(auto& c_p: _cons_name)
+                {
+                    c = c_p.second;
+                    //        cid = c->_id;
+                    nb_inst = c->get_nb_inst();
+                    nb_viol = 0;
+                    nb_active = 0;
+                    c->_all_satisfied = true;
+                    c->_violated.resize(nb_inst);
+                    c->_active.resize(nb_inst);
+                    switch (c->get_ctype()) {
+                        case eq:
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = std::abs(c->eval(inst));
+                                if(diff > tol) {
+                                    DebugOff("Violated equation: ");
+                                    //                        c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                    //                        c->_violated[inst] = true;
+                                }
+                                else {
+                                    //                        c->_violated[inst] = false;
+                                }
+                                //                    nb_active++;
+                            }
+                            break;
+                        case leq:
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = c->eval(inst);
+                                if(diff > tol) {
+                                    DebugOff("Violated inequality: ");
+                                    //                                c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        //                                    *c->_all_lazy = false;
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                                    violated = true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                }
+                                else if (std::abs(diff)>tol) {
+                                    c->_active[inst] = false;
+                                    //                        if (*c->_all_lazy) {
+                                    //                            c->_lazy[inst] = true;
+                                    //                        }
+                                }
+                                else {
+                                    nb_active++;
+                                }
+                            }
+                            break;
+                        case geq:
+                            for (size_t inst=0; inst<nb_inst; inst++) {
+                                c->_violated[inst] = false;
+                                diff = c->eval(inst);
+                                if(diff < -tol) {
+                                    DebugOff("Violated inequality: ");
+                                    //                        c->print(inst);
+                                    DebugOff(", violation = "<< diff << endl);
+                                    nb_viol++;
+                                    //                        violated = true;
+                                    if (*c->_all_lazy) {
+                                        //                                    *c->_all_lazy = false;
+                                        c->_all_satisfied = false;
+                                        c->_violated[inst] = true;
+                                        violated = true;
+                                        c->_lazy[inst] = false;
+                                    }
+                                    else {
+                                        solver_violated=true;
+                                        //                                    violated = true;
+                                        //                            throw runtime_error("Non-lazy constraint is violated, solution declared optimal by solver!\n" + c->to_str(inst));
+                                    }
+                                }
+                                else if (std::abs(diff)> tol) {
+                                    c->_active[inst] = false;
+                                    //                        if (*c->_all_lazy) {
+                                    //                            c->_lazy[inst] = true;
+                                    //                        }
+                                }
+                                else {
+                                    nb_active++;
+                                }
+                            }
+                            break;
+                            
+                        default:
+                            break;
+                    }
+                    //        *c->_all_lazy = false;
+                    nb_viol_all += nb_viol;
+                    nb_active_all += nb_active;
+                    if (nb_viol>0 && c->get_ctype()!=eq) {
+                        DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                    }
+                    if (c->get_ctype()!=eq) {
+                        DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");
+                    }
+                }
+                auto nb_ineq = get_nb_ineq();
+                DebugOff("Total percentage of violated constraints = (" << nb_viol_all << "/" << nb_ineq << ") " << to_string_with_precision(100.*nb_viol_all/nb_ineq,3) << "%\n");
+                DebugOff("Total percentage of active constraints = (" << nb_active_all << "/" << nb_ineq << ") "  << to_string_with_precision(100.*nb_active_all/nb_ineq,3) << "%\n");
+                res.first=violated;
+                res.second=solver_violated;
+                return res;
+            }
+
         
         /**
          Returns true if the current solution satisfies bounds and constraints upt to tolerance tol
@@ -2667,7 +2808,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     }
                 }
             }
-            feasible = feasible && !has_violated_constraints(tol);
+            feasible = feasible && !has_violated_constraints(tol).first;
             return feasible;
         }
         
@@ -6258,24 +6399,68 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
         }
         
+
         template<typename T=type>
         shared_ptr<Model<type>> buildOA();
         
         /** Returns a model such that when optimized will return an iterior point to the current model**/
         template<typename T=type>
         Model<type> build_model_interior() const;
-        template<typename T=type>
-        double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol);
+        
         template<typename T=type>
         shared_ptr<Model<type>> build_model_IIS();
+        void add_outer_app_uniform(int nb_discr, Constraint<> con);
+            //template<typename T=type>
+        
+        /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
+        bool linearmodel_violates_x(vector<double>& x, string cname, int inst, double tol);
+        void add_outer_app_active(const Model<type>& nonlin, int nb_perturb);
+        Model<type> add_outer_app_solution(Model<type>& nonlin);
+        int generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts);
+        void add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacuts);
+        int cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname);
+        int cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list);
+        int cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname);
+        int cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list, const std::vector<size_t>& limits);
+        template<typename T=type>
+        bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, std::string model_name,int& oacuts, double active_tol);
+        template<typename T=type>
+        bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol,  int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
+        template<typename T=type>
+        double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol);
         template<typename T=type>
         void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
-        void add_outer_app_uniform(int nb_discr, Constraint<> con);
-        //template<typename T=type>
-        /** Adds OA cuts for active constraits in nonlin model and using nb_perturb perturbations to generate close by cuts.*/
-        void add_outer_app_active(const Model<type>& nonlin, int nb_perturb);
-        Model<type> add_outer_app_solution(const Model<type>& nonlin);
-        void add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin);
+        template<typename T=type>
+                void generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+                template<typename T=type>
+                bool obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+        template<typename T=type>
+        bool obbt_batch_update_bounds(const std::vector<std::string> objective_models, const std::vector<double>& sol_obj, const std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
+        template<typename T=type>
+        bool obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
+        template<typename T=type>
+        void populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol);
+        template<typename T=type>
+        double populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
+        template<typename T=type>
+        void create_batch_models(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double upper_bound, double lb_scale_value);
+        template<typename T=type>
+        void compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<type>>& obbt_model, const Model<type>& interior_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
+        template<typename T=type>
+        void batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
+        template<typename T=type>
+        void initialize_gurobi(double lb_solver_tol, vector<double>& vrbasis, vector<double>& crbasis);
+        template<typename T=type>
+        void add_linear_row(Constraint<type>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
+        void reset_lazy();
+        int num_obbt_prob(){
+            int count=0;
+            for(auto &v:_vars){
+                if(!v.second->is_lifted())
+                    count+=v.second->get_dim();
+            }
+            return count;
+        }
         
         
         //this function partitions a given SOC constraint to given number of uniform regions and construct hyperplanes in order to satisfy the SOC constraint at equality with an inner approximation as a convex relaxation (which is originally a non-convex constraint)
@@ -7325,23 +7510,23 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 bln_second_var._in_SOC_partn = false;
             }
         }
-        
         /* Run a single iteration of Optimality Based Bound Tightening
-         @param[in] relaxed_model a convex relaxtion of the current model
-         @param[in] res vector storing the computation results
-         */
-        template<typename T=type,
-        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,double,double,double> run_obbt_one_iteration(double& upper_bound_best, shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr);
+            @param[in] relaxed_model a convex relaxtion of the current model
+            @param[in] res vector storing the computation results
+            */
+           template<typename T=type,
+           typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+           std::tuple<bool,int,double,double,double,double,double,double,int,int,int> run_obbt_one_iteration(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, shared_ptr<Model<T>> obbt_model= nullptr, Model<T> & interior_model=nullptr, bool linearize=false, bool lag=false, int run_obbt_iter=1, double lb_scale_value=1e6, double solver_time_start=0, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false, double upper_bound_best=1e10);
 
-        
-        /* Run Optimality Based Bound Tightening
-        @param[in] relaxed_model a convex relaxtion of the current model
-        @param[in] res vector storing the computation results
-        */
-        template<typename T=type,
-        typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-        std::tuple<bool,int,double,double,double,double,double,double> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, double upper_bound=1e9);
+           
+           /* Run Optimality Based Bound Tightening
+            @param[in] relaxed_model a convex relaxtion of the current model
+            @param[in] res vector storing the computation results
+            */
+           template<typename T=type,
+           typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+           std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, bool lag=false, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false, double upper_bound_prev=1e10);
+           
         
         
 //        void add_on_off(var<>& v, var<bool>& on){
