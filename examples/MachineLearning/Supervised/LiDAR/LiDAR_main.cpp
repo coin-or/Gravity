@@ -1781,35 +1781,52 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
         Reg->add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
         
-        Reg->add(rot_x1.in(N1), rot_y1.in(N1), rot_z1.in(N1));
+       // Reg->add(rot_x1.in(N1), rot_y1.in(N1), rot_z1.in(N1));
+        
+//        Constraint<> x_rot1("x_rot1");
+//        x_rot1 += rot_x1;
+//        x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
+//        Reg->add(x_rot1.in(N1)==0);
+//
+//
+//        Constraint<> y_rot1("y_rot1");
+//        y_rot1 += rot_y1;
+//        y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
+//        Reg->add(y_rot1.in(N1)==0);
+//
+//        Constraint<> z_rot1("z_rot1");
+//        z_rot1 += rot_z1;
+//        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
+//        Reg->add(z_rot1.in(N1)==0);
+//
+//        Constraint<> x_tran("x_tran");
+//        x_tran=x_rot1+x_shift;
+//        Reg->add(x_tran.in(N1)==0);
+//
+//        Constraint<> y_tran("y_tran");
+//        y_tran=y_rot1+y_shift;
+//        Reg->add(x_tran.in(N1)==0);
+//
+//        Constraint<> z_tran("x_tran");
+//        z_tran=z_rot1+z_shift;
+//        Reg->add(x_tran.in(N1)==0);
+        
         
         Constraint<> x_rot1("x_rot1");
-        x_rot1 += rot_x1;
+        x_rot1 += new_x1 - x_shift.in(ids1);
         x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
         Reg->add(x_rot1.in(N1)==0);
         
         
         Constraint<> y_rot1("y_rot1");
-        y_rot1 += rot_y1;
+        y_rot1 += new_y1 - y_shift.in(ids1);
         y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
         Reg->add(y_rot1.in(N1)==0);
         
         Constraint<> z_rot1("z_rot1");
-        z_rot1 += rot_z1;
+        z_rot1 += new_z1 - z_shift.in(ids1);
         z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
         Reg->add(z_rot1.in(N1)==0);
-        
-        Constraint<> x_tran("x_tran");
-        x_tran=x_rot1+x_shift;
-        Reg->add(x_tran.in(N1)==0);
-        
-        Constraint<> y_tran("y_tran");
-        y_tran=y_rot1+y_shift;
-        Reg->add(x_tran.in(N1)==0);
-        
-        Constraint<> z_tran("x_tran");
-        z_tran=z_rot1+z_shift;
-        Reg->add(x_tran.in(N1)==0);
         
     }
     
