@@ -6176,7 +6176,7 @@ double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_so
             has_int=true;
             auto v=modelub->template get_var<double>(p.second->_name);
             for(auto key:*v._indices->_keys){
-                auto value=v.eval(key);
+                auto value=round(v.eval(key));
                 v.set_lb(key, value);
                 v.set_ub(key, value);
             }
@@ -6185,7 +6185,7 @@ double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_so
     // modelub->print();
     if(has_int){
         solver<> UB_solver(modelub,ub_solver_type);
-        UB_solver.run(0, ub_solver_tol);
+        UB_solver.run(5, ub_solver_tol);
         // modelub->print_solution();
         if(modelub->_status==0){
             ubi=modelub->get_obj_val();
@@ -6289,7 +6289,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         this->min(obj_m);
     }
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
+    UB_solver.run(output = 5, ub_solver_tol, 2000, 600);
     upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
     if(this->_status!=0){
         upper_bound=this->_obj->_range->second;
@@ -6548,7 +6548,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
             relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
             solver_time= get_wall_time()-solver_time_start;
-            bool update=false;
+            obbt_model->print();
+            obbt_model->print_solution();
             //obbt_model->print();
             if(!terminate){
                 this->update_upper_bound(obbt_model, batch_models, ub_sol,  ub_solver_type,  ub_solver_tol,  terminate,  linearize,  upper_bound, lb_scale_value, lower_bound,   gap,   abs_tol,  rel_tol, zero_tol);
