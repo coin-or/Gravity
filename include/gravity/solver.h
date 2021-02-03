@@ -392,7 +392,7 @@ public:
                 DebugOff("Return status = " << status << endl);
                 if (status == Solve_Succeeded) {
                     optimal = true;
-                    _model->round_solution();
+                   // _model->round_solution();
                     // Retrieve some statistics about the solve
                     //                printf("\n\nSolution of the primal variables:\n");
                     //                _model->print_solution();

@@ -276,9 +276,9 @@ int main (int argc, char * argv[])
         }
         else{
 
-     	       res_icp = run_GoICP(ext_model, ext_data);
-       	     auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-            auto upper_bound=get<6>(res_icp);
+     	       //res_icp = run_GoICP(ext_model, ext_data);
+       	    // auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+            //auto upper_bound=get<6>(res_icp);
            //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
             auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
@@ -286,9 +286,9 @@ int main (int argc, char * argv[])
             //S.run();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
             unsigned max_iter=1e3, max_time=3000;
-            int nb_threads=64;
+            int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol,false);
+            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         }
         bool compute_L2_error = true;
         if(compute_L2_error){
@@ -1462,6 +1462,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2"), nx2("nx2"), ny2("ny2"), nz2("nz2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
+    param<> d1("d1"), d2("d2");
         //        return 0;
     int m = av_nb_pairs;
     
@@ -1476,13 +1477,16 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         x1.add_val(i_str,point_cloud_data.at(i).at(0));
         y1.add_val(i_str,point_cloud_data.at(i).at(1));
         z1.add_val(i_str,point_cloud_data.at(i).at(2));
+        d1.add_val(i_str, (pow(point_cloud_data.at(i).at(0),2)+pow(point_cloud_data.at(i).at(1),2)+pow(point_cloud_data.at(i).at(2),2)));
     }
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
         x2.add_val(j_str,point_cloud_model.at(j).at(0));
         y2.add_val(j_str,point_cloud_model.at(j).at(1));
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
+        d2.add_val(j_str,(pow(point_cloud_model.at(j).at(0),2)+pow(point_cloud_model.at(j).at(1),2)+pow(point_cloud_model.at(j).at(2),2)));
     }
+    d2.print();
     
     double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000,dist_max=0;
     for (auto j = 0; j<nm; j++) {
@@ -1530,9 +1534,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     auto Reg=make_shared<Model<>>(name);
     
     var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
-    var<> new_nx("new_nx", -1, 1), new_ny("new_ny", -1, 1), new_nz("new_nz", -1, 1);
-    var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
-    var<> rot_x1("new_xm", -1, 1), rot_y1("new_ym", -1, 1), rot_z1("new_zm", -1, 1);
+    var<> new_nx("new_nx", -0.6, 0.6), new_ny("new_ny", -0.5, 0.5), new_nz("new_nz", 0, 0.4);
+    var<> new_xm("new_xm", -0.6, 0.6), new_ym("new_ym", -0.5, 0.5), new_zm("new_zm", 0, 0.4);
+    var<> rot_x1("rot_x1", -1, 1), rot_y1("rot_y1", -1, 1), rot_z1("rot_z1", -1, 1);
     var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
     
@@ -1598,6 +1602,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             ids.add_in_row(i, to_string(j));
         }
     }
+    
+
+    
     
     
     Constraint<> Def_newxm("Def_newxm");
@@ -1703,9 +1710,12 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     }
     }
     
+    if(!convex){
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
     Reg->add(Norm2.in(N1)>=0);
+    }
+
     
     Constraint<> trigR("trigR");
     trigR = pow(cosr,2) + pow(sinr,2);
@@ -1781,53 +1791,212 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
         Reg->add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
         
-       // Reg->add(rot_x1.in(N1), rot_y1.in(N1), rot_z1.in(N1));
-        
-//        Constraint<> x_rot1("x_rot1");
-//        x_rot1 += rot_x1;
-//        x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
-//        Reg->add(x_rot1.in(N1)==0);
+        Reg->add(rot_x1.in(N1));
+        Reg->add(rot_y1.in(N1));
+        Reg->add(rot_z1.in(N1));
+         
+        Constraint<> def_rotx("def_rotx");
+        def_rotx = rot_x1-((x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1)));
+        Reg->add(def_rotx.in(N1)==0);
+
+        Constraint<> def_roty("def_roty");
+        def_roty += rot_y1;
+        def_roty -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
+        Reg->add(def_roty.in(N1)==0);
 //
-//
-//        Constraint<> y_rot1("y_rot1");
-//        y_rot1 += rot_y1;
-//        y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
-//        Reg->add(y_rot1.in(N1)==0);
-//
-//        Constraint<> z_rot1("z_rot1");
-//        z_rot1 += rot_z1;
-//        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
-//        Reg->add(z_rot1.in(N1)==0);
-//
-//        Constraint<> x_tran("x_tran");
-//        x_tran=x_rot1+x_shift;
-//        Reg->add(x_tran.in(N1)==0);
-//
-//        Constraint<> y_tran("y_tran");
-//        y_tran=y_rot1+y_shift;
-//        Reg->add(x_tran.in(N1)==0);
-//
-//        Constraint<> z_tran("x_tran");
-//        z_tran=z_rot1+z_shift;
-//        Reg->add(x_tran.in(N1)==0);
+        Constraint<> def_rotz("def_rotz");
+        def_rotz += rot_z1;
+        def_rotz-= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
+        Reg->add(def_rotz.in(N1)==0);
+        
+    
+
+        Constraint<> x_tran("x_tran");
+        x_tran=new_x1-(rot_x1+x_shift);
+        Reg->add(x_tran.in(N1)==0);
+
+        Constraint<> y_tran("y_tran");
+        y_tran=new_y1-(rot_y1+y_shift);
+        Reg->add(y_tran.in(N1)==0);
+
+        Constraint<> z_tran("z_tran");
+        z_tran=new_z1-(rot_z1+z_shift);
+        Reg->add(z_tran.in(N1)==0);
+        
+        var<> Tx("Tx", 0, 0.25), Ty("Ty", 0, 0.25), Tz("Tz", 0, 0.25);
+        Reg->add(Tx.in(R(1)));
+        Reg->add(Ty.in(R(1)));
+        Reg->add(Tz.in(R(1)));
+       
+        Constraint<> def_Tx("def_Tx");
+        def_Tx=Tx-pow(x_shift,2);
+        Reg->add(def_Tx==0, true);
+        
+        Constraint<> def_Ty("def_Ty");
+        def_Ty=Ty-pow(y_shift,2);
+        Reg->add(def_Ty==0,true);
+        
+        Constraint<> def_Tz("def_Tz");
+        def_Tz=Tz-pow(z_shift,2);
+        Reg->add(def_Tz==0,true);
+        
+        var<> X("X", 0, 1), Y("Y", 0, 1), Z("Z", 0, 1);
+        Reg->add(X.in(N1));
+        Reg->add(Y.in(N1));
+        Reg->add(Z.in(N1));
+       
+        Constraint<> def_X("def_X");
+        def_X=X-pow(rot_x1,2);
+        Reg->add(def_X.in(N1)==0, true);
+        
+        Constraint<> def_Y("def_Y");
+        def_Y=Y-pow(rot_y1,2);
+        Reg->add(def_Y.in(N1)==0, true);
+        
+        Constraint<> def_Z("def_Z");
+        def_Z=Z-pow(rot_z1,2);
+        Reg->add(def_Z.in(N1)==0, true);
+        
+        Constraint<> cons_dist_rot("cons_dist_rot");
+        cons_dist_rot=X+Y+Z-d1;
+        Reg->add(cons_dist_rot.in(N1)==0);
+        
+        var<> MX("MX", 0, 1), MY("MY", 0, 1), MZ("MZ", 0, 1);
+        Reg->add(MX.in(N1));
+        Reg->add(MY.in(N1));
+        Reg->add(MZ.in(N1));
+       
+        Constraint<> def_MX("def_MX");
+        def_MX=MX-pow(new_xm,2);
+        Reg->add(def_MX.in(N1)==0, true);
+        
+        Constraint<> def_MY("def_MY");
+        def_MY=MY-pow(new_ym,2);
+        Reg->add(def_MY.in(N1)==0, true);
+        
+        Constraint<> def_MZ("def_MZ");
+        def_MZ=MZ-pow(new_zm,2);
+        Reg->add(def_MZ.in(N1)==0, true);
+        
+        Constraint<> cons_dist_model("cons_dist_model");
+        cons_dist_model = MX+MY+MZ-product(d2.in(ids),bin.in_matrix(1, 1));
+        Reg->add(cons_dist_model.in(N1)==0);
+        
+        var<> MXT("MXT", 0, 0.25), MYT("MYT", 0, 0.25), MZT("MZT", 0, 0.25);
+        Reg->add(MXT.in(N1));
+        Reg->add(MYT.in(N1));
+        Reg->add(MZT.in(N1));
+        
+        auto idn1=Tx.repeat_id(nd);
+        
+        Constraint<> def_MXT("def_MXT");
+        def_MXT=MXT.in(N1)-new_xm.in(N1)*x_shift.in(idn1);
+        Reg->add(def_MXT.in(N1)==0, true);
+        
+        Constraint<> def_MYT("def_MYT");
+        def_MYT=MYT.in(N1)-new_ym.in(N1)*y_shift.in(idn1);
+        Reg->add(def_MYT.in(N1)==0, true);
+        
+        Constraint<> def_MZT("def_MZT");
+        def_MZT=MZT.in(N1)-new_zm.in(N1)*z_shift.in(idn1);
+        Reg->add(def_MZT.in(N1)==0, true);
         
         
-        Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
-        x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
-        Reg->add(x_rot1.in(N1)==0);
+        var<> XT("XT", 0, 0.25), YT("YT", 0, 0.25), ZT("ZT", 0, 0.25);
+        Reg->add(XT.in(N1));
+        Reg->add(YT.in(N1));
+        Reg->add(ZT.in(N1));
         
+        Constraint<> def_XT("def_XT");
+        def_XT=XT.in(N1)-rot_x1.in(N1)*x_shift.in(idn1);
+        Reg->add(def_XT.in(N1)==0, true);
         
-        Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
-        y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
-        Reg->add(y_rot1.in(N1)==0);
+        Constraint<> def_YT("def_YT");
+        def_YT=YT.in(N1)-rot_y1.in(N1)*y_shift.in(idn1);
+        Reg->add(def_YT.in(N1)==0, true);
         
-        Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
-        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
-        Reg->add(z_rot1.in(N1)==0);
+        Constraint<> def_ZT("def_ZT");
+        def_ZT=ZT.in(N1)-rot_z1.in(N1)*z_shift.in(idn1);
+        Reg->add(def_ZT.in(N1)==0, true);
+
         
+        var<> XMX("XMX", 0, 1), YMY("YMY", 0, 1), ZMZ("ZMZ", 0, 1);
+        Reg->add(XMX.in(N1));
+        Reg->add(YMY.in(N1));
+        Reg->add(ZMZ.in(N1));
+        
+        Constraint<> def_XMX("def_XMX");
+        def_XMX=XMX.in(N1)-rot_x1.in(N1)*new_xm.in(N1);
+        Reg->add(def_XMX.in(N1)==0, true);
+        
+        Constraint<> def_YMY("def_YMY");
+        def_YMY=YMY.in(N1)-rot_y1.in(N1)*new_ym.in(N1);
+        Reg->add(def_YMY.in(N1)==0, true);
+       
+        Constraint<> def_ZMZ("def_ZMZ");
+        def_ZMZ=ZMZ.in(N1)-rot_z1.in(N1)*new_zm.in(N1);
+        Reg->add(def_ZMZ.in(N1)==0, true);
+       
+//        Constraint<> Norm2("Norm2");
+//        Norm2 += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
+//        Reg->add(Norm2.in(N1)>=0);
+        
+        Constraint<> Norm2("Norm2");
+        Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
+        Reg->add(Norm2.in(N1)>=0);
+        
+                Constraint<> Norm2a("Norm2a");
+                Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
+                Reg->add(Norm2a.in(N1)=0);
+
+        
+        Constraint<> soc_xmx("soc_xmx");
+        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
+        Reg->add(soc_xmx.in(N1)<=0);
+        
+        Constraint<> soc_xt("soc_xt");
+        soc_xt = pow(XT.in(N1),2)-X.in(N1)*Tx.in(idn1);
+        Reg->add(soc_xt.in(N1)<=0);
+        
+        Constraint<> soc_mxt("soc_mxt");
+        soc_mxt = pow(MXT,2)-MX.in(N1)*Tx.in(idn1);
+        Reg->add(soc_mxt.in(N1)<=0);
+        
+        Constraint<> soc_ymy("soc_ymy");
+        soc_ymy = pow(YMY.in(N1),2)-Y.in(N1)*MY.in(N1);
+        Reg->add(soc_ymy.in(N1)<=0);
+        
+        Constraint<> soc_yt("soc_yt");
+        soc_yt = pow(YT.in(N1),2)-Y.in(N1)*Ty.in(idn1);
+        Reg->add(soc_yt.in(N1)<=0);
+        
+        Constraint<> soc_myt("soc_myt");
+        soc_myt = pow(MYT,2)-MY.in(N1)*Ty.in(idn1);
+        Reg->add(soc_myt.in(N1)<=0);
+        
+        Constraint<> soc_zmz("soc_zmz");
+        soc_zmz = pow(ZMZ.in(N1),2)-Z.in(N1)*MZ.in(N1);
+        Reg->add(soc_zmz.in(N1)<=0);
+        
+        Constraint<> soc_zt("soc_zt");
+        soc_zt = pow(ZT.in(N1),2)-Z.in(N1)*Tz.in(idn1);
+        Reg->add(soc_zt.in(N1)<=0);
+        
+        Constraint<> soc_mzt("soc_mzt");
+        soc_mzt = pow(MZT,2)-MZ.in(N1)*Tz.in(idn1);
+        Reg->add(soc_mzt.in(N1)<=0);
+        
+        Constraint<> sdp_x("sdp_x");
+        sdp_x=X*MX*Tx.in(idn1)-X*pow(MXT,2)-pow(XMX,2)*Tx.in(idn1)+XMX*MXT*XT+XT*XMX*Tx.in(idn1)-pow(XT,2)*MXT;
+        Reg->add(sdp_x.in(N1)>=0);
+        
+        Constraint<> sdp_y("sdp_y");
+        sdp_y=Y*MY*Ty.in(idn1)-Y*pow(MYT,2)-pow(YMY,2)*Ty.in(idn1)+YMY*MYT*YT+YT*YMY*Ty.in(idn1)-pow(YT,2)*MYT;
+        Reg->add(sdp_y.in(N1)>=0);
+        
+        Constraint<> sdp_z("sdp_z");
+        sdp_z=Z*MZ*Tz.in(idn1)-Z*pow(MZT,2)-pow(ZMZ,2)*Tz.in(idn1)+ZMZ*MZT*ZT+ZT*ZMZ*Tz.in(idn1)-pow(ZT,2)*MZT;
+        Reg->add(sdp_z.in(N1)>=0);
     }
     
     
@@ -1853,7 +2022,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             //        Reg.replace_integers();
             //        auto Rel = Reg.relax();
         DebugOn("running convex model from model_build"<<endl);
-      //  Reg->print();
+        Reg->print();
 //        solver<> S(Reg,gurobi);
 //        S.run();
 //        Reg->print_solution();
