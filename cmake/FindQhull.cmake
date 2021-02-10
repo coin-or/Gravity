@@ -77,7 +77,7 @@ if(QHULL_INCLUDE_DIR AND QHULL_LIBRARY)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Qhull
+find_package_handle_standard_args(QHULL
   FOUND_VAR QHULL_FOUND
   REQUIRED_VARS QHULL_LIBRARIES QHULL_INCLUDE_DIRS
 )
