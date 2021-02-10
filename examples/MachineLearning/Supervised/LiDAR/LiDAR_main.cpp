@@ -227,7 +227,7 @@ int main (int argc, char * argv[])
             point_cloud_data[i][2] = z;
         }
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 100;
+        int nb_ext = 10;
         bool global = global_str=="global";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
@@ -242,7 +242,7 @@ int main (int argc, char * argv[])
         tuple<double,double,double,double,double,double,double> res_icp;
         tuple<double,double,double,double,double,double> res, res1, res2;
         
-        auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
+        auto L2error_init = computeL2error(ext_model,ext_data);
         DebugOn("L2 before Registration = " << L2error_init << endl);
         
         if(!obbt){
@@ -280,8 +280,8 @@ int main (int argc, char * argv[])
        	    // auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
             //auto upper_bound=get<6>(res_icp);
            //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            auto Reg_nc=model_Global_reform(false, "full", ext_model, ext_data);
-            auto Reg=model_Global_reform(true, "full", ext_model, ext_data);
+            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data);
+            auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
@@ -1451,8 +1451,187 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
+double largest_cube_halflength(double x0, double y0, double z0,  param<> x1, param<> y1, param<> z1){
+    /*Can only use extreme points for this!, all points not needed*/
+    vector<double> xmax,ymax,zmax,dmax,umax,xu, yu, zu;
+    dmax.resize(8,-100);
+    xmax.resize(8,100);
+    ymax.resize(8,100);
+    zmax.resize(8,100);
+    umax.resize(8,-100);
+    xu.resize(8,100);
+    yu.resize(8,100);
+    zu.resize(8,100);
+    string i_str;
+    double d,x,y,z, lmin;
+    int nd=x1._indices->_keys->size();
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        x=x1.eval(i_str);
+        y=y1.eval(i_str);
+        z=z1.eval(i_str);
+        d=pow(x-x0,2)+pow(y-y0,2)+pow(z-z0,2);
+        auto u=std::abs(x)+std::abs(y)+std::abs(z);
+        if(z>=z0 && y>=y0 && x>=x0){
+            if(d>=dmax[0]){
+                dmax[0]=sqrt(d);
+                xmax[0]=(x-x0);
+                ymax[0]=(y-y0);
+                zmax[0]=(z-z0);
+            }
+            if(u>=umax[0]){
+                umax[0]=u;
+                xu[0]=(x-x0);
+                yu[0]=(y-y0);
+                zu[0]=(z-z0);
+            }
+        }
+        if(z>=z0 && y>=y0 && x<=x0){
+            if(d>=dmax[1]){
+                dmax[1]=sqrt(d);
+                xmax[1]=x-x0;
+                ymax[1]=y-y0;
+                zmax[1]=z-z0;
+            }
+            if(u>=umax[0]){
+                umax[1]=u;
+                xu[1]=(x-x0);
+                yu[1]=(y-y0);
+                zu[1]=(z-z0);
+            }
+        }
+        if(z>=z0 && y<=y0 && x<=x0){
+            if(d>=dmax[2]){
+                dmax[2]=sqrt(d);
+                xmax[2]=x-x0;
+                ymax[2]=y-y0;
+                zmax[2]=z-z0;
+            }
+            if(u>=umax[0]){
+                umax[2]=u;
+                xu[2]=(x-x0);
+                yu[2]=(y-y0);
+                zu[2]=(z-z0);
+            }
+        }
+        
+        if(z>=z0 && y<=y0 && x>=x0){
+            if(d>=dmax[3]){
+                dmax[3]=sqrt(d);
+                xmax[3]=x-x0;
+                ymax[3]=y-y0;
+                zmax[3]=z-z0;
+            }
+            if(u>=umax[0]){
+                umax[3]=u;
+                xu[3]=(x-x0);
+                yu[3]=(y-y0);
+                zu[3]=(z-z0);
+            }
+        }
+        if(z<=z0 && y>=y0 && x>=x0){
+            if(d>=dmax[4]){
+                dmax[4]=sqrt(d);
+                xmax[4]=x-x0;
+                ymax[4]=y-y0;
+                zmax[4]=z-z0;
+            }
+            if(u>=umax[4]){
+                umax[4]=u;
+                xu[4]=(x-x0);
+                yu[4]=(y-y0);
+                zu[4]=(z-z0);
+            }
+        }
+        if(z<=z0 && y>=y0 && x<=x0){
+            if(d>=dmax[5]){
+                dmax[5]=sqrt(d);
+                xmax[5]=x-x0;
+                ymax[5]=y-y0;
+                zmax[5]=z-z0;
+            }
+            if(u>=umax[5]){
+                umax[5]=u;
+                xu[5]=(x-x0);
+                yu[5]=(y-y0);
+                zu[5]=(z-z0);
+            }
+        }
+        if(z<=z0 && y<=y0 && x<=x0){
+            if(d>=dmax[6]){
+                dmax[6]=sqrt(d);
+                xmax[6]=x-x0;
+                ymax[6]=y-y0;
+                zmax[6]=z-z0;
+            }
+            if(u>=umax[6]){
+                umax[6]=u;
+                xu[6]=(x-x0);
+                yu[6]=(y-y0);
+                zu[6]=(z-z0);
+            }
+        }
+        
+        if(z<=z0 && y<=y0 && x>=x0){
+            if(d>=dmax[7]){
+                dmax[7]=d;
+                xmax[7]=x-x0;
+                ymax[7]=y-y0;
+                zmax[7]=z-z0;
+            }
+            if(u>=umax[7]){
+                umax[7]=u;
+                xu[7]=(x-x0);
+                yu[7]=(y-y0);
+                zu[7]=(z-z0);
+            }
+        }
+        
+    }
+    lmin=100;
+    if(*std::min_element(dmax.begin(), dmax.end())>=0){
+        for(auto i=0;i<8;i++){
+            if(abs(xmax[i])<=lmin){
+                lmin=xmax[i];
+            }
+            if(abs(ymax[i])<=lmin){
+                lmin=ymax[i];
+            }
+            if(abs(zmax[i])<=lmin){
+                lmin=zmax[i];
+            }
+            
+        }
+    }
+    return lmin;
+}
+
+void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, double yl, double yu, double zl, double zu, double& dbox_min, double& dbox_max){
+    /*Can only use extreme points for this!, all points not needed*/
+
+    vector<double> d;
+    
+    d.push_back(pow(xu-x0,2)+pow(yu-y0,2)+pow(zu-z0,2));
+    d.push_back(pow(xl-x0,2)+pow(yu-y0,2)+pow(zu-z0,2));
+    d.push_back(pow(xl-x0,2)+pow(yl-y0,2)+pow(zu-z0,2));
+    d.push_back(pow(xu-x0,2)+pow(yl-y0,2)+pow(zu-z0,2));
+    d.push_back(pow(xu-x0,2)+pow(yu-y0,2)+pow(zl-z0,2));
+    d.push_back(pow(xl-x0,2)+pow(yu-y0,2)+pow(zl-z0,2));
+    d.push_back(pow(xl-x0,2)+pow(yl-y0,2)+pow(zl-z0,2));
+    d.push_back(pow(xu-x0,2)+pow(yl-y0,2)+pow(zl-z0,2));
+    
+    auto a=std::minmax_element(d.begin(), d.end());
+    dbox_min=*a.first;
+    dbox_max=*a.second;
+    
+    if((xl<=x0) && (xu>=x0) && (yl<=y0) && (yu>=y0) && (zl<=z0) && (zu>=z0)){
+        dbox_min=0;
+    }
+    
+}
+
 shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 3.14, shift_max = 0.5;
+    double angle_max = 3.14;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1470,26 +1649,103 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     indices Pairs("Pairs"), cells("cells");
     int idx1 = 0;
     int idx2 = 0;
+    double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000,dist_max=0;
     
+    double model_min_x=10, model_max_x=-1, model_min_y=10, model_max_y=-1,model_min_z=10, model_max_z=-1, model_dist_min=100, model_dist_max=-1, data_dist_min=100, data_dist_max=-1;
+    double data_min_x=10, data_max_x=-1, data_min_y=10, data_max_y=-1,data_min_z=10, data_max_z=-1;
+    double c1=0,c2=0,c3=0;
     /* Compute nearest points in data point cloud */
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
         x1.add_val(i_str,point_cloud_data.at(i).at(0));
         y1.add_val(i_str,point_cloud_data.at(i).at(1));
         z1.add_val(i_str,point_cloud_data.at(i).at(2));
-        d1.add_val(i_str, (pow(point_cloud_data.at(i).at(0),2)+pow(point_cloud_data.at(i).at(1),2)+pow(point_cloud_data.at(i).at(2),2)));
+        c1+=x1.eval(i_str);
+        c2+=y1.eval(i_str);
+        c3+=z1.eval(i_str);
     }
+    c1=c1/nd;
+    c2=c2/nd;
+    c3=c3/nd;
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        auto x=x1.eval(i_str)-c1;
+        auto y=y1.eval(i_str)-c2;
+        auto z=z1.eval(i_str)-c3;
+        x1.set_val(i_str,x);
+        y1.set_val(i_str,y);
+        z1.set_val(i_str,z);
+        d1.add_val(i_str, (pow(x,2)+pow(y,2)+pow(z,2)));
+        if(x1.eval(i_str)<=data_min_x){
+            data_min_x=x1.eval(i_str);
+        }
+        if(x1.eval(i_str)>=data_max_x){
+            data_max_x=x1.eval(i_str);
+        }
+        if(y1.eval(i_str)<=data_min_y){
+            data_min_y=y1.eval(i_str);
+        }
+        if(y1.eval(i_str)>=data_max_y){
+            data_max_y=y1.eval(i_str);
+        }
+        if(z1.eval(i_str)<=data_min_z){
+            data_min_z=z1.eval(i_str);
+        }
+        if(z1.eval(i_str)>=data_max_x){
+            data_max_z=z1.eval(i_str);
+        }
+    }
+    
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
         x2.add_val(j_str,point_cloud_model.at(j).at(0));
         y2.add_val(j_str,point_cloud_model.at(j).at(1));
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
         d2.add_val(j_str,(pow(point_cloud_model.at(j).at(0),2)+pow(point_cloud_model.at(j).at(1),2)+pow(point_cloud_model.at(j).at(2),2)));
+        if(x2.eval(j_str)<=model_min_x){
+            model_min_x=x2.eval(j_str);
+        }
+        if(x2.eval(j_str)>=model_max_x){
+            model_max_x=x2.eval(j_str);
+        }
+        if(y2.eval(j_str)<=model_min_y){
+            model_min_y=y2.eval(j_str);
+        }
+        if(y2.eval(j_str)>=model_max_y){
+            model_max_y=y2.eval(j_str);
+        }
+        if(z2.eval(j_str)<=model_min_z){
+            model_min_z=z2.eval(j_str);
+        }
+        if(z2.eval(j_str)>=model_max_z){
+            model_max_z=z2.eval(j_str);
+        }
     }
-    d2.print();
     
-    double x,y,z,nx,ny,nz,kx,ky,kz, d=10000, dist_min=100000,dist_max=0;
-    for (auto j = 0; j<nm; j++) {
+    double m_min_x=std::max(-1.0,(model_min_x-0.1));
+    double m_max_x=std::min(1.0, (model_max_x+0.1));
+    double m_min_y=std::max(-1.0, (model_min_y-0.1));
+    double m_max_y=std::min(1.0, (model_max_y+0.1));
+    double m_min_z=std::max(-1.0, (model_min_z-0.1));
+    double m_max_z=std::min(1.0, (model_max_z+0.1));
+    double shift_min_x=model_min_x, shift_max_x=model_max_x,
+    shift_min_y=model_min_y,shift_max_y=model_max_y,
+    shift_min_z=model_min_z,shift_max_z=model_max_z;
+    
+    double lmin=largest_cube_halflength(0, 0, 0,  x1, y1, z1);
+    if(lmin<=1){
+        shift_max_x-=lmin;
+        shift_min_x+=lmin;
+        shift_max_y-=lmin;
+        shift_min_y+=lmin;
+        shift_max_z-=lmin;
+        shift_min_z+=lmin;
+    }
+    
+    if((shift_min_x>=shift_max_x)||(shift_min_y>=shift_max_y)||(shift_min_z>=shift_max_z))
+        throw invalid_argument("computation of translation bounds wrong");
+    
+    for (auto j = 0; j<nm; j++){
         j_str = to_string(j+1);
         x=x2.eval(j_str);
         y=y2.eval(j_str);
@@ -1511,13 +1767,97 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
                 if(d>dist_max)
                     dist_max=d;
             }
-            
         }
         nx2.add_val(j_str,nx);
         ny2.add_val(j_str,ny);
         nz2.add_val(j_str,nz);
     }
+    param<> new_min_x("new_min_x"), new_max_x("new_max_x"),new_min_y("new_min_y"),new_max_y("new_max_y"),new_min_z("new_min_z"),new_max_z("new_max_z");
+    double n_min_x, n_max_x,n_min_y,n_max_y,n_min_z,n_max_z,dmin,dmax,dij_min, dij_max;
+    param<> bij_max("bij_max");
+    bij_max.in(cells);
+    for(auto i=0;i<nd;i++){
+        i_str = to_string(i+1);
+        x=x1.eval(i_str);
+        y=y1.eval(i_str);
+        z=z1.eval(i_str);
+        d=d1.eval(i_str);
+        auto r=sqrt(d);
+        auto l=largest_cube_halflength(x,y,z,x1,y1,z1);
+        n_max_x=r+shift_max_x;
+        if(m_max_x<=(n_max_x+l)){
+            n_max_x=m_max_x-l;
+        }
+        n_min_x=-r+shift_min_x;
+        if(m_min_x>=(n_min_x-l)){
+            n_min_x=m_min_x+l;
+        }
+        n_max_y=r+shift_max_y;
+        if(m_max_y<=(n_max_y+l)){
+            n_max_y=m_max_y-l;
+        }
+        n_min_y=-r+shift_min_y;
+        if(m_min_x>=(n_min_y-l)){
+            n_min_y=m_min_y+l;
+        }
+        n_max_z=r+shift_max_z;
+        if(m_max_z<=(n_max_z+l)){
+            n_max_z=m_max_z-l;
+        }
+        n_min_z=-r+shift_min_z;
+        if(m_min_z>=(n_min_z-l)){
+            n_min_z=m_min_z+l;
+        }
+        new_min_x.add_val(n_min_x);
+        new_max_x.add_val(n_max_x);
+        new_min_y.add_val(n_min_y);
+        new_max_y.add_val(n_max_y);
+        new_min_z.add_val(n_min_z);
+        new_max_z.add_val(n_max_z);
+        dij_min=100,dij_max=12;
+        for(auto j=0;j<nm;j++){
+            j_str = to_string(j+1);
+            bij_max.add_val(i, j, 1);
+            auto xm=x2.eval(j_str);
+            auto ym=y2.eval(j_str);
+            auto zm=z2.eval(j_str);
+            min_max_dist_box(xm,ym,zm,n_min_x,n_max_x, n_min_y, n_max_y, n_min_z, n_max_z,dmin,dmax);
+            if(dmax<=dij_max){
+                dij_max=dmax;
+            }
+            if(dmin>=dij_max){
+                bij_max.set_val(i,j,0);
+            }
+        }
+    }
+  
+    bij_max.print();
+    d1.print();
+    d2.print();
+    x1.print();
+    y1.print();
+    z1.print();
+    x2.print();
+    y2.print();
+    z2.print();
+    new_min_x.print();
+    new_max_x.print();
+    new_min_y.print();
+    new_max_y.print();
+    new_min_z.print();
+    new_max_z.print();
     
+    nx2.print();
+    ny2.print();
+    nz2.print();
+    
+    
+  
+    
+
+    DebugOn(model_min_x<<"\t"<<model_max_x<<endl);
+    DebugOn(model_min_y<<"\t"<<model_max_y<<endl);
+    DebugOn(model_min_z<<"\t"<<model_max_z<<endl);
     DebugOn("distance max "<< dist_max<<endl);
     idx1 = 0;
     indices N1("N1"),N2("N2");
@@ -1533,17 +1873,16 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     }
     auto Reg=make_shared<Model<>>(name);
     
-    var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
-    var<> new_nx("new_nx", -0.6, 0.6), new_ny("new_ny", -0.5, 0.5), new_nz("new_nz", 0, 0.4);
-    var<> new_xm("new_xm", -0.6, 0.6), new_ym("new_ym", -0.5, 0.5), new_zm("new_zm", 0, 0.4);
-    var<> rot_x1("rot_x1", -1, 1), rot_y1("rot_y1", -1, 1), rot_z1("rot_z1", -1, 1);
+    var<> new_x1("new_x1", m_min_x, m_max_x), new_y1("new_y1", m_min_y, m_max_y), new_z1("new_z1", m_min_z, m_max_z);
+    var<> new_nx("new_nx", 0, 1), new_ny("new_ny", 0, 1), new_nz("new_nz", 0, 1);
+    var<> new_xm("new_xm", model_min_x, model_max_x), new_ym("new_ym", model_min_y, model_max_y), new_zm("new_zm", model_min_z, model_max_z);
+    var<> rot_x1("rot_x1", sqrt(d1)*(-1), sqrt(d1)), rot_y1("rot_y1", sqrt(d1)*(-1), sqrt(d1)), rot_z1("rot_z1", sqrt(d1)*(-1), sqrt(d1));
     var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
-    
     
       bool bounded=true;
 //     if(!bounded){
      var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
-     var<> cosp("cosp",   0, 1), sinp("sinp", -1, 1);
+     var<> cosp("cosp",   -1, 1), sinp("sinp", -1, 1);
      var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
      var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
      var<> siny_sinp("siny_sinp", -1, 1);
@@ -1571,8 +1910,8 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 
 //     }
     
-    var<> x_shift("x_shift", -shift_max, shift_max), y_shift("y_shift", -shift_max, shift_max), z_shift("z_shift", -shift_max, shift_max);
-    
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+
     var<> delta("delta", 0,12);
     
     var<int> bin("bin",0,1);
@@ -1603,10 +1942,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         }
     }
     
-
-    
-    
-    
     Constraint<> Def_newxm("Def_newxm");
     Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newxm.in(N1)==0);
@@ -1623,12 +1958,20 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
     
-    
     if(convex){
-    bool vi_M=false;
+    bool vi_M=true;
     if(vi_M){
         Constraint<> VI_M("VI_M");
-        VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(6)*(1-bin.in(cells));
+        VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells);
+        VI_M -= 2*(min((x2.to(cells)-nx2.to(cells))*new_x1.get_lb().from(cells),(x2.to(cells)-nx2.to(cells))*new_x1.get_ub().from(cells)))*(1-bin.in(cells));
+        VI_M -=2*(min((y2.to(cells)-ny2.to(cells))*new_y1.get_lb().from(cells),(y2.to(cells)-ny2.to(cells))*new_y1.get_ub().from(cells)))*(1-bin.in(cells));
+                  
+        VI_M -=   2*(min((z2.to(cells)-nz2.to(cells))*new_z1.get_lb().from(cells),(z2.to(cells)-nz2.to(cells))*new_z1.get_ub().from(cells)))*(1-bin.in(cells));
+        
+        //VI_M -= 2*(-3)*(1-bin.in(cells));
+//        VI_M -= 2*((x2.to(cells)-nx2.to(cells))*new_x1.get_lb().from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.get_lb().from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.get_lb().from(cells))*(1-bin.in(cells));
+//        Constraint<> VI_M("VI_M");
+//        VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(6)*(1-bin.in(cells));
         Reg->add(VI_M.in(cells)>=0);
     }
     bool vi_reform=false;
@@ -1649,7 +1992,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Def_newnz = new_nz-product(nz2.in(ids),bin.in_matrix(1, 1));
         Reg->add(Def_newnz.in(N1)==0);
         
-        
         if(vi_nonconvex){
             
             Constraint<> VI_nonconvex("VI_nonconvex");
@@ -1657,7 +1999,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             Reg->add(VI_nonconvex.in(N1)>=0);
         }
         else{
-            
             
             var<> px("px", -1, 1), py("py", -1, 1), pz("pz", -1, 1), nlift("nlift", 0, 3);
             Reg->add(px.in(N1),py.in(N1),pz.in(N1));
@@ -1688,7 +2029,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             
             if(convex){
                 Reg->add(nlift.in(N1));
-                
                 Constraint<> Def_nlift("Def_nlift");
                 Def_nlift = nlift-pow(new_nx,2)-pow(new_ny,2)-pow(new_nz,2);
                 Reg->add(Def_nlift.in(N1)>=0);
@@ -1715,8 +2055,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
     Reg->add(Norm2.in(N1)>=0);
     }
-
-    
     Constraint<> trigR("trigR");
     trigR = pow(cosr,2) + pow(sinr,2);
     if(!convex)
@@ -1729,14 +2067,13 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add(trigP==1);
     else
         Reg->add(trigP==1, true);
-
+    
     Constraint<> trigY("trigY");
     trigY = pow(cosy,2) + pow(siny,2);
     if(!convex)
         Reg->add(trigY==1);
     else
         Reg->add(trigY==1, true);
-    
     
     if(!convex){
         Constraint<> cosy_sinr_prod("cosy_sinr");
@@ -1774,9 +2111,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Constraint<> z_rot1("z_rot1");
         z_rot1 += new_z1 + z_shift.in(ids1);
         z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
-        Reg->add(z_rot1.in(N1)==0);
+       Reg->add(z_rot1.in(N1)==0);
     }
-    else {
+    else{
             //        Reg.add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
             //        Reg.add_McCormick("siny_sinr", siny_sinr, siny, sinr);
         Reg->add_McCormick("cosy_cosr", cosy_cosr, cosy, cosr);
@@ -1796,7 +2133,8 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add(rot_z1.in(N1));
          
         Constraint<> def_rotx("def_rotx");
-        def_rotx = rot_x1-((x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1)));
+        def_rotx  += rot_x1;
+        def_rotx -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
         Reg->add(def_rotx.in(N1)==0);
 
         Constraint<> def_roty("def_roty");
@@ -1808,9 +2146,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         def_rotz += rot_z1;
         def_rotz-= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
         Reg->add(def_rotz.in(N1)==0);
-        
-    
-
+      
         Constraint<> x_tran("x_tran");
         x_tran=new_x1-(rot_x1+x_shift);
         Reg->add(x_tran.in(N1)==0);
@@ -1823,187 +2159,188 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         z_tran=new_z1-(rot_z1+z_shift);
         Reg->add(z_tran.in(N1)==0);
         
-        var<> Tx("Tx", 0, 0.25), Ty("Ty", 0, 0.25), Tz("Tz", 0, 0.25);
+        Constraint<> Norm2("Norm2");
+        Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
+        Reg->add(Norm2.in(N1)>=0);
+//
+        var<> Tx("Tx", 0, 1), Ty("Ty", 0, 1), Tz("Tz", 0, 1);
         Reg->add(Tx.in(R(1)));
         Reg->add(Ty.in(R(1)));
         Reg->add(Tz.in(R(1)));
-       
+
         Constraint<> def_Tx("def_Tx");
         def_Tx=Tx-pow(x_shift,2);
         Reg->add(def_Tx==0, true);
-        
+
         Constraint<> def_Ty("def_Ty");
         def_Ty=Ty-pow(y_shift,2);
         Reg->add(def_Ty==0,true);
-        
+
         Constraint<> def_Tz("def_Tz");
         def_Tz=Tz-pow(z_shift,2);
         Reg->add(def_Tz==0,true);
-        
+
         var<> X("X", 0, 1), Y("Y", 0, 1), Z("Z", 0, 1);
         Reg->add(X.in(N1));
         Reg->add(Y.in(N1));
         Reg->add(Z.in(N1));
-       
+
         Constraint<> def_X("def_X");
         def_X=X-pow(rot_x1,2);
         Reg->add(def_X.in(N1)==0, true);
-        
+
         Constraint<> def_Y("def_Y");
         def_Y=Y-pow(rot_y1,2);
         Reg->add(def_Y.in(N1)==0, true);
-        
+
         Constraint<> def_Z("def_Z");
         def_Z=Z-pow(rot_z1,2);
         Reg->add(def_Z.in(N1)==0, true);
-        
+
         Constraint<> cons_dist_rot("cons_dist_rot");
         cons_dist_rot=X+Y+Z-d1;
         Reg->add(cons_dist_rot.in(N1)==0);
-        
+
         var<> MX("MX", 0, 1), MY("MY", 0, 1), MZ("MZ", 0, 1);
         Reg->add(MX.in(N1));
         Reg->add(MY.in(N1));
         Reg->add(MZ.in(N1));
-       
+
         Constraint<> def_MX("def_MX");
         def_MX=MX-pow(new_xm,2);
         Reg->add(def_MX.in(N1)==0, true);
-        
+
         Constraint<> def_MY("def_MY");
         def_MY=MY-pow(new_ym,2);
         Reg->add(def_MY.in(N1)==0, true);
-        
+
         Constraint<> def_MZ("def_MZ");
         def_MZ=MZ-pow(new_zm,2);
         Reg->add(def_MZ.in(N1)==0, true);
-        
+
         Constraint<> cons_dist_model("cons_dist_model");
         cons_dist_model = MX+MY+MZ-product(d2.in(ids),bin.in_matrix(1, 1));
         Reg->add(cons_dist_model.in(N1)==0);
         
-        var<> MXT("MXT", 0, 0.25), MYT("MYT", 0, 0.25), MZT("MZT", 0, 0.25);
-        Reg->add(MXT.in(N1));
-        Reg->add(MYT.in(N1));
-        Reg->add(MZT.in(N1));
-        
-        auto idn1=Tx.repeat_id(nd);
-        
-        Constraint<> def_MXT("def_MXT");
-        def_MXT=MXT.in(N1)-new_xm.in(N1)*x_shift.in(idn1);
-        Reg->add(def_MXT.in(N1)==0, true);
-        
-        Constraint<> def_MYT("def_MYT");
-        def_MYT=MYT.in(N1)-new_ym.in(N1)*y_shift.in(idn1);
-        Reg->add(def_MYT.in(N1)==0, true);
-        
-        Constraint<> def_MZT("def_MZT");
-        def_MZT=MZT.in(N1)-new_zm.in(N1)*z_shift.in(idn1);
-        Reg->add(def_MZT.in(N1)==0, true);
-        
-        
-        var<> XT("XT", 0, 0.25), YT("YT", 0, 0.25), ZT("ZT", 0, 0.25);
-        Reg->add(XT.in(N1));
-        Reg->add(YT.in(N1));
-        Reg->add(ZT.in(N1));
-        
-        Constraint<> def_XT("def_XT");
-        def_XT=XT.in(N1)-rot_x1.in(N1)*x_shift.in(idn1);
-        Reg->add(def_XT.in(N1)==0, true);
-        
-        Constraint<> def_YT("def_YT");
-        def_YT=YT.in(N1)-rot_y1.in(N1)*y_shift.in(idn1);
-        Reg->add(def_YT.in(N1)==0, true);
-        
-        Constraint<> def_ZT("def_ZT");
-        def_ZT=ZT.in(N1)-rot_z1.in(N1)*z_shift.in(idn1);
-        Reg->add(def_ZT.in(N1)==0, true);
-
-        
-        var<> XMX("XMX", 0, 1), YMY("YMY", 0, 1), ZMZ("ZMZ", 0, 1);
-        Reg->add(XMX.in(N1));
-        Reg->add(YMY.in(N1));
-        Reg->add(ZMZ.in(N1));
-        
-        Constraint<> def_XMX("def_XMX");
-        def_XMX=XMX.in(N1)-rot_x1.in(N1)*new_xm.in(N1);
-        Reg->add(def_XMX.in(N1)==0, true);
-        
-        Constraint<> def_YMY("def_YMY");
-        def_YMY=YMY.in(N1)-rot_y1.in(N1)*new_ym.in(N1);
-        Reg->add(def_YMY.in(N1)==0, true);
-       
-        Constraint<> def_ZMZ("def_ZMZ");
-        def_ZMZ=ZMZ.in(N1)-rot_z1.in(N1)*new_zm.in(N1);
-        Reg->add(def_ZMZ.in(N1)==0, true);
+//        var<> MXT("MXT", -1, 1), MYT("MYT", -1, 1), MZT("MZT", -1, 1);
+//        Reg->add(MXT.in(N1));
+//        Reg->add(MYT.in(N1));
+//        Reg->add(MZT.in(N1));
+//
+//        auto idn1=Tx.repeat_id(nd);
+//
+//        Constraint<> def_MXT("def_MXT");
+//        def_MXT=MXT.in(N1)-new_xm.in(N1)*x_shift.in(idn1);
+//        Reg->add(def_MXT.in(N1)==0, true);
+//
+//        Constraint<> def_MYT("def_MYT");
+//        def_MYT=MYT.in(N1)-new_ym.in(N1)*y_shift.in(idn1);
+//        Reg->add(def_MYT.in(N1)==0, true);
+//
+//        Constraint<> def_MZT("def_MZT");
+//        def_MZT=MZT.in(N1)-new_zm.in(N1)*z_shift.in(idn1);
+//        Reg->add(def_MZT.in(N1)==0, true);
+//
+//        var<> XT("XT", -1, 1), YT("YT", -1, 1), ZT("ZT", -1, 1);
+//        Reg->add(XT.in(N1));
+//        Reg->add(YT.in(N1));
+//        Reg->add(ZT.in(N1));
+//
+//        Constraint<> def_XT("def_XT");
+//        def_XT=XT.in(N1)-rot_x1.in(N1)*x_shift.in(idn1);
+//        Reg->add(def_XT.in(N1)==0, true);
+//
+//        Constraint<> def_YT("def_YT");
+//        def_YT=YT.in(N1)-rot_y1.in(N1)*y_shift.in(idn1);
+//        Reg->add(def_YT.in(N1)==0, true);
+//
+//        Constraint<> def_ZT("def_ZT");
+//        def_ZT=ZT.in(N1)-rot_z1.in(N1)*z_shift.in(idn1);
+//        Reg->add(def_ZT.in(N1)==0, true);
+//
+//        var<> XMX("XMX", -1, 1), YMY("YMY", -1, 1), ZMZ("ZMZ", -1, 1);
+//        Reg->add(XMX.in(N1));
+//        Reg->add(YMY.in(N1));
+//        Reg->add(ZMZ.in(N1));
+//
+//        Constraint<> def_XMX("def_XMX");
+//        def_XMX=XMX.in(N1)-rot_x1.in(N1)*new_xm.in(N1);
+//        Reg->add(def_XMX.in(N1)==0, true);
+//
+//        Constraint<> def_YMY("def_YMY");
+//        def_YMY=YMY.in(N1)-rot_y1.in(N1)*new_ym.in(N1);
+//        Reg->add(def_YMY.in(N1)==0, true);
+//
+//        Constraint<> def_ZMZ("def_ZMZ");
+//        def_ZMZ=ZMZ.in(N1)-rot_z1.in(N1)*new_zm.in(N1);
+//        Reg->add(def_ZMZ.in(N1)==0, true);
        
 //        Constraint<> Norm2("Norm2");
 //        Norm2 += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
 //        Reg->add(Norm2.in(N1)>=0);
         
-        Constraint<> Norm2("Norm2");
-        Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
-        Reg->add(Norm2.in(N1)>=0);
+  
+//
+//                Constraint<> Norm2a("Norm2a");
+//                Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX-XT+MXT+YMY-YT+MYT+ZMZ-ZT+MZT));
+//                Reg->add(Norm2a.in(N1)==0);
         
-                Constraint<> Norm2a("Norm2a");
-                Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
-                Reg->add(Norm2a.in(N1)=0);
+//        Constraint<> Norm2a("Norm2a");
+//        Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(rot_x1*new_xm-rot_x1*x_shift.in(idn1)+new_xm*x_shift.in(idn1)+rot_y1*new_ym-rot_y1*y_shift.in(idn1)+new_ym*y_shift.in(idn1)+rot_z1*new_zm-rot_z1*z_shift.in(idn1)+new_zm*z_shift.in(idn1)));
+//        Reg->add(Norm2a.in(N1)>=0);
 
         
-        Constraint<> soc_xmx("soc_xmx");
-        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
-        Reg->add(soc_xmx.in(N1)<=0);
-        
-        Constraint<> soc_xt("soc_xt");
-        soc_xt = pow(XT.in(N1),2)-X.in(N1)*Tx.in(idn1);
-        Reg->add(soc_xt.in(N1)<=0);
-        
-        Constraint<> soc_mxt("soc_mxt");
-        soc_mxt = pow(MXT,2)-MX.in(N1)*Tx.in(idn1);
-        Reg->add(soc_mxt.in(N1)<=0);
-        
-        Constraint<> soc_ymy("soc_ymy");
-        soc_ymy = pow(YMY.in(N1),2)-Y.in(N1)*MY.in(N1);
-        Reg->add(soc_ymy.in(N1)<=0);
-        
-        Constraint<> soc_yt("soc_yt");
-        soc_yt = pow(YT.in(N1),2)-Y.in(N1)*Ty.in(idn1);
-        Reg->add(soc_yt.in(N1)<=0);
-        
-        Constraint<> soc_myt("soc_myt");
-        soc_myt = pow(MYT,2)-MY.in(N1)*Ty.in(idn1);
-        Reg->add(soc_myt.in(N1)<=0);
-        
-        Constraint<> soc_zmz("soc_zmz");
-        soc_zmz = pow(ZMZ.in(N1),2)-Z.in(N1)*MZ.in(N1);
-        Reg->add(soc_zmz.in(N1)<=0);
-        
-        Constraint<> soc_zt("soc_zt");
-        soc_zt = pow(ZT.in(N1),2)-Z.in(N1)*Tz.in(idn1);
-        Reg->add(soc_zt.in(N1)<=0);
-        
-        Constraint<> soc_mzt("soc_mzt");
-        soc_mzt = pow(MZT,2)-MZ.in(N1)*Tz.in(idn1);
-        Reg->add(soc_mzt.in(N1)<=0);
-        
-        Constraint<> sdp_x("sdp_x");
-        sdp_x=X*MX*Tx.in(idn1)-X*pow(MXT,2)-pow(XMX,2)*Tx.in(idn1)+XMX*MXT*XT+XT*XMX*Tx.in(idn1)-pow(XT,2)*MXT;
-        Reg->add(sdp_x.in(N1)>=0);
-        
-        Constraint<> sdp_y("sdp_y");
-        sdp_y=Y*MY*Ty.in(idn1)-Y*pow(MYT,2)-pow(YMY,2)*Ty.in(idn1)+YMY*MYT*YT+YT*YMY*Ty.in(idn1)-pow(YT,2)*MYT;
-        Reg->add(sdp_y.in(N1)>=0);
-        
-        Constraint<> sdp_z("sdp_z");
-        sdp_z=Z*MZ*Tz.in(idn1)-Z*pow(MZT,2)-pow(ZMZ,2)*Tz.in(idn1)+ZMZ*MZT*ZT+ZT*ZMZ*Tz.in(idn1)-pow(ZT,2)*MZT;
-        Reg->add(sdp_z.in(N1)>=0);
+//        Constraint<> soc_xmx("soc_xmx");
+//        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
+//        Reg->add(soc_xmx.in(N1)<=0);
+//
+//        Constraint<> soc_xt("soc_xt");
+//        soc_xt = pow(XT.in(N1),2)-X.in(N1)*Tx.in(idn1);
+//        Reg->add(soc_xt.in(N1)<=0);
+//
+//        Constraint<> soc_mxt("soc_mxt");
+//        soc_mxt = pow(MXT,2)-MX.in(N1)*Tx.in(idn1);
+//        Reg->add(soc_mxt.in(N1)<=0);
+//
+//        Constraint<> soc_ymy("soc_ymy");
+//        soc_ymy = pow(YMY.in(N1),2)-Y.in(N1)*MY.in(N1);
+//        Reg->add(soc_ymy.in(N1)<=0);
+//
+//        Constraint<> soc_yt("soc_yt");
+//        soc_yt = pow(YT.in(N1),2)-Y.in(N1)*Ty.in(idn1);
+//        Reg->add(soc_yt.in(N1)<=0);
+//
+//        Constraint<> soc_myt("soc_myt");
+//        soc_myt = pow(MYT,2)-MY.in(N1)*Ty.in(idn1);
+//        Reg->add(soc_myt.in(N1)<=0);
+//
+//        Constraint<> soc_zmz("soc_zmz");
+//        soc_zmz = pow(ZMZ.in(N1),2)-Z.in(N1)*MZ.in(N1);
+//        Reg->add(soc_zmz.in(N1)<=0);
+//
+//        Constraint<> soc_zt("soc_zt");
+//        soc_zt = pow(ZT.in(N1),2)-Z.in(N1)*Tz.in(idn1);
+//        Reg->add(soc_zt.in(N1)<=0);
+//
+//        Constraint<> soc_mzt("soc_mzt");
+//        soc_mzt = pow(MZT,2)-MZ.in(N1)*Tz.in(idn1);
+//        Reg->add(soc_mzt.in(N1)<=0);
+//
+//        Constraint<> sdp_x("sdp_x");
+//        sdp_x=X*MX*Tx.in(idn1)-X*pow(MXT,2)-pow(XMX,2)*Tx.in(idn1)+XMX*MXT*XT+XT*XMX*Tx.in(idn1)-pow(XT,2)*MXT;
+//        Reg->add(sdp_x.in(N1)>=0);
+//
+//        Constraint<> sdp_y("sdp_y");
+//        sdp_y=Y*MY*Ty.in(idn1)-Y*pow(MYT,2)-pow(YMY,2)*Ty.in(idn1)+YMY*MYT*YT+YT*YMY*Ty.in(idn1)-pow(YT,2)*MYT;
+//        Reg->add(sdp_y.in(N1)>=0);
+//
+//        Constraint<> sdp_z("sdp_z");
+//        sdp_z=Z*MZ*Tz.in(idn1)-Z*pow(MZT,2)-pow(ZMZ,2)*Tz.in(idn1)+ZMZ*MZT*ZT+ZT*ZMZ*Tz.in(idn1)-pow(ZT,2)*MZT;
+//        Reg->add(sdp_z.in(N1)>=0);
     }
     
     
-    
-    
     if(axis == "full")
-        
         Reg->min(sum(delta));
     else if(axis == "x")
         Reg->min(sum(x_diff)/cells.size());
@@ -2023,9 +2360,10 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             //        auto Rel = Reg.relax();
         DebugOn("running convex model from model_build"<<endl);
         Reg->print();
-//        solver<> S(Reg,gurobi);
-//        S.run();
-//        Reg->print_solution();
+       solver<> S(Reg,ipopt);
+       S.run();
+       Reg->print_solution();
+        Reg->print_constraints_stats(1e-6);
 //        Reg->reset();
 //        Reg->reset_constrs();
     }
