@@ -27,6 +27,40 @@
 using namespace std;
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
+#ifdef USE_QHULL
+#include "libqhullcpp/RboxPoints.h"
+#include "libqhullcpp/QhullError.h"
+#include "libqhullcpp/QhullQh.h"
+#include "libqhullcpp/QhullFacet.h"
+#include "libqhullcpp/QhullFacetList.h"
+#include "libqhullcpp/QhullFacetSet.h"
+#include "libqhullcpp/QhullLinkedList.h"
+#include "libqhullcpp/QhullPoint.h"
+#include "libqhullcpp/QhullUser.h"
+#include "libqhullcpp/QhullVertex.h"
+#include "libqhullcpp/QhullVertexSet.h"
+#include "libqhullcpp/Qhull.h"
+
+using orgQhull::Qhull;
+using orgQhull::QhullError;
+using orgQhull::QhullFacet;
+using orgQhull::QhullFacetList;
+using orgQhull::QhullFacetListIterator;
+using orgQhull::QhullFacetSet;
+using orgQhull::QhullFacetSetIterator;
+using orgQhull::QhullPoint;
+using orgQhull::QhullPoints;
+using orgQhull::QhullPointsIterator;
+using orgQhull::QhullQh;
+using orgQhull::QhullUser;
+using orgQhull::QhullVertex;
+using orgQhull::QhullVertexList;
+using orgQhull::QhullVertexListIterator;
+using orgQhull::QhullVertexSet;
+using orgQhull::QhullVertexSetIterator;
+using orgQhull::RboxPoints;
+
+#endif
 
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
@@ -162,6 +196,9 @@ int main (int argc, char * argv[])
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
+#ifdef USE_QHULL
+        Qhull qhull;
+#endif
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
