@@ -1494,14 +1494,14 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
 double largest_cube_halflength(double x0, double y0, double z0, const vector<vector<double>>& point_cloud_data){
-    double lmin=0;
+    double lmin=999;
     
 
 #ifdef USE_QHULL
     vector<double> q,p;
-    p.push_back(1);
-    p.push_back(1);
-    p.push_back(1);
+    p.push_back(x0);
+    p.push_back(y0);
+    p.push_back(z0);
     for(auto i=0;i<point_cloud_data.size();i++){
         q.push_back(point_cloud_data.at(i)[0]);
         q.push_back(point_cloud_data.at(i)[1]);
@@ -1509,10 +1509,13 @@ double largest_cube_halflength(double x0, double y0, double z0, const vector<vec
     }
         Qhull qt;
         qt.runQhull("obj", 3, point_cloud_data.size(), q.data(), "");
-        cout << qt.facetList();
+        //cout << qt.facetList();
     for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
         auto d = it->distance(p.data());
         cout<<d<<endl;
+        if(abs(d)<=lmin){
+            lmin=abs(d);
+        }
     }
 
 #endif
