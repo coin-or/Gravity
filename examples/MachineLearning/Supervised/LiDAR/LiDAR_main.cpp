@@ -196,19 +196,19 @@ int main (int argc, char * argv[])
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
-#ifdef USE_QHULL
-        Qhull qhull;
-        RboxPoints rbox;
-        vector<double> p1 = {1,1,1};
-        rbox.append(p1);
-        auto it = qhull.facetList().begin();
-        
-#endif
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
         string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="yes", obbt_str="yes";
+#ifdef USE_QHULL
+        vector<double> q={0,0,0, 0,1,0, 0, 0, 1, 1, 0, 0, 0.1,0.1,0.1};
+        Qhull qt;
+        qt.runQhull("obj", 3, 5, q.data(), "");
+        cout << qt.facetList();
+#endif
+        
+
         if(argc>2){
             Model_file = argv[2];
         }
@@ -1493,163 +1493,34 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
-double largest_cube_halflength(double x0, double y0, double z0,  param<> x1, param<> y1, param<> z1){
-    /*Can only use extreme points for this!, all points not needed*/
-    vector<double> xmax,ymax,zmax,dmax,umax,xu, yu, zu;
-    dmax.resize(8,-100);
-    xmax.resize(8,100);
-    ymax.resize(8,100);
-    zmax.resize(8,100);
-    umax.resize(8,-100);
-    xu.resize(8,100);
-    yu.resize(8,100);
-    zu.resize(8,100);
-    string i_str;
-    double d,x,y,z, lmin;
-    int nd=x1._indices->_keys->size();
-    for (auto i = 0; i<nd; i++) {
-        i_str = to_string(i+1);
-        x=x1.eval(i_str);
-        y=y1.eval(i_str);
-        z=z1.eval(i_str);
-        d=pow(x-x0,2)+pow(y-y0,2)+pow(z-z0,2);
-        auto u=std::abs(x)+std::abs(y)+std::abs(z);
-        if(z>=z0 && y>=y0 && x>=x0){
-            if(d>=dmax[0]){
-                dmax[0]=sqrt(d);
-                xmax[0]=(x-x0);
-                ymax[0]=(y-y0);
-                zmax[0]=(z-z0);
-            }
-            if(u>=umax[0]){
-                umax[0]=u;
-                xu[0]=(x-x0);
-                yu[0]=(y-y0);
-                zu[0]=(z-z0);
-            }
-        }
-        if(z>=z0 && y>=y0 && x<=x0){
-            if(d>=dmax[1]){
-                dmax[1]=sqrt(d);
-                xmax[1]=x-x0;
-                ymax[1]=y-y0;
-                zmax[1]=z-z0;
-            }
-            if(u>=umax[0]){
-                umax[1]=u;
-                xu[1]=(x-x0);
-                yu[1]=(y-y0);
-                zu[1]=(z-z0);
-            }
-        }
-        if(z>=z0 && y<=y0 && x<=x0){
-            if(d>=dmax[2]){
-                dmax[2]=sqrt(d);
-                xmax[2]=x-x0;
-                ymax[2]=y-y0;
-                zmax[2]=z-z0;
-            }
-            if(u>=umax[0]){
-                umax[2]=u;
-                xu[2]=(x-x0);
-                yu[2]=(y-y0);
-                zu[2]=(z-z0);
-            }
-        }
-        
-        if(z>=z0 && y<=y0 && x>=x0){
-            if(d>=dmax[3]){
-                dmax[3]=sqrt(d);
-                xmax[3]=x-x0;
-                ymax[3]=y-y0;
-                zmax[3]=z-z0;
-            }
-            if(u>=umax[0]){
-                umax[3]=u;
-                xu[3]=(x-x0);
-                yu[3]=(y-y0);
-                zu[3]=(z-z0);
-            }
-        }
-        if(z<=z0 && y>=y0 && x>=x0){
-            if(d>=dmax[4]){
-                dmax[4]=sqrt(d);
-                xmax[4]=x-x0;
-                ymax[4]=y-y0;
-                zmax[4]=z-z0;
-            }
-            if(u>=umax[4]){
-                umax[4]=u;
-                xu[4]=(x-x0);
-                yu[4]=(y-y0);
-                zu[4]=(z-z0);
-            }
-        }
-        if(z<=z0 && y>=y0 && x<=x0){
-            if(d>=dmax[5]){
-                dmax[5]=sqrt(d);
-                xmax[5]=x-x0;
-                ymax[5]=y-y0;
-                zmax[5]=z-z0;
-            }
-            if(u>=umax[5]){
-                umax[5]=u;
-                xu[5]=(x-x0);
-                yu[5]=(y-y0);
-                zu[5]=(z-z0);
-            }
-        }
-        if(z<=z0 && y<=y0 && x<=x0){
-            if(d>=dmax[6]){
-                dmax[6]=sqrt(d);
-                xmax[6]=x-x0;
-                ymax[6]=y-y0;
-                zmax[6]=z-z0;
-            }
-            if(u>=umax[6]){
-                umax[6]=u;
-                xu[6]=(x-x0);
-                yu[6]=(y-y0);
-                zu[6]=(z-z0);
-            }
-        }
-        
-        if(z<=z0 && y<=y0 && x>=x0){
-            if(d>=dmax[7]){
-                dmax[7]=d;
-                xmax[7]=x-x0;
-                ymax[7]=y-y0;
-                zmax[7]=z-z0;
-            }
-            if(u>=umax[7]){
-                umax[7]=u;
-                xu[7]=(x-x0);
-                yu[7]=(y-y0);
-                zu[7]=(z-z0);
-            }
-        }
-        
+double largest_cube_halflength(double x0, double y0, double z0, const vector<vector<double>>& point_cloud_data){
+    double lmin=0;
+    
+
+#ifdef USE_QHULL
+    vector<double> q,p;
+    p.push_back(1);
+    p.push_back(1);
+    p.push_back(1);
+    for(auto i=0;i<point_cloud_data.size();i++){
+        q.push_back(point_cloud_data.at(i)[0]);
+        q.push_back(point_cloud_data.at(i)[1]);
+        q.push_back(point_cloud_data.at(i)[2]);
     }
-    lmin=100;
-    if(*std::min_element(dmax.begin(), dmax.end())>=0){
-        for(auto i=0;i<8;i++){
-            if(abs(xmax[i])<=lmin){
-                lmin=xmax[i];
-            }
-            if(abs(ymax[i])<=lmin){
-                lmin=ymax[i];
-            }
-            if(abs(zmax[i])<=lmin){
-                lmin=zmax[i];
-            }
-            
-        }
+        Qhull qt;
+        qt.runQhull("obj", 3, point_cloud_data.size(), q.data(), "");
+        cout << qt.facetList();
+    for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
+        auto d = it->distance(p.data());
+        cout<<d<<endl;
     }
+
+#endif
+        
     return lmin;
 }
 
 void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, double yl, double yu, double zl, double zu, double& dbox_min, double& dbox_max){
-    /*Can only use extreme points for this!, all points not needed*/
 
     vector<double> d;
     
@@ -1774,7 +1645,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     shift_min_y=model_min_y,shift_max_y=model_max_y,
     shift_min_z=model_min_z,shift_max_z=model_max_z;
     
-    double lmin=largest_cube_halflength(0, 0, 0,  x1, y1, z1);
+    double lmin=largest_cube_halflength(0, 0, 0, point_cloud_data);
     if(lmin<=1){
         shift_max_x-=lmin;
         shift_min_x+=lmin;
@@ -1818,60 +1689,60 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     double n_min_x, n_max_x,n_min_y,n_max_y,n_min_z,n_max_z,dmin,dmax,dij_min, dij_max;
     param<> bij_max("bij_max");
     bij_max.in(cells);
-    for(auto i=0;i<nd;i++){
-        i_str = to_string(i+1);
-        x=x1.eval(i_str);
-        y=y1.eval(i_str);
-        z=z1.eval(i_str);
-        d=d1.eval(i_str);
-        auto r=sqrt(d);
-        auto l=largest_cube_halflength(x,y,z,x1,y1,z1);
-        n_max_x=r+shift_max_x;
-        if(m_max_x<=(n_max_x+l)){
-            n_max_x=m_max_x-l;
-        }
-        n_min_x=-r+shift_min_x;
-        if(m_min_x>=(n_min_x-l)){
-            n_min_x=m_min_x+l;
-        }
-        n_max_y=r+shift_max_y;
-        if(m_max_y<=(n_max_y+l)){
-            n_max_y=m_max_y-l;
-        }
-        n_min_y=-r+shift_min_y;
-        if(m_min_x>=(n_min_y-l)){
-            n_min_y=m_min_y+l;
-        }
-        n_max_z=r+shift_max_z;
-        if(m_max_z<=(n_max_z+l)){
-            n_max_z=m_max_z-l;
-        }
-        n_min_z=-r+shift_min_z;
-        if(m_min_z>=(n_min_z-l)){
-            n_min_z=m_min_z+l;
-        }
-        new_min_x.add_val(n_min_x);
-        new_max_x.add_val(n_max_x);
-        new_min_y.add_val(n_min_y);
-        new_max_y.add_val(n_max_y);
-        new_min_z.add_val(n_min_z);
-        new_max_z.add_val(n_max_z);
-        dij_min=100,dij_max=12;
-        for(auto j=0;j<nm;j++){
-            j_str = to_string(j+1);
-            bij_max.add_val(i, j, 1);
-            auto xm=x2.eval(j_str);
-            auto ym=y2.eval(j_str);
-            auto zm=z2.eval(j_str);
-            min_max_dist_box(xm,ym,zm,n_min_x,n_max_x, n_min_y, n_max_y, n_min_z, n_max_z,dmin,dmax);
-            if(dmax<=dij_max){
-                dij_max=dmax;
-            }
-            if(dmin>=dij_max){
-                bij_max.set_val(i,j,0);
-            }
-        }
-    }
+//    for(auto i=0;i<nd;i++){
+//        i_str = to_string(i+1);
+//        x=x1.eval(i_str);
+//        y=y1.eval(i_str);
+//        z=z1.eval(i_str);
+//        d=d1.eval(i_str);
+//        auto r=sqrt(d);
+//        auto l=largest_cube_halflength(x,y,z,x1,y1,z1);
+//        n_max_x=r+shift_max_x;
+//        if(m_max_x<=(n_max_x+l)){
+//            n_max_x=m_max_x-l;
+//        }
+//        n_min_x=-r+shift_min_x;
+//        if(m_min_x>=(n_min_x-l)){
+//            n_min_x=m_min_x+l;
+//        }
+//        n_max_y=r+shift_max_y;
+//        if(m_max_y<=(n_max_y+l)){
+//            n_max_y=m_max_y-l;
+//        }
+//        n_min_y=-r+shift_min_y;
+//        if(m_min_x>=(n_min_y-l)){
+//            n_min_y=m_min_y+l;
+//        }
+//        n_max_z=r+shift_max_z;
+//        if(m_max_z<=(n_max_z+l)){
+//            n_max_z=m_max_z-l;
+//        }
+//        n_min_z=-r+shift_min_z;
+//        if(m_min_z>=(n_min_z-l)){
+//            n_min_z=m_min_z+l;
+//        }
+//        new_min_x.add_val(n_min_x);
+//        new_max_x.add_val(n_max_x);
+//        new_min_y.add_val(n_min_y);
+//        new_max_y.add_val(n_max_y);
+//        new_min_z.add_val(n_min_z);
+//        new_max_z.add_val(n_max_z);
+//        dij_min=100,dij_max=12;
+//        for(auto j=0;j<nm;j++){
+//            j_str = to_string(j+1);
+//            bij_max.add_val(i, j, 1);
+//            auto xm=x2.eval(j_str);
+//            auto ym=y2.eval(j_str);
+//            auto zm=z2.eval(j_str);
+//            min_max_dist_box(xm,ym,zm,n_min_x,n_max_x, n_min_y, n_max_y, n_min_z, n_max_z,dmin,dmax);
+//            if(dmax<=dij_max){
+//                dij_max=dmax;
+//            }
+//            if(dmin>=dij_max){
+//                bij_max.set_val(i,j,0);
+//            }
+//        }
+//    }
   
     bij_max.print();
     d1.print();
