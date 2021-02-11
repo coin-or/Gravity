@@ -198,6 +198,11 @@ int main (int argc, char * argv[])
     if(Registration){
 #ifdef USE_QHULL
         Qhull qhull;
+        RboxPoints rbox;
+        vector<double> p1 = {1,1,1};
+        rbox.append(p1);
+        auto it = qhull.facetList().begin();
+        
 #endif
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
