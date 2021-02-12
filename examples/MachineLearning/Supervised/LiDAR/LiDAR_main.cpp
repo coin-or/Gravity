@@ -68,7 +68,7 @@ using orgQhull::RboxPoints;
 #define DEFAULT_MODEL_FNAME "model.txt"
 #define DEFAULT_DATA_FNAME "data.txt"
 
-
+using namespace orgQhull;
 /* Read input files */
 void read_data(const rapidcsv::Document& doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav);
 
@@ -278,7 +278,7 @@ int main (int argc, char * argv[])
         
         auto L2error_init = computeL2error(ext_model,ext_data);
         DebugOn("L2 before Registration = " << L2error_init << endl);
-        run_ARMO_Global(false, "full", ext_model, ext_data);
+       // run_ARMO_Global(false, "full", ext_model, ext_data);
         
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
@@ -316,14 +316,14 @@ int main (int argc, char * argv[])
             //auto upper_bound=get<6>(res_icp);
            //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
             auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data);
-            auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
+           // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
             unsigned max_iter=1e3, max_time=3000;
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+            //auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         }
         bool compute_L2_error = true;
         if(compute_L2_error){
@@ -908,9 +908,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
     
-        //    Constraint<> OneBin2("OneBin2");
-        //    OneBin2 = bin.in_matrix(0, 1);
-        //    Reg.add(OneBin2.in(N1)==1);
+    
+        Constraint<> OneBin2("OneBin2");
+        OneBin2 = bin.in_matrix(0, 1);
+        Reg.add(OneBin2.in(N1)<=1);
     
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
@@ -1261,7 +1262,11 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg.add(OneBin.in(N1)==1);
+    Reg.add(OneBin.in(N1)>=1);
+        Constraint<> OneBin2("OneBin2");
+        OneBin2 = bin.in_matrix(0, 1);
+        Reg.add(OneBin2.in(N1)<=1);
+    
         //Can also try hull relaxation of the big-M here
     bool vi_M=false;
     if(vi_M){
@@ -1486,8 +1491,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
-double largest_inscribed_sphere(double x0, double y0, double z0, const vector<double>& point_cloud_data){
-    double lmin=999;
+void largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt){
+    lmin=999;
     
 
 #ifdef USE_QHULL
@@ -1496,7 +1501,7 @@ double largest_inscribed_sphere(double x0, double y0, double z0, const vector<do
     p.push_back(y0);
     p.push_back(z0);
   
-        Qhull qt;
+     
         qt.runQhull("obj", 3, point_cloud_data.size()/3, point_cloud_data.data(), "");
       //  cout << qt.facetList();
     for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
@@ -1505,13 +1510,39 @@ double largest_inscribed_sphere(double x0, double y0, double z0, const vector<do
         if(abs(d)<=lmin){
             lmin=abs(d);
         }
+        if(d>=0){
+           DebugOn("centre outside convex hull");
+            lmin=0;
+            break;
+        }
     }
 
 #endif
-        
-    return lmin;
-}
 
+}
+void inscribed_sphere_centre(double x0, double y0, double z0, double& lmin, Qhull& qt){
+    lmin=999;
+#ifdef USE_QHULL
+    vector<double> p;
+    p.push_back(x0);
+    p.push_back(y0);
+    p.push_back(z0);
+      //  cout << qt.facetList();
+    for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
+        auto d = it->distance(p.data());
+       // cout<<d<<endl;
+        if(abs(d)<=lmin){
+            lmin=abs(d);
+        }
+        if(d>=0){
+           DebugOn("centre outside convex hull");
+            lmin=0;
+            break;
+        }
+    }
+
+#endif
+}
 void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, double yl, double yu, double zl, double zu, double& dbox_min, double& dbox_max){
 
     vector<double> d;
@@ -1646,32 +1677,37 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             model_max_z=z;
         }
     }
-    double m_min_x=std::max(-1.0,(model_min_x-0.1));
-    double m_max_x=std::min(1.0, (model_max_x+0.1));
-    double m_min_y=std::max(-1.0, (model_min_y-0.1));
-    double m_max_y=std::min(1.0, (model_max_y+0.1));
-    double m_min_z=std::max(-1.0, (model_min_z-0.1));
-    double m_max_z=std::min(1.0, (model_max_z+0.1));
+//    double m_min_x=std::max(-1.0,(model_min_x-0.1));
+//    double m_max_x=std::min(1.0, (model_max_x+0.1));
+//    double m_min_y=std::max(-1.0, (model_min_y-0.1));
+//    double m_max_y=std::min(1.0, (model_max_y+0.1));
+//    double m_min_z=std::max(-1.0, (model_min_z-0.1));
+//    double m_max_z=std::min(1.0, (model_max_z+0.1));
+    double m_min_x=-1;
+    double m_max_x=1;
+    double m_min_y=-1;
+    double m_max_y=1;
+    double m_min_z=-1;
+    double m_max_z=1;
     double shift_min_x=model_min_x, shift_max_x=model_max_x,
     shift_min_y=model_min_y,shift_max_y=model_max_y,
     shift_min_z=model_min_z,shift_max_z=model_max_z;
-    
-    x1.print();
-    y1.print();
-    z1.print();
-    double lmin=largest_inscribed_sphere(0, 0, 0, pcd);
-   // lmin=0;
-//        shift_max_x-=lmin;
-//        shift_min_x+=lmin;
-//        shift_max_y-=lmin;
-//        shift_min_y+=lmin;
-//        shift_max_z-=lmin;
-//        shift_min_z+=lmin;
+    double lmin=0;
+#ifdef USE_QHULL
+    Qhull qt;
+    largest_inscribed_sphere_centre(0, 0, 0, pcd, lmin, qt);
+#endif
+        shift_max_x-=lmin;
+        shift_min_x+=lmin;
+        shift_max_y-=lmin;
+        shift_min_y+=lmin;
+        shift_max_z-=lmin;
+        shift_min_z+=lmin;
     
     
     if((shift_min_x>=shift_max_x)||(shift_min_y>=shift_max_y)||(shift_min_z>=shift_max_z))
         throw invalid_argument("computation of translation bounds wrong");
-    
+
     for (auto j = 0; j<nm; j++){
         j_str = to_string(j+1);
         x=x2.eval(j_str);
@@ -1703,60 +1739,63 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     double n_min_x, n_max_x,n_min_y,n_max_y,n_min_z,n_max_z,dmin,dmax,dij_min, dij_max;
     param<> bij_max("bij_max");
     bij_max.in(cells);
-//    for(auto i=0;i<nd;i++){
-//        i_str = to_string(i+1);
-//        x=x1.eval(i_str);
-//        y=y1.eval(i_str);
-//        z=z1.eval(i_str);
-//        d=d1.eval(i_str);
-//        auto r=sqrt(d);
-//        auto l=largest_inscribed_sphere(x,y,z,pcd);
-//        n_max_x=r+shift_max_x;
-//        if(m_max_x<=(n_max_x+l)){
-//            n_max_x=m_max_x-l;
-//        }
-//        n_min_x=-r+shift_min_x;
-//        if(m_min_x>=(n_min_x-l)){
-//            n_min_x=m_min_x+l;
-//        }
-//        n_max_y=r+shift_max_y;
-//        if(m_max_y<=(n_max_y+l)){
-//            n_max_y=m_max_y-l;
-//        }
-//        n_min_y=-r+shift_min_y;
-//        if(m_min_x>=(n_min_y-l)){
-//            n_min_y=m_min_y+l;
-//        }
-//        n_max_z=r+shift_max_z;
-//        if(m_max_z<=(n_max_z+l)){
-//            n_max_z=m_max_z-l;
-//        }
-//        n_min_z=-r+shift_min_z;
-//        if(m_min_z>=(n_min_z-l)){
-//            n_min_z=m_min_z+l;
-//        }
-//        new_min_x.add_val(n_min_x);
-//        new_max_x.add_val(n_max_x);
-//        new_min_y.add_val(n_min_y);
-//        new_max_y.add_val(n_max_y);
-//        new_min_z.add_val(n_min_z);
-//        new_max_z.add_val(n_max_z);
-//        dij_min=100,dij_max=12;
-//        for(auto j=0;j<nm;j++){
-//            j_str = to_string(j+1);
-//            bij_max.add_val(i, j, 1);
-//            auto xm=x2.eval(j_str);
-//            auto ym=y2.eval(j_str);
-//            auto zm=z2.eval(j_str);
-//            min_max_dist_box(xm,ym,zm,n_min_x,n_max_x, n_min_y, n_max_y, n_min_z, n_max_z,dmin,dmax);
-//            if(dmax<=dij_max){
-//                dij_max=dmax;
-//            }
-//            if(dmin>=dij_max){
-//                bij_max.set_val(i,j,0);
-//            }
-//        }
-//    }
+    double l_data=0;
+    for(auto i=0;i<nd;i++){
+        i_str = to_string(i+1);
+        x=x1.eval(i_str);
+        y=y1.eval(i_str);
+        z=z1.eval(i_str);
+        d=d1.eval(i_str);
+        auto r=sqrt(d);
+#ifdef USE_QHULL
+    inscribed_sphere_centre(x, y, z, l_data, qt);
+#endif
+        n_max_x=r+shift_max_x;
+        if(m_max_x<=(n_max_x+l_data)){
+            n_max_x=m_max_x-l_data;
+        }
+        n_min_x=-r+shift_min_x;
+        if(m_min_x>=(n_min_x-l_data)){
+            n_min_x=m_min_x+l_data;
+        }
+        n_max_y=r+shift_max_y;
+        if(m_max_y<=(n_max_y+l_data)){
+            n_max_y=m_max_y-l_data;
+        }
+        n_min_y=-r+shift_min_y;
+        if(m_min_x>=(n_min_y-l_data)){
+            n_min_y=m_min_y+l_data;
+        }
+        n_max_z=r+shift_max_z;
+        if(m_max_z<=(n_max_z+l_data)){
+            n_max_z=m_max_z-l_data;
+        }
+        n_min_z=-r+shift_min_z;
+        if(m_min_z>=(n_min_z-l_data)){
+            n_min_z=m_min_z+l_data;
+        }
+        new_min_x.add_val(n_min_x);
+        new_max_x.add_val(n_max_x);
+        new_min_y.add_val(n_min_y);
+        new_max_y.add_val(n_max_y);
+        new_min_z.add_val(n_min_z);
+        new_max_z.add_val(n_max_z);
+        dij_min=100,dij_max=12;
+        for(auto j=0;j<nm;j++){
+            j_str = to_string(j+1);
+            bij_max.add_val(i, j, 1);
+            auto xm=x2.eval(j_str);
+            auto ym=y2.eval(j_str);
+            auto zm=z2.eval(j_str);
+            min_max_dist_box(xm,ym,zm,n_min_x,n_max_x, n_min_y, n_max_y, n_min_z, n_max_z,dmin,dmax);
+            if(dmax<=dij_max){
+                dij_max=dmax;
+            }
+            if(dmin>=dij_max){
+                bij_max.set_val(i,j,0);
+            }
+        }
+    }
   
     bij_max.print();
 //    d1.print();
@@ -1883,8 +1922,11 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg->add(OneBin.in(N1)>=1);
+    Reg->add(OneBin.in(N1)==1);
 
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 = bin.in_matrix(0, 1);
+   // Reg->add(OneBin2.in(N1)<=1);
     
     if(convex){
     bool vi_M=false;
@@ -2216,7 +2258,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //        Constraint<> Norm2a("Norm2a");
 //        Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(rot_x1*new_xm-rot_x1*x_shift.in(idn1)+new_xm*x_shift.in(idn1)+rot_y1*new_ym-rot_y1*y_shift.in(idn1)+new_ym*y_shift.in(idn1)+rot_z1*new_zm-rot_z1*z_shift.in(idn1)+new_zm*z_shift.in(idn1)));
 //        Reg->add(Norm2a.in(N1)>=0);
-
+ 
         
 //        Constraint<> soc_xmx("soc_xmx");
 //        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
@@ -2296,7 +2338,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //        Reg->reset_constrs();
     }
     else {
-        solver<> S(Reg,gurobi);
+        solver<> S(Reg,ipopt);
         S.run();
         Reg->print_solution();
     }
