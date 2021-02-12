@@ -15,6 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(Matplot "Link to Matplotlib libraries" OFF)
 if (Matplot)
+ add_definitions(-DUSE_MATPLOT)
  find_package(Python3 COMPONENTS Development NumPy)
 endif()
 #set(Eigen_DIR "/opt/local/include/eigen3")

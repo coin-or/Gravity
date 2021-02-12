@@ -75,8 +75,10 @@ if(NOT OPT_PARSER)
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES})
 endif()
 
-#target_include_directories(gravity PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-#target_link_libraries(gravity Python3::Python Python3::NumPy ${PCL_LIBRARIES})
+if(Matplot)
+ target_include_directories(gravity PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
+ target_link_libraries(gravity Python3::Python Python3::NumPy ${PCL_LIBRARIES})
+endif()
 
 if(Cov)
   set_target_properties(gravity
