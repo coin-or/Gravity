@@ -6038,12 +6038,12 @@ double Model<type>::populate_final_interval_gap(const shared_ptr<Model<type>>& o
             var_key=vname+"|"+ key;
             interval_new[var_key]=v.get_ub(key)-v.get_lb(key);
             sum+=((interval_original.at(var_key)-interval_new.at(var_key))/(interval_original.at(var_key)+zero_tol)*100.0);
-            if( in_orig_model)
+            if( false && in_orig_model)
             {
                 var_ub.uneval();
                 if((var_ub.eval(key)-v.get_lb(key)) < - 1e-6 || (var_ub.eval(key)-v.get_ub(key))>1e-6){
                     xb_true=false;
-                    DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<"OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
+                    DebugOn("xb false Variable " <<vname<< " key "<< key<< " UB_value " <<var_ub.eval(key) <<" OBBT, lb, ub "<< v.get_lb(key)<<" "<< v.get_ub(key)<<endl);
                 }
             }
         }
