@@ -138,7 +138,7 @@ void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointN
 
 int main (int argc, char * argv[])
 {
-    string prob_type = "Align";
+    string prob_type = "Reg";
     if(argc>1){
         prob_type = argv[1];
     }
@@ -150,7 +150,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "ARMO", global_str = "local", convex_str = "nonconvex";
+        string algo = "ARMO", global_str = "global", convex_str = "nonconvex";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -166,8 +166,8 @@ int main (int argc, char * argv[])
         if(argc>6){
             convex_str = argv[6];
         }
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){
@@ -213,6 +213,7 @@ int main (int argc, char * argv[])
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
+        plot(ext_model,ext_data,1);
         if (filter_extremes) {
             ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
             ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
@@ -245,6 +246,7 @@ int main (int argc, char * argv[])
                 }
             }
         }
+        plot(point_cloud_model,point_cloud_data,1);
         bool compute_L2_error = true;
         if(compute_L2_error){
             auto L2error = computeL2error(point_cloud_model,point_cloud_data);
@@ -403,7 +405,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
     
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-4;
+    goicp.MSEThresh = 1e-3;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -2032,8 +2034,9 @@ double computeL2error(const vector<vector<double>>& point_cloud_model, const vec
                 z[i] = j;
             }
         }
-        DebugOn("DeltaMin(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
-        DebugOn("z(" << i+1 << ") = " << z[i]+1 << endl);
+        DebugOff("DeltaMin(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOff('
+                 "z(" << i+1 << ") = " << z[i]+1 << endl);
         err += min_dist;
     }
     return err;
