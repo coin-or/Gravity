@@ -219,8 +219,8 @@ int main (int argc, char * argv[])
         if(argc>7){
             reform_str = argv[7];
         }
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){

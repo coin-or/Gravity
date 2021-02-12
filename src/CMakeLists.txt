@@ -66,13 +66,18 @@ endif(ADD_EIGEN)
 if(ADD_GoICP)
  add_dependencies(gravity GoICP)
 endif(ADD_GoICP)
+
+if(ADD_QHULL)
+ add_dependencies(gravity qhull)
+endif()
+
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a)
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES} liboption_parser.a)
 endif()
 
 if(NOT OPT_PARSER)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES})
+target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${LASlib_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${QHULL_LIBRARIES})
 endif()
 
 if(Matplot)
