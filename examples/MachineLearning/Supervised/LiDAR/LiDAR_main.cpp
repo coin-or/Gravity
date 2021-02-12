@@ -148,8 +148,8 @@ int main (int argc, char * argv[])
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
-        string Model_file = string(prj_dir)+"/data_sets/LiDAR/model.txt";
-        string Data_file = string(prj_dir)+"/data_sets/LiDAR/data.txt";
+        string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
+        string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
         string algo = "ARMO", global_str = "local", convex_str = "nonconvex";
         if(argc>2){
             Model_file = argv[2];
@@ -826,11 +826,11 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg.add(OneBin.in(N1)==1);
+    Reg.add(OneBin.in(N1)>=1);
     
-//    Constraint<> OneBin2("OneBin2");
-//    OneBin2 = bin.in_matrix(0, 1);
-//    Reg.add(OneBin2.in(N1)==1);
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 = bin.in_matrix(0, 1);
+    Reg.add(OneBin2.in(N1)<=1);
     
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
