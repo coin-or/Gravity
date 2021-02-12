@@ -201,14 +201,6 @@ int main (int argc, char * argv[])
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
         string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="yes", obbt_str="yes";
-#ifdef USE_QHULL
-        vector<double> q={0,0,0, 0,1,0, 0, 0, 1, 1, 0, 0, 0.1,0.1,0.1};
-        Qhull qt;
-        qt.runQhull("obj", 3, 5, q.data(), "");
-        cout << qt.facetList();
-#endif
-        
-
         if(argc>2){
             Model_file = argv[2];
         }
@@ -286,6 +278,7 @@ int main (int argc, char * argv[])
         
         auto L2error_init = computeL2error(ext_model,ext_data);
         DebugOn("L2 before Registration = " << L2error_init << endl);
+        run_ARMO_Global(false, "full", ext_model, ext_data);
         
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
@@ -873,7 +866,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
         //                    var<> x_shift("x_shift", 0, 0), y_shift("y_shift", 0, 0), z_shift("z_shift", 0, 0);
     var<> delta("delta", 0, 12);
     var<> delta_min("delta_min", pos_);
-    var<> bin("bin",0,1);
+    var<int> bin("bin",0,1);
     Reg.add(bin.in(cells));
     Reg.add(delta.in(cells), delta_min.in(N1));
     Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
@@ -1067,11 +1060,11 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     if(convex){
             //        Reg.replace_integers();
             //        auto Rel = Reg.relax();
-        solver<> S(Reg,ipopt);
+        solver<> S(Reg,gurobi);
         S.run();
     }
     else {
-        solver<> S(Reg,ipopt);
+        solver<> S(Reg,gurobi);
         S.run();
     }
     Reg.print_solution();
@@ -1270,7 +1263,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     OneBin = bin.in_matrix(1, 1);
     Reg.add(OneBin.in(N1)==1);
         //Can also try hull relaxation of the big-M here
-    bool vi_M=true;
+    bool vi_M=false;
     if(vi_M){
         Constraint<> VI_M("VI_M");
         VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells)+(3)*(1-bin.in(cells));
@@ -1493,26 +1486,22 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
-double largest_cube_halflength(double x0, double y0, double z0, const vector<vector<double>>& point_cloud_data){
+double largest_inscribed_sphere(double x0, double y0, double z0, const vector<double>& point_cloud_data){
     double lmin=999;
     
 
 #ifdef USE_QHULL
-    vector<double> q,p;
+    vector<double> p;
     p.push_back(x0);
     p.push_back(y0);
     p.push_back(z0);
-    for(auto i=0;i<point_cloud_data.size();i++){
-        q.push_back(point_cloud_data.at(i)[0]);
-        q.push_back(point_cloud_data.at(i)[1]);
-        q.push_back(point_cloud_data.at(i)[2]);
-    }
+  
         Qhull qt;
-        qt.runQhull("obj", 3, point_cloud_data.size(), q.data(), "");
-        //cout << qt.facetList();
+        qt.runQhull("obj", 3, point_cloud_data.size()/3, point_cloud_data.data(), "");
+      //  cout << qt.facetList();
     for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
         auto d = it->distance(p.data());
-        cout<<d<<endl;
+       // cout<<d<<endl;
         if(abs(d)<=lmin){
             lmin=abs(d);
         }
@@ -1547,7 +1536,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
 }
 
 shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    double angle_max = 3.14;
+    double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -1569,75 +1558,94 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     double model_min_x=10, model_max_x=-1, model_min_y=10, model_max_y=-1,model_min_z=10, model_max_z=-1, model_dist_min=100, model_dist_max=-1, data_dist_min=100, data_dist_max=-1;
     double data_min_x=10, data_max_x=-1, data_min_y=10, data_max_y=-1,data_min_z=10, data_max_z=-1;
-    double c1=0,c2=0,c3=0;
+    double cdx=0,cdy=0,cdz=0, cmx=0, cmy=0, cmz=0;
+    vector<double> pcd;
     /* Compute nearest points in data point cloud */
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
         x1.add_val(i_str,point_cloud_data.at(i).at(0));
         y1.add_val(i_str,point_cloud_data.at(i).at(1));
         z1.add_val(i_str,point_cloud_data.at(i).at(2));
-        c1+=x1.eval(i_str);
-        c2+=y1.eval(i_str);
-        c3+=z1.eval(i_str);
+        cdx+=x1.eval(i_str);
+        cdy+=y1.eval(i_str);
+        cdz+=z1.eval(i_str);
     }
-    c1=c1/nd;
-    c2=c2/nd;
-    c3=c3/nd;
+    cdx=cdx/nd;
+    cdy=cdy/nd;
+    cdz=cdz/nd;
+    /*Centering data points*/
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
-        auto x=x1.eval(i_str)-c1;
-        auto y=y1.eval(i_str)-c2;
-        auto z=z1.eval(i_str)-c3;
+        auto x=x1.eval(i_str)-cdx;
+        auto y=y1.eval(i_str)-cdy;
+        auto z=z1.eval(i_str)-cdz;
+        pcd.push_back(x);
+        pcd.push_back(y);
+        pcd.push_back(z);
         x1.set_val(i_str,x);
         y1.set_val(i_str,y);
         z1.set_val(i_str,z);
         d1.add_val(i_str, (pow(x,2)+pow(y,2)+pow(z,2)));
-        if(x1.eval(i_str)<=data_min_x){
-            data_min_x=x1.eval(i_str);
+        if(x<=data_min_x){
+            data_min_x=x;
         }
-        if(x1.eval(i_str)>=data_max_x){
-            data_max_x=x1.eval(i_str);
+        if(x>=data_max_x){
+            data_max_x=x;
         }
-        if(y1.eval(i_str)<=data_min_y){
-            data_min_y=y1.eval(i_str);
+        if(y<=data_min_y){
+            data_min_y=y;
         }
-        if(y1.eval(i_str)>=data_max_y){
-            data_max_y=y1.eval(i_str);
+        if(y>=data_max_y){
+            data_max_y=y;
         }
-        if(z1.eval(i_str)<=data_min_z){
-            data_min_z=z1.eval(i_str);
+        if(z<=data_min_z){
+            data_min_z=z;
         }
-        if(z1.eval(i_str)>=data_max_x){
-            data_max_z=z1.eval(i_str);
+        if(z>=data_max_z){
+            data_max_z=z;
         }
     }
-    
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
         x2.add_val(j_str,point_cloud_model.at(j).at(0));
         y2.add_val(j_str,point_cloud_model.at(j).at(1));
         z2.add_val(j_str,point_cloud_model.at(j).at(2));
-        d2.add_val(j_str,(pow(point_cloud_model.at(j).at(0),2)+pow(point_cloud_model.at(j).at(1),2)+pow(point_cloud_model.at(j).at(2),2)));
-        if(x2.eval(j_str)<=model_min_x){
-            model_min_x=x2.eval(j_str);
+        cmx+=x2.eval(j_str);
+        cmy+=y2.eval(j_str);
+        cmz+=z2.eval(j_str);
+    }
+    cmx=cmx/nm;
+    cmy=cmy/nm;
+    cmz=cmz/nm;
+    /*Centering model points*/
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        auto x=x2.eval(j_str)-cmx;
+        auto y=y2.eval(j_str)-cmy;
+        auto z=z2.eval(j_str)-cmz;
+        x2.set_val(j_str,x);
+        y2.set_val(j_str,y);
+        z2.set_val(j_str,z);
+        d2.add_val(j_str,pow(x,2)+pow(y,2)+pow(z,2));
+        if(x<=model_min_x){
+            model_min_x=x;
         }
-        if(x2.eval(j_str)>=model_max_x){
-            model_max_x=x2.eval(j_str);
+        if(x>=model_max_x){
+            model_max_x=x;
         }
-        if(y2.eval(j_str)<=model_min_y){
-            model_min_y=y2.eval(j_str);
+        if(y<=model_min_y){
+            model_min_y=y;
         }
-        if(y2.eval(j_str)>=model_max_y){
-            model_max_y=y2.eval(j_str);
+        if(y>=model_max_y){
+            model_max_y=y;
         }
-        if(z2.eval(j_str)<=model_min_z){
-            model_min_z=z2.eval(j_str);
+        if(z<=model_min_z){
+            model_min_z=z;
         }
-        if(z2.eval(j_str)>=model_max_z){
-            model_max_z=z2.eval(j_str);
+        if(z>=model_max_z){
+            model_max_z=z;
         }
     }
-    
     double m_min_x=std::max(-1.0,(model_min_x-0.1));
     double m_max_x=std::min(1.0, (model_max_x+0.1));
     double m_min_y=std::max(-1.0, (model_min_y-0.1));
@@ -1648,15 +1656,18 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     shift_min_y=model_min_y,shift_max_y=model_max_y,
     shift_min_z=model_min_z,shift_max_z=model_max_z;
     
-    double lmin=largest_cube_halflength(0, 0, 0, point_cloud_data);
-    if(lmin<=1){
-        shift_max_x-=lmin;
-        shift_min_x+=lmin;
-        shift_max_y-=lmin;
-        shift_min_y+=lmin;
-        shift_max_z-=lmin;
-        shift_min_z+=lmin;
-    }
+    x1.print();
+    y1.print();
+    z1.print();
+    double lmin=largest_inscribed_sphere(0, 0, 0, pcd);
+   // lmin=0;
+//        shift_max_x-=lmin;
+//        shift_min_x+=lmin;
+//        shift_max_y-=lmin;
+//        shift_min_y+=lmin;
+//        shift_max_z-=lmin;
+//        shift_min_z+=lmin;
+    
     
     if((shift_min_x>=shift_max_x)||(shift_min_y>=shift_max_y)||(shift_min_z>=shift_max_z))
         throw invalid_argument("computation of translation bounds wrong");
@@ -1699,7 +1710,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //        z=z1.eval(i_str);
 //        d=d1.eval(i_str);
 //        auto r=sqrt(d);
-//        auto l=largest_cube_halflength(x,y,z,x1,y1,z1);
+//        auto l=largest_inscribed_sphere(x,y,z,pcd);
 //        n_max_x=r+shift_max_x;
 //        if(m_max_x<=(n_max_x+l)){
 //            n_max_x=m_max_x-l;
@@ -1748,24 +1759,24 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //    }
   
     bij_max.print();
-    d1.print();
-    d2.print();
-    x1.print();
-    y1.print();
-    z1.print();
-    x2.print();
-    y2.print();
-    z2.print();
-    new_min_x.print();
-    new_max_x.print();
-    new_min_y.print();
-    new_max_y.print();
-    new_min_z.print();
-    new_max_z.print();
-    
-    nx2.print();
-    ny2.print();
-    nz2.print();
+//    d1.print();
+//    d2.print();
+//    x1.print();
+//    y1.print();
+//    z1.print();
+//    x2.print();
+//    y2.print();
+//    z2.print();
+//    new_min_x.print();
+//    new_max_x.print();
+//    new_min_y.print();
+//    new_max_y.print();
+//    new_min_z.print();
+//    new_max_z.print();
+//
+//    nx2.print();
+//    ny2.print();
+//    nz2.print();
     
     
   
@@ -1797,32 +1808,32 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
       bool bounded=true;
 //     if(!bounded){
-     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
-     var<> cosp("cosp",   -1, 1), sinp("sinp", -1, 1);
-     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
-     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
-     var<> siny_sinp("siny_sinp", -1, 1);
-     var<> cosy_sinp("cosy_sinp", -1, 1);
-     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
-     var<> cosy_cosp("cosy_cosp", -1, 1);
-     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
-     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
-     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
+//     var<> cosr("cosr",  -1, 1), sinr("sinr", -1, 1);
+//     var<> cosp("cosp",   -1, 1), sinp("sinp", -1, 1);
+//     var<> cosy("cosy",  -1, 1), siny("siny", -1, 1);
+//     var<> cosy_sinr("cosy_sinr", -1, 1), siny_sinr("siny_sinr", -1, 1);
+//     var<> siny_sinp("siny_sinp", -1, 1);
+//     var<> cosy_sinp("cosy_sinp", -1, 1);
+//     var<> cosy_cosr("cosy_cosr", -1, 1), cosy_sinr_sinp("cosy_sinr_sinp", -1, 1);
+//     var<> cosy_cosp("cosy_cosp", -1, 1);
+//     var<> siny_cosp("siny_cosp", -1, 1), cosy_sinr_cosp("cosy_sinr_cosp", -1, 1);
+//     var<> siny_cosr("siny_cosr", -1, 1), siny_sinr_sinp("siny_sinr_sinp", -1, 1), siny_sinr_cosp("siny_sinr_cosp", -1,1);
+//     var<> cosr_sinp("cosr_sinp", -1,1), cosr_cosp("cosr_cosp", -1, 1);
 //     }else{
 //
 //    angle_max=1;
-//    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
-//    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
-//    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
-//    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-//
-//    var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-//    var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
-//    var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-//    var<> cosy_cosp("cosy_cosp", std::cos(angle_max), 1);
-//    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
-//    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
-//    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
+    var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosy_sinr("cosy_sinr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr("siny_sinr", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+
+    var<> siny_sinp("siny_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+    var<> cosy_sinp("cosy_sinp", -std::sin(angle_max), std::sin(angle_max));
+    var<> cosy_cosr("cosy_cosr", std::cos(angle_max), 1), cosy_sinr_sinp("cosy_sinr_sinp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+    var<> cosy_cosp("cosy_cosp", std::cos(angle_max), 1);
+    var<> siny_cosp("siny_cosp", -std::sin(angle_max), std::sin(angle_max)), cosy_sinr_cosp("cosy_sinr_cosp", -std::sin(angle_max), std::sin(angle_max));
+    var<> siny_cosr("siny_cosr", -std::sin(angle_max), std::sin(angle_max)), siny_sinr_sinp("siny_sinr_sinp", -std::pow(std::sin(angle_max),3), std::pow(std::sin(angle_max),3)), siny_sinr_cosp("siny_sinr_cosp", -std::sin(angle_max)*std::sin(angle_max), std::sin(angle_max)*std::sin(angle_max));
+    var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
 
 //     }
     
@@ -1872,10 +1883,11 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg->add(OneBin.in(N1)==1);
+    Reg->add(OneBin.in(N1)>=1);
+
     
     if(convex){
-    bool vi_M=true;
+    bool vi_M=false;
     if(vi_M){
         Constraint<> VI_M("VI_M");
         VI_M = 2*((x2.to(cells)-nx2.to(cells))*new_x1.from(cells)+(y2.to(cells)-ny2.to(cells))*new_y1.from(cells)+(z2.to(cells)-nz2.to(cells))*new_z1.from(cells))+ ((pow(nx2.to(cells),2)+pow(ny2.to(cells),2)+pow(nz2.to(cells),2))-(pow(x2.to(cells),2)+pow(y2.to(cells),2)+pow(z2.to(cells),2)))*bin.in(cells);
@@ -2284,8 +2296,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //        Reg->reset_constrs();
     }
     else {
-        //solver<> S(Reg,ipopt);
-        //S.run();
+        solver<> S(Reg,gurobi);
+        S.run();
+        Reg->print_solution();
     }
     //Reg->print_solution();
     
