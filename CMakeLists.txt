@@ -15,6 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(Matplot "Link to Matplotlib libraries" OFF)
 if (Matplot)
+ add_definitions(-DUSE_MATPLOT)
  find_package(Python3 COMPONENTS Development NumPy)
 endif()
 #set(Eigen_DIR "/opt/local/include/eigen3")
@@ -33,9 +34,6 @@ option(Ipopt "Link to IPOPT libraries" ON)
 
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
-
-# Find QHULL (REQUIRED)
-option(QHULL "Link to QHULL libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -196,7 +194,7 @@ get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
-include(ExternalProject)
+#include(ExternalProject)
 # Eigen
 #find_package(Eigen QUIET)
 #if (EIGEN_FOUND)
@@ -219,22 +217,6 @@ include(ExternalProject)
 #endif (GoICP_FOUND)
 #include_directories(${GoICP_INCLUDE_DIR})
 
-if (QHULL)
-message(STATUS "Enable QHULL")
-add_definitions(-DUSE_QHULL)
-find_package(QHULL QUIET)
-if (QHULL_FOUND)
- message("-- Found QHULL: ${QHULL_INCLUDE_DIRS}")
- include_directories(${QHULL_INCLUDE_DIRS})
- set(LIBS ${LIBS} ${QHULL_LIBRARIES})
-else(QHULL_FOUND)
- set(ADD_QHULL TRUE)
- message(STATUS "Will download QHULL library from http://www.qhull.org/download")
- include(ExternalQHULL)
- #set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic_r.a)
- set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic_r.a)
-endif()
-endif()
 
 # cpp_option_parser
 if (OPT_PARSER)
