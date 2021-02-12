@@ -2338,7 +2338,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 //        Reg->reset_constrs();
     }
     else {
-        solver<> S(Reg,ipopt);
+        solver<> S(Reg,gurobi);
         S.run();
         Reg->print_solution();
     }
