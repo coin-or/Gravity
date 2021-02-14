@@ -161,7 +161,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, st
 /* Run the Global ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
-shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
+shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -267,6 +267,7 @@ int main (int argc, char * argv[])
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
+       // plot(ext_model,ext_data,1);
         if (filter_extremes) {
             ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
             ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
@@ -314,8 +315,10 @@ int main (int argc, char * argv[])
      	       //res_icp = run_GoICP(ext_model, ext_data);
        	    // auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
             //auto upper_bound=get<6>(res_icp);
-           //apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data);
+            vector<double> rot_trans;
+            rot_trans.resize(6,0.0);
+            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans);
+            apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
            // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
@@ -1491,10 +1494,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
-void largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt){
+bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt){
     lmin=999;
-    
-
 #ifdef USE_QHULL
     vector<double> p;
     p.push_back(x0);
@@ -1518,7 +1519,8 @@ void largest_inscribed_sphere_centre(double x0, double y0, double z0, const vect
     }
 
 #endif
-
+    DebugOn("minimum radius found "<<lmin<<endl);
+    return true;
 }
 void inscribed_sphere_centre(double x0, double y0, double z0, double& lmin, Qhull& qt){
     lmin=999;
@@ -1534,7 +1536,7 @@ void inscribed_sphere_centre(double x0, double y0, double z0, double& lmin, Qhul
         if(abs(d)<=lmin){
             lmin=abs(d);
         }
-        if(d>=0){
+        if(d>=1e-6){
            DebugOn("centre outside convex hull");
             lmin=0;
             break;
@@ -1566,7 +1568,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     
 }
 
-shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1613,6 +1615,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         pcd.push_back(x);
         pcd.push_back(y);
         pcd.push_back(z);
+        point_cloud_data[i][0]=x;
+        point_cloud_data[i][1]=y;
+        point_cloud_data[i][2]=z;
         x1.set_val(i_str,x);
         y1.set_val(i_str,y);
         z1.set_val(i_str,z);
@@ -1677,6 +1682,10 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             model_max_z=z;
         }
     }
+    
+//    x2.print();
+//    y2.print();
+//    z2.print();
 //    double m_min_x=std::max(-1.0,(model_min_x-0.1));
 //    double m_max_x=std::min(1.0, (model_max_x+0.1));
 //    double m_min_y=std::max(-1.0, (model_min_y-0.1));
@@ -1697,6 +1706,36 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     Qhull qt;
     largest_inscribed_sphere_centre(0, 0, 0, pcd, lmin, qt);
 #endif
+    vector<vector<double>> sphere,sphere0;
+    vector<double> radius, radius0;
+    radius0={0,0,0};
+    radius.resize(3);
+    double r=lmin/10.0;
+    for (auto i=-10;i<10;i++){
+        auto xs=i*r;
+        for(auto j=-10;j<10;j++){
+            auto ys=j*r;
+            auto zr=pow(lmin,2)-pow(ys,2)-pow(xs,2);
+            if(zr>0){
+            auto zs=sqrt(zr);
+            DebugOff(xs<<" "<<ys<<" "<<zs<<endl);
+            radius[0]=(xs);
+            radius[1]=(ys);
+            radius[2]=(zs);
+            sphere.push_back(radius);
+            radius[0]=(xs);
+            radius[1]=ys;
+            radius[2]=(zs*(-1));
+            DebugOff(xs<<" "<<ys<<" "<<zs*(-1)<<endl);
+            sphere.push_back(radius);
+                sphere0.push_back(radius0);
+            }
+        }
+    }
+    
+    DebugOn(sphere.size()<<endl);
+    
+       // plot(sphere,point_cloud_data,1);
         shift_max_x-=lmin;
         shift_min_x+=lmin;
         shift_max_y-=lmin;
@@ -1800,12 +1839,12 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     bij_max.print();
 //    d1.print();
 //    d2.print();
-//    x1.print();
-//    y1.print();
-//    z1.print();
-//    x2.print();
-//    y2.print();
-//    z2.print();
+    x1.print();
+    y1.print();
+    z1.print();
+    x2.print();
+    y2.print();
+    z2.print();
 //    new_min_x.print();
 //    new_max_x.print();
 //    new_min_y.print();
@@ -2356,6 +2395,12 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     roll_1 = roll*180/pi;
     pitch_1 = pitch*180/pi;
     yaw_1 = yaw*180/pi;
+    rot_trans[0]=roll_1;
+    rot_trans[1]=pitch_1;
+    rot_trans[2]=yaw_1;
+    rot_trans[3]=x_shift.eval();
+    rot_trans[4]=y_shift.eval();
+    rot_trans[5]=z_shift.eval();
     
     return(Reg);
 }
@@ -3535,7 +3580,7 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
         DebugOn("Projceting out z axis, ITERATION " << nb_iter << endl);
     }
         //    DebugOn("Plotting after z" << endl);
-        //    plot(ext_model,ext_data,1);
+        //
     nb_iter = 0;yaw=1;max_nb_iter = 100;
         //    while(nb_iter < max_nb_iter && std::abs(roll)>1e-1) {
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
