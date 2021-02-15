@@ -1609,9 +1609,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     /*Centering data points*/
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
-        auto x=x1.eval(i_str)-cdx;
-        auto y=y1.eval(i_str)-cdy;
-        auto z=z1.eval(i_str)-cdz;
+        auto x=x1.eval(i_str);
+        auto y=y1.eval(i_str);
+        auto z=z1.eval(i_str);
         pcd.push_back(x);
         pcd.push_back(y);
         pcd.push_back(z);
@@ -1656,12 +1656,15 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     /*Centering model points*/
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
-        auto x=x2.eval(j_str)-cmx;
-        auto y=y2.eval(j_str)-cmy;
-        auto z=z2.eval(j_str)-cmz;
+        auto x=x2.eval(j_str);
+        auto y=y2.eval(j_str);
+        auto z=z2.eval(j_str);
         x2.set_val(j_str,x);
         y2.set_val(j_str,y);
         z2.set_val(j_str,z);
+        point_cloud_model[j][0]=x;
+        point_cloud_model[j][1]=y;
+        point_cloud_model[j][2]=z;
         d2.add_val(j_str,pow(x,2)+pow(y,2)+pow(z,2));
         if(x<=model_min_x){
             model_min_x=x;
@@ -2398,9 +2401,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     rot_trans[0]=roll_1;
     rot_trans[1]=pitch_1;
     rot_trans[2]=yaw_1;
-    rot_trans[3]=x_shift.eval();
-    rot_trans[4]=y_shift.eval();
-    rot_trans[5]=z_shift.eval();
+    rot_trans[3]=x_shift.eval()*(-1);
+    rot_trans[4]=y_shift.eval()*(-1);
+    rot_trans[5]=z_shift.eval()*(-1);
     
     return(Reg);
 }
