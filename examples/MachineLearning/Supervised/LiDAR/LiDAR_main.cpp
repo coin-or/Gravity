@@ -317,7 +317,7 @@ int main (int argc, char * argv[])
             //auto upper_bound=get<6>(res_icp);
             vector<double> rot_trans;
             rot_trans.resize(6,0.0);
-            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans);
+            auto Reg_nc=model_Global_reform(true, "full", point_cloud_model, point_cloud_data, rot_trans);
             apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
            // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
@@ -1609,9 +1609,12 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     /*Centering data points*/
     for (auto i = 0; i<nd; i++) {
         i_str = to_string(i+1);
+//        auto x=x1.eval(i_str)-cdx;
+//        auto y=y1.eval(i_str)-cdy;
+//        auto z=z1.eval(i_str)-cdz;
         auto x=x1.eval(i_str);
         auto y=y1.eval(i_str);
-        auto z=z1.eval(i_str);
+        auto z=z1.eval(i_str)   ;
         pcd.push_back(x);
         pcd.push_back(y);
         pcd.push_back(z);
@@ -1656,6 +1659,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     /*Centering model points*/
     for (auto j = 0; j<nm; j++) {
         j_str = to_string(j+1);
+//        auto x=x2.eval(j_str)-cmx;
+//        auto y=y2.eval(j_str)-cmy;
+//        auto z=z2.eval(j_str)-cmz;
         auto x=x2.eval(j_str);
         auto y=y2.eval(j_str);
         auto z=z2.eval(j_str);
@@ -1793,28 +1799,28 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     inscribed_sphere_centre(x, y, z, l_data, qt);
 #endif
         n_max_x=r+shift_max_x;
-        if(m_max_x<=(n_max_x+l_data)){
-            n_max_x=m_max_x-l_data;
+        if(1.0<=(n_max_x+l_data)){
+            n_max_x=1.0-l_data;
         }
         n_min_x=-r+shift_min_x;
-        if(m_min_x>=(n_min_x-l_data)){
-            n_min_x=m_min_x+l_data;
+        if(-1.0>=(n_min_x-l_data)){
+            n_min_x=-1.0+l_data;
         }
         n_max_y=r+shift_max_y;
-        if(m_max_y<=(n_max_y+l_data)){
-            n_max_y=m_max_y-l_data;
+        if(1.0<=(n_max_y+l_data)){
+            n_max_y=1.0-l_data;
         }
         n_min_y=-r+shift_min_y;
-        if(m_min_x>=(n_min_y-l_data)){
-            n_min_y=m_min_y+l_data;
+        if(-1.0>=(n_min_y-l_data)){
+            n_min_y=-1.0+l_data;
         }
         n_max_z=r+shift_max_z;
-        if(m_max_z<=(n_max_z+l_data)){
-            n_max_z=m_max_z-l_data;
+        if(1.0<=(n_max_z+l_data)){
+            n_max_z=1.0-l_data;
         }
         n_min_z=-r+shift_min_z;
-        if(m_min_z>=(n_min_z-l_data)){
-            n_min_z=m_min_z+l_data;
+        if(-1.0>=(n_min_z-l_data)){
+            n_min_z=-1.0+l_data;
         }
         new_min_x.add_val(n_min_x);
         new_max_x.add_val(n_max_x);
@@ -1835,6 +1841,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             }
             if(dmin>=dij_max){
                 bij_max.set_val(i,j,0);
+                DebugOn("bij "<<i<<" "<<j<<"  eliminated"<<endl);
             }
         }
     }
@@ -1917,7 +1924,12 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
 
 //     }
-    
+    shift_min_x=-0.35;
+    shift_max_x=0.35;
+    shift_min_y=-0.35;
+    shift_max_y=0.35;
+    shift_min_z=-0.35;
+    shift_max_z=0.35;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
 
     var<> delta("delta", 0,12);
@@ -1968,7 +1980,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
-   // Reg->add(OneBin2.in(N1)<=1);
+    Reg->add(OneBin2.in(N1)<=1);
     
     if(convex){
     bool vi_M=false;
@@ -2372,7 +2384,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             //        auto Rel = Reg.relax();
         DebugOn("running convex model from model_build"<<endl);
         Reg->print();
-       solver<> S(Reg,ipopt);
+       solver<> S(Reg,gurobi);
        S.run();
        Reg->print_solution();
         Reg->print_constraints_stats(1e-6);
