@@ -233,7 +233,7 @@ else(QHULL_FOUND)
  message(STATUS "Will download QHULL library from http://www.qhull.org/download")
  include(ExternalQHULL)
  #set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic_r.a)
- set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/QHULL/build/libqhullstatic_r.a)
+ set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullstatic_r.a)
 endif()
 endif()
 
