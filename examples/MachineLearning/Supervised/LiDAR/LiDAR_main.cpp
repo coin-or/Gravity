@@ -317,7 +317,7 @@ int main (int argc, char * argv[])
             //auto upper_bound=get<6>(res_icp);
             vector<double> rot_trans;
             rot_trans.resize(6,0.0);
-            auto Reg_nc=model_Global_reform(true, "full", point_cloud_model, point_cloud_data, rot_trans);
+            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans);
             apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
            // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
@@ -1924,12 +1924,6 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> cosr_sinp("cosr_sinp", -std::sin(angle_max), std::sin(angle_max)), cosr_cosp("cosr_cosp", std::cos(angle_max), 1);
 
 //     }
-    shift_min_x=-0.35;
-    shift_max_x=0.35;
-    shift_min_y=-0.35;
-    shift_max_y=0.35;
-    shift_min_z=-0.35;
-    shift_max_z=0.35;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
 
     var<> delta("delta", 0,12);
@@ -1980,7 +1974,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
 
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
-    Reg->add(OneBin2.in(N1)<=1);
+    //Reg->add(OneBin2.in(N1)<=1);
     
     if(convex){
     bool vi_M=false;
