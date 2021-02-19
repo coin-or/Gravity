@@ -106,7 +106,10 @@ bool intersect(const vector<pair<double,double>>& a, const vector<pair<double,do
  */
 tuple<double,double,double> get_center(const vector<pair<double,double>>& cube);
 
-/* Apply rotation + translation on input data (Registration) */
+/* Apply rotation + translation on input data (using rotation +translation matrix) */
+void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>& point_cloud);
+
+/* Apply rotation + translation on input data (using 3 angles) */
 void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, double y_shift, double z_shift, vector<vector<double>>& point_cloud);
 
 /* Return vector of 6 extreme points (2 per axis) from point cloud */
@@ -156,12 +159,12 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
 tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
 /* Run the Global ARMO model for registration */
-tuple<double,double,double,double,double,double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
+vector<double> run_ARMO_Global(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, bool norm1 = false);
 
 /* Run the Global ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
-shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans);
+shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans, bool norm1 = false);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -200,7 +203,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="yes", obbt_str="yes";
+        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="no", norm_str="norm1";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -263,6 +266,7 @@ int main (int argc, char * argv[])
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
         bool global = global_str=="global";
+        bool norm1 = norm_str=="norm1";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
@@ -291,15 +295,22 @@ int main (int argc, char * argv[])
             else {
                 if(global){
                     bool convex = convex_str=="convex";
-                    bool reform= reform_str=="yes";
+                    bool reform = reform_str=="yes";
                     if(reform){
-                        res1=run_ARMO_Global_reform(convex, "full", ext_model, ext_data);
+                        res=run_ARMO_Global_reform(convex, "full", ext_model, ext_data);
+                        auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
+                        apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
                     }
                     else{
-                        res1 = run_ARMO_Global(convex, "full", ext_model, ext_data);
+                        auto res = run_ARMO_Global(convex, "full", ext_model, ext_data, norm1);
+                        if(!norm1){
+                            auto roll = res[0];auto pitch = res[1];auto yaw = res[2];auto x_shift = res[3];auto y_shift = res[4];auto z_shift = res[5];
+                            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+                        }
+                        else{
+                            apply_rot_trans(res, point_cloud_data);
+                        }
                     }
-                    auto roll = get<0>(res);auto pitch = get<1>(res);auto yaw = get<2>(res);auto x_shift = get<3>(res);auto y_shift = get<4>(res);auto z_shift = get<5>(res);
-                    apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
                 }
                 else{
                     res1 = run_IPH(ext_model,ext_data,point_cloud_data);
@@ -316,9 +327,21 @@ int main (int argc, char * argv[])
             // auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
             //auto upper_bound=get<6>(res_icp);
             vector<double> rot_trans;
-            rot_trans.resize(6,0.0);
-            auto Reg_nc=model_Global_reform(true, "full", point_cloud_model, point_cloud_data, rot_trans);
-            apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
+            bool norm1 = true;
+            if(norm1){
+                rot_trans.resize(12,0.0);
+            }
+            else{
+                rot_trans.resize(6,0.0);
+            }
+            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
+            if(norm1){
+                apply_rot_trans(rot_trans, point_cloud_data);
+            }
+            else{
+                apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
+            }
+            plot(point_cloud_model, point_cloud_data);
             // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
@@ -776,7 +799,7 @@ tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, str
 
 
 /* Run the Global ARMO model for registration */
-tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+vector<double> run_ARMO_Global(bool convex, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, bool norm1){
     double angle_max = 1, shift_max = 0.25;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -787,6 +810,10 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     vector<vector<int>> neighbors(nd);
     vector<double> zeros = {0,0,0};
     
+    var<> theta11("theta11",  0, 1), theta12("theta12", -2, 2), theta13("theta13", -2, 2);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -2, 2), theta23("theta23", -2, 2);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0, 1);
+
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
@@ -872,11 +899,18 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     var<int> bin("bin",0,1);
     Reg.add(bin.in(cells));
     Reg.add(delta.in(cells), delta_min.in(N1));
-    Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
-    Reg.add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
-    Reg.add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
-    Reg.add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
-    if(convex){
+    if(norm1){
+        Reg.add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+        Reg.add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+        Reg.add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    }
+    else{
+        Reg.add(yaw.in(R(1)),pitch.in(R(1)),roll.in(R(1)));
+        Reg.add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
+        Reg.add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
+        Reg.add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+    }
+    if(convex && !norm1){
         Reg.add(siny_sinp.in(R(1)),cosy_sinp.in(R(1)));
         Reg.add(cosy_cosr.in(R(1)), cosy_cosp.in(R(1)), cosy_sinr_sinp.in(R(1)));
         Reg.add(siny_cosp.in(R(1)), cosy_sinr_cosp.in(R(1)));
@@ -885,6 +919,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     }
     Reg.add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     Reg.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+    Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
     //        Reg.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
     //                Reg.add(z_diff.in(cells));
     DebugOn("There are " << cells.size() << " cells" << endl);
@@ -914,134 +949,181 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
-    Reg.add(OneBin2.in(N1)<=1);
+    Reg.add(OneBin2.in(N2)<=1);
     
-    Constraint<> Norm2("Norm2");
-    Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-    Reg.add(Norm2.in(cells)>=0);
-    
-    Constraint<> trigR("trigR");
-    trigR = pow(cosr,2) + pow(sinr,2);
-    if(!convex)
-        Reg.add(trigR==1);
-    else
-        Reg.add(trigR<=1);
-    
-    Constraint<> trigP("trigP");
-    trigP = pow(cosp,2) + pow(sinp,2);
-    if(!convex)
-        Reg.add(trigP==1);
-    else
-        Reg.add(trigP<=1);
-    
-    Constraint<> trigY("trigY");
-    trigY = pow(cosy,2) + pow(siny,2);
-    if(!convex)
-        Reg.add(trigY==1);
-    else
-        Reg.add(trigY<=1);
-    
-    //    Constraint<> cos_roll("cos_roll");
-    //    cos_roll = cosr - cos(roll);
-    //    Reg.add(cos_roll==0);
-    //
-    //    Constraint<> sin_roll("sin_roll");
-    //    sin_roll = sinr - sin(roll);
-    //    Reg.add(sin_roll==0);
-    //
-    //    Constraint<> cos_pitch("cos_pitch");
-    //    cos_pitch = cosp - cos(pitch);
-    //    Reg.add(cos_pitch==0);
-    //
-    //    Constraint<> sin_pitch("sin_pitch");
-    //    sin_pitch = sinp - sin(pitch);
-    //    Reg.add(sin_pitch==0);
-    //
-    //    Constraint<> cos_yaw("cos_yaw");
-    //    cos_yaw = cosy - cos(yaw);
-    //    Reg.add(cos_yaw==0);
-    //
-    //    Constraint<> sin_yaw("sin_yaw");
-    //    sin_yaw = siny - sin(yaw);
-    //    Reg.add(sin_yaw==0);
-    
-    
-    if(!convex){
-        Constraint<> cosy_sinr_prod("cosy_sinr");
-        cosy_sinr_prod = cosy_sinr - cosy*sinr;
-        Reg.add(cosy_sinr_prod==0);
+    if(norm1){
+        Constraint<> x_abs1("x_abs1");
+        x_abs1 += x_diff - (new_x1.from(cells) - x2.to(cells));
+        Reg.add(x_abs1.in(cells)>=0);
+
+        Constraint<> x_abs2("x_abs2");
+        x_abs2 += x_diff + (new_x1.from(cells) - x2.to(cells));
+        Reg.add(x_abs2.in(cells)>=0);
+
+        Constraint<> y_abs1("y_abs1");
+        y_abs1 += y_diff - (new_y1.from(cells) - y2.to(cells));
+        Reg.add(y_abs1.in(cells)>=0);
+
+        Constraint<> y_abs2("y_abs2");
+        y_abs2 += y_diff + (new_y1.from(cells) - y2.to(cells));
+        Reg.add(y_abs2.in(cells)>=0);
+
+        Constraint<> z_abs1("z_abs1");
+        z_abs1 += z_diff - (new_z1.from(cells) - z2.to(cells));
+        Reg.add(z_abs1.in(cells)>=0);
+
+        Constraint<> z_abs2("z_abs2");
+        z_abs2 += z_diff + (new_z1.from(cells) - z2.to(cells));
+        Reg.add(z_abs2.in(cells)>=0);
+        
+        Constraint<> Norm1("Norm1");
+        Norm1 += delta - (x_diff + y_diff + z_diff);
+        Reg.add(Norm1.in(N1)>=0);
+
+        auto ids1 = theta11.repeat_id(cells.size());
+        Constraint<> x_rot1("x_rot1");
+        x_rot1 += new_x1 -x_shift;
+        x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+        Reg.add(x_rot1.in(N1)==0);
+        
+        Constraint<> y_rot1("y_rot1");
+        y_rot1 += new_y1 - y_shift;
+        y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1);
+        Reg.add(y_rot1.in(N1)==0);
+        
+        Constraint<> z_rot1("z_rot1");
+        z_rot1 += new_z1 -z_shift;
+        y_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
+        Reg.add(z_rot1.in(N1)==0);
     }
     else{
-        Reg.add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
-    }
+        Constraint<> Norm2("Norm2");
+        Norm2 += delta - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+        Reg.add(Norm2.in(cells)>=0);
+        
+        
+        Constraint<> trigR("trigR");
+        trigR = pow(cosr,2) + pow(sinr,2);
+        if(!convex)
+            Reg.add(trigR==1);
+        else
+            Reg.add(trigR<=1);
+        
+        Constraint<> trigP("trigP");
+        trigP = pow(cosp,2) + pow(sinp,2);
+        if(!convex)
+            Reg.add(trigP==1);
+        else
+            Reg.add(trigP<=1);
+        
+        Constraint<> trigY("trigY");
+        trigY = pow(cosy,2) + pow(siny,2);
+        if(!convex)
+            Reg.add(trigY==1);
+        else
+            Reg.add(trigY<=1);
     
-    if(!convex){
-        Constraint<> siny_sinr_prod("siny_sinr");
-        siny_sinr_prod = siny_sinr - siny*sinr;
-        Reg.add(siny_sinr_prod==0);
+        //    Constraint<> cos_roll("cos_roll");
+        //    cos_roll = cosr - cos(roll);
+        //    Reg.add(cos_roll==0);
+        //
+        //    Constraint<> sin_roll("sin_roll");
+        //    sin_roll = sinr - sin(roll);
+        //    Reg.add(sin_roll==0);
+        //
+        //    Constraint<> cos_pitch("cos_pitch");
+        //    cos_pitch = cosp - cos(pitch);
+        //    Reg.add(cos_pitch==0);
+        //
+        //    Constraint<> sin_pitch("sin_pitch");
+        //    sin_pitch = sinp - sin(pitch);
+        //    Reg.add(sin_pitch==0);
+        //
+        //    Constraint<> cos_yaw("cos_yaw");
+        //    cos_yaw = cosy - cos(yaw);
+        //    Reg.add(cos_yaw==0);
+        //
+        //    Constraint<> sin_yaw("sin_yaw");
+        //    sin_yaw = siny - sin(yaw);
+        //    Reg.add(sin_yaw==0);
+        
+        
+        if(!convex){
+            Constraint<> cosy_sinr_prod("cosy_sinr");
+            cosy_sinr_prod = cosy_sinr - cosy*sinr;
+            Reg.add(cosy_sinr_prod==0);
+        }
+        else{
+            Reg.add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
+        }
+        
+        if(!convex){
+            Constraint<> siny_sinr_prod("siny_sinr");
+            siny_sinr_prod = siny_sinr - siny*sinr;
+            Reg.add(siny_sinr_prod==0);
+        }
+        else {
+            Reg.add_McCormick("siny_sinr", siny_sinr, siny, sinr);
+        }
+        
+        auto ids1 = cosy.repeat_id(cells.size());
+        
+        if(!convex){
+            /* alpha = yaw_, beta = roll and gamma = pitch */
+            Constraint<> x_rot1("x_rot1");
+            x_rot1 += new_x1 - x_shift.in(ids1);
+            x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
+            Reg.add(x_rot1.in(N1)==0);
+            
+            
+            Constraint<> y_rot1("y_rot1");
+            y_rot1 += new_y1 - y_shift.in(ids1);
+            y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
+            Reg.add(y_rot1.in(N1)==0);
+            
+            Constraint<> z_rot1("z_rot1");
+            z_rot1 += new_z1 - z_shift.in(ids1);
+            z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
+            Reg.add(z_rot1.in(N1)==0);
+        }
+        else {
+            //        Reg.add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
+            //        Reg.add_McCormick("siny_sinr", siny_sinr, siny, sinr);
+            Reg.add_McCormick("cosy_cosr", cosy_cosr, cosy, cosr);
+            Reg.add_McCormick("cosy_sinr_sinp", cosy_sinr_sinp, cosy_sinr, sinp);
+            Reg.add_McCormick("siny_cosp", siny_cosp, siny, cosp);
+            Reg.add_McCormick("siny_sinp", siny_sinp, siny, sinp);
+            Reg.add_McCormick("siny_cosr", siny_cosr, siny, cosr);
+            Reg.add_McCormick("siny_sinr_sinp", siny_sinr_sinp, siny_sinr, sinp);
+            Reg.add_McCormick("cosy_cosp", cosy_cosp, cosy, cosp);
+            Reg.add_McCormick("siny_sinr_cosp", siny_sinr_cosp, siny_sinr, cosp);
+            Reg.add_McCormick("cosy_sinp", cosy_sinp, cosy, sinp);
+            Reg.add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
+            Reg.add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
+            
+            //        point_cloud[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+            //        point_cloud[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+            //        point_cloud[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+            //        double beta = roll*pi/180;// roll in radians
+            //        double gamma = pitch*pi/180; // pitch in radians
+            //        double alpha = yaw*pi/180; // yaw in radians
+            Constraint<> x_rot1("x_rot1");
+            x_rot1 += new_x1 - x_shift.in(ids1);
+            x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
+            Reg.add(x_rot1.in(N1)==0);
+            
+            
+            Constraint<> y_rot1("y_rot1");
+            y_rot1 += new_y1 - y_shift.in(ids1);
+            y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
+            Reg.add(y_rot1.in(N1)==0);
+            
+            Constraint<> z_rot1("z_rot1");
+            z_rot1 += new_z1 - z_shift.in(ids1);
+            z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
+            Reg.add(z_rot1.in(N1)==0);
+        }
     }
-    else {
-        Reg.add_McCormick("siny_sinr", siny_sinr, siny, sinr);
-    }
-    
-    auto ids1 = cosy.repeat_id(cells.size());
-    
-    if(!convex){
-        /* alpha = yaw_, beta = roll and gamma = pitch */
-        Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
-        x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
-        Reg.add(x_rot1.in(N1)==0);
-        
-        
-        Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
-        y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
-        Reg.add(y_rot1.in(N1)==0);
-        
-        Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
-        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
-        Reg.add(z_rot1.in(N1)==0);
-    }
-    else {
-        //        Reg.add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
-        //        Reg.add_McCormick("siny_sinr", siny_sinr, siny, sinr);
-        Reg.add_McCormick("cosy_cosr", cosy_cosr, cosy, cosr);
-        Reg.add_McCormick("cosy_sinr_sinp", cosy_sinr_sinp, cosy_sinr, sinp);
-        Reg.add_McCormick("siny_cosp", siny_cosp, siny, cosp);
-        Reg.add_McCormick("siny_sinp", siny_sinp, siny, sinp);
-        Reg.add_McCormick("siny_cosr", siny_cosr, siny, cosr);
-        Reg.add_McCormick("siny_sinr_sinp", siny_sinr_sinp, siny_sinr, sinp);
-        Reg.add_McCormick("cosy_cosp", cosy_cosp, cosy, cosp);
-        Reg.add_McCormick("siny_sinr_cosp", siny_sinr_cosp, siny_sinr, cosp);
-        Reg.add_McCormick("cosy_sinp", cosy_sinp, cosy, sinp);
-        Reg.add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
-        Reg.add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
-        
-        //        point_cloud[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-        //        point_cloud[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        //        point_cloud[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-        //        double beta = roll*pi/180;// roll in radians
-        //        double gamma = pitch*pi/180; // pitch in radians
-        //        double alpha = yaw*pi/180; // yaw in radians
-        Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 - x_shift.in(ids1);
-        x_rot1 -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
-        Reg.add(x_rot1.in(N1)==0);
-        
-        
-        Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift.in(ids1);
-        y_rot1 -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
-        Reg.add(y_rot1.in(N1)==0);
-        
-        Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 - z_shift.in(ids1);
-        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
-        Reg.add(z_rot1.in(N1)==0);
-    }
-    
     
     //    M.min(sum(z_diff)/nb_overlap);
     
@@ -1093,19 +1175,51 @@ tuple<double,double,double,double,double,double> run_ARMO_Global(bool convex, st
     //        }
     //    M.print_solution();
     //    roll.in(R(1));pitch.in(R(1));yaw.in(R(1));
-    pitch = std::asin(sinp.eval());
-    roll = std::asin(sinr.eval());
-    yaw = std::asin(siny.eval());
-    DebugOn("Roll (degrees) = " << to_string_with_precision(roll.eval()*180/pi,12) << endl);
-    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch.eval()*180/pi,12) << endl);
-    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw.eval()*180/pi,12) << endl);
-    DebugOn("x shift = " << x_shift.eval() << endl);
-    DebugOn("y shift = " << y_shift.eval() << endl);
-    DebugOn("z shift = " << z_shift.eval() << endl);
-    roll_1 = roll.eval()*180/pi;
-    pitch_1 = pitch.eval()*180/pi;
-    yaw_1 = yaw.eval()*180/pi;
-    return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
+    vector<double> rot_trans;
+    if(norm1){
+        rot_trans.resize(12);
+        DebugOn("Theta matrix = " << endl);
+        DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+        DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+        DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+        rot_trans[0]=theta11.eval();
+        rot_trans[1]=theta12.eval();
+        rot_trans[2]=theta13.eval();;
+        rot_trans[3]=theta21.eval();
+        rot_trans[4]=theta22.eval();
+        rot_trans[5]=theta23.eval();
+        rot_trans[6]=theta31.eval();
+        rot_trans[7]=theta32.eval();
+        rot_trans[8]=theta33.eval();
+        rot_trans[9]=x_shift.eval();
+        rot_trans[10]=y_shift.eval();
+        rot_trans[11]=z_shift.eval();
+        DebugOn("x shift = " << x_shift.eval() << endl);
+        DebugOn("y shift = " << y_shift.eval() << endl);
+        DebugOn("z shift = " << z_shift.eval() << endl);
+    }
+    else{
+        rot_trans.resize(6);
+        pitch = std::asin(sinp.eval());
+        roll = std::asin(sinr.eval());
+        yaw = std::asin(siny.eval());
+        DebugOn("Roll (degrees) = " << to_string_with_precision(roll.eval()*180/pi,12) << endl);
+        DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch.eval()*180/pi,12) << endl);
+        DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw.eval()*180/pi,12) << endl);
+        DebugOn("x shift = " << x_shift.eval() << endl);
+        DebugOn("y shift = " << y_shift.eval() << endl);
+        DebugOn("z shift = " << z_shift.eval() << endl);
+        roll_1 = roll.eval()*180/pi;
+        pitch_1 = pitch.eval()*180/pi;
+        yaw_1 = yaw.eval()*180/pi;
+        rot_trans[0] = roll_1;
+        rot_trans[1] = pitch_1;
+        rot_trans[2] = yaw_1;
+        rot_trans[3] = x_shift.eval();
+        rot_trans[4] = y_shift.eval();
+        rot_trans[5] = z_shift.eval();
+    }
+    return rot_trans;
 }
 
 /* Run the Reformulated Global ARMO model for registration, given in ARMO_inequalities */
@@ -1268,7 +1382,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     Reg.add(OneBin.in(N1)>=1);
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
-    Reg.add(OneBin2.in(N1)<=1);
+    Reg.add(OneBin2.in(N2)<=1);
     
     //Can also try hull relaxation of the big-M here
     bool vi_M=false;
@@ -1354,6 +1468,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
         
         
     }
+    
     
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
@@ -1568,7 +1683,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     
 }
 
-shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool norm1){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1860,15 +1975,15 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
             }
         }
     }
-    bij_max.print();
-    d1.print();
-    d2.print();
-    x1.print();
-    y1.print();
-    z1.print();
-    x2.print();
-    y2.print();
-    z2.print();
+//    bij_max.print();
+//    d1.print();
+//    d2.print();
+//    x1.print();
+//    y1.print();
+//    z1.print();
+//    x2.print();
+//    y2.print();
+//    z2.print();
     
     
     DebugOn(model_min_x<<"\t"<<model_max_x<<endl);
@@ -1912,6 +2027,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     //     }else{
     //
     //    angle_max=1;
+    var<> theta11("theta11",  0, 1), theta12("theta12", -2, 2), theta13("theta13", -2, 2);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -2, 2), theta23("theta23", -2, 2);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0, 1);
     var<> cosr("cosr",  std::cos(angle_max), 1), sinr("sinr", -std::sin(angle_max), std::sin(angle_max));
     var<> cosp("cosp",  std::cos(angle_max), 1), sinp("sinp", -std::sin(angle_max), std::sin(angle_max));
     var<> cosy("cosy",  std::cos(angle_max), 1), siny("siny", -std::sin(angle_max), std::sin(angle_max));
@@ -1934,9 +2052,16 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     Reg->add(bin.in(cells));
     DebugOn("Added binary variables" << endl);
     Reg->add(delta.in(N1));
-    Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
-    Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
-    Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+    if(norm1){
+        Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+        Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+        Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    }
+    else{
+        Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
+        Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
+        Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+    }
     if(convex){
         Reg->add(siny_sinp.in(R(1)),cosy_sinp.in(R(1)));
         Reg->add(cosy_cosr.in(R(1)), cosy_cosp.in(R(1)), cosy_sinr_sinp.in(R(1)));
@@ -1945,6 +2070,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         Reg->add(cosr_sinp.in(R(1)), cosr_cosp.in(R(1)));
     }
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    Reg->add(x_diff.in(N1), y_diff.in(N1), z_diff.in(N1));
     Reg->add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
     Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
     DebugOn("There are " << cells.size() << " cells" << endl);
@@ -1972,11 +2098,11 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg->add(OneBin.in(N1)==1);
+    Reg->add(OneBin.in(N1)>=1);
     
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
-    //Reg->add(OneBin2.in(N1)<=1);
+    Reg->add(OneBin2.in(N2)<=1);
     
     if(convex){
         bool vi_M=false;
@@ -1991,297 +2117,343 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         }
     }
     
-    if(!convex){
+    if(!convex && !norm1){
         Constraint<> Norm2("Norm2");
         Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
         Reg->add(Norm2.in(N1)>=0);
     }
-    Constraint<> trigR("trigR");
-    trigR = pow(cosr,2) + pow(sinr,2);
-    if(!convex)
-        Reg->add(trigR==1);
-    else
-        Reg->add(trigR==1, true);
-    Constraint<> trigP("trigP");
-    trigP = pow(cosp,2) + pow(sinp,2);
-    if(!convex)
-        Reg->add(trigP==1);
-    else
-        Reg->add(trigP==1, true);
-    
-    Constraint<> trigY("trigY");
-    trigY = pow(cosy,2) + pow(siny,2);
-    if(!convex)
-        Reg->add(trigY==1);
-    else
-        Reg->add(trigY==1, true);
-    
-    if(!convex){
-        Constraint<> cosy_sinr_prod("cosy_sinr");
-        cosy_sinr_prod = cosy_sinr - cosy*sinr;
-        Reg->add(cosy_sinr_prod==0);
-    }
-    else{
-        Reg->add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
-    }
-    
-    if(!convex){
-        Constraint<> siny_sinr_prod("siny_sinr");
-        siny_sinr_prod = siny_sinr - siny*sinr;
-        Reg->add(siny_sinr_prod==0);
-    }
-    else {
-        Reg->add_McCormick("siny_sinr", siny_sinr, siny, sinr);
-    }
-    
-    auto ids1 = cosy.repeat_id(cells.size());
-    
-    if(!convex){
+    if(norm1){
+        Constraint<> x_abs1("x_abs1");
+        x_abs1 += x_diff - (new_x1 - new_xm);
+        Reg->add(x_abs1.in(N1)>=0);
+
+        Constraint<> x_abs2("x_abs2");
+        x_abs2 += x_diff - (new_xm - new_x1);
+        Reg->add(x_abs2.in(N1)>=0);
+
+        Constraint<> y_abs1("y_abs1");
+        y_abs1 += y_diff - (new_y1 - new_ym);
+        Reg->add(y_abs1.in(N1)>=0);
+
+        Constraint<> y_abs2("y_abs2");
+        y_abs2 += y_diff - (new_ym - new_y1);
+        Reg->add(y_abs2.in(N1)>=0);
+
+        Constraint<> z_abs1("z_abs1");
+        z_abs1 += z_diff - (new_z1 - new_zm);
+        Reg->add(z_abs1.in(N1)>=0);
+
+        Constraint<> z_abs2("z_abs2");
+        z_abs2 += z_diff - (new_zm - new_z1);
+        Reg->add(z_abs2.in(N1)>=0);
         
-        //        Reg->add(rot_x1.in(N1));
-        //        Reg->add(rot_y1.in(N1));
-        //        Reg->add(rot_z1.in(N1));
-        
-        /* alpha = yaw_, beta = roll and gamma = pitch */
+        Constraint<> Norm1("Norm1");
+        Norm1 += delta - (x_diff + y_diff + z_diff);
+        Reg->add(Norm1.in(N1)>=0);
+
+        auto ids1 = theta11.repeat_id(cells.size());
         Constraint<> x_rot1("x_rot1");
         x_rot1 += new_x1 -x_shift;
-        x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
+        x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
         Reg->add(x_rot1.in(N1)==0);
         
         Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 -y_shift;
-        y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
+        y_rot1 += new_y1 - y_shift;
+        y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1);
         Reg->add(y_rot1.in(N1)==0);
         
         Constraint<> z_rot1("z_rot1");
         z_rot1 += new_z1 -z_shift;
-        z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
+        y_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         Reg->add(z_rot1.in(N1)==0);
     }
     else{
-        Reg->add_McCormick("cosy_cosr", cosy_cosr, cosy, cosr);
-        Reg->add_McCormick("cosy_sinr_sinp", cosy_sinr_sinp, cosy_sinr, sinp);
-        Reg->add_McCormick("siny_cosp", siny_cosp, siny, cosp);
-        Reg->add_McCormick("siny_sinp", siny_sinp, siny, sinp);
-        Reg->add_McCormick("siny_cosr", siny_cosr, siny, cosr);
-        Reg->add_McCormick("siny_sinr_sinp", siny_sinr_sinp, siny_sinr, sinp);
-        Reg->add_McCormick("cosy_cosp", cosy_cosp, cosy, cosp);
-        Reg->add_McCormick("siny_sinr_cosp", siny_sinr_cosp, siny_sinr, cosp);
-        Reg->add_McCormick("cosy_sinp", cosy_sinp, cosy, sinp);
-        Reg->add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
-        Reg->add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
+        Constraint<> trigR("trigR");
+        trigR = pow(cosr,2) + pow(sinr,2);
+        if(!convex)
+            Reg->add(trigR==1);
+        else
+            Reg->add(trigR==1, true);
+        Constraint<> trigP("trigP");
+        trigP = pow(cosp,2) + pow(sinp,2);
+        if(!convex)
+            Reg->add(trigP==1);
+        else
+            Reg->add(trigP==1, true);
         
-        Reg->add(rot_x1.in(N1));
-        Reg->add(rot_y1.in(N1));
-        Reg->add(rot_z1.in(N1));
+        Constraint<> trigY("trigY");
+        trigY = pow(cosy,2) + pow(siny,2);
+        if(!convex)
+            Reg->add(trigY==1);
+        else
+            Reg->add(trigY==1, true);
         
-        Constraint<> def_rotx("def_rotx");
-        def_rotx  += rot_x1;
-        def_rotx -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
-        Reg->add(def_rotx.in(N1)==0);
+        if(!convex){
+            Constraint<> cosy_sinr_prod("cosy_sinr");
+            cosy_sinr_prod = cosy_sinr - cosy*sinr;
+            Reg->add(cosy_sinr_prod==0);
+        }
+        else{
+            Reg->add_McCormick("cosy_sinr", cosy_sinr, cosy, sinr);
+        }
         
-        Constraint<> def_roty("def_roty");
-        def_roty += rot_y1;
-        def_roty -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
-        Reg->add(def_roty.in(N1)==0);
-        //
-        Constraint<> def_rotz("def_rotz");
-        def_rotz += rot_z1;
-        def_rotz-= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
-        Reg->add(def_rotz.in(N1)==0);
+        if(!convex){
+            Constraint<> siny_sinr_prod("siny_sinr");
+            siny_sinr_prod = siny_sinr - siny*sinr;
+            Reg->add(siny_sinr_prod==0);
+        }
+        else {
+            Reg->add_McCormick("siny_sinr", siny_sinr, siny, sinr);
+        }
         
-        Constraint<> x_tran("x_tran");
-        x_tran=new_x1-(rot_x1+x_shift);
-        Reg->add(x_tran.in(N1)==0);
+        auto ids1 = cosy.repeat_id(cells.size());
         
-        Constraint<> y_tran("y_tran");
-        y_tran=new_y1-(rot_y1+y_shift);
-        Reg->add(y_tran.in(N1)==0);
-        
-        Constraint<> z_tran("z_tran");
-        z_tran=new_z1-(rot_z1+z_shift);
-        Reg->add(z_tran.in(N1)==0);
-        
-        Constraint<> Norm2("Norm2");
-        Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
-        Reg->add(Norm2.in(N1)>=0);
-        
-        //        var<> Tx("Tx", 0, 1), Ty("Ty", 0, 1), Tz("Tz", 0, 1);
-        //        Reg->add(Tx.in(R(1)));
-        //        Reg->add(Ty.in(R(1)));
-        //        Reg->add(Tz.in(R(1)));
-        //
-        //        Constraint<> def_Tx("def_Tx");
-        //        def_Tx=Tx-pow(x_shift,2);
-        //        Reg->add(def_Tx==0, true);
-        //
-        //        Constraint<> def_Ty("def_Ty");
-        //        def_Ty=Ty-pow(y_shift,2);
-        //        Reg->add(def_Ty==0,true);
-        //
-        //        Constraint<> def_Tz("def_Tz");
-        //        def_Tz=Tz-pow(z_shift,2);
-        //        Reg->add(def_Tz==0,true);
-        //
-        var<> X("X", 0, 1), Y("Y", 0, 1), Z("Z", 0, 1);
-        Reg->add(X.in(N1));
-        Reg->add(Y.in(N1));
-        Reg->add(Z.in(N1));
-        
-        Constraint<> def_X("def_X");
-        def_X=X-pow(rot_x1,2);
-        Reg->add(def_X.in(N1)==0, true);
-        
-        Constraint<> def_Y("def_Y");
-        def_Y=Y-pow(rot_y1,2);
-        Reg->add(def_Y.in(N1)==0, true);
-        
-        Constraint<> def_Z("def_Z");
-        def_Z=Z-pow(rot_z1,2);
-        Reg->add(def_Z.in(N1)==0, true);
-        //
-        Constraint<> cons_dist_rot("cons_dist_rot");
-        cons_dist_rot=X+Y+Z-d1;
-        Reg->add(cons_dist_rot.in(N1)==0);
-        //
-        //        var<> MX("MX", 0, 1), MY("MY", 0, 1), MZ("MZ", 0, 1);
-        //        Reg->add(MX.in(N1));
-        //        Reg->add(MY.in(N1));
-        //        Reg->add(MZ.in(N1));
-        //
-        //        Constraint<> def_MX("def_MX");
-        //        def_MX=MX-pow(new_xm,2);
-        //        Reg->add(def_MX.in(N1)==0, true);
-        //
-        //        Constraint<> def_MY("def_MY");
-        //        def_MY=MY-pow(new_ym,2);
-        //        Reg->add(def_MY.in(N1)==0, true);
-        //
-        //        Constraint<> def_MZ("def_MZ");
-        //        def_MZ=MZ-pow(new_zm,2);
-        //        Reg->add(def_MZ.in(N1)==0, true);
-        //
-        //        Constraint<> cons_dist_model("cons_dist_model");
-        //        cons_dist_model = MX+MY+MZ-product(d2.in(ids),bin.in_matrix(1, 1));
-        //        Reg->add(cons_dist_model.in(N1)==0);
-        //
-        //        var<> MXT("MXT", -1, 1), MYT("MYT", -1, 1), MZT("MZT", -1, 1);
-        //        Reg->add(MXT.in(N1));
-        //        Reg->add(MYT.in(N1));
-        //        Reg->add(MZT.in(N1));
-        //
-        //        auto idn1=Tx.repeat_id(nd);
-        //
-        //        Constraint<> def_MXT("def_MXT");
-        //        def_MXT=MXT.in(N1)-new_xm.in(N1)*x_shift.in(idn1);
-        //        Reg->add(def_MXT.in(N1)==0, true);
-        //
-        //        Constraint<> def_MYT("def_MYT");
-        //        def_MYT=MYT.in(N1)-new_ym.in(N1)*y_shift.in(idn1);
-        //        Reg->add(def_MYT.in(N1)==0, true);
-        //
-        //        Constraint<> def_MZT("def_MZT");
-        //        def_MZT=MZT.in(N1)-new_zm.in(N1)*z_shift.in(idn1);
-        //        Reg->add(def_MZT.in(N1)==0, true);
-        //
-        //        var<> XT("XT", -1, 1), YT("YT", -1, 1), ZT("ZT", -1, 1);
-        //        Reg->add(XT.in(N1));
-        //        Reg->add(YT.in(N1));
-        //        Reg->add(ZT.in(N1));
-        //
-        //        Constraint<> def_XT("def_XT");
-        //        def_XT=XT.in(N1)-rot_x1.in(N1)*x_shift.in(idn1);
-        //        Reg->add(def_XT.in(N1)==0, true);
-        //
-        //        Constraint<> def_YT("def_YT");
-        //        def_YT=YT.in(N1)-rot_y1.in(N1)*y_shift.in(idn1);
-        //        Reg->add(def_YT.in(N1)==0, true);
-        //
-        //        Constraint<> def_ZT("def_ZT");
-        //        def_ZT=ZT.in(N1)-rot_z1.in(N1)*z_shift.in(idn1);
-        //        Reg->add(def_ZT.in(N1)==0, true);
-        //
-        //        var<> XMX("XMX", -1, 1), YMY("YMY", -1, 1), ZMZ("ZMZ", -1, 1);
-        //        Reg->add(XMX.in(N1));
-        //        Reg->add(YMY.in(N1));
-        //        Reg->add(ZMZ.in(N1));
-        //
-        //        Constraint<> def_XMX("def_XMX");
-        //        def_XMX=XMX.in(N1)-rot_x1.in(N1)*new_xm.in(N1);
-        //        Reg->add(def_XMX.in(N1)==0, true);
-        //
-        //        Constraint<> def_YMY("def_YMY");
-        //        def_YMY=YMY.in(N1)-rot_y1.in(N1)*new_ym.in(N1);
-        //        Reg->add(def_YMY.in(N1)==0, true);
-        //
-        //        Constraint<> def_ZMZ("def_ZMZ");
-        //        def_ZMZ=ZMZ.in(N1)-rot_z1.in(N1)*new_zm.in(N1);
-        //        Reg->add(def_ZMZ.in(N1)==0, true);
-        
-        //        Constraint<> Norm2("Norm2");
-        //        Norm2 += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
-        //        Reg->add(Norm2.in(N1)>=0);
-        
-        
-        //
-        //                Constraint<> Norm2a("Norm2a");
-        //                Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX-XT+MXT+YMY-YT+MYT+ZMZ-ZT+MZT));
-        //                Reg->add(Norm2a.in(N1)==0);
-        
-        //        Constraint<> Norm2a("Norm2a");
-        //        Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(rot_x1*new_xm-rot_x1*x_shift.in(idn1)+new_xm*x_shift.in(idn1)+rot_y1*new_ym-rot_y1*y_shift.in(idn1)+new_ym*y_shift.in(idn1)+rot_z1*new_zm-rot_z1*z_shift.in(idn1)+new_zm*z_shift.in(idn1)));
-        //        Reg->add(Norm2a.in(N1)>=0);
-        
-        
-        //        Constraint<> soc_xmx("soc_xmx");
-        //        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
-        //        Reg->add(soc_xmx.in(N1)<=0);
-        //
-        //        Constraint<> soc_xt("soc_xt");
-        //        soc_xt = pow(XT.in(N1),2)-X.in(N1)*Tx.in(idn1);
-        //        Reg->add(soc_xt.in(N1)<=0);
-        //
-        //        Constraint<> soc_mxt("soc_mxt");
-        //        soc_mxt = pow(MXT,2)-MX.in(N1)*Tx.in(idn1);
-        //        Reg->add(soc_mxt.in(N1)<=0);
-        //
-        //        Constraint<> soc_ymy("soc_ymy");
-        //        soc_ymy = pow(YMY.in(N1),2)-Y.in(N1)*MY.in(N1);
-        //        Reg->add(soc_ymy.in(N1)<=0);
-        //
-        //        Constraint<> soc_yt("soc_yt");
-        //        soc_yt = pow(YT.in(N1),2)-Y.in(N1)*Ty.in(idn1);
-        //        Reg->add(soc_yt.in(N1)<=0);
-        //
-        //        Constraint<> soc_myt("soc_myt");
-        //        soc_myt = pow(MYT,2)-MY.in(N1)*Ty.in(idn1);
-        //        Reg->add(soc_myt.in(N1)<=0);
-        //
-        //        Constraint<> soc_zmz("soc_zmz");
-        //        soc_zmz = pow(ZMZ.in(N1),2)-Z.in(N1)*MZ.in(N1);
-        //        Reg->add(soc_zmz.in(N1)<=0);
-        //
-        //        Constraint<> soc_zt("soc_zt");
-        //        soc_zt = pow(ZT.in(N1),2)-Z.in(N1)*Tz.in(idn1);
-        //        Reg->add(soc_zt.in(N1)<=0);
-        //
-        //        Constraint<> soc_mzt("soc_mzt");
-        //        soc_mzt = pow(MZT,2)-MZ.in(N1)*Tz.in(idn1);
-        //        Reg->add(soc_mzt.in(N1)<=0);
-        //
-        //        Constraint<> sdp_x("sdp_x");
-        //        sdp_x=X*MX*Tx.in(idn1)-X*pow(MXT,2)-pow(XMX,2)*Tx.in(idn1)+XMX*MXT*XT+XT*XMX*Tx.in(idn1)-pow(XT,2)*MXT;
-        //        Reg->add(sdp_x.in(N1)>=0);
-        //
-        //        Constraint<> sdp_y("sdp_y");
-        //        sdp_y=Y*MY*Ty.in(idn1)-Y*pow(MYT,2)-pow(YMY,2)*Ty.in(idn1)+YMY*MYT*YT+YT*YMY*Ty.in(idn1)-pow(YT,2)*MYT;
-        //        Reg->add(sdp_y.in(N1)>=0);
-        //
-        //        Constraint<> sdp_z("sdp_z");
-        //        sdp_z=Z*MZ*Tz.in(idn1)-Z*pow(MZT,2)-pow(ZMZ,2)*Tz.in(idn1)+ZMZ*MZT*ZT+ZT*ZMZ*Tz.in(idn1)-pow(ZT,2)*MZT;
-        //        Reg->add(sdp_z.in(N1)>=0);
+        if(!convex){
+            
+            //        Reg->add(rot_x1.in(N1));
+            //        Reg->add(rot_y1.in(N1));
+            //        Reg->add(rot_z1.in(N1));
+            
+            /* alpha = yaw_, beta = roll and gamma = pitch */
+            Constraint<> x_rot1("x_rot1");
+            x_rot1 += new_x1 -x_shift;
+            x_rot1 -= (x1.in(N1))*cosy.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(cosy_sinr.in(ids1)*sinp.in(ids1) - siny.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr.in(ids1)*cosp.in(ids1) + siny.in(ids1)*sinp.in(ids1));
+            Reg->add(x_rot1.in(N1)==0);
+            
+            Constraint<> y_rot1("y_rot1");
+            y_rot1 += new_y1 -y_shift;
+            y_rot1 -= (x1.in(N1))*siny.in(ids1)*cosr.in(ids1) + (y1.in(N1))*(siny_sinr.in(ids1)*sinp.in(ids1) + cosy.in(ids1)*cosp.in(ids1)) + (z1.in(N1))*(siny_sinr.in(ids1)*cosp.in(ids1) - cosy.in(ids1)*sinp.in(ids1));
+            Reg->add(y_rot1.in(N1)==0);
+            
+            Constraint<> z_rot1("z_rot1");
+            z_rot1 += new_z1 -z_shift;
+            z_rot1 -= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr.in(ids1)*sinp.in(ids1)) + (z1.in(N1))*(cosr.in(ids1)*cosp.in(ids1));
+            Reg->add(z_rot1.in(N1)==0);
+        }
+        else{
+            Reg->add_McCormick("cosy_cosr", cosy_cosr, cosy, cosr);
+            Reg->add_McCormick("cosy_sinr_sinp", cosy_sinr_sinp, cosy_sinr, sinp);
+            Reg->add_McCormick("siny_cosp", siny_cosp, siny, cosp);
+            Reg->add_McCormick("siny_sinp", siny_sinp, siny, sinp);
+            Reg->add_McCormick("siny_cosr", siny_cosr, siny, cosr);
+            Reg->add_McCormick("siny_sinr_sinp", siny_sinr_sinp, siny_sinr, sinp);
+            Reg->add_McCormick("cosy_cosp", cosy_cosp, cosy, cosp);
+            Reg->add_McCormick("siny_sinr_cosp", siny_sinr_cosp, siny_sinr, cosp);
+            Reg->add_McCormick("cosy_sinp", cosy_sinp, cosy, sinp);
+            Reg->add_McCormick("cosr_sinp", cosr_sinp, cosr, sinp);
+            Reg->add_McCormick("cosr_cosp", cosr_cosp, cosr, cosp);
+            
+            Reg->add(rot_x1.in(N1));
+            Reg->add(rot_y1.in(N1));
+            Reg->add(rot_z1.in(N1));
+            
+            Constraint<> def_rotx("def_rotx");
+            def_rotx  += rot_x1;
+            def_rotx -= (x1.in(N1))*cosy_cosr.in(ids1) + (y1.in(N1))*(cosy_sinr_sinp.in(ids1) - siny_cosp.in(ids1)) + (z1.in(N1))*(cosy_sinr_cosp.in(ids1) + siny_sinp.in(ids1));
+            Reg->add(def_rotx.in(N1)==0);
+            
+            Constraint<> def_roty("def_roty");
+            def_roty += rot_y1;
+            def_roty -= (x1.in(N1))*siny_cosr.in(ids1) + (y1.in(N1))*(siny_sinr_sinp.in(ids1) + cosy_cosp.in(ids1)) + (z1.in(N1))*(siny_sinr_cosp.in(ids1) - cosy_sinp.in(ids1));
+            Reg->add(def_roty.in(N1)==0);
+            //
+            Constraint<> def_rotz("def_rotz");
+            def_rotz += rot_z1;
+            def_rotz-= (x1.in(N1))*-1*sinr.in(ids1) + (y1.in(N1))*(cosr_sinp.in(ids1)) + (z1.in(N1))*(cosr_cosp.in(ids1));
+            Reg->add(def_rotz.in(N1)==0);
+            
+            Constraint<> x_tran("x_tran");
+            x_tran=new_x1-(rot_x1+x_shift);
+            Reg->add(x_tran.in(N1)==0);
+            
+            Constraint<> y_tran("y_tran");
+            y_tran=new_y1-(rot_y1+y_shift);
+            Reg->add(y_tran.in(N1)==0);
+            
+            Constraint<> z_tran("z_tran");
+            z_tran=new_z1-(rot_z1+z_shift);
+            Reg->add(z_tran.in(N1)==0);
+            
+            Constraint<> Norm2("Norm2");
+            Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
+            Reg->add(Norm2.in(N1)>=0);
+            
+            //        var<> Tx("Tx", 0, 1), Ty("Ty", 0, 1), Tz("Tz", 0, 1);
+            //        Reg->add(Tx.in(R(1)));
+            //        Reg->add(Ty.in(R(1)));
+            //        Reg->add(Tz.in(R(1)));
+            //
+            //        Constraint<> def_Tx("def_Tx");
+            //        def_Tx=Tx-pow(x_shift,2);
+            //        Reg->add(def_Tx==0, true);
+            //
+            //        Constraint<> def_Ty("def_Ty");
+            //        def_Ty=Ty-pow(y_shift,2);
+            //        Reg->add(def_Ty==0,true);
+            //
+            //        Constraint<> def_Tz("def_Tz");
+            //        def_Tz=Tz-pow(z_shift,2);
+            //        Reg->add(def_Tz==0,true);
+            //
+            var<> X("X", 0, 1), Y("Y", 0, 1), Z("Z", 0, 1);
+            Reg->add(X.in(N1));
+            Reg->add(Y.in(N1));
+            Reg->add(Z.in(N1));
+            
+            Constraint<> def_X("def_X");
+            def_X=X-pow(rot_x1,2);
+            Reg->add(def_X.in(N1)==0, true);
+            
+            Constraint<> def_Y("def_Y");
+            def_Y=Y-pow(rot_y1,2);
+            Reg->add(def_Y.in(N1)==0, true);
+            
+            Constraint<> def_Z("def_Z");
+            def_Z=Z-pow(rot_z1,2);
+            Reg->add(def_Z.in(N1)==0, true);
+            //
+            Constraint<> cons_dist_rot("cons_dist_rot");
+            cons_dist_rot=X+Y+Z-d1;
+            Reg->add(cons_dist_rot.in(N1)==0);
+            //
+            //        var<> MX("MX", 0, 1), MY("MY", 0, 1), MZ("MZ", 0, 1);
+            //        Reg->add(MX.in(N1));
+            //        Reg->add(MY.in(N1));
+            //        Reg->add(MZ.in(N1));
+            //
+            //        Constraint<> def_MX("def_MX");
+            //        def_MX=MX-pow(new_xm,2);
+            //        Reg->add(def_MX.in(N1)==0, true);
+            //
+            //        Constraint<> def_MY("def_MY");
+            //        def_MY=MY-pow(new_ym,2);
+            //        Reg->add(def_MY.in(N1)==0, true);
+            //
+            //        Constraint<> def_MZ("def_MZ");
+            //        def_MZ=MZ-pow(new_zm,2);
+            //        Reg->add(def_MZ.in(N1)==0, true);
+            //
+            //        Constraint<> cons_dist_model("cons_dist_model");
+            //        cons_dist_model = MX+MY+MZ-product(d2.in(ids),bin.in_matrix(1, 1));
+            //        Reg->add(cons_dist_model.in(N1)==0);
+            //
+            //        var<> MXT("MXT", -1, 1), MYT("MYT", -1, 1), MZT("MZT", -1, 1);
+            //        Reg->add(MXT.in(N1));
+            //        Reg->add(MYT.in(N1));
+            //        Reg->add(MZT.in(N1));
+            //
+            //        auto idn1=Tx.repeat_id(nd);
+            //
+            //        Constraint<> def_MXT("def_MXT");
+            //        def_MXT=MXT.in(N1)-new_xm.in(N1)*x_shift.in(idn1);
+            //        Reg->add(def_MXT.in(N1)==0, true);
+            //
+            //        Constraint<> def_MYT("def_MYT");
+            //        def_MYT=MYT.in(N1)-new_ym.in(N1)*y_shift.in(idn1);
+            //        Reg->add(def_MYT.in(N1)==0, true);
+            //
+            //        Constraint<> def_MZT("def_MZT");
+            //        def_MZT=MZT.in(N1)-new_zm.in(N1)*z_shift.in(idn1);
+            //        Reg->add(def_MZT.in(N1)==0, true);
+            //
+            //        var<> XT("XT", -1, 1), YT("YT", -1, 1), ZT("ZT", -1, 1);
+            //        Reg->add(XT.in(N1));
+            //        Reg->add(YT.in(N1));
+            //        Reg->add(ZT.in(N1));
+            //
+            //        Constraint<> def_XT("def_XT");
+            //        def_XT=XT.in(N1)-rot_x1.in(N1)*x_shift.in(idn1);
+            //        Reg->add(def_XT.in(N1)==0, true);
+            //
+            //        Constraint<> def_YT("def_YT");
+            //        def_YT=YT.in(N1)-rot_y1.in(N1)*y_shift.in(idn1);
+            //        Reg->add(def_YT.in(N1)==0, true);
+            //
+            //        Constraint<> def_ZT("def_ZT");
+            //        def_ZT=ZT.in(N1)-rot_z1.in(N1)*z_shift.in(idn1);
+            //        Reg->add(def_ZT.in(N1)==0, true);
+            //
+            //        var<> XMX("XMX", -1, 1), YMY("YMY", -1, 1), ZMZ("ZMZ", -1, 1);
+            //        Reg->add(XMX.in(N1));
+            //        Reg->add(YMY.in(N1));
+            //        Reg->add(ZMZ.in(N1));
+            //
+            //        Constraint<> def_XMX("def_XMX");
+            //        def_XMX=XMX.in(N1)-rot_x1.in(N1)*new_xm.in(N1);
+            //        Reg->add(def_XMX.in(N1)==0, true);
+            //
+            //        Constraint<> def_YMY("def_YMY");
+            //        def_YMY=YMY.in(N1)-rot_y1.in(N1)*new_ym.in(N1);
+            //        Reg->add(def_YMY.in(N1)==0, true);
+            //
+            //        Constraint<> def_ZMZ("def_ZMZ");
+            //        def_ZMZ=ZMZ.in(N1)-rot_z1.in(N1)*new_zm.in(N1);
+            //        Reg->add(def_ZMZ.in(N1)==0, true);
+            
+            //        Constraint<> Norm2("Norm2");
+            //        Norm2 += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX+XT+MXT+YMY+YT+MYT+ZMZ+ZT+MZT));
+            //        Reg->add(Norm2.in(N1)>=0);
+            
+            
+            //
+            //                Constraint<> Norm2a("Norm2a");
+            //                Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(XMX-XT+MXT+YMY-YT+MYT+ZMZ-ZT+MZT));
+            //                Reg->add(Norm2a.in(N1)==0);
+            
+            //        Constraint<> Norm2a("Norm2a");
+            //        Norm2a += delta - (X+MX+Tx+Y+MY+Ty+Z+MZ+Tz-2*(rot_x1*new_xm-rot_x1*x_shift.in(idn1)+new_xm*x_shift.in(idn1)+rot_y1*new_ym-rot_y1*y_shift.in(idn1)+new_ym*y_shift.in(idn1)+rot_z1*new_zm-rot_z1*z_shift.in(idn1)+new_zm*z_shift.in(idn1)));
+            //        Reg->add(Norm2a.in(N1)>=0);
+            
+            
+            //        Constraint<> soc_xmx("soc_xmx");
+            //        soc_xmx = pow(XMX.in(N1),2)-X.in(N1)*MX.in(N1);
+            //        Reg->add(soc_xmx.in(N1)<=0);
+            //
+            //        Constraint<> soc_xt("soc_xt");
+            //        soc_xt = pow(XT.in(N1),2)-X.in(N1)*Tx.in(idn1);
+            //        Reg->add(soc_xt.in(N1)<=0);
+            //
+            //        Constraint<> soc_mxt("soc_mxt");
+            //        soc_mxt = pow(MXT,2)-MX.in(N1)*Tx.in(idn1);
+            //        Reg->add(soc_mxt.in(N1)<=0);
+            //
+            //        Constraint<> soc_ymy("soc_ymy");
+            //        soc_ymy = pow(YMY.in(N1),2)-Y.in(N1)*MY.in(N1);
+            //        Reg->add(soc_ymy.in(N1)<=0);
+            //
+            //        Constraint<> soc_yt("soc_yt");
+            //        soc_yt = pow(YT.in(N1),2)-Y.in(N1)*Ty.in(idn1);
+            //        Reg->add(soc_yt.in(N1)<=0);
+            //
+            //        Constraint<> soc_myt("soc_myt");
+            //        soc_myt = pow(MYT,2)-MY.in(N1)*Ty.in(idn1);
+            //        Reg->add(soc_myt.in(N1)<=0);
+            //
+            //        Constraint<> soc_zmz("soc_zmz");
+            //        soc_zmz = pow(ZMZ.in(N1),2)-Z.in(N1)*MZ.in(N1);
+            //        Reg->add(soc_zmz.in(N1)<=0);
+            //
+            //        Constraint<> soc_zt("soc_zt");
+            //        soc_zt = pow(ZT.in(N1),2)-Z.in(N1)*Tz.in(idn1);
+            //        Reg->add(soc_zt.in(N1)<=0);
+            //
+            //        Constraint<> soc_mzt("soc_mzt");
+            //        soc_mzt = pow(MZT,2)-MZ.in(N1)*Tz.in(idn1);
+            //        Reg->add(soc_mzt.in(N1)<=0);
+            //
+            //        Constraint<> sdp_x("sdp_x");
+            //        sdp_x=X*MX*Tx.in(idn1)-X*pow(MXT,2)-pow(XMX,2)*Tx.in(idn1)+XMX*MXT*XT+XT*XMX*Tx.in(idn1)-pow(XT,2)*MXT;
+            //        Reg->add(sdp_x.in(N1)>=0);
+            //
+            //        Constraint<> sdp_y("sdp_y");
+            //        sdp_y=Y*MY*Ty.in(idn1)-Y*pow(MYT,2)-pow(YMY,2)*Ty.in(idn1)+YMY*MYT*YT+YT*YMY*Ty.in(idn1)-pow(YT,2)*MYT;
+            //        Reg->add(sdp_y.in(N1)>=0);
+            //
+            //        Constraint<> sdp_z("sdp_z");
+            //        sdp_z=Z*MZ*Tz.in(idn1)-Z*pow(MZT,2)-pow(ZMZ,2)*Tz.in(idn1)+ZMZ*MZT*ZT+ZT*ZMZ*Tz.in(idn1)-pow(ZT,2)*MZT;
+            //        Reg->add(sdp_z.in(N1)>=0);
+        }
     }
-    
     
     if(axis == "full")
         Reg->min(sum(delta));
@@ -2305,31 +2477,54 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         //        Reg->reset_constrs();
     }
     else {
-        // Reg->print();
+         Reg->print();
         solver<> S(Reg,gurobi);
         S.run();
         Reg->print_solution();
     }
     //Reg->print_solution();
     
-    auto pitch = std::atan2(sinp.eval(), cosp.eval());
-    auto roll = std::atan2(sinr.eval(),cosr.eval());
-    auto yaw = std::atan2(siny.eval(),cosy.eval());
-    DebugOn("Roll (degrees) = " << to_string_with_precision(roll*180/pi,12) << endl);
-    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch*180/pi,12) << endl);
-    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw*180/pi,12) << endl);
-    DebugOn("x shift = " << x_shift.eval() << endl);
-    DebugOn("y shift = " << y_shift.eval() << endl);
-    DebugOn("z shift = " << z_shift.eval() << endl);
-    roll_1 = roll*180/pi;
-    pitch_1 = pitch*180/pi;
-    yaw_1 = yaw*180/pi;
-    rot_trans[0]=roll_1;
-    rot_trans[1]=pitch_1;
-    rot_trans[2]=yaw_1;
-    rot_trans[3]=x_shift.eval();
-    rot_trans[4]=y_shift.eval();
-    rot_trans[5]=z_shift.eval();
+    if(norm1){
+        DebugOn("Theta matrix = " << endl);
+        DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+        DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+        DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+        rot_trans[0]=theta11.eval();
+        rot_trans[1]=theta12.eval();
+        rot_trans[2]=theta13.eval();;
+        rot_trans[3]=theta21.eval();
+        rot_trans[4]=theta22.eval();
+        rot_trans[5]=theta23.eval();
+        rot_trans[6]=theta31.eval();
+        rot_trans[7]=theta32.eval();
+        rot_trans[8]=theta33.eval();
+        rot_trans[9]=x_shift.eval();
+        rot_trans[10]=y_shift.eval();
+        rot_trans[11]=z_shift.eval();
+        DebugOn("x shift = " << x_shift.eval() << endl);
+        DebugOn("y shift = " << y_shift.eval() << endl);
+        DebugOn("z shift = " << z_shift.eval() << endl);
+    }
+    else{
+        auto pitch = std::atan2(sinp.eval(), cosp.eval());
+        auto roll = std::atan2(sinr.eval(),cosr.eval());
+        auto yaw = std::atan2(siny.eval(),cosy.eval());
+        roll_1 = roll*180/pi;
+        pitch_1 = pitch*180/pi;
+        yaw_1 = yaw*180/pi;
+        rot_trans[0]=roll_1;
+        rot_trans[1]=pitch_1;
+        rot_trans[2]=yaw_1;
+        rot_trans[3]=x_shift.eval();
+        rot_trans[4]=y_shift.eval();
+        rot_trans[5]=z_shift.eval();
+        DebugOn("Roll (degrees) = " << to_string_with_precision(roll*180/pi,12) << endl);
+        DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch*180/pi,12) << endl);
+        DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw*180/pi,12) << endl);
+        DebugOn("x shift = " << x_shift.eval() << endl);
+        DebugOn("y shift = " << y_shift.eval() << endl);
+        DebugOn("z shift = " << z_shift.eval() << endl);
+    }
     
     return(Reg);
 }
@@ -3105,6 +3300,22 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
     }
 }
 
+void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>& point_cloud){
+    double shifted_x, shifted_y, shifted_z;
+    size_t n = point_cloud.size();
+    /* Apply rotation */
+    for (auto i = 0; i< n; i++) {
+        shifted_x = point_cloud[i][0];
+        shifted_y = point_cloud[i][1];
+        shifted_z = point_cloud[i][2];
+        point_cloud[i][0] = shifted_x*theta_matrix[0] + shifted_y*theta_matrix[1] + shifted_z*theta_matrix[2];
+        point_cloud[i][1] = shifted_x*theta_matrix[3] + shifted_y*theta_matrix[4] + shifted_z*theta_matrix[5];
+        point_cloud[i][2] = shifted_x*theta_matrix[6] + shifted_y*theta_matrix[7] + shifted_z*theta_matrix[8];
+        point_cloud[i][0] += theta_matrix[9];
+        point_cloud[i][1] += theta_matrix[10];
+        point_cloud[i][2] += theta_matrix[11];
+    }
+}
 
 void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, double y_shift, double z_shift, vector<vector<double>>& point_cloud){
     double beta = roll*pi/180;// roll in radians
