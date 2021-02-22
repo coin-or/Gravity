@@ -341,7 +341,9 @@ int main (int argc, char * argv[])
             else{
                 apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
             }
+#ifdef USE_MATPLOT
             plot(point_cloud_model, point_cloud_data);
+#endif
             // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
