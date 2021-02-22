@@ -4407,9 +4407,7 @@ namespace gravity {
         type eval(size_t i=0) {
             if(is_zero()){
                 if (func_is_number()){
-                    assert(_val->size()>0);
-                    _val->at(0) = this->_range->first;
-                    return _val->at(0);
+                    return this->_range->first;
                 }
                 assert(_val->size()>i);
                 _val->at(i) = this->_range->first;

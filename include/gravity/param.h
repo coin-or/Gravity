@@ -2300,14 +2300,18 @@ namespace gravity {
                 if(_indices) {
                     if (is_indexed()) {
                         for (size_t i = 0; i < _dim[0]; i++) {
-                            str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
-                            str += " \n";
+                            if(!_is_relaxed || std::abs(eval(i)) > 1e-4){
+                                str += "[" + _indices->_keys->at(get_id_inst(i)) + "] = " + to_string_with_precision(eval(i), prec);
+                                str += " \n";
+                            }
                         }
                     }
                     else {
                         for (size_t i = 0; i < _dim[0]; i++) {
-                            str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
-                            str += " \n";
+                            if(!_is_relaxed || std::abs(eval(i)) > 1e-4){
+                                str += "[" + _indices->_keys->at(i) + "] = " + to_string_with_precision(eval(i), prec);
+                                str += " \n";
+                            }
                         }
                     }
                 }

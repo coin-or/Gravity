@@ -166,6 +166,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool byp
 
 shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans, bool norm1 = false);
 
+shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
@@ -334,7 +336,8 @@ int main (int argc, char * argv[])
             else{
                 rot_trans.resize(6,0.0);
             }
-            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
+//            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
+            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -1681,6 +1684,119 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
         dbox_min=0;
     }
     
+}
+
+shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+    double angle_max = 1;
+    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+    int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+    size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
+    
+    vector<double> zeros = {0,0,0};
+    
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
+    int m = av_nb_pairs;
+    string i_str, j_str;
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        x1.add_val(i_str,point_cloud_data.at(i).at(0));
+        y1.add_val(i_str,point_cloud_data.at(i).at(1));
+        z1.add_val(i_str,point_cloud_data.at(i).at(2));
+    }
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        x2.add_val(j_str,point_cloud_model.at(j).at(0));
+        y2.add_val(j_str,point_cloud_model.at(j).at(1));
+        z2.add_val(j_str,point_cloud_model.at(j).at(2));
+    }
+    
+    
+    indices Pairs("Pairs"), cells("cells");
+    int idx1 = 0;
+    int idx2 = 0;
+    indices N1("N1"),N2("N2");
+    DebugOn("nd = " << nd << endl);
+    DebugOn("nm = " << nm << endl);
+    
+    N1 = range(1,nd);
+    N2 = range(1,nm);
+    cells = indices(N1,N2);
+    string name="TU_MIP";
+
+    auto Reg=make_shared<Model<>>(name);
+    
+
+    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+
+    Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    
+    var<int> bin("bin",0,1);
+    Reg->add(bin.in(cells));
+    DebugOn("Added " << cells.size() << " binary variables" << endl);
+    
+    
+    var<> theta11("theta11",  0, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0, 1);
+    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    
+    indices ids = indices("in_x");
+    ids.add_empty_row();
+    
+    
+    Constraint<> OneBin("OneBin");
+    OneBin = bin.in_matrix(1, 1);
+    Reg->add(OneBin.in(N1)==1);
+    
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 = bin.in_matrix(0, 1);
+    Reg->add(OneBin2.in(N2)<=1);
+    
+    /* Objective function */
+//    func<> obj = nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
+//    obj += sum(x1*x1 + y1*y1 + z1*z1);
+    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
+    for (auto i = 0; i<nd; i++) {
+        for (auto j = 0; j<nm; j++) {
+            string ij = to_string(i+1) +","+to_string(j+1);
+            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j) - 2*(x_shift[0]*x2.eval(j) + y_shift[0]*y2.eval(j) + z_shift[0]*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11[0] + y1.eval(i)*theta12[0] + z1.eval(i)*theta13[0]) - 2*y2.eval(j)*(x1.eval(i)*theta21[0] + y1.eval(i)*theta22[0] + z1.eval(i)*theta23[0]) - 2*z2.eval(j)*(x1.eval(i)*theta31[0] + y1.eval(i)*theta32[0] + z1.eval(i)*theta33[0]) );
+        }
+    }
+//    auto ids1 = theta11.repeat_id(cells.size());
+//    obj += x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+    Reg->min(obj);
+    
+    Reg->print();
+    solver<> S(Reg,gurobi);
+    S.run();
+    Reg->print_int_solution();
+    
+    //Reg->print_solution();
+    
+    DebugOn("Theta matrix = " << endl);
+    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+    DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+    DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+    rot_trans[0]=theta11.eval();
+    rot_trans[1]=theta12.eval();
+    rot_trans[2]=theta13.eval();;
+    rot_trans[3]=theta21.eval();
+    rot_trans[4]=theta22.eval();
+    rot_trans[5]=theta23.eval();
+    rot_trans[6]=theta31.eval();
+    rot_trans[7]=theta32.eval();
+    rot_trans[8]=theta33.eval();
+    rot_trans[9]=x_shift.eval();
+    rot_trans[10]=y_shift.eval();
+    rot_trans[11]=z_shift.eval();
+    DebugOn("x shift = " << x_shift.eval() << endl);
+    DebugOn("y shift = " << y_shift.eval() << endl);
+    DebugOn("z shift = " << z_shift.eval() << endl);
+    
+    return(Reg);
 }
 
 shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool norm1){

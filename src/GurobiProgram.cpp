@@ -577,6 +577,8 @@ void GurobiProgram::set_grb_objective(){
         }
         else {
             coeff = _model->_obj->eval(it1.second._coef);
+            gvar1 = _grb_vars[it1.second._p->first->get_id() + it1.second._p->first->get_id_inst()];
+            gvar2 = _grb_vars[it1.second._p->second->get_id() + it1.second._p->second->get_id_inst()];
             if (!it1.second._sign) {
                 qobj += -1*coeff*gvar1*gvar2;
             }
