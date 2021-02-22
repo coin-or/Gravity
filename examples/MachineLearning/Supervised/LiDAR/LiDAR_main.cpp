@@ -203,7 +203,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="no", norm_str="norm1";
+        string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="yes", norm_str="norm1";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -978,7 +978,7 @@ vector<double> run_ARMO_Global(bool convex, string axis, const vector<vector<dou
         
         Constraint<> Norm1("Norm1");
         Norm1 += delta - (x_diff + y_diff + z_diff);
-        Reg.add(Norm1.in(N1)>=0);
+        Reg.add(Norm1.in(cells)>=0);
 
         auto ids1 = theta11.repeat_id(cells.size());
         Constraint<> x_rot1("x_rot1");
@@ -993,7 +993,7 @@ vector<double> run_ARMO_Global(bool convex, string axis, const vector<vector<dou
         
         Constraint<> z_rot1("z_rot1");
         z_rot1 += new_z1 -z_shift;
-        y_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
+        z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         Reg.add(z_rot1.in(N1)==0);
     }
     else{
@@ -2098,7 +2098,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
-    Reg->add(OneBin.in(N1)>=1);
+    Reg->add(OneBin.in(N1)==1);
     
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
@@ -2164,7 +2164,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         
         Constraint<> z_rot1("z_rot1");
         z_rot1 += new_z1 -z_shift;
-        y_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
+        z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         Reg->add(z_rot1.in(N1)==0);
     }
     else{
