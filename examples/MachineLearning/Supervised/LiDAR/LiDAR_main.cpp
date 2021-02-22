@@ -169,6 +169,7 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
+void center_point_cloud(vector<vector<double>>& point_cloud);
 
 #ifdef USE_PCL
 /* PCL functions */
@@ -3542,6 +3543,28 @@ vector<double> get_center(const vector<vector<double>>& point_cloud){
     
 }
 
+void center_point_cloud(vector<vector<double>>& point_cloud){
+    double cx=0,cy=0,cz=0;
+    int n=point_cloud.size();
+    for(auto i=0;i<n;i++)
+    {
+        auto x=point_cloud.at(i)[0];
+        auto y=point_cloud.at(i)[1];
+        auto z=point_cloud.at(i)[2];
+        cx+=x;
+        cy+=y;
+        cz+=z;
+    }
+    cx=cx/n;
+    cy=cy/n;
+    cz=cz/n;
+    for(auto i=0;i<point_cloud.size();i++)
+    {
+        point_cloud.at(i)[0]-=cx;
+        point_cloud.at(i)[1]-=cy;
+        point_cloud.at(i)[2]-=cz;
+    }
+}
 
 /* Compute the L2 error */
 double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
