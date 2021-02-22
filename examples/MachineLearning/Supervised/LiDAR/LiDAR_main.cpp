@@ -338,6 +338,8 @@ int main (int argc, char * argv[])
                 rot_trans.resize(6,0.0);
             }
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
+            center_point_cloud(point_cloud_data);
+            center_point_cloud(point_cloud_model);
             auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
@@ -1759,9 +1761,9 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     Reg->add(OneBin2.in(N2)<=1);
     
     /* Objective function */
-//    func<> obj = nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
-//    obj += sum(x1*x1 + y1*y1 + z1*z1);
-    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
+    func<> obj = nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
+    obj += sum(x1*x1 + y1*y1 + z1*z1);
+//    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
     for (auto i = 0; i<nd; i++) {
         for (auto j = 0; j<nm; j++) {
             string ij = to_string(i+1) +","+to_string(j+1);
