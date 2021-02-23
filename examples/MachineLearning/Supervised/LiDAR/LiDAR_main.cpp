@@ -168,6 +168,8 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
@@ -1690,7 +1692,6 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     }
     
 }
-
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
@@ -1811,6 +1812,443 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
     DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
     DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+    rot_trans[0]=theta11.eval();
+    rot_trans[1]=theta12.eval();
+    rot_trans[2]=theta13.eval();;
+    rot_trans[3]=theta21.eval();
+    rot_trans[4]=theta22.eval();
+    rot_trans[5]=theta23.eval();
+    rot_trans[6]=theta31.eval();
+    rot_trans[7]=theta32.eval();
+    rot_trans[8]=theta33.eval();
+    rot_trans[9]=x_shift.eval();
+    rot_trans[10]=y_shift.eval();
+    rot_trans[11]=z_shift.eval();
+    DebugOn("x shift = " << x_shift.eval() << endl);
+    DebugOn("y shift = " << y_shift.eval() << endl);
+    DebugOn("z shift = " << z_shift.eval() << endl);
+    
+    return(Reg);
+}
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+    double angle_max = 1;
+    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+    int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+    size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
+    
+    vector<double> zeros = {0,0,0};
+    
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
+    int m = av_nb_pairs;
+    string i_str, j_str;
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        x1.add_val(i_str,point_cloud_data.at(i).at(0));
+        y1.add_val(i_str,point_cloud_data.at(i).at(1));
+        z1.add_val(i_str,point_cloud_data.at(i).at(2));
+    }
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        x2.add_val(j_str,point_cloud_model.at(j).at(0));
+        y2.add_val(j_str,point_cloud_model.at(j).at(1));
+        z2.add_val(j_str,point_cloud_model.at(j).at(2));
+    }
+    
+    
+    indices Pairs("Pairs"), cells("cells");
+    int idx1 = 0;
+    int idx2 = 0;
+    indices N1("N1"),N2("N2");
+    DebugOn("nd = " << nd << endl);
+    DebugOn("nm = " << nm << endl);
+    
+    N1 = range(1,nd);
+    N2 = range(1,nm);
+    cells = indices(N1,N2);
+    string name="TU_MIP";
+
+    auto Reg=make_shared<Model<>>(name);
+    
+
+    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+
+    Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    
+    var<int> bin("bin",0,1);
+    Reg->add(bin.in(cells));
+    
+    var<> xsh_bin("xsh_bin",-1,1), ysh_bin("ysh_bin",-1,1), zsh_bin("zsh_bin",-1,1);
+    var<> theta11_bin("theta11_bin",-1,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
+    var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",-1,1), theta23_bin("theta23_bin",-1,1);
+    var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",-1,1);
+    Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
+    Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
+    Reg->add(theta21_bin.in(cells),theta22_bin.in(cells),theta23_bin.in(cells));
+    Reg->add(theta31_bin.in(cells),theta32_bin.in(cells),theta33_bin.in(cells));
+    DebugOn("Added " << cells.size() << " binary variables" << endl);
+    
+    
+    var<> theta11("theta11",  -1, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", -1, 1);
+    var<> tx("tx", 0, 1), ty("ty", 0, 1), tz("tz", 0, 1);
+    var<> d1("d1", 0,4),d2("d2", 0,4),d3("d3", 0,4),d4("d4", 0,4);
+    var<> l12("l12", -2,2),l13("l13", -2,2),l14("l14", -2,2),l23("l23", -2,2),l24("l24", -2,2),l34("l34", -2,2);
+    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
+    Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
+    Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
+    
+    
+    indices ids = indices("in_x");
+    ids.add_empty_row();
+    
+    
+    Constraint<> OneBin("OneBin");
+    OneBin = bin.in_matrix(1, 1);
+    Reg->add(OneBin.in(N1)==1);
+    
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 = bin.in_matrix(0, 1);
+    Reg->add(OneBin2.in(N2)<=1);
+    
+    Constraint<> xsh_on1("xsh_on1");
+    xsh_on1=xsh_bin-x_shift-(1-bin);
+    Reg->add(xsh_on1.in(cells)<=0);
+    
+    Constraint<> xsh_on2("xsh_on2");
+    xsh_on2=xsh_bin-x_shift+(1-bin);
+    Reg->add(xsh_on2.in(cells)>=0);
+    
+    Constraint<> xsh_off1("xsh_off1");
+    xsh_off1=xsh_bin-bin;
+    Reg->add(xsh_off1.in(cells)<=0);
+    
+    Constraint<> xsh_off2("xsh_off2");
+    xsh_off2=xsh_bin+bin;
+    Reg->add(xsh_off2.in(cells)>=0);
+    
+    Constraint<> ysh_on1("ysh_on1");
+    ysh_on1=ysh_bin-y_shift-(1-bin);
+    Reg->add(ysh_on1.in(cells)<=0);
+    
+    Constraint<> ysh_on2("ysh_on2");
+    ysh_on2=ysh_bin-y_shift+(1-bin);
+    Reg->add(ysh_on2.in(cells)>=0);
+    
+    Constraint<> ysh_off1("ysh_off1");
+    ysh_off1=ysh_bin-bin;
+    Reg->add(ysh_off1.in(cells)<=0);
+    
+    Constraint<> ysh_off2("ysh_off2");
+    ysh_off2=ysh_bin+bin;
+    Reg->add(ysh_off2.in(cells)>=0);
+    
+    Constraint<> zsh_on1("zsh_on1");
+    zsh_on1=zsh_bin-z_shift-(1-bin);
+    Reg->add(zsh_on1.in(cells)<=0);
+    
+    Constraint<> zsh_on2("zsh_on2");
+    zsh_on2=zsh_bin-z_shift+(1-bin);
+    Reg->add(zsh_on2.in(cells)>=0);
+    
+    Constraint<> zsh_off1("zsh_off1");
+    zsh_off1=zsh_bin-bin;
+    Reg->add(zsh_off1.in(cells)<=0);
+    
+    Constraint<> zsh_off2("zsh_off2");
+    zsh_off2=zsh_bin+bin;
+    Reg->add(zsh_off2.in(cells)>=0);
+    
+    Constraint<> theta11_on1("theta11_on1");
+    theta11_on1=theta11_bin-theta11-(1-bin);
+    Reg->add(theta11_on1.in(cells)<=0);
+    
+    Constraint<> theta11_on2("theta11_on2");
+    theta11_on2=theta11_bin-theta11+(1-bin);
+    Reg->add(theta11_on2.in(cells)>=0);
+    
+    Constraint<> theta11_off1("theta11_off1");
+    theta11_off1=theta11_bin-bin;
+    Reg->add(theta11_off1.in(cells)<=0);
+    
+    Constraint<> theta11_off2("theta11_off2");
+    theta11_off2=theta11_bin+bin;
+    Reg->add(theta11_off2.in(cells)>=0);
+    
+    Constraint<> theta12_on1("theta12_on1");
+       theta12_on1=theta12_bin-theta12-(1-bin);
+       Reg->add(theta12_on1.in(cells)<=0);
+       
+       Constraint<> theta12_on2("theta12_on2");
+       theta12_on2=theta12_bin-theta12+(1-bin);
+       Reg->add(theta12_on2.in(cells)>=0);
+       
+       Constraint<> theta12_off1("theta12_off1");
+       theta12_off1=theta12_bin-bin;
+       Reg->add(theta12_off1.in(cells)<=0);
+       
+       Constraint<> theta12_off2("theta12_off2");
+       theta12_off2=theta12_bin+bin;
+       Reg->add(theta12_off2.in(cells)>=0);
+    
+    Constraint<> theta13_on1("theta13_on1");
+       theta13_on1=theta13_bin-theta13-(1-bin);
+       Reg->add(theta13_on1.in(cells)<=0);
+       
+       Constraint<> theta13_on2("theta13_on2");
+       theta13_on2=theta13_bin-theta13+(1-bin);
+       Reg->add(theta13_on2.in(cells)>=0);
+       
+       Constraint<> theta13_off1("theta13_off1");
+       theta13_off1=theta13_bin-bin;
+       Reg->add(theta13_off1.in(cells)<=0);
+       
+       Constraint<> theta13_off2("theta13_off2");
+       theta13_off2=theta13_bin+bin;
+       Reg->add(theta13_off2.in(cells)>=0);
+    
+    Constraint<> theta21_on1("theta21_on1");
+      theta21_on1=theta21_bin-theta21-(1-bin);
+      Reg->add(theta21_on1.in(cells)<=0);
+      
+      Constraint<> theta21_on2("theta21_on2");
+      theta21_on2=theta21_bin-theta21+(1-bin);
+      Reg->add(theta21_on2.in(cells)>=0);
+      
+      Constraint<> theta21_off1("theta21_off1");
+      theta21_off1=theta21_bin-bin;
+      Reg->add(theta21_off1.in(cells)<=0);
+      
+      Constraint<> theta21_off2("theta21_off2");
+      theta21_off2=theta21_bin+bin;
+      Reg->add(theta21_off2.in(cells)>=0);
+      
+      Constraint<> theta22_on1("theta22_on1");
+         theta22_on1=theta22_bin-theta22-(1-bin);
+         Reg->add(theta22_on1.in(cells)<=0);
+         
+         Constraint<> theta22_on2("theta22_on2");
+         theta22_on2=theta22_bin-theta22+(1-bin);
+         Reg->add(theta22_on2.in(cells)>=0);
+         
+         Constraint<> theta22_off1("theta22_off1");
+         theta22_off1=theta22_bin-bin;
+         Reg->add(theta22_off1.in(cells)<=0);
+         
+         Constraint<> theta22_off2("theta22_off2");
+         theta22_off2=theta22_bin+bin;
+         Reg->add(theta22_off2.in(cells)>=0);
+      
+      Constraint<> theta23_on1("theta23_on1");
+         theta23_on1=theta23_bin-theta23-(1-bin);
+         Reg->add(theta23_on1.in(cells)<=0);
+         
+         Constraint<> theta23_on2("theta23_on2");
+         theta23_on2=theta23_bin-theta23+(1-bin);
+         Reg->add(theta23_on2.in(cells)>=0);
+         
+         Constraint<> theta23_off1("theta23_off1");
+         theta23_off1=theta23_bin-bin;
+         Reg->add(theta23_off1.in(cells)<=0);
+         
+         Constraint<> theta23_off2("theta23_off2");
+         theta23_off2=theta23_bin+bin;
+         Reg->add(theta23_off2.in(cells)>=0);
+    
+    Constraint<> theta31_on1("theta31_on1");
+      theta31_on1=theta31_bin-theta31-(1-bin);
+      Reg->add(theta31_on1.in(cells)<=0);
+      
+      Constraint<> theta31_on2("theta31_on2");
+      theta31_on2=theta31_bin-theta31+(1-bin);
+      Reg->add(theta31_on2.in(cells)>=0);
+      
+      Constraint<> theta31_off1("theta31_off1");
+      theta31_off1=theta31_bin-bin;
+      Reg->add(theta31_off1.in(cells)<=0);
+      
+      Constraint<> theta31_off2("theta31_off2");
+      theta31_off2=theta31_bin+bin;
+      Reg->add(theta31_off2.in(cells)>=0);
+      
+      Constraint<> theta32_on1("theta32_on1");
+         theta32_on1=theta32_bin-theta32-(1-bin);
+         Reg->add(theta32_on1.in(cells)<=0);
+         
+         Constraint<> theta32_on2("theta32_on2");
+         theta32_on2=theta32_bin-theta32+(1-bin);
+         Reg->add(theta32_on2.in(cells)>=0);
+         
+         Constraint<> theta32_off1("theta32_off1");
+         theta32_off1=theta32_bin-bin;
+         Reg->add(theta32_off1.in(cells)<=0);
+         
+         Constraint<> theta32_off2("theta32_off2");
+         theta32_off2=theta32_bin+bin;
+         Reg->add(theta32_off2.in(cells)>=0);
+      
+      Constraint<> theta33_on1("theta33_on1");
+         theta33_on1=theta33_bin-theta33-(1-bin);
+         Reg->add(theta33_on1.in(cells)<=0);
+         
+         Constraint<> theta33_on2("theta33_on2");
+         theta33_on2=theta33_bin-theta33+(1-bin);
+         Reg->add(theta33_on2.in(cells)>=0);
+         
+         Constraint<> theta33_off1("theta33_off1");
+         theta33_off1=theta33_bin-bin;
+         Reg->add(theta33_off1.in(cells)<=0);
+         
+         Constraint<> theta33_off2("theta33_off2");
+         theta33_off2=theta33_bin+bin;
+         Reg->add(theta33_off2.in(cells)>=0);
+
+    
+
+    
+    Constraint<> txsq("txsq");
+    txsq = tx-pow(x_shift,2);
+    Reg->add(txsq>=0);
+    
+    Constraint<> tysq("tysq");
+    tysq = ty-pow(y_shift,2);
+    Reg->add(tysq>=0);
+    
+    Constraint<> tzsq("tzsq");
+    tzsq = tz-pow(z_shift,2);
+    Reg->add(tzsq>=0);
+    
+    Constraint<> diag1("diag1");
+    diag1=1-theta11-theta22+theta33-d1;
+    Reg->add(diag1==0);
+    Constraint<> diag2("diag2");
+    diag2=1+theta11-theta22-theta33-d2;
+    Reg->add(diag2==0);
+    Constraint<> diag3("diag3");
+    diag3=1+theta11+theta22+theta33-d3;
+    Reg->add(diag3==0);
+    Constraint<> diag4("diag4");
+    diag4=1-theta11+theta22-theta33-d4;
+    Reg->add(diag4==0);
+
+    Constraint<> l1_theta("l1_theta");
+    l1_theta=theta13+theta31-l12;
+    Reg->add(l1_theta==0);
+
+    Constraint<> l2_theta("l2_theta");
+    l2_theta=theta12-theta21-l13;
+    Reg->add(l2_theta==0);
+
+    Constraint<> l3_theta("l3_theta");
+    l3_theta=theta23+theta32-l14;
+    Reg->add(l3_theta==0);
+
+    Constraint<> l4_theta("l4_theta");
+    l4_theta=theta23-theta32-l23;
+    Reg->add(l4_theta==0);
+
+    Constraint<> l5_theta("l5_theta");
+    l5_theta=theta12+theta21-l24;
+    Reg->add(l5_theta==0);
+
+    Constraint<> l6_theta("l6_theta");
+    l6_theta=theta31-theta13-l34;
+    Reg->add(l6_theta==0);
+
+    Constraint<> soc1("soc1");
+    soc1 = pow(l12,2)-d1*d2;
+    Reg->add(soc1<=0);
+
+    Constraint<> soc2("soc2");
+    soc2 = pow(l13,2)-d1*d3;
+    Reg->add(soc2<=0);
+
+    Constraint<> soc3("soc3");
+    soc3 = pow(l23,2)-d2*d3;
+    Reg->add(soc3<=0);
+
+    Constraint<> soc4("soc4");
+    soc4 = pow(l14,2)-d1*d4;
+    Reg->add(soc4<=0);
+
+    Constraint<> soc5("soc5");
+    soc5 = pow(l24,2)-d2*d4;
+    Reg->add(soc5<=0);
+
+    Constraint<> soc6("soc6");
+    soc6 = pow(l34,2)-d3*d4;
+    Reg->add(soc6<=0);
+    
+    Constraint<> row1("row1");
+    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    Reg->add(row1<=1);
+    Constraint<> row2("row2");
+    row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    Reg->add(row2<=1);
+    Constraint<> row3("row3");
+    row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    Reg->add(row3<=1);
+    Constraint<> col1("col1");
+    col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    Reg->add(col1<=1);
+    Constraint<> col2("col2");
+    col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    Reg->add(col2<=1);
+    Constraint<> col3("col3");
+    col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    Reg->add(col3<=1);
+
+    
+    
+    
+    /* Objective function */
+    func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
+    obj +=nd*(tx +ty+tz);
+    for (auto i = 0; i<nd; i++) {
+        for (auto j = 0; j<nm; j++) {
+            string ij = to_string(i+1) +","+to_string(j+1);
+            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j)) - 2*(xsh_bin(ij)*x2.eval(j) + ysh_bin(ij)*y2.eval(j) + zsh_bin(ij)*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11_bin(ij) + y1.eval(i)*theta12_bin(ij) + z1.eval(i)*theta13_bin(ij)) - 2*y2.eval(j)*(x1.eval(i)*theta21_bin(ij) + y1.eval(i)*theta22_bin(ij) + z1.eval(i)*theta23_bin(ij)) - 2*z2.eval(j)*(x1.eval(i)*theta31_bin(ij) + y1.eval(i)*theta32_bin(ij) + z1.eval(i)*theta33_bin(ij));
+        }
+    }
+//    auto ids1 = theta11.repeat_id(cells.size());
+//    obj += x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+    Reg->min(obj);
+    
+    Reg->print();
+    solver<> S(Reg,gurobi);
+    S.run();
+    Reg->print_int_solution();
+    
+    Reg->print_solution();
+    
+    DebugOn("Theta matrix = " << endl);
+    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+    DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+    DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+    DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
+             << endl);
+    DebugOn("row 2 " << pow(theta21.eval(),2)+pow(theta22.eval(),2)+pow(theta23.eval(),2)
+             << endl);
+    DebugOn("row 3 " << pow(theta31.eval(),2)+pow(theta32.eval(),2)+pow(theta33.eval(),2)
+             << endl);
+    DebugOn("col 1 " << pow(theta11.eval(),2)+pow(theta21.eval(),2)+pow(theta31.eval(),2)
+             << endl);
+    DebugOn("col 2 " << pow(theta12.eval(),2)+pow(theta22.eval(),2)+pow(theta32.eval(),2)
+             << endl);
+    DebugOn("col 3 " << pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2)
+             << endl);
+    
+    DebugOn("row 12 " << (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval())
+             << endl);
+    DebugOn("row 13 " << (theta11.eval()*theta31.eval())+(theta12.eval()*theta32.eval())+(theta13.eval()*theta33.eval())
+             << endl);
+    DebugOn("row 23 " << (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval())
+             << endl);
+    
     rot_trans[0]=theta11.eval();
     rot_trans[1]=theta12.eval();
     rot_trans[2]=theta13.eval();;
