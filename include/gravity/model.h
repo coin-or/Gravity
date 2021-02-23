@@ -5491,7 +5491,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         void print_int_solution(int prec=30) const{
             for (auto &v_pair:_vars) {
                 auto v = v_pair.second;
-                if(v->_is_relaxed)
+                if(v->_is_relaxed || v->is_integer())
                     v->print_vals(prec);
             }
         }

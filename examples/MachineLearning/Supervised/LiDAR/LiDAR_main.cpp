@@ -1763,20 +1763,40 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     /* Objective function */
     func<> obj = nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
     obj += sum(x1*x1 + y1*y1 + z1*z1);
+    auto ids_repeat = x_shift.repeat_id(cells.size());
+    obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
+
+    obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
+    
+    auto ids1 = theta11.repeat_id(cells.size());
+    obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
+    obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
+    obj -= 2*sum(x2.to(cells)*z1.from(cells)*bin*theta13.in(ids1));
+    obj -= 2*sum(y2.to(cells)*x1.from(cells)*bin*theta21.in(ids1));
+    obj -= 2*sum(y2.to(cells)*y1.from(cells)*bin*theta22.in(ids1));
+    obj -= 2*sum(y2.to(cells)*z1.from(cells)*bin*theta23.in(ids1));
+    obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
+    obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
+    obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
+
+
 //    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
-    for (auto i = 0; i<nd; i++) {
-        for (auto j = 0; j<nm; j++) {
-            string ij = to_string(i+1) +","+to_string(j+1);
-            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j) - 2*(x_shift[0]*x2.eval(j) + y_shift[0]*y2.eval(j) + z_shift[0]*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11[0] + y1.eval(i)*theta12[0] + z1.eval(i)*theta13[0]) - 2*y2.eval(j)*(x1.eval(i)*theta21[0] + y1.eval(i)*theta22[0] + z1.eval(i)*theta23[0]) - 2*z2.eval(j)*(x1.eval(i)*theta31[0] + y1.eval(i)*theta32[0] + z1.eval(i)*theta33[0]) );
-        }
-    }
+//    for (auto i = 0; i<nd; i++) {
+////        obj += x1.eval(i)*x1.eval(i) + y1.eval(i)*y1.eval(i) + z1.eval(i)*z1.eval(i);
+//        for (auto j = 0; j<nm; j++) {
+//            string ij = to_string(i+1) +","+to_string(j+1);
+//            obj -= /*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j) -*/ /*2*(x_shift[0]*x2.eval(j) + y_shift[0]*y2.eval(j) + z_shift[0]*z2.eval(j)) -*/ bin(ij)*(2*x2.eval(j)*(x1.eval(i)*theta11[0] + y1.eval(i)*theta12[0] + z1.eval(i)*theta13[0]) + 2*y2.eval(j)*(x1.eval(i)*theta21[0] + y1.eval(i)*theta22[0] + z1.eval(i)*theta23[0]) + 2*z2.eval(j)*(x1.eval(i)*theta31[0] + y1.eval(i)*theta32[0] + z1.eval(i)*theta33[0]) );
+//        }
+//    }
 //    auto ids1 = theta11.repeat_id(cells.size());
 //    obj += x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+//    obj.print();
     Reg->min(obj);
     
-    Reg->print();
-    solver<> S(Reg,gurobi);
-    S.run();
+//    Reg->print();
+    solver<> S1(Reg,ipopt);
+//    solver<> S(Reg,gurobi);
+    S1.run();
     Reg->print_int_solution();
     
     //Reg->print_solution();
