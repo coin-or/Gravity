@@ -1760,10 +1760,36 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
     
+    Constraint<> row1("row1");
+    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    Reg->add(row1<=1);
+    Constraint<> row2("row2");
+    row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    Reg->add(row2<=1);
+    Constraint<> row3("row3");
+    row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    Reg->add(row3<=1);
+    Constraint<> col1("col1");
+    col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    Reg->add(col1<=1);
+    Constraint<> col2("col2");
+    col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    Reg->add(col2<=1);
+    Constraint<> col3("col3");
+    col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    Reg->add(col3<=1);
+//    Constraint<> row1("row1");
+//    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+//    Reg->add(row1<=1);
+//    Constraint<> row1("row1");
+//    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+//    Reg->add(row1<=1);
+    
+    
+    
     /* Objective function */
-    func<> obj = nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
-    obj += sum(x1*x1 + y1*y1 + z1*z1);
-//    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
+    func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
+    obj +=nd*(x_shift*x_shift + y_shift*y_shift + z_shift*z_shift);
     for (auto i = 0; i<nd; i++) {
         for (auto j = 0; j<nm; j++) {
             string ij = to_string(i+1) +","+to_string(j+1);
@@ -1775,11 +1801,11 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     Reg->min(obj);
     
     Reg->print();
-    solver<> S(Reg,gurobi);
+    solver<> S(Reg,ipopt);
     S.run();
     Reg->print_int_solution();
     
-    //Reg->print_solution();
+    Reg->print_solution();
     
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -1803,7 +1829,6 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     
     return(Reg);
 }
-
 shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool norm1){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;

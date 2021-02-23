@@ -6163,7 +6163,24 @@ void Model<type>::batch_models_obj_lb_constr(vector<shared_ptr<Model<type>>>& ba
         }
     }
 }
-
+template<typename type>
+template<typename T>
+void Model<type>::model_fix_int(shared_ptr<gravity::Model<double>> relax){
+    vector<double> convex_sln(relax->_nb_vars);
+    relax->get_solution(convex_sln);
+    for(auto p:relax->_vars){
+        if (p.second->is_integer() || p.second->is_binary()){
+            auto v=this->template get_var<double>(p.second->_name);
+            auto vc=relax->template get_var<double>(p.second->_name);
+            for(auto key:*v._indices->_keys){
+                auto value=round(vc.eval(key));
+                v.set_lb(key, value);
+                v.set_ub(key, value);
+            }
+        
+        }
+    }
+}
 template<typename type>
 template<typename T>
 double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol){
@@ -6592,7 +6609,7 @@ template void Model<double>::create_batch_models(shared_ptr<Model<double>>& obbt
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
 template void Model<double>::update_upper_bound(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
-
+template void Model<double>::model_fix_int(shared_ptr<gravity::Model<double>> relax);
 
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
