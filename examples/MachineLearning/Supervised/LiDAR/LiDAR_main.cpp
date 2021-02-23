@@ -342,7 +342,8 @@ int main (int argc, char * argv[])
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             center_point_cloud(point_cloud_data);
             center_point_cloud(point_cloud_model);
-            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
+//            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans);
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -1923,7 +1924,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
     Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
     Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
-    
+    Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
     
     indices ids = indices("in_x");
     ids.add_empty_row();
@@ -2230,22 +2231,36 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     /* Objective function */
     func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
     obj +=nd*(tx +ty+tz);
-    for (auto i = 0; i<nd; i++) {
-        for (auto j = 0; j<nm; j++) {
-            string ij = to_string(i+1) +","+to_string(j+1);
-            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j)) - 2*(xsh_bin(ij)*x2.eval(j) + ysh_bin(ij)*y2.eval(j) + zsh_bin(ij)*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11_bin(ij) + y1.eval(i)*theta12_bin(ij) + z1.eval(i)*theta13_bin(ij)) - 2*y2.eval(j)*(x1.eval(i)*theta21_bin(ij) + y1.eval(i)*theta22_bin(ij) + z1.eval(i)*theta23_bin(ij)) - 2*z2.eval(j)*(x1.eval(i)*theta31_bin(ij) + y1.eval(i)*theta32_bin(ij) + z1.eval(i)*theta33_bin(ij));
-        }
-    }
-//    auto ids1 = theta11.repeat_id(cells.size());
-//    obj += x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+//    for (auto i = 0; i<nd; i++) {
+//        for (auto j = 0; j<nm; j++) {
+//            string ij = to_string(i+1) +","+to_string(j+1);
+//            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j)) - 2*(xsh_bin(ij)*x2.eval(j) + ysh_bin(ij)*y2.eval(j) + zsh_bin(ij)*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11_bin(ij) + y1.eval(i)*theta12_bin(ij) + z1.eval(i)*theta13_bin(ij)) - 2*y2.eval(j)*(x1.eval(i)*theta21_bin(ij) + y1.eval(i)*theta22_bin(ij) + z1.eval(i)*theta23_bin(ij)) - 2*z2.eval(j)*(x1.eval(i)*theta31_bin(ij) + y1.eval(i)*theta32_bin(ij) + z1.eval(i)*theta33_bin(ij));
+//        }
+//    }
+
+    auto ids_repeat = x_shift.repeat_id(cells.size());
+    obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
+
+    obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
+    
+    auto ids1 = theta11.repeat_id(cells.size());
+    obj -= 2*sum(x2.to(cells)*x1.from(cells)*theta11_bin);
+    obj -= 2*sum(x2.to(cells)*y1.from(cells)*theta12_bin);
+    obj -= 2*sum(x2.to(cells)*z1.from(cells)*theta13_bin);
+    obj -= 2*sum(y2.to(cells)*x1.from(cells)*theta21_bin);
+    obj -= 2*sum(y2.to(cells)*y1.from(cells)*theta22_bin);
+    obj -= 2*sum(y2.to(cells)*z1.from(cells)*theta23_bin);
+    obj -= 2*sum(z2.to(cells)*x1.from(cells)*theta31_bin);
+    obj -= 2*sum(z2.to(cells)*y1.from(cells)*theta32_bin);
+    obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
     Reg->min(obj);
     
-    Reg->print();
+//    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
     Reg->print_int_solution();
     
-    Reg->print_solution();
+//    Reg->print_solution();
     
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -2283,6 +2298,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     rot_trans[9]=x_shift.eval();
     rot_trans[10]=y_shift.eval();
     rot_trans[11]=z_shift.eval();
+    auto pitch = std::atan2(theta32.eval(), theta33.eval())*180/pi;
+    auto roll = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
+    auto yaw = std::atan2(theta21.eval(),theta11.eval())*180/pi;
+    DebugOn("Roll (degrees) = " << to_string_with_precision(roll,12) << endl);
+    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch,12) << endl);
+    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw,12) << endl);
     DebugOn("x shift = " << x_shift.eval() << endl);
     DebugOn("y shift = " << y_shift.eval() << endl);
     DebugOn("z shift = " << z_shift.eval() << endl);
