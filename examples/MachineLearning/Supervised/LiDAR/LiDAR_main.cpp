@@ -168,7 +168,7 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -343,7 +343,38 @@ int main (int argc, char * argv[])
             center_point_cloud(point_cloud_data);
             center_point_cloud(point_cloud_model);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans);
+            bool separate=true;
+            bool linearize=false;
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
+            SOC_MIP->print();
+            if(linearize){
+            int constr_viol=1;
+            Model<> interior_model;
+                auto lin=SOC_MIP->buildOA();
+                interior_model=lin->add_outer_app_solution(*SOC_MIP);
+            //auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,1);
+            lin->print();
+            constr_viol=1;
+            int oacuts=0;
+            vector<double> solution(lin->_nb_vars);
+            int nb_count=0;
+            double obj_old=-15, obj_new=-15;
+            while(constr_viol==1){
+            solver<> S(lin,gurobi);
+            S.run();
+            lin->print_int_solution();
+            lin->get_solution(solution);
+                obj_new=lin->get_obj_val();
+                if(obj_new<=obj_old){
+                    break;
+                }
+                
+                constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
+                nb_count++;
+                obj_old=obj_new;
+            }
+            DebugOn("nb count "<<nb_count);
+            }
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -1853,7 +1884,7 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     
     return(Reg);
 }
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1905,10 +1936,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> theta11_bin("theta11_bin",-1,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
     var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",-1,1), theta23_bin("theta23_bin",-1,1);
     var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",-1,1);
-    Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
-    Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
-    Reg->add(theta21_bin.in(cells),theta22_bin.in(cells),theta23_bin.in(cells));
-    Reg->add(theta31_bin.in(cells),theta32_bin.in(cells),theta33_bin.in(cells));
+    if(separate){
+        Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
+        Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
+        Reg->add(theta21_bin.in(cells),theta22_bin.in(cells),theta23_bin.in(cells));
+        Reg->add(theta31_bin.in(cells),theta32_bin.in(cells),theta33_bin.in(cells));
+    }
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     
     
@@ -1937,7 +1970,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
-    
+    if(separate){
     Constraint<> xsh_on1("xsh_on1");
     xsh_on1=xsh_bin-x_shift-(1-bin);
     Reg->add(xsh_on1.in(cells)<=0);
@@ -2130,100 +2163,100 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
          theta33_off2=theta33_bin+bin;
          Reg->add(theta33_off2.in(cells)>=0);
 
-    
+    }
 
     
     Constraint<> txsq("txsq");
     txsq = tx-pow(x_shift,2);
-    Reg->add(txsq>=0);
+    Reg->add(txsq.in(range(0,0))>=0);
     
     Constraint<> tysq("tysq");
     tysq = ty-pow(y_shift,2);
-    Reg->add(tysq>=0);
+    Reg->add(tysq.in(range(0,0))>=0);
     
     Constraint<> tzsq("tzsq");
     tzsq = tz-pow(z_shift,2);
-    Reg->add(tzsq>=0);
+    Reg->add(tzsq.in(range(0,0))>=0);
     
     Constraint<> diag1("diag1");
     diag1=1-theta11-theta22+theta33-d1;
-    Reg->add(diag1==0);
+    Reg->add(diag1.in(range(0,0))==0);
     Constraint<> diag2("diag2");
     diag2=1+theta11-theta22-theta33-d2;
-    Reg->add(diag2==0);
+    Reg->add(diag2.in(range(0,0))==0);
     Constraint<> diag3("diag3");
     diag3=1+theta11+theta22+theta33-d3;
-    Reg->add(diag3==0);
+    Reg->add(diag3.in(range(0,0))==0);
     Constraint<> diag4("diag4");
     diag4=1-theta11+theta22-theta33-d4;
-    Reg->add(diag4==0);
+    Reg->add(diag4.in(range(0,0))==0);
 
     Constraint<> l1_theta("l1_theta");
     l1_theta=theta13+theta31-l12;
-    Reg->add(l1_theta==0);
+    Reg->add(l1_theta.in(range(0,0))==0);
 
     Constraint<> l2_theta("l2_theta");
     l2_theta=theta12-theta21-l13;
-    Reg->add(l2_theta==0);
+    Reg->add(l2_theta.in(range(0,0))==0);
 
     Constraint<> l3_theta("l3_theta");
     l3_theta=theta23+theta32-l14;
-    Reg->add(l3_theta==0);
+    Reg->add(l3_theta.in(range(0,0))==0);
 
     Constraint<> l4_theta("l4_theta");
     l4_theta=theta23-theta32-l23;
-    Reg->add(l4_theta==0);
+    Reg->add(l4_theta.in(range(0,0))==0);
 
     Constraint<> l5_theta("l5_theta");
     l5_theta=theta12+theta21-l24;
-    Reg->add(l5_theta==0);
+    Reg->add(l5_theta.in(range(0,0))==0);
 
     Constraint<> l6_theta("l6_theta");
     l6_theta=theta31-theta13-l34;
-    Reg->add(l6_theta==0);
+    Reg->add(l6_theta.in(range(0,0))==0);
 
     Constraint<> soc1("soc1");
     soc1 = pow(l12,2)-d1*d2;
-    Reg->add(soc1<=0);
+    Reg->add(soc1.in(range(0,0))<=0);
 
     Constraint<> soc2("soc2");
     soc2 = pow(l13,2)-d1*d3;
-    Reg->add(soc2<=0);
+    Reg->add(soc2.in(range(0,0))<=0);
 
     Constraint<> soc3("soc3");
     soc3 = pow(l23,2)-d2*d3;
-    Reg->add(soc3<=0);
+    Reg->add(soc3.in(range(0,0))<=0);
 
     Constraint<> soc4("soc4");
     soc4 = pow(l14,2)-d1*d4;
-    Reg->add(soc4<=0);
+    Reg->add(soc4.in(range(0,0))<=0);
 
     Constraint<> soc5("soc5");
     soc5 = pow(l24,2)-d2*d4;
-    Reg->add(soc5<=0);
+    Reg->add(soc5.in(range(0,0))<=0);
 
     Constraint<> soc6("soc6");
     soc6 = pow(l34,2)-d3*d4;
-    Reg->add(soc6<=0);
+    Reg->add(soc6.in(range(0,0))<=0);
     
     Constraint<> row1("row1");
     row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-    Reg->add(row1<=1);
+    Reg->add(row1.in(range(0,0))<=1);
     Constraint<> row2("row2");
     row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-    Reg->add(row2<=1);
+    Reg->add(row2.in(range(0,0))<=1);
     Constraint<> row3("row3");
     row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-    Reg->add(row3<=1);
+    Reg->add(row3.in(range(0,0))<=1);
     Constraint<> col1("col1");
     col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-    Reg->add(col1<=1);
+    Reg->add(col1.in(range(0,0))<=1);
     Constraint<> col2("col2");
     col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-    Reg->add(col2<=1);
+    Reg->add(col2.in(range(0,0))<=1);
     Constraint<> col3("col3");
     col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-    Reg->add(col3<=1);
+    Reg->add(col3.in(range(0,0))<=1);
 
     
     
@@ -2231,14 +2264,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     /* Objective function */
     func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
     obj +=nd*(tx +ty+tz);
-//    for (auto i = 0; i<nd; i++) {
-//        for (auto j = 0; j<nm; j++) {
-//            string ij = to_string(i+1) +","+to_string(j+1);
-//            obj += bin(ij)*(x2.eval(j)*x2.eval(j) + y2.eval(j)*y2.eval(j) + z2.eval(j)*z2.eval(j)) - 2*(xsh_bin(ij)*x2.eval(j) + ysh_bin(ij)*y2.eval(j) + zsh_bin(ij)*z2.eval(j)) - 2*x2.eval(j)*(x1.eval(i)*theta11_bin(ij) + y1.eval(i)*theta12_bin(ij) + z1.eval(i)*theta13_bin(ij)) - 2*y2.eval(j)*(x1.eval(i)*theta21_bin(ij) + y1.eval(i)*theta22_bin(ij) + z1.eval(i)*theta23_bin(ij)) - 2*z2.eval(j)*(x1.eval(i)*theta31_bin(ij) + y1.eval(i)*theta32_bin(ij) + z1.eval(i)*theta33_bin(ij));
-//        }
-//    }
 
     auto ids_repeat = x_shift.repeat_id(cells.size());
+    if(separate){
     obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
 
     obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
@@ -2253,6 +2281,24 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     obj -= 2*sum(z2.to(cells)*x1.from(cells)*theta31_bin);
     obj -= 2*sum(z2.to(cells)*y1.from(cells)*theta32_bin);
     obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
+    }
+    else{
+        obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
+
+        obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
+        
+        auto ids1 = theta11.repeat_id(cells.size());
+        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
+        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
+        obj -= 2*sum(x2.to(cells)*z1.from(cells)*bin*theta13.in(ids1));
+        obj -= 2*sum(y2.to(cells)*x1.from(cells)*bin*theta21.in(ids1));
+        obj -= 2*sum(y2.to(cells)*y1.from(cells)*bin*theta22.in(ids1));
+        obj -= 2*sum(y2.to(cells)*z1.from(cells)*bin*theta23.in(ids1));
+        obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
+        obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
+        obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
+        
+    }
     Reg->min(obj);
     
     

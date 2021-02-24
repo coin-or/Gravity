@@ -6434,6 +6434,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         void model_fix_int(shared_ptr<gravity::Model<double>> relax);
         template<typename T=type>
+        shared_ptr<Model<type>>outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);
+        template<typename T=type>
         bool root_refine(const Model<type>& interior_model, shared_ptr<Model<type>>& obbt_model, SolverType lb_solver_type, int nb_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double active_tol,  int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, std::vector<double>& vrbasis, std::map<string,double>& crbasis, bool init);
         template<typename T=type>
         double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol);
