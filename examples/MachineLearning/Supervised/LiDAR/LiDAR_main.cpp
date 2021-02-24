@@ -362,13 +362,15 @@ int main (int argc, char * argv[])
                 rot_trans.resize(6,0.0);
             }
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
+            bool separate=true;
+            bool linearize=false;
             center_point_cloud(point_cloud_data);
             center_point_cloud(point_cloud_model);
+            auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
            // auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans);
-            bool separate=true;
-            bool linearize=true;
-           
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
            // SOC_MIP->print();
             if(linearize){
             int constr_viol=1;
@@ -2686,7 +2688,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
 //    Reg->print();
     solver<> S(Reg,gurobi);
-   // S.run();
+    S.run();
     Reg->print_int_solution();
     
 //    Reg->print_solution();
