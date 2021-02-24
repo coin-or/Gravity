@@ -60,6 +60,9 @@ using orgQhull::QhullVertexSet;
 using orgQhull::QhullVertexSetIterator;
 using orgQhull::RboxPoints;
 
+
+bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt);
+void compute_voronoi(Qhull& qhull);
 #endif
 
 
@@ -168,6 +171,8 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+
 shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
 /* Run the MINLP ARMO model for registration */
@@ -239,6 +244,7 @@ int main (int argc, char * argv[])
             throw invalid_argument("Data file with less than 2 points");
             return 0;
         }
+        vector<double> flat_point_cloud_data, flat_point_cloud_model;
         DebugOn("Model file has " << model_nb_rows << " rows" << endl);
         DebugOn("Data file has " << data_nb_rows << " rows" << endl);
         int row0 = 0;
@@ -250,6 +256,9 @@ int main (int argc, char * argv[])
             x_vec0.push_back(x);
             y_vec0.push_back(y);
             z_vec0.push_back(z);
+            flat_point_cloud_model.push_back(x);
+            flat_point_cloud_model.push_back(y);
+            flat_point_cloud_model.push_back(z);
             point_cloud_model[i].resize(3);
             point_cloud_model[i][0] = x;
             point_cloud_model[i][1] = y;
@@ -263,6 +272,9 @@ int main (int argc, char * argv[])
             x_vec1.push_back(x);
             y_vec1.push_back(y);
             z_vec1.push_back(z);
+            flat_point_cloud_data.push_back(x);
+            flat_point_cloud_data.push_back(y);
+            flat_point_cloud_data.push_back(z);
             point_cloud_data[i].resize(3);
             point_cloud_data[i][0] = x;
             point_cloud_data[i][1] = y;
@@ -289,7 +301,16 @@ int main (int argc, char * argv[])
         auto L2error_init = computeL2error(ext_model,ext_data);
         DebugOn("L2 before Registration = " << L2error_init << endl);
         // run_ARMO_Global(false, "full", ext_model, ext_data);
+#ifdef USE_QHULL
+        Qhull qt_data("data", 3, point_cloud_data.size(), flat_point_cloud_data.data(), "v o");
+//        qt_data.runQhull("data", 3, point_cloud_data.size(), flat_point_cloud_data.data(), "");
+        DebugOn("Computing Voronoi regions for data point cloud\n");
+        compute_voronoi(qt_data);
         
+        Qhull qt_model("model", 3, point_cloud_model.size(), flat_point_cloud_model.data(), "v o");
+        DebugOn("Computing Voronoi regions for model point cloud\n");
+        compute_voronoi(qt_model);
+#endif
         if(!obbt){
             bool run_goICP = (algo=="GoICP");
             if(run_goICP){/* Run GoICP inline */
@@ -342,8 +363,9 @@ int main (int argc, char * argv[])
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             center_point_cloud(point_cloud_data);
             center_point_cloud(point_cloud_model);
-//            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans);
+////            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
+            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans);
+//            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans);
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -351,7 +373,7 @@ int main (int argc, char * argv[])
                 apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
             }
 #ifdef USE_MATPLOT
-            plot(point_cloud_model, point_cloud_data);
+            plot(point_cloud_model, point_cloud_data, 2);
 #endif
             // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
@@ -1620,9 +1642,103 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     yaw_1 = yaw*180/pi;
     return {roll_1, pitch_1, yaw_1, x_shift.eval(), y_shift.eval(), z_shift.eval()};
 }
+
+#ifdef USE_QHULL
+
+void compute_voronoi(Qhull& qhull){
+    bool isLower;            //not used
+    int voronoiVertexCount;  //not used
+    qhull.prepareVoronoi(&isLower, &voronoiVertexCount);
+//    QhullFacetListIterator it1(qhull.facetList());
+    
+//    for(auto it = qhull.facetList().begin();it!=qhull.facetList().end();it++){
+//        auto v = it->getCenter().toStdVector();
+//        DebugOn("v dim = " << v.size() << endl);
+//    }
+    
+//    for(auto it = qhull.facetList().begin();it!=qhull.facetList().end();it++){
+//        auto v = it->getCenter().toStdVector();
+//        DebugOn("v dim = " << v.size() << endl);
+//    }
+
+    int voronoiDimension= qhull.hullDimension() - 1;
+    int numfacets= qhull.facetCount();
+    size_t numpoints= qhull.points().size();
+
+    // Gather Voronoi vertices
+    std::vector<std::vector<double> > voronoiVertices;
+    std::vector<double> vertexAtInfinity;
+    for(int i= 0; i<voronoiDimension; ++i){
+        vertexAtInfinity.push_back(qh_INFINITE);
+    }
+    voronoiVertices.push_back(vertexAtInfinity);
+    // for(QhullFacet facet : qhull.facetList())
+    QhullFacetListIterator j(qhull.facetList());
+    while(j.hasNext()){
+        QhullFacet facet= j.next();
+        if(facet.visitId() && facet.visitId()<numfacets){
+            voronoiVertices.push_back(facet.getCenter().toStdVector());
+        }
+    }
+
+    DebugOn("Voronoi vertices\n");
+    cout << "nb vertices = " << voronoiVertices.size() << ", nb points = " << numpoints << " 1\n";
+    // for(std::vector<double> voronoiVertex : voronoiVertices)
+    for(size_t k= 0; k < voronoiVertices.size(); ++k){
+        std::vector<double> voronoiVertex= voronoiVertices[k];
+        size_t n= voronoiVertex.size();
+        for(size_t i= 0; i<n; ++i){
+            cout << voronoiVertex[i] << " ";
+        }
+        cout << "\n";
+    }
+
+    DebugOn("Voronoi regions\n");
+    // Gather Voronoi regions
+    std::vector<std::vector<int> > voronoiRegions(numpoints); // qh_printvoronoi calls qh_pointvertex via qh_markvoronoi
+    // for(QhullVertex vertex : qhull.vertexList())
+    qhull.defineVertexNeighborFacets();
+    QhullVertexListIterator j2(qhull.vertexList());
+    while(j2.hasNext()){
+        QhullVertex vertex= j2.next();
+        size_t numinf= 0;
+        std::vector<int> voronoiRegion;
+        //for(QhullFacet neighbor : vertex.neighborFacets())
+        QhullFacetSetIterator k2(vertex.neighborFacets());
+        while(k2.hasNext()){
+            QhullFacet neighbor= k2.next();
+            if(neighbor.visitId()==0){
+                if(!numinf){
+                    numinf= 1;
+                    voronoiRegion.push_back(0); // the voronoiVertex at infinity indicates an unbounded region
+                }
+            }else if(neighbor.visitId()<numfacets){
+                voronoiRegion.push_back(neighbor.visitId());
+            }
+        }
+        if(voronoiRegion.size() > numinf){
+            int siteId= vertex.point().id();
+            if(siteId>=0 && siteId<int(numpoints)){ // otherwise indicate qh.other_points
+                voronoiRegions[siteId]= voronoiRegion;
+            }
+        }
+    }
+
+    // Print Voronoi regions by siteId
+    // for(std::vector<int> voronoiRegion : voronoiRegions)
+    for(size_t k3= 0; k3 < voronoiRegions.size(); ++k3){
+        std::vector<int> voronoiRegion= voronoiRegions[k3];
+        size_t n= voronoiRegion.size();
+        cout << n;
+        for(size_t i= 0; i<n; ++i){
+            cout << " " << voronoiRegion[i];
+        }
+        cout << "\n";
+    }
+}
+
 bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt){
     lmin=999;
-#ifdef USE_QHULL
     vector<double> p;
     p.push_back(x0);
     p.push_back(y0);
@@ -1632,6 +1748,7 @@ bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vect
     qt.runQhull("obj", 3, point_cloud_data.size()/3, point_cloud_data.data(), "");
     //  cout << qt.facetList();
     for(auto it = qt.facetList().begin();it!=qt.facetList().end();it++){
+//        auto v = it->getCenter().toStdVector();
         auto d = it->distance(p.data());
         // cout<<d<<endl;
         if(abs(d)<=lmin){
@@ -1693,6 +1810,267 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     }
     
 }
+
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+    double angle_max = 1;
+    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+    int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+    size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
+    
+    vector<double> zeros = {0,0,0};
+    
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
+    int m = av_nb_pairs;
+    string i_str, j_str;
+    for (auto i = 0; i<nd; i++) {
+        i_str = to_string(i+1);
+        x1.add_val(i_str,point_cloud_data.at(i).at(0));
+        y1.add_val(i_str,point_cloud_data.at(i).at(1));
+        z1.add_val(i_str,point_cloud_data.at(i).at(2));
+    }
+    for (auto j = 0; j<nm; j++) {
+        j_str = to_string(j+1);
+        x2.add_val(j_str,point_cloud_model.at(j).at(0));
+        y2.add_val(j_str,point_cloud_model.at(j).at(1));
+        z2.add_val(j_str,point_cloud_model.at(j).at(2));
+    }
+    
+    
+    indices Pairs("Pairs"), cells("cells");
+    int idx1 = 0;
+    int idx2 = 0;
+    indices N1("N1"),N2("N2");
+    DebugOn("nd = " << nd << endl);
+    DebugOn("nm = " << nm << endl);
+    
+    N1 = range(1,nd);
+    N2 = range(1,nm);
+    cells = indices(N1,N2);
+    string name="SOC_MIQCP";
+
+    auto Reg=make_shared<Model<>>(name);
+    
+
+    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+
+    Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    
+    var<int> bin("bin",0,1);
+    Reg->add(bin.in(cells));
+    DebugOn("Added " << cells.size() << " binary variables" << endl);
+    
+    
+    var<> theta11("theta11",  0, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0, 1);
+    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    
+    var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
+    var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
+    Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
+    Reg->add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+    
+    var<> delta("delta", 0,12);
+    Reg->add(delta.in(N1));
+    
+    var<> d1("d1", 0,4),d2("d2", 0,4),d3("d3", 0,4),d4("d4", 0,4);
+    var<> l12("l12", -2,2),l13("l13", -2,2),l14("l14", -2,2),l23("l23", -2,2),l24("l24", -2,2),l34("l34", -2,2);
+    Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
+    Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
+    Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
+
+    
+    indices ids = indices("in_x");
+    ids.add_empty_row();
+    for(auto i=0;i<nd;i++){
+        for(auto j=1;j<=nm;j++){
+            ids.add_in_row(i, to_string(j));
+        }
+    }
+    
+    Constraint<> Def_newxm("Def_newxm");
+    Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newxm.in(N1)==0);
+    
+    Constraint<> Def_newym("Def_newym");
+    Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newym.in(N1)==0);
+    
+    Constraint<> Def_newzm("Def_newzm");
+    Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newzm.in(N1)==0);
+    
+    Constraint<> OneBin("OneBin");
+    OneBin = bin.in_matrix(1, 1);
+    Reg->add(OneBin.in(N1)==1);
+    
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 = bin.in_matrix(0, 1);
+    Reg->add(OneBin2.in(N2)<=1);
+    
+    Constraint<> Norm2("Norm2");
+    Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
+    Reg->add(Norm2.in(N1)>=0);
+    
+    Constraint<> diag1("diag1");
+    diag1=1-theta11-theta22+theta33-d1;
+    Reg->add(diag1==0);
+    Constraint<> diag2("diag2");
+    diag2=1+theta11-theta22-theta33-d2;
+    Reg->add(diag2==0);
+    Constraint<> diag3("diag3");
+    diag3=1+theta11+theta22+theta33-d3;
+    Reg->add(diag3==0);
+    Constraint<> diag4("diag4");
+    diag4=1-theta11+theta22-theta33-d4;
+    Reg->add(diag4==0);
+    
+    Constraint<> l1_theta("l1_theta");
+    l1_theta=theta13+theta31-l12;
+    Reg->add(l1_theta==0);
+    
+    Constraint<> l2_theta("l2_theta");
+    l2_theta=theta12-theta21-l13;
+    Reg->add(l2_theta==0);
+    
+    Constraint<> l3_theta("l3_theta");
+    l3_theta=theta23+theta32-l14;
+    Reg->add(l3_theta==0);
+    
+    Constraint<> l4_theta("l4_theta");
+    l4_theta=theta23-theta32-l23;
+    Reg->add(l4_theta==0);
+    
+    Constraint<> l5_theta("l5_theta");
+    l5_theta=theta12+theta21-l24;
+    Reg->add(l5_theta==0);
+    
+    Constraint<> l6_theta("l6_theta");
+    l6_theta=theta31-theta13-l34;
+    Reg->add(l6_theta==0);
+
+    Constraint<> soc1("soc1");
+    soc1 = pow(l12,2)-d1*d2;
+    Reg->add(soc1<=0);
+
+    Constraint<> soc2("soc2");
+    soc2 = pow(l13,2)-d1*d3;
+    Reg->add(soc2<=0);
+
+    Constraint<> soc3("soc3");
+    soc3 = pow(l23,2)-d2*d3;
+    Reg->add(soc3<=0);
+
+    Constraint<> soc4("soc4");
+    soc4 = pow(l14,2)-d1*d4;
+    Reg->add(soc4<=0);
+
+    Constraint<> soc5("soc5");
+    soc5 = pow(l24,2)-d2*d4;
+    Reg->add(soc5<=0);
+
+    Constraint<> soc6("soc6");
+    soc6 = pow(l34,2)-d3*d4;
+    Reg->add(soc6<=0);
+    
+    Constraint<> row1("row1");
+    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    Reg->add(row1==1);
+    Constraint<> row2("row2");
+    row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    Reg->add(row2==1);
+    Constraint<> row3("row3");
+    row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    Reg->add(row3==1);
+    Constraint<> col1("col1");
+    col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    Reg->add(col1==1);
+    Constraint<> col2("col2");
+    col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    Reg->add(col2==1);
+    Constraint<> col3("col3");
+    col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    Reg->add(col3==1);
+
+    auto ids1 = theta11.repeat_id(cells.size());
+    Constraint<> x_rot1("x_rot1");
+    x_rot1 += new_x1 -x_shift;
+    x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
+    Reg->add(x_rot1.in(N1)==0);
+    
+    Constraint<> y_rot1("y_rot1");
+    y_rot1 += new_y1 - y_shift;
+    y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1);
+    Reg->add(y_rot1.in(N1)==0);
+    
+    Constraint<> z_rot1("z_rot1");
+    z_rot1 += new_z1 -z_shift;
+    z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
+    Reg->add(z_rot1.in(N1)==0);
+    
+    
+    /* Objective function */
+
+    Reg->min(sum(delta));
+    
+//    Reg->print();
+//    solver<> S1(Reg,ipopt);
+    solver<> S(Reg,gurobi);
+    S.run();
+    Reg->print_int_solution();
+    
+//    Reg->print_solution();
+    DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
+             << endl);
+    DebugOn("row 2 " << pow(theta21.eval(),2)+pow(theta22.eval(),2)+pow(theta23.eval(),2)
+             << endl);
+    DebugOn("row 3 " << pow(theta31.eval(),2)+pow(theta32.eval(),2)+pow(theta33.eval(),2)
+             << endl);
+    DebugOn("col 1 " << pow(theta11.eval(),2)+pow(theta21.eval(),2)+pow(theta31.eval(),2)
+             << endl);
+    DebugOn("col 2 " << pow(theta12.eval(),2)+pow(theta22.eval(),2)+pow(theta32.eval(),2)
+             << endl);
+    DebugOn("col 3 " << pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2)
+             << endl);
+    
+    DebugOn("row 12 " << (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval())
+             << endl);
+    DebugOn("row 13 " << (theta11.eval()*theta31.eval())+(theta12.eval()*theta32.eval())+(theta13.eval()*theta33.eval())
+             << endl);
+    DebugOn("row 23 " << (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval())
+             << endl);
+    DebugOn("Theta matrix = " << endl);
+    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+    DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+    DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+    rot_trans[0]=theta11.eval();
+    rot_trans[1]=theta12.eval();
+    rot_trans[2]=theta13.eval();;
+    rot_trans[3]=theta21.eval();
+    rot_trans[4]=theta22.eval();
+    rot_trans[5]=theta23.eval();
+    rot_trans[6]=theta31.eval();
+    rot_trans[7]=theta32.eval();
+    rot_trans[8]=theta33.eval();
+    rot_trans[9]=x_shift.eval();
+    rot_trans[10]=y_shift.eval();
+    rot_trans[11]=z_shift.eval();
+    auto pitch = std::atan2(theta32.eval(), theta33.eval())*180/pi;
+    auto roll = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
+    auto yaw = std::atan2(theta21.eval(),theta11.eval())*180/pi;
+    DebugOn("Roll (degrees) = " << to_string_with_precision(roll,12) << endl);
+    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch,12) << endl);
+    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw,12) << endl);
+    DebugOn("x shift = " << x_shift.eval() << endl);
+    DebugOn("y shift = " << y_shift.eval() << endl);
+    DebugOn("z shift = " << z_shift.eval() << endl);
+    
+    return(Reg);
+}
+
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
@@ -2674,11 +3052,11 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     var<> delta("delta", 0,12);
-    
+    Reg->add(delta.in(N1));
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOn("Added binary variables" << endl);
-    Reg->add(delta.in(N1));
+    
     if(norm1){
         Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
         Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
