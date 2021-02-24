@@ -12,7 +12,7 @@ GurobiProgram::GurobiProgram(){
  //   grb_env->set(GRB_IntParam_Threads,8);
    //    grb_env->set(GRB_IntParam_Presolve,0);
    //   grb_env->set(GRB_IntParam_NumericFocus,3);
-     grb_env->set(GRB_IntParam_NonConvex,2);
+     grb_env->set(GRB_IntParam_NonConvex,1);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     
@@ -35,7 +35,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_IntParam_NonConvex,1);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     
@@ -70,7 +70,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,2);
+    grb_env->set(GRB_IntParam_NonConvex,1);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     
@@ -227,7 +227,12 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<double>*)v;
                 for (size_t i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
-                    _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    if(real_var->_is_relaxed){
+                        _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    }
+                    else {
+                        _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    }
                 }
                 break;
             }

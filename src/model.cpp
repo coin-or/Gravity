@@ -5951,7 +5951,30 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type){
     lifted._dim[1] = c._dim[1];
     return lifted;
 }
-
+template <typename type>
+template<typename T>
+shared_ptr<Model<type>> Model<type>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol)
+{
+    shared_ptr<Model<>> relaxed_model=this->copy();
+        relaxed_model->_status=this->_status;
+        Model<> interior_model;
+    int oacuts=0;
+            auto lin_model=this->buildOA();
+            interior_model=lin_model->add_outer_app_solution(*relaxed_model);
+    constr_viol=1;
+    int lin_count=0, output;
+    solver<> LB_solver(lin_model, ipopt);
+    vector<double> solution(lin_model->_nb_vars);
+    while (constr_viol==1 && lin_count<nb_max){
+        LB_solver.run(output = 0, 1e-6, 2000, 300);
+        if(lin_model->_status==0){
+            lin_model->get_solution(solution);
+            constr_viol=relaxed_model->add_iterative(interior_model, solution, lin_model, "allvar", oacuts, 1e-8);
+        }
+        lin_count++;
+    }
+    return lin_model;
+}
 template <typename type>
 template<typename T>
 void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol){
@@ -6610,7 +6633,7 @@ template void Model<double>::compute_iter_gap(double& gap, double& active_tol, b
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
 template void Model<double>::update_upper_bound(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
 template void Model<double>::model_fix_int(shared_ptr<gravity::Model<double>> relax);
-
+template shared_ptr<Model<double>> Model<double>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
 
