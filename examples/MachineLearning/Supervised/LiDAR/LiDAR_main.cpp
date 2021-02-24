@@ -2633,6 +2633,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
     Reg->min(obj);
     
+    
+    
 //    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
@@ -2656,6 +2658,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
              << endl);
     DebugOn("col 3 " << pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2)
              << endl);
+    double det=theta11.eval()*(theta22.eval()*theta33.eval()-theta32.eval()*theta23.eval())
+    -theta12.eval()*(theta21.eval()*theta33.eval()-theta31.eval()*theta23.eval())+theta13.eval()*(theta21.eval()*theta32.eval()-theta31.eval()*theta22.eval());
+    
     
     DebugOn("row 12 " << (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval())
              << endl);
@@ -2663,6 +2668,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
              << endl);
     DebugOn("row 23 " << (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval())
              << endl);
+    
+    DebugOn("Determinant "<<det<<endl);
     
     rot_trans[0]=theta11.eval();
     rot_trans[1]=theta12.eval();
