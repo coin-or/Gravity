@@ -65,7 +65,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
  //   grb_env->set(GRB_IntParam_Threads,8);
-    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+    grb_env->set(GRB_DoubleParam_TimeLimit,900);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -241,6 +241,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
                 }
                 break;
             }
