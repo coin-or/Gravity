@@ -6330,7 +6330,9 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
     }
     solver<> UB_solver(*this,ub_solver_type);
     UB_solver.run(output = 5, ub_solver_tol, 2000, 600);
+    this->print_solution();
     upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
+    this->print_solution();
     if(this->_status!=0){
         upper_bound=this->_obj->_range->second;
     }
