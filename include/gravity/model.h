@@ -6432,8 +6432,6 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, std::string model_name,int& oacuts, double active_tol);
         template<typename T=type>
-        vector<vector<double>> cutting_planes_solution(const Model<type>& interior, double active_tol);
-        template<typename T=type>
         void model_fix_int(shared_ptr<gravity::Model<double>> relax);
         template<typename T=type>
         shared_ptr<Model<type>>outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);

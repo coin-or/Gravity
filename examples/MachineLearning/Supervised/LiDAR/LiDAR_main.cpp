@@ -174,7 +174,7 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
 
 shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate);
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans,bool convex);
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -287,8 +287,6 @@ int main (int argc, char * argv[])
         bool norm1 = norm_str=="norm1";
         bool obbt=obbt_str=="yes";
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
-        center_point_cloud(point_cloud_data);
-        center_point_cloud(point_cloud_model);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
         // plot(ext_model,ext_data,1);
@@ -364,8 +362,10 @@ int main (int argc, char * argv[])
                 rot_trans.resize(6,0.0);
             }
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
-            bool separate=false;
-            bool linearize=false;
+            bool separate=true;
+            bool linearize=true;
+            center_point_cloud(point_cloud_data);
+            center_point_cloud(point_cloud_model);
             auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
@@ -373,7 +373,6 @@ int main (int argc, char * argv[])
             auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
            // SOC_MIP->print();
             if(linearize){
-               // auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
             int constr_viol=1;
             Model<> interior_model;
                 auto lin=SOC_MIP->buildOA();
@@ -392,11 +391,11 @@ int main (int argc, char * argv[])
             lin->print_int_solution();
             lin->get_solution(solution);
                 obj_new=lin->get_obj_val();
-                if(obj_new!=0 && obj_new<=obj_old){
+                if(obj_new<=obj_old){
                     break;
                 }
                 
-                constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-6);
+                constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
                 nb_count++;
                 obj_old=obj_new;
             }
@@ -418,9 +417,7 @@ int main (int argc, char * argv[])
             unsigned max_iter=1e3, max_time=3000;
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//            auto Reg_nc=build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans,false);
-//            auto Reg=build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans,true);
-//            auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+            //auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         }
         bool compute_L2_error = true;
         if(compute_L2_error){
@@ -580,7 +577,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
 
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-3;
+    goicp.MSEThresh = 1e-2;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -1212,7 +1209,7 @@ vector<double> run_ARMO_Global(bool convex, string axis, const vector<vector<dou
     
     //                Reg.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
     
-   // Reg.print();
+    Reg.print();
     
     if(convex){
         //        Reg.replace_integers();
@@ -1849,7 +1846,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     
 }
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex){
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2013,46 +2010,25 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Constraint<> soc6("soc6");
     soc6 = pow(l34,2)-d3*d4;
     Reg->add(soc6<=0);
-    if(!convex){
-        Constraint<> row1("row1");
-        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-        Reg->add(row1==1);
-        Constraint<> row2("row2");
-        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-        Reg->add(row2==1);
-        Constraint<> row3("row3");
-        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-        Reg->add(row3==1);
-        Constraint<> col1("col1");
-        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-        Reg->add(col1==1);
-        Constraint<> col2("col2");
-        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-        Reg->add(col2==1);
-        Constraint<> col3("col3");
-        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-        Reg->add(col3==1);
-    }else{
-        Constraint<> row1("row1");
-        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-        Reg->add(row1<=1);
-        Constraint<> row2("row2");
-        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-        Reg->add(row2<=1);
-        Constraint<> row3("row3");
-        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-        Reg->add(row3<=1);
-        Constraint<> col1("col1");
-        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-        Reg->add(col1<=1);
-        Constraint<> col2("col2");
-        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-        Reg->add(col2<=1);
-        Constraint<> col3("col3");
-        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-        Reg->add(col3<=1);
-        
-    }
+    
+    Constraint<> row1("row1");
+    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    Reg->add(row1==1);
+    Constraint<> row2("row2");
+    row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    Reg->add(row2==1);
+    Constraint<> row3("row3");
+    row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    Reg->add(row3==1);
+    Constraint<> col1("col1");
+    col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    Reg->add(col1==1);
+    Constraint<> col2("col2");
+    col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    Reg->add(col2==1);
+    Constraint<> col3("col3");
+    col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    Reg->add(col3==1);
 
     auto ids1 = theta11.repeat_id(cells.size());
     Constraint<> x_rot1("x_rot1");
@@ -2069,17 +2045,16 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     z_rot1 += new_z1 -z_shift;
     z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
     Reg->add(z_rot1.in(N1)==0);
-    bin.set_lb("1,3",1);
-    bin.set_lb("2,2",1);
-    bin.set_lb("3,12",1);
+    
+    
     /* Objective function */
 
     Reg->min(sum(delta));
     
 //    Reg->print();
 //    solver<> S1(Reg,ipopt);
-   // solver<> S(Reg,gurobi);
-   // S.run();
+    solver<> S(Reg,gurobi);
+    S.run();
     Reg->print_int_solution();
     
 //    Reg->print_solution();
@@ -2339,7 +2314,6 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     
-    var<> eta("eta",0,1.05);
     var<> xsh_bin("xsh_bin",-1,1), ysh_bin("ysh_bin",-1,1), zsh_bin("zsh_bin",-1,1);
     var<> theta11_bin("theta11_bin",-1,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
     var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",-1,1), theta23_bin("theta23_bin",-1,1);
@@ -2575,16 +2549,16 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 
     
     Constraint<> txsq("txsq");
-    txsq = pow(x_shift,2)-tx;
-    Reg->add(txsq.in(range(0,0))<=0);
+    txsq = tx-pow(x_shift,2);
+    Reg->add(txsq.in(range(0,0))>=0);
     
     Constraint<> tysq("tysq");
-    tysq = pow(y_shift,2)-ty;
-    Reg->add(tysq.in(range(0,0))<=0);
+    tysq = ty-pow(y_shift,2);
+    Reg->add(tysq.in(range(0,0))>=0);
     
     Constraint<> tzsq("tzsq");
-    tzsq = pow(z_shift,2)-tz;
-    Reg->add(tzsq.in(range(0,0))<=0);
+    tzsq = tz-pow(z_shift,2);
+    Reg->add(tzsq.in(range(0,0))>=0);
     
     Constraint<> diag1("diag1");
     diag1=1-theta11-theta22+theta33-d1;
@@ -2667,7 +2641,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(col3.in(range(0,0))<=1);
 
     
-    bool aux=false;
+    
+    
     /* Objective function */
     func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
     obj +=nd*(tx +ty+tz);
@@ -2706,25 +2681,16 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
         
     }
-    if(!aux){
     Reg->min(obj);
-    }
-    else{
-        Reg->add(eta.in(R(1)));
-        Constraint<> c("c");
-        c=eta-obj;
-        Reg->add(c.in(range(0,0))==0);
-        Reg->min(eta);
-    }
     
     
     
-    Reg->print();
+//    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
     Reg->print_int_solution();
     
-    Reg->print_solution();
+//    Reg->print_solution();
     
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -3573,7 +3539,7 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
         //        Reg->reset_constrs();
     }
     else {
-        // Reg->print();
+         Reg->print();
         solver<> S(Reg,gurobi);
         S.run();
         Reg->print_solution();
