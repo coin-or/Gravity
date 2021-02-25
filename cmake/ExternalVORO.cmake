@@ -5,7 +5,7 @@ set(VORO_DOWNLOAD_URL http://math.lbl.gov/voro++/download/dir/voro++-0.4.6.tar.g
 set(VORO_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/voro CACHE INTERNAL "")
 ExternalProject_Add(voro
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && curl -k -L ${VORO_DOWNLOAD_URL} -o Voro.tar.gz && tar -xvf Voro.tar.gz && rm -fr ./Install/voro && mv voro++-0.4.6 ./Install/voro && cd ./Install/voro/build && make -j24
+    DOWNLOAD_COMMAND export HTTP_PROXY=$ENV{HTTP_PROXY} && export HTTPS_PROXY=$ENV{HTTPS_PROXY} && export http_proxy=$ENV{HTTP_PROXY} && curl -k -L ${VORO_DOWNLOAD_URL} -o Voro.tar.gz && tar -xvf Voro.tar.gz && rm -fr ./Install/voro && mv voro++-0.4.6 ./Install/voro && cd ./Install/voro && make -j24
     URL ${VORO_DOWNLOAD_URL}
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
