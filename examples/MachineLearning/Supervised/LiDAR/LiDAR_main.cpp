@@ -63,15 +63,21 @@ using orgQhull::RboxPoints;
 
 bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt);
 void compute_voronoi(Qhull& qhull, vector<vector<double>>& voronoiVertices, vector<vector<int>>& voronoiRegions);
+using namespace orgQhull;
 #endif
 
+#ifdef USE_VORO
+#include "voro++.hh"
+using namespace voro;
+
+#endif
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
 #define DEFAULT_MODEL_FNAME "model.txt"
 #define DEFAULT_DATA_FNAME "data.txt"
 
-using namespace orgQhull;
+
 /* Read input files */
 void read_data(const rapidcsv::Document& doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav);
 
@@ -210,6 +216,7 @@ int main (int argc, char * argv[])
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
+        double x_min = -1, x_max = 1, y_min = -1, y_max = 1, z_min = -1, z_max = 1;
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
@@ -250,6 +257,13 @@ int main (int argc, char * argv[])
         DebugOn("Data file has " << data_nb_rows << " rows" << endl);
         int row0 = 0;
         point_cloud_model.resize(model_nb_rows);
+#ifdef USE_VORO
+        container data_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
+                false,false,false,point_cloud_data.size());
+        container model_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
+                false,false,false,point_cloud_model.size());
+#endif
+        
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
             auto y = Model_doc.GetCell<double>(1, i);
@@ -257,10 +271,10 @@ int main (int argc, char * argv[])
             x_vec0.push_back(x);
             y_vec0.push_back(y);
             z_vec0.push_back(z);
+            model_con.put(i, x, y, z);
             flat_point_cloud_model.push_back(x);
             flat_point_cloud_model.push_back(y);
             flat_point_cloud_model.push_back(z);
-            flat_point_cloud_model.push_back(x*x+y*y+z*z);
             point_cloud_model[i].resize(3);
             point_cloud_model[i][0] = x;
             point_cloud_model[i][1] = y;
@@ -274,17 +288,49 @@ int main (int argc, char * argv[])
             x_vec1.push_back(x);
             y_vec1.push_back(y);
             z_vec1.push_back(z);
+            data_con.put(i, x, y, z);
             flat_point_cloud_data.push_back(x);
             flat_point_cloud_data.push_back(y);
             flat_point_cloud_data.push_back(z);
-//            flat_point_cloud_data.push_back(x*x+y*y+z*z);
             point_cloud_data[i].resize(3);
             point_cloud_data[i][0] = x;
             point_cloud_data[i][1] = y;
             point_cloud_data[i][2] = z;
         }
-        center_point_cloud(point_cloud_data);
-        center_point_cloud(point_cloud_model);
+//        center_point_cloud(point_cloud_data);
+//        center_point_cloud(point_cloud_model);
+        
+#ifdef USE_VORO
+        
+        c_loop_all cl(model_con);
+        
+        unsigned int i,j;
+        int id,nx,ny,nz;
+        double x,y,z;
+        voronoicell c;
+        vector<int> neigh,f_vert;
+        vector<double> v;
+        vector<vector<double>> model_voronoiVertices;
+        bool added = false;
+        if(cl.start()) do if(model_con.compute_cell(c,cl)) {
+            cl.pos(x,y,z);
+            id=cl.pid();
+            // Gather information about the computed Voronoi cell
+            c.vertices(x,y,z,v);
+            if(!added){
+                for (int i = 0; i<v.size()-3; i+=3) {
+                    model_voronoiVertices.push_back({v[i],v[i+1],v[i+2]});
+                }
+                added = true;
+            }
+        } while (cl.inc());
+
+#ifdef USE_MATPLOT
+        plot(point_cloud_model,model_voronoiVertices, 2);
+#endif
+
+#endif
+        
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
         bool global = global_str=="global";
@@ -1827,14 +1873,12 @@ bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vect
             break;
         }
     }
-    
-#endif
     DebugOn("minimum radius found "<<lmin<<endl);
     return true;
 }
+
 void inscribed_sphere_centre(double x0, double y0, double z0, double& lmin, Qhull& qt){
     lmin=999;
-#ifdef USE_QHULL
     vector<double> p;
     p.push_back(x0);
     p.push_back(y0);
@@ -1852,9 +1896,9 @@ void inscribed_sphere_centre(double x0, double y0, double z0, double& lmin, Qhul
             break;
         }
     }
-    
-#endif
 }
+#endif
+
 void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, double yl, double yu, double zl, double zu, double& dbox_min, double& dbox_max){
     
     vector<double> d;
