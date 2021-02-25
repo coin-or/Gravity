@@ -62,7 +62,7 @@ using orgQhull::RboxPoints;
 
 
 bool largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& lmin, Qhull& qt);
-void compute_voronoi(Qhull& qhull);
+void compute_voronoi(Qhull& qhull, vector<vector<double>>& voronoiVertices, vector<vector<int>>& voronoiRegions);
 #endif
 
 
@@ -174,7 +174,7 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
 
 shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate);
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex = false);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -260,6 +260,7 @@ int main (int argc, char * argv[])
             flat_point_cloud_model.push_back(x);
             flat_point_cloud_model.push_back(y);
             flat_point_cloud_model.push_back(z);
+            flat_point_cloud_model.push_back(x*x+y*y+z*z);
             point_cloud_model[i].resize(3);
             point_cloud_model[i][0] = x;
             point_cloud_model[i][1] = y;
@@ -276,11 +277,14 @@ int main (int argc, char * argv[])
             flat_point_cloud_data.push_back(x);
             flat_point_cloud_data.push_back(y);
             flat_point_cloud_data.push_back(z);
+//            flat_point_cloud_data.push_back(x*x+y*y+z*z);
             point_cloud_data[i].resize(3);
             point_cloud_data[i][0] = x;
             point_cloud_data[i][1] = y;
             point_cloud_data[i][2] = z;
         }
+        center_point_cloud(point_cloud_data);
+        center_point_cloud(point_cloud_model);
         auto old_point_cloud = point_cloud_data;
         int nb_ext = 10;
         bool global = global_str=="global";
@@ -289,7 +293,9 @@ int main (int argc, char * argv[])
         bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
-        // plot(ext_model,ext_data,1);
+#ifdef USE_MATPLOT
+//        plot(ext_model,ext_data,1);
+#endif
         if (filter_extremes) {
             ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
             ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
@@ -303,17 +309,31 @@ int main (int argc, char * argv[])
         DebugOn("L2 before Registration = " << L2error_init << endl);
         // run_ARMO_Global(false, "full", ext_model, ext_data);
 #ifdef USE_QHULL
-        Qhull qt_data("data", 3, point_cloud_data.size(), flat_point_cloud_data.data(), "v o");
-//        qt_data.runQhull("data", 3, point_cloud_data.size(), flat_point_cloud_data.data(), "");
-        DebugOn("Computing Voronoi regions for data point cloud\n");
-        compute_voronoi(qt_data);
-        
-        Qhull qt_model("model", 3, point_cloud_model.size(), flat_point_cloud_model.data(), "v o");
-        DebugOn("Computing Voronoi regions for model point cloud\n");
-        compute_voronoi(qt_model);
+        Qhull qt_data;//("data", 4, point_cloud_data.size(), flat_point_cloud_data.data(), "");
+        qt_data.runQhull("data", 3, point_cloud_data.size(), flat_point_cloud_data.data(), "");
+        vector<vector<double>> data_facet_centers;
+        for(auto it = qt_data.facetList().begin();it!=qt_data.facetList().end();it++){
+            auto v = it->getCenter().toStdVector();
+            data_facet_centers.push_back(v);
+        }
+#ifdef USE_MATPLOT
+        plot(ext_data,data_facet_centers, 2);
 #endif
-        if(!obbt){
-            bool run_goICP = (algo=="GoICP");
+        DebugOn("Computing Voronoi regions for data point cloud\n");
+        vector<vector<double>> data_voronoiVertices;
+        vector<vector<int>> data_voronoiRegions;
+        compute_voronoi(qt_data, data_voronoiVertices, data_voronoiRegions);
+#ifdef USE_MATPLOT
+        plot(ext_data,data_voronoiVertices, 2);
+#endif
+        Qhull qt_model("model", 4, point_cloud_model.size(), flat_point_cloud_model.data(), "");
+        DebugOn("Computing Voronoi regions for model point cloud\n");
+        vector<vector<double>> model_voronoiVertices;
+        vector<vector<int>> model_voronoiRegions;
+        compute_voronoi(qt_model, model_voronoiVertices, model_voronoiRegions);
+#endif
+        bool run_goICP = (algo=="GoICP");
+        if(!obbt || run_goICP){
             if(run_goICP){/* Run GoICP inline */
                 res_icp = run_GoICP(ext_model, ext_data);
                 auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
@@ -364,43 +384,53 @@ int main (int argc, char * argv[])
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             bool separate=true;
             bool linearize=false;
-            center_point_cloud(point_cloud_data);
-            center_point_cloud(point_cloud_model);
             auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
+#ifdef USE_MATPLOT
+//            plot(point_cloud_model,point_cloud_data,1);
+#endif
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
-           // auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
+            bool convex = false;
+            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex);
+            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true);
+            NC_SOC_MIQCP->print();
+            SOC_MIQCP->print();
+            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+            unsigned max_iter=1e3, max_time=3000;
+            int nb_threads=1;
+            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
            // SOC_MIP->print();
             if(linearize){
-            int constr_viol=1;
-            Model<> interior_model;
-                //auto lin=SOC_MIP->buildOA();
-                //interior_model=lin->add_outer_app_solution(*SOC_MIP);
+                int constr_viol=1;
+                Model<> interior_model;
+                    //auto lin=SOC_MIP->buildOA();
+                    //interior_model=lin->add_outer_app_solution(*SOC_MIP);
                 auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
-            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
-           // lin->print();
-            constr_viol=1;
-            int oacuts=0;
-            vector<double> solution(lin->_nb_vars);
-            int nb_count=0;
-            double obj_old=-15, obj_new=-15;
-            while(constr_viol==1){
-            solver<> S(lin,gurobi);
-            S.run();
-            lin->print_int_solution();
-            lin->get_solution(solution);
-                break;
-                obj_new=lin->get_obj_val();
-                if(obj_new<=obj_old){
+                auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
+                    // lin->print();
+                constr_viol=1;
+                int oacuts=0;
+                vector<double> solution(lin->_nb_vars);
+                int nb_count=0;
+                double obj_old=-15, obj_new=-15;
+                while(constr_viol==1){
+                    solver<> S(lin,gurobi);
+                    S.run();
+                    lin->print_int_solution();
+                    lin->get_solution(solution);
                     break;
+                    obj_new=lin->get_obj_val();
+                    if(obj_new<=obj_old){
+                        break;
+                    }
+                    
+                    constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
+                    nb_count++;
+                    obj_old=obj_new;
                 }
-                
-                constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
-                nb_count++;
-                obj_old=obj_new;
-            }
-            DebugOn("nb count "<<nb_count);
+                DebugOn("nb count "<<nb_count);
             }
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
@@ -408,16 +438,13 @@ int main (int argc, char * argv[])
             else{
                 apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
             }
-#ifdef USE_MATPLOT
-            plot(point_cloud_model, point_cloud_data, 2);
-#endif
             // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
             //solver<> S(Reg,gurobi);
             //S.run();
-            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-            unsigned max_iter=1e3, max_time=3000;
-            int nb_threads=1;
-            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+//            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+//            unsigned max_iter=1e3, max_time=3000;
+//            int nb_threads=1;
+//            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             //auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         }
         bool compute_L2_error = true;
@@ -427,6 +454,10 @@ int main (int argc, char * argv[])
             DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
             L2error_init = L2error;
         }
+#ifdef USE_MATPLOT
+            plot(point_cloud_model,point_cloud_data,1);
+#endif
+
         return 0;
     }
     
@@ -578,7 +609,7 @@ void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z,
 }
 
 void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-2;
+    goicp.MSEThresh = 1e-3;
     goicp.initNodeRot.a = -1;
     goicp.initNodeRot.b = -1;
     goicp.initNodeRot.c = -1;
@@ -1681,7 +1712,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
 
 #ifdef USE_QHULL
 
-void compute_voronoi(Qhull& qhull){
+void compute_voronoi(Qhull& qhull, vector<vector<double>>& voronoiVertices, vector<vector<int>>& voronoiRegions){
     bool isLower;            //not used
     int voronoiVertexCount;  //not used
     qhull.prepareVoronoi(&isLower, &voronoiVertexCount);
@@ -1702,12 +1733,12 @@ void compute_voronoi(Qhull& qhull){
     size_t numpoints= qhull.points().size();
 
     // Gather Voronoi vertices
-    std::vector<std::vector<double> > voronoiVertices;
+//    std::vector<std::vector<double> > voronoiVertices;
     std::vector<double> vertexAtInfinity;
     for(int i= 0; i<voronoiDimension; ++i){
         vertexAtInfinity.push_back(qh_INFINITE);
     }
-    voronoiVertices.push_back(vertexAtInfinity);
+//    voronoiVertices.push_back(vertexAtInfinity);
     // for(QhullFacet facet : qhull.facetList())
     QhullFacetListIterator j(qhull.facetList());
     while(j.hasNext()){
@@ -1731,7 +1762,7 @@ void compute_voronoi(Qhull& qhull){
 
     DebugOn("Voronoi regions\n");
     // Gather Voronoi regions
-    std::vector<std::vector<int> > voronoiRegions(numpoints); // qh_printvoronoi calls qh_pointvertex via qh_markvoronoi
+    voronoiRegions.resize(numpoints); // qh_printvoronoi calls qh_pointvertex via qh_markvoronoi
     // for(QhullVertex vertex : qhull.vertexList())
     qhull.defineVertexNeighborFacets();
     QhullVertexListIterator j2(qhull.vertexList());
@@ -1847,7 +1878,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     
 }
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2012,25 +2043,46 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     soc6 = pow(l34,2)-d3*d4;
     Reg->add(soc6<=0);
     
-    Constraint<> row1("row1");
-    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-    Reg->add(row1==1);
-    Constraint<> row2("row2");
-    row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-    Reg->add(row2==1);
-    Constraint<> row3("row3");
-    row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-    Reg->add(row3==1);
-    Constraint<> col1("col1");
-    col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-    Reg->add(col1==1);
-    Constraint<> col2("col2");
-    col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-    Reg->add(col2==1);
-    Constraint<> col3("col3");
-    col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-    Reg->add(col3==1);
-
+    if(convex){
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1<=1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2<=1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3<=1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1<=1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2<=1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3<=1);
+    }
+    else {
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1==1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2==1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3==1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1==1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2==1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3==1);
+    }
     auto ids1 = theta11.repeat_id(cells.size());
     Constraint<> x_rot1("x_rot1");
     x_rot1 += new_x1 -x_shift;
@@ -2051,12 +2103,19 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     /* Objective function */
 
     Reg->min(sum(delta));
-    
+//    bin._val->at(bin._indices->_keys_map->at("1,1")) = 1;
+//    bin.set_lb("1,1",1);
+//    bin.set_lb("2,2",1);
+//    bin.set_lb("3,3",1);
+//    for (int i = 0; i<nd; i++) {
+//        string key = to_string(i+1)+","+to_string(i+1);
+//        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+//    }
 //    Reg->print();
 //    solver<> S1(Reg,ipopt);
-    solver<> S(Reg,gurobi);
-    S.run();
-    Reg->print_int_solution();
+//    solver<> S(Reg,gurobi);
+//    S.run();
+//    Reg->print_int_solution();
     
 //    Reg->print_solution();
     DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
@@ -2354,198 +2413,198 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
     if(separate){
-    Constraint<> xsh_on1("xsh_on1");
-    xsh_on1=xsh_bin-x_shift-(1-bin);
-    Reg->add(xsh_on1.in(cells)<=0);
-    
-    Constraint<> xsh_on2("xsh_on2");
-    xsh_on2=xsh_bin-x_shift+(1-bin);
-    Reg->add(xsh_on2.in(cells)>=0);
-    
-    Constraint<> xsh_off1("xsh_off1");
-    xsh_off1=xsh_bin-bin;
-    Reg->add(xsh_off1.in(cells)<=0);
-    
-    Constraint<> xsh_off2("xsh_off2");
-    xsh_off2=xsh_bin+bin;
-    Reg->add(xsh_off2.in(cells)>=0);
-    
-    Constraint<> ysh_on1("ysh_on1");
-    ysh_on1=ysh_bin-y_shift-(1-bin);
-    Reg->add(ysh_on1.in(cells)<=0);
-    
-    Constraint<> ysh_on2("ysh_on2");
-    ysh_on2=ysh_bin-y_shift+(1-bin);
-    Reg->add(ysh_on2.in(cells)>=0);
-    
-    Constraint<> ysh_off1("ysh_off1");
-    ysh_off1=ysh_bin-bin;
-    Reg->add(ysh_off1.in(cells)<=0);
-    
-    Constraint<> ysh_off2("ysh_off2");
-    ysh_off2=ysh_bin+bin;
-    Reg->add(ysh_off2.in(cells)>=0);
-    
-    Constraint<> zsh_on1("zsh_on1");
-    zsh_on1=zsh_bin-z_shift-(1-bin);
-    Reg->add(zsh_on1.in(cells)<=0);
-    
-    Constraint<> zsh_on2("zsh_on2");
-    zsh_on2=zsh_bin-z_shift+(1-bin);
-    Reg->add(zsh_on2.in(cells)>=0);
-    
-    Constraint<> zsh_off1("zsh_off1");
-    zsh_off1=zsh_bin-bin;
-    Reg->add(zsh_off1.in(cells)<=0);
-    
-    Constraint<> zsh_off2("zsh_off2");
-    zsh_off2=zsh_bin+bin;
-    Reg->add(zsh_off2.in(cells)>=0);
-    
-    Constraint<> theta11_on1("theta11_on1");
-    theta11_on1=theta11_bin-theta11-(1-bin);
-    Reg->add(theta11_on1.in(cells)<=0);
-    
-    Constraint<> theta11_on2("theta11_on2");
-    theta11_on2=theta11_bin-theta11+(1-bin);
-    Reg->add(theta11_on2.in(cells)>=0);
-    
-    Constraint<> theta11_off1("theta11_off1");
-    theta11_off1=theta11_bin-bin;
-    Reg->add(theta11_off1.in(cells)<=0);
-    
-    Constraint<> theta11_off2("theta11_off2");
-    theta11_off2=theta11_bin+bin;
-    Reg->add(theta11_off2.in(cells)>=0);
-    
-    Constraint<> theta12_on1("theta12_on1");
-       theta12_on1=theta12_bin-theta12-(1-bin);
-       Reg->add(theta12_on1.in(cells)<=0);
-       
-       Constraint<> theta12_on2("theta12_on2");
-       theta12_on2=theta12_bin-theta12+(1-bin);
-       Reg->add(theta12_on2.in(cells)>=0);
-       
-       Constraint<> theta12_off1("theta12_off1");
-       theta12_off1=theta12_bin-bin;
-       Reg->add(theta12_off1.in(cells)<=0);
-       
-       Constraint<> theta12_off2("theta12_off2");
-       theta12_off2=theta12_bin+bin;
-       Reg->add(theta12_off2.in(cells)>=0);
-    
-    Constraint<> theta13_on1("theta13_on1");
-       theta13_on1=theta13_bin-theta13-(1-bin);
-       Reg->add(theta13_on1.in(cells)<=0);
-       
-       Constraint<> theta13_on2("theta13_on2");
-       theta13_on2=theta13_bin-theta13+(1-bin);
-       Reg->add(theta13_on2.in(cells)>=0);
-       
-       Constraint<> theta13_off1("theta13_off1");
-       theta13_off1=theta13_bin-bin;
-       Reg->add(theta13_off1.in(cells)<=0);
-       
-       Constraint<> theta13_off2("theta13_off2");
-       theta13_off2=theta13_bin+bin;
-       Reg->add(theta13_off2.in(cells)>=0);
-    
-    Constraint<> theta21_on1("theta21_on1");
-      theta21_on1=theta21_bin-theta21-(1-bin);
-      Reg->add(theta21_on1.in(cells)<=0);
-      
-      Constraint<> theta21_on2("theta21_on2");
-      theta21_on2=theta21_bin-theta21+(1-bin);
-      Reg->add(theta21_on2.in(cells)>=0);
-      
-      Constraint<> theta21_off1("theta21_off1");
-      theta21_off1=theta21_bin-bin;
-      Reg->add(theta21_off1.in(cells)<=0);
-      
-      Constraint<> theta21_off2("theta21_off2");
-      theta21_off2=theta21_bin+bin;
-      Reg->add(theta21_off2.in(cells)>=0);
-      
-      Constraint<> theta22_on1("theta22_on1");
-         theta22_on1=theta22_bin-theta22-(1-bin);
-         Reg->add(theta22_on1.in(cells)<=0);
-         
-         Constraint<> theta22_on2("theta22_on2");
-         theta22_on2=theta22_bin-theta22+(1-bin);
-         Reg->add(theta22_on2.in(cells)>=0);
-         
-         Constraint<> theta22_off1("theta22_off1");
-         theta22_off1=theta22_bin-bin;
-         Reg->add(theta22_off1.in(cells)<=0);
-         
-         Constraint<> theta22_off2("theta22_off2");
-         theta22_off2=theta22_bin+bin;
-         Reg->add(theta22_off2.in(cells)>=0);
-      
-      Constraint<> theta23_on1("theta23_on1");
-         theta23_on1=theta23_bin-theta23-(1-bin);
-         Reg->add(theta23_on1.in(cells)<=0);
-         
-         Constraint<> theta23_on2("theta23_on2");
-         theta23_on2=theta23_bin-theta23+(1-bin);
-         Reg->add(theta23_on2.in(cells)>=0);
-         
-         Constraint<> theta23_off1("theta23_off1");
-         theta23_off1=theta23_bin-bin;
-         Reg->add(theta23_off1.in(cells)<=0);
-         
-         Constraint<> theta23_off2("theta23_off2");
-         theta23_off2=theta23_bin+bin;
-         Reg->add(theta23_off2.in(cells)>=0);
-    
-    Constraint<> theta31_on1("theta31_on1");
-      theta31_on1=theta31_bin-theta31-(1-bin);
-      Reg->add(theta31_on1.in(cells)<=0);
-      
-      Constraint<> theta31_on2("theta31_on2");
-      theta31_on2=theta31_bin-theta31+(1-bin);
-      Reg->add(theta31_on2.in(cells)>=0);
-      
-      Constraint<> theta31_off1("theta31_off1");
-      theta31_off1=theta31_bin-bin;
-      Reg->add(theta31_off1.in(cells)<=0);
-      
-      Constraint<> theta31_off2("theta31_off2");
-      theta31_off2=theta31_bin+bin;
-      Reg->add(theta31_off2.in(cells)>=0);
-      
-      Constraint<> theta32_on1("theta32_on1");
-         theta32_on1=theta32_bin-theta32-(1-bin);
-         Reg->add(theta32_on1.in(cells)<=0);
-         
-         Constraint<> theta32_on2("theta32_on2");
-         theta32_on2=theta32_bin-theta32+(1-bin);
-         Reg->add(theta32_on2.in(cells)>=0);
-         
-         Constraint<> theta32_off1("theta32_off1");
-         theta32_off1=theta32_bin-bin;
-         Reg->add(theta32_off1.in(cells)<=0);
-         
-         Constraint<> theta32_off2("theta32_off2");
-         theta32_off2=theta32_bin+bin;
-         Reg->add(theta32_off2.in(cells)>=0);
-      
-      Constraint<> theta33_on1("theta33_on1");
-         theta33_on1=theta33_bin-theta33-(1-bin);
-         Reg->add(theta33_on1.in(cells)<=0);
-         
-         Constraint<> theta33_on2("theta33_on2");
-         theta33_on2=theta33_bin-theta33+(1-bin);
-         Reg->add(theta33_on2.in(cells)>=0);
-         
-         Constraint<> theta33_off1("theta33_off1");
-         theta33_off1=theta33_bin-bin;
-         Reg->add(theta33_off1.in(cells)<=0);
-         
-         Constraint<> theta33_off2("theta33_off2");
-         theta33_off2=theta33_bin+bin;
-         Reg->add(theta33_off2.in(cells)>=0);
-
+        Constraint<> xsh_on1("xsh_on1");
+        xsh_on1=xsh_bin-x_shift-(1-bin);
+        Reg->add(xsh_on1.in(cells)<=0);
+        
+        Constraint<> xsh_on2("xsh_on2");
+        xsh_on2=xsh_bin-x_shift+(1-bin);
+        Reg->add(xsh_on2.in(cells)>=0);
+        
+        Constraint<> xsh_off1("xsh_off1");
+        xsh_off1=xsh_bin-bin;
+        Reg->add(xsh_off1.in(cells)<=0);
+        
+        Constraint<> xsh_off2("xsh_off2");
+        xsh_off2=xsh_bin+bin;
+        Reg->add(xsh_off2.in(cells)>=0);
+        
+        Constraint<> ysh_on1("ysh_on1");
+        ysh_on1=ysh_bin-y_shift-(1-bin);
+        Reg->add(ysh_on1.in(cells)<=0);
+        
+        Constraint<> ysh_on2("ysh_on2");
+        ysh_on2=ysh_bin-y_shift+(1-bin);
+        Reg->add(ysh_on2.in(cells)>=0);
+        
+        Constraint<> ysh_off1("ysh_off1");
+        ysh_off1=ysh_bin-bin;
+        Reg->add(ysh_off1.in(cells)<=0);
+        
+        Constraint<> ysh_off2("ysh_off2");
+        ysh_off2=ysh_bin+bin;
+        Reg->add(ysh_off2.in(cells)>=0);
+        
+        Constraint<> zsh_on1("zsh_on1");
+        zsh_on1=zsh_bin-z_shift-(1-bin);
+        Reg->add(zsh_on1.in(cells)<=0);
+        
+        Constraint<> zsh_on2("zsh_on2");
+        zsh_on2=zsh_bin-z_shift+(1-bin);
+        Reg->add(zsh_on2.in(cells)>=0);
+        
+        Constraint<> zsh_off1("zsh_off1");
+        zsh_off1=zsh_bin-bin;
+        Reg->add(zsh_off1.in(cells)<=0);
+        
+        Constraint<> zsh_off2("zsh_off2");
+        zsh_off2=zsh_bin+bin;
+        Reg->add(zsh_off2.in(cells)>=0);
+        
+        Constraint<> theta11_on1("theta11_on1");
+        theta11_on1=theta11_bin-theta11-(1-bin);
+        Reg->add(theta11_on1.in(cells)<=0);
+        
+        Constraint<> theta11_on2("theta11_on2");
+        theta11_on2=theta11_bin-theta11+(1-bin);
+        Reg->add(theta11_on2.in(cells)>=0);
+        
+        Constraint<> theta11_off1("theta11_off1");
+        theta11_off1=theta11_bin-bin;
+        Reg->add(theta11_off1.in(cells)<=0);
+        
+        Constraint<> theta11_off2("theta11_off2");
+        theta11_off2=theta11_bin+bin;
+        Reg->add(theta11_off2.in(cells)>=0);
+        
+        Constraint<> theta12_on1("theta12_on1");
+        theta12_on1=theta12_bin-theta12-(1-bin);
+        Reg->add(theta12_on1.in(cells)<=0);
+        
+        Constraint<> theta12_on2("theta12_on2");
+        theta12_on2=theta12_bin-theta12+(1-bin);
+        Reg->add(theta12_on2.in(cells)>=0);
+        
+        Constraint<> theta12_off1("theta12_off1");
+        theta12_off1=theta12_bin-bin;
+        Reg->add(theta12_off1.in(cells)<=0);
+        
+        Constraint<> theta12_off2("theta12_off2");
+        theta12_off2=theta12_bin+bin;
+        Reg->add(theta12_off2.in(cells)>=0);
+        
+        Constraint<> theta13_on1("theta13_on1");
+        theta13_on1=theta13_bin-theta13-(1-bin);
+        Reg->add(theta13_on1.in(cells)<=0);
+        
+        Constraint<> theta13_on2("theta13_on2");
+        theta13_on2=theta13_bin-theta13+(1-bin);
+        Reg->add(theta13_on2.in(cells)>=0);
+        
+        Constraint<> theta13_off1("theta13_off1");
+        theta13_off1=theta13_bin-bin;
+        Reg->add(theta13_off1.in(cells)<=0);
+        
+        Constraint<> theta13_off2("theta13_off2");
+        theta13_off2=theta13_bin+bin;
+        Reg->add(theta13_off2.in(cells)>=0);
+        
+        Constraint<> theta21_on1("theta21_on1");
+        theta21_on1=theta21_bin-theta21-(1-bin);
+        Reg->add(theta21_on1.in(cells)<=0);
+        
+        Constraint<> theta21_on2("theta21_on2");
+        theta21_on2=theta21_bin-theta21+(1-bin);
+        Reg->add(theta21_on2.in(cells)>=0);
+        
+        Constraint<> theta21_off1("theta21_off1");
+        theta21_off1=theta21_bin-bin;
+        Reg->add(theta21_off1.in(cells)<=0);
+        
+        Constraint<> theta21_off2("theta21_off2");
+        theta21_off2=theta21_bin+bin;
+        Reg->add(theta21_off2.in(cells)>=0);
+        
+        Constraint<> theta22_on1("theta22_on1");
+        theta22_on1=theta22_bin-theta22-(1-bin);
+        Reg->add(theta22_on1.in(cells)<=0);
+        
+        Constraint<> theta22_on2("theta22_on2");
+        theta22_on2=theta22_bin-theta22+(1-bin);
+        Reg->add(theta22_on2.in(cells)>=0);
+        
+        Constraint<> theta22_off1("theta22_off1");
+        theta22_off1=theta22_bin-bin;
+        Reg->add(theta22_off1.in(cells)<=0);
+        
+        Constraint<> theta22_off2("theta22_off2");
+        theta22_off2=theta22_bin+bin;
+        Reg->add(theta22_off2.in(cells)>=0);
+        
+        Constraint<> theta23_on1("theta23_on1");
+        theta23_on1=theta23_bin-theta23-(1-bin);
+        Reg->add(theta23_on1.in(cells)<=0);
+        
+        Constraint<> theta23_on2("theta23_on2");
+        theta23_on2=theta23_bin-theta23+(1-bin);
+        Reg->add(theta23_on2.in(cells)>=0);
+        
+        Constraint<> theta23_off1("theta23_off1");
+        theta23_off1=theta23_bin-bin;
+        Reg->add(theta23_off1.in(cells)<=0);
+        
+        Constraint<> theta23_off2("theta23_off2");
+        theta23_off2=theta23_bin+bin;
+        Reg->add(theta23_off2.in(cells)>=0);
+        
+        Constraint<> theta31_on1("theta31_on1");
+        theta31_on1=theta31_bin-theta31-(1-bin);
+        Reg->add(theta31_on1.in(cells)<=0);
+        
+        Constraint<> theta31_on2("theta31_on2");
+        theta31_on2=theta31_bin-theta31+(1-bin);
+        Reg->add(theta31_on2.in(cells)>=0);
+        
+        Constraint<> theta31_off1("theta31_off1");
+        theta31_off1=theta31_bin-bin;
+        Reg->add(theta31_off1.in(cells)<=0);
+        
+        Constraint<> theta31_off2("theta31_off2");
+        theta31_off2=theta31_bin+bin;
+        Reg->add(theta31_off2.in(cells)>=0);
+        
+        Constraint<> theta32_on1("theta32_on1");
+        theta32_on1=theta32_bin-theta32-(1-bin);
+        Reg->add(theta32_on1.in(cells)<=0);
+        
+        Constraint<> theta32_on2("theta32_on2");
+        theta32_on2=theta32_bin-theta32+(1-bin);
+        Reg->add(theta32_on2.in(cells)>=0);
+        
+        Constraint<> theta32_off1("theta32_off1");
+        theta32_off1=theta32_bin-bin;
+        Reg->add(theta32_off1.in(cells)<=0);
+        
+        Constraint<> theta32_off2("theta32_off2");
+        theta32_off2=theta32_bin+bin;
+        Reg->add(theta32_off2.in(cells)>=0);
+        
+        Constraint<> theta33_on1("theta33_on1");
+        theta33_on1=theta33_bin-theta33-(1-bin);
+        Reg->add(theta33_on1.in(cells)<=0);
+        
+        Constraint<> theta33_on2("theta33_on2");
+        theta33_on2=theta33_bin-theta33+(1-bin);
+        Reg->add(theta33_on2.in(cells)>=0);
+        
+        Constraint<> theta33_off1("theta33_off1");
+        theta33_off1=theta33_bin-bin;
+        Reg->add(theta33_off1.in(cells)<=0);
+        
+        Constraint<> theta33_off2("theta33_off2");
+        theta33_off2=theta33_bin+bin;
+        Reg->add(theta33_off2.in(cells)>=0);
+        
     }
 
     
@@ -2685,7 +2744,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->min(obj);
     
     
-    
+//    for (int i = 0; i<nd; i++) {
+//        string key = to_string(i+1)+","+to_string(i+1);
+//        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+//    }
 //    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
@@ -4695,7 +4757,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 3000;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;

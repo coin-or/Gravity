@@ -35,8 +35,11 @@ option(Ipopt "Link to IPOPT libraries" ON)
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
 
-# Find QHULL (REQUIRED)
-option(QHULL "Link to QHULL libraries" ON)
+# Find QHULL (OPTIONAL)
+option(QHULL "Link to QHULL libraries" OFF)
+
+# Find VORO (REQUIRED)
+option(VORO "Link to VORO libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -236,6 +239,23 @@ else(QHULL_FOUND)
  set(QHULL_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullcpp.a ${THIRDPARTY_INSTALL_PATH}/Install/qhull/build/libqhullstatic_r.a)
 endif()
 endif()
+
+if (VORO)
+message(STATUS "Enable VORO")
+add_definitions(-DUSE_VORO)
+find_package(VORO QUIET)
+if (VORO_FOUND)
+ message("-- Found VORO: ${VORO_INCLUDE_DIRS}")
+ include_directories(${VORO_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${VORO_LIBRARIES})
+else(VORO_FOUND)
+ set(ADD_VORO TRUE)
+ message(STATUS "Will download VORO library from http://math.lbl.gov/voro++/download/")
+ include(ExternalVORO)
+ set(VORO_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/voro/src/libvoro++.a) 
+endif()
+endif()
+
 
 # cpp_option_parser
 if (OPT_PARSER)
