@@ -363,7 +363,7 @@ int main (int argc, char * argv[])
             }
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             bool separate=true;
-            bool linearize=false;
+            bool linearize=true;
             center_point_cloud(point_cloud_data);
             center_point_cloud(point_cloud_model);
             auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
@@ -375,10 +375,10 @@ int main (int argc, char * argv[])
             if(linearize){
             int constr_viol=1;
             Model<> interior_model;
-                //auto lin=SOC_MIP->buildOA();
-                //interior_model=lin->add_outer_app_solution(*SOC_MIP);
-                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
-            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
+                auto lin=SOC_MIP->buildOA();
+                interior_model=lin->add_outer_app_solution(*SOC_MIP);
+//                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
+//            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
            // lin->print();
             constr_viol=1;
             int oacuts=0;
@@ -390,7 +390,6 @@ int main (int argc, char * argv[])
             S.run();
             lin->print_int_solution();
             lin->get_solution(solution);
-                break;
                 obj_new=lin->get_obj_val();
                 if(obj_new<=obj_old){
                     break;
@@ -4695,7 +4694,7 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
-    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 3000;
+    int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled =    0;
     clock_t  clockBegin, clockEnd;
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
