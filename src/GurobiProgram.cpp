@@ -2,79 +2,19 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 
-class cuts: public GRBCallback
-{
-  public:
-    GRBVar* vars;
-    int n;
-    Model<>* m;
-    Model<> interior;
-    cuts(GRBVar* xvars, int xn, Model<>* mn, Model<> interiorn) {
-      vars = xvars;
-      n    = xn;
-      m=mn;
-      interior=interiorn;
-    }
-  protected:
-    void callback() {
-      try {
-        if (where == GRB_CB_MIPSOL) {
-          // Found an integer feasible solution - does it visit every node?
-          double *x = new double[n];
-            vector<double> vec_x;
-          int i,j;
-            int vid1, vid2, vid3;
-            x=getSolution (vars,n );
-            for(i=0;i<n;i++){
-              vec_x.push_back(x[i]);
-            }
-            m->set_solution(vec_x);
-            auto res=m->cutting_planes_solution(interior, 1e-6);
-            for (auto &vp: m->_vars) {
-                if(vp.second->_name=="theta11")
-                    vid1 = vp.second->get_id();
-                if(vp.second->_name=="theta12")
-                    vid2 = vp.second->get_id();
-                if(vp.second->_name=="theta13")
-                    vid3 = vp.second->get_id();
-                }
-            auto viol=(pow(x[vid1],2)+pow(x[vid2],2)+pow(x[vid3],2));
-            DebugOn(viol);
-            if(res.size()>=1){
-            for(i=0;i<1;i++){
-                GRBLinExpr expr = 0;
-                for(j=0;j<res[i].size()-1;j+=2){
-                    int c=res[i][j];
-                    expr += res[i][j+1]*vars[c];
-            }
-                addLazy(expr, GRB_LESS_EQUAL, res[i][j]);
-            }
-            }
-          delete[] x;
-        }
-      } catch (GRBException e) {
-        cout << "Error number: " << e.getErrorCode() << endl;
-        cout << e.getMessage() << endl;
-      } catch (...) {
-        cout << "Error during callback" << endl;
-      }
-    }
-};
-
 GurobiProgram::GurobiProgram(){
 //    model = m;
     grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,16000);
+    grb_env->set(GRB_DoubleParam_TimeLimit,160);
 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
  //   grb_env->set(GRB_IntParam_Threads,8);
    //    grb_env->set(GRB_IntParam_Presolve,0);
    //   grb_env->set(GRB_IntParam_NumericFocus,3);
-     grb_env->set(GRB_IntParam_NonConvex,1);
+     grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
      grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
-
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
 //    grb_mod = new GRBModel(*grb_env);
@@ -89,13 +29,13 @@ GurobiProgram::GurobiProgram(Model<>* m) {
         grb_env = new GRBEnv();
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,16000);
+    grb_env->set(GRB_DoubleParam_TimeLimit,160);
  //   grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,1);
+    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     
@@ -125,20 +65,17 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
 //    grb_env->set(GRB_IntParam_Presolve,0);
     //grb_env->set(GRB_DoubleParam_NodeLimit,1);
  //   grb_env->set(GRB_IntParam_Threads,8);
-    grb_env->set(GRB_DoubleParam_TimeLimit,16000);
+    grb_env->set(GRB_DoubleParam_TimeLimit,160);
     //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
     //    grb_env->set(GRB_IntParam_Threads,1);
 //    grb_env->set(GRB_IntParam_Presolve,0);
 //    grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,1);
+    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
     
    // grb_env->set(GRB_IntParam_OutputFlag,1);
     grb_mod = new GRBModel(*grb_env);
-            grb_mod->set(GRB_IntParam_LazyConstraints, 1);
-                
-
     found_token = true;
     }
     catch(GRBException e) {
@@ -175,16 +112,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     if (relax) relax_model();
 //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
-    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
-    grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    GRBVar* gvars = grb_mod->getVars();
-    int n=grb_mod->get(GRB_IntAttr_NumVars);
-    Model<> interior;
-        auto lin=_model->buildOA();
-        interior=lin->add_outer_app_solution(*_model);
-    cuts cb = cuts(gvars, n, _model, interior);
-      grb_mod->setCallback(&cb);
-    grb_mod->set(GRB_IntParam_Threads, 1);
+   // grb_mod->set(GRB_IntParam_Threads, 4);
     grb_mod->optimize();
 //    grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
@@ -360,11 +288,6 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(!c->is_linear())
-        {
-            DebugOn(c->_name<<"  lazy"<<endl);
-            continue;
-        }
         c->_new = false;
         
         if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
@@ -387,7 +310,7 @@ void GurobiProgram::create_grb_constraints(){
         inst = 0;
         if (c->is_linear()) {
             for (size_t i = 0; i< nb_inst; i++){
-            //    if (!c->_lazy[i]) {
+//                if (c->_violated[i]) {
                     linlhs = 0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
@@ -414,13 +337,12 @@ void GurobiProgram::create_grb_constraints(){
                     grb_mod->addConstr(linlhs,sense,0,c->get_name()+"("+c->_indices->_keys->at(i)+")");
                 else
                     grb_mod->addConstr(linlhs,sense,0,c->get_name());
-                }
-         
-           // }
+//                }
+            }
         }
         else if(c->is_quadratic()){
             for (size_t i = 0; i< nb_inst; i++){
-            //    if (!c->_lazy[i]) {
+//                if (c->_violated[i]) {
                     quadlhs = 0;
                     for (auto& it1: c->get_lterms()) {
                         lterm = 0;
@@ -491,8 +413,7 @@ void GurobiProgram::create_grb_constraints(){
                 else
                     grb_mod->addQConstr(quadlhs,sense,0,c->get_name());
 //                grb_mod->re
-         //    }
-               
+//                }
             }
         }
         else{/* This is a General constraint with a unary expression and only two vars, e.g., y = cos(x) or y = min/max(x1,x2..). Refer to https://www.gurobi.com/documentation/9.0/refman/constraints.html#subsubsection:GenConstrFunction

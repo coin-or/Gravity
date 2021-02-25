@@ -547,92 +547,6 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
 }
-/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
- @param[in] interior model: Model which can give interior point of current model
- @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
- @param[in] lin: Model to which linear cuts are added
- @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
- @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
-template<typename type>
-template<typename T>
-vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol)
-{
-    vector<double> xsolution(_nb_vars);
-    vector<double> xinterior(_nb_vars);
-    vector<double> xcurrent, c_val;
-    vector<vector<double>> res;
-    vector<double> cut;
-    const double active_tol_sol=1e-12, zero_tol=1e-6;
-    double c0_val, scale=1.0;
-    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
-    int nb_added_cuts = 0;
-    string cname,con_lin_name;
-    for (auto &con: _cons_vec)
-    {
-        if(!con->is_linear()) {
-            auto cnb_inst=con->get_nb_inst();
-            for(auto i=0;i<cnb_inst;i++){
-                oa_cut=false;
-                c0_val=0;
-                c_val.resize(con->_nb_vars,0);
-                auto cname=con->_name;
-                xcurrent=con->get_x(i);
-                con->uneval();
-                con->eval_all();
-                if(con->is_active(i,active_tol_sol)){
-                    oa_cut=true;
-                }
-                else
-                {
-                    auto fk=con->eval(i);
-                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
-                        constr_viol=true;
-                        //ToDo fix interior status and check for it
-                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                            auto con_interior=interior.get_constraint(cname);
-                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                            auto res_search=con->binary_line_search(xinterior, i);
-                            if(res_search){
-                                oa_cut=true;
-                            }
-                        }
-                        else{
-                            if (con->is_convex()){
-                                oa_cut=true;
-                            }
-                        }
-                    }
-                }
-                if(oa_cut){
-                    oa_cut=false;
-                    convex_region=con->check_convex_region(i);
-                    if(convex_region){
-                        scale=1.0;
-                            con->get_outer_coef(i, c_val, c0_val);
-                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
-                    }
-                }
-                if(oa_cut){
-                    auto j=0;
-                    for (auto &v_p: con->get_vars()){
-                      auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                        cut.push_back(vid);
-                        cut.push_back(c_val[j++]*scale);
-                    }
-                    cut.push_back(c0_val*scale);
-                    res.push_back(cut);
-                }
-                con->set_x(i, xcurrent);
-                xcurrent.clear();
-                xinterior.clear();
-                cut.clear();
-            }
-        }
-    }
-
-    return res;
-    
-}
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
  @param[in] c_inst: Instance of nonlinear constraint which is to be linearized
@@ -1349,5 +1263,4 @@ template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::str
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
-template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol);
 }
