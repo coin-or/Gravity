@@ -185,6 +185,8 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 
+shared_ptr<Model<double>> three_point_model(vector<vector<double>> d, vector<vector<double>>m, bool convex);
+
 void center_point_cloud(vector<vector<double>>& point_cloud);
 
 #ifdef USE_PCL
@@ -3681,7 +3683,136 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     return(Reg);
 }
+shared_ptr<Model<double>> three_point_model(vector<vector<double>> d, vector<vector<double>>m, bool convex){
+    auto Reg=make_shared<Model<>>("bounds");
+    var<> theta11("theta11",  -1, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", -1, 1);
+    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+    var<> tx("tx", 0,1), ty("ty",0,1), tz("tz",0,1);
+    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+    Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
+    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2"),dd,dm;
+    for (auto i = 0; i<3; i++) {
+        auto i_str = to_string(i+1);
+        x1.add_val(i_str,d[i].at(0));
+        y1.add_val(i_str,d[i].at(1));
+        z1.add_val(i_str,d[i].at(2));
+        dd.add_val(i_str, pow(d[i].at(0),2)+pow(d[i].at(1),2)+pow(d[i].at(2),2));
+    }
+    for (auto i = 0; i<3; i++) {
+        auto i_str = to_string(i+1);
+        x2.add_val(i_str,m[i].at(0));
+        y2.add_val(i_str,m[i].at(1));
+        z2.add_val(i_str,m[i].at(2));
+        dm.add_val(i_str, pow(d[i].at(0),2)+pow(d[i].at(1),2)+pow(d[i].at(2),2));
+    }
+    x1.print();
+    y1.print();
+    z1.print();
+    x2.print();
+    y2.print();
+    z2.print();
+    dd.print();
+    dm.print();
+   // auto a=sum(dd);
+    //auto b=sum(dm);
+   // DebugOn(" "<< a.eval() <<" "<< b.eval() <<endl);
+    indices N1("N1");
+    N1 = range(1,3);
+    auto ids_repeat = x_shift.repeat_id(N1.size());
+    func<> obj =sum(x1.in(N1)*x1.in(N1) + y1.in(N1)*y1.in(N1) + z1.in(N1)*z1.in(N1));
+    obj +=3*(tx +ty+tz);
+    
+    obj -= 2*sum(x2.in(N1)*x_shift.in(ids_repeat)) + 2*sum(y2.in(N1)*y_shift.in(ids_repeat)) + 2*sum(z2.in(N1)*z_shift.in(ids_repeat));
 
+    obj += sum(x2.in(N1)*x2.in(N1)) + sum(y2.in(N1)*y2.in(N1)) + sum(z2.in(N1)*z2.in(N1));
+ 
+    auto ids1 = theta11.repeat_id(N1.size());
+    obj -= 2*sum(x2.in(N1)*x1.in(N1)*theta11.in(ids1));
+    obj -= 2*sum(x2.in(N1)*y1.in(N1)*theta12.in(ids1));
+    obj -= 2*sum(x2.in(N1)*z1.in(N1)*theta13.in(ids1));
+    obj -= 2*sum(y2.in(N1)*x1.in(N1)*theta21.in(ids1));
+    obj -= 2*sum(y2.in(N1)*y1.in(N1)*theta22.in(ids1));
+    obj -= 2*sum(y2.in(N1)*z1.in(N1)*theta23.in(ids1));
+    obj -= 2*sum(z2.in(N1)*x1.in(N1)*theta31.in(ids1));
+    obj -= 2*sum(z2.in(N1)*y1.in(N1)*theta32.in(ids1));
+    obj -= 2*sum(z2.in(N1)*z1.in(N1)*theta33.in(ids1));
+
+ 
+        Constraint<> soc1("soc1");
+        soc1 = pow((theta13+theta31),2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
+        Reg->add(soc1.in(range(0,0))<=0);
+
+        Constraint<> soc2("soc2");
+        soc2 = pow((theta12-theta21),2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
+        Reg->add(soc2.in(range(0,0))<=0);
+
+        Constraint<> soc3("soc3");
+        soc3 = pow((theta23+theta32),2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc3.in(range(0,0))<=0);
+
+        Constraint<> soc4("soc4");
+        soc4 = pow((theta23-theta32),2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
+        Reg->add(soc4.in(range(0,0))<=0);
+
+        Constraint<> soc5("soc5");
+        soc5 = pow((theta12+theta21),2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc5.in(range(0,0))<=0);
+
+        Constraint<> soc6("soc6");
+        soc6 = pow((theta31-theta13),2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc6.in(range(0,0))<=0);
+    if(convex){
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1.in(range(0,0))<=1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2.in(range(0,0))<=1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3.in(range(0,0))<=1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1.in(range(0,0))<=1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2.in(range(0,0))<=1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3.in(range(0,0))<=1);
+    }
+    else{
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1.in(range(0,0))==1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2.in(range(0,0))==1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3.in(range(0,0))==1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1.in(range(0,0))==1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2.in(range(0,0))==1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3.in(range(0,0))==1);
+    }
+
+    //obj.print_symbolic();
+    Reg->min(obj);
+    Reg->print();
+    return Reg;
+}
 /* Run the ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     auto thetax = atan2(-0.0081669, -0.0084357)/2;
