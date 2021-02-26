@@ -259,9 +259,9 @@ int main (int argc, char * argv[])
         point_cloud_model.resize(model_nb_rows);
 #ifdef USE_VORO
         container data_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
-                false,false,false,point_cloud_data.size());
+                false,false,false,data_nb_rows);
         container model_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
-                false,false,false,point_cloud_model.size());
+                false,false,false,model_nb_rows);
 #endif
         
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
@@ -304,7 +304,7 @@ int main (int argc, char * argv[])
         
         c_loop_all cl(model_con);
         
-        unsigned int i,j;
+//        unsigned int i,j;
         int id,nx,ny,nz;
         double x,y,z;
         voronoicell c;
@@ -430,6 +430,7 @@ int main (int argc, char * argv[])
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             bool separate=true;
             bool linearize=false;
+
             auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
 #ifdef USE_MATPLOT
 //            plot(point_cloud_model,point_cloud_data,1);
@@ -446,64 +447,47 @@ int main (int argc, char * argv[])
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
            // SOC_MIP->print();
             if(linearize){
-                int constr_viol=1;
-                Model<> interior_model;
-                    //auto lin=SOC_MIP->buildOA();
-                    //interior_model=lin->add_outer_app_solution(*SOC_MIP);
-                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
-                auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
-                    // lin->print();
-                constr_viol=1;
-                int oacuts=0;
-                vector<double> solution(lin->_nb_vars);
-                int nb_count=0;
-                double obj_old=-15, obj_new=-15;
-                while(constr_viol==1){
-                    solver<> S(lin,gurobi);
-                    S.run();
-                    lin->print_int_solution();
-                    lin->get_solution(solution);
-                    break;
-                    obj_new=lin->get_obj_val();
-                    if(obj_new<=obj_old){
-                        break;
-                    }
-                    
-                    constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
-                    nb_count++;
-                    obj_old=obj_new;
-                }
-                DebugOn("nb count "<<nb_count);
-            }
-            if(norm1){
-                apply_rot_trans(rot_trans, point_cloud_data);
-            }
-            else{
-                apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
-            }
-            // auto Reg=model_Global_reform(true, "full", point_cloud_model, point_cloud_data);
-            //solver<> S(Reg,gurobi);
-            //S.run();
-//            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-//            unsigned max_iter=1e3, max_time=3000;
-//            int nb_threads=1;
-//            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-            //auto res=Reg_nc->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-        }
-        bool compute_L2_error = true;
-        if(compute_L2_error){
-            auto L2error = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 before Registration = " << to_string_with_precision(L2error_init,12) << endl);
-            DebugOn("L2 error with full set after = " << to_string_with_precision(L2error,12) << endl);
-            L2error_init = L2error;
-        }
+                        int constr_viol=1;
+                        Model<> interior_model;
+                            auto lin=SOC_MIP->buildOA();
+                            interior_model=lin->add_outer_app_solution(*SOC_MIP);
+            //                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
+            //            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
+                       // lin->print();
+                        constr_viol=1;
+                        int oacuts=0;
+                        vector<double> solution(lin->_nb_vars);
+                        int nb_count=0;
+                        double obj_old=-15, obj_new=-15;
+                        while(constr_viol==1){
+                        solver<> S(lin,gurobi);
+                        S.run();
+                        lin->print_int_solution();
+                        lin->get_solution(solution);
+                            obj_new=lin->get_obj_val();
+                            if(obj_new<=obj_old){
+                                break;
+                            }
+                            
+                            constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
+                            nb_count++;
+                            obj_old=obj_new;
+                        }
+                        DebugOn("nb count "<<nb_count);
+                        }
+                        if(norm1){
+                            apply_rot_trans(rot_trans, point_cloud_data);
+                        }
+                        else{
+                            apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
+                        }
 #ifdef USE_MATPLOT
             plot(point_cloud_model,point_cloud_data,1);
 #endif
-
+        }
         return 0;
     }
     
