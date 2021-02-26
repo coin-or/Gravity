@@ -359,6 +359,7 @@ int main (int argc, char * argv[])
             auto nb_vertices_i = data_voronoi_vertices[i].size();
             voronoi_min_dist[i].resize(data_nb_rows-i-1);
             voronoi_max_dist[i].resize(data_nb_rows-i-1);
+            int pj_id = 0;
             for (int j = i+1; j<data_nb_rows; j++) {
                 double min_dist = numeric_limits<double>::max(), max_dist = 0;
                 auto pj = point_cloud_data[j];
@@ -375,8 +376,9 @@ int main (int argc, char * argv[])
                         }
                     }
                 }
-                voronoi_min_dist[i][j] = min_dist;
-                voronoi_max_dist[i][j] = max_dist;
+                voronoi_min_dist[i][pj_id] = min_dist;
+                voronoi_max_dist[i][pj_id] = max_dist;
+                pj_id++;
             }
         }
         
@@ -385,39 +387,46 @@ int main (int argc, char * argv[])
         for (int i = 0; i<model_nb_rows-1; i++) {
             auto pi = point_cloud_model[i];
             pairwise_dist[i].resize(model_nb_rows-i-1);
+            int pj_id = 0;
             for (int j = i+1; j<model_nb_rows; j++) {
                 auto pj = point_cloud_model[j];
-                pairwise_dist[i][j] = std::sqrt((pi[0]*pi[0] - pj[0]*pj[0]) + (pi[1]*pi[1] - pj[1]*pj[1]) + (pi[2]*pi[2] - pj[2]*pj[2]));
+                pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+                pj_id++;
             }
         }
 
         int nb_pairs = 0, nb_pairs_max = 10000;
         /* Build the index set of incompatible pair of pairs */
         vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-        for (int i = 0; i<voronoi_min_dist.size(); i++) {
+        for (int i = 0; i<data_nb_rows-1; i++) {
             if(nb_pairs==nb_pairs_max)
                 break;
-            for (int j = 0; j<voronoi_min_dist[i].size(); j++) {
+            int pj_id = 0;
+            for (int j = i+1; j<data_nb_rows; j++) {
                 if(nb_pairs==nb_pairs_max)
                     break;
                 double dv_min = voronoi_min_dist[i][j];
                 double dv_max = voronoi_max_dist[i][j];
-                for (int k = 0; k<pairwise_dist.size(); k++) {
+                for (int k = 0; k<model_nb_rows-1; k++) {
                     if(nb_pairs==nb_pairs_max)
                         break;
-                    for (int l = 0; l<pairwise_dist[k].size(); l++) {
+                    int pk_id = 0;
+                    for (int l = k+1; l<model_nb_rows; l++) {
                         if(nb_pairs==nb_pairs_max)
                             break;
-                        double dp = pairwise_dist[k][l];
+                        double dp = pairwise_dist[k][pk_id];
                         if(dp < dv_min || dp > dv_max){
                             incompatibles.push_back({{i,j},{k,l}});
                             DebugOn("Imcompatible pairs of pairs: (" << i << "," << j << ") with (" << k << "," << l << ")" << endl);
                         }
+                        pk_id++;
                     }
                 }
+                pj_id++;
             }
         }
         DebugOn("number of imcompatible pairs of pairs = " << incompatibles.size() << endl);
+        exit(0);
 #ifdef USE_MATPLOT
         bool plot_voronoi = false;
         if(plot_voronoi){
