@@ -363,11 +363,11 @@ int main (int argc, char * argv[])
             for (int j = i+1; j<data_nb_rows; j++) {
                 double min_dist = numeric_limits<double>::max(), max_dist = 0;
                 auto pj = point_cloud_data[j];
-                auto nb_facets_j = data_voronoi_normals[j].size();
+                auto nb_facets_j = data_voronoi_normals[pj_id].size();
                 /* For each point in the vertices of the voronoi cell of point i, compute the min/max distance to the voronoi cell of point j (by iterating over its facets)*/
                 for (int v_id = 0; v_id < nb_vertices_i; v_id++) {
                     for (int f_id = 0; f_id < nb_facets_j; f_id++) {
-                        double dist = std::abs(data_voronoi_normals[j][f_id][0]*data_voronoi_vertices[i][v_id][0] + data_voronoi_normals[j][f_id][1]*data_voronoi_vertices[i][v_id][1] + data_voronoi_normals[j][f_id][2]*data_voronoi_vertices[i][v_id][2] + data_voronoi_normals[j][f_id][0]*data_face_pts[j][f_id][0] + data_voronoi_normals[j][f_id][1]*data_face_pts[j][f_id][1] + data_voronoi_normals[j][f_id][2]*data_face_pts[j][f_id][2])/std::sqrt(std::pow(data_voronoi_normals[j][f_id][0],2) + std::pow(data_voronoi_normals[j][f_id][1],2) + std::pow(data_voronoi_normals[j][f_id][2],2));
+                        double dist = std::abs(data_voronoi_normals[pj_id][f_id][0]*data_voronoi_vertices[i][v_id][0] + data_voronoi_normals[pj_id][f_id][1]*data_voronoi_vertices[i][v_id][1] + data_voronoi_normals[pj_id][f_id][2]*data_voronoi_vertices[i][v_id][2] + data_voronoi_normals[pj_id][f_id][0]*data_face_pts[pj_id][f_id][0] + data_voronoi_normals[pj_id][f_id][1]*data_face_pts[pj_id][f_id][1] + data_voronoi_normals[pj_id][f_id][2]*data_face_pts[pj_id][f_id][2])/std::sqrt(std::pow(data_voronoi_normals[pj_id][f_id][0],2) + std::pow(data_voronoi_normals[pj_id][f_id][1],2) + std::pow(data_voronoi_normals[pj_id][f_id][2],2));
                         if(dist<min_dist){
                             min_dist = dist;
                         }
@@ -405,8 +405,8 @@ int main (int argc, char * argv[])
             for (int j = i+1; j<data_nb_rows; j++) {
                 if(nb_pairs==nb_pairs_max)
                     break;
-                double dv_min = voronoi_min_dist[i][j];
-                double dv_max = voronoi_max_dist[i][j];
+                double dv_min = voronoi_min_dist[i][pj_id];
+                double dv_max = voronoi_max_dist[i][pj_id];
                 for (int k = 0; k<model_nb_rows-1; k++) {
                     if(nb_pairs==nb_pairs_max)
                         break;
