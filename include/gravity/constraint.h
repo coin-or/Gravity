@@ -442,6 +442,18 @@ public:
            }
            return convex_region;
        }
+    bool check_convex_region_d(int inst){
+           bool convex_region=true;
+           vector<double> xres;
+           if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
+           {
+               xres=this->get_x(inst);
+               if(xres[0]<0 || xres[1]<0){
+                   convex_region=false;
+               }
+           }
+           return convex_region;
+       }
 };
 }
 #endif /* constraint_hpp */

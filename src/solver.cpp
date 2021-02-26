@@ -566,7 +566,6 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     double c0_val, scale=1.0;
     bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
-    string cname,con_lin_name;
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear()) {
@@ -580,7 +579,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 con->uneval();
                 con->eval_all();
                 if(con->is_active(i,active_tol_sol)){
-                    oa_cut=true;
+                    oa_cut=false;
                 }
                 else
                 {
@@ -594,6 +593,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                             auto res_search=con->binary_line_search(xinterior, i);
                             if(res_search){
                                 oa_cut=true;
+                                //oa_cut=false;
                             }
                         }
                         else{
@@ -605,7 +605,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 }
                 if(oa_cut){
                     oa_cut=false;
-                    convex_region=con->check_convex_region(i);
+                    convex_region=con->check_convex_region_d(i);
                     if(convex_region){
                         scale=1.0;
                             con->get_outer_coef(i, c_val, c0_val);
