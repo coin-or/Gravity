@@ -395,6 +395,7 @@ int main (int argc, char * argv[])
                 norm_z.add_val(key, model_voronoi_normals[idx][f_id][2]);
                 intercept.add_val(key, model_face_intercept[idx][f_id]);
                 m_facets.insert(key);
+                Debug("for key: " << key << endl);
                 Debug("one point on this facet: (" << x1 << "," << y1 << ","<< z1 << ").\n");
                 Debug("Facet " << f_id << " equation: " << model_voronoi_normals[idx][f_id][0] << "x + " << model_voronoi_normals[idx][f_id][1] << "y + " << model_voronoi_normals[idx][f_id][2] << "z + " << model_face_intercept[idx][f_id] << " = 0\n");
                 
@@ -601,7 +602,7 @@ int main (int argc, char * argv[])
 #endif
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
-            bool convex = true;
+            bool convex = false;
 //            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept);
 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
@@ -652,8 +653,8 @@ int main (int argc, char * argv[])
             plot(point_cloud_model,point_cloud_data,1);
 #endif
             auto L2error_final = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 before optimization = " << L2error_init << endl);
-            DebugOn("L2 after optimization = " << L2error_final << endl);
+            DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
+            DebugOn("L2 after optimization = " << to_string_with_precision(L2error_final,12) << endl);
         }
         return 0;
     }
@@ -2165,7 +2166,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
-    bool add_voronoi = true;
+    bool add_voronoi = false;
     
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
@@ -2352,9 +2353,35 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     }
     solver<> S(Reg,gurobi);
     S.run();
+    Reg->print();
     Reg->print_int_solution();
     
-        //    Reg->print_solution();
+//            Reg->print_solution();
+//    {
+//        indices voronoi_ids("voronoi_ids");
+//        voronoi_ids = indices(N1, *norm_x._indices);
+//        auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
+////        auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
+//        auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
+//        auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
+////        Constraint<> Voronoi_model("Voronoi_model");
+////        Voronoi_model = norm_x.in(voronoi_ids_coefs)*new_xm.in(voronoi_ids_m) + norm_y.in(voronoi_ids_coefs)*new_ym.in(voronoi_ids_m) + norm_z.in(voronoi_ids_coefs)*new_zm.in(voronoi_ids_m) + intercept.in(voronoi_ids_coefs);
+////        Reg->add_on_off_multivariate_refined(Voronoi_model.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+//
+//
+//        auto func = bin.in(voronoi_ids_bin)*(norm_x.in(voronoi_ids_coefs)*new_x1.in(voronoi_ids_data) + norm_y.in(voronoi_ids_coefs)*new_y1.in(voronoi_ids_data) + norm_z.in(voronoi_ids_coefs)*new_z1.in(voronoi_ids_data) + intercept.in(voronoi_ids_coefs));
+//
+//        func.allocate_mem();
+//        func.eval_all();
+//        for (int i = 0; i<func.get_nb_inst(); i++) {
+//            if(func._val->at(i)>1e-6){
+//                DebugOn("instance " <<  i << " is violated \n");
+//                func.print(i,10);
+//                DebugOn(" | violation = " <<  func._val->at(i) << endl);
+//            }
+//        }
+//
+//    }
     DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
             << endl);
     DebugOn("row 2 " << pow(theta21.eval(),2)+pow(theta22.eval(),2)+pow(theta23.eval(),2)
@@ -2671,7 +2698,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
     
-    bool add_voronoi = false;
+    bool add_voronoi = true;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(N1, *norm_x._indices);
@@ -2686,7 +2713,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         auto ids1 = theta11.repeat_id(voronoi_ids.size());
         Constraint<> Voronoi("Voronoi");
         Voronoi = norm_x.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta11.in(ids1) + y1.in(voronoi_ids_data)*theta12.in(ids1) + z1.in(voronoi_ids_data)*theta13.in(ids1)+x_shift.in(ids1)) + norm_y.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta21.in(ids1) + y1.in(voronoi_ids_data)*theta22.in(ids1) + z1.in(voronoi_ids_data)*theta23.in(ids1)+y_shift.in(ids1)) + norm_z.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta31.in(ids1) + y1.in(voronoi_ids_data)*theta32.in(ids1) + z1.in(voronoi_ids_data)*theta33.in(ids1)+z_shift.in(ids1)) + intercept.in(voronoi_ids_coefs);
-        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=1e-2, bin.in(voronoi_ids_bin), true);
         
     }
     
@@ -3042,7 +3069,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-    Reg->print();
+//    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
     Reg->print_int_solution();
@@ -3100,6 +3127,22 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     DebugOn("y shift = " << y_shift.eval() << endl);
     DebugOn("z shift = " << z_shift.eval() << endl);
     
+//    indices voronoi_ids("voronoi_ids");
+//    voronoi_ids = indices(N1, *norm_x._indices);
+//    auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
+//    auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
+//    auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
+//    auto ids1 = theta11.repeat_id(voronoi_ids.size());
+//    auto func = bin.in(voronoi_ids_bin)*(norm_x.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta11.in(ids1) + y1.in(voronoi_ids_data)*theta12.in(ids1) + z1.in(voronoi_ids_data)*theta13.in(ids1)+x_shift.in(ids1)) + norm_y.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta21.in(ids1) + y1.in(voronoi_ids_data)*theta22.in(ids1) + z1.in(voronoi_ids_data)*theta23.in(ids1)+y_shift.in(ids1)) + norm_z.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta31.in(ids1) + y1.in(voronoi_ids_data)*theta32.in(ids1) + z1.in(voronoi_ids_data)*theta33.in(ids1)+z_shift.in(ids1)) + intercept.in(voronoi_ids_coefs));
+//    func.allocate_mem();
+//    func.eval_all();
+//    for (int i = 0; i<func.get_nb_inst(); i++) {
+//        if(func._val->at(i)>1e-6){
+//            DebugOn("instance " <<  i << " is violated \n");
+//            func.print(i,10);
+//            DebugOn(" | violation = " <<  func._val->at(i) << endl);
+//        }
+//    }
     return(Reg);
 }
 shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool norm1){
