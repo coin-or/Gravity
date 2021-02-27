@@ -178,7 +178,7 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept);
 
 shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept);
 
@@ -602,7 +602,7 @@ int main (int argc, char * argv[])
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = true;
-            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept);
+//            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept);
 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
@@ -611,7 +611,7 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false, incompatibles);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept);
 ////            SOC_MIP->print();
 //            if(linearize){
 //                int constr_viol=1;
@@ -2165,16 +2165,26 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
+    bool add_voronoi = true;
     
-    indices voronoi_ids("voronoi_ids");
-    voronoi_ids = indices(N1, *norm_x._indices);
-    auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
-    auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
-    auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
-    auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
-    Constraint<> Voronoi_model("Voronoi_model");
-    Voronoi_model = norm_x.in(voronoi_ids_coefs)*new_xm.in(voronoi_ids_m) + norm_y.in(voronoi_ids_coefs)*new_ym.in(voronoi_ids_m) + norm_z.in(voronoi_ids_coefs)*new_zm.in(voronoi_ids_m) + intercept.in(voronoi_ids_coefs);
-    Reg->add_on_off_multivariate_refined(Voronoi_model.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+    if(add_voronoi){
+        indices voronoi_ids("voronoi_ids");
+        voronoi_ids = indices(N1, *norm_x._indices);
+        auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
+//        auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
+        auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
+        auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
+//        Constraint<> Voronoi_model("Voronoi_model");
+//        Voronoi_model = norm_x.in(voronoi_ids_coefs)*new_xm.in(voronoi_ids_m) + norm_y.in(voronoi_ids_coefs)*new_ym.in(voronoi_ids_m) + norm_z.in(voronoi_ids_coefs)*new_zm.in(voronoi_ids_m) + intercept.in(voronoi_ids_coefs);
+//        Reg->add_on_off_multivariate_refined(Voronoi_model.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+        
+        
+        Constraint<> Voronoi("Voronoi");
+        Voronoi = norm_x.in(voronoi_ids_coefs)*new_x1.in(voronoi_ids_data) + norm_y.in(voronoi_ids_coefs)*new_y1.in(voronoi_ids_data) + norm_z.in(voronoi_ids_coefs)*new_z1.in(voronoi_ids_data) + intercept.in(voronoi_ids_coefs);
+        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+//        Reg->print();
+    }
+
     
 //    Reg->print();
     
@@ -2323,11 +2333,6 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
     Reg->add(z_rot1.in(N1)==0);
     
-    Constraint<> Voronoi("Voronoi");
-    Voronoi = norm_x.in(voronoi_ids_coefs)*new_x1.in(voronoi_ids_data) + norm_y.in(voronoi_ids_coefs)*new_y1.in(voronoi_ids_data) + norm_z.in(voronoi_ids_coefs)*new_z1.in(voronoi_ids_data) + intercept.in(voronoi_ids_coefs);
-//    Reg->add(Voronoi.in(voronoi_ids)<=0);
-    Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
-//    Reg->print();
     
     /* Objective function */
     
@@ -2574,7 +2579,7 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     return(Reg);
 }
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles){
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2665,6 +2670,25 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
+    
+    bool add_voronoi = false;
+    if(add_voronoi){
+        indices voronoi_ids("voronoi_ids");
+        voronoi_ids = indices(N1, *norm_x._indices);
+        auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
+//        auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
+        auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
+        auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
+//        Constraint<> Voronoi_model("Voronoi_model");
+//        Voronoi_model = norm_x.in(voronoi_ids_coefs)*new_xm.in(voronoi_ids_m) + norm_y.in(voronoi_ids_coefs)*new_ym.in(voronoi_ids_m) + norm_z.in(voronoi_ids_coefs)*new_zm.in(voronoi_ids_m) + intercept.in(voronoi_ids_coefs);
+//        Reg->add_on_off_multivariate_refined(Voronoi_model.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+        
+        auto ids1 = theta11.repeat_id(voronoi_ids.size());
+        Constraint<> Voronoi("Voronoi");
+        Voronoi = norm_x.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta11.in(ids1) + y1.in(voronoi_ids_data)*theta12.in(ids1) + z1.in(voronoi_ids_data)*theta13.in(ids1)+x_shift.in(ids1)) + norm_y.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta21.in(ids1) + y1.in(voronoi_ids_data)*theta22.in(ids1) + z1.in(voronoi_ids_data)*theta23.in(ids1)+y_shift.in(ids1)) + norm_z.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta31.in(ids1) + y1.in(voronoi_ids_data)*theta32.in(ids1) + z1.in(voronoi_ids_data)*theta33.in(ids1)+z_shift.in(ids1)) + intercept.in(voronoi_ids_coefs);
+        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+        
+    }
     
     if(!incompatibles.empty()){
         indices pairs1("pairs1"), pairs2("pairs2");
@@ -3018,7 +3042,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-//    Reg->print();
+    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
     Reg->print_int_solution();
