@@ -2196,7 +2196,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
-    
+//
     
     if(!incompatibles.empty()){
         indices pairs1("pairs1"), pairs2("pairs2");
@@ -2698,7 +2698,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
     
-    bool add_voronoi = true;
+    bool add_voronoi = false;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(N1, *norm_x._indices);
@@ -2713,7 +2713,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         auto ids1 = theta11.repeat_id(voronoi_ids.size());
         Constraint<> Voronoi("Voronoi");
         Voronoi = norm_x.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta11.in(ids1) + y1.in(voronoi_ids_data)*theta12.in(ids1) + z1.in(voronoi_ids_data)*theta13.in(ids1)+x_shift.in(ids1)) + norm_y.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta21.in(ids1) + y1.in(voronoi_ids_data)*theta22.in(ids1) + z1.in(voronoi_ids_data)*theta23.in(ids1)+y_shift.in(ids1)) + norm_z.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta31.in(ids1) + y1.in(voronoi_ids_data)*theta32.in(ids1) + z1.in(voronoi_ids_data)*theta33.in(ids1)+z_shift.in(ids1)) + intercept.in(voronoi_ids_coefs);
-        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=1e-2, bin.in(voronoi_ids_bin), true);
+        Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
         
     }
     
@@ -3562,9 +3562,9 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
     
-    Constraint<> OneBin2("OneBin2");
-    OneBin2 = bin.in_matrix(0, 1);
-    Reg->add(OneBin2.in(N2)<=1);
+//    Constraint<> OneBin2("OneBin2");
+//    OneBin2 = bin.in_matrix(0, 1);
+//    Reg->add(OneBin2.in(N2)<=1);
     
     if(convex){
         bool vi_M=false;
