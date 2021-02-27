@@ -1230,7 +1230,7 @@ namespace gravity {
             }
             if(_val->at(i)==_range->first ||  _val->at(i)==_range->second || val<_range->first || val>_range->second){
                 _val->at(i) = val;
-                reset_range();
+                update_range(val);
             }
             else{
                 _val->at(i) = val;

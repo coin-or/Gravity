@@ -175,12 +175,12 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool byp
 
 shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans, bool norm1 = false);
 
-shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
+shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex = false);
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -259,12 +259,6 @@ int main (int argc, char * argv[])
         DebugOn("Data file has " << data_nb_rows << " rows" << endl);
         int row0 = 0;
         point_cloud_model.resize(model_nb_rows);
-#ifdef USE_VORO
-        container data_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
-                           false,false,false,data_nb_rows);
-        container model_con(x_min,x_max,y_min,y_max,z_min,z_max,1,1,1,
-                            false,false,false,model_nb_rows);
-#endif
         
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
@@ -273,10 +267,14 @@ int main (int argc, char * argv[])
             x_vec0.push_back(x);
             y_vec0.push_back(y);
             z_vec0.push_back(z);
-            model_con.put(i, x, y, z);
+//            model_con.put(i, x, y, z);
             flat_point_cloud_model.push_back(x);
             flat_point_cloud_model.push_back(y);
             flat_point_cloud_model.push_back(z);
+//            point_cloud_model[model_nb_rows-i-1].resize(3);
+//            point_cloud_model[model_nb_rows-i-1][0] = x;
+//            point_cloud_model[model_nb_rows-i-1][1] = y;
+//            point_cloud_model[model_nb_rows-i-1][2] = z;
             point_cloud_model[i].resize(3);
             point_cloud_model[i][0] = x;
             point_cloud_model[i][1] = y;
@@ -287,10 +285,21 @@ int main (int argc, char * argv[])
             auto x = Data_doc.GetCell<double>(0, i);
             auto y = Data_doc.GetCell<double>(1, i);
             auto z = Data_doc.GetCell<double>(2, i);
+//            if(x_max<x)
+//                x_max = x;
+//            if(y_max<y)
+//                y_max = y;
+//            if(z_max<z)
+//                z_max = z;
+//            if(x_min>x)
+//                x_min = x;
+//            if(y_min>y)
+//                y_min = y;
+//            if(z_min>z)
+//                z_min = z;
             x_vec1.push_back(x);
             y_vec1.push_back(y);
             z_vec1.push_back(z);
-            data_con.put(i, x, y, z);
             flat_point_cloud_data.push_back(x);
             flat_point_cloud_data.push_back(y);
             flat_point_cloud_data.push_back(z);
@@ -299,145 +308,190 @@ int main (int argc, char * argv[])
             point_cloud_data[i][1] = y;
             point_cloud_data[i][2] = z;
         }
-            //        center_point_cloud(point_cloud_data);
-            //        center_point_cloud(point_cloud_model);
-        
+        center_point_cloud(point_cloud_data);
+        center_point_cloud(point_cloud_model);
 #ifdef USE_VORO
-        /* Compute the facets of the Voronoi cells of all data points */
-        c_loop_all cl(data_con);
+        container model_con(x_min,x_max,y_min,y_max,z_min,z_max,100,100,100,false,false,false,8);
+#endif
+        for (int i = row0; i< model_nb_rows; i++) { // Input iterator
+            model_con.put(i, point_cloud_model[i][0], point_cloud_model[i][1], point_cloud_model[i][2]);
+        }
+#ifdef USE_VORO
+        /* Compute the facets of the Voronoi cells of all model points */
+        c_loop_all cl(model_con);
         int id,nx,ny,nz;
-        double x,y,z;
+        double x,y,z,x1,y1,z1;
         voronoicell c;
         vector<int> face_vert;
         vector<double> v;
-        vector<vector<vector<double>>> data_voronoi_normals(data_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
-        vector<vector<vector<double>>> data_face_pts(data_nb_rows);/* Store a point from each facet of the voronoi cell of each point */
-        vector<vector<vector<double>>> data_voronoi_vertices(data_nb_rows);/* Store the list of vertices of the voronoi cell of each point */
-        int idx = 0;
-        if(cl.start()) do if(data_con.compute_cell(c,cl)) {
+        vector<vector<vector<double>>> model_voronoi_normals(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
+        vector<vector<vector<double>>> model_face_pts(model_nb_rows);/* Store a point from each facet of the voronoi cell of each point */
+        vector<vector<double>> model_face_intercept(model_nb_rows);/* Store the constant part (intercept) in the equation of the voronoi cell of each point */
+        vector<double> model_voronoi_in_radius(model_nb_rows);/* Store the radius of the largest ball contained IN the voronoi cell of each point */
+        vector<double> model_voronoi_out_radius(model_nb_rows);/* Store the radius of the smallest ball enclosing the voronoi cell of each point */
+        param<> norm_x("norm_x"), norm_y("norm_y"), norm_z("norm_z"), intercept("intercept");
+        indices m_facets("m_facets");
+        int idx = 0, total_nb_faces = 0;
+        if(cl.start()) do if(model_con.compute_cell(c,cl)) {
             cl.pos(x,y,z);
             id=cl.pid();
             c.vertices(x,y,z,v);
             int nb_vertices = v.size()/3;
-            data_voronoi_vertices[idx].resize(nb_vertices);
             int v_idx = 0;
+            double max_dist = 0;
             for (int i = 0; i<nb_vertices; i++) {
-                data_voronoi_vertices[idx][i] = {v[v_idx],v[v_idx+1],v[v_idx+2]};
+                double dist_sq = std::pow(x - v[v_idx],2) + std::pow(y - v[v_idx+1],2) + std::pow(z - v[v_idx+2],2);
+                if(dist_sq>max_dist)
+                    max_dist = dist_sq;
                 v_idx += 3;
             }
+            model_voronoi_out_radius[idx] = std::sqrt(max_dist);/* the radius of the smallest ball enclosing the voronoi cell is the distance from the center to the farthest vertex */
             vector<double> normals;
             c.normals(normals);
             int nb_normals = normals.size()/3;
-            data_voronoi_normals[idx].resize(nb_normals);
+            model_voronoi_normals[idx].resize(nb_normals);
             int normal_idx = 0;
             for (int i = 0; i<nb_normals; i++) {
-                data_voronoi_normals[idx][i] = {normals[normal_idx],normals[normal_idx+1],normals[normal_idx+2]};
+                model_voronoi_normals[idx][i] = {normals[normal_idx],normals[normal_idx+1],normals[normal_idx+2]};
                 normal_idx += 3;
             }
             c.face_vertices(face_vert);
             int nb_faces = c.number_of_faces();
+            total_nb_faces += nb_faces;
             DebugOn("The Voronoi cell of point : (" << x << "," << y << ","<< z << ") has " << nb_faces << " facets.\n");
-            data_face_pts[idx].resize(nb_faces);
+            model_face_pts[idx].resize(nb_faces);
+            model_face_intercept[idx].resize(nb_faces);
             int face_id = 0;
-            for (int i = 0; i<nb_faces; i++) {
+            double min_dist = numeric_limits<double>::max();
+            for (int f_id = 0; f_id<nb_faces; f_id++) {
                 int nb_v = face_vert[face_id];
-                DebugOn("Facet " << i << " has " << nb_v << " points.\n");
+                Debug("Facet " << f_id << " has " << nb_v << " vertices.\n");
                 face_id++;
-                x = v[face_vert[face_id]];y = v[face_vert[face_id]+1]; z = v[face_vert[face_id]+2];
+                x1 = v[3*face_vert[face_id]];y1 = v[3*face_vert[face_id]+1]; z1 = v[3*face_vert[face_id]+2];
                 face_id += nb_v;
-                data_face_pts[idx][i] = {x,y,z};
-                DebugOn("one point on this facet: (" << x << "," << y << ","<< z << ").\n");
+                model_face_pts[idx][f_id] = {x1,y1,z1};
+                /* Getting the plane equation of each face in standard form: ax + by + cz +d = 0 */
+                /* The plane's equation is given by: n_x(x - x1) + n_y(y - y1) + n_z(z  - z1) = 0 */
+                double a = model_voronoi_normals[idx][f_id][0];/* n_x */
+                double b = model_voronoi_normals[idx][f_id][1];/* n_y */
+                double c = model_voronoi_normals[idx][f_id][2];/* n_z */
+                double d = -1*a*x1 - b*y1 - c*z1; /* -n_x*x1 - n_y*y1 - n_z*z1 */
+                model_face_intercept[idx][f_id] = d;
+                /* check which side of the plane (x,y,z) is on */
+                double eq = a*x + b*y + c*z + d;
+                /* make sure that the model point satisfies eq < 0, i.e. points insides the voronoi cell have to satisfy eq <= 0 */
+                if (eq==0) {
+                    throw invalid_argument("model point cannot be on the voronoi face!");
+                }
+                if (eq>0) {
+                    model_voronoi_normals[idx][f_id][0] *= -1;
+                    model_voronoi_normals[idx][f_id][1] *= -1;
+                    model_voronoi_normals[idx][f_id][2] *= -1;
+                    model_face_intercept[idx][f_id] *= -1;
+                }
+                string key = to_string(id+1)+","+to_string(f_id+1);
+                norm_x.add_val(key, model_voronoi_normals[idx][f_id][0]);
+                norm_y.add_val(key, model_voronoi_normals[idx][f_id][1]);
+                norm_z.add_val(key, model_voronoi_normals[idx][f_id][2]);
+                intercept.add_val(key, model_face_intercept[idx][f_id]);
+                m_facets.insert(key);
+                Debug("one point on this facet: (" << x1 << "," << y1 << ","<< z1 << ").\n");
+                Debug("Facet " << f_id << " equation: " << model_voronoi_normals[idx][f_id][0] << "x + " << model_voronoi_normals[idx][f_id][1] << "y + " << model_voronoi_normals[idx][f_id][2] << "z + " << model_face_intercept[idx][f_id] << " = 0\n");
+                
+//                double dist = std::abs(data_voronoi_normals[idx][f_id][0]*x + data_voronoi_normals[idx][f_id][1]*y + data_voronoi_normals[idx][f_id][2]*z + data_voronoi_normals[idx][f_id][0]*x1 + data_voronoi_normals[idx][f_id][1]*y1 + data_voronoi_normals[idx][f_id][2]*z1)/std::sqrt(std::pow(data_voronoi_normals[idx][f_id][0],2) + std::pow(data_voronoi_normals[idx][f_id][1],2) + std::pow(data_voronoi_normals[idx][f_id][2],2));
+//                if(dist<min_dist){
+//                    min_dist = dist;
+//                }
             }
+            model_voronoi_in_radius[idx] = min_dist;/* the radius of the largest ball in the voronoi cell is the distance from the center to the nearest facet */
             idx++;
         } while (cl.inc());
+        DebugOn("The total number of faces = " << total_nb_faces << endl);
+        DebugOn("Nb linear cuts = " << m_facets.size() << endl);
+        // Output the particle positions in gnuplot format
+        model_con.draw_particles("my_points_p.gnu");
+        // Output the Voronoi cells in gnuplot format
+        model_con.draw_cells_gnuplot("my_points_v.gnu");
         
-        /* Compute pair-wise min and max distance between Voronoi cells of data point pairs */
-        vector<vector<double>> voronoi_min_dist(data_nb_rows-1), voronoi_max_dist(data_nb_rows-1);
-        
-        for (int i = 0; i<data_nb_rows-1; i++) {
-            auto pi = point_cloud_data[i];
-            auto nb_vertices_i = data_voronoi_vertices[i].size();
-            voronoi_min_dist[i].resize(data_nb_rows-i-1);
-            voronoi_max_dist[i].resize(data_nb_rows-i-1);
-            int pj_id = 0;
-            for (int j = i+1; j<data_nb_rows; j++) {
-                double min_dist = numeric_limits<double>::max(), max_dist = 0;
-                auto pj = point_cloud_data[j];
-                auto nb_facets_j = data_voronoi_normals[pj_id].size();
-                /* For each point in the vertices of the voronoi cell of point i, compute the min/max distance to the voronoi cell of point j (by iterating over its facets)*/
-                for (int v_id = 0; v_id < nb_vertices_i; v_id++) {
-                    for (int f_id = 0; f_id < nb_facets_j; f_id++) {
-                        double dist = std::abs(data_voronoi_normals[pj_id][f_id][0]*data_voronoi_vertices[i][v_id][0] + data_voronoi_normals[pj_id][f_id][1]*data_voronoi_vertices[i][v_id][1] + data_voronoi_normals[pj_id][f_id][2]*data_voronoi_vertices[i][v_id][2] + data_voronoi_normals[pj_id][f_id][0]*data_face_pts[pj_id][f_id][0] + data_voronoi_normals[pj_id][f_id][1]*data_face_pts[pj_id][f_id][1] + data_voronoi_normals[pj_id][f_id][2]*data_face_pts[pj_id][f_id][2])/std::sqrt(std::pow(data_voronoi_normals[pj_id][f_id][0],2) + std::pow(data_voronoi_normals[pj_id][f_id][1],2) + std::pow(data_voronoi_normals[pj_id][f_id][2],2));
-                        if(dist<min_dist){
-                            min_dist = dist;
-                        }
-                        if(dist>max_dist){
-                            max_dist = dist;
-                        }
-                    }
-                }
-                voronoi_min_dist[i][pj_id] = min_dist;
-                voronoi_max_dist[i][pj_id] = max_dist;
-                pj_id++;
-            }
-        }
-        
-        /* Compute pair-wise distance between model points */
-        vector<vector<double>> pairwise_dist(model_nb_rows-1);
-        for (int i = 0; i<model_nb_rows-1; i++) {
-            auto pi = point_cloud_model[i];
-            pairwise_dist[i].resize(model_nb_rows-i-1);
-            int pj_id = 0;
-            for (int j = i+1; j<model_nb_rows; j++) {
-                auto pj = point_cloud_model[j];
-                pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
-                pj_id++;
-            }
-        }
-        
-        int nb_pairs = 0, nb_pairs_max = 10000;
-        /* Build the index set of incompatible pair of pairs */
+//        /* Compute pair-wise distance between model points */
+//        vector<vector<double>> model_pairwise_dist(model_nb_rows-1);
+//        /* Compute pair-wise min and max distance between Voronoi cells of model point pairs */
+//        vector<vector<double>> voronoi_min_dist(model_nb_rows-1), voronoi_max_dist(model_nb_rows-1);
+//
+//        for (int i = 0; i<model_nb_rows-1; i++) {
+//            auto pi = point_cloud_model[i];
+//            model_pairwise_dist[i].resize(model_nb_rows-i-1);
+//            voronoi_min_dist[i].resize(model_nb_rows-i-1);
+//            voronoi_max_dist[i].resize(model_nb_rows-i-1);
+//            int pj_id = 0;
+//            for (int j = i+1; j<model_nb_rows; j++) {
+//                double min_dist = numeric_limits<double>::max(), max_dist = 0;
+//                auto pj = point_cloud_model[j];
+//                model_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+//                voronoi_min_dist[i][pj_id] = model_pairwise_dist[i][pj_id] - model_voronoi_out_radius[i] - model_voronoi_out_radius[j];
+//                voronoi_max_dist[i][pj_id] = model_pairwise_dist[i][pj_id] + model_voronoi_out_radius[i] + model_voronoi_out_radius[j];
+//                pj_id++;
+//            }
+//        }
+//
+//        /* Compute pair-wise distance between data points */
+//        vector<vector<double>> data_pairwise_dist(data_nb_rows-1);
+//        for (int i = 0; i<data_nb_rows-1; i++) {
+//            auto pi = point_cloud_data[i];
+//            data_pairwise_dist[i].resize(data_nb_rows-i-1);
+//            int pj_id = 0;
+//            for (int j = i+1; j<data_nb_rows; j++) {
+//                auto pj = point_cloud_data[j];
+//                data_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+//                pj_id++;
+//            }
+//        }
+//
+//        int nb_pairs = 0, nb_pairs_max = 0;
+//        /* Build the index set of incompatible pair of pairs */
         vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-        for (int i = 0; i<data_nb_rows-1; i++) {
-            if(nb_pairs==nb_pairs_max)
-                break;
-            int pj_id = 0;
-            for (int j = i+1; j<data_nb_rows; j++) {
-                if(nb_pairs==nb_pairs_max)
-                    break;
-                double dv_min = voronoi_min_dist[i][pj_id];
-                double dv_max = voronoi_max_dist[i][pj_id];
-                for (int k = 0; k<model_nb_rows-1; k++) {
-                    if(nb_pairs==nb_pairs_max)
-                        break;
-                    int pk_id = 0;
-                    for (int l = k+1; l<model_nb_rows; l++) {
-                        if(nb_pairs==nb_pairs_max)
-                            break;
-                        double dp = pairwise_dist[k][pk_id];
-                        if(dp < dv_min || dp > dv_max){
-                            incompatibles.push_back({{i,j},{k,l}});
-                            Debug("Imcompatible pairs of pairs: (" << i << "," << j << ") with (" << k << "," << l << ")" << endl);
-                        }
-                        pk_id++;
-                    }
-                }
-                pj_id++;
-            }
-        }
-        DebugOn("number of imcompatible pairs of pairs = " << incompatibles.size() << endl);
-#ifdef USE_MATPLOT
-        bool plot_voronoi = false;
-        if(plot_voronoi){
-            vector<vector<double>> data_voronoiVertices, test;
-            test.push_back(point_cloud_data.back());
-            auto voronoi_faces = data_voronoi_normals.back();
-            for (int i = 0; i<voronoi_faces.size(); i++) {
-                data_voronoiVertices.push_back({voronoi_faces[i][0],voronoi_faces[i][1],voronoi_faces[i][3]});
-            }
-            plot(test,data_voronoiVertices, 1);
-        }
-#endif
+//        for (int i = 0; i<data_nb_rows-1; i++) {
+//            if(nb_pairs==nb_pairs_max)
+//                break;
+//            int pj_id = 0;
+//            for (int j = i+1; j<data_nb_rows; j++) {
+//                if(nb_pairs==nb_pairs_max)
+//                    break;
+//                double dv_min = voronoi_min_dist[i][pj_id];
+//                double dv_max = voronoi_max_dist[i][pj_id];
+//                for (int k = 0; k<model_nb_rows-1; k++) {
+//                    if(nb_pairs==nb_pairs_max)
+//                        break;
+//                    int pk_id = 0;
+//                    for (int l = k+1; l<model_nb_rows; l++) {
+//                        if(nb_pairs==nb_pairs_max)
+//                            break;
+//                        double dp = model_pairwise_dist[k][pk_id];
+//                        if(dp < dv_min || dp > dv_max){
+//                            incompatibles.push_back({{i,j},{k,l}});
+//                            Debug("Imcompatible pairs: (" << i << "," << j << ") with (" << k << "," << l << ")" << endl);
+//                            auto inc_pair = incompatibles.back();
+//                            nb_pairs++;
+//                        }
+//                        pk_id++;
+//                    }
+//                }
+//                pj_id++;
+//            }
+//        }
+//        DebugOn("number of incompatible pairs = " << incompatibles.size() << endl);
+//#ifdef USE_MATPLOT
+//        bool plot_voronoi = false;
+//        if(plot_voronoi){
+//            vector<vector<double>> data_voronoiVertices, test;
+//            test.push_back(point_cloud_data.back());
+//            auto voronoi_faces = data_voronoi_normals.back();
+//            for (int i = 0; i<voronoi_faces.size(); i++) {
+//                data_voronoiVertices.push_back({voronoi_faces[i][0],voronoi_faces[i][1],voronoi_faces[i][3]});
+//            }
+//            plot(test,data_voronoiVertices, 1);
+//        }
+//#endif
         
 #endif
         
@@ -546,10 +600,10 @@ int main (int argc, char * argv[])
                 //            plot(point_cloud_model,point_cloud_data,1);
 #endif
             DebugOn("L2 after center = " << L2error_init << endl);
-            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
-            bool convex = false;
-                //            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex);
-//            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true);
+//            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
+            bool convex = true;
+            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept);
+//            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
                 //            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
@@ -557,37 +611,37 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
-                // SOC_MIP->print();
-            if(linearize){
-                int constr_viol=1;
-                Model<> interior_model;
-                auto lin=SOC_MIP->buildOA();
-                interior_model=lin->add_outer_app_solution(*SOC_MIP);
-                    //                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
-                    //            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
-                    // lin->print();
-                constr_viol=1;
-                int oacuts=0;
-                vector<double> solution(lin->_nb_vars);
-                int nb_count=0;
-                double obj_old=-15, obj_new=-15;
-                while(constr_viol==1){
-                    solver<> S(lin,gurobi);
-                    S.run();
-                    lin->print_int_solution();
-                    lin->get_solution(solution);
-                    obj_new=lin->get_obj_val();
-                    if(obj_new<=obj_old){
-                        break;
-                    }
-                    
-                    constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
-                    nb_count++;
-                    obj_old=obj_new;
-                }
-                DebugOn("nb count "<<nb_count);
-            }
+//            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false, incompatibles);
+////            SOC_MIP->print();
+//            if(linearize){
+//                int constr_viol=1;
+//                Model<> interior_model;
+//                auto lin=SOC_MIP->buildOA();
+//                interior_model=lin->add_outer_app_solution(*SOC_MIP);
+//                    //                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
+//                    //            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
+//                    // lin->print();
+//                constr_viol=1;
+//                int oacuts=0;
+//                vector<double> solution(lin->_nb_vars);
+//                int nb_count=0;
+//                double obj_old=-15, obj_new=-15;
+//                while(constr_viol==1){
+//                    solver<> S(lin,gurobi);
+//                    S.run();
+//                    lin->print_int_solution();
+//                    lin->get_solution(solution);
+//                    obj_new=lin->get_obj_val();
+//                    if(obj_new<=obj_old){
+//                        break;
+//                    }
+//
+//                    constr_viol=SOC_MIP->add_iterative(interior_model, solution, lin, "allvar", oacuts, 1e-8);
+//                    nb_count++;
+//                    obj_old=obj_new;
+//                }
+//                DebugOn("nb count "<<nb_count);
+//            }
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -597,6 +651,9 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
             plot(point_cloud_model,point_cloud_data,1);
 #endif
+            auto L2error_final = computeL2error(point_cloud_model,point_cloud_data);
+            DebugOn("L2 before optimization = " << L2error_init << endl);
+            DebugOn("L2 after optimization = " << L2error_final << endl);
         }
         return 0;
     }
@@ -2016,7 +2073,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
     
 }
 
-shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex){
+shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2108,6 +2165,19 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
+    
+    indices voronoi_ids("voronoi_ids");
+    voronoi_ids = indices(N1, *norm_x._indices);
+    auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
+    auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
+    auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
+    auto voronoi_ids_bin = voronoi_ids.ignore_ith(2, 1);
+    Constraint<> Voronoi_model("Voronoi_model");
+    Voronoi_model = norm_x.in(voronoi_ids_coefs)*new_xm.in(voronoi_ids_m) + norm_y.in(voronoi_ids_coefs)*new_ym.in(voronoi_ids_m) + norm_z.in(voronoi_ids_coefs)*new_zm.in(voronoi_ids_m) + intercept.in(voronoi_ids_coefs);
+    Reg->add_on_off_multivariate_refined(Voronoi_model.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+    
+//    Reg->print();
+    
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
@@ -2115,6 +2185,22 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
+    
+    
+    if(!incompatibles.empty()){
+        indices pairs1("pairs1"), pairs2("pairs2");
+        pairs1 = cells;
+        pairs2 = cells;
+        for (const auto &inc_pair : incompatibles) {
+            pairs1.add_ref(to_string(inc_pair.first.first+1)+","+to_string(inc_pair.second.first+1));
+            pairs2.add_ref(to_string(inc_pair.first.second+1)+","+to_string(inc_pair.second.second+1));
+        }
+        
+        Constraint<> incomp_pairs("incomp_pairs");
+        incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+        Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
+//        incomp_pairs.print();
+    }
     
     Constraint<> Norm2("Norm2");
     Norm2 += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
@@ -2237,6 +2323,11 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
     Reg->add(z_rot1.in(N1)==0);
     
+    Constraint<> Voronoi("Voronoi");
+    Voronoi = norm_x.in(voronoi_ids_coefs)*new_x1.in(voronoi_ids_data) + norm_y.in(voronoi_ids_coefs)*new_y1.in(voronoi_ids_data) + norm_z.in(voronoi_ids_coefs)*new_z1.in(voronoi_ids_data) + intercept.in(voronoi_ids_coefs);
+//    Reg->add(Voronoi.in(voronoi_ids)<=0);
+    Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
+//    Reg->print();
     
     /* Objective function */
     
@@ -2251,9 +2342,12 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
         //    }
         //    Reg->print();
         //    solver<> S1(Reg,ipopt);
-        //    solver<> S(Reg,gurobi);
-        //    S.run();
-        //    Reg->print_int_solution();
+    for(int i = 1; i<= nd; i++){
+        bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
+    }
+    solver<> S(Reg,gurobi);
+    S.run();
+    Reg->print_int_solution();
     
         //    Reg->print_solution();
     DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
@@ -2304,7 +2398,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     return(Reg);
 }
 
-shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans){
+shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2339,6 +2433,9 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     N1 = range(1,nd);
     N2 = range(1,nm);
     cells = indices(N1,N2);
+    
+    
+    
     string name="TU_MIP";
     
     auto Reg=make_shared<Model<>>(name);
@@ -2372,6 +2469,18 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
+    
+    indices pairs1("pairs1"), pairs2("pairs2");
+    pairs1 = cells;
+    pairs2 = cells;
+    for (const auto &inc_pair : incompatibles) {
+        pairs1.add_ref(to_string(inc_pair.first.first+1)+","+to_string(inc_pair.second.first+1));
+        pairs2.add_ref(to_string(inc_pair.first.second+1)+","+to_string(inc_pair.second.second+1));
+    }
+    
+    Constraint<> incomp_pairs("incomp_pairs");
+    incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+    Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
     
     Constraint<> row1("row1");
     row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
@@ -2435,9 +2544,9 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     Reg->min(obj);
     
         //    Reg->print();
-    solver<> S1(Reg,ipopt);
-        //    solver<> S(Reg,gurobi);
-    S1.run();
+//    solver<> S(Reg,ipopt);
+    solver<> S(Reg,gurobi);
+    S.run();
     Reg->print_int_solution();
     
         //    Reg->print_solution();
@@ -2464,7 +2573,8 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     
     return(Reg);
 }
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate){
+
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles){
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -2512,6 +2622,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     
+    for(int i = 1; i<= nd; i++){
+        bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
+    }
+    
     var<> xsh_bin("xsh_bin",-1,1), ysh_bin("ysh_bin",-1,1), zsh_bin("zsh_bin",-1,1);
     var<> theta11_bin("theta11_bin",-1,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
     var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",-1,1), theta23_bin("theta23_bin",-1,1);
@@ -2546,10 +2660,28 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
+//    OneBin.print();
     
     Constraint<> OneBin2("OneBin2");
     OneBin2 = bin.in_matrix(0, 1);
     Reg->add(OneBin2.in(N2)<=1);
+    
+    if(!incompatibles.empty()){
+        indices pairs1("pairs1"), pairs2("pairs2");
+        pairs1 = cells;
+        pairs2 = cells;
+        for (const auto &inc_pair : incompatibles) {
+            pairs1.add_ref(to_string(inc_pair.first.first+1)+","+to_string(inc_pair.second.first+1));
+            pairs2.add_ref(to_string(inc_pair.first.second+1)+","+to_string(inc_pair.second.second+1));
+        }
+        
+        Constraint<> incomp_pairs("incomp_pairs");
+        incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+        Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
+//        incomp_pairs.print();
+    }
+    
+    
     if(separate){
         Constraint<> xsh_on1("xsh_on1");
         xsh_on1=xsh_bin-x_shift-(1-bin);
@@ -2886,7 +3018,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-        //    Reg->print();
+//    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
     Reg->print_int_solution();
