@@ -156,7 +156,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write("gurobiprint.lp");
 //    print_constraints();
 }
 void GurobiProgram::update_model(){
