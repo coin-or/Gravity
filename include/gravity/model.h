@@ -5909,8 +5909,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 string prev_name = "";
                 M1sum_off = 0;
                 M1sum_on = 0;
-                
-                c.eval_all();
+                if(!c._evaluated)
+                    c.eval_all();
                 //collect the constant part in the constraint by casting the correct pointer
                 if (!c.get_cst()->is_zero()) {
                     if (c.get_cst()->is_number()) {
