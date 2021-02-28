@@ -310,6 +310,17 @@ int main (int argc, char * argv[])
         }
         center_point_cloud(point_cloud_data);
         center_point_cloud(point_cloud_model);
+        int nb_p = 35;
+        bool subsample = false;
+        if (subsample) {
+            model_nb_rows = nb_p;
+            data_nb_rows = nb_p;
+            point_cloud_model = get_n_extreme_points(nb_p, point_cloud_model);
+            point_cloud_data = get_n_extreme_points(nb_p, point_cloud_data);
+        }
+#ifdef USE_MATPLOT
+//        plot(point_cloud_model,point_cloud_data,1);
+#endif
 #ifdef USE_VORO
         container model_con(x_min,x_max,y_min,y_max,z_min,z_max,100,100,100,false,false,false,8);
 #endif
@@ -414,73 +425,73 @@ int main (int argc, char * argv[])
         // Output the Voronoi cells in gnuplot format
         model_con.draw_cells_gnuplot("my_points_v.gnu");
         
-//        /* Compute pair-wise distance between model points */
-//        vector<vector<double>> model_pairwise_dist(model_nb_rows-1);
-//        /* Compute pair-wise min and max distance between Voronoi cells of model point pairs */
-//        vector<vector<double>> voronoi_min_dist(model_nb_rows-1), voronoi_max_dist(model_nb_rows-1);
-//
-//        for (int i = 0; i<model_nb_rows-1; i++) {
-//            auto pi = point_cloud_model[i];
-//            model_pairwise_dist[i].resize(model_nb_rows-i-1);
-//            voronoi_min_dist[i].resize(model_nb_rows-i-1);
-//            voronoi_max_dist[i].resize(model_nb_rows-i-1);
-//            int pj_id = 0;
-//            for (int j = i+1; j<model_nb_rows; j++) {
-//                double min_dist = numeric_limits<double>::max(), max_dist = 0;
-//                auto pj = point_cloud_model[j];
-//                model_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
-//                voronoi_min_dist[i][pj_id] = model_pairwise_dist[i][pj_id] - model_voronoi_out_radius[i] - model_voronoi_out_radius[j];
-//                voronoi_max_dist[i][pj_id] = model_pairwise_dist[i][pj_id] + model_voronoi_out_radius[i] + model_voronoi_out_radius[j];
-//                pj_id++;
-//            }
-//        }
-//
-//        /* Compute pair-wise distance between data points */
-//        vector<vector<double>> data_pairwise_dist(data_nb_rows-1);
-//        for (int i = 0; i<data_nb_rows-1; i++) {
-//            auto pi = point_cloud_data[i];
-//            data_pairwise_dist[i].resize(data_nb_rows-i-1);
-//            int pj_id = 0;
-//            for (int j = i+1; j<data_nb_rows; j++) {
-//                auto pj = point_cloud_data[j];
-//                data_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
-//                pj_id++;
-//            }
-//        }
-//
-//        int nb_pairs = 0, nb_pairs_max = 0;
-//        /* Build the index set of incompatible pair of pairs */
+        /* Compute pair-wise distance between model points */
+        vector<vector<double>> model_pairwise_dist(model_nb_rows-1);
+        /* Compute pair-wise min and max distance between Voronoi cells of model point pairs */
+        vector<vector<double>> voronoi_min_dist(model_nb_rows-1), voronoi_max_dist(model_nb_rows-1);
+
+        for (int i = 0; i<model_nb_rows-1; i++) {
+            auto pi = point_cloud_model[i];
+            model_pairwise_dist[i].resize(model_nb_rows-i-1);
+            voronoi_min_dist[i].resize(model_nb_rows-i-1);
+            voronoi_max_dist[i].resize(model_nb_rows-i-1);
+            int pj_id = 0;
+            for (int j = i+1; j<model_nb_rows; j++) {
+                double min_dist = numeric_limits<double>::max(), max_dist = 0;
+                auto pj = point_cloud_model[j];
+                model_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+                voronoi_min_dist[i][pj_id] = model_pairwise_dist[i][pj_id] - model_voronoi_out_radius[i] - model_voronoi_out_radius[j];
+                voronoi_max_dist[i][pj_id] = model_pairwise_dist[i][pj_id] + model_voronoi_out_radius[i] + model_voronoi_out_radius[j];
+                pj_id++;
+            }
+        }
+
+        /* Compute pair-wise distance between data points */
+        vector<vector<double>> data_pairwise_dist(data_nb_rows-1);
+        for (int i = 0; i<data_nb_rows-1; i++) {
+            auto pi = point_cloud_data[i];
+            data_pairwise_dist[i].resize(data_nb_rows-i-1);
+            int pj_id = 0;
+            for (int j = i+1; j<data_nb_rows; j++) {
+                auto pj = point_cloud_data[j];
+                data_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+                pj_id++;
+            }
+        }
+
+        int nb_pairs = 0, nb_pairs_max = 0;
+        /* Build the index set of incompatible pair of pairs */
         vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-//        for (int i = 0; i<data_nb_rows-1; i++) {
-//            if(nb_pairs==nb_pairs_max)
-//                break;
-//            int pj_id = 0;
-//            for (int j = i+1; j<data_nb_rows; j++) {
-//                if(nb_pairs==nb_pairs_max)
-//                    break;
-//                double dv_min = voronoi_min_dist[i][pj_id];
-//                double dv_max = voronoi_max_dist[i][pj_id];
-//                for (int k = 0; k<model_nb_rows-1; k++) {
-//                    if(nb_pairs==nb_pairs_max)
-//                        break;
-//                    int pk_id = 0;
-//                    for (int l = k+1; l<model_nb_rows; l++) {
-//                        if(nb_pairs==nb_pairs_max)
-//                            break;
-//                        double dp = model_pairwise_dist[k][pk_id];
-//                        if(dp < dv_min || dp > dv_max){
-//                            incompatibles.push_back({{i,j},{k,l}});
-//                            Debug("Imcompatible pairs: (" << i << "," << j << ") with (" << k << "," << l << ")" << endl);
-//                            auto inc_pair = incompatibles.back();
-//                            nb_pairs++;
-//                        }
-//                        pk_id++;
-//                    }
-//                }
-//                pj_id++;
-//            }
-//        }
-//        DebugOn("number of incompatible pairs = " << incompatibles.size() << endl);
+        for (int i = 0; i<data_nb_rows-1; i++) {
+            if(nb_pairs==nb_pairs_max)
+                break;
+            int pj_id = 0;
+            for (int j = i+1; j<data_nb_rows; j++) {
+                if(nb_pairs==nb_pairs_max)
+                    break;
+                double dv_min = voronoi_min_dist[i][pj_id];
+                double dv_max = voronoi_max_dist[i][pj_id];
+                for (int k = 0; k<model_nb_rows-1; k++) {
+                    if(nb_pairs==nb_pairs_max)
+                        break;
+                    int pk_id = 0;
+                    for (int l = k+1; l<model_nb_rows; l++) {
+                        if(nb_pairs==nb_pairs_max)
+                            break;
+                        double dp = model_pairwise_dist[k][pk_id];
+                        if(dp < dv_min || dp > dv_max){
+                            incompatibles.push_back({{i,j},{k,l}});
+                            Debug("Imcompatible pairs: (" << i << "," << j << ") with (" << k << "," << l << ")" << endl);
+                            auto inc_pair = incompatibles.back();
+                            nb_pairs++;
+                        }
+                        pk_id++;
+                    }
+                }
+                pj_id++;
+            }
+        }
+        DebugOn("number of incompatible pairs = " << incompatibles.size() << endl);
 //#ifdef USE_MATPLOT
 //        bool plot_voronoi = false;
 //        if(plot_voronoi){
@@ -497,27 +508,23 @@ int main (int argc, char * argv[])
 #endif
         
         auto old_point_cloud = point_cloud_data;
-        int nb_ext = 10;
+        
         bool global = global_str=="global";
         bool norm1 = norm_str=="norm1";
         bool obbt=obbt_str=="yes";
-        bool filter_extremes = (algo=="ARMO" && data_nb_rows>1e3);
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
 #ifdef USE_MATPLOT
             //        plot(ext_model,ext_data,1);
 #endif
-        if (filter_extremes) {
-            ext_model = get_n_extreme_points(nb_ext, point_cloud_model);
-            ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
-        }
+//        ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
         vector<double> x_vec_data(ext_data.size()), y_vec_data(ext_data.size()), z_vec_data(ext_data.size());
         tuple<double,double,double,double,double,double,double> res_icp;
         tuple<double,double,double,double,double,double> res, res1, res2;
         
         auto L2error_init = computeL2error(ext_model,ext_data);
-        DebugOn("L2 before Registration = " << L2error_init << endl);
+        DebugOn("L2 on reduced set = " << L2error_init << endl);
             // run_ARMO_Global(false, "full", ext_model, ext_data);
 #ifdef USE_QHULL
         Qhull qt_data;//("data", 4, point_cloud_data.size(), flat_point_cloud_data.data(), "");
@@ -544,8 +551,15 @@ int main (int argc, char * argv[])
         compute_voronoi(qt_model, model_voronoiVertices, model_voronoiRegions);
 #endif
         bool run_goICP = (algo=="GoICP");
-        if(!obbt || run_goICP){
-            if(run_goICP){/* Run GoICP inline */
+        bool IPH = (algo=="IPH");
+        
+        if(IPH || run_goICP){
+            if(IPH){/* Run run_IPH */
+                res1 = run_IPH(ext_model,ext_data,point_cloud_data);
+                auto roll = get<0>(res1);auto pitch = get<1>(res1);auto yaw = get<2>(res1);auto x_shift = get<3>(res1);auto y_shift = get<4>(res1);auto z_shift = get<5>(res1);
+                apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            }
+            else if(run_goICP){/* Run GoICP inline */
                 res_icp = run_GoICP(ext_model, ext_data);
                 auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
                 apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
@@ -572,10 +586,6 @@ int main (int argc, char * argv[])
                 }
                 else{
                     res1 = run_IPH(ext_model,ext_data,point_cloud_data);
-                    if(filter_extremes){
-                        ext_data = get_n_extreme_points(100, point_cloud_data);
-                        res2 = run_IPH(point_cloud_model,ext_data,point_cloud_data);
-                    }
                 }
             }
         }
@@ -600,9 +610,9 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
                 //            plot(point_cloud_model,point_cloud_data,1);
 #endif
-            DebugOn("L2 after center = " << L2error_init << endl);
+            DebugOn("Initial L2 on full data = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
-            bool convex = false;
+            bool convex = true;
 //            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept);
 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
@@ -612,7 +622,7 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept);
+            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept);
 ////            SOC_MIP->print();
 //            if(linearize){
 //                int constr_viol=1;
@@ -649,13 +659,13 @@ int main (int argc, char * argv[])
             else{
                 apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
             }
+        }
 #ifdef USE_MATPLOT
             plot(point_cloud_model,point_cloud_data,1);
 #endif
-            auto L2error_final = computeL2error(point_cloud_model,point_cloud_data);
-            DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
-            DebugOn("L2 after optimization = " << to_string_with_precision(L2error_final,12) << endl);
-        }
+        auto L2error_final = computeL2error(point_cloud_model,point_cloud_data);
+        DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
+        DebugOn("L2 after optimization = " << to_string_with_precision(L2error_final,12) << endl);
         return 0;
     }
     
@@ -2114,7 +2124,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     auto Reg=make_shared<Model<>>(name);
     
     
-    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
+    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
@@ -2166,7 +2176,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
-    bool add_voronoi = false;
+    bool add_voronoi = true;
     
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
@@ -2193,9 +2203,9 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
     
-    Constraint<> OneBin2("OneBin2");
-    OneBin2 = bin.in_matrix(0, 1);
-    Reg->add(OneBin2.in(N2)<=1);
+//    Constraint<> OneBin2("OneBin2");
+//    OneBin2 = bin.in_matrix(0, 1);
+//    Reg->add(OneBin2.in(N2)<=1);
 //
     
     if(!incompatibles.empty()){
@@ -2645,23 +2655,23 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     auto Reg=make_shared<Model<>>(name);
     
-    
+    var<int> bin("bin",0,1);
+    Reg->add(bin.in(cells));
+
     double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1,shift_max_y = 1,shift_min_z = -1,shift_max_z = 1;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
-    var<int> bin("bin",0,1);
-    Reg->add(bin.in(cells));
     
     for(int i = 1; i<= nd; i++){
         bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
     }
     
     var<> xsh_bin("xsh_bin",-1,1), ysh_bin("ysh_bin",-1,1), zsh_bin("zsh_bin",-1,1);
-    var<> theta11_bin("theta11_bin",-1,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
-    var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",-1,1), theta23_bin("theta23_bin",-1,1);
-    var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",-1,1);
+    var<> theta11_bin("theta11_bin",0,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
+    var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",0,1), theta23_bin("theta23_bin",-1,1);
+    var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",0,1);
     if(separate){
         Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
         Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
@@ -2671,16 +2681,214 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     
     
-    var<> theta11("theta11",  -1, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
-    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
-    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", -1, 1);
-    var<> tx("tx", 0, 1), ty("ty", 0, 1), tz("tz", 0, 1);
+    var<> theta11("theta11",  0, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+    var<> theta21("theta21",  -1, 1), theta22("theta22", 0, 1), theta23("theta23", -1, 1);
+    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0, 1);
+    var<> tx("tx", -0.25, 0.25), ty("ty", -0.25, 0.25), tz("tz", -0.25, 0.25);
     var<> d1("d1", 0,4),d2("d2", 0,4),d3("d3", 0,4),d4("d4", 0,4);
     var<> l12("l12", -2,2),l13("l13", -2,2),l14("l14", -2,2),l23("l23", -2,2),l24("l24", -2,2),l34("l34", -2,2);
     Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
     Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
     Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
     Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
+    
+    bool spatial_branching = true;
+    if(spatial_branching){
+        /* Spatial branching vars */
+        int nb_pieces = 10; // Divide each axis into nb_pieces
+        indices spatial_ids("spatial_ids");
+        spatial_ids = range(1,nb_pieces);
+        indices theta_ids("theta_ids");
+        theta_ids = indices(range(1,3),range(1,3));
+        indices shift_ids("shift_ids");
+        shift_ids.insert({"x", "y", "z"});
+        indices theta_spatial("theta_spatial");
+        theta_spatial = indices(theta_ids, spatial_ids);
+        
+        indices shift_spatial("shift_spatial");
+        shift_spatial = indices(shift_ids, spatial_ids);
+        
+    //    var<int> sbin_shift("sbin_shift", 0, 1);
+    //    var<int> sbin_theta("sbin_theta", 0, 1);
+        
+    //    Reg->add(sbin_theta.in(theta_spatial),sbin_shift.in(shift_spatial));
+        
+        var<int> sbin_tx("sbin_tx", 0, 1), sbin_ty("sbin_ty", 0, 1), sbin_tz("sbin_tz", 0, 1);
+        var<int> sbin_theta11("sbin_theta11", 0, 1), sbin_theta12("sbin_theta12", 0, 1), sbin_theta13("sbin_theta13", 0, 1);
+        var<int> sbin_theta21("sbin_theta21", 0, 1), sbin_theta22("sbin_theta22", 0, 1), sbin_theta23("sbin_theta23", 0, 1);
+        var<int> sbin_theta31("sbin_theta31", 0, 1), sbin_theta32("sbin_theta32", 0, 1), sbin_theta33("sbin_theta33", 0, 1);
+        Reg->add(sbin_theta11.in(spatial_ids),sbin_theta12.in(spatial_ids),sbin_theta13.in(spatial_ids));
+        Reg->add(sbin_theta21.in(spatial_ids),sbin_theta22.in(spatial_ids),sbin_theta23.in(spatial_ids));
+        Reg->add(sbin_theta31.in(spatial_ids),sbin_theta32.in(spatial_ids),sbin_theta33.in(spatial_ids));
+        Reg->add(sbin_tx.in(spatial_ids),sbin_ty.in(spatial_ids),sbin_tz.in(spatial_ids));
+        /* Spatial branching constraints */
+        Constraint<> OneBinAngleSpatial11("OneBinAngleSpatial11");
+        OneBinAngleSpatial11 = sum(sbin_theta11);
+        Reg->add(OneBinAngleSpatial11==1);
+        
+        Constraint<> OneBinAngleSpatial12("OneBinAngleSpatial12");
+        OneBinAngleSpatial12 = sum(sbin_theta12);
+        Reg->add(OneBinAngleSpatial12==1);
+        
+        Constraint<> OneBinAngleSpatial13("OneBinAngleSpatial13");
+        OneBinAngleSpatial13 = sum(sbin_theta13);
+        Reg->add(OneBinAngleSpatial13==1);
+        
+        Constraint<> OneBinAngleSpatial21("OneBinAngleSpatial21");
+        OneBinAngleSpatial21 = sum(sbin_theta21);
+        Reg->add(OneBinAngleSpatial21==1);
+        
+        Constraint<> OneBinAngleSpatial22("OneBinAngleSpatial22");
+        OneBinAngleSpatial22 = sum(sbin_theta22);
+        Reg->add(OneBinAngleSpatial22==1);
+        
+        
+        Constraint<> OneBinAngleSpatial23("OneBinAngleSpatial23");
+        OneBinAngleSpatial23 = sum(sbin_theta23);
+        Reg->add(OneBinAngleSpatial23==1);
+        
+        Constraint<> OneBinAngleSpatial31("OneBinAngleSpatial31");
+        OneBinAngleSpatial31 = sum(sbin_theta31);
+        Reg->add(OneBinAngleSpatial31==1);
+        
+        Constraint<> OneBinAngleSpatial32("OneBinAngleSpatial32");
+        OneBinAngleSpatial32 = sum(sbin_theta32);
+        Reg->add(OneBinAngleSpatial32==1);
+        
+        Constraint<> OneBinAngleSpatial33("OneBinAngleSpatial33");
+        OneBinAngleSpatial33 = sum(sbin_theta33);
+        Reg->add(OneBinAngleSpatial33==1);
+        
+        Constraint<> OneBinShiftSpatialx("OneBinShiftSpatialx");
+        OneBinShiftSpatialx = sum(sbin_tx);
+        Reg->add(OneBinShiftSpatialx==1);
+        
+        Constraint<> OneBinShiftSpatialy("OneBinShiftSpatialy");
+        OneBinShiftSpatialy = sum(sbin_ty);
+        Reg->add(OneBinShiftSpatialy==1);
+        
+        Constraint<> OneBinShiftSpatialz("OneBinShiftSpatialz");
+        OneBinShiftSpatialz = sum(sbin_tz);
+        Reg->add(OneBinShiftSpatialz==1);
+        
+    //    Reg->print();
+        
+        double diag_increment = 1./nb_pieces;/* Diagonals are defined in [0,1] */
+        double off_diag_increment = 2./nb_pieces;/* Diagonals are defined in [-1,1] */
+        double shift_increment = 0.5/nb_pieces;/* Shifts are defined in [-0.25,0.25] */
+        
+        auto spatial_ids_n = range(1,nb_pieces-1);
+        auto spatial_ids_1 = range(2,nb_pieces);
+        param<> diag_lb("diag_lb"), diag_ub("diag_ub"), off_diag_lb("off_diag_lb"), off_diag_ub("off_diag_ub");
+        param<> t_lb("t_lb"), t_ub("t_ub");
+        diag_ub.in(spatial_ids);
+        diag_lb.in(spatial_ids);
+        off_diag_ub.in(spatial_ids);
+        off_diag_lb.in(spatial_ids);
+        t_ub.in(spatial_ids);
+        t_lb.in(spatial_ids);
+        for (int i = 0; i<nb_pieces; i++) {
+            diag_ub.set_val(i,(i+1)*diag_increment);
+            off_diag_ub.set_val(i,-1+(i+1)*off_diag_increment);
+            t_ub.set_val(i,-0.25 + (i+1)*diag_increment);
+            diag_lb.set_val(i,i*diag_increment);
+            off_diag_lb.set_val(i,-1 + i*off_diag_increment);
+            t_lb.set_val(i,-0.25 + i*diag_increment);
+        }
+        auto ids_repeat = theta11.repeat_id(nb_pieces-1);
+        
+        Constraint<> Diag_Spatial_UB11("Diag_Spatial_UB11");
+        Diag_Spatial_UB11 = theta11.in(ids_repeat) - diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB11.in(spatial_ids_n)<=0, sbin_theta11.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB11("Diag_Spatial_LB11");
+        Diag_Spatial_LB11 = diag_lb.in(spatial_ids_1) - theta11.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB11.in(spatial_ids_1) <= 0, sbin_theta11.in(spatial_ids_1), true);
+        
+        Constraint<> Diag_Spatial_UB22("Diag_Spatial_UB22");
+        Diag_Spatial_UB22 = theta22.in(ids_repeat) - diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB22.in(spatial_ids_n)<=0, sbin_theta22.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB33("Diag_Spatial_LB33");
+        Diag_Spatial_LB33 = diag_lb.in(spatial_ids_1) - theta33.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB33.in(spatial_ids_1) <= 0, sbin_theta33.in(spatial_ids_1), true);
+        
+
+        Constraint<> Diag_Spatial_UB12("Diag_Spatial_UB12");
+        Diag_Spatial_UB12 = theta12.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB12.in(spatial_ids_n) <= 0, sbin_theta12.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB12("Diag_Spatial_LB12");
+        Diag_Spatial_LB12 = off_diag_lb.in(spatial_ids_1) - theta12.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB12.in(spatial_ids_1) <= 0, sbin_theta12.in(spatial_ids_1), true);
+        
+        Constraint<> Diag_Spatial_UB13("Diag_Spatial_UB13");
+        Diag_Spatial_UB13 = theta13.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB13.in(spatial_ids_n) <= 0, sbin_theta13.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB13("Diag_Spatial_LB13");
+        Diag_Spatial_LB13 = off_diag_lb.in(spatial_ids_1) - theta13.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB13.in(spatial_ids_1) <= 0, sbin_theta13.in(spatial_ids_1), true);
+        
+        Constraint<> Diag_Spatial_UB21("Diag_Spatial_UB21");
+        Diag_Spatial_UB21 = theta21.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB21.in(spatial_ids_n) <= 0, sbin_theta21.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB21("Diag_Spatial_LB21");
+        Diag_Spatial_LB21 = off_diag_lb.in(spatial_ids_1) - theta21.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB21.in(spatial_ids_1) <= 0, sbin_theta21.in(spatial_ids_1), true);
+        
+        Constraint<> Diag_Spatial_UB23("Diag_Spatial_UB23");
+        Diag_Spatial_UB23 = theta23.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB23.in(spatial_ids_n) <= 0, sbin_theta23.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB23("Diag_Spatial_LB23");
+        Diag_Spatial_LB23 = off_diag_lb.in(spatial_ids_1) - theta23.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB23.in(spatial_ids_1) <= 0, sbin_theta23.in(spatial_ids_1), true);
+        
+        Constraint<> Diag_Spatial_UB31("Diag_Spatial_UB31");
+        Diag_Spatial_UB31 = theta31.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB31.in(spatial_ids_n) <= 0, sbin_theta31.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB31("Diag_Spatial_LB31");
+        Diag_Spatial_LB31 = off_diag_lb.in(spatial_ids_1) - theta31.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB31.in(spatial_ids_1) <= 0, sbin_theta31.in(spatial_ids_1), true);
+
+        Constraint<> Diag_Spatial_UB32("Diag_Spatial_UB32");
+        Diag_Spatial_UB32 = theta32.in(ids_repeat) - off_diag_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_UB32.in(spatial_ids_n) <= 0, sbin_theta32.in(spatial_ids_n), true);
+        
+        Constraint<> Diag_Spatial_LB32("Diag_Spatial_LB32");
+        Diag_Spatial_LB32 = off_diag_lb.in(spatial_ids_1) - theta32.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(Diag_Spatial_LB32.in(spatial_ids_1) <= 0, sbin_theta32.in(spatial_ids_1), true);
+        
+        Constraint<> xshift_Spatial_UB("xshift_Spatial_UB");
+        xshift_Spatial_UB = x_shift.in(ids_repeat) - t_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(xshift_Spatial_UB.in(spatial_ids_n) <= 0, sbin_tx.in(spatial_ids_n), true);
+        
+        Constraint<> xshift_Spatial_LB("xshift_Spatial_LB");
+        xshift_Spatial_LB = t_lb.in(spatial_ids_1) - x_shift.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(xshift_Spatial_LB.in(spatial_ids_1) <= 0, sbin_tx.in(spatial_ids_1), true);
+        
+        Constraint<> yshift_Spatial_UB("yshift_Spatial_UB");
+        yshift_Spatial_UB = y_shift.in(ids_repeat) - t_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(yshift_Spatial_UB.in(spatial_ids_n) <= 0, sbin_ty.in(spatial_ids_n), true);
+        
+        Constraint<> yshift_Spatial_LB("yshift_Spatial_LB");
+        yshift_Spatial_LB = t_lb.in(spatial_ids_1) - y_shift.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(yshift_Spatial_LB.in(spatial_ids_1) <= 0, sbin_ty.in(spatial_ids_1), true);
+
+        Constraint<> zshift_Spatial_UB("zshift_Spatial_UB");
+        zshift_Spatial_UB = z_shift.in(ids_repeat) - t_ub.in(spatial_ids_n);
+        Reg->add_on_off_multivariate_refined(zshift_Spatial_UB.in(spatial_ids_n) <= 0, sbin_tz.in(spatial_ids_n), true);
+        
+        Constraint<> zshift_Spatial_LB("zshift_Spatial_LB");
+        zshift_Spatial_LB = t_lb.in(spatial_ids_1) - z_shift.in(ids_repeat);
+        Reg->add_on_off_multivariate_refined(zshift_Spatial_LB.in(spatial_ids_1) <= 0, sbin_tz.in(spatial_ids_1), true);
+//        Reg->print();
+    }
+    
+
     Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
     Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
     Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
@@ -4932,17 +5140,19 @@ void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, doub
 }
 
 /* Return vector of extreme points from point cloud */
-vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>& point_cloud){
+vector<vector<double>> get_n_extreme_points(int max_n, const vector<vector<double>>& point_cloud){
     vector<vector<double>> ext;
     set<int> added_indices;
     int nb = 0;
-    while (nb<n) {
+    while (nb<max_n) {
         double x_min_val = numeric_limits<double>::max(), y_min_val = numeric_limits<double>::max(), z_min_val = numeric_limits<double>::max();
         double x_max_val = numeric_limits<double>::lowest(), y_max_val = numeric_limits<double>::lowest(), z_max_val = numeric_limits<double>::lowest();
         vector<double> x_min(3), y_min(3), z_min(3);
         vector<double> x_max(3), y_max(3), z_max(3);
         size_t n = point_cloud.size();
         for (auto i = 0; i< n; i++) {
+            if(nb==max_n)
+                break;
             if(added_indices.count(i)!=0)
                 continue;
             if(point_cloud[i][0] < x_min_val){
@@ -4951,7 +5161,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 x_min[0] = point_cloud[i][0];
                 x_min[1] = point_cloud[i][1];
                 x_min[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(x_min);
                     nb++;
                 }
@@ -4963,7 +5173,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 x_max[0] = point_cloud[i][0];
                 x_max[1] = point_cloud[i][1];
                 x_max[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(x_max);
                     nb++;
                 }
@@ -4975,7 +5185,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 y_min[0] = point_cloud[i][0];
                 y_min[1] = point_cloud[i][1];
                 y_min[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(y_min);
                     nb++;
                 }
@@ -4987,7 +5197,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 y_max[0] = point_cloud[i][0];
                 y_max[1] = point_cloud[i][1];
                 y_max[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(y_max);
                     nb++;
                 }
@@ -4999,7 +5209,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 z_min[0] = point_cloud[i][0];
                 z_min[1] = point_cloud[i][1];
                 z_min[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(z_min);
                     nb++;
                 }
@@ -5011,7 +5221,7 @@ vector<vector<double>> get_n_extreme_points(int n, const vector<vector<double>>&
                 z_max[0] = point_cloud[i][0];
                 z_max[1] = point_cloud[i][1];
                 z_max[2] = point_cloud[i][2];
-                if(nb<n){
+                if(nb<max_n){
                     ext.push_back(z_max);
                     nb++;
                 }
