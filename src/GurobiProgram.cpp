@@ -112,8 +112,8 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     if (relax) relax_model();
 //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,400);
-//    grb_mod->set(GRB_IntParam_NumericFocus,3);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
+    grb_mod->set(GRB_IntParam_NumericFocus,3);
 //    grb_mod->set(GRB_IntParam_CutPasses,0);
 //    grb_mod->set(GRB_IntParam_VarBranch,2);
    // grb_mod->set(GRB_IntParam_Threads, 4);
@@ -246,7 +246,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                     _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
-                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
+//                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
                 }
                 break;
             }
