@@ -113,7 +113,7 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
             }
             else
             {
-                if((f_mid<=0) && (std::abs(f_mid)>=1e-14)){
+                if((this->_ctype==leq) && (f_mid<=0)){
                     success=true;
                     
                     
@@ -122,6 +122,16 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
                                 DebugOff("Iter "<<iter<<endl);
                     break;
                 }
+                if((this->_ctype==geq) && (f_mid>=0)){
+                    success=true;
+                    
+                    
+                                DebugOff("F_mid "<<f_mid<<endl);
+                                DebugOff("Interval_Norm "<<interval_norm<<endl);
+                                DebugOff("Iter "<<iter<<endl);
+                    break;
+                }
+
                 else{
                     break;
                 }
