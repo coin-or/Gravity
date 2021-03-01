@@ -549,8 +549,9 @@ int main (int argc, char * argv[])
 #endif
         bool run_goICP = (algo=="GoICP");
         bool IPH = (algo=="IPH");
+        bool ARMO = (algo=="ARMO");
         
-        if(IPH || run_goICP){
+        if(ARMO || IPH || run_goICP){
             if(IPH){/* Run run_IPH */
                 res1 = run_IPH(ext_model,ext_data,point_cloud_data);
                 auto roll = get<0>(res1);auto pitch = get<1>(res1);auto yaw = get<2>(res1);auto x_shift = get<3>(res1);auto y_shift = get<4>(res1);auto z_shift = get<5>(res1);
@@ -3441,7 +3442,25 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
         }
     }
     
+    bool add_shift_cut = false;
     
+    if(add_shift_cut){
+        Constraint<> Centroid("Centroid");
+        Centroid = sum(new_x1) + sum(new_y1) + sum(new_z1) - (sum(new_xm) + sum(new_ym) + sum(new_zm));
+        Reg->add(Centroid==0);
+
+        Constraint<> Centroid_tx("Centroid_tx");
+        Centroid_tx = nd*x_shift - sum(new_xm);
+        Reg->add(Centroid_tx==0);
+
+        Constraint<> Centroid_ty("Centroid_ty");
+        Centroid_ty = nd*y_shift - sum(new_ym);
+        Reg->add(Centroid_ty==0);
+
+        Constraint<> Centroid_tz("Centroid_tz");
+        Centroid_tz = nd*z_shift - sum(new_zm);
+        Reg->add(Centroid_tz==0);
+    }
     
     bool add_voronoi = true;
     
@@ -3921,7 +3940,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
 //    Reg->print();
     Reg->print_int_solution();
     
-//            Reg->print_solution();
+            Reg->print_solution();
 //    {
 //        indices voronoi_ids("voronoi_ids");
 //        voronoi_ids = indices(N1, *norm_x._indices);
