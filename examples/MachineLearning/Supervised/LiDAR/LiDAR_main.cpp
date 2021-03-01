@@ -440,6 +440,24 @@ int main (int argc, char * argv[])
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
             bool convex = false;
+            bool three_point=true;
+            if(three_point){
+                double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+                unsigned max_iter=1e3, max_time=3000;
+                int nb_threads=1;
+                SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+                vector<vector<double>> d,m;
+                for(auto i=0;i<3;i++){
+                    d.push_back(point_cloud_data[i]);
+                    m.push_back(point_cloud_model[i]);
+                }
+                
+                    auto Reg_NC=three_point_model(d, m, false);
+                    auto Reg=three_point_model(d, m, true);
+                auto res=Reg_NC->run_obbt(Reg, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+            }
+            else
+            {
             auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex);
             auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true);
             NC_SOC_MIQCP->print();
@@ -449,14 +467,14 @@ int main (int argc, char * argv[])
             int nb_threads=1;
             SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
+            }
            // SOC_MIP->print();
             if(linearize){
+                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate=false);
                         int constr_viol=1;
                         Model<> interior_model;
                             auto lin=SOC_MIP->buildOA();
                             interior_model=lin->add_outer_app_solution(*SOC_MIP);
-            //                auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
             //            auto lin=SOC_MIP->outer_approximate_continuous_relaxation(10,constr_viol);
                        // lin->print();
                         constr_viol=1;
