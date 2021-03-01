@@ -112,7 +112,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     if (relax) relax_model();
 //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
     grb_mod->set(GRB_IntParam_NumericFocus,3);
 //    grb_mod->set(GRB_IntParam_CutPasses,0);
 //    grb_mod->set(GRB_IntParam_VarBranch,2);

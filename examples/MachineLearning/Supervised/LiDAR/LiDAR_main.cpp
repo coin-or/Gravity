@@ -3399,21 +3399,22 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
         x_new_lb.set_val(i, x_range->first + y_range->first + z_range->first + x_shift.get_lb().eval());
-        x_new_ub.set_val(i, x_range->first + y_range->second + z_range->second+ x_shift.get_ub().eval());
+        x_new_ub.set_val(i, x_range->second + y_range->second + z_range->second+ x_shift.get_ub().eval());
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
         y_new_lb.set_val(i, x_range->first + y_range->first + z_range->first + y_shift.get_lb().eval());
-        y_new_ub.set_val(i, x_range->first + y_range->second + z_range->second+ y_shift.get_ub().eval());
+        y_new_ub.set_val(i, x_range->second + y_range->second + z_range->second+ y_shift.get_ub().eval());
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
         z_new_lb.set_val(i, x_range->first + y_range->first + z_range->first + z_shift.get_lb().eval());
-        z_new_ub.set_val(i, x_range->first + y_range->second + z_range->second+ z_shift.get_ub().eval());
+        z_new_ub.set_val(i, x_range->second + y_range->second + z_range->second+ z_shift.get_ub().eval());
     }
     
     var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
     var<> new_x1("new_x1", x_new_lb, x_new_ub), new_y1("new_y1", y_new_lb, y_new_ub), new_z1("new_z1", z_new_lb, z_new_ub);
+//    var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
     Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
     Reg->add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
     
