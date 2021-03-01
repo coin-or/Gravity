@@ -3413,7 +3413,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     }
     
     var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
-    var<> new_x1("new_x1", x_new_lb, x_new_ub), new_y1("new_y1", y_new_lb, y_new_ub), new_z1("new_z1", y_new_lb, y_new_ub);
+    var<> new_x1("new_x1", x_new_lb, x_new_ub), new_y1("new_y1", y_new_lb, y_new_ub), new_z1("new_z1", z_new_lb, z_new_ub);
     Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
     Reg->add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
     
@@ -3471,7 +3471,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
-        int nb_pieces = 3; // Divide each axis into nb_pieces
+        int nb_pieces = 5; // Divide each axis into nb_pieces
         indices spatial_ids("spatial_ids");
         spatial_ids = range(1,nb_pieces);
         indices theta_ids("theta_ids");
@@ -3707,50 +3707,50 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     Norm2_new += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
     Reg->add(Norm2_new.in(N1)>=0);
     
-    bool add_delta_cut = false;
-    if(add_delta_cut){
-        var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
-        var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
-        var<> new_z1_sqr("new_z1_sqr", 0, max(pow(new_z1.get_lb(),2),pow(new_y1.get_ub(),2)));
-        Reg->add(new_x1_sqr.in(N1),new_y1_sqr.in(N1),new_z1_sqr.in(N1));
-        
-        bool split = true, convexify = true;
-        Constraint<> new_x1_Square("new_x1_Square");
-        new_x1_Square = new_x1_sqr - pow(new_x1,2);
-//        Reg->add(new_x1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        Reg->add(new_x1_Square.in(N1)>=0);
-        
-        Constraint<> new_y1_Square("new_y1_Square");
-        new_y1_Square = new_y1_sqr - pow(new_y1,2);
-//        Reg->add(new_y1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        Reg->add(new_y1_Square.in(N1)>=0);
-        
-        Constraint<> new_z1_Square("new_z1_Square");
-        new_z1_Square = new_z1_sqr - pow(new_z1,2);
-//        Reg->add(new_z1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        Reg->add(new_z1_Square.in(N1)>=0);
-        
-        Constraint<> DeltaCut("DeltaCut");
-        DeltaCut -= delta.from(cells);
-        DeltaCut += pow(x2.to(cells),2) + pow(y2.to(cells),2) + pow(z2.to(cells),2);
-        DeltaCut -= 2*new_x1.from(cells)*x2.to(cells) + 2*new_y1.from(cells)*y2.to(cells) + 2*new_z1.from(cells)*z2.to(cells);
-        DeltaCut += new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells);
-        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
-    }
-    else {
-        var<> delta_ij("delta_ij", 0,sqrt(8));
-        Reg->add(delta_ij.in(cells));
-
-        Constraint<> Norm2("Norm2");
-        Norm2 += delta_ij - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-        Reg->add(Norm2.in(cells)>=0);
-        
-        
-        Constraint<> DeltaMin("DeltaMin");
-        DeltaMin = delta;
-        DeltaMin -= bin.in_matrix(1, 1)*delta_ij.in_matrix(1, 1);
-        Reg->add(DeltaMin.in(N1)>=0);
-    }
+//    bool add_delta_cut = false;
+//    if(add_delta_cut){
+//        var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
+//        var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
+//        var<> new_z1_sqr("new_z1_sqr", 0, max(pow(new_z1.get_lb(),2),pow(new_y1.get_ub(),2)));
+//        Reg->add(new_x1_sqr.in(N1),new_y1_sqr.in(N1),new_z1_sqr.in(N1));
+//
+//        bool split = true, convexify = true;
+//        Constraint<> new_x1_Square("new_x1_Square");
+//        new_x1_Square = new_x1_sqr - pow(new_x1,2);
+////        Reg->add(new_x1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_x1_Square.in(N1)>=0);
+//
+//        Constraint<> new_y1_Square("new_y1_Square");
+//        new_y1_Square = new_y1_sqr - pow(new_y1,2);
+////        Reg->add(new_y1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_y1_Square.in(N1)>=0);
+//
+//        Constraint<> new_z1_Square("new_z1_Square");
+//        new_z1_Square = new_z1_sqr - pow(new_z1,2);
+////        Reg->add(new_z1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_z1_Square.in(N1)>=0);
+//
+//        Constraint<> DeltaCut("DeltaCut");
+//        DeltaCut -= delta.from(cells);
+//        DeltaCut += pow(x2.to(cells),2) + pow(y2.to(cells),2) + pow(z2.to(cells),2);
+//        DeltaCut -= 2*new_x1.from(cells)*x2.to(cells) + 2*new_y1.from(cells)*y2.to(cells) + 2*new_z1.from(cells)*z2.to(cells);
+//        DeltaCut += new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells);
+//        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
+//    }
+//    else {
+//        var<> delta_ij("delta_ij", 0,sqrt(8));
+//        Reg->add(delta_ij.in(cells));
+//
+//        Constraint<> Norm2("Norm2");
+//        Norm2 += delta_ij - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+//        Reg->add(Norm2.in(cells)>=0);
+//
+//
+//        Constraint<> DeltaMin("DeltaMin");
+//        DeltaMin = delta;
+//        DeltaMin -= bin.in_matrix(1, 1)*delta_ij.in_matrix(1, 1);
+//        Reg->add(DeltaMin.in(N1)>=0);
+//    }
     
     bool add_distance_cut = true;
     if(add_distance_cut){
