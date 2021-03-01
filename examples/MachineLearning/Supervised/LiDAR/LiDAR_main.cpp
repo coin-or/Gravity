@@ -172,13 +172,13 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans);
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, vector<pair<double,double>>min_max_t);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<double,double>>& min_max_t, const map<int,int>& z);
 
 shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans,bool convex);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
-
+double computeL2error_match(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, map<int, int>& z);
 vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_cloud);
 #ifdef USE_QHULL
 vector<pair<double, double>> get_translation_bounds(vector<pair<double, double>>min_max_model, const vector<double>& flat_point_cloud_data);
@@ -192,6 +192,8 @@ pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33
 
 /* Save the features to a file */
 void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features);
+
+
 
 #endif
 
@@ -210,12 +212,13 @@ int main (int argc, char * argv[])
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    
+    map<int,int> match_z;
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     if(Registration){
         vector<double> x_vec0, y_vec0, z_vec0, x_vec1, y_vec1, z_vec1;
         vector<vector<double>> point_cloud_model, point_cloud_data;
+        
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
         string algo = "ARMO", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="yes", norm_str="norm1";
@@ -385,11 +388,11 @@ int main (int argc, char * argv[])
 //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             bool separate=false;
             bool linearize=false;
-            auto L2error_init = computeL2error(point_cloud_model,point_cloud_data);
+            auto L2error_init = computeL2error_match(point_cloud_model,point_cloud_data, match_z);
             DebugOn("L2 after center = " << L2error_init << endl);
 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans);
            // auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans);
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate, min_max_t);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate, min_max_t,  match_z);
            // SOC_MIP->print();
             if(linearize){
                // auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,separate);
@@ -2399,7 +2402,7 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     
     return(Reg);
 }
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, vector<pair<double,double>>min_max_t){
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<double,double>>& min_max_t, const map<int,int>& match){
     bool project=true;
     double angle_max = 1;
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
@@ -2439,7 +2442,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 
     auto Reg=make_shared<Model<>>(name);
 
-    double shift_min_x = min_max_t[0].first, shift_max_x = min_max_t[0].second, shift_min_y = min_max_t[1].first, shift_max_y = min_max_t[1].second, shift_min_z = min_max_t[2].first,shift_max_z = min_max_t[2].second;
+//    double shift_min_x = min_max_t[0].first, shift_max_x = min_max_t[0].second, shift_min_y = min_max_t[1].first, shift_max_y = min_max_t[1].second, shift_min_z = min_max_t[2].first,shift_max_z = min_max_t[2].second;
+    double shift_min_x = -1, shift_max_x = 1, shift_min_y = -1, shift_max_y = 1, shift_min_z = -1,shift_max_z = 1;
 
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
 
@@ -2918,13 +2922,180 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     
     Reg->min(obj);
-
-    
-    
-        for (int i = 0; i<nd; i++) {
-            string key = to_string(i+1)+","+to_string(i+1);
-            bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+//    map<int,int> match1;
+//    match1[1] = 3;
+//        match1[2] = 2;
+//        match1[3] = 12;
+//        match1[4] = 4;
+//        match1[5] = 4;
+//        match1[6] = 6;
+//        match1[7] = 7;
+//        match1[8] = 7;
+//        match1[9] = 11;
+//        match1[10] = 10;
+//        match1[11] = 18;
+//        match1[12] = 27;
+//        match1[13] = 9;
+//        match1[14] = 44;
+//        match1[15] = 15;
+//        match1[16] = 21;
+//        match1[17] = 17;
+//        match1[18] = 49;
+//        match1[19] = 19;
+//        match1[20] = 16;
+//        match1[21] = 29;
+//        match1[22] = 51;
+//        match1[23] = 44;
+//        match1[24] = 20;
+//        match1[25] = 56;
+//        match1[26] = 13;
+//        match1[27] = 69;
+//        match1[28] = 32;
+//        match1[29] = 67;
+//        match1[30] = 20;
+//        match1[31] = 31;
+//        match1[32] = 36;
+//        match1[33] = 33;
+//        match1[34] = 26;
+//        match1[35] = 91;
+//        match1[36] = 59;
+//        match1[37] = 96;
+//        match1[38] = 51;
+//        match1[39] = 47;
+//        match1[40] = 80;
+//        match1[41] = 70;
+//        match1[42] = 42;
+//        match1[43] = 30;
+//        match1[44] = 98;
+//        match1[45] = 133;
+//        match1[46] = 73;
+//        match1[47] = 47;
+//        match1[48] = 48;
+//        match1[49] = 137;
+//        match1[50] = 76;
+//        match1[51] = 65;
+//        match1[52] = 52;
+//        match1[53] = 78;
+//        match1[54] = 158;
+//        match1[55] = 55;
+//        match1[56] = 117;
+//        match1[57] = 46;
+//        match1[58] = 58;
+//        match1[59] = 151;
+//        match1[60] = 148;
+//        match1[61] = 129;
+//        match1[62] = 76;
+//        match1[63] = 63;
+//        match1[64] = 90;
+//        match1[65] = 93;
+//        match1[66] = 82;
+//        match1[67] = 156;
+//        match1[68] = 102;
+//        match1[69] = 155;
+//        match1[70] = 103;
+//        match1[71] = 99;
+//        match1[72] = 175;
+//        match1[73] = 141;
+//    for (int i = 1; i<=nd; i++) {
+//        string key = to_string(i)+","+to_string(match1.at(i));
+//        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+//    }
+//        for (int i = 0; i<nd; i++) {
+//            string key = to_string(i+1)+","+to_string(match.at(i)+1);
+//            bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+//        }
+    for (int i = 0; i<nd; i++) {
+        string key = to_string(i+1)+","+to_string(i+1);
+        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+    }
+    bool fix=false;
+    if(fix){
+        map<int,int> match1;
+//        match1[1] = 3;
+//        match1[2] = 6;
+//        match1[3] = 35;
+//        match1[4] = 23;
+//        match1[5] = 23;
+//        match1[6] = 14;
+//        match1[7] = 23;
+//        match1[8] = 23;
+//        match1[9] = 11;
+//        match1[10] = 2;
+//        match1[11] = 29;
+//        match1[12] = 49;
+//        match1[13] = 1;
+//        match1[14] = 69;
+//        match1[15] = 4;
+//        match1[16] = 21;
+//        match1[17] = 22;
+//        match1[18] = 37;
+//        match1[19] = 1;
+//        match1[20] = 9;
+//        match1[21] = 40;
+//        match1[22] = 44;
+//        match1[23] = 69;
+//        match1[24] = 13;
+//        match1[25] = 16;
+//        match1[26] = 19;
+//        match1[27] = 91;
+//        match1[28] = 20;
+//        match1[29] = 45;
+//        match1[30] = 13;
+//        match1[31] = 39;
+//        match1[32] = 56;
+//        match1[33] = 31;
+//        match1[34] = 19;
+//        match1[35] = 96;
+//        match1[36] = 61;
+//        match1[37] = 104;
+//        match1[38] = 98;
+//        match1[39] = 60;
+//        match1[40] = 59;
+//        match1[41] = 24;
+//        match1[42] = 15;
+//        match1[43] = 26;
+//        match1[44] = 127;
+//        match1[45] = 129;
+//        match1[46] = 53;
+//        match1[47] = 51;
+//        match1[48] = 33;
+//        match1[49] = 133;
+//        match1[50] = 28;
+//        match1[51] = 92;
+//        match1[52] = 47;
+//        match1[53] = 56;
+//        match1[54] = 137;
+//        match1[55] = 52;
+//        match1[56] = 78;
+//        match1[57] = 34;
+//        match1[58] = 42;
+//        match1[59] = 117;
+//        match1[60] = 158;
+//        match1[61] = 141;
+//        match1[62] = 41;
+//        match1[63] = 52;
+//        match1[64] = 70;
+//        match1[65] = 68;
+//        match1[66] = 65;
+//        match1[67] = 151;
+//        match1[68] = 143;
+//        match1[69] = 156;
+//        match1[70] = 73;
+//        match1[71] = 64;
+//        match1[72] = 155;
+//        match1[73] = 152;
+        
+//
+        indices bin_fix("bin_fix");
+        for (int i = 1; i<=nd; i++) {
+            string key = to_string(i)+","+to_string(match1.at(i));
+            bin_fix.add(key);
         }
+        Constraint<> fix("fix");
+        fix=bin.in(bin_fix)-1;
+        Reg->add(fix.in(bin_fix)==0);
+        
+    }
     
     //Reg->print();
     solver<> S(Reg,gurobi);
@@ -4894,6 +5065,27 @@ double computeL2error(const vector<vector<double>>& point_cloud_model, const vec
     size_t m = point_cloud_model.size();
     double dist_sq = 0, err = 0;
     map<int,int> z;
+    for (auto i = 0; i< n; i++) {
+        double min_dist = numeric_limits<double>::max();
+        for (auto j = 0; j< m; j++) {
+            dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
+            if(min_dist>dist_sq){
+                min_dist = dist_sq;
+                z[i] = j;
+            }
+        }
+        DebugOn("DeltaMin(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOn("z(" << i+1 << ") = " << z[i]+1 << endl);
+        err += min_dist;
+    }
+    return err;
+}
+
+/* Compute the L2 error */
+double computeL2error_match(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, map<int, int>& z){
+    size_t n = point_cloud_data.size();
+    size_t m = point_cloud_model.size();
+    double dist_sq = 0, err = 0;
     for (auto i = 0; i< n; i++) {
         double min_dist = numeric_limits<double>::max();
         for (auto j = 0; j< m; j++) {

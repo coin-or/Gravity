@@ -19,6 +19,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
+            bool mipnode=true;
             if(incumbent){
             if (where == GRB_CB_MIPSOL) {
                 // Found an integer feasible solution - does it visit every node?
@@ -31,7 +32,7 @@ protected:
                     vec_x.push_back(x[i]);
                 }
                 m->set_solution(vec_x);
-                auto res=m->cutting_planes_solution(interior, 1e-8);
+                auto res=m->cutting_planes_solution(interior, 1e-6);
                 if(res.size()>=1){
                     for(i=0;i<res.size();i++){
                         GRBLinExpr expr = 0;
@@ -45,6 +46,33 @@ protected:
                 }
             }
             }
+            if(mipnode){
+                if (where == GRB_CB_MIPNODE && GRB_CB_MIPNODE_STATUS==GRB_OPTIMAL) {
+                    // Found an integer feasible solution - does it visit every node?
+                    double *x = new double[n];
+                    vector<double> vec_x;
+                   // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
+                    int i,j;
+                    x=getSolution(vars.data(),n);
+                    for(i=0;i<n;i++){
+                        vec_x.push_back(x[i]);
+                    }
+                    m->set_solution(vec_x);
+                    auto res=m->cutting_planes_solution(interior, 1e-6);
+                    if(res.size()>=1){
+                        for(i=0;i<res.size();i++){
+                            GRBLinExpr expr = 0;
+                            for(j=0;j<res[i].size()-1;j+=2){
+                                int c=res[i][j];
+                                expr += res[i][j+1]*vars[c];
+                            }
+                            expr+=res[i][j];
+                            addLazy(expr, GRB_LESS_EQUAL, 0);
+                        }
+                    }
+                }
+            }
+
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
@@ -65,8 +93,8 @@ GurobiProgram::GurobiProgram(){
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //   grb_env->set(GRB_IntParam_NumericFocus,3);
     grb_env->set(GRB_IntParam_NonConvex,1);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
-    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
     
     
     grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -89,8 +117,8 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
            //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -124,8 +152,8 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
              //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
             // grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -167,7 +195,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //    print_constraints();
     if (relax) relax_model();
     //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
     grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     //grb_mod->set(GRB_IntParam_Threads, 4);
@@ -354,7 +382,7 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(!c->is_linear())
+        if(!c->is_convex())
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
