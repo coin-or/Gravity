@@ -175,6 +175,19 @@ Model<type> Model<type>::build_model_interior() const
                 }
             }
         }
+        else{
+            Constraint<> Inter_con(*con);
+            
+            if(con->_ctype==leq)
+            {
+                Interior.add(Inter_con<=0);
+            }
+            else  if(con->_ctype==geq)
+            {
+                Interior.add(Inter_con>=0);
+            }
+            
+        }
     }
     return *Interior.copy();
 }
@@ -348,7 +361,9 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     double scale=1.0, tol=1e-8;
     auto Ointerior = nonlin.build_model_interior();
     solver<> modelI(Ointerior, ipopt);
-    modelI.run(output=0, tol);
+    //Ointerior.print();
+    modelI.run(output=5, tol);
+    //Ointerior.print_solution();
     vector<double> xsolution(_nb_vars);
     nonlin.get_solution(xsolution);
     if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val()<0)
@@ -583,8 +598,9 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 }
                 else
                 {
+                    con->uneval();
                     auto fk=con->eval(i);
-                    if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
+                    if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                         constr_viol=true;
                         //ToDo fix interior status and check for it
                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
@@ -605,7 +621,13 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 }
                 if(oa_cut){
                     oa_cut=false;
-                    convex_region=con->check_convex_region_d(i);
+                    convex_region=true;
+                    if(cname.find("soc")!=std::string::npos){
+                        convex_region=con->check_convex_region_soc_rotation(i);
+                    }
+                    else if(cname.find("det")!=std::string::npos){
+                        convex_region=con->check_convex_region_det_rotation(i);
+                    }
                     if(convex_region){
                         scale=1.0;
                             con->get_outer_coef(i, c_val, c0_val);

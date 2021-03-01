@@ -46,16 +46,16 @@ template<typename type>
 bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t nb_inst)
 {
     bool success=false;
-    const double int_tol=1e-12, zero_tol=1e-12;
+    const double int_tol=1e-14, zero_tol=1e-13;
     const int max_iter=1000;
-    vector<double> x_f, x_t, x_end, xcurrent, interval, mid;
+    vector<double> x_f, x_t, x_end, interval, mid;
     double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
     int iter=0;
-    x_end=this->get_x(nb_inst);
+    x_end=this->get_x(nb_inst);/* outer point */
     this->uneval();
     f_b=this->eval(nb_inst);
     
-    this->set_x(nb_inst, x_start);
+    this->set_x(nb_inst, x_start);/* inner point */
     this->uneval();
     f_a=this->eval(nb_inst);
     
@@ -73,7 +73,9 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
         x_f=x_end;
         x_t=x_start;
     }
-    
+    if(x_start.size()!=x_t.size() || x_start.size()!=x_f.size() || x_start.size()!=x_end.size()){
+        throw invalid_argument("size mismatch");
+    }
     for(auto i=0;i<x_start.size();i++)
     {
         interval.push_back(x_t[i]-x_f[i]);
@@ -82,9 +84,9 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
     
     interval_norm=l2norm(interval);
     
-    if(f_f<=0 && f_t>=0 )
+    if(f_f<=(zero_tol*(-1)) && f_t>=zero_tol)
     {
-        while(interval_norm>int_tol && iter<=max_iter)
+        while(interval_norm>=int_tol && iter<=max_iter)
         {
             for(auto i=0;i<x_start.size();i++)
             {
@@ -101,19 +103,28 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
             //
             //                    }
             //
-            if(f_mid>zero_tol)
+            if(f_mid>=zero_tol)
             {
                 x_t=mid;
             }
-            else if(f_mid<zero_tol*(-1.))
+            else if(f_mid<=zero_tol*(-1.))
             {
                 x_f=mid;
             }
             else
             {
-                //DebugOn("Reached answer"<<endl);
-                success=true;
-                break;
+                if((f_mid<=0) && (std::abs(f_mid)>=1e-14)){
+                    success=true;
+                    
+                    
+                                DebugOff("F_mid "<<f_mid<<endl);
+                                DebugOff("Interval_Norm "<<interval_norm<<endl);
+                                DebugOff("Iter "<<iter<<endl);
+                    break;
+                }
+                else{
+                    break;
+                }
             }
             for(auto i=0;i<x_start.size();i++)
             {
@@ -123,10 +134,7 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
             interval_norm=l2norm(interval);
             iter++;
         }
-        //
-        //            DebugOn("F_mid "<<f_mid<<endl);
-        //            DebugOn("Interval_Norm "<<interval_norm<<endl);
-        //            DebugOn("Iter "<<iter<<endl);
+      
     }
     
     

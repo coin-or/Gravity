@@ -1056,7 +1056,8 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                if(v->_name==var_name){
+                DebugOff(v->_name<<endl);
+                if(v->_name.find(var_name)!=std::string::npos){
                     continue;
                 }
                 if(v->_is_vector)
@@ -1615,51 +1616,50 @@ namespace gravity {
             return res;
         }
         
-        /** Fill the coefficients corresponding to the OA cuts of a symbolic constraints */
         void get_outer_coef(size_t nb_inst, vector<double>& c, double& c0){ /**< Returns an outer-approximation of the function using the current value of the variables **/
-            double f_xstar, xv, dfv;
-            uneval();
-            f_xstar=eval(nb_inst);
-            c.clear();
-            //            c0=f_xstar;
-            //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
-            size_t posv;
-            
-            
-            for(auto &it: *_vars){
-                auto v = it.second.first;
-                auto df = compute_derivative(*v);
-                if(v->_is_vector)
-                {
-                    for (auto i=0;i<v->_dim[0];i++)
-                    {
-                        v->get_double_val(i, xv);
-                        df->uneval();
-                        dfv=df->eval(i);
-                        c.push_back(dfv);
-                        c0-=dfv*xv;
+                    double f_xstar, xv, dfv;
+                    uneval();
+                    f_xstar=eval(nb_inst);
+                    c.clear();
+                    //            c0=f_xstar;
+                    //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
+                    size_t posv;
+                    
+                    
+                    for(auto &it: *_vars){
+                        auto v = it.second.first;
+                        auto df = compute_derivative(*v);
+                        if(v->_is_vector)
+                        {
+                            for (auto i=0;i<v->_dim[0];i++)
+                            {
+                                v->get_double_val(i, xv);
+                                df->uneval();
+                                dfv=df->eval(i);
+                                c.push_back(dfv);
+                                c0-=dfv*xv;
+                            }
+                        }
+                        else {
+                            posv=v->get_id_inst(nb_inst);
+                            v->get_double_val(posv, xv);
+                            df->uneval();
+                            dfv=df->eval(nb_inst);
+                            c.push_back(dfv);
+                            c0-=dfv*xv;
+                        }
                     }
+                    c0+=f_xstar;
+                    //if(f_xstar>=active_tol)
+                    //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
+                    //            {
+                    //                res += f_xstar*1E3;
+                    //            }
+                    //            else{
+                    //                res += f_xstar;
+                    //            }
+                    //
                 }
-                else {
-                    posv=v->get_id_inst(nb_inst);
-                    v->get_double_val(posv, xv);
-                    df->uneval();
-                    dfv=df->eval(nb_inst);
-                    c.push_back(dfv);
-                    c0-=dfv*xv;
-                }
-            }
-            c0+=f_xstar;
-            //if(f_xstar>=active_tol)
-            //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
-            //            {
-            //                res += f_xstar*1E3;
-            //            }
-            //            else{
-            //                res += f_xstar;
-            //            }
-            //
-        }
         
         
         

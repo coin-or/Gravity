@@ -31,7 +31,7 @@ protected:
                     vec_x.push_back(x[i]);
                 }
                 m->set_solution(vec_x);
-                auto res=m->cutting_planes_solution(interior, 1e-6);
+                auto res=m->cutting_planes_solution(interior, 1e-8);
                 if(res.size()>=1){
                     for(i=0;i<res.size();i++){
                         GRBLinExpr expr = 0;
@@ -45,33 +45,6 @@ protected:
                 }
             }
             }
-            if(false){
-                if (where == GRB_CB_MIPNODE && GRB_CB_MIPNODE_STATUS==GRB_OPTIMAL) {
-                    // Found an integer feasible solution - does it visit every node?
-                    double *x = new double[n];
-                    vector<double> vec_x;
-                   // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
-                    int i,j;
-                    x=getSolution(vars.data(),n);
-                    for(i=0;i<n;i++){
-                        vec_x.push_back(x[i]);
-                    }
-                    m->set_solution(vec_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6);
-                    if(res.size()>=1){
-                        for(i=0;i<res.size();i++){
-                            GRBLinExpr expr = 0;
-                            for(j=0;j<res[i].size()-1;j+=2){
-                                int c=res[i][j];
-                                expr += res[i][j+1]*vars[c];
-                            }
-                            expr+=res[i][j];
-                            addLazy(expr, GRB_LESS_EQUAL, 0);
-                        }
-                    }
-                }
-            }
-            
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
@@ -114,7 +87,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
-            //    grb_env->set(GRB_IntParam_NumericFocus,3);
+           //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
             grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
@@ -149,7 +122,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
             //    grb_env->set(GRB_IntParam_Threads,1);
             //    grb_env->set(GRB_IntParam_Presolve,0);
-            //    grb_env->set(GRB_IntParam_NumericFocus,3);
+             //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
             grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-6);
@@ -194,7 +167,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //    print_constraints();
     if (relax) relax_model();
     //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     //grb_mod->set(GRB_IntParam_Threads, 4);
@@ -323,6 +296,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                        _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
                     }
                 }
                 break;
@@ -332,6 +306,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                    _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
                 }
                 break;
             }
