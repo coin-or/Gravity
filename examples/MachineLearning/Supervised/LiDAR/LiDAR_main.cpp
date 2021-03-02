@@ -4295,7 +4295,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     theta22.initialize_all(1);
     theta33.initialize_all(1);
     
-    bool spatial_branching = false;
+    bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
         int nb_pieces = 5; // Divide each axis into nb_pieces
@@ -4501,7 +4501,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(OneBin.in(N1)==1);
     
     
-    bool add_voronoi = false;
+    bool add_voronoi = true;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(range(1, 3), *norm_x._indices);

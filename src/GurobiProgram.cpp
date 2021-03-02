@@ -8,12 +8,20 @@ public:
     vector<GRBVar> vars;
     int n;
     Model<>* m;
+    double *x;
+    vector<double> cont_x, int_x;
     Model<> interior;    
-    cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
+    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
         vars = _grb_vars;
         n    = xn;
         m=mn;
+        x = new double[n];
+        cont_x.resize(n);
+        int_x.resize(n);
         interior=interiorn;
+    }
+    ~cuts(){
+        delete [] x;
     }
 protected:
     void callback() {
@@ -23,15 +31,12 @@ protected:
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
-                    double *x = new double[n];
-                    vector<double> vec_x;
-                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
                     int i,j;
                     x=getSolution(vars.data(),n);
                     for(i=0;i<n;i++){
-                        vec_x.push_back(x[i]);
+                        int_x[i] = x[i];
                     }
-                    m->set_solution(vec_x);
+                    m->set_solution(int_x);
                     auto res=m->cutting_planes_solution(interior, 1e-6);
                     if(res.size()>=1){
                         for(i=0;i<res.size();i++){
@@ -50,33 +55,33 @@ protected:
                 if (where == GRB_CB_MIPNODE){
                     int stat=getIntInfo(GRB_CB_MIPNODE_STATUS);
                     if(stat==2){
-                    DebugOn(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
-                        // Found an integer feasible solution - does it visit every node?
-                    double *x = new double[n];
-                    vector<double> vec_x;
-                    double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
-                    double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
-                    DebugOn(obj<<"\t"<<obj1<<"\t"<<endl);
-                    int i,j;
-                    x=getNodeRel(vars.data(),n);
-                    for(i=0;i<n;i++){
-                        vec_x.push_back(x[i]);
-                    }
-                    m->set_solution(vec_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6);
-                    if(res.size()>=1){
-                        for(i=0;i<res.size();i++){
-                            GRBLinExpr expr = 0;
-                            for(j=0;j<res[i].size()-1;j+=2){
-                                int c=res[i][j];
-                                expr += res[i][j+1]*vars[c];
-                            }
-                            expr+=res[i][j];
-                            addCut(expr, GRB_LESS_EQUAL, 0);
+                        DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
+                            // Found an integer feasible solution - does it visit every node?
+                        double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
+                        double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
+                        DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
+                        int i,j;
+                        m->get_solution(int_x);
+                        x=getNodeRel(vars.data(),n);
+                        for(i=0;i<n;i++){
+                            cont_x[i] = x[i];
                         }
+                        m->set_solution(cont_x);
+                        auto res=m->cutting_planes_solution(interior, 1e-6);
+                        if(res.size()>=1){
+                            for(i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                for(j=0;j<res[i].size()-1;j+=2){
+                                    int c=res[i][j];
+                                    expr += res[i][j+1]*vars[c];
+                                }
+                                expr+=res[i][j];
+                                addCut(expr, GRB_LESS_EQUAL, 0);
+                            }
+                        }
+                        m->set_solution(int_x);
                     }
                 }
-            }
             }
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
@@ -204,20 +209,20 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //grb_mod->set(GRB_IntParam_Threads, 4);
 //    if(use_callback){
         grb_mod->set(GRB_IntParam_NonConvex,2);
-        grb_mod->set(GRB_IntParam_NumericFocus,3);
+//        grb_mod->set(GRB_IntParam_NumericFocus,3);
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
         int n=grb_mod->get(GRB_IntAttr_NumVars);
         Model<> interior;
-        _model->replace_integers();
+//        _model->replace_integers();
         auto lin=_model->buildOA();
         interior=lin->add_outer_app_solution(*_model);
         cuts cb = cuts(_grb_vars, n, _model, interior);
         grb_mod->setCallback(&cb);
 //    }
     grb_mod->optimize();
-            grb_mod->write("~/mod.mps");
+//            grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
             //        return false;
