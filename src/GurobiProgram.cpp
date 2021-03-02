@@ -47,13 +47,18 @@ protected:
                 }
             }
             if(mipnode){
-                if (where == GRB_CB_SIMPLEX) {
+                if (where == GRB_CB_MIPNODE){
+                    int stat=getIntInfo(GRB_CB_MIPNODE_STATUS);
+                    if(stat==2){
+                    DebugOn(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
                         // Found an integer feasible solution - does it visit every node?
                     double *x = new double[n];
                     vector<double> vec_x;
-                        // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
+                    double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
+                    double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
+                    DebugOn(obj<<"\t"<<obj1<<"\t"<<endl);
                     int i,j;
-                    x=getSolution(vars.data(),n);
+                    x=getNodeRel(vars.data(),n);
                     for(i=0;i<n;i++){
                         vec_x.push_back(x[i]);
                     }
@@ -67,12 +72,12 @@ protected:
                                 expr += res[i][j+1]*vars[c];
                             }
                             expr+=res[i][j];
-                            addLazy(expr, GRB_LESS_EQUAL, 0);
+                            addCut(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
                 }
             }
-            
+            }
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
@@ -199,6 +204,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //grb_mod->set(GRB_IntParam_Threads, 4);
 //    if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+        grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
         int n=grb_mod->get(GRB_IntAttr_NumVars);
         Model<> interior;
@@ -209,7 +215,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         grb_mod->setCallback(&cb);
 //    }
     grb_mod->optimize();
-        //    grb_mod->write("~/mod.mps");
+            grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
             //        return false;

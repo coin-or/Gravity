@@ -671,6 +671,7 @@ int main (int argc, char * argv[])
                 //                }
                 //                DebugOn("nb count "<<nb_count);
                 //            }
+            SOC_MIP->print_solution();
             if(norm1){
                 apply_rot_trans(rot_trans, point_cloud_data);
             }
@@ -4304,7 +4305,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     theta22.initialize_all(1);
     theta33.initialize_all(1);
     
-    bool spatial_branching = true;
+    bool spatial_branching = false;
     if(spatial_branching){
         /* Spatial branching vars */
         int nb_pieces = 3; // Divide each axis into nb_pieces
@@ -4510,7 +4511,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(OneBin.in(N1)==1);
     
     
-    bool add_voronoi = true;
+    bool add_voronoi = false;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(range(1, 3), *norm_x._indices);
