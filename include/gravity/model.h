@@ -618,6 +618,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 set_objective(obj_cpy, _objt);
             }
             _int_vars = m._int_vars;
+            _status = m._status;
             return *this;
         }
         
@@ -6431,6 +6432,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         int cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname, std::vector<std::string>& repeat_list, const std::vector<size_t>& limits);
         template<typename T=type>
         bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, std::string model_name,int& oacuts, double active_tol);
+        template<typename T=type>
+                vector<vector<double>> cutting_planes_solution(const Model<type>& interior, double active_tol);
         template<typename T=type>
         void model_fix_int(shared_ptr<gravity::Model<double>> relax);
         template<typename T=type>
