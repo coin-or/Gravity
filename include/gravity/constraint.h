@@ -1,10 +1,10 @@
-//
-//  constraint.hpp
-//  Gravity
-//
-//  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
-//
-//
+    //
+    //  constraint.hpp
+    //  Gravity
+    //
+    //  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
+    //
+    //
 
 #ifndef constraint_hpp
 #define constraint_hpp
@@ -65,23 +65,23 @@ public:
         
     };
     
-    //        Constraint& operator<=(type rhs) {
-    //            _ctype = leq;
-    //            *this -= rhs;
-    //            return *this;
-    //        }
-    //
-    //        Constraint& operator==(type rhs) {
-    //            _ctype = eq;
-    //            *this -= rhs;
-    //            return *this;
-    //        }
-    //
-    //        Constraint& operator>=(type rhs) {
-    //            _ctype = geq;
-    //            *this -= rhs;
-    //            return *this;
-    //        }
+        //        Constraint& operator<=(type rhs) {
+        //            _ctype = leq;
+        //            *this -= rhs;
+        //            return *this;
+        //        }
+        //
+        //        Constraint& operator==(type rhs) {
+        //            _ctype = eq;
+        //            *this -= rhs;
+        //            return *this;
+        //        }
+        //
+        //        Constraint& operator>=(type rhs) {
+        //            _ctype = geq;
+        //            *this -= rhs;
+        //            return *this;
+        //        }
     
     Constraint& operator<=(const param<type>& rhs) {
         _ctype = leq;
@@ -180,7 +180,7 @@ public:
         this->_name = c._name;
         this->_is_constraint = true;
         _onCoef = c._onCoef.deep_copy();
-        _offCoef = c._offCoef.deep_copy();        
+        _offCoef = c._offCoef.deep_copy();
     }
     
     Constraint& operator=(const Constraint& c){
@@ -359,7 +359,7 @@ public:
         else {
             str += ") : \n";
         }
-        //            auto space_size = str.size();
+            //            auto space_size = str.size();
         auto space_size = 0;
         auto nb_inst = this->get_nb_instances();
         this->allocate_mem();
@@ -425,23 +425,152 @@ public:
         return fabs(this->_val->at(inst)) < tol;
     }
     bool check_convex_region(int inst){
-           bool convex_region=true;
-           vector<double> xres;
-           if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
-           {
-               xres=this->get_x(inst);
-               auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
-               auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
-               auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
-               if(soc1<=0 && soc2<=0 && soc3<=0){
-                   convex_region=true;
-               }
-               else{
-                   convex_region=false;
-               }
-           }
-           return convex_region;
-       }
+        bool convex_region=true;
+        vector<double> xres;
+        if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
+        {
+            xres=this->get_x(inst);
+            auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
+            auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
+            auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
+            if(soc1<=0 && soc2<=0 && soc3<=0){
+                convex_region=true;
+            }
+            else{
+                convex_region=false;
+            }
+        }
+        return convex_region;
+    }
+    bool check_convex_region_d(int inst){
+        bool convex_region=true;
+        vector<double> xres;
+        if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
+        {
+            xres=this->get_x(inst);
+            if(xres[0]<0 || xres[1]<0){
+                convex_region=false;
+            }
+        }
+        return convex_region;
+    }
+    bool check_convex_region_soc_rotation(int inst){
+        bool convex_region=false;
+        const double zero_tol=1e-12;
+        double theta11, theta22, theta33;
+        for (auto &v_p: this->get_vars()){
+            
+            auto vname=v_p.first;
+            auto vark=(var<double>*)(v_p.second.first.get());
+            if(vname=="theta11"){
+                theta11=vark->eval("0");
+            }
+            if(vname=="theta22"){
+                theta22=vark->eval("0");
+            }
+            if(vname=="theta33"){
+                theta33=vark->eval("0");
+            }
+            
+        }
+        vector<double> d;
+        d.resize(4);
+        d[0]=1-theta11-theta22+theta33;
+        d[1]=1+theta11-theta22-theta33;
+        d[2]=1+theta11+theta22+theta33;
+        d[3]=1-theta11+theta22-theta33;
+        string cname=this->_name;
+        string ind=cname.substr(cname.find_first_of("_")+1);
+        int ind_int=std::atoi(ind.c_str());
+        int j_ind=ind_int%10;
+        ind_int/=10;
+        int i_ind=ind_int;
+        
+        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
+            convex_region=true;
+        }
+        return convex_region;
+    }
+    
+    bool check_convex_region_det_rotation(int inst){
+        bool convex_region=false;
+        const double zero_tol=1e-12;
+        double theta11, theta22, theta33, theta12, theta13, theta21, theta23, theta31, theta32;
+        std::map<int, double> soc_map;
+        for (auto &v_p: this->get_vars()){
+            
+            auto vname=v_p.first;
+            auto vark=(var<double>*)(v_p.second.first.get());
+            if(vname=="theta11"){
+                theta11=vark->eval("0");
+            }
+            if(vname=="theta22"){
+                theta22=vark->eval("0");
+            }
+            if(vname=="theta33"){
+                theta33=vark->eval("0");
+            }
+            if(vname=="theta12"){
+                theta12=vark->eval("0");
+            }
+            if(vname=="theta13"){
+                theta13=vark->eval("0");
+            }
+            if(vname=="theta21"){
+                theta21=vark->eval("0");
+            }
+            if(vname=="theta23"){
+                theta23=vark->eval("0");
+            }
+            if(vname=="theta31"){
+                theta31=vark->eval("0");
+            }
+            if(vname=="theta32"){
+                theta32=vark->eval("0");
+            }
+            
+        }
+        vector<double> d;
+        d.resize(4);
+        d[0]=1-theta11-theta22+theta33;
+        d[1]=1+theta11-theta22-theta33;
+        d[2]=1+theta11+theta22+theta33;
+        d[3]=1-theta11+theta22-theta33;
+        
+        auto soc_12=std::pow((theta13+theta31),2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
+        auto soc_13 = std::pow((theta12-theta21),2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
+        auto soc_14 = std::pow((theta23+theta32),2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
+        auto soc_23 = std::pow((theta23-theta32),2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
+        auto soc_24 = std::pow((theta12+theta21),2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
+        auto soc_34 =std::pow((theta31-theta13),2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
+        soc_map[12]=soc_12;
+        soc_map[13]=soc_13;
+        soc_map[14]=soc_14;
+        soc_map[23]=soc_23;
+        soc_map[24]=soc_24;
+        soc_map[34]=soc_34;
+        string cname=this->_name;
+        string ind=cname.substr(cname.find_first_of("_")+1);
+        int ind_int=std::atoi(ind.c_str());
+        int k_ind=ind_int%10;
+        ind_int/=10;
+        int j_ind=ind_int%10;
+        ind_int/=10;
+        int i_ind=ind_int;
+        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
+            if((soc_12<=zero_tol*(-1)) && (soc_13<=zero_tol*(-1)) && (soc_14<=zero_tol*(-1)) && (soc_23<=zero_tol*(-1)) && (soc_24<=zero_tol*(-1)) && (soc_34<=zero_tol*(-1))){
+                convex_region=true;
+            }
+        }
+            //        if(d[0]>=0 && d[1]>=0 && d[2]>=0 && d[3]>=0){
+            //            if((soc_map[(i_ind*10+j_ind)]<=0)&&(soc_map[(j_ind*10+k_ind)]<=0)&&(soc_map[(i_ind*10+k_ind)]<=0)){
+            //            convex_region=true;
+            //            }
+            //        }
+        DebugOff("convex region "<<convex_region<<endl);
+        return convex_region;
+    }
+    
 };
 }
 #endif /* constraint_hpp */

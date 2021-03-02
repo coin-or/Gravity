@@ -83,7 +83,7 @@ public:
     map<string,int>                           _int_options;
     map<string,double>                        _double_options;
     map<string,bool>                          _bool_options;
-    
+    bool                                      _use_callback = false;
     /** Constructor */
     //@{
     solver();
@@ -114,6 +114,11 @@ public:
     
     void set_option(const string& option, const bool& val){
         _bool_options[option] = val;
+    }
+    
+    
+    void use_callback(){
+        _use_callback = true;
     }
     
     unsigned get_nb_iterations(){
@@ -236,7 +241,7 @@ public:
         return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
     }
     /* run model */
-    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit ){
+    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
         int return_status = -1, dyn_max_iter = 20;
         bool violated_constraints = true, optimal = true, solver_violated=false;
         unsigned nb_it = 0;
@@ -430,7 +435,8 @@ public:
                     //            prog.grb_prog->reset_model();
                         grb_prog->prepare_model();
                         //DebugOn("calling prep after init"<<endl);
-                    optimal = grb_prog->solve(output, tol);
+                    
+                    optimal = grb_prog->solve(output, tol, _use_callback);
                     return_status = optimal ? 0 : -1;
                     //                        delete grb_prog->grb_mod;
                     //                        delete grb_prog->grb_env;
