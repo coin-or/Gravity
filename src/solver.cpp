@@ -373,7 +373,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     }
     for (auto &con: nonlin._cons_vec)
     {
-        if(!con->is_linear()){
+        if(!con->is_linear() && !con->has_int()){
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
             {
                 Constraint<> OA_sol("OA_cuts_"+con->_name);
