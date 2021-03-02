@@ -47,7 +47,7 @@ protected:
                 }
             }
             if(mipnode){
-                if (where == GRB_CB_MIPNODE && GRB_CB_MIPNODE_STATUS==GRB_OPTIMAL) {
+                if (where == GRB_CB_SIMPLEX) {
                         // Found an integer feasible solution - does it visit every node?
                     double *x = new double[n];
                     vector<double> vec_x;
@@ -197,16 +197,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
 //grb_mod->set(GRB_IntParam_Threads, 4);
-    if(use_callback){
+//    if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
         int n=grb_mod->get(GRB_IntAttr_NumVars);
         Model<> interior;
+        _model->replace_integers();
         auto lin=_model->buildOA();
         interior=lin->add_outer_app_solution(*_model);
         cuts cb = cuts(_grb_vars, n, _model, interior);
         grb_mod->setCallback(&cb);
-    }
+//    }
     grb_mod->optimize();
         //    grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
@@ -384,7 +385,7 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(!c->is_convex())
+        if(!c->is_linear())
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
