@@ -4253,7 +4253,6 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
-    Reg->add(bin.in(cells));
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     double angle_max = 25.*pi/180.;
     var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
@@ -4305,7 +4304,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     theta22.initialize_all(1);
     theta33.initialize_all(1);
     
-    bool spatial_branching = false;
+    bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
         int nb_pieces = 3; // Divide each axis into nb_pieces
@@ -4511,7 +4510,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(OneBin.in(N1)==1);
     
     
-    bool add_voronoi = false;
+    bool add_voronoi = true;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(range(1, 3), *norm_x._indices);
@@ -4743,16 +4742,16 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     
     Constraint<> txsq("txsq");
-    txsq = tx-pow(x_shift,2);
-    Reg->add(txsq.in(range(0,0))>=0);
+    txsq = pow(x_shift,2) - tx;
+    Reg->add(txsq.in(range(0,0))<=0);
     
     Constraint<> tysq("tysq");
-    tysq = ty-pow(y_shift,2);
-    Reg->add(tysq.in(range(0,0))>=0);
+    tysq = pow(y_shift,2) - ty;
+    Reg->add(tysq.in(range(0,0))<=0);
     
     Constraint<> tzsq("tzsq");
-    tzsq = tz-pow(z_shift,2);
-    Reg->add(tzsq.in(range(0,0))>=0);
+    tzsq = pow(z_shift,2) - tz;
+    Reg->add(tzsq.in(range(0,0))<=0);
     
     Constraint<> diag_1("diag_1");
     diag_1=1-theta11-theta22+theta33;
@@ -4834,7 +4833,36 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
     Reg->add(col3.in(range(0,0))<=1);
     
-    
+//    bool add_delta_cut = false;
+//    if(add_delta_cut){
+//        var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
+//        var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
+//        var<> new_z1_sqr("new_z1_sqr", 0, max(pow(new_z1.get_lb(),2),pow(new_y1.get_ub(),2)));
+//        Reg->add(new_x1_sqr.in(N1),new_y1_sqr.in(N1),new_z1_sqr.in(N1));
+//
+//        bool split = true, convexify = true;
+//        Constraint<> new_x1_Square("new_x1_Square");
+//        new_x1_Square = new_x1_sqr - pow(new_x1,2);
+////        Reg->add(new_x1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_x1_Square.in(N1)>=0);
+//
+//        Constraint<> new_y1_Square("new_y1_Square");
+//        new_y1_Square = new_y1_sqr - pow(new_y1,2);
+////        Reg->add(new_y1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_y1_Square.in(N1)>=0);
+//
+//        Constraint<> new_z1_Square("new_z1_Square");
+//        new_z1_Square = new_z1_sqr - pow(new_z1,2);
+////        Reg->add(new_z1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+//        Reg->add(new_z1_Square.in(N1)>=0);
+//
+//        Constraint<> DeltaCut("DeltaCut");
+//        DeltaCut -= delta.from(cells);
+//        DeltaCut += pow(x2.to(cells),2) + pow(y2.to(cells),2) + pow(z2.to(cells),2);
+//        DeltaCut -= 2*new_x1.from(cells)*x2.to(cells) + 2*new_y1.from(cells)*y2.to(cells) + 2*new_z1.from(cells)*z2.to(cells);
+//        DeltaCut += new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells);
+//        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
+//    }
     
     
     /* Objective function */
@@ -4882,7 +4910,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-            Reg->print();
+//            Reg->print();
     solver<> S(Reg,gurobi);
     S.use_callback();
     S.run();
