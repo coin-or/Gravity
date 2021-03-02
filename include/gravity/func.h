@@ -1056,7 +1056,7 @@ namespace gravity {
             for(auto &it: *_vars)
             {
                 auto v = it.second.first;
-                if(v->_name==var_name){
+                if(v->_name.find(var_name)!=std::string::npos){
                     continue;
                 }
                 if(v->_is_vector)
@@ -1621,8 +1621,6 @@ namespace gravity {
             uneval();
             f_xstar=eval(nb_inst);
             c.clear();
-            //            c0=f_xstar;
-            //DebugOn("F_xstar in func.h\t"<<f_xstar<<endl);
             size_t posv;
             
             
@@ -1650,15 +1648,6 @@ namespace gravity {
                 }
             }
             c0+=f_xstar;
-            //if(f_xstar>=active_tol)
-            //            if(scale) //assuming con is the SDP cut as it is the only nonconvex one
-            //            {
-            //                res += f_xstar*1E3;
-            //            }
-            //            else{
-            //                res += f_xstar;
-            //            }
-            //
         }
         
         
