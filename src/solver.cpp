@@ -91,10 +91,13 @@ shared_ptr<Model<type>> Model<type>::buildOA()
     string cname;
     for (auto &con: cpy->_cons_vec)
     {
+//        if(con->is_eq())
+            
         if(!con->is_linear()) {
             if(con->_ctype==eq)
             {
-                throw invalid_argument("Equality constraint is not currently supported");
+                continue;
+//                throw invalid_argument("Equality constraint is not currently supported");
             }
         }
         else
@@ -373,6 +376,8 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     }
     for (auto &con: nonlin._cons_vec)
     {
+        if(con->is_eq())
+            continue;
         if(!con->is_linear() && !con->has_int()){
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc())
             {

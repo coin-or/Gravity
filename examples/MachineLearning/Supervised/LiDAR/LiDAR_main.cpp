@@ -629,7 +629,7 @@ int main (int argc, char * argv[])
 #endif
             DebugOn("Initial L2 on full data = " << L2error_init << endl);
                 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
-            bool convex = true;
+            bool convex = false;
                 //            auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
             auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
@@ -3477,7 +3477,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
         Reg->add(Centroid_tz==0);
     }
     
-    bool add_voronoi = false;
+    bool add_voronoi = true;
     
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
@@ -3502,11 +3502,14 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     
         //
-    
+    theta11.initialize_all(1);
+    theta22.initialize_all(1);
+    theta33.initialize_all(1);
+
     bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
-        int nb_pieces = 3; // Divide each axis into nb_pieces
+        int nb_pieces = 5; // Divide each axis into nb_pieces
         indices spatial_ids("spatial_ids");
         spatial_ids = range(1,nb_pieces);
         indices theta_ids("theta_ids");
@@ -4241,7 +4244,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
-    double angle_max = 50.*pi/180.;
+    double angle_max = 25.*pi/180.;
     var<> yaw("yaw", -angle_max, angle_max), pitch("pitch", -angle_max, angle_max), roll("roll", -angle_max, angle_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
@@ -4294,7 +4297,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
-        int nb_pieces = 3; // Divide each axis into nb_pieces
+        int nb_pieces = 5; // Divide each axis into nb_pieces
         indices spatial_ids("spatial_ids");
         spatial_ids = range(1,nb_pieces);
         indices theta_ids("theta_ids");
