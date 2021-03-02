@@ -97,7 +97,7 @@ GurobiProgram::GurobiProgram(){
         //   grb_env->set(GRB_IntParam_Threads,8);
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //   grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,1);
+    grb_env->set(GRB_IntParam_NonConvex,2);
 //    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
 //    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
     
@@ -203,6 +203,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
 //grb_mod->set(GRB_IntParam_Threads, 4);
 //    if(use_callback){
+        grb_mod->set(GRB_IntParam_NonConvex,2);
+        grb_mod->set(GRB_IntParam_NumericFocus,3);
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
@@ -391,7 +393,7 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(!c->is_linear())
+        if(c->is_ineq() && !c->is_convex() && !c->has_int())
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;

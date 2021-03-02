@@ -629,9 +629,9 @@ int main (int argc, char * argv[])
 #endif
             DebugOn("Initial L2 on full data = " << L2error_init << endl);
                 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
-            bool convex = true;
+            bool convex = false;
                 //            auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-//            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
+            auto NC_SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
@@ -640,7 +640,7 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_t, matching);
+//            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_t, matching);
                 ////            SOC_MIP->print();
                 //            if(linearize){
                 //                int constr_viol=1;
@@ -3350,7 +3350,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
-        //    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.011, -0.01);
+//    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.011, -0.01);
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
@@ -3375,9 +3375,9 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     var<> theta21("theta21", r21._range->first, r21._range->second), theta22("theta22", r22._range->first, r22._range->second), theta23("theta23", r23._range->first, r23._range->second);
     var<> theta31("theta31", r31._range->first, r31._range->second), theta32("theta32", r32._range->first, r32._range->second), theta33("theta33", r33._range->first, r33._range->second);
     
-        //    var<> theta11("theta11",  0.8, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
-        //    var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
-        //    var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0.8, 1);
+//            var<> theta11("theta11",  0.8, 1), theta12("theta12", -1, 1), theta13("theta13", -1, 1);
+//            var<> theta21("theta21",  -1, 1), theta22("theta22", -1, 1), theta23("theta23", -1, 1);
+//            var<> theta31("theta31",  -1, 1), theta32("theta32", -1, 1), theta33("theta33", 0.8, 1);
     
         //    var<> theta11("theta11",  0.96, 0.97), theta12("theta12", 0.15, 0.16), theta13("theta13", -0.22, -0.2);
         //    var<> theta21("theta21",  -0.21, -0.2), theta22("theta22", 0.95, 0.96), theta23("theta23", -0.24, 0.23);
@@ -3431,7 +3431,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
     var<> new_x1("new_x1", x_new_lb, x_new_ub), new_y1("new_y1", y_new_lb, y_new_ub), new_z1("new_z1", z_new_lb, z_new_ub);
-        //    var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
+//            var<> new_x1("new_x1", -1, 1), new_y1("new_y1", -1, 1), new_z1("new_z1", -1, 1);
     Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
     Reg->add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
     
@@ -3439,15 +3439,15 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
         //    Reg->add(new_x1_ij.in(cells), new_y1_ij.in(cells), new_z1_ij.in(cells));
     
     
-    var<> delta("delta", 0,1);
+    var<> delta("delta", pos_);
     Reg->add(delta.in(N1));
     
     
-    var<> d1("d1", 0,4),d2("d2", 0,4),d3("d3", 0,4),d4("d4", 0,4);
-    var<> l12("l12", -2,2),l13("l13", -2,2),l14("l14", -2,2),l23("l23", -2,2),l24("l24", -2,2),l34("l34", -2,2);
-    Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
-    Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
-    Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
+//    var<> d1("d1", 0,4),d2("d2", 0,4),d3("d3", 0,4),d4("d4", 0,4);
+//    var<> l12("l12", -2,2),l13("l13", -2,2),l14("l14", -2,2),l23("l23", -2,2),l24("l24", -2,2),l34("l34", -2,2);
+//    Reg->add(l12.in(R(1)),l13.in(R(1)),l14.in(R(1)));
+//    Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
+//    Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
     
     
     indices ids = indices("in_x");
@@ -3503,7 +3503,10 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     
         //
-    
+    theta11.initialize_all(1);
+    theta22.initialize_all(1);
+    theta33.initialize_all(1);
+
     bool spatial_branching = true;
     if(spatial_branching){
         /* Spatial branching vars */
@@ -3738,55 +3741,57 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     
     
-    
+    double scaling = 1;
     Constraint<> Norm2_new("Norm2_new");
-    Norm2_new += delta - pow(new_x1 - new_xm,2) - pow(new_y1 - new_ym,2) - pow(new_z1 - new_zm,2);
-    Reg->add(Norm2_new.in(N1)>=0);
+    Norm2_new -= delta - scaling*(pow(new_x1 - new_xm,2) + pow(new_y1 - new_ym,2) + pow(new_z1 - new_zm,2));
+    Reg->add(Norm2_new.in(N1)<=0);
     
-        //    bool add_delta_cut = false;
-        //    if(add_delta_cut){
-        //        var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
-        //        var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
-        //        var<> new_z1_sqr("new_z1_sqr", 0, max(pow(new_z1.get_lb(),2),pow(new_y1.get_ub(),2)));
-        //        Reg->add(new_x1_sqr.in(N1),new_y1_sqr.in(N1),new_z1_sqr.in(N1));
-        //
-        //        bool split = true, convexify = true;
-        //        Constraint<> new_x1_Square("new_x1_Square");
-        //        new_x1_Square = new_x1_sqr - pow(new_x1,2);
-        ////        Reg->add(new_x1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        //        Reg->add(new_x1_Square.in(N1)>=0);
-        //
-        //        Constraint<> new_y1_Square("new_y1_Square");
-        //        new_y1_Square = new_y1_sqr - pow(new_y1,2);
-        ////        Reg->add(new_y1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        //        Reg->add(new_y1_Square.in(N1)>=0);
-        //
-        //        Constraint<> new_z1_Square("new_z1_Square");
-        //        new_z1_Square = new_z1_sqr - pow(new_z1,2);
-        ////        Reg->add(new_z1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
-        //        Reg->add(new_z1_Square.in(N1)>=0);
-        //
-        //        Constraint<> DeltaCut("DeltaCut");
-        //        DeltaCut -= delta.from(cells);
-        //        DeltaCut += pow(x2.to(cells),2) + pow(y2.to(cells),2) + pow(z2.to(cells),2);
-        //        DeltaCut -= 2*new_x1.from(cells)*x2.to(cells) + 2*new_y1.from(cells)*y2.to(cells) + 2*new_z1.from(cells)*z2.to(cells);
-        //        DeltaCut += new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells);
-        //        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
-        //    }
-        //    else {
-        //        var<> delta_ij("delta_ij", 0,sqrt(8));
-        //        Reg->add(delta_ij.in(cells));
-        //
-        //        Constraint<> Norm2("Norm2");
-        //        Norm2 += delta_ij - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
-        //        Reg->add(Norm2.in(cells)>=0);
-        //
-        //
-        //        Constraint<> DeltaMin("DeltaMin");
-        //        DeltaMin = delta;
-        //        DeltaMin -= bin.in_matrix(1, 1)*delta_ij.in_matrix(1, 1);
-        //        Reg->add(DeltaMin.in(N1)>=0);
-        //    }
+    bool add_delta_cut = false;
+    if(add_delta_cut){
+        var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
+        var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
+        var<> new_z1_sqr("new_z1_sqr", 0, max(pow(new_z1.get_lb(),2),pow(new_y1.get_ub(),2)));
+        Reg->add(new_x1_sqr.in(N1),new_y1_sqr.in(N1),new_z1_sqr.in(N1));
+
+        bool split = true, convexify = true;
+        Constraint<> new_x1_Square("new_x1_Square");
+        new_x1_Square -= new_x1_sqr - pow(new_x1,2);
+//        Reg->add(new_x1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+        Reg->add(new_x1_Square.in(N1)<=0);
+
+        Constraint<> new_y1_Square("new_y1_Square");
+        new_y1_Square -= new_y1_sqr - pow(new_y1,2);
+//        Reg->add(new_y1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+        Reg->add(new_y1_Square.in(N1)<=0);
+
+        Constraint<> new_z1_Square("new_z1_Square");
+        new_z1_Square -= new_z1_sqr - pow(new_z1,2);
+//        Reg->add(new_z1_Square.in(N1)==0,convexify,"on/off",split);/* Convexify and split nonconvex equation */
+        Reg->add(new_z1_Square.in(N1)<=0);
+
+        Constraint<> DeltaCut("DeltaCut");
+        DeltaCut -= delta.from(cells);
+        DeltaCut += scaling*(pow(x2.to(cells),2) + pow(y2.to(cells),2) + pow(z2.to(cells),2));
+        DeltaCut -= scaling*(2*new_x1.from(cells)*x2.to(cells) + 2*new_y1.from(cells)*y2.to(cells) + 2*new_z1.from(cells)*z2.to(cells));
+        DeltaCut += scaling*(new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells));
+        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
+    }
+    bool add_delta_ij = false;
+    
+    if(add_delta_ij) {
+        var<> delta_ij("delta_ij", 0, sqrt(8));
+        Reg->add(delta_ij.in(cells));
+
+        Constraint<> Norm2("Norm2");
+        Norm2 -= delta_ij - pow(new_x1.from(cells) - x2.to(cells),2) - pow(new_y1.from(cells) - y2.to(cells),2) - pow(new_z1.from(cells) - z2.to(cells),2);
+        Reg->add(Norm2.in(cells)<=0);
+
+
+        Constraint<> DeltaMin("DeltaMin");
+        DeltaMin -= delta;
+        DeltaMin += scaling*bin.in_matrix(1, 1)*delta_ij.in_matrix(1, 1);
+        Reg->add(DeltaMin.in(N1)<=0);
+    }
     
     bool add_distance_cut = true;
     if(add_distance_cut){
@@ -3796,86 +3801,85 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     bool add_sdp_rel = true;
     if(add_sdp_rel){
-        Constraint<> diag1("diag1");
-        diag1=1-theta11-theta22+theta33-d1;
-        Reg->add(diag1==0);
-        Constraint<> diag2("diag2");
-        diag2=1+theta11-theta22-theta33-d2;
-        Reg->add(diag2==0);
-        Constraint<> diag3("diag3");
-        diag3=1+theta11+theta22+theta33-d3;
-        Reg->add(diag3==0);
-        Constraint<> diag4("diag4");
-        diag4=1-theta11+theta22-theta33-d4;
-        Reg->add(diag4==0);
+        Constraint<> diag_1("diag_1");
+        diag_1=1-theta11-theta22+theta33;
+        Reg->add(diag_1.in(range(0,0))>=0);
+        Constraint<> diag_2("diag_2");
+        diag_2=1+theta11-theta22-theta33;
+        Reg->add(diag_2.in(range(0,0))>=0);
+        Constraint<> diag_3("diag_3");
+        diag_3=1+theta11+theta22+theta33;
+        Reg->add(diag_3.in(range(0,0))>=0);
+        Constraint<> diag_4("diag_4");
+        diag_4=1-theta11+theta22-theta33;
+        Reg->add(diag_4.in(range(0,0))>=0);
         
-        Constraint<> l1_theta("l1_theta");
-        l1_theta=theta13+theta31-l12;
-        Reg->add(l1_theta==0);
+        Constraint<> soc_12("soc_12");
+        soc_12 = pow(theta13+theta31,2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
+        Reg->add(soc_12.in(range(0,0))<=0);
         
-        Constraint<> l2_theta("l2_theta");
-        l2_theta=theta12-theta21-l13;
-        Reg->add(l2_theta==0);
+        Constraint<> soc_13("soc_13");
+        soc_13 = pow(theta12-theta21,2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
+        Reg->add(soc_13.in(range(0,0))<=0);
         
-        Constraint<> l3_theta("l3_theta");
-        l3_theta=theta23+theta32-l14;
-        Reg->add(l3_theta==0);
+        Constraint<> soc_14("soc_14");
+        soc_14 = pow(theta23+theta32,2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc_14.in(range(0,0))<=0);
         
-        Constraint<> l4_theta("l4_theta");
-        l4_theta=theta23-theta32-l23;
-        Reg->add(l4_theta==0);
+        Constraint<> soc_23("soc_23");
+        soc_23 = pow(theta23-theta32,2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
+        Reg->add(soc_23.in(range(0,0))<=0);
         
-        Constraint<> l5_theta("l5_theta");
-        l5_theta=theta12+theta21-l24;
-        Reg->add(l5_theta==0);
+        Constraint<> soc_24("soc_24");
+        soc_24 = pow(theta12+theta21,2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc_24.in(range(0,0))<=0);
         
-        Constraint<> l6_theta("l6_theta");
-        l6_theta=theta31-theta13-l34;
-        Reg->add(l6_theta==0);
+        Constraint<> soc_34("soc_34");
+        soc_34 = pow(theta31-theta13,2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
+        Reg->add(soc_34.in(range(0,0))<=0);
         
-        Constraint<> soc1("soc1");
-        soc1 = pow(l12,2)-d1*d2;
-        Reg->add(soc1<=0);
+        Constraint<> det_123("det_123");
+        det_123+=(theta13+theta31)*((theta13+theta31)*(1+theta11+theta22+theta33)-(theta23-theta32)*(theta12-theta21));
+        det_123-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1+theta11+theta22+theta33)-pow(theta23-theta32,2));
+        det_123-=(theta12-theta21)*((theta13+theta31)*(theta23-theta32)-(theta12-theta21)*(1+theta11-theta22-theta33));
+        Reg->add(det_123.in(range(0,0))<=0);
         
-        Constraint<> soc2("soc2");
-        soc2 = pow(l13,2)-d1*d3;
-        Reg->add(soc2<=0);
+        Constraint<> det_124("det_124");
+        det_124+=(theta13+theta31)*((theta13+theta31)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta12+theta21));
+        det_124-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1-theta11+theta22-theta33)-pow(theta12+theta21,2));
+        det_124-=(theta23+theta32)*((theta13+theta31)*(theta12+theta21)-(theta23+theta32)*(1+theta11-theta22-theta33));
+        Reg->add(det_124.in(range(0,0))<=0);
         
-        Constraint<> soc3("soc3");
-        soc3 = pow(l23,2)-d2*d3;
-        Reg->add(soc3<=0);
+        Constraint<> det_134("det_134");
+        det_134+=(theta12-theta21)*((theta12-theta21)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta31-theta13));
+        det_134-=(1-theta11-theta22+theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
+        det_134-=(theta23+theta32)*((theta12-theta21)*(theta31-theta13)-(theta23+theta32)*(1+theta11+theta22+theta33));
+        Reg->add(det_134.in(range(0,0))<=0);
         
-        Constraint<> soc4("soc4");
-        soc4 = pow(l14,2)-d1*d4;
-        Reg->add(soc4<=0);
-        
-        Constraint<> soc5("soc5");
-        soc5 = pow(l24,2)-d2*d4;
-        Reg->add(soc5<=0);
-        
-        Constraint<> soc6("soc6");
-        soc6 = pow(l34,2)-d3*d4;
-        Reg->add(soc6<=0);
-        
+        Constraint<> det_234("det_234");
+        det_234+=(theta23-theta32)*((theta23-theta32)*(1-theta11+theta22-theta33)-(theta12+theta21)*(theta31-theta13));
+        det_234-=(1+theta11-theta22-theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
+        det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
+        Reg->add(det_234.in(range(0,0))<=0);
         if(convex){
             Constraint<> row1("row1");
             row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-            Reg->add(row1<=1);
+            Reg->add(row1.in(range(0,0))<=1);
             Constraint<> row2("row2");
             row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-            Reg->add(row2<=1);
+            Reg->add(row2.in(range(0,0))<=1);
             Constraint<> row3("row3");
             row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-            Reg->add(row3<=1);
+            Reg->add(row3.in(range(0,0))<=1);
             Constraint<> col1("col1");
             col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-            Reg->add(col1<=1);
+            Reg->add(col1.in(range(0,0))<=1);
             Constraint<> col2("col2");
             col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-            Reg->add(col2<=1);
+            Reg->add(col2.in(range(0,0))<=1);
             Constraint<> col3("col3");
             col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-            Reg->add(col3<=1);
+            Reg->add(col3.in(range(0,0))<=1);
         }
         else {
             Constraint<> row1("row1");
@@ -3914,26 +3918,12 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
     Reg->add(z_rot1.in(N1)==0);
     
-    bool add_reverse_rot = false;
-    if(add_reverse_rot){
-        Constraint<> x_rot1_rev("x_rot1_rev");
-        x_rot1_rev += new_x1 - x_shift;
-        x_rot1_rev -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
-        Reg->add(x_rot1_rev.in(N1)==0);
-        
-        Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift;
-        y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1);
-        Reg->add(y_rot1.in(N1)==0);
-        
-        Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 -z_shift;
-        z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
-        Reg->add(z_rot1.in(N1)==0);
+    
+    
+    for (int i = 1; i<=nd; i++) {
+        string key = to_string(i)+","+to_string(init_matching.at(i-1));
+        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     }
-    
-    
-    
     
     /* Objective function */
     
@@ -4308,7 +4298,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     bool spatial_branching = false;
     if(spatial_branching){
         /* Spatial branching vars */
-        int nb_pieces = 3; // Divide each axis into nb_pieces
+        int nb_pieces = 5; // Divide each axis into nb_pieces
         indices spatial_ids("spatial_ids");
         spatial_ids = range(1,nb_pieces);
         indices theta_ids("theta_ids");

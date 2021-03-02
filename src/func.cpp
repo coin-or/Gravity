@@ -5273,6 +5273,16 @@ func<double> func<double>:: get_OA_symbolic(const vector<param<double>>& c, cons
         return (_ftype==nlin_);
     };
 
+
+    bool func_::has_int() const{
+        for(auto &it: *_vars){
+            if (it.second.first->is_integer() || it.second.first->_is_relaxed) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 //    bool func_::is_complex() const{
 //        for(auto &it: *_vars){
 //            if (it.second.first->is_complex()) {
