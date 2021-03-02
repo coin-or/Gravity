@@ -1,10 +1,10 @@
-//
-//  solver.cpp
-//  Gravity++
-//
-//  Created by Hassan on 30/01/2015.
+    //
+    //  solver.cpp
+    //  Gravity++
+    //
+    //  Created by Hassan on 30/01/2015.
 
-//
+    //
 
 #include <gravity/solver.h>
 #include <mutex>
@@ -65,8 +65,8 @@ shared_ptr<Model<type>> Model<type>::buildOA()
 {
     
     auto cpy = this->copy();
-    //        cpy->initialize_all(1);
-    //    this->print_solution();
+        //        cpy->initialize_all(1);
+        //    this->print_solution();
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
     vector<double> xcurrent;
@@ -175,6 +175,19 @@ Model<type> Model<type>::build_model_interior() const
                 }
             }
         }
+        else{
+            Constraint<> Inter_con(*con);
+            
+            if(con->_ctype==leq)
+            {
+                Interior.add(Inter_con<=0);
+            }
+            else  if(con->_ctype==geq)
+            {
+                Interior.add(Inter_con>=0);
+            }
+            
+        }
     }
     return *Interior.copy();
 }
@@ -217,7 +230,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         models[s]->reset_constrs();
         models[s]->reset();
         models[s]->_status=0;
-        //models[s]->print();
+            //models[s]->print();
         DebugOff("to create solver"<<endl);
         auto solverk = make_shared<solver<double>>(models[s], stype);
         if(stype==gurobi && initialize_primal){
@@ -245,7 +258,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
                 }
             }
         }
-        //auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+            //auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
         for (size_t i = 0; i < nr_threads_; ++i) {
             if(viol_i.at(i)==1 && models[i]->_status==0){
                 if(l>=1)
@@ -279,7 +292,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     if(nref>1)
-    DebugOn("nrefine "<<nref<<" ncuts "<<ncuts<<endl<<endl);
+        DebugOn("nrefine "<<nref<<" ncuts "<<ncuts<<endl<<endl);
     count=0;
     sol_status.resize(objective_models.size(),-1);
     sol_obj.resize(objective_models.size(),-1.0);
@@ -376,7 +389,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         }
                     }
                 }
-                //  OA_sol=con->get_outer_app(activeset, scale);
+                    //  OA_sol=con->get_outer_app(activeset, scale);
                 OA_sol=con->get_outer_app(activeset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(activeset)<=0);
@@ -401,7 +414,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         allset.add(keyi);
                     }
                 }
-                // OA_sol=con->get_outer_app(allset, scale);
+                    // OA_sol=con->get_outer_app(allset, scale);
                 OA_sol=con->get_outer_app(allset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
@@ -419,7 +432,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                     string keyi=(*keys)[i];
                     allset.add(keyi);
                 }
-                //OA_sol=con->get_outer_app(allset, scale);
+                    //OA_sol=con->get_outer_app(allset, scale);
                 OA_sol=con->get_outer_app(allset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
                     add(OA_sol.in(allset)<=0);
@@ -485,7 +498,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                     auto fk=con->eval(i);
                     if((fk > active_tol && con->_ctype==leq) || (fk < -active_tol && con->_ctype==geq)){
                         constr_viol=true;
-                        //ToDo fix interior status and check for it
+                            //ToDo fix interior status and check for it
                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                             auto con_interior=interior.get_constraint(cname);
                             xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
@@ -511,7 +524,7 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
                             indices activeset("active_"+con->_name);
                             activeset.add((*con->_indices->_keys)[i]);
                             Constraint<> OA_cut(con_lin_name);
-                            //OA_cut=con->get_outer_app(activeset, scale);
+                                //OA_cut=con->get_outer_app(activeset, scale);
                             OA_cut=con->get_outer_app(activeset, scale, true, 1e-3);
                             if(con->_ctype==leq){
                                 lin->add(OA_cut.in(activeset)<=0);
@@ -547,6 +560,102 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     DebugOff("Number of constraints in linear model = " << nb_oacuts << endl);
     return(constr_viol);
 }
+
+/*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+ @param[in] lin: Model to which linear cuts are added
+ @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+ @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol)
+{
+    vector<double> xsolution(_nb_vars);
+    vector<double> xinterior(_nb_vars);
+    vector<double> xcurrent, c_val;
+    vector<vector<double>> res;
+    vector<double> cut;
+    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    double c0_val, scale=1.0;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
+    int nb_added_cuts = 0;
+    for (auto &con: _cons_vec)
+    {
+        if(!con->is_linear()) {
+            auto cnb_inst=con->get_nb_inst();
+            for(auto i=0;i<cnb_inst;i++){
+                oa_cut=false;
+                c0_val=0;
+                c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                xcurrent=con->get_x(i);
+                con->uneval();
+                con->eval_all();
+                if(con->is_active(i,active_tol_sol)){
+                    oa_cut=false;
+                }
+                else
+                {
+                    con->uneval();
+                    auto fk=con->eval(i);
+                    if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                        constr_viol=true;
+                            //ToDo fix interior status and check for it
+                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                            auto con_interior=interior.get_constraint(cname);
+                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                            auto res_search=con->binary_line_search(xinterior, i);
+                            if(res_search){
+                                oa_cut=true;
+                                    //oa_cut=false;
+                            }
+                        }
+                        else{
+                            if (con->is_convex()){
+                                oa_cut=true;
+                            }
+                        }
+                    }
+                }
+                if(oa_cut){
+                    oa_cut=false;
+                    convex_region=true;
+                    if(cname.find("soc")!=std::string::npos){
+                        convex_region=con->check_convex_region_soc_rotation(i);
+                    }
+                    else if(cname.find("det")!=std::string::npos){
+                        convex_region=con->check_convex_region_det_rotation(i);
+                    }
+                    if(convex_region){
+                        scale=1.0;
+                        con->get_outer_coef(i, c_val, c0_val);
+                        get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
+                    }
+                }
+                if(oa_cut){
+                    auto j=0;
+                    for (auto &v_p: con->get_vars()){
+                        auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                        cut.push_back(vid);
+                        cut.push_back(c_val[j++]*scale);
+                    }
+                    cut.push_back(c0_val*scale);
+                    res.push_back(cut);
+                }
+                con->set_x(i, xcurrent);
+                xcurrent.clear();
+                xinterior.clear();
+                cut.clear();
+            }
+        }
+    }
+    
+    return res;
+    
+}
+
+
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
  @param[in] c_inst: Instance of nonlinear constraint which is to be linearized
@@ -587,7 +696,7 @@ void Model<type>::add_linear_row(Constraint<type>& con, int c_inst, const vector
         l.second._p->_indices->add_ref((*parkeys)[v->get_id_inst(c_inst)]);
         count++;
     }
-    //Set value of the constant
+        //Set value of the constant
     if(con_lin->_cst->is_param()){
         auto co_cst = ((param<>*)(con_lin->_cst.get()));
         co_cst->add_val("inst_"+to_string(c_inst)+"_"+to_string(nb_inst), c0_val*scale);
@@ -641,7 +750,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
         LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*lb_scale_value;
-            // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
+                // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
 #ifdef USE_MPI
             if(worker_id==0)
 #endif
@@ -761,7 +870,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     auto update_lb=false;
     auto update_ub=false;
     vk=obbt_model->template get_var<T>(vkname);
-    // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
+        // if interval is less than range_tol, fixed point is reached, bounds are updated below Update bounds
     if(dirk=="LB"){
         boundk1=vk.get_lb(keyk);
         interval=vk.get_ub(keyk)-objk;
@@ -776,7 +885,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
         fixed_point[var_key_k+"|UB"]=true;
     }
     
-    // if new bound converges to previous bound, fixed point is reached and no need to update bounds
+        // if new bound converges to previous bound, fixed point is reached and no need to update bounds
     if(!vk._is_relaxed && bound_converge && (std::abs(boundk1-objk) <= fixed_tol_abs || std::abs((boundk1-objk)/(boundk1+zero_tol))<=fixed_tol_rel))
     {
         if(run_obbt_iter>1){
@@ -785,7 +894,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
     }
     else{/*Update bounds*/
         if(dirk=="LB"){
-            //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
+                //Uncertainty in objk=obk+-solver_tolerance, here we choose lowest possible value in uncertainty interval
             if(!vk._is_relaxed){
                 objk=std::max(objk-range_tol, boundk1);
             }
@@ -793,14 +902,14 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
             update_lb=true;
         }
         else{
-            //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
+                //Uncertainty in objk=obk+-solver_tolerance, here we choose highest possible value in uncertainty interval
             if(!vk._is_relaxed){
                 objk=std::min(objk+range_tol, boundk1);
             }
             vk.set_ub(keyk, objk);
             update_ub=true;
         }
-        //If crossover in bounds,just exchange them
+            //If crossover in bounds,just exchange them
         if(vk.get_ub(keyk)<vk.get_lb(keyk))
         {
             fixed_point[var_key_k+"|LB"]=true;
@@ -820,18 +929,18 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
         }
     }
     
-    //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
+        //If interval becomes smaller than range_tol, reset bounds so that interval=range_tol
     if(!vk._is_relaxed && std::abs(vk.get_ub(keyk)-vk.get_lb(keyk))<range_tol)
     {
-        //If original interval is itself smaller than range_tol, do not have to reset interval
+            //If original interval is itself smaller than range_tol, do not have to reset interval
         if(interval_original.at(var_key_k)>=range_tol)
         {
             DebugOff("Entered reset"<<endl);
-            //Mid is the midpoint of interval
+                //Mid is the midpoint of interval
             mid=(vk.get_ub(keyk)+vk.get_lb(keyk))/2.0;
             left=mid-range_tol/2.0;
             right=mid+range_tol/2.0;
-            //If resized interval does not cross original bounds, reset
+                //If resized interval does not cross original bounds, reset
             if(right<=ub_original.at(var_key_k) && left>=lb_original.at(var_key_k))
             {
                 vk.set_ub(keyk, right);
@@ -839,7 +948,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
                 update_lb=true;
                 update_ub=true;
             }
-            //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
+                //If resized interval crosses original upperbound, set the new bound to upperbound, and lower bound is expanded to upperbound-range_tolerance
             else if(right>ub_original.at(var_key_k))
             {
                 
@@ -848,7 +957,7 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
                 update_lb=true;
                 update_ub=true;
             }
-            //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
+                //If resized interval crosses original lowerbound, set the new bound to lowerbound, and upper bound is expanded to lowerbound+range_tolerance
             else if(left<lb_original.at(var_key_k))
             {
                 vk.set_lb(keyk, lb_original.at(var_key_k));
@@ -857,8 +966,8 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
                 update_ub=true;
                 
             }
-            //In the resized interval both original lower and upper bounds can not be crossed, because original interval is greater
-            //than range_tol
+                //In the resized interval both original lower and upper bounds can not be crossed, because original interval is greater
+                //than range_tol
         }
     }
     if(update_lb||update_ub){
@@ -1134,7 +1243,7 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
         }
         else{
             limits=bounds(nb_workers_, objective_models.size());
-            //limits=bounds_reassign(nb_workers_, objective_models, old_map);
+                //limits=bounds_reassign(nb_workers_, objective_models, old_map);
         }
         if(nb_workers_!=limits.size()-1){
             DebugOn("Error4 in computing limits");
@@ -1159,7 +1268,7 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
         MPI_Barrier(MPI_COMM_WORLD);
         send_obj_all_new(models,limits, sol_obj);
     }
-    //   MPI_Barrier(MPI_COMM_WORLD);
+        //   MPI_Barrier(MPI_COMM_WORLD);
     return nb_workers_;
 }
 /** Runs models stored in the vector in parallel using MPI
@@ -1263,4 +1372,5 @@ template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::str
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
+template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol);
 }
