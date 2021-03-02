@@ -128,6 +128,7 @@ namespace gravity {
         bool is_polynomial() const;
         bool is_nonlinear() const;
         bool is_transposed() const;
+        bool has_int() const;
         bool func_is_number() const{
             return (_vars->empty() && _params->empty());
         }
