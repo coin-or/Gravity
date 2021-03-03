@@ -271,9 +271,15 @@ int main (int argc, char * argv[])
         DebugOn("Model file has " << model_nb_rows << " rows" << endl);
         DebugOn("Data file has " << data_nb_rows << " rows" << endl);
         int row0 = 0;
-        point_cloud_model.resize(model_nb_rows);
-        
-        for (int i = row0; i< model_nb_rows; i++) { // Input iterator
+        //point_cloud_model.resize(model_nb_rows);
+        int fwdm=1;
+        int fwdd=1;
+        bool downsample=true;
+        if(downsample){
+            fwdm=3;
+            fwdd=2;
+        }
+        for (int i = row0; i< model_nb_rows; i+=fwdm) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
             auto y = Model_doc.GetCell<double>(1, i);
             auto z = Model_doc.GetCell<double>(2, i);
@@ -288,13 +294,16 @@ int main (int argc, char * argv[])
                 //            point_cloud_model[model_nb_rows-i-1][0] = x;
                 //            point_cloud_model[model_nb_rows-i-1][1] = y;
                 //            point_cloud_model[model_nb_rows-i-1][2] = z;
-            point_cloud_model[i].resize(3);
-            point_cloud_model[i][0] = x;
-            point_cloud_model[i][1] = y;
-            point_cloud_model[i][2] = z;
+            
+            vector<double> xyz;
+            xyz.push_back(x);
+            xyz.push_back(y);
+            xyz.push_back(z);
+            point_cloud_model.push_back(xyz);
+
         }
-        point_cloud_data.resize(data_nb_rows);
-        for (int i = row0; i< data_nb_rows; i++) { // Input iterator
+        //point_cloud_data.resize(data_nb_rows);
+        for (int i = row0; i< data_nb_rows; i+=fwdd) { // Input iterator
             auto x = Data_doc.GetCell<double>(0, i);
             auto y = Data_doc.GetCell<double>(1, i);
             auto z = Data_doc.GetCell<double>(2, i);
@@ -316,11 +325,14 @@ int main (int argc, char * argv[])
             flat_point_cloud_data.push_back(x);
             flat_point_cloud_data.push_back(y);
             flat_point_cloud_data.push_back(z);
-            point_cloud_data[i].resize(3);
-            point_cloud_data[i][0] = x;
-            point_cloud_data[i][1] = y;
-            point_cloud_data[i][2] = z;
+            vector<double> xyz;
+            xyz.push_back(x);
+            xyz.push_back(y);
+            xyz.push_back(z);
+            point_cloud_data.push_back(xyz);
         }
+        data_nb_rows=point_cloud_data.size();
+        model_nb_rows=point_cloud_model.size();
         auto min_max_data=center_point_cloud(point_cloud_data);
         auto min_max_model=center_point_cloud(point_cloud_model);
         vector<double> pcd,pcm;
@@ -344,14 +356,15 @@ int main (int argc, char * argv[])
             point_cloud_data = get_n_extreme_points(nb_p, point_cloud_data);
         }
 #ifdef USE_MATPLOT
-            //        plot(point_cloud_model,point_cloud_data,1);
+                   plot(point_cloud_model,point_cloud_data,1);
 #endif
 #ifdef USE_VORO
         container model_con(x_min,x_max,y_min,y_max,z_min,z_max,100,100,100,false,false,false,8);
-#endif
+
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
             model_con.put(i, point_cloud_model[i][0], point_cloud_model[i][1], point_cloud_model[i][2]);
         }
+#endif
 #ifdef USE_VORO
         /* Compute the facets of the Voronoi cells of all model points */
         c_loop_all cl(model_con);
@@ -633,7 +646,7 @@ int main (int argc, char * argv[])
                 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = false;
                 //            auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-           // auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
+            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
@@ -642,7 +655,8 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-           auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+           //auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+            
                 ////            SOC_MIP->print();
                 //            if(linearize){
                 //                int constr_viol=1;
@@ -5113,7 +5127,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     if(hybrid){
         
-      
+        double dmax=min_max_model[3].second;
     
     Reg->add(new_xm.in(N1));
     Reg->add(new_ym.in(N1));
@@ -5149,6 +5163,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Constraint<> sum_newzm("sum_newzm");
     sum_newzm = sum(new_zm.in(N1))-nd*z_shift;
     Reg->add(sum_newzm==0);
+        
+        Constraint<> limit("limit");
+        limit=2*sum(new_xm*x1*theta11);
+        limit+= 2*sum(new_xm*y1*theta12);
+        limit+= 2*sum(new_xm*z1*theta13);
+        limit+= 2*sum(new_ym*x1*theta21);
+        limit+= 2*sum(new_ym*y1*theta22);
+        limit+= 2*sum(new_ym*z1*theta23);
+        limit+= 2*sum(new_zm*x1*theta31);
+        limit+= 2*sum(new_zm*y1*theta32);
+        limit+= 2*sum(new_zm*z1*theta33);
+        limit-=pow(x1,2)+pow(y1,2)+pow(z1,2);
+        Reg->add(limit.in(N1)<=dmax);
 
 //    Reg->add(new_xm.in(N1));
 //    Reg->add(new_ym.in(N1));
@@ -7366,6 +7393,7 @@ vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_clo
     cx=cx/n;
     cy=cy/n;
     cz=cz/n;
+    double dmin=100, dmax=-1,d;
     for(auto i=0;i<point_cloud.size();i++)
     {
         point_cloud.at(i)[0]-=cx;
@@ -7389,10 +7417,20 @@ vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_clo
         if(point_cloud.at(i)[2]>=max_z){
             max_z=point_cloud.at(i)[2];
         }
+        d=pow(point_cloud.at(i)[0],2)+pow(point_cloud.at(i)[1],2)+pow(point_cloud.at(i)[2],2);
+        if(d<=dmin){
+            dmin=d;
+        }
+        if(d>=dmax){
+            dmax=d;
+        }
+            
     }
     res.push_back(make_pair(min_x, max_x));
     res.push_back(make_pair(min_y, max_y));
     res.push_back(make_pair(min_z, max_z));
+    res.push_back(make_pair(dmin, dmax));
+    res.push_back(make_pair(sqrt(dmin), sqrt(dmax)));
     return res;
 }
 
@@ -7712,6 +7750,20 @@ tuple<double,double,double,double,double,double> run_IPH(const vector<vector<dou
 }
 
 #ifdef USE_PCL
+vector<vector<double>> filter_pcl(vector<vector<double>> model)
+pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+for (int i = 0; i<ext_model.size(); i++) {
+    pcl::PointXYZ p;
+    p.x = model[i][0];
+    p.y = model[i][1];
+    p.z = model[i][2];
+    cloud->push_back(p);
+}
+
+return model;
+
+}
 void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointNormal>::Ptr& augmented_cloud, const pcl::PointCloud<pcl::FPFHSignature33>::Ptr& cloud_features){
     string fname = filename+"_features.bin";
     FILE* fid = fopen(fname.c_str(), "wb");
