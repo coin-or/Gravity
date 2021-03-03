@@ -5028,70 +5028,87 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     Constraint<> soc_12("soc_12");
     soc_12 = pow(theta13+theta31,2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
+    soc_12.add_to_callback();
     Reg->add(soc_12.in(range(0,0))<=0);
     
     Constraint<> soc_13("soc_13");
     soc_13 = pow(theta12-theta21,2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
+    soc_13.add_to_callback();
     Reg->add(soc_13.in(range(0,0))<=0);
     
     Constraint<> soc_14("soc_14");
     soc_14 = pow(theta23+theta32,2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
+    soc_14.add_to_callback();
     Reg->add(soc_14.in(range(0,0))<=0);
     
     Constraint<> soc_23("soc_23");
     soc_23 = pow(theta23-theta32,2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
+    soc_23.add_to_callback();
     Reg->add(soc_23.in(range(0,0))<=0);
     
     Constraint<> soc_24("soc_24");
     soc_24 = pow(theta12+theta21,2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
+    soc_24.add_to_callback();
     Reg->add(soc_24.in(range(0,0))<=0);
     
     Constraint<> soc_34("soc_34");
     soc_34 = pow(theta31-theta13,2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
+    soc_34.add_to_callback();
     Reg->add(soc_34.in(range(0,0))<=0);
     
     Constraint<> det_123("det_123");
     det_123+=(theta13+theta31)*((theta13+theta31)*(1+theta11+theta22+theta33)-(theta23-theta32)*(theta12-theta21));
     det_123-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1+theta11+theta22+theta33)-pow(theta23-theta32,2));
     det_123-=(theta12-theta21)*((theta13+theta31)*(theta23-theta32)-(theta12-theta21)*(1+theta11-theta22-theta33));
+    det_123.add_to_callback();
     Reg->add(det_123.in(range(0,0))<=0);
     
     Constraint<> det_124("det_124");
     det_124+=(theta13+theta31)*((theta13+theta31)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta12+theta21));
     det_124-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1-theta11+theta22-theta33)-pow(theta12+theta21,2));
     det_124-=(theta23+theta32)*((theta13+theta31)*(theta12+theta21)-(theta23+theta32)*(1+theta11-theta22-theta33));
+    det_124.add_to_callback();
     Reg->add(det_124.in(range(0,0))<=0);
     
     Constraint<> det_134("det_134");
     det_134+=(theta12-theta21)*((theta12-theta21)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta31-theta13));
     det_134-=(1-theta11-theta22+theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
     det_134-=(theta23+theta32)*((theta12-theta21)*(theta31-theta13)-(theta23+theta32)*(1+theta11+theta22+theta33));
+    det_134.add_to_callback();
     Reg->add(det_134.in(range(0,0))<=0);
     
     Constraint<> det_234("det_234");
     det_234+=(theta23-theta32)*((theta23-theta32)*(1-theta11+theta22-theta33)-(theta12+theta21)*(theta31-theta13));
     det_234-=(1+theta11-theta22-theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
     det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
+    det_234.add_to_callback();
     Reg->add(det_234.in(range(0,0))<=0);
     
     Constraint<> row1("row1");
     row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    row1.add_to_callback();
     Reg->add(row1.in(range(0,0))<=1);
     Constraint<> row2("row2");
     row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    row2.add_to_callback();
     Reg->add(row2.in(range(0,0))<=1);
     Constraint<> row3("row3");
     row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    row3.add_to_callback();
     Reg->add(row3.in(range(0,0))<=1);
     Constraint<> col1("col1");
     col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    col1.add_to_callback();
     Reg->add(col1.in(range(0,0))<=1);
     Constraint<> col2("col2");
     col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    col2.add_to_callback();
     Reg->add(col2.in(range(0,0))<=1);
     Constraint<> col3("col3");
     col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    col3.add_to_callback();
     Reg->add(col3.in(range(0,0))<=1);
+    
     
 //    bool add_delta_cut = false;
 //    if(add_delta_cut){
@@ -5185,7 +5202,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         limit_neg+= 2*(new_zm*y1*theta32.in(idstheta));
         limit_neg+= 2*(new_zm*z1*theta33.in(idstheta));
         limit_neg-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-        Reg->add(limit_neg.in(N1)<=dmax);
+        //limit_neg-=dmax;
+        limit_neg-=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2);
+        //Reg->add(limit_neg.in(N1)<=dmax);
+        Reg->add(limit_neg.in(N1)<=0);
 
 //    Reg->add(new_xm.in(N1));
 //    Reg->add(new_ym.in(N1));

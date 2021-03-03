@@ -22,6 +22,7 @@ public:
     vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
     bool                        _relaxed = false; /**< True if this constraint is a relaxed version of an non-convex constraint, i.e. McCormick or from == to <= or >= */
     bool                        _all_active = true;
+    bool                        _callback=false;
     vector<bool>                _active;
     shared_ptr<bool>            _all_lazy;
     vector<bool>                _lazy;
@@ -140,6 +141,11 @@ public:
         _lazy.resize(this->get_nb_instances(),true);
     }
     
+    void add_to_callback() {
+       _callback = true;
+    }
+    
+    
     
     Constraint& in(const vector<Node*>& vec) {
         this->func<type>::in(vec);
@@ -181,6 +187,7 @@ public:
         this->_is_constraint = true;
         _onCoef = c._onCoef.deep_copy();
         _offCoef = c._offCoef.deep_copy();
+        _callback=c._callback;
     }
     
     Constraint& operator=(const Constraint& c){
@@ -195,6 +202,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback=c._callback;
         this->func<type>::operator=(c);
         this->_name = c._name;
         this->_is_constraint = true;
@@ -231,6 +239,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback=c._callback;
         this->func<type>::operator=(move(c));
         this->_name = c._name;
         this->_is_constraint = true;
