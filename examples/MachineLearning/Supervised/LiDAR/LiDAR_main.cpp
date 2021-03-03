@@ -274,7 +274,7 @@ int main (int argc, char * argv[])
         //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=true;
+        bool downsample=false;
         if(downsample){
             fwdm=3;
             fwdd=2;
@@ -646,7 +646,7 @@ int main (int argc, char * argv[])
                 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = false;
                 //            auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
+         //   auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
@@ -655,7 +655,16 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-           //auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+#ifdef USE_VORO
+           auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+#else
+            const vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
+            param<> norm_x;
+            param<> norm_y;
+            param<> norm_z;
+            param<> intercept;
+            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+#endif
             
                 ////            SOC_MIP->print();
                 //            if(linearize){
@@ -5164,18 +5173,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     sum_newzm = sum(new_zm.in(N1))-nd*z_shift;
     Reg->add(sum_newzm==0);
         
-        Constraint<> limit("limit");
-        limit=2*sum(new_xm*x1*theta11);
-        limit+= 2*sum(new_xm*y1*theta12);
-        limit+= 2*sum(new_xm*z1*theta13);
-        limit+= 2*sum(new_ym*x1*theta21);
-        limit+= 2*sum(new_ym*y1*theta22);
-        limit+= 2*sum(new_ym*z1*theta23);
-        limit+= 2*sum(new_zm*x1*theta31);
-        limit+= 2*sum(new_zm*y1*theta32);
-        limit+= 2*sum(new_zm*z1*theta33);
-        limit-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-        Reg->add(limit.in(N1)<=dmax);
+        auto idstheta = theta11.repeat_id(N1.size());
+        Constraint<> limit_neg("limit_neg");
+        limit_neg=2*(new_xm*x1*theta11.in(idstheta));
+        limit_neg+= 2*(new_xm*y1*theta12.in(idstheta));
+        limit_neg+= 2*(new_xm*z1*theta13.in(idstheta));
+        limit_neg+= 2*(new_ym*x1*theta21.in(idstheta));
+        limit_neg+= 2*(new_ym*y1*theta22.in(idstheta));
+        limit_neg+= 2*(new_ym*z1*theta23.in(idstheta));
+        limit_neg+= 2*(new_zm*x1*theta31.in(idstheta));
+        limit_neg+= 2*(new_zm*y1*theta32.in(idstheta));
+        limit_neg+= 2*(new_zm*z1*theta33.in(idstheta));
+        limit_neg-=pow(x1,2)+pow(y1,2)+pow(z1,2);
+        Reg->add(limit_neg.in(N1)<=dmax);
 
 //    Reg->add(new_xm.in(N1));
 //    Reg->add(new_ym.in(N1));
@@ -5202,6 +5212,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 
     }
     /* Objective function */
+    
     func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
    
     
@@ -5305,7 +5316,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-//          Reg->print();
+          Reg->print();
 //
 //    x2.print();
 //    y2.print();
