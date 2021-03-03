@@ -12,10 +12,10 @@ public:
     vector<double> cont_x, int_x;
     Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
+        x = new double[n];
         vars = _grb_vars;
         n    = xn;
         m=mn;
-        x = new double[n];
         cont_x.resize(n);
         int_x.resize(n);
         interior=interiorn;
@@ -209,13 +209,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
 //grb_mod->set(GRB_IntParam_Threads, 4);
 //    if(use_callback){
+        grb_mod->set(GRB_DoubleParam_NodefileStart,0.5);
         grb_mod->set(GRB_IntParam_NonConvex,2);
         grb_mod->set(GRB_IntParam_NumericFocus,3);
-        grb_mod->set(GRB_DoubleParam_TimeLimit,200);
+        grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-        int n=grb_mod->get(GRB_IntAttr_NumVars);
+        int n=_model->get_nb_vars();
         Model<> interior;
 //        _model->replace_integers();
         auto lin=_model->buildOA();
@@ -262,7 +263,7 @@ void GurobiProgram::prepare_model(){
     fill_in_grb_vmap();
     create_grb_constraints();
     set_grb_objective();
-    grb_mod->write("gurobiprint.lp");
+//    grb_mod->write("gurobiprint.lp");
         //    print_constraints();
 }
 void GurobiProgram::update_model(){
