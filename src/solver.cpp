@@ -582,7 +582,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     vector<vector<double>> res;
     vector<double> cut;
     const double active_tol_sol=1e-12, zero_tol=1e-6;
-    double c0_val, scale=1.0;
+    double c0_val, scale=1.0, fk;
     bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
     int nb_added_cuts = 0;
     for (auto &con: _cons_vec)
@@ -595,15 +595,17 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 c_val.resize(con->_nb_vars,0);
                 auto cname=con->_name;
                 xcurrent=con->get_x(i);
+              
                 con->uneval();
                 con->eval_all();
+                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
                 if(con->is_active(i,active_tol_sol)){
                     oa_cut=false;
                 }
                 else
                 {
                     con->uneval();
-                    auto fk=con->eval(i);
+                    fk=con->eval(i);
                     if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                         constr_viol=true;
                             //ToDo fix interior status and check for it
@@ -647,6 +649,9 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                     }
                     cut.push_back(c0_val*scale);
                     res.push_back(cut);
+                    if(con->is_convex()){
+                        DebugOff(con->_name<<" "<<fk );
+                    }
                 }
                 con->set_x(i, xcurrent);
                 xcurrent.clear();

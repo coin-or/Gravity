@@ -10,7 +10,7 @@ public:
     Model<>* m;
     double *x;
     vector<double> cont_x, int_x;
-    Model<> interior;    
+    Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
         vars = _grb_vars;
         n    = xn;
@@ -103,7 +103,7 @@ GurobiProgram::GurobiProgram(){
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //   grb_env->set(GRB_IntParam_NumericFocus,3);
     grb_env->set(GRB_IntParam_NonConvex,2);
-//    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+   // grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
 //    grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
     
     
@@ -127,7 +127,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-//            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+    //        grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
 //            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -162,7 +162,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-//            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+  //          grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
 //            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
                 // grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -733,3 +733,4 @@ void GurobiProgram::print_constraints(){
         }
     }
 }
+
