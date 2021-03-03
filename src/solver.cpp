@@ -162,7 +162,8 @@ Model<type> Model<type>::build_model_interior() const
     int count=0;
     for (auto &con: _cons_vec)
     {
-        if(!con->is_linear() && con->_callback) {
+        if(!con->is_linear()) {
+            if(con->_callback){
             /* We are only interested in an interior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                 /*ind has indices of all eta_int elements corressponding to con*/
@@ -178,6 +179,7 @@ Model<type> Model<type>::build_model_interior() const
                 {
                     Interior.add(Inter_con>=-1*eta_int.in(ind));
                 }
+            }
             }
         }
         else{
@@ -365,6 +367,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     int output=0;
     double scale=1.0, tol=1e-8;
     auto Ointerior = nonlin.build_model_interior();
+    //Ointerior.print();
     solver<> modelI(Ointerior, ipopt);
     modelI.run(output=0, tol);
     vector<double> xsolution(_nb_vars);
