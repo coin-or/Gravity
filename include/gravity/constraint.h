@@ -486,7 +486,10 @@ public:
         ind_int/=10;
         int i_ind=ind_int;
         
-        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
+//        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
+//            convex_region=true;
+//        }
+        if((d[i_ind]>=zero_tol) && (d[j_ind]>=zero_tol)){
             convex_region=true;
         }
         return convex_region;
@@ -557,16 +560,16 @@ public:
         int j_ind=ind_int%10;
         ind_int/=10;
         int i_ind=ind_int;
-        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
-            if((soc_12<=zero_tol*(-1)) && (soc_13<=zero_tol*(-1)) && (soc_14<=zero_tol*(-1)) && (soc_23<=zero_tol*(-1)) && (soc_24<=zero_tol*(-1)) && (soc_34<=zero_tol*(-1))){
-                convex_region=true;
-            }
-        }
-            //        if(d[0]>=0 && d[1]>=0 && d[2]>=0 && d[3]>=0){
-            //            if((soc_map[(i_ind*10+j_ind)]<=0)&&(soc_map[(j_ind*10+k_ind)]<=0)&&(soc_map[(i_ind*10+k_ind)]<=0)){
-            //            convex_region=true;
-            //            }
-            //        }
+//        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
+//            if((soc_12<=zero_tol*(-1)) && (soc_13<=zero_tol*(-1)) && (soc_14<=zero_tol*(-1)) && (soc_23<=zero_tol*(-1)) && (soc_24<=zero_tol*(-1)) && (soc_34<=zero_tol*(-1))){
+//                convex_region=true;
+//            }
+//        }
+                    if(d[i_ind]>=0 && d[j_ind]>=0 && d[k_ind]>=0){
+                        if((soc_map[(i_ind*10+j_ind)]<=0)&&(soc_map[(j_ind*10+k_ind)]<=0)&&(soc_map[(i_ind*10+k_ind)]<=0)){
+                        convex_region=true; 
+                        }
+                    }
         DebugOff("convex region "<<convex_region<<endl);
         return convex_region;
     }

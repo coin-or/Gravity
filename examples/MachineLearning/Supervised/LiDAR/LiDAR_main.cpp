@@ -4504,13 +4504,16 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     for (int i = 1; i<=nd; i++) {
         string key = to_string(i)+","+to_string(matching.at(i-1));
-        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
+        //bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     }
     
     var<> xsh_bin("xsh_bin",-1,1), ysh_bin("ysh_bin",-1,1), zsh_bin("zsh_bin",-1,1);
     var<> theta11_bin("theta11_bin",0,1), theta12_bin("theta12_bin",-1,1), theta13_bin("theta13_bin",-1,1);
     var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",0,1), theta23_bin("theta23_bin",-1,1);
     var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",0,1);
+    
+    var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
+    
     if(separate){
         Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
         Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
@@ -4533,7 +4536,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     theta22.initialize_all(1);
     theta33.initialize_all(1);
     
-    bool spatial_branching = true;
+    bool spatial_branching = false;
     if(spatial_branching){
         /* Spatial branching vars */
         int nb_pieces = 5; // Divide each axis into nb_pieces
@@ -4739,8 +4742,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(OneBin.in(N1)==1);
     
     
-    bool add_voronoi = true;
-    if(add_voronoi){
+    bool add_voronoi = false;
+    /*if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(range(1, 3), *norm_x._indices);
         auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
@@ -4756,7 +4759,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         Voronoi = norm_x.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta11.in(ids1) + y1.in(voronoi_ids_data)*theta12.in(ids1) + z1.in(voronoi_ids_data)*theta13.in(ids1)+x_shift.in(ids1)) + norm_y.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta21.in(ids1) + y1.in(voronoi_ids_data)*theta22.in(ids1) + z1.in(voronoi_ids_data)*theta23.in(ids1)+y_shift.in(ids1)) + norm_z.in(voronoi_ids_coefs)*(x1.in(voronoi_ids_data)*theta31.in(ids1) + y1.in(voronoi_ids_data)*theta32.in(ids1) + z1.in(voronoi_ids_data)*theta33.in(ids1)+z_shift.in(ids1)) + intercept.in(voronoi_ids_coefs);
         Reg->add_on_off_multivariate_refined(Voronoi.in(voronoi_ids)<=0, bin.in(voronoi_ids_bin), true);
         
-    }
+    }*/
     
     if(!incompatibles.empty()){
         indices pairs1("pairs1"), pairs2("pairs2");
@@ -5092,13 +5095,62 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 //        DeltaCut += new_x1_sqr.from(cells) + new_y1_sqr.from(cells) + new_z1_sqr.from(cells);
 //        Reg->add_on_off_multivariate_refined(DeltaCut.in(cells)<=0, bin, true);
 //    }
+    bool hybrid=true;
+    Reg->add(new_xm.in(N1));
+    Reg->add(new_ym.in(N1));
+    Reg->add(new_zm.in(N1));
+    indices ids = indices("in_x");
+    ids.add_empty_row();
     
+    for(auto i=0;i<nd;i++){
+        for(auto j=1;j<=nm;j++){
+            ids.add_in_row(i, to_string(j));
+        }
+    }
+    Constraint<> Def_newxm("Def_newxm");
+    Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newxm.in(N1)==0);
     
+    Constraint<> Def_newym("Def_newym");
+    Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newym.in(N1)==0);
+    
+    Constraint<> Def_newzm("Def_newzm");
+    Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
+    Reg->add(Def_newzm.in(N1)==0);
+    if(hybrid){
+
+//    Reg->add(new_xm.in(N1));
+//    Reg->add(new_ym.in(N1));
+//    Reg->add(new_zm.in(N1));
+//    indices ids = indices("in_x");
+//    ids.add_empty_row();
+//
+//    for(auto i=0;i<nd;i++){
+//        for(auto j=1;j<=nm;j++){
+//            ids.add_in_row(i, to_string(j));
+//        }
+//    }
+//    Constraint<> Def_newxm("Def_newxm");
+//    Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
+//    Reg->add(Def_newxm.in(N1)==0);
+//
+//    Constraint<> Def_newym("Def_newym");
+//    Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1));
+//    Reg->add(Def_newym.in(N1)==0);
+//
+//    Constraint<> Def_newzm("Def_newzm");
+//    Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
+//   Reg->add(Def_newzm.in(N1)==0);
+
+    }
     /* Objective function */
     func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
     obj +=nd*(tx +ty+tz);
     
-    auto ids_repeat = x_shift.repeat_id(cells.size());
+    
+    if(!hybrid){
+        auto ids_repeat = x_shift.repeat_id(cells.size());
     if(separate){
         obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
         
@@ -5132,6 +5184,40 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
         
     }
+    }
+    else{
+       
+        obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
+        
+         
+auto ids_repeat4 = x_shift.repeat_id(N1.size());
+        obj -= 2*sum(x_shift.in(ids_repeat4)*new_xm) + 2*sum(y_shift.in(ids_repeat4)*new_ym) + 2*sum(z_shift.in(ids_repeat4)*new_zm);
+//        auto ids_repeat = x_shift.repeat_id(cells.size());
+//        obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
+        
+        auto ids_repeat1 = theta11.repeat_id(N1.size());
+        obj -= 2*sum(new_xm*x1*theta11.in(ids_repeat1));
+        obj -= 2*sum(new_xm*y1*theta12.in(ids_repeat1));
+        obj -= 2*sum(new_xm*z1*theta13.in(ids_repeat1));
+        obj -= 2*sum(new_ym*x1*theta21.in(ids_repeat1));
+        obj -= 2*sum(new_ym*y1*theta22.in(ids_repeat1));
+        obj -= 2*sum(new_ym*z1*theta23.in(ids_repeat1));
+        obj -= 2*sum(new_zm*x1*theta31.in(ids_repeat1));
+        obj -= 2*sum(new_zm*y1*theta32.in(ids_repeat1));
+        obj -= 2*sum(new_zm*z1*theta33.in(ids_repeat1));
+        
+//        auto ids1 = theta11.repeat_id(cells.size());
+//        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
+//        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
+//        obj -= 2*sum(x2.to(cells)*z1.from(cells)*bin*theta13.in(ids1));
+//        obj -= 2*sum(y2.to(cells)*x1.from(cells)*bin*theta21.in(ids1));
+//        obj -= 2*sum(y2.to(cells)*y1.from(cells)*bin*theta22.in(ids1));
+//        obj -= 2*sum(y2.to(cells)*z1.from(cells)*bin*theta23.in(ids1));
+//        obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
+//        obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
+//        obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
+        
+    }
     Reg->min(obj);
     
     
@@ -5139,7 +5225,13 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-//            Reg->print();
+           Reg->print();
+
+    x2.print();
+    y2.print();
+    z2.print();
+    
+  //  Reg->relax();
     solver<> S(Reg,gurobi);
     S.use_callback();
     S.run();
