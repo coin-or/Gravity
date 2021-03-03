@@ -8,20 +8,16 @@ public:
     vector<GRBVar> vars;
     int n;
     Model<>* m;
-    double *x;
+    
     vector<double> cont_x, int_x;
     Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
-        x = new double[n];
         vars = _grb_vars;
         n    = xn;
         m=mn;
         cont_x.resize(n);
         int_x.resize(n);
         interior=interiorn;
-    }
-    ~cuts(){
-        delete [] x;
     }
 protected:
     void callback() {
@@ -32,6 +28,7 @@ protected:
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
                     int i,j;
+                    double *x = new double[n];
                     x=getSolution(vars.data(),n);
                     for(i=0;i<n;i++){
                         int_x[i] = x[i];
@@ -49,12 +46,14 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
+                    delete [] x;
                 }
             }
             if(mipnode){
                 if (where == GRB_CB_MIPNODE){
                     int stat=getIntInfo(GRB_CB_MIPNODE_STATUS);
                     if(stat==2){
+                        double *x = new double[n];
                         DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
                             // Found an integer feasible solution - does it visit every node?
                         double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
@@ -80,6 +79,7 @@ protected:
                             }
                         }
                         m->set_solution(int_x);
+                        delete [] x;
                     }
                 }
             }
