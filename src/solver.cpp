@@ -139,6 +139,7 @@ Model<type> Model<type>::build_model_interior() const
     for (auto &con: _cons_vec)
     {
         if(!con->is_linear()) {
+            if(con->_callback){
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                 indices ind_eta_c("ind_eta_c");
                 for(auto i=0;i<con->get_nb_instances();i++){
@@ -147,6 +148,7 @@ Model<type> Model<type>::build_model_interior() const
                 }
                 ind_eta_vec.push_back(ind_eta_c);
             }
+        }
         }
     }
     /*Add eta variables to model*/
@@ -160,7 +162,7 @@ Model<type> Model<type>::build_model_interior() const
     int count=0;
     for (auto &con: _cons_vec)
     {
-        if(!con->is_linear()) {
+        if(!con->is_linear() && con->_callback) {
             /* We are only interested in an interior point for constraints defining a convex region but having a non-convex description, e.g., SDP-determinant cuts and SOC constraints.*/
             if(!con->is_convex() || con->is_rotated_soc() || con->check_soc()){
                 /*ind has indices of all eta_int elements corressponding to con*/
@@ -394,6 +396,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                         }
                     }
                 }
+                
                     //  OA_sol=con->get_outer_app(activeset, scale);
                 OA_sol=con->get_outer_app(activeset, scale, true, 1e-3);
                 if(con->_ctype==leq) {
@@ -430,6 +433,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
             }
             else if(con->is_convex() && !con->is_rotated_soc() && !con->check_soc())
             {
+               // if(con->_name!="limit_neg"){
                 Constraint<> OA_sol("OA_cuts_"+con->_name);
                 indices allset("active_"+con->_name);
                 auto keys=con->_indices->_keys;
@@ -445,6 +449,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
                 else {
                     add(OA_sol.in(allset)>=0);
                 }
+                
             }
         }
     }
@@ -587,7 +592,8 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
     int nb_added_cuts = 0;
     for (auto &con: _cons_vec)
     {
-        if(!con->is_linear()) {
+        if(!con->is_linear() && con->_callback) {
+           // if(con->_name!="limit_neg"){
             auto cnb_inst=con->get_nb_inst();
             for(auto i=0;i<cnb_inst;i++){
                 oa_cut=false;
@@ -658,6 +664,7 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                 xinterior.clear();
                 cut.clear();
             }
+            
         }
     }
     

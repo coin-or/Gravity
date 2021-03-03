@@ -398,10 +398,10 @@ void GurobiProgram::create_grb_constraints(){
     double coeff;
     for(auto& p: _model->_cons){
         auto c = p.second;
-        if (!c->_new && c->_all_satisfied) {
+        if (!c->_new && c->_all_satisfied){
             continue;
         }
-        if(c->is_ineq() && !c->is_linear() && !c->has_int())
+        if(c->is_ineq() && !c->is_linear() && !c->has_int() && c->_callback)
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
