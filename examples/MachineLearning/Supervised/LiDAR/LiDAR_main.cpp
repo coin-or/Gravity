@@ -2753,7 +2753,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     for(int i = 1; i<= nd; i++){
         bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
     }
-    Reg->print();
+//    Reg->print();
     solver<> S(Reg,gurobi);
     S.run();
         //    Reg->print();
