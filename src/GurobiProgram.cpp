@@ -49,6 +49,7 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
+                   // delete[] x;
                 }
             }
             if(mipnode){
