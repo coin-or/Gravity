@@ -5226,18 +5226,30 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         Reg->add(limit_neg.in(N1)<=0);
         
         Constraint<> limit_pos("limit_pos");
-        limit_pos=2*(new_xm*x1*theta11.in(idstheta));
-        limit_pos+= 2*(new_xm*y1*theta12.in(idstheta));
-        limit_pos+= 2*(new_xm*z1*theta13.in(idstheta));
-        limit_pos+= 2*(new_ym*x1*theta21.in(idstheta));
-        limit_pos+= 2*(new_ym*y1*theta22.in(idstheta));
-        limit_pos+= 2*(new_ym*z1*theta23.in(idstheta));
-        limit_pos+= 2*(new_zm*x1*theta31.in(idstheta));
-        limit_pos+= 2*(new_zm*y1*theta32.in(idstheta));
-        limit_pos+= 2*(new_zm*z1*theta33.in(idstheta));
+        limit_pos-=2*(new_xm*x1*theta11.in(idstheta));
+        limit_pos-= 2*(new_xm*y1*theta12.in(idstheta));
+        limit_pos-= 2*(new_xm*z1*theta13.in(idstheta));
+        limit_pos-= 2*(new_ym*x1*theta21.in(idstheta));
+        limit_pos-= 2*(new_ym*y1*theta22.in(idstheta));
+        limit_pos-= 2*(new_ym*z1*theta23.in(idstheta));
+        limit_pos-= 2*(new_zm*x1*theta31.in(idstheta));
+        limit_pos-= 2*(new_zm*y1*theta32.in(idstheta));
+        limit_pos-= 2*(new_zm*z1*theta33.in(idstheta));
         limit_pos-=pow(x1,2)+pow(y1,2)+pow(z1,2);
         limit_pos-=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2);
-      //  Reg->add(limit_pos.in(N1)>=0);
+       // Reg->add(limit_pos.in(N1)<=0);
+        param<> dm("dm");
+        for(auto i=0;i<nm;i++){
+            auto dmd=pow(point_cloud_model.at(i)[0],2)+pow(point_cloud_model.at(i)[1],2)+pow(point_cloud_model.at(i)[2],2);
+            dm.add_val(to_string(i+1), dmd);
+        }
+        
+        Constraint<> dist_model("dist_model");
+        dist_model=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)-product(dm.in(ids),bin.in_matrix(1, 1));
+        Reg->add(dist_model.in(N1)==0);
+        
+        
+        
 
 //    Reg->add(new_xm.in(N1));
 //    Reg->add(new_ym.in(N1));

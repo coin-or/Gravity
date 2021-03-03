@@ -401,7 +401,7 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied){
             continue;
         }
-        if(c->is_ineq() && !c->is_linear() && !c->has_int() && c->_callback)
+        if(c->_callback)
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
