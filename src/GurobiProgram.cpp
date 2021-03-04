@@ -49,6 +49,7 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
+                   // delete[] x;
                 }
             }
             if(mipnode){
@@ -211,7 +212,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         grb_mod->set(GRB_DoubleParam_NodefileStart,0.5);
         grb_mod->set(GRB_IntParam_NonConvex,2);
         grb_mod->set(GRB_IntParam_NumericFocus,3);
-        grb_mod->set(GRB_DoubleParam_TimeLimit,9000);
+        grb_mod->set(GRB_DoubleParam_TimeLimit,300);
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
@@ -397,10 +398,10 @@ void GurobiProgram::create_grb_constraints(){
     double coeff;
     for(auto& p: _model->_cons){
         auto c = p.second;
-        if (!c->_new && c->_all_satisfied) {
+        if (!c->_new && c->_all_satisfied){
             continue;
         }
-        if(c->is_ineq() && !c->is_linear() && !c->has_int())
+        if(c->_callback)
         {
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
