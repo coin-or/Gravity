@@ -498,7 +498,7 @@ public:
 //        if((d[0]>=zero_tol) && (d[1]>=zero_tol) && (d[2]>=zero_tol) && (d[3]>=zero_tol)){
 //            convex_region=true;
 //        }
-        if((d[i_ind]>=zero_tol) && (d[j_ind]>=zero_tol)){
+        if((d[i_ind-1]>=zero_tol) && (d[j_ind-1]>=zero_tol)){
             convex_region=true;
         }
         return convex_region;
@@ -574,7 +574,7 @@ public:
 //                convex_region=true;
 //            }
 //        }
-                    if(d[i_ind]>=0 && d[j_ind]>=0 && d[k_ind]>=0){
+                    if(d[i_ind-1]>=0 && d[j_ind-1]>=0 && d[k_ind-1]>=0){
                         if((soc_map[(i_ind*10+j_ind)]<=0)&&(soc_map[(j_ind*10+k_ind)]<=0)&&(soc_map[(i_ind*10+k_ind)]<=0)){
                         convex_region=true; 
                         }
