@@ -212,7 +212,9 @@ void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointN
 
 #endif
 
-
+const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
+    return c1.first > c2.first;
+}
 int main (int argc, char * argv[])
 {
         //    read_laz("/Users/l297598/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz");
@@ -335,19 +337,18 @@ int main (int argc, char * argv[])
 #endif
         
         
-        int nb_p = 35;
+        int reduced_nb_data = 50;
+        int reduced_nb_model = 200;
         bool subsample = false;
         if (subsample) {
-            model_nb_rows = nb_p;
-            data_nb_rows = nb_p;
-            point_cloud_model = get_n_extreme_points(nb_p, point_cloud_model);
-            point_cloud_data = get_n_extreme_points(nb_p, point_cloud_data);
+            model_nb_rows = reduced_nb_model;
+            data_nb_rows = reduced_nb_data;
+            point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
+            point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
         }
-#ifdef USE_MATPLOT
-            //        plot(point_cloud_model,point_cloud_data,1);
-#endif
+
 #ifdef USE_VORO
-        container model_con(x_min,x_max,y_min,y_max,z_min,z_max,100,100,100,false,false,false,8);
+        container model_con(x_min,x_max,y_min,y_max,z_min,z_max,10,10,10,false,false,false,8);
 #endif
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
             model_con.put(i, point_cloud_model[i][0], point_cloud_model[i][1], point_cloud_model[i][2]);
@@ -367,12 +368,14 @@ int main (int argc, char * argv[])
         vector<double> model_voronoi_out_radius(model_nb_rows);/* Store the radius of the smallest ball enclosing the voronoi cell of each point */
         param<> norm_x("norm_x"), norm_y("norm_y"), norm_z("norm_z"), intercept("intercept");
         indices m_facets("m_facets");
+        vector<pair<double,int>> volume(model_nb_rows);/*volume of each voronoi cell <volume,point_id>*/
         int idx = 0, total_nb_faces = 0;
         if(cl.start()) do if(model_con.compute_cell(c,cl)) {
             cl.pos(x,y,z);
             id=cl.pid();
             c.vertices(x,y,z,v);
             int nb_vertices = v.size()/3;
+            volume[id] = {c.volume(),id};
             int v_idx = 0;
             double max_dist = 0;
             for (int i = 0; i<nb_vertices; i++) {
@@ -444,7 +447,16 @@ int main (int argc, char * argv[])
             idx++;
         } while (cl.inc());
         DebugOn("The total number of faces = " << total_nb_faces << endl);
-        DebugOn("Nb linear cuts = " << m_facets.size() << endl);
+
+        sort(volume.begin(), volume.end(), pts_compare);
+        int nb_reduced_model = std::min(model_nb_rows,150);
+        vector<vector<double>> red_point_cloud_model(nb_reduced_model);
+        for (int i =0; i<nb_reduced_model; i++) {
+            red_point_cloud_model[i] = point_cloud_model[volume[i].second];
+        }
+#ifdef USE_MATPLOT
+//                    plot(red_point_cloud_model,point_cloud_model,2);
+#endif
             // Output the particle positions in gnuplot format
         model_con.draw_particles("my_points_p.gnu");
             // Output the Voronoi cells in gnuplot format
@@ -7098,91 +7110,52 @@ void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, doub
 vector<vector<double>> get_n_extreme_points(int max_n, const vector<vector<double>>& point_cloud){
     vector<vector<double>> ext;
     set<int> added_indices;
-    int nb = 0;
-    while (nb<max_n) {
+    while (ext.size()<max_n) {
         double x_min_val = numeric_limits<double>::max(), y_min_val = numeric_limits<double>::max(), z_min_val = numeric_limits<double>::max();
         double x_max_val = numeric_limits<double>::lowest(), y_max_val = numeric_limits<double>::lowest(), z_max_val = numeric_limits<double>::lowest();
-        vector<double> x_min(3), y_min(3), z_min(3);
-        vector<double> x_max(3), y_max(3), z_max(3);
+        int x_min, y_min, z_min;
+        int x_max, y_max, z_max;
         size_t n = point_cloud.size();
         for (auto i = 0; i< n; i++) {
-            if(nb==max_n)
-                break;
             if(added_indices.count(i)!=0)
                 continue;
             if(point_cloud[i][0] < x_min_val){
-                added_indices.insert(i);
                 x_min_val = point_cloud[i][0];
-                x_min[0] = point_cloud[i][0];
-                x_min[1] = point_cloud[i][1];
-                x_min[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(x_min);
-                    nb++;
-                }
-                continue;
+                x_min = i;
             }
             if(point_cloud[i][0] > x_max_val){
-                added_indices.insert(i);
                 x_max_val = point_cloud[i][0];
-                x_max[0] = point_cloud[i][0];
-                x_max[1] = point_cloud[i][1];
-                x_max[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(x_max);
-                    nb++;
-                }
-                continue;
+                x_max = i;
             }
             if(point_cloud[i][1] < y_min_val){
-                added_indices.insert(i);
                 y_min_val = point_cloud[i][1];
-                y_min[0] = point_cloud[i][0];
-                y_min[1] = point_cloud[i][1];
-                y_min[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(y_min);
-                    nb++;
-                }
-                continue;
+                y_min = i;
             }
             if(point_cloud[i][1] > y_max_val){
-                added_indices.insert(i);
                 y_max_val = point_cloud[i][1];
-                y_max[0] = point_cloud[i][0];
-                y_max[1] = point_cloud[i][1];
-                y_max[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(y_max);
-                    nb++;
-                }
-                continue;
+                y_max = i;
             }
             if(point_cloud[i][2] < z_min_val){
-                added_indices.insert(i);
                 z_min_val = point_cloud[i][2];
-                z_min[0] = point_cloud[i][0];
-                z_min[1] = point_cloud[i][1];
-                z_min[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(z_min);
-                    nb++;
-                }
-                continue;
+                z_min = i;
             }
             if(point_cloud[i][2] > z_max_val){
-                added_indices.insert(i);
                 z_max_val = point_cloud[i][2];
-                z_max[0] = point_cloud[i][0];
-                z_max[1] = point_cloud[i][1];
-                z_max[2] = point_cloud[i][2];
-                if(nb<max_n){
-                    ext.push_back(z_max);
-                    nb++;
-                }
-                continue;
+                z_max = i;
             }
         }
+        if(ext.size()<max_n && added_indices.insert(x_min).second)
+            ext.push_back(point_cloud[x_min]);
+        if(ext.size()<max_n && added_indices.insert(x_max).second)
+            ext.push_back(point_cloud[x_max]);
+        if(ext.size()<max_n && added_indices.insert(y_min).second)
+            ext.push_back(point_cloud[y_min]);
+        if(ext.size()<max_n && added_indices.insert(y_max).second)
+            ext.push_back(point_cloud[y_max]);
+        if(ext.size()<max_n && added_indices.insert(z_min).second)
+            ext.push_back(point_cloud[z_min]);
+        if(ext.size()<max_n && added_indices.insert(z_max).second)
+            ext.push_back(point_cloud[z_max]);
     }
     return ext;
 }
@@ -7707,7 +7680,7 @@ pair<pcl::PointCloud<pcl::PointNormal>::Ptr,pcl::PointCloud<pcl::FPFHSignature33
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
     
         // Use all neighbors in a sphere of radius 0.05
-    ne.setRadiusSearch (0.9);
+    ne.setRadiusSearch (0.05);
     
         // Compute the features
     ne.compute (*cloud_normals);
