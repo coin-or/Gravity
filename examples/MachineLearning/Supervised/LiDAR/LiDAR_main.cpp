@@ -663,7 +663,7 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-           auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+           auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
             
                 ////            SOC_MIP->print();
                 //            if(linearize){
@@ -4508,7 +4508,6 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
-    
     vector<double> zeros = {0,0,0};
     
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
@@ -4550,7 +4549,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         //    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.011, -0.01);
     
-    Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
+    //Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     double angle_max = 25.*pi/180.;
@@ -4586,12 +4585,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> new_xm("new_xm", min_model_x, max_model_x), new_ym("new_ym", min_model_y, max_model_y), new_zm("new_zm", min_model_z, max_model_z);
     
     bool hybrid=false;
-    if(separate){
-        Reg->add(xsh_bin.in(cells),ysh_bin.in(cells),zsh_bin.in(cells));
-        Reg->add(theta11_bin.in(cells),theta12_bin.in(cells),theta13_bin.in(cells));
-        Reg->add(theta21_bin.in(cells),theta22_bin.in(cells),theta23_bin.in(cells));
-        Reg->add(theta31_bin.in(cells),theta32_bin.in(cells),theta33_bin.in(cells));
-    }
+
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     
     
@@ -4601,7 +4595,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> tx("tx", 0, tx_max), ty("ty", 0, ty_max), tz("tz", 0, tz_max);    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
     Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
     Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
-    if(!hybrid){
+    if(false){
         Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
     }
     
@@ -4851,200 +4845,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     
     
-    if(separate){
-        Constraint<> xsh_on1("xsh_on1");
-        xsh_on1=xsh_bin-x_shift-(1-bin);
-        Reg->add(xsh_on1.in(cells)<=0);
-        
-        Constraint<> xsh_on2("xsh_on2");
-        xsh_on2=xsh_bin-x_shift+(1-bin);
-        Reg->add(xsh_on2.in(cells)>=0);
-        
-        Constraint<> xsh_off1("xsh_off1");
-        xsh_off1=xsh_bin-bin;
-        Reg->add(xsh_off1.in(cells)<=0);
-        
-        Constraint<> xsh_off2("xsh_off2");
-        xsh_off2=xsh_bin+bin;
-        Reg->add(xsh_off2.in(cells)>=0);
-        
-        Constraint<> ysh_on1("ysh_on1");
-        ysh_on1=ysh_bin-y_shift-(1-bin);
-        Reg->add(ysh_on1.in(cells)<=0);
-        
-        Constraint<> ysh_on2("ysh_on2");
-        ysh_on2=ysh_bin-y_shift+(1-bin);
-        Reg->add(ysh_on2.in(cells)>=0);
-        
-        Constraint<> ysh_off1("ysh_off1");
-        ysh_off1=ysh_bin-bin;
-        Reg->add(ysh_off1.in(cells)<=0);
-        
-        Constraint<> ysh_off2("ysh_off2");
-        ysh_off2=ysh_bin+bin;
-        Reg->add(ysh_off2.in(cells)>=0);
-        
-        Constraint<> zsh_on1("zsh_on1");
-        zsh_on1=zsh_bin-z_shift-(1-bin);
-        Reg->add(zsh_on1.in(cells)<=0);
-        
-        Constraint<> zsh_on2("zsh_on2");
-        zsh_on2=zsh_bin-z_shift+(1-bin);
-        Reg->add(zsh_on2.in(cells)>=0);
-        
-        Constraint<> zsh_off1("zsh_off1");
-        zsh_off1=zsh_bin-bin;
-        Reg->add(zsh_off1.in(cells)<=0);
-        
-        Constraint<> zsh_off2("zsh_off2");
-        zsh_off2=zsh_bin+bin;
-        Reg->add(zsh_off2.in(cells)>=0);
-        
-        Constraint<> theta11_on1("theta11_on1");
-        theta11_on1=theta11_bin-theta11-(1-bin);
-        Reg->add(theta11_on1.in(cells)<=0);
-        
-        Constraint<> theta11_on2("theta11_on2");
-        theta11_on2=theta11_bin-theta11+(1-bin);
-        Reg->add(theta11_on2.in(cells)>=0);
-        
-        Constraint<> theta11_off1("theta11_off1");
-        theta11_off1=theta11_bin-bin;
-        Reg->add(theta11_off1.in(cells)<=0);
-        
-        Constraint<> theta11_off2("theta11_off2");
-        theta11_off2=theta11_bin+bin;
-        Reg->add(theta11_off2.in(cells)>=0);
-        
-        Constraint<> theta12_on1("theta12_on1");
-        theta12_on1=theta12_bin-theta12-(1-bin);
-        Reg->add(theta12_on1.in(cells)<=0);
-        
-        Constraint<> theta12_on2("theta12_on2");
-        theta12_on2=theta12_bin-theta12+(1-bin);
-        Reg->add(theta12_on2.in(cells)>=0);
-        
-        Constraint<> theta12_off1("theta12_off1");
-        theta12_off1=theta12_bin-bin;
-        Reg->add(theta12_off1.in(cells)<=0);
-        
-        Constraint<> theta12_off2("theta12_off2");
-        theta12_off2=theta12_bin+bin;
-        Reg->add(theta12_off2.in(cells)>=0);
-        
-        Constraint<> theta13_on1("theta13_on1");
-        theta13_on1=theta13_bin-theta13-(1-bin);
-        Reg->add(theta13_on1.in(cells)<=0);
-        
-        Constraint<> theta13_on2("theta13_on2");
-        theta13_on2=theta13_bin-theta13+(1-bin);
-        Reg->add(theta13_on2.in(cells)>=0);
-        
-        Constraint<> theta13_off1("theta13_off1");
-        theta13_off1=theta13_bin-bin;
-        Reg->add(theta13_off1.in(cells)<=0);
-        
-        Constraint<> theta13_off2("theta13_off2");
-        theta13_off2=theta13_bin+bin;
-        Reg->add(theta13_off2.in(cells)>=0);
-        
-        Constraint<> theta21_on1("theta21_on1");
-        theta21_on1=theta21_bin-theta21-(1-bin);
-        Reg->add(theta21_on1.in(cells)<=0);
-        
-        Constraint<> theta21_on2("theta21_on2");
-        theta21_on2=theta21_bin-theta21+(1-bin);
-        Reg->add(theta21_on2.in(cells)>=0);
-        
-        Constraint<> theta21_off1("theta21_off1");
-        theta21_off1=theta21_bin-bin;
-        Reg->add(theta21_off1.in(cells)<=0);
-        
-        Constraint<> theta21_off2("theta21_off2");
-        theta21_off2=theta21_bin+bin;
-        Reg->add(theta21_off2.in(cells)>=0);
-        
-        Constraint<> theta22_on1("theta22_on1");
-        theta22_on1=theta22_bin-theta22-(1-bin);
-        Reg->add(theta22_on1.in(cells)<=0);
-        
-        Constraint<> theta22_on2("theta22_on2");
-        theta22_on2=theta22_bin-theta22+(1-bin);
-        Reg->add(theta22_on2.in(cells)>=0);
-        
-        Constraint<> theta22_off1("theta22_off1");
-        theta22_off1=theta22_bin-bin;
-        Reg->add(theta22_off1.in(cells)<=0);
-        
-        Constraint<> theta22_off2("theta22_off2");
-        theta22_off2=theta22_bin+bin;
-        Reg->add(theta22_off2.in(cells)>=0);
-        
-        Constraint<> theta23_on1("theta23_on1");
-        theta23_on1=theta23_bin-theta23-(1-bin);
-        Reg->add(theta23_on1.in(cells)<=0);
-        
-        Constraint<> theta23_on2("theta23_on2");
-        theta23_on2=theta23_bin-theta23+(1-bin);
-        Reg->add(theta23_on2.in(cells)>=0);
-        
-        Constraint<> theta23_off1("theta23_off1");
-        theta23_off1=theta23_bin-bin;
-        Reg->add(theta23_off1.in(cells)<=0);
-        
-        Constraint<> theta23_off2("theta23_off2");
-        theta23_off2=theta23_bin+bin;
-        Reg->add(theta23_off2.in(cells)>=0);
-        
-        Constraint<> theta31_on1("theta31_on1");
-        theta31_on1=theta31_bin-theta31-(1-bin);
-        Reg->add(theta31_on1.in(cells)<=0);
-        
-        Constraint<> theta31_on2("theta31_on2");
-        theta31_on2=theta31_bin-theta31+(1-bin);
-        Reg->add(theta31_on2.in(cells)>=0);
-        
-        Constraint<> theta31_off1("theta31_off1");
-        theta31_off1=theta31_bin-bin;
-        Reg->add(theta31_off1.in(cells)<=0);
-        
-        Constraint<> theta31_off2("theta31_off2");
-        theta31_off2=theta31_bin+bin;
-        Reg->add(theta31_off2.in(cells)>=0);
-        
-        Constraint<> theta32_on1("theta32_on1");
-        theta32_on1=theta32_bin-theta32-(1-bin);
-        Reg->add(theta32_on1.in(cells)<=0);
-        
-        Constraint<> theta32_on2("theta32_on2");
-        theta32_on2=theta32_bin-theta32+(1-bin);
-        Reg->add(theta32_on2.in(cells)>=0);
-        
-        Constraint<> theta32_off1("theta32_off1");
-        theta32_off1=theta32_bin-bin;
-        Reg->add(theta32_off1.in(cells)<=0);
-        
-        Constraint<> theta32_off2("theta32_off2");
-        theta32_off2=theta32_bin+bin;
-        Reg->add(theta32_off2.in(cells)>=0);
-        
-        Constraint<> theta33_on1("theta33_on1");
-        theta33_on1=theta33_bin-theta33-(1-bin);
-        Reg->add(theta33_on1.in(cells)<=0);
-        
-        Constraint<> theta33_on2("theta33_on2");
-        theta33_on2=theta33_bin-theta33+(1-bin);
-        Reg->add(theta33_on2.in(cells)>=0);
-        
-        Constraint<> theta33_off1("theta33_off1");
-        theta33_off1=theta33_bin-bin;
-        Reg->add(theta33_off1.in(cells)<=0);
-        
-        Constraint<> theta33_off2("theta33_off2");
-        theta33_off2=theta33_bin+bin;
-        Reg->add(theta33_off2.in(cells)>=0);
-        
-    }
+
     
     if(false){
     Constraint<> txsq("txsq");
@@ -5195,11 +4996,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 //    var<> sum_ym("sum_ym", min_sum, max_sum);
 //    var<> sum_zm("sum_zm", min_sum, max_sum);
     
-  
+
     param<> c_lb("c_lb");
-    c_lb.in(cells);
     param<> c_ub("c_ub");
-    c_ub.in(cells);
     double di, dj;
     for(auto i=1;i<=nd;i++){
         i_str=to_string(i);
@@ -5208,16 +5007,18 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             j_str=to_string(j);
             dj=(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2))/2.0;
             string key = i_str+","+j_str;
-            c_ub.set_val(key, (di+dj));
-            c_lb.set_val(key, (di+dj)*(-1));
+            c_ub.add_val(key, (di+dj));
+            c_lb.add_val(key, ((di+dj)*(-1)));
         }
     }
     var<> c("c",c_lb,c_ub);
+    if(!hybrid){
     Reg->add(c.in(cells));
  
     
     auto ids_theta = theta11.repeat_id(cells.size());
     
+        if(!separate){
     Constraint<> Def_c("Def_c");
     Def_c= c;
     Def_c -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
@@ -5230,8 +5031,47 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Def_c -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
     Def_c -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
     Reg->add(Def_c.in(cells)==0);
-    
-    
+        }
+        else{
+            Constraint<> Def_cu("Def_cu");
+            Def_cu= c.in(cells);
+            Def_cu -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
+            Def_cu -= (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
+            Def_cu -= (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
+            Def_cu -= (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
+            Def_cu -= (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
+            Def_cu -= (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
+            Def_cu -= (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
+            Def_cu -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
+            Def_cu -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            Def_cu -= c_ub.in(cells)*(1-bin.in(cells));
+            Reg->add(Def_cu.in(cells)<=0);
+            
+            Constraint<> Def_cl("Def_cl");
+           
+            Def_cl += (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
+            Def_cl += (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
+            Def_cl += (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
+            Def_cl += (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
+            Def_cl += (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
+            Def_cl += (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
+            Def_cl += (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
+            Def_cl += (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
+            Def_cl += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            Def_cl += c_lb.in(cells)*(1-bin.in(cells));
+            Def_cl -= c.in(cells);
+            Reg->add(Def_cl.in(cells)<=0);
+            
+            Constraint<> c_off1("c_off1");
+            c_off1=c.in(cells)-c_ub.in(cells)*bin.in(cells);
+            Reg->add(c_off1.in(cells)<=0);
+            
+            Constraint<> c_off2("c_off2");
+            c_off2=c_lb.in(cells)*(bin.in(cells))-c.in(cells);
+            Reg->add(c_off2.in(cells)<=0);
+            
+        }
+    }
     
     
     if(hybrid){
@@ -5239,7 +5079,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         double dmax=min_max_model[3].second;
     
     Reg->add(new_xm.in(N1));
-    Reg->add(new_ym.in(N1));
+    Reg->add(new_ym .in(N1));
     Reg->add(new_zm.in(N1));
     indices ids = indices("in_x");
     ids.add_empty_row();
@@ -5261,17 +5101,17 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
-    Constraint<> sum_newxm("sum_newxm");
-    sum_newxm = sum(new_xm.in(N1))-nd*x_shift;
-    Reg->add(sum_newxm==0);
-    
-    Constraint<> sum_newym("sum_newym");
-    sum_newym = sum(new_ym.in(N1))-nd*y_shift;
-    Reg->add(sum_newym==0);
-    
-    Constraint<> sum_newzm("sum_newzm");
-    sum_newzm = sum(new_zm.in(N1))-nd*z_shift;
-    Reg->add(sum_newzm==0);
+//    Constraint<> sum_newxm("sum_newxm");
+//    sum_newxm = sum(new_xm.in(N1))-nd*x_shift;
+//    Reg->add(sum_newxm==0);
+//
+//    Constraint<> sum_newym("sum_newym");
+//    sum_newym = sum(new_ym.in(N1))-nd*y_shift;
+//    Reg->add(sum_newym==0);
+//
+//    Constraint<> sum_newzm("sum_newzm");
+//    sum_newzm = sum(new_zm.in(N1))-nd*z_shift;
+//    Reg->add(sum_newzm==0);
         
         auto idstheta = theta11.repeat_id(N1.size());
         Constraint<> limit_neg("limit_neg");
@@ -5321,35 +5161,11 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         limit_neg_bin+= 2*(new_zm*x1*theta31.in(idstheta));
         limit_neg_bin+= 2*(new_zm*y1*theta32.in(idstheta));
         limit_neg_bin+= 2*(new_zm*z1*theta33.in(idstheta));
-        limit_neg-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-        limit_neg-=product(dm.in(ids),bin.in_matrix(1, 1));
-        Reg->add(limit_neg.in(N1)<=0);
-        
-        
-        
+        limit_neg_bin-=pow(x1,2)+pow(y1,2)+pow(z1,2);
+        limit_neg_bin-=product(dm.in(ids),bin.in_matrix(1, 1));
+        Reg->add(limit_neg_bin.in(N1)<=0);
+ 
 
-//    Reg->add(new_xm.in(N1));
-//    Reg->add(new_ym.in(N1));
-//    Reg->add(new_zm.in(N1));
-//    indices ids = indices("in_x");
-//    ids.add_empty_row();
-//
-//    for(auto i=0;i<nd;i++){
-//        for(auto j=1;j<=nm;j++){
-//            ids.add_in_row(i, to_string(j));
-//        }
-//    }
-//    Constraint<> Def_newxm("Def_newxm");
-//    Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
-//    Reg->add(Def_newxm.in(N1)==0);
-//
-//    Constraint<> Def_newym("Def_newym");
-//    Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1));
-//    Reg->add(Def_newym.in(N1)==0);
-//
-//    Constraint<> Def_newzm("Def_newzm");
-//    Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
-//   Reg->add(Def_newzm.in(N1)==0);
 
     }
     /* Objective function */
@@ -5359,31 +5175,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     
     if(!hybrid){
-        auto ids_repeat = x_shift.repeat_id(cells.size());
     if(separate){
-        obj +=nd*(tx +ty+tz);
-        obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
-        
+        //obj =nd*(tx +ty+tz);
+//        obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
+//
         obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
-        
-        auto ids1 = theta11.repeat_id(cells.size());
-        obj -= 2*sum(x2.to(cells)*x1.from(cells)*theta11_bin);
-        obj -= 2*sum(x2.to(cells)*y1.from(cells)*theta12_bin);
-        obj -= 2*sum(x2.to(cells)*z1.from(cells)*theta13_bin);
-        obj -= 2*sum(y2.to(cells)*x1.from(cells)*theta21_bin);
-        obj -= 2*sum(y2.to(cells)*y1.from(cells)*theta22_bin);
-        obj -= 2*sum(y2.to(cells)*z1.from(cells)*theta23_bin);
-        obj -= 2*sum(z2.to(cells)*x1.from(cells)*theta31_bin);
-        obj -= 2*sum(z2.to(cells)*y1.from(cells)*theta32_bin);
-        obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
-    }
-    else{
-        obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
-        //obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
-        
-        obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
-        obj-=2*product(c.in(cells), bin.in(cells));
-       // obj-=2*sum(c.in(cells)*bin.in(cells));
+        obj -= 2*sum(c.in(cells));
         
 //        auto ids1 = theta11.repeat_id(cells.size());
 //        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
@@ -5395,6 +5192,36 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 //        obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
 //        obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
 //        obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
+//
+//        auto ids1 = theta11.repeat_id(cells.size());
+//        obj -= 2*sum(x2.to(cells)*x1.from(cells)*theta11_bin);
+//        obj -= 2*sum(x2.to(cells)*y1.from(cells)*theta12_bin);
+//        obj -= 2*sum(x2.to(cells)*z1.from(cells)*theta13_bin);
+//        obj -= 2*sum(y2.to(cells)*x1.from(cells)*theta21_bin);
+//        obj -= 2*sum(y2.to(cells)*y1.from(cells)*theta22_bin);
+//        obj -= 2*sum(y2.to(cells)*z1.from(cells)*theta23_bin);
+//        obj -= 2*sum(z2.to(cells)*x1.from(cells)*theta31_bin);
+//        obj -= 2*sum(z2.to(cells)*y1.from(cells)*theta32_bin);
+//        obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
+    }
+    else{
+        //obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
+        //obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
+        
+        obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
+       // obj-=2*product(c.in(cells), bin.in(cells));
+       // obj-=2*sum(c.in(cells)*bin.in(cells));
+        
+        auto ids1 = theta11.repeat_id(cells.size());
+        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
+        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
+        obj -= 2*sum(x2.to(cells)*z1.from(cells)*bin*theta13.in(ids1));
+        obj -= 2*sum(y2.to(cells)*x1.from(cells)*bin*theta21.in(ids1));
+        obj -= 2*sum(y2.to(cells)*y1.from(cells)*bin*theta22.in(ids1));
+        obj -= 2*sum(y2.to(cells)*z1.from(cells)*bin*theta23.in(ids1));
+        obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
+        obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
+        obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
         
     }
     }
@@ -5402,15 +5229,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
        
         obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
         
-        obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
+       // obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
         
       //  obj -= 2*x_shift*sum_xm+2*y_shift*sum_ym+2*z_shift*sum_zm;
-        
-         
-//auto ids_repeat4 = x_shift.repeat_id(N1.size());
-//        obj -= 2*sum(x_shift.in(ids_repeat4)*new_xm.in(N1)) + 2*sum(y_shift.in(ids_repeat4)*new_ym.in(N1)) + 2*sum(z_shift.in(ids_repeat4)*new_zm.in(N1));
-//        auto ids_repeat = x_shift.repeat_id(cells.size());
-//        obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
         
         auto ids_repeat1 = theta11.repeat_id(N1.size());
         obj -= 2*sum(new_xm*x1*theta11.in(ids_repeat1));
@@ -5422,17 +5243,6 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         obj -= 2*sum(new_zm*x1*theta31.in(ids_repeat1));
         obj -= 2*sum(new_zm*y1*theta32.in(ids_repeat1));
         obj -= 2*sum(new_zm*z1*theta33.in(ids_repeat1));
-        
-//        auto ids1 = theta11.repeat_id(cells.size());
-//        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
-//        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
-//        obj -= 2*sum(x2.to(cells)*z1.from(cells)*bin*theta13.in(ids1));
-//        obj -= 2*sum(y2.to(cells)*x1.from(cells)*bin*theta21.in(ids1));
-//        obj -= 2*sum(y2.to(cells)*y1.from(cells)*bin*theta22.in(ids1));
-//        obj -= 2*sum(y2.to(cells)*z1.from(cells)*bin*theta23.in(ids1));
-//        obj -= 2*sum(z2.to(cells)*x1.from(cells)*bin*theta31.in(ids1));
-//        obj -= 2*sum(z2.to(cells)*y1.from(cells)*bin*theta32.in(ids1));
-//        obj -= 2*sum(z2.to(cells)*z1.from(cells)*bin*theta33.in(ids1));
         
     }
     Reg->min(obj);
@@ -5472,7 +5282,34 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     S.run();
     Reg->print_int_solution();
     
-        //    Reg->print_solution();
+    double txv=0, tyv=0, tzv=0;
+    for(auto i=1;i<=nd;i++){
+        auto i_str=to_string(i);
+        for(auto j=1;j<=nm;j++){
+            auto j_str=to_string(j);
+            txv+=bin.eval(i_str+","+j_str)*x2.eval(j_str);
+            tyv+=bin.eval(i_str+","+j_str)*y2.eval(j_str);
+            tzv+=bin.eval(i_str+","+j_str)*z2.eval(j_str);
+        }
+    }
+    
+    double cf=0;
+    double mf=0;
+    for(auto i=1;i<=nd;i++){
+        auto i_str=to_string(i);
+        for(auto j=1;j<=nm;j++){
+            auto j_str=to_string(j);
+            cf+=bin.eval(i_str+","+j_str)*c.eval(i_str+","+j_str);
+            mf+=bin.eval(i_str+","+j_str)*(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2));
+        }
+        mf+=(pow(x1.eval(i_str),2)+pow(y1.eval(i_str),2)+pow(z1.eval(i_str),2));
+    }
+    auto uf=mf-2*cf;
+    
+    auto objv=Reg->get_obj_val();
+    objv-=(pow(txv,2)+pow(tyv,2)+pow(tzv,2))/nd;
+    DebugOn("Final objective "<<objv<<endl);
+            Reg->print_solution();
     
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -5512,18 +5349,18 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     rot_trans[6]=theta31.eval();
     rot_trans[7]=theta32.eval();
     rot_trans[8]=theta33.eval();
-    rot_trans[9]=x_shift.eval();
-    rot_trans[10]=y_shift.eval();
-    rot_trans[11]=z_shift.eval();
+    rot_trans[9]=txv/nd;
+    rot_trans[10]=tyv/nd;
+    rot_trans[11]=tzv/nd;
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
     auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
     DebugOn("Roll (degrees) = " << to_string_with_precision(roll_val,12) << endl);
     DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch_val,12) << endl);
     DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw_val,12) << endl);
-    DebugOn("x shift = " << x_shift.eval() << endl);
-    DebugOn("y shift = " << y_shift.eval() << endl);
-    DebugOn("z shift = " << z_shift.eval() << endl);
+    DebugOff("x shift = " << x_shift.eval() << endl);
+    DebugOff("y shift = " << y_shift.eval() << endl);
+    DebugOff("z shift = " << z_shift.eval() << endl);
     
         //    indices voronoi_ids("voronoi_ids");
         //    voronoi_ids = indices(N1, *norm_x._indices);
