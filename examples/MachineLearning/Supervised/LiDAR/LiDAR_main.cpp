@@ -5057,7 +5057,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_cl += (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
             Def_cl += (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
             Def_cl += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
-            Def_cl += c_lb.in(cells)*(1-bin.in(cells));
+//            Def_cl += c_lb.in(cells)*(1-bin.in(cells));
             Def_cl -= c;
             Reg->add_on_off_multivariate_refined(Def_cl.in(cells)<=0, bin, true);
             
@@ -5174,12 +5174,15 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     
     if(!hybrid){
+        param<> two("2");
+        two = 2;
+        auto ids1 = theta11.repeat_id(cells.size());
         if(separate){
                 //obj =nd*(tx +ty+tz);
                 //        obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
                 //
             obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
-            obj -= 2*sum(c);
+            obj -= sum(2*c);
                 //        obj.print();
                 //        auto ids1 = theta11.repeat_id(cells.size());
                 //        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
