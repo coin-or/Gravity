@@ -4546,8 +4546,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     
     double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
-    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
-        //    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.011, -0.01);
+//    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+            var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
     
         //Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
@@ -4829,7 +4829,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
     }
     
-    if(!incompatibles.empty()){
+    if(false && !incompatibles.empty()){
         indices pairs1("pairs1"), pairs2("pairs2");
         pairs1 = cells;
         pairs2 = cells;
@@ -5181,7 +5181,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 //
             obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
             obj -= two.tr()*c;
-                        obj.print();
+//                        obj.print();
                 //        auto ids1 = theta11.repeat_id(cells.size());
                 //        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
                 //        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
@@ -5284,7 +5284,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     S.use_callback();
     S.run();
     Reg->print_int_solution();
-    
+    Reg->print_solution();
     double txv=0, tyv=0, tzv=0;
     for(auto i=1;i<=nd;i++){
         auto i_str=to_string(i);
