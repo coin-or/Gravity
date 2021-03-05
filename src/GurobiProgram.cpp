@@ -211,8 +211,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    if(use_callback){
         grb_mod->set(GRB_DoubleParam_NodefileStart,0.5);
         grb_mod->set(GRB_IntParam_NonConvex,2);
-        grb_mod->set(GRB_IntParam_NumericFocus,3);
-        grb_mod->set(GRB_DoubleParam_TimeLimit,300);
+//        grb_mod->set(GRB_IntParam_NumericFocus,3);
+        grb_mod->set(GRB_DoubleParam_TimeLimit,3600);
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
