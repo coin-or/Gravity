@@ -707,8 +707,10 @@ int main (int argc, char * argv[])
         plot(point_cloud_model,point_cloud_data,1);
 #endif
         auto L2error_final = computeL2error(point_cloud_model,point_cloud_data,matching);
+        auto L1error_final = computeL1error(point_cloud_model,point_cloud_data);
         DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
         DebugOn("L2 after optimization = " << to_string_with_precision(L2error_final,12) << endl);
+        DebugOn("L1 after optimization = " << to_string_with_precision(L1error_final,12) << endl);
         return 0;
     }
     
@@ -4546,8 +4548,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(bin.in(cells));
     
     bool include_t=true;
-   // double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
-    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
+    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+//    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
     double shift_mag=std::max(pow(shift_max_x,2),pow(shift_min_x,2))+std::max(pow(shift_max_y,2),pow(shift_min_y,2))+std::max(pow(shift_max_z,2),pow(shift_min_z,2));
