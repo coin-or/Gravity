@@ -5441,12 +5441,12 @@ namespace gravity {
             auto coef_type = coef->get_type();
             if (coef_type==func_c) {
                 auto f_cst = ((func<type>*)(coef.get()));
-//                if(f_cst->_indices && f_cst->_indices->_type == matrix_){
+                if(f_cst->_indices && f_cst->_indices->_type == matrix_){
                     return f_cst->eval(i,j);
-//                }
-//                else {
-//                    return f_cst->eval(i);
-//                }
+                }
+                else {
+                    return f_cst->eval(j);
+                }
             }
             else if(coef_type==par_c || coef_type==var_c) {
                 auto p_cst = ((param<type>*)(coef.get()));
