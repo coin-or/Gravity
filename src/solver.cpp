@@ -182,19 +182,19 @@ Model<type> Model<type>::build_model_interior() const
             }
             }
         }
-        else{
-            Constraint<> Inter_con(*con);
-            
-            if(con->_ctype==leq)
-            {
-                Interior.add(Inter_con<=0);
-            }
-            else  if(con->_ctype==geq)
-            {
-                Interior.add(Inter_con>=0);
-            }
-            
-        }
+//        else{
+//            Constraint<> Inter_con(*con);
+//
+//            if(con->_ctype==leq)
+//            {
+//                Interior.add(Inter_con<=0);
+//            }
+//            else  if(con->_ctype==geq)
+//            {
+//                Interior.add(Inter_con>=0);
+//            }
+//
+//        }
     }
     return *Interior.copy();
 }
@@ -367,9 +367,9 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     int output=0;
     double scale=1.0, tol=1e-8;
     auto Ointerior = nonlin.build_model_interior();
-    //Ointerior.print();
+    Ointerior.print();
     solver<> modelI(Ointerior, ipopt);
-    modelI.run(output=0, tol);
+    modelI.run(output=5, tol);
     vector<double> xsolution(_nb_vars);
     nonlin.get_solution(xsolution);
     if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val()<0)
