@@ -663,7 +663,7 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
             
                 ////            SOC_MIP->print();
                 //            if(linearize){
@@ -5169,12 +5169,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     /* Objective function */
     
-    func<> obj =sum(x1*x1 + y1*y1 + z1*z1);
-    
-    
-    
+    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
     if(!hybrid){
         param<> two("2");
+        two.in(cells);
         two = 2;
         auto ids1 = theta11.repeat_id(cells.size());
         if(separate){
@@ -5182,8 +5180,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 //        obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
                 //
             obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
-            obj -= sum(2*c);
-                //        obj.print();
+            obj -= two.tr()*c;
+                        obj.print();
                 //        auto ids1 = theta11.repeat_id(cells.size());
                 //        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
                 //        obj -= 2*sum(x2.to(cells)*y1.from(cells)*bin*theta12.in(ids1));
@@ -5207,11 +5205,13 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 //        obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
         }
         else{
+                obj -= two.tr()*(c*bin);
+//            obj.print();
                 //obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
                 //obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
             
             obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
-            obj -= c.tr()*2*bin;
+//            obj.print();
                 // obj-=2*product(c.in(cells), bin.in(cells));
                 // obj-=2*sum(c.in(cells)*bin.in(cells));
             
