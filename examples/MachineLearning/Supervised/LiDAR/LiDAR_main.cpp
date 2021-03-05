@@ -5003,7 +5003,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     for(auto i=1;i<=nd;i++){
         i_str=to_string(i);
         di=(pow(x1.eval(i_str),2)+pow(y1.eval(i_str),2)+pow(z1.eval(i_str),2))/2.0;
-        for(auto j=1;j<=nd;j++){
+        for(auto j=1;j<=nm;j++){
             j_str=to_string(j);
             dj=(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2))/2.0;
             string key = i_str+","+j_str;
@@ -5211,7 +5211,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 //obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
             
             obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
-            obj -= 2*c.tr()*bin;
+            obj -= c.tr()*2*bin;
                 // obj-=2*product(c.in(cells), bin.in(cells));
                 // obj-=2*sum(c.in(cells)*bin.in(cells));
             
@@ -5273,7 +5273,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        string key = to_string(i+1)+","+to_string(i+1);
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
-    Reg->print();
+//    Reg->print();
         //
         //    x2.print();
         //    y2.print();
