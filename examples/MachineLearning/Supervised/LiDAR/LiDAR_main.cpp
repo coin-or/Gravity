@@ -276,7 +276,7 @@ int main (int argc, char * argv[])
         //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=false;
+        bool downsample=true;
         if(downsample){
             fwdm=3;
             fwdd=3;
@@ -4555,8 +4555,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(bin.in(cells));
     
     bool include_t=true;
-    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
-//    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
+//    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
     double shift_mag=std::max(pow(shift_max_x,2),pow(shift_min_x,2))+std::max(pow(shift_max_y,2),pow(shift_min_y,2))+std::max(pow(shift_max_z,2),pow(shift_min_z,2));
@@ -5012,34 +5012,61 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     //    var<> sum_xm("sum_xm", min_sum, max_sum);
     //    var<> sum_ym("sum_ym", min_sum, max_sum);
     //    var<> sum_zm("sum_zm", min_sum, max_sum);
-    
-    
     param<> c_lb("c_lb");
     param<> c_ub("c_ub");
-    double di, dj;
-    for(auto i=1;i<=nd;i++){
-        i_str=to_string(i);
-        di=(pow(x1.eval(i_str),2)+pow(y1.eval(i_str),2)+pow(z1.eval(i_str),2))/2.0;
-        for(auto j=1;j<=nm;j++){
-            j_str=to_string(j);
-            dj=(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2))/2.0;
+    c_lb.in(cells);c_ub.in(cells);
+    double x_lb = 0, y_lb = 0, z_lb = 0, x1_i = 0, y1_i = 0, z1_i = 0;
+    shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> new_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> x2_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> y2_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> z2_bounds = make_shared<pair<double,double>>();
+    for (int i = 0; i<nd; i++) {
+        string i_str = to_string(i+1);
+        auto bounds = get_min_max(angle_max, point_cloud_data[i], zeros);
+        *new_x1_bounds = {bounds[0].first + x_shift.get_lb().eval(), bounds[0].second+ x_shift.get_ub().eval()};
+        *new_y1_bounds = {bounds[1].first + y_shift.get_lb().eval(), bounds[1].second+ y_shift.get_ub().eval()};
+        *new_z1_bounds = {bounds[2].first + z_shift.get_lb().eval(), bounds[2].second+ z_shift.get_ub().eval()};
+
+        for (int j = 0; j<nm; j++) {
+            string j_str = to_string(j+1);
+            *x2_bounds = {x2.eval(j),x2.eval(j)};
+            *y2_bounds = {y2.eval(j),y2.eval(j)};
+            *z2_bounds = {z2.eval(j),z2.eval(j)};
+            auto x_range  = get_product_range(x2_bounds, new_x1_bounds);
+            auto y_range  = get_product_range(y2_bounds, new_y1_bounds);
+            auto z_range  = get_product_range(z2_bounds, new_z1_bounds);
             string key = i_str+","+j_str;
-            auto ub_val=(di+dj);
-            auto lb_val=-(di+dj);
-            if(include_t){
-//                ub_val+=std::max(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::max(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::max(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
-//                lb_val+=std::min(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::min(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::min(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
-                ub_val+=dj+shift_mag/2.0;
-                lb_val-=dj+shift_mag/2.0;
-            }
-            c_ub.add_val(key, ub_val);
-            c_lb.add_val(key, (lb_val));
-            if(ub_val<lb_val){
-                DebugOn(i<<"\t"<<j<<endl);
-                throw invalid_argument("bounds crossed");
-            }
+            c_lb.set_val(key,x_range->first+y_range->first+z_range->first);
+            c_ub.set_val(key,x_range->second+y_range->second+z_range->second);
         }
     }
+    
+    double di, dj;
+//    for(auto i=1;i<=nd;i++){
+//        i_str=to_string(i);
+//        di=(pow(x1.eval(i_str),2)+pow(y1.eval(i_str),2)+pow(z1.eval(i_str),2))/2.0;
+//        for(auto j=1;j<=nm;j++){
+//            j_str=to_string(j);
+//            dj=(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2))/2.0;
+//            string key = i_str+","+j_str;
+//            auto ub_val=(di+dj);
+//            auto lb_val=-(di+dj);
+//            if(include_t){
+////                ub_val+=std::max(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::max(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::max(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
+////                lb_val+=std::min(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::min(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::min(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
+//                ub_val+=dj+shift_mag/2.0;
+//                lb_val-=dj+shift_mag/2.0;
+//            }
+//            c_ub.add_val(key, ub_val);
+//            c_lb.add_val(key, (lb_val));
+//            if(ub_val<lb_val){
+//                DebugOn(i<<"\t"<<j<<endl);
+//                throw invalid_argument("bounds crossed");
+//            }
+//        }
+//    }
     var<> c("c",c_lb,c_ub);
     if(!hybrid){
         Reg->add(c.in(cells));
