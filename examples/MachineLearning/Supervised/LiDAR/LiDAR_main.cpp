@@ -652,7 +652,7 @@ int main (int argc, char * argv[])
             DebugOn("Initial L2 on full data = " << L2error_init << endl);
             //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = false;
-                       auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
+                      // auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
             //   auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
             // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
             //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
@@ -663,7 +663,7 @@ int main (int argc, char * argv[])
             //            int nb_threads=1;
             //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            //auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
+            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
             
             ////            SOC_MIP->print();
             //            if(linearize){
@@ -4546,11 +4546,11 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(bin.in(cells));
     
     bool include_t=true;
-    //double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+   // double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
     double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
-    //var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
-    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
-    double shift_mag=pow(std::max(shift_max_x,shift_min_x),2)+pow(std::max(shift_max_y,shift_min_y),2)+pow(std::max(shift_max_z,shift_min_z),2);
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+    //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
+    double shift_mag=std::max(pow(shift_max_x,2),pow(shift_min_x,2))+std::max(pow(shift_max_y,2),pow(shift_min_y,2))+std::max(pow(shift_max_z,2),pow(shift_min_z,2));
     if(include_t){
         Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     }
@@ -4599,7 +4599,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> tx("tx", 0, tx_max), ty("ty", 0, ty_max), tz("tz", 0, tz_max);    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
     Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
     Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
-    if(false){
+    if(true){
         Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
     }
     
@@ -4851,18 +4851,22 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     
     
-    if(false){
+    if(true){
         Constraint<> txsq("txsq");
         txsq = pow(x_shift,2) - tx;
+        txsq.add_to_callback();
         Reg->add(txsq.in(range(0,0))<=0);
         
         Constraint<> tysq("tysq");
         tysq = pow(y_shift,2) - ty;
+        tysq.add_to_callback();
         Reg->add(tysq.in(range(0,0))<=0);
         
         Constraint<> tzsq("tzsq");
         tzsq = pow(z_shift,2) - tz;
+        tzsq.add_to_callback();
         Reg->add(tzsq.in(range(0,0))<=0);
+       
     }
     
     Constraint<> diag_1("diag_1");
@@ -5094,7 +5098,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     
     
-    if(hybrid || include_t){
+    if(hybrid){
         
         double dmax=min_max_model[3].second;
         
@@ -5226,6 +5230,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             //        obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
         }
         else{
+            obj += nd*(tx +ty+tz);
             obj -= two.tr()*(c*bin);
             //            obj.print();
             //obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
