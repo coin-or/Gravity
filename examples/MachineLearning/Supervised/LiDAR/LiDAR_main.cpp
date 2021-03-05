@@ -279,7 +279,7 @@ int main (int argc, char * argv[])
         bool downsample=false;
         if(downsample){
             fwdm=3;
-            fwdd=2;
+            fwdd=3;
         }
         for (int i = row0; i< model_nb_rows; i+=fwdm) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
@@ -5020,8 +5020,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             if(include_t){
 //                ub_val+=std::max(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::max(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::max(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
 //                lb_val+=std::min(shift_max_x*x2.eval(j_str), shift_min_x*x2.eval(j_str))+std::min(shift_max_y*y2.eval(j_str), shift_min_y*y2.eval(j_str))+std::min(shift_max_z*z2.eval(j_str), shift_min_z*z2.eval(j_str))*0.5;
-                ub_val+=dj/2.0+shift_mag/4.0;
-                lb_val-=dj/2.0+shift_mag/4.0;
+                ub_val+=dj+shift_mag/2.0;
+                lb_val-=dj+shift_mag/2.0;
             }
             c_ub.add_val(key, ub_val);
             c_lb.add_val(key, (lb_val));
@@ -5051,9 +5051,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_c -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
             Def_c -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
             if(include_t){
-                Def_c -= (x2.to(cells)*x_shift.in(ids_theta)*0.5);
-                Def_c -= (y2.to(cells)*y_shift.in(ids_theta)*0.5);
-                Def_c -= (z2.to(cells)*z_shift.in(ids_theta)*0.5);
+                Def_c -= (x2.to(cells)*x_shift.in(ids_theta));
+                Def_c -= (y2.to(cells)*y_shift.in(ids_theta));
+                Def_c -= (z2.to(cells)*z_shift.in(ids_theta));
             }
             Reg->add(Def_c.in(cells)==0);
         }
@@ -5364,7 +5364,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             << endl);
     
     DebugOn("Determinant "<<det<<endl);
-    
+    //Reg->print();
     rot_trans[0]=theta11.eval();
     rot_trans[1]=theta12.eval();
     rot_trans[2]=theta13.eval();;
