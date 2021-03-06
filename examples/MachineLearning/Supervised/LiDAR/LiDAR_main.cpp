@@ -178,7 +178,7 @@ shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<v
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_t, const vector<int>& matching);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_t, const vector<int>& matching, bool relax_ints = false);
 
 shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching);
 
@@ -276,7 +276,7 @@ int main (int argc, char * argv[])
         //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=true;
+        bool downsample=false;
         if(downsample){
             fwdm=3;
             fwdd=3;
@@ -653,7 +653,7 @@ int main (int argc, char * argv[])
             //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = false;
                       // auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-            //   auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
+//               auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching, true);
             // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
             //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
             //            NC_SOC_MIQCP->print();
@@ -663,8 +663,21 @@ int main (int argc, char * argv[])
             //            int nb_threads=1;
             //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
             //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching);
-            
+            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, true);
+//            vector<double>x(SOC_MIP->get_nb_vars());
+//            auto c = SOC_MIP->get_var<double>("c");
+//            auto bin = SOC_MIP->get_var<int>("bin");
+//            for (int i = 0; i<ext_data.size(); i++) {
+//                for (int j = 0; j<ext_model.size(); j++) {
+//                    string key = to_string(i+1)+","+to_string(j+1);
+//                    c.param<double>::set_val(key, c.eval(key)*bin.eval(key));
+//                }
+//            }
+//            SOC_MIP->get_solution(x);
+//            auto SOC_MIP_sep = build_linobj_convex(ext_model, ext_data, rot_trans,separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, true);
+//
+//            SOC_MIP_sep->set_solution(x);
+//            bool feas = SOC_MIP_sep->is_feasible(1e-6);
             ////            SOC_MIP->print();
             //            if(linearize){
             //                int constr_viol=1;
@@ -2799,9 +2812,9 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     //    }
     //    Reg->print();
     //    solver<> S1(Reg,ipopt);
-    for(int i = 1; i<= nd; i++){
-        bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
-    }
+//    for(int i = 1; i<= nd; i++){
+//        bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
+//    }
     //            Reg->print();
     if(relax_ints){
         solver<> S(Reg,ipopt);
@@ -4514,12 +4527,22 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
     return(Reg);
 }
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_model, const vector<int>& matching){
+void run_ICR(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_model, const vector<int>& matching){
+    auto Reg = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans, separate, incompatibles, norm_x, norm_y, norm_z, intercept, min_max_model, matching);
+    double obj = Reg->get_obj_val();
+    double obj_init = obj;
+    bool progress = true;
+    while(progress){
+//        auto x2 = Reg->get_p
+    }
+    
+}
+
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_model, const vector<int>& matching, bool relax_ints){
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
-    vector<double> zeros = {0,0,0};
-    
+    vector<double> zeros = {0,0,0};    
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     int m = av_nb_pairs;
     string i_str, j_str;
@@ -4617,7 +4640,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     theta33.initialize_all(1);
     
     
-    bool spatial_branching = true;
+    bool spatial_branching = false;
     if(spatial_branching){
         /* Spatial branching vars */
         int nb_pieces = 5; // Divide each axis into nb_pieces
@@ -4823,7 +4846,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(OneBin.in(N1)==1);
     
     
-    bool add_voronoi = true;
+    bool add_voronoi = false;
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
         voronoi_ids = indices(range(1, 3), *norm_x._indices);
@@ -5012,8 +5035,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     //    var<> sum_xm("sum_xm", min_sum, max_sum);
     //    var<> sum_ym("sum_ym", min_sum, max_sum);
     //    var<> sum_zm("sum_zm", min_sum, max_sum);
-    param<> c_lb("c_lb");
-    param<> c_ub("c_ub");
+    param<> c_lb("cl");
+    param<> c_ub("cu");
     c_lb.in(cells);c_ub.in(cells);
     double x_lb = 0, y_lb = 0, z_lb = 0, x1_i = 0, y1_i = 0, z1_i = 0;
     shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
@@ -5038,8 +5061,14 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             auto y_range  = get_product_range(y2_bounds, new_y1_bounds);
             auto z_range  = get_product_range(z2_bounds, new_z1_bounds);
             string key = i_str+","+j_str;
-            c_lb.set_val(key,x_range->first+y_range->first+z_range->first);
-            c_ub.set_val(key,x_range->second+y_range->second+z_range->second);
+            if(separate){
+                c_lb.set_val(key,std::min(x_range->first+y_range->first+z_range->first,0.));
+                c_ub.set_val(key,std::max(x_range->second+y_range->second+z_range->second,0.));
+            }
+            else{
+                c_lb.set_val(key,x_range->first+y_range->first+z_range->first);
+                c_ub.set_val(key,x_range->second+y_range->second+z_range->second);
+            }
         }
     }
     
@@ -5105,6 +5134,11 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_cu -= (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
             Def_cu -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
             Def_cu -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            if(include_t){
+                Def_cu -= (x2.to(cells)*x_shift.in(ids_theta));
+                Def_cu -= (y2.to(cells)*y_shift.in(ids_theta));
+                Def_cu -= (z2.to(cells)*z_shift.in(ids_theta));
+            }
             Reg->add_on_off_multivariate_refined(Def_cu.in(cells)<=0, bin, true);
             
             Constraint<> Def_cl("Def_cl");
@@ -5120,14 +5154,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_cl += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
             //            Def_cl += c_lb.in(cells)*(1-bin.in(cells));
             Def_cl -= c;
+            if(include_t){
+                Def_cl += (x2.to(cells)*x_shift.in(ids_theta));
+                Def_cl += (y2.to(cells)*y_shift.in(ids_theta));
+                Def_cl += (z2.to(cells)*z_shift.in(ids_theta));
+            }
             Reg->add_on_off_multivariate_refined(Def_cl.in(cells)<=0, bin, true);
             
             Constraint<> c_off1("c_off1");
-            c_off1=c-c_ub*bin;
+            c_off1=c - c_ub*bin;
             Reg->add(c_off1.in(cells)<=0);
-            
+
             Constraint<> c_off2("c_off2");
-            c_off2=c_lb*bin-c;
+            c_off2=c_lb*bin - c;
             Reg->add(c_off2.in(cells)<=0);
             
         }
@@ -5311,6 +5350,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
     }
     Reg->min(obj);
+//    Reg->print();
     double init_sum_x=0,init_sum_y=0,init_sum_z=0;
     for (int i = 1; i<=nd; i++) {
         string key = to_string(i)+","+to_string(matching.at(i-1));
@@ -5335,10 +5375,17 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     //        string key = to_string(i+1)+","+to_string(i+1);
     //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     //    }
-    //Reg->print();
-    solver<> S(Reg,gurobi);
-    S.use_callback();
-    S.run();
+    Reg->print();
+    if(relax_ints){
+        solver<> S(Reg,gurobi);
+        S.run();
+        Reg->round_solution();
+    }
+    else{
+        solver<> S(Reg,gurobi);
+        S.use_callback();
+        S.run();
+    }
     Reg->print_int_solution();
     Reg->print_solution();
     double txv=0, tyv=0, tzv=0;
