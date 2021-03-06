@@ -412,6 +412,65 @@ template<typename type> void   var<type>::add_ub_only(type val) {
 //}
 
     
+template<typename type> void   var<type>::fix(const string& key) {
+    auto it = this->_indices->_keys_map->find(key);
+    fix(it->second);
+}
+
+template<typename type> void   var<type>::fix(int i) {
+    if(this->_ub->_val->at(i) < this->_val->at(i)){
+        this->_lb->_val->at(i) = this->_ub->_val->at(i);
+    }
+    else if (this->_lb->_val->at(i) > this->_val->at(i)){
+        this->_ub->_val->at(i) = this->_lb->_val->at(i);
+    }
+    else {
+        this->_lb->_val->at(i) = this->_val->at(i);
+        this->_ub->_val->at(i) = this->_val->at(i);
+    }
+    this->_val->at(i) = this->_lb->_val->at(i);
+}
+
+template<typename type> void   var<type>::fix() {
+    for (size_t i = 0; i < this->_dim[0]; i++) {
+        if(this->_ub->_val->at(i) < this->_val->at(i)){
+            this->_lb->_val->at(i) = this->_ub->_val->at(i);
+        }
+        else if (this->_lb->_val->at(i) > this->_val->at(i)){
+            this->_ub->_val->at(i) = this->_lb->_val->at(i);
+        }
+        else {
+            this->_lb->_val->at(i) = this->_val->at(i);
+            this->_ub->_val->at(i) = this->_val->at(i);
+        }
+        this->_val->at(i) = this->_lb->_val->at(i);
+//        if(this->_ub->_val->at(i) - this->_lb->_val->at(i) > 1e-5){
+//            if(this->_lb->_val->at(i) < this->_val->at(i) - 1e-5){
+//                this->_lb->_val->at(i) = this->_val->at(i) - 1e-5;
+//            }
+//            else {
+//                this->_lb->_val->at(i) = this->_val->at(i);
+//            }
+//            if(this->_ub->_val->at(i) > this->_val->at(i) + 1e-5){
+//                this->_ub->_val->at(i) = this->_val->at(i) + 1e-5;
+//            }
+//            else{
+//                this->_ub->_val->at(i) = this->_val->at(i);
+//            }
+////            this->_ub->_val->at(i) = this->_val->at(i);
+//
+////            if(this->_lb->_val->at(i) < this->_val->at(i) - 1e-5){
+////                this->_lb->_val->at(i) = this->_val->at(i) - 1e-5;
+////                this->_ub->_val->at(i) = this->_val->at(i);
+////            }
+////            else if(this->_ub->_val->at(i) > this->_val->at(i) + 1e-4){
+////                this->_ub->_val->at(i) = this->_val->at(i) + 1e-4;
+////                this->_lb->_val->at(i) = this->_val->at(i) - 1e-4;
+////            }
+//        }
+    }
+}
+
 template<typename type> void   var<type>::set_lb(type val) {
     if(this->is_indexed()){
         _lb->set_val(this->get_id_inst(),val);
