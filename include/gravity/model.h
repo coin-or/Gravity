@@ -701,6 +701,25 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _name = name;
         }
         
+        template <typename T>
+        void add_param(param<T>& v){//Add variables by copy
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+            //            auto name = v._name;
+            v._name = name;
+            if (_params_name.count(v._name)==0) {
+                v.set_id(_nb_params);
+                v.set_vec_id(_params.size());
+                shared_ptr<param_> newv;
+                newv = v.pcopy();
+                _params_name[name] = newv;
+                _params[_params.size()] = newv;
+                _nb_params += v.get_dim();
+            }
+            else {
+                throw invalid_argument("adding param with same name, please rename: " + v._name);
+            }
+        }
+        
         void add_var(const shared_ptr<param_>& v){
             switch (v->get_intype()) {
                 case binary_:
@@ -911,6 +930,19 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             }
             return _nnz_g;
         };
+        
+        template <typename T>
+        param<T> get_param(const string& vname) const{
+            auto it = _params_name.find(vname);
+            if (it==_params_name.end()) {
+                throw invalid_argument("In function: Model::get_param(const string& vname) const, unable to find parameter with given name");
+            }
+            auto v = dynamic_pointer_cast<param<T>>(it->second);
+            if(v){
+                return *v;
+            }
+            throw invalid_argument("In function: Model::get_param<T>(const string& vname) const, cannot cast parameter, make sure to use the right numerical type T");
+        }
         
         template <typename T>
         var<T> get_var(const string& vname) const{
@@ -2670,9 +2702,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = std::abs(c->eval(inst));
                                 if(diff > tol) {
-                                    DebugOff("Violated equation: ");
-                                    //                        c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated equation: " << c->to_str(inst,10));                                    
+                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2698,9 +2729,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff > tol) {
-                                    DebugOff("Violated inequality: ");
-                                    //                                c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated inequality: " << c->to_str(inst,10));
+                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2732,9 +2762,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff < -tol) {
-                                    DebugOff("Violated inequality: ");
-                                    //                        c->print(inst);
-                                    DebugOff(", violation = "<< diff << endl);
+                                    DebugOn("Violated inequality: " << c->to_str(inst,10));
+                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -6088,14 +6117,17 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     Constraint<type> res1(c.get_name() + "_" + to_string(i) + "_on/off");
                     res1 = LHS - offCoef1*(1-on) - onCoef1*on;
                     add_constraint(res1.in(*c._indices)<=0);
+//                    res1.print();
                     Constraint<type> n_c(c);
                     n_c *= -1;
+//                    n_c._ctype = leq;
                     get_on_off_coefficients_standard(n_c);
                     auto offCoef2 = n_c._offCoef.deep_copy();
                     auto onCoef2 = n_c._onCoef.deep_copy();
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = -1 * LHS - offCoef2*(1-on) - onCoef2*on;
                     add_constraint(res2.in(*c._indices)<=0);
+//                    res2.print();
                     
                 }
                 
@@ -6106,6 +6138,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     Constraint<type> res1(c.get_name() +  "_" + to_string(i) + "_on/off");
                     res1 = LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res1.in(*c._indices)<=0);
+//                    res1.print();
                 }
                 
                 else { //if c.get_ctype() == geq
@@ -6118,6 +6151,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                     Constraint<type> res2(c.get_name() +  "_" + to_string(i) + "_on/off2");
                     res2 = -1 * LHS - offCoef*(1-on) - onCoef*on;
                     add_constraint(res2.in(*c._indices)<=0);
+//                    res2.print();
                 }
             }
         }
