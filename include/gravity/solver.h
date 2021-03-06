@@ -411,6 +411,7 @@ public:
                 else {
                     optimal = false;
                 }
+                _model->update_int_vars();
                 return_status = optimal ? 0 : -1;
 #else
                 ipoptNotAvailable();

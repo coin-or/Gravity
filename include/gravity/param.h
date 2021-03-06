@@ -555,8 +555,10 @@ namespace gravity {
         virtual void get_double_val(size_t pos, double& x) const{};
         
         /** round the value stored at position i to the nearest integer */
-        virtual void round_vals(){};
+        virtual void round_vals(double cutoff=0.5){};
 
+        virtual void fix(){};
+        
         /** Fill x with the variable's lower bound values */
         virtual void get_double_lb(double* x) const{};
         /** Fill x with the variable's upper bound values */
@@ -654,11 +656,36 @@ namespace gravity {
         }
         
         /** let this share the values of p */
-        template<class T2, typename std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
+        
+//        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+//        template<class T2, typename std::enable_if<is_arithmetic<T>::value> && std::enable_if<is_convertible<T2, type>::value>::type* = nullptr>
+//        template<class T2, typename std::enable_if<is_convertible<T2, type>::value && sizeof(T2) < sizeof(type)>::type* = nullptr>
+        template<class T2, typename std::enable_if<is_arithmetic<T2>::value && is_convertible<T2, type>::value>::type* = nullptr>
         void copy_vals_(param<T2>& pp){
             _val->resize(pp._val->size());
             for (size_t i = 0; i < _val->size(); i++) {
-                _val->at(i) = pp._val->at(i);
+                _val->at(i) = std::round((T2)pp._val->at(i));
+            }
+            _range->first = pp._range->first;
+            _range->second = pp._range->second;
+        }
+        
+//        template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
+//        void copy_vals_(param<type>& pp){
+//            _val->resize(pp._val->size());
+//            for (size_t i = 0; i < _val->size(); i++) {
+//                _val->at(i) = std::round(pp._val->at(i));
+//            }
+//            _range->first = pp._range->first;
+//            _range->second = pp._range->second;
+//        }
+                
+        template<class T2, typename std::enable_if<is_same<T2, Cpx>::value && is_convertible<T2, type>::value>::type* = nullptr>
+        void copy_vals_(param<T2>& pp){
+            _val->resize(pp._val->size());
+            for (size_t i = 0; i < _val->size(); i++) {
+                _val->at(i).real(std::round(pp._val->at(i).real()));
+                _val->at(i).imag(std::round(pp._val->at(i).imag()));
             }
             _range->first = pp._range->first;
             _range->second = pp._range->second;
@@ -2486,17 +2513,29 @@ namespace gravity {
         }
         
         /** round the value stored at position i to the nearest integer */
-        void round_vals(){round_vals_();};
+        void round_vals(double cutoff=0.5){round_vals_(cutoff);};
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        void round_vals_(){
+        void round_vals_(double cutoff=0.5){
             for (size_t i = 0; i < get_dim(); i++) {
-                _val->at(i) = std::round((T)_val->at(i));
+                auto abs_v = std::abs(_val->at(i));
+                if(abs_v - std::floor((T)abs_v) > cutoff){
+                    if(_val->at(i)<0)
+                        _val->at(i) = std::floor((T)_val->at(i));
+                    else
+                        _val->at(i) = std::ceil((T)_val->at(i));
+                }
+                else {
+                    if(_val->at(i)<0)
+                        _val->at(i) = std::ceil((T)_val->at(i));
+                    else
+                        _val->at(i) = std::floor((T)_val->at(i));
+                }
             }
         };
         
         template<class T=type, typename enable_if<is_same<T, Cpx>::value>::type* = nullptr>
-        void round_vals_(){
+        void round_vals_(double cutoff=0.5){
             for (size_t i = 0; i < get_dim(); i++) {
                 _val->at(i).real(std::round(_val->at(i).real()));
                 _val->at(i).imag(std::round(_val->at(i).imag()));

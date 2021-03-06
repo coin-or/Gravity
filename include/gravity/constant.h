@@ -27,6 +27,9 @@ namespace gravity {
     class param_;
     class func_;
     template<typename T=double> class func;
+
+    
+
     /**
      Transform a scalar to a string with user-specified precision.
      @param[in] a_value number to be transformed.
@@ -411,6 +414,9 @@ namespace gravity {
             return newc;
         };
                 
+        bool is_approx(double v, double precision = 1e-6){
+            return std::abs(_val - v) <= precision;
+        }
         
         type eval() const { return _val;}
         

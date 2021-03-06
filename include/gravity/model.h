@@ -5189,11 +5189,20 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 c_p.second->uneval();
             }
             _obj->uneval();
-//            for(auto &v_p: _vars)
-//            {
-//                if(v_p.second->is_lifted())
-//                    v_p.second->reset_bounds();
-//            }
+            _first_call_jac = true;
+            _first_call_hess = true;
+            _first_call_grad_obj = true;
+            _obj_grad_vals.clear();
+            auto it = _nl_funcs.begin();
+            while (it!=_nl_funcs.end()) {
+                auto f = (*it++);
+                f->uneval();
+            }
+            //            for(auto &v_p: _vars)
+            //            {
+            //                if(v_p.second->is_lifted())
+            //                    v_p.second->reset_bounds();
+            //            }
         }
         
         void fill_in_cstr_bounds(double* g_l ,double* g_u) {
@@ -5538,16 +5547,28 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             return _int_vars.at(idx);
         }
         
-        void round_solution(){
+        void round_and_fix(double cutoff=0.5){round_solution(true,cutoff);};
+        
+        void round_solution(bool fix = false, double cutoff=0.5){
             for (auto &v_pair:_vars) {
                 if(v_pair.second->_is_relaxed){
-                    v_pair.second->round_vals();
+                    v_pair.second->round_vals(cutoff);
+                    if(fix)
+                        v_pair.second->fix();
                     auto int_var = get_int_var(v_pair.second->get_id());
                     int_var->copy_vals(v_pair.second);
                 }
             }
         }
         
+        void update_int_vars(){
+            for (auto &v_pair:_vars) {
+                if(v_pair.second->_is_relaxed){
+                    auto int_var = get_int_var(v_pair.second->get_id());
+                    int_var->copy_vals(v_pair.second);
+                }
+            }
+        }
         
         void print_symbolic(){
             cout << "-------------------------" << endl;
