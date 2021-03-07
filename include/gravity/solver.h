@@ -138,18 +138,20 @@ public:
         }
         if (_stype==ipopt) {
 #ifdef USE_IPOPT
-            _model->replace_integers();
-            SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
-            iapp->RethrowNonIpoptException(true);
-            ApplicationReturnStatus status = iapp->Initialize();
-            
-            if (status != Solve_Succeeded) {
-                throw invalid_argument("*** Error during initialization!\n");
-            }
-            
             if(_model->_objt==maximize){
                 *_model->_obj *= -1;
             }
+            _model->replace_integers();
+            _model->fill_in_maps();
+//                SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
+//                iapp->RethrowNonIpoptException(true);
+//                ApplicationReturnStatus status = iapp->Initialize();
+//
+//                if (status != Solve_Succeeded) {
+//                    throw invalid_argument("*** Error during initialization!\n");
+//                }
+            
+            
             _prog = make_shared<IpoptProgram<type>>(_model);
             _bool_options["check_violation"] = false;
 #else
@@ -288,7 +290,7 @@ public:
                 iapp->Options()->SetNumericValue("constr_viol_tol", tol);
                 //            iapp->Options()->SetNumericValue("dual_inf_tol", 1);
                 //            iapp->Options()->SetNumericValue("compl_inf_tol", 1e-3);
-                iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-2);
+//                iapp->Options()->SetNumericValue("bound_relax_factor", tol*1e-2);
                 //            iapp->Options()->SetNumericValue("bound_relax_factor", 0);
                 //                    iapp->Options()->SetStringValue("derivative_test", "second-order");
                 //            iapp->Options()->SetNumericValue("mu_init", mu_init);
@@ -345,8 +347,9 @@ public:
                 }
                 if(!_model->_built){ /* Constraints have been added */
                     _model->reindex();
+                    _model->fill_in_maps();
                 }
-                _model->fill_in_maps();
+                
                 
                 SmartPtr<TNLP> tmp = new IpoptProgram<type>(_model);
                 status = iapp->OptimizeTNLP(tmp);
