@@ -140,10 +140,10 @@ tuple<double,double,double,double,double,double> run_IPH(const vector<vector<dou
 tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
 
 /* Compute the L2 error */
-double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching);
+double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching, vector<double>& err_per_point);
 
 /* Compute the L1 error */
-double computeL1error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
+double computeL1error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching, vector<double>& err_per_point);
 
 /* Return central point from point cloud */
 vector<double> get_center(const vector<vector<double>>& point_cloud);
@@ -176,6 +176,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool byp
 shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans, bool norm1 = false);
 
 bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans, vector<int>& new_matching);
+void update_matching(shared_ptr<Model<double>>& M, vector<int>& new_matching);
+void round_bin(shared_ptr<Model<double>>& M, int nd, int nm);
 
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
@@ -188,7 +190,7 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
 
 shared_ptr<Model<double>> build_projected_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching);
 
-shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching, bool relax_ints = false);
+shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_ints = false);
 
 /* Run the MINLP ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO_MINLP(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
@@ -563,7 +565,8 @@ int main (int argc, char * argv[])
         tuple<double,double,double,double,double,double,double> res_icp;
         tuple<double,double,double,double,double,double> res, res1, res2;
         vector<int> matching(data_nb_rows);
-        auto L2error_init = computeL2error(ext_model,ext_data,matching);
+        vector<double> err_per_point(data_nb_rows);
+        auto L2error_init = computeL2error(ext_model,ext_data,matching,err_per_point);
         DebugOn("L2 on reduced set = " << L2error_init << endl);
             // run_ARMO_Global(false, "full", ext_model, ext_data);
 #ifdef USE_QHULL
@@ -647,7 +650,7 @@ int main (int argc, char * argv[])
             bool separate=true;
             bool linearize=false;
             
-            auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,matching);
+            auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
 #ifdef USE_MATPLOT
                 //            plot(point_cloud_model,point_cloud_data,1);
 #endif
@@ -655,7 +658,7 @@ int main (int argc, char * argv[])
                 //            auto TU_MIP = build_TU_MIP(point_cloud_model, point_cloud_data, rot_trans, incompatibles);
             bool convex = false;
                 // auto NC_SOC_MIQCP = build_projected_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-                //               auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching, true);
+                               auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching, err_per_point, false);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
@@ -665,22 +668,35 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-            vector<int> new_matching(point_cloud_model.size());
-            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, true);
-            SOC_MIP->print();
-            solver<> S(SOC_MIP,ipopt);
-            S.run();
-            SOC_MIP->print_int_solution();
-            SOC_MIP->print_solution();
-            bool is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
+//            vector<int> new_matching(point_cloud_data.size());
+//            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, true);
+////            SOC_MIP->print();
+//            solver<> S(SOC_MIP,ipopt);
+//            S.run();
+//            SOC_MIP->print_int_solution();
+//            SOC_MIP->print_solution();
+//            bool is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
+//            apply_rot_trans(rot_trans, ext_data);
+//            auto L2error_it1 = computeL2error(point_cloud_model,ext_data,new_matching);
+//            DebugOn("L2 at root node = " << to_string_with_precision(L2error_it1,12) << endl);
+//            auto SOC_MIP2 = build_linobj_convex(point_cloud_model, point_cloud_data, rot_trans,new_matching, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, new_matching, true);
+////            solver<> S2(SOC_MIP2,ipopt);
+////            update_matching(SOC_MIP2,new_matching);
+////            update_matching(SOC_MIP2,new_matching);
+//            round_bin(SOC_MIP,point_cloud_data.size(),point_cloud_model.size());
+//            vector<double> sol(SOC_MIP->get_nb_vars());
+//            SOC_MIP->get_solution(sol);
+//            SOC_MIP2->set_solution(sol);
+//            SOC_MIP2->round_and_fix();
+////            SOC_MIP->reset_constrs();
+////            SOC_MIP2->print();
+//            solver<> S2(SOC_MIP2,gurobi);
+////            SOC_MIP->print();
+//            
+//            S2.run();
+//            SOC_MIP2->print_solution();
+//            is_rotation = get_solution(SOC_MIP2, rot_trans,new_matching);
             apply_rot_trans(rot_trans, point_cloud_data);
-            auto L2error_it1 = computeL2error(point_cloud_model,point_cloud_data,matching);
-            DebugOn("L2 at root node = " << to_string_with_precision(L2error_it1,12) << endl);
-            SOC_MIP->round_and_fix();
-            SOC_MIP->reset_constrs();
-            S.run();
-            SOC_MIP->print_solution();
-            is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
 //            SOC_MIP->print();
 //            vector<double>x(SOC_MIP->get_nb_vars());
 //            auto c = SOC_MIP->get_var<double>("c");
@@ -729,18 +745,18 @@ int main (int argc, char * argv[])
                 //                DebugOn("nb count "<<nb_count);
                 //            }
                 //           SOC_MIP->print_solution();
-            if(norm1){
-                apply_rot_trans(rot_trans, point_cloud_data);
-            }
-            else{
-                apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
-            }
+//            if(norm1){
+//                apply_rot_trans(rot_trans, point_cloud_data);
+//            }
+//            else{
+//                apply_rot_trans(rot_trans[0], rot_trans[1], rot_trans[2], rot_trans[3], rot_trans[4], rot_trans[5], point_cloud_data);
+//            }
         }
 #ifdef USE_MATPLOT
         plot(point_cloud_model,point_cloud_data,1);
 #endif
-        auto L2error_final = computeL2error(point_cloud_model,point_cloud_data,matching);
-        auto L1error_final = computeL1error(point_cloud_model,point_cloud_data);
+        auto L2error_final = computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+        auto L1error_final = computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
         DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
         DebugOn("L2 after optimization = " << to_string_with_precision(L2error_final,12) << endl);
         DebugOn("L1 after optimization = " << to_string_with_precision(L1error_final,12) << endl);
@@ -791,15 +807,16 @@ int main (int argc, char * argv[])
     double total_time =0, time_start = 0, time_end = 0;
     double L2error_init = 0, L1error_init = 0;
     vector<int> matching(point_cloud2.size());
-    L2error_init = computeL2error(point_cloud1,point_cloud2,matching);
-    L1error_init = computeL1error(point_cloud1,point_cloud2);
+    vector<double> err_per_point(point_cloud2.size());
+    L2error_init = computeL2error(point_cloud1,point_cloud2,matching,err_per_point);
+    L1error_init = computeL1error(point_cloud1,point_cloud2,matching,err_per_point);
     DebugOn("Initial L2 error = " << L2error_init << endl);
     DebugOn("Initial L1 error = " << L1error_init << endl);
     time_start = get_wall_time();
     auto res = run_IPH(point_cloud1, point_cloud2, uav1, uav2);
     final_roll = get<0>(res);final_pitch = get<1>(res); final_yaw = get<2>(res);
-    auto L2error = computeL2error(point_cloud1,point_cloud2,matching);
-    auto L1error = computeL1error(point_cloud1,point_cloud2);
+    auto L2error = computeL2error(point_cloud1,point_cloud2,matching,err_per_point);
+    auto L1error = computeL1error(point_cloud1,point_cloud2,matching,err_per_point);
     DebugOn("n1 = " << point_cloud1.size() << endl);
     DebugOn("n2 = " << point_cloud2.size() << endl);
     DebugOn("Initial L2 error = " << L2error_init << endl);
@@ -1013,6 +1030,50 @@ vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, c
     min_max.push_back({y_min,y_max});
     min_max.push_back({z_min,z_max});
     return min_max;
+}
+
+/* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
+double get_max_dist(double alpha_min, double alpha_max, double beta_min, double beta_max, double gamma_min, double gamma_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, const vector<double>& p, const vector<double>& ref, bool L1norm = false){
+    double x1 = p[0], y1 = p[1], z1 = p[2], shifted_x, shifted_y, shifted_z, alpha, beta, gamma;
+    double x_ref = ref[0], y_ref = ref[1], z_ref = ref[2];
+    double x_rot1, y_rot1, z_rot1, x_min = numeric_limits<double>::max(), x_max = numeric_limits<double>::lowest(), y_min = numeric_limits<double>::max(), y_max = numeric_limits<double>::lowest(), z_min = numeric_limits<double>::max(), z_max = numeric_limits<double>::lowest();
+    double angles_alpha[] = {0, alpha_min, alpha_max};
+    double angles_beta[] = {0, beta_min, beta_max};
+    double angles_gamma[] = {0, gamma_min, gamma_max};
+    double tx[] = {tx_min, tx_max};
+    double ty[] = {ty_min, ty_max};
+    double tz[] = {tz_min, tz_max};
+    double max_dist = 0, dist = 0;
+    shifted_x = x1 - x_ref;
+    shifted_y = y1 - y_ref;
+    shifted_z = z1 - z_ref;
+    for (int a = 0; a < 3; a++){
+        alpha = angles_alpha[a];
+        for (int b = 0; b <3; b++){
+            beta = angles_beta[b];
+            for (int c = 0; c <3; c++){
+                gamma = angles_gamma[c];
+                x_rot1 = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+                y_rot1 = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+                z_rot1 = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+                x_rot1 += x_ref;
+                y_rot1 += y_ref;
+                z_rot1 += z_ref;
+                if(L1norm){
+                    dist = std::abs(x1 - x_rot1) + std::abs(y1 - y_rot1) + std::abs(z1 - z_rot1);
+                }
+                else{
+                    dist = std::pow(x1 - x_rot1,2) + std::pow(y1 - y_rot1,2) + std::pow(z1 - z_rot1,2);
+                }
+                if(dist>max_dist){
+                    max_dist = dist;
+                }
+            }
+        }
+    }
+    if(!L1norm)
+        return std::sqrt(max_dist) + std::sqrt(std::pow(std::max(std::abs(tx_min),std::abs(tx_max)),2) + std::pow(std::max(std::abs(ty_min),std::abs(ty_max)),2) + std::pow(std::max(std::abs(tz_min),std::abs(tz_max)),2));
+    return max_dist + std::max(std::abs(tx_min),std::abs(tx_max)) + std::max(std::abs(ty_min),std::abs(ty_max)) + std::max(std::abs(tz_min),std::abs(tz_max));
 }
 
 /* Run the MINLP ARMO model for registration */
@@ -2162,7 +2223,7 @@ void min_max_dist_box(double x0, double y0, double z0,  double xl, double xu, do
 shared_ptr<Model<double>> build_projected_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching){}
 
 
-shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching, bool relax_ints){
+shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_ints){
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -2200,8 +2261,8 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     auto Reg=make_shared<Model<>>(name);
     
-    
-    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+    double shift_min_x = 0.12, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = -0.12,shift_min_z = -0.12,shift_max_z = 0.12;
+//    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
         //    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         //    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
@@ -2270,6 +2331,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
         auto bounds = get_min_max(angle_max, point_cloud_data[i], zeros);
+        auto max_dist = get_max_dist(-angle_max,angle_max,-angle_max,angle_max,-angle_max,angle_max,shift_min_x,shift_max_x,shift_min_y,shift_max_y,shift_min_z,shift_max_z,point_cloud_data[i],zeros,true);
         auto xlb = x_range->first + y_range->first + z_range->first + x_shift.get_lb().eval();
         auto xub = x_range->second + y_range->second + z_range->second+ x_shift.get_ub().eval();
         x_new_lb.set_val(i,bounds[0].first + x_shift.get_lb().eval());
@@ -2815,7 +2877,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     
     for (int i = 1; i<=nd; i++) {
-        string key = to_string(i)+","+to_string(init_matching.at(i-1));
+        string key = to_string(i)+","+to_string(init_matching.at(i-1)+1);
         bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     }
     
@@ -3373,7 +3435,7 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
     Norm2_new -= delta - scaling*(pow(new_x1 - new_xm,2) + pow(new_y1 - new_ym,2) + pow(new_z1 - new_zm,2));
     Reg->add(Norm2_new.in(N1)<=0);
     
-    bool add_delta_cut = false;
+    bool add_delta_cut = true;
     if(add_delta_cut){
         var<> new_x1_sqr("new_x1_sqr", 0, max(pow(new_x1.get_lb(),2),pow(new_x1.get_ub(),2)));
         var<> new_y1_sqr("new_y1_sqr", 0, max(pow(new_y1.get_lb(),2),pow(new_y1.get_ub(),2)));
@@ -3558,7 +3620,7 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
     
     
     for (int i = 1; i<=nd; i++) {
-        string key = to_string(i)+","+to_string(init_matching.at(i-1));
+        string key = to_string(i)+","+to_string(init_matching.at(i-1)+1);
         bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     }
     
@@ -3579,12 +3641,12 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
         bin.param<int>::set_val(to_string(i)+","+to_string(i), 1);
     }
     Reg->print();
-    solver<> S(Reg,gurobi);
-    S.run();
-        //    Reg->print();
-    Reg->print_int_solution();
-    
-    Reg->print_solution();
+//    solver<> S(Reg,gurobi);
+//    S.run();
+//        //    Reg->print();
+//    Reg->print_int_solution();
+//
+//    Reg->print_solution();
         //    {
         //        indices voronoi_ids("voronoi_ids");
         //        voronoi_ids = indices(N1, *norm_x._indices);
@@ -3610,50 +3672,50 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
         //        }
         //
         //    }
-    DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
-            << endl);
-    DebugOn("row 2 " << pow(theta21.eval(),2)+pow(theta22.eval(),2)+pow(theta23.eval(),2)
-            << endl);
-    DebugOn("row 3 " << pow(theta31.eval(),2)+pow(theta32.eval(),2)+pow(theta33.eval(),2)
-            << endl);
-    DebugOn("col 1 " << pow(theta11.eval(),2)+pow(theta21.eval(),2)+pow(theta31.eval(),2)
-            << endl);
-    DebugOn("col 2 " << pow(theta12.eval(),2)+pow(theta22.eval(),2)+pow(theta32.eval(),2)
-            << endl);
-    DebugOn("col 3 " << pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2)
-            << endl);
-    
-    DebugOn("row 12 " << (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval())
-            << endl);
-    DebugOn("row 13 " << (theta11.eval()*theta31.eval())+(theta12.eval()*theta32.eval())+(theta13.eval()*theta33.eval())
-            << endl);
-    DebugOn("row 23 " << (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval())
-            << endl);
-    DebugOn("Theta matrix = " << endl);
-    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
-    DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
-    DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
-    rot_trans[0]=theta11.eval();
-    rot_trans[1]=theta12.eval();
-    rot_trans[2]=theta13.eval();;
-    rot_trans[3]=theta21.eval();
-    rot_trans[4]=theta22.eval();
-    rot_trans[5]=theta23.eval();
-    rot_trans[6]=theta31.eval();
-    rot_trans[7]=theta32.eval();
-    rot_trans[8]=theta33.eval();
-    rot_trans[9]=x_shift.eval();
-    rot_trans[10]=y_shift.eval();
-    rot_trans[11]=z_shift.eval();
-    auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
-    auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
-    auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
-    DebugOn("Roll (degrees) = " << to_string_with_precision(roll_val,12) << endl);
-    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch_val,12) << endl);
-    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw_val,12) << endl);
-    DebugOn("x shift = " << x_shift.eval() << endl);
-    DebugOn("y shift = " << y_shift.eval() << endl);
-    DebugOn("z shift = " << z_shift.eval() << endl);
+//    DebugOn("row 1 " << pow(theta11.eval(),2)+pow(theta12.eval(),2)+pow(theta13.eval(),2)
+//            << endl);
+//    DebugOn("row 2 " << pow(theta21.eval(),2)+pow(theta22.eval(),2)+pow(theta23.eval(),2)
+//            << endl);
+//    DebugOn("row 3 " << pow(theta31.eval(),2)+pow(theta32.eval(),2)+pow(theta33.eval(),2)
+//            << endl);
+//    DebugOn("col 1 " << pow(theta11.eval(),2)+pow(theta21.eval(),2)+pow(theta31.eval(),2)
+//            << endl);
+//    DebugOn("col 2 " << pow(theta12.eval(),2)+pow(theta22.eval(),2)+pow(theta32.eval(),2)
+//            << endl);
+//    DebugOn("col 3 " << pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2)
+//            << endl);
+//
+//    DebugOn("row 12 " << (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval())
+//            << endl);
+//    DebugOn("row 13 " << (theta11.eval()*theta31.eval())+(theta12.eval()*theta32.eval())+(theta13.eval()*theta33.eval())
+//            << endl);
+//    DebugOn("row 23 " << (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval())
+//            << endl);
+//    DebugOn("Theta matrix = " << endl);
+//    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+//    DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+//    DebugOn("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+//    rot_trans[0]=theta11.eval();
+//    rot_trans[1]=theta12.eval();
+//    rot_trans[2]=theta13.eval();;
+//    rot_trans[3]=theta21.eval();
+//    rot_trans[4]=theta22.eval();
+//    rot_trans[5]=theta23.eval();
+//    rot_trans[6]=theta31.eval();
+//    rot_trans[7]=theta32.eval();
+//    rot_trans[8]=theta33.eval();
+//    rot_trans[9]=x_shift.eval();
+//    rot_trans[10]=y_shift.eval();
+//    rot_trans[11]=z_shift.eval();
+//    auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
+//    auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
+//    auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
+//    DebugOn("Roll (degrees) = " << to_string_with_precision(roll_val,12) << endl);
+//    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch_val,12) << endl);
+//    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw_val,12) << endl);
+//    DebugOn("x shift = " << x_shift.eval() << endl);
+//    DebugOn("y shift = " << y_shift.eval() << endl);
+//    DebugOn("z shift = " << z_shift.eval() << endl);
     
     return(Reg);
 }
@@ -4272,7 +4334,7 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     
     
     for (int i = 1; i<=nd; i++) {
-        string key = to_string(i)+","+to_string(init_matching.at(i-1));
+        string key = to_string(i)+","+to_string(init_matching.at(i-1)+1);
         bin._val->at(bin._indices->_keys_map->at(key)) = 1;
     }
     
@@ -4598,7 +4660,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(bin.in(cells));
     
     bool include_t=true;
-            double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+    double shift_min_x = 0.12, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = -0.12,shift_min_z = -0.12,shift_max_z = 0.12;
+//    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
 //    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
@@ -5391,9 +5454,9 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //    Reg->print();
     double init_sum_x=0,init_sum_y=0,init_sum_z=0;
     for (int i = 1; i<=nd; i++) {
-        string key = to_string(i)+","+to_string(matching.at(i-1));
+        string key = to_string(i)+","+to_string(matching.at(i-1)+1);
         string keyi = to_string(i);
-        string keyj=to_string(matching.at(i-1));
+        string keyj=to_string(matching.at(i-1)+1);
         bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         if(hybrid){
             new_xm._val->at(new_xm._indices->_keys_map->at(keyi))=x2.eval(keyj);
@@ -5522,6 +5585,60 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        }
         //    }*/
     return(Reg);
+}
+
+void round_bin(shared_ptr<Model<double>>& M, int nd, int nm){
+    auto bin = M->get_ptr_var<double>("bin");
+    shared_ptr<vector<double>> cont_vals = bin->_val;
+    int idx = 0;
+    for (int i = 0; i<nd; i++) {
+        double max = 0;
+        int max_i = 0;
+        for (int j = 0; j<nm; j++) {
+            if(max<cont_vals->at(idx)){
+                max = cont_vals->at(idx);
+                max_i = idx;
+            }
+            idx++;
+        }
+        idx -= nm;
+        for (int j = 0; j<nm; j++) {
+            cont_vals->at(idx++) = 0;
+        }
+        cont_vals->at(max_i) = 1;
+    }
+    bin->fix();
+}
+
+void update_matching(shared_ptr<Model<double>>& M, vector<int>& new_matching){
+    auto bin = M->get_var_ptr("bin");
+    shared_ptr<vector<int>> bin_vals = nullptr;
+    shared_ptr<vector<double>> cont_vals = nullptr;
+    if(bin->is_integer()){
+        bin_vals = static_pointer_cast<var<int>>(bin)->_val;
+    }
+    else{/* integers were replaced by continuous vars*/
+        bin_vals = static_pointer_cast<var<int>>(M->get_int_var(bin->get_id()))->_val;
+        cont_vals = static_pointer_cast<var<double>>(bin)->_val;
+    }
+    int nd = new_matching.size();
+    int nm = bin_vals->size()/nd;
+    int idx = 0;
+    for (int i = 0; i<nd; i++) {
+        for (int j = 0; j<nm; j++) {
+            if(new_matching[i]==j){
+                bin_vals->at(idx)=1;
+                if(cont_vals)
+                    cont_vals->at(idx)=1;
+            }
+            else{
+                bin_vals->at(idx)=0;
+                if(cont_vals)
+                    cont_vals->at(idx)=0;
+            }
+            idx++;
+        }
+    }
 }
 
 bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans, vector<int>& new_matching){
@@ -7612,31 +7729,41 @@ vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_clo
 }
 
 
-/* Compute the L2 error */
-double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching){
+/* Compute the L1 error for model and data sets
+ @param[in] point_cloud_model, Model point cloud
+ @param[in] point_cloud_data, Data point cloud
+ @param[in] matching, vecor used to store the optimal match
+ @param[in] err_per_point, vector used to store the minimum L1 error per data point
+ */
+double computeL2error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching, vector<double>& err_per_point){
     size_t n = point_cloud_data.size();
     size_t m = point_cloud_model.size();
     double dist_sq = 0, err = 0;
-    map<int,int> z;
     for (auto i = 0; i< n; i++) {
         double min_dist = numeric_limits<double>::max();
         for (auto j = 0; j< m; j++) {
             dist_sq = std::pow(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0),2) + std::pow(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1),2) + std::pow(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2),2);
             if(min_dist>dist_sq){
                 min_dist = dist_sq;
-                z[i] = j;
+                matching[i] = j;
             }
         }
-        DebugOn("DeltaMin(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
-        DebugOn("z(" << i+1 << ") = " << z[i]+1 << endl);
-        matching[i] = z[i]+1;
+        DebugOff("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOff("matching(" << i+1 << ") = " << matching[i]+1 << endl);
+        err_per_point[i] = min_dist;
         err += min_dist;
     }
     return err;
 }
 
-/* Compute the L1 error */
-double computeL1error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+
+/* Compute the L1 error for model and data sets
+ @param[in] point_cloud_model, Model point cloud
+ @param[in] point_cloud_data, Data point cloud
+ @param[in] matching, vecor used to store the optimal match
+ @param[in] err_per_point, vector used to store the minimum L1 error per data point
+ */
+double computeL1error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, vector<int>& matching, vector<double>& err_per_point){
     size_t n = point_cloud_data.size();
     size_t m = point_cloud_model.size();
     double dist_abs = 0, err = 0;
@@ -7646,8 +7773,12 @@ double computeL1error(const vector<vector<double>>& point_cloud_model, const vec
             dist_abs = std::abs(point_cloud_data.at(i).at(0) - point_cloud_model.at(j).at(0)) + std::abs(point_cloud_data.at(i).at(1) - point_cloud_model.at(j).at(1)) + std::abs(point_cloud_data.at(i).at(2) - point_cloud_model.at(j).at(2));
             if(min_dist>dist_abs){
                 min_dist = dist_abs;
+                matching[i] = j;
             }
         }
+        DebugOff("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOff("matching(" << i+1 << ") = " << matching[i]+1 << endl);
+        err_per_point[i] = min_dist;
         err += min_dist;
     }
     return err;
