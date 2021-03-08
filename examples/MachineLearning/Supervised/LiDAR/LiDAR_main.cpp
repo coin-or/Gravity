@@ -240,7 +240,7 @@ int main (int argc, char * argv[])
         vector<vector<double>> point_cloud_model, point_cloud_data;
         string Model_file = string(prj_dir)+"/data_sets/LiDAR/toy_model.txt";
         string Data_file = string(prj_dir)+"/data_sets/LiDAR/toy_data.txt";
-        string algo = "MP", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="yes", norm_str="norm1";
+        string algo = "MP", global_str = "global", convex_str = "nonconvex", reform_str="no", obbt_str="yes", norm_str="norm2";
         if(argc>2){
             Model_file = argv[2];
         }
@@ -278,7 +278,7 @@ int main (int argc, char * argv[])
             //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=false;
+        bool downsample=true;
         if(downsample){
             fwdm=3;
             fwdd=3;
@@ -667,20 +667,20 @@ int main (int argc, char * argv[])
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
             vector<int> new_matching(point_cloud_model.size());
             auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, true);
-            SOC_MIP->print();
-            solver<> S(SOC_MIP,ipopt);
-            S.run();
+            //SOC_MIP->print();
+          //  solver<> S(SOC_MIP,gurobi);
+           // S.run();
             SOC_MIP->print_int_solution();
             SOC_MIP->print_solution();
-            bool is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
-            apply_rot_trans(rot_trans, point_cloud_data);
-            auto L2error_it1 = computeL2error(point_cloud_model,point_cloud_data,matching);
-            DebugOn("L2 at root node = " << to_string_with_precision(L2error_it1,12) << endl);
-            SOC_MIP->round_and_fix();
-            SOC_MIP->reset_constrs();
-            S.run();
-            SOC_MIP->print_solution();
-            is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
+//            bool is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
+//            apply_rot_trans(rot_trans, point_cloud_data);
+//            auto L2error_it1 = computeL2error(point_cloud_model,point_cloud_data,matching);
+//            DebugOn("L2 at root node = " << to_string_with_precision(L2error_it1,12) << endl);
+//            SOC_MIP->round_and_fix();
+//            SOC_MIP->reset_constrs();
+//            S.run();
+//            SOC_MIP->print_solution();
+//            is_rotation = get_solution(SOC_MIP, rot_trans,new_matching);
 //            SOC_MIP->print();
 //            vector<double>x(SOC_MIP->get_nb_vars());
 //            auto c = SOC_MIP->get_var<double>("c");
@@ -4597,15 +4597,13 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     
-    bool include_t=true;
-            double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
-//    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
+           double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+    //double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
     double shift_mag=std::max(pow(shift_max_x,2),pow(shift_min_x,2))+std::max(pow(shift_max_y,2),pow(shift_min_y,2))+std::max(pow(shift_max_z,2),pow(shift_min_z,2));
-    if(include_t){
         Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
-    }
+    
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     double angle_max = 25.*pi/180.;
@@ -5109,8 +5107,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             auto y_range  = get_product_range(y2_bounds, new_y1_bounds);
             auto z_range  = get_product_range(z2_bounds, new_z1_bounds);
             string key = i_str+","+j_str;
-            c_lb.set_val(key,std::min(x_range->first+y_range->first+z_range->first,0.));
-            c_ub.set_val(key,std::max(x_range->second+y_range->second+z_range->second,0.));
+            //c_lb.set_val(key,std::min(x_range->first+y_range->first+z_range->first,0.));
+            //c_ub.set_val(key,std::max(x_range->second+y_range->second+z_range->second,0.));
         }
     }
     for (int i = 0; i<nd; i++){
@@ -5129,11 +5127,61 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             auto y_range  = get_product_range(y2_bounds, new_y1_bounds);
             auto z_range  = get_product_range(z2_bounds, new_z1_bounds);
             string key = i_str+","+j_str;
-            c_lb_on.set_val(key,x_range->first+y_range->first+z_range->first);
-            c_ub_on.set_val(key,x_range->second+y_range->second+z_range->second);
+            //c_lb_on.set_val(key,x_range->first+y_range->first+z_range->first);
+            //c_ub_on.set_val(key,x_range->second+y_range->second+z_range->second);
         }
     }
-    if(!separate){
+    double di, dj, sumdi=0;
+    for(auto i=0;i<nd;i++){
+        x1_bounds->first = x1.eval(i);
+        x1_bounds->second = x1.eval(i);
+        y1_bounds->first = y1.eval(i);
+        y1_bounds->second = y1.eval(i);
+        z1_bounds->first = z1.eval(i);
+        z1_bounds->second = z1.eval(i);
+        auto x_range  = get_product_range(x1_bounds, theta11._range);
+        auto y_range  = get_product_range(y1_bounds, theta12._range);
+        auto z_range  = get_product_range(z1_bounds, theta13._range);
+        *new_x1_bounds = {x_range->first + y_range->first + z_range->first,
+            x_range->second + y_range->second + z_range->second};
+        x_range  = get_product_range(x1_bounds, theta21._range);
+        y_range  = get_product_range(y1_bounds, theta22._range);
+        z_range  = get_product_range(z1_bounds, theta23._range);
+        *new_y1_bounds = {x_range->first + y_range->first + z_range->first,
+            x_range->second + y_range->second + z_range->second};
+        x_range  = get_product_range(x1_bounds, theta31._range);
+        y_range  = get_product_range(y1_bounds, theta32._range);
+        z_range  = get_product_range(z1_bounds, theta33._range);
+        *new_z1_bounds = {x_range->first + y_range->first + z_range->first,
+            x_range->second + y_range->second + z_range->second};
+
+        auto xt_range  = get_product_range(new_x1_bounds, x_shift._range);
+        auto yt_range  = get_product_range(new_y1_bounds, y_shift._range);
+        auto zt_range  = get_product_range(new_z1_bounds, z_shift._range);
+
+        i_str=to_string(i+1);
+        di=(pow(x1.eval(i_str),2)+pow(y1.eval(i_str),2)+pow(z1.eval(i_str),2))/2.0;
+        sumdi+=di;
+        for(auto j=0;j<nm;j++){
+            j_str=to_string(j+1);
+            dj=(pow(x2.eval(j_str),2)+pow(y2.eval(j_str),2)+pow(z2.eval(j_str),2))/2.0;
+            string key = i_str+","+j_str;
+            auto ub_val=(di+2*dj+shift_mag/2.0);
+            auto lb_val=-(di+2*dj+shift_mag/2.0);
+            c_ub.set_val(key, ub_val);
+            c_lb.set_val(key, lb_val);
+            c_ub_on.set_val(key, ub_val);
+            c_lb_on.set_val(key, lb_val);
+
+            if(ub_val<lb_val){
+                DebugOn(i<<"\t"<<j<<endl);
+                throw invalid_argument("bounds crossed");
+            }
+        }
+    }
+
+
+    if(false&&!separate){
         c_lb = c_lb_on;
         c_ub = c_ub_on;
     }
@@ -5162,6 +5210,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Reg->add(Def_c.in(cells)==0);
         }
         else{
+            
+            Constraint<> sumc("sumc");
+            sumc=sum(c)-0.5*(sumdi+nd*(shift_mag)+nd*(min_max_model.at(3).second));
+            Reg->add(sumc.in(range(0,0))<=0);
+            
+                             
             Constraint<> Def_cu("Def_cu");
             Def_cu= c;
             Def_cu -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
@@ -5176,7 +5230,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_cu -= (x2.to(cells)*x_shift.in(ids_theta));
             Def_cu -= (y2.to(cells)*y_shift.in(ids_theta));
             Def_cu -= (z2.to(cells)*z_shift.in(ids_theta));
-            Def_cu += c_lb_on*(1-bin);
+            Def_cu += c_lb*(1-bin);
             Reg->add(Def_cu.in(cells)<=0);
 //            Reg->add_on_off_multivariate_refined(Def_cu.in(cells)<=0, bin, true);
             
@@ -5195,17 +5249,17 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             Def_cl += (y2.to(cells)*y_shift.in(ids_theta));
             Def_cl += (z2.to(cells)*z_shift.in(ids_theta));
             Def_cl -= c;
-            Def_cl -= c_ub_on*(1-bin);
-            Reg->add(Def_cl.in(cells)<=0);
+            Def_cl -= c_ub*(1-bin);
+           // Reg->add(Def_cl.in(cells)<=0);
 //            Reg->add_on_off_multivariate_refined(Def_cl.in(cells)<=0, bin, true);
             
             Constraint<> c_off1("c_off1");
-            c_off1=c - c_ub_on*bin;
+            c_off1=c - c_ub*bin;
             Reg->add(c_off1.in(cells)<=0);
             
             Constraint<> c_off2("c_off2");
-            c_off2=c_lb_on*bin - c;
-            Reg->add(c_off2.in(cells)<=0);
+            c_off2=c_lb*bin - c;
+           // Reg->add(c_off2.in(cells)<=0);
             
         }
     }
@@ -5414,17 +5468,17 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //        bin._val->at(bin._indices->_keys_map->at(key)) = 1;
         //    }
 //    Reg->print();
-    /*
-    double txv=0, tyv=0, tzv=0;
-    for(auto i=1;i<=nd;i++){
-        auto i_str=to_string(i);
-        for(auto j=1;j<=nm;j++){
-            auto j_str=to_string(j);
-            txv+=bin.eval(i_str+","+j_str)*x2.eval(j_str);
-            tyv+=bin.eval(i_str+","+j_str)*y2.eval(j_str);
-            tzv+=bin.eval(i_str+","+j_str)*z2.eval(j_str);
-        }
-    }
+    
+//    double txv=0, tyv=0, tzv=0;
+//    for(auto i=1;i<=nd;i++){
+//        auto i_str=to_string(i);
+//        for(auto j=1;j<=nm;j++){
+//            auto j_str=to_string(j);
+//            txv+=bin.eval(i_str+","+j_str)*x2.eval(j_str);
+//            tyv+=bin.eval(i_str+","+j_str)*y2.eval(j_str);
+//            tzv+=bin.eval(i_str+","+j_str)*z2.eval(j_str);
+//        }
+//    }
     
         //    double cf=0;
         //    double mf=0;
@@ -5439,12 +5493,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //    }
         //    auto uf=mf-2*cf;
     
-    auto objv=Reg->get_obj_val();
-    if(!include_t){
-        objv-=(pow(txv,2)+pow(tyv,2)+pow(tzv,2))/nd;
-        DebugOn("Final objective "<<objv<<endl);
-    }
-    Reg->print_solution();
+ 
+    //Reg->print_solution();
+    
+    solver<> S(Reg,gurobi);
+    S.use_callback();
+    S.run();
     
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -5484,16 +5538,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     rot_trans[6]=theta31.eval();
     rot_trans[7]=theta32.eval();
     rot_trans[8]=theta33.eval();
-    if(!include_t){
-        rot_trans[9]=txv/nd;
-        rot_trans[10]=tyv/nd;
-        rot_trans[11]=tzv/nd;
-    }
-    else{
-        rot_trans[9]=x_shift.eval();
-        rot_trans[10]=y_shift.eval();
-        rot_trans[11]=z_shift.eval();
-    }
+    rot_trans[9]=x_shift.eval();
+    rot_trans[10]=y_shift.eval();
+    rot_trans[11]=z_shift.eval();
+    
     
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
@@ -5505,7 +5553,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     DebugOff("y shift = " << y_shift.eval() << endl);
     DebugOff("z shift = " << z_shift.eval() << endl);
     
-        //    indices voronoi_ids("voronoi_ids");
+       /* //    indices voronoi_ids("voronoi_ids");
         //    voronoi_ids = indices(N1, *norm_x._indices);
         //    auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
         //    auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
