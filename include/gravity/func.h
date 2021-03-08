@@ -963,6 +963,17 @@ namespace gravity {
             return func();
         }
         
+        int derivatives_level() const{ /* < Returns how maby derivative levels are stored in this function. */
+            if(_dfdx->size()==0)
+                return  0;
+            int level = 1;
+            for (const auto& dfdx: *_dfdx) {
+                if(dfdx.second->_dfdx->size()>0)
+                    return 2;
+            }
+            return level;
+        }
+        
         shared_ptr<func> get_stored_derivative(const string& vid) const{ /**< Returns the stored derivative with respect to variable v. */
             auto it = _dfdx->find(vid);
             if (it!=_dfdx->end()) {
