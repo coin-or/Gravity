@@ -180,6 +180,7 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool byp
 shared_ptr<Model<double>> model_Global_reform(bool bypass, string axis, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, vector<double>& rot_trans, bool norm1 = false);
 
 bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans, vector<int>& new_matching);
+void get_rotation_transl_matrix(const shared_ptr<Model<double>>& M, vector<double>& rot_trans);
 void update_matching(shared_ptr<Model<double>>& M, vector<int>& new_matching);
 void round_bin(shared_ptr<Model<double>>& M, int nd, int nm);
 
@@ -403,6 +404,8 @@ int main (int argc, char * argv[])
             volume[idx] = {c.volume(),idx};
             int v_idx = 0;
             double max_dist = 0;
+            vector<int> v_order;
+            Debug("Cell has " << c.number_of_edges() << " edges \n");
             for (int i = 0; i<nb_vertices; i++) {
                 double dist_sq = std::pow(x - v[v_idx],2) + std::pow(y - v[v_idx+1],2) + std::pow(z - v[v_idx+2],2);
                 if(dist_sq>max_dist)
@@ -420,6 +423,7 @@ int main (int argc, char * argv[])
                 normal_idx += 3;
             }
             c.face_vertices(face_vert);
+            
             int nb_faces = c.number_of_faces();
             total_nb_faces += nb_faces;
             DebugOn("The Voronoi cell of point : (" << x << "," << y << ","<< z << ") has " << nb_faces << " facets.\n");
@@ -704,7 +708,7 @@ int main (int argc, char * argv[])
             
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
             
-                               auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L1matching, L2err_per_point, false);
+                               auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L1matching, L1err_per_point, false);
 
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
@@ -1082,7 +1086,7 @@ double get_GoICP_dist(double radius_r, double radius_t, const vector<double>& p,
 //    radius_r *= sqrt(2);
     double t_radius = std::sqrt(3)*radius_t;
     DebugOff("GoICP t radius = " << to_string_with_precision(t_radius, 6) << endl);
-    DebugOn("GoICP r radius = " << to_string_with_precision(2*std::sin(std::min(sqrt(3)*radius_r/2.,pi/2.))*std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]), 6) << endl);
+    DebugOff("GoICP r radius = " << to_string_with_precision(2*std::sin(std::min(sqrt(3)*radius_r/2.,pi/2.))*std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]), 6) << endl);
     if(L1norm)
         return 2*std::sin(std::min(3*radius_r/2,pi/2))*(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]) + 3*radius_t;
     return 2*std::sin(std::min(sqrt(3)*radius_r/2.,pi/2.))*std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]) + std::sqrt(3)*radius_t;
@@ -2340,7 +2344,8 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     auto Reg=make_shared<Model<>>(name);
     
     
-
+//    Reg->add_param(x1);Reg->add_param(y1);Reg->add_param(z1);
+//    Reg->add_param(x2);Reg->add_param(y2);Reg->add_param(z2);
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         //    var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
     
@@ -6110,6 +6115,32 @@ void update_matching(shared_ptr<Model<double>>& M, vector<int>& new_matching){
     }
 }
 
+void get_rotation_transl_matrix(const shared_ptr<Model<double>>& M, vector<double>& rot_trans){
+    auto theta11 = M->get_var<double>("theta11");auto theta12 = M->get_var<double>("theta12");auto theta13 = M->get_var<double>("theta13");
+    auto theta21 = M->get_var<double>("theta21");auto theta22 = M->get_var<double>("theta22");auto theta23 = M->get_var<double>("theta23");
+    auto theta31 = M->get_var<double>("theta31");auto theta32 = M->get_var<double>("theta32");auto theta33 = M->get_var<double>("theta33");
+    auto x_shift = M->get_var<double>("x_shift");auto y_shift = M->get_var<double>("y_shift");auto z_shift = M->get_var<double>("z_shift");
+
+    Debug("Theta matrix = " << endl);
+    Debug("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
+    Debug("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
+    Debug("|" << theta31.eval() << " " << theta32.eval() << " " << theta33.eval() << "|" << endl);
+   
+    rot_trans[0]=theta11.eval();
+    rot_trans[1]=theta12.eval();
+    rot_trans[2]=theta13.eval();;
+    rot_trans[3]=theta21.eval();
+    rot_trans[4]=theta22.eval();
+    rot_trans[5]=theta23.eval();
+    rot_trans[6]=theta31.eval();
+    rot_trans[7]=theta32.eval();
+    rot_trans[8]=theta33.eval();
+    rot_trans[9]=x_shift.eval();
+    rot_trans[10]=y_shift.eval();
+    rot_trans[11]=z_shift.eval();
+}
+
+
 bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans, vector<int>& new_matching){
     auto theta11 = M->get_var<double>("theta11");auto theta12 = M->get_var<double>("theta12");auto theta13 = M->get_var<double>("theta13");
     auto theta21 = M->get_var<double>("theta21");auto theta22 = M->get_var<double>("theta22");auto theta23 = M->get_var<double>("theta23");
@@ -8227,6 +8258,7 @@ double computeL2error(const vector<vector<double>>& point_cloud_model, const vec
     }
     return err;
 }
+
 
 
 /* Compute the L1 error for model and data sets
