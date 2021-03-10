@@ -12,10 +12,90 @@
 
 using namespace std;
 namespace gravity {
+static int max_line_len;
+static char* line = nullptr;
 
+char* readLine(FILE *input)
+{
+    size_t len;
+    if(fgets(line,max_line_len,input) == NULL)
+        return NULL;
+    
+    while(strrchr(line,'\n') == NULL)
+    {
+        max_line_len *= 2;
+        line = (char *) realloc(line,max_line_len);
+        len = strlen(line);
+        if(fgets(line+len,max_line_len-len,input) == NULL)
+            break;
+    }
+    return line;
+}
+
+void skip_lines(FILE *input, size_t nb_lines){
+    for (size_t i = 0; i<nb_lines; i++) {
+        readLine(input);
+    }
+}
+
+char *mystrtok(char **m,char *s,char c)
+{
+    char *p1=s?s:*m;
+    if( !*p1 )
+        return 0;
+    *m=strchr(p1,c);
+    if(*m && c==' '){
+        while(*m[0]==c){
+            *(*m)++=0;
+        }
+        if(! *m )
+            *m=p1+strlen(p1);
+        return p1;
+    }
+    if( *m )
+        *(*m)++=0;
+    else
+        *m=p1+strlen(p1);
+    return p1;
+}
 
 const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2) {
     return v1.second->get_nb_rows() > v2.second->get_nb_rows();
+}
+
+/** Read solution point to file */
+template <typename type>
+void Model<type>::read_solution(const string& fname){
+    FILE *fp = fopen(fname.c_str(),"r");
+    if(fp == NULL)
+    {
+            cout << "Can’t open input file " << fname;
+            exit(1);
+    }
+    max_line_len = 1024;
+    line = new char[max_line_len];
+    auto n = _vars.size();
+    double* sol = new double[get_nb_vars()];
+    double val;
+    char* p;
+    int idx = 0;
+    for (auto &v_pair:_vars) {
+        auto v = v_pair.second;
+        readLine(fp);
+        int nb_inst = v->get_dim();
+        for(int j = 0; j<nb_inst; j++)
+        {
+            readLine(fp);
+            mystrtok(&p,line,' ');
+            mystrtok(&p,NULL,' ');
+            sol[idx++] = atof(mystrtok(&p,NULL,' '));
+        }
+        readLine(fp);
+    }
+    set_x(sol);
+    delete[] sol;
+    delete[] line;
+    fclose(fp);
 }
 
 /** Lift and linearize the nonlinear constraint c, return the linearized form and add linking constraints to the model.
@@ -6637,7 +6717,7 @@ template void Model<double>::model_fix_int(shared_ptr<gravity::Model<double>> re
 template shared_ptr<Model<double>> Model<double>::outer_approximate_continuous_relaxation(int nb_max, int& constr_viol);
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type);
-
+template void gravity::Model<double>::read_solution(const string& fname);
 
 //    template void Model<double>::run_obbt(double max_time, unsigned max_iter);
 //    template func<double> constant<double>::get_real() const;
