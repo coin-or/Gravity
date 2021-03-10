@@ -7640,6 +7640,61 @@ namespace gravity {
         }
         
         
+        void update_matching(vector<int>& new_matching){
+            auto bin = get_var_ptr("bin");
+            shared_ptr<vector<int>> bin_vals = nullptr;
+            shared_ptr<vector<double>> cont_vals = nullptr;
+            if(bin->is_integer()){
+                bin_vals = static_pointer_cast<var<int>>(bin)->_val;
+            }
+            else{/* integers were replaced by continuous vars*/
+                bin_vals = static_pointer_cast<var<int>>(get_int_var(bin->get_id()))->_val;
+                cont_vals = static_pointer_cast<var<double>>(bin)->_val;
+            }
+            int nd = new_matching.size();
+            int nm = bin_vals->size()/nd;
+            int idx = 0;
+            for (int i = 0; i<nd; i++) {
+                for (int j = 0; j<nm; j++) {
+                    if(new_matching[i]==j){
+                        bin_vals->at(idx)=1;
+                        if(cont_vals)
+                            cont_vals->at(idx)=1;
+                    }
+                    else{
+                        bin_vals->at(idx)=0;
+                        if(cont_vals)
+                            cont_vals->at(idx)=0;
+                    }
+                    idx++;
+                }
+            }
+        }
+        
+        /* Compute the L1 error for model and data sets
+         @param[out] matching, vecor used to store the optimal match
+         */
+        double computeL1error(const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, const shared_ptr<param<>>& x_model, const shared_ptr<param<>>& y_model, const shared_ptr<param<>>& z_model, vector<int>& matching){
+            size_t n = x_data->get_dim();
+            size_t m = x_model->get_dim();
+            double dist_abs = 0, err = 0;
+            for (auto i = 0; i< n; i++) {
+                double min_dist = numeric_limits<double>::max();
+                for (auto j = 0; j< m; j++) {
+                    dist_abs = std::abs(x_data->_val->at(i) - x_model->_val->at(j)) + std::abs(y_data->_val->at(i) - y_model->_val->at(j)) + std::abs(z_data->_val->at(i) - z_model->_val->at(j));
+                    if(min_dist>dist_abs){
+                        min_dist = dist_abs;
+                        matching[i] = j;
+                    }
+                }
+                Debug("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+                Debug("matching(" << i+1 << ") = " << matching[i]+1 << endl);
+                err += min_dist;
+            }
+            return err;
+        }
+        
+        
     };
 
         //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);

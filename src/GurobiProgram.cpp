@@ -2,6 +2,8 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 
+
+
 class cuts: public GRBCallback
 {
 public:
@@ -10,6 +12,9 @@ public:
     Model<>* m;
     double *x;
     vector<double> cont_x, int_x;
+    vector<double> rot_trans;
+    vector<int> matching;
+    shared_ptr<param<>> x1, x2, y1, y2, z1, z2;
     Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
         x = new double[n];
@@ -18,7 +23,15 @@ public:
         m=mn;
         cont_x.resize(n);
         int_x.resize(n);
+        rot_trans.resize(12);
         interior=interiorn;
+        x1 = m->get_ptr_param<double>("x1");
+//        y1 = m->get_ptr_param<double>("y1");
+//        z1 = m->get_ptr_param<double>("z1");
+//        x2 = m->get_ptr_param<double>("x2");
+//        y2 = m->get_ptr_param<double>("y2");
+//        z2 = m->get_ptr_param<double>("z2");
+        matching.resize(x1->get_dim());
     }
     ~cuts(){
         delete [] x;
@@ -68,6 +81,39 @@ protected:
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
+                        auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
+                        auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
+                        auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
+                        auto x_shift = m->get_ptr_var<double>("x_shift");auto y_shift = m->get_ptr_var<double>("y_shift");auto z_shift = m->get_ptr_var<double>("z_shift");
+
+                        Debug("Theta matrix = " << endl);
+                        Debug("|" << theta11->eval() << " " << theta12->eval() << " " << theta13->eval() << "|" << endl);
+                        Debug("|" << theta21->eval() << " " << theta22->eval() << " " << theta23->eval() << "|" << endl);
+                        Debug("|" << theta31->eval() << " " << theta32->eval() << " " << theta33->eval() << "|" << endl);
+                       
+                        rot_trans[0]=theta11->eval();
+                        rot_trans[1]=theta12->eval();
+                        rot_trans[2]=theta13->eval();;
+                        rot_trans[3]=theta21->eval();
+                        rot_trans[4]=theta22->eval();
+                        rot_trans[5]=theta23->eval();
+                        rot_trans[6]=theta31->eval();
+                        rot_trans[7]=theta32->eval();
+                        rot_trans[8]=theta33->eval();
+                        rot_trans[9]=x_shift->eval();
+                        rot_trans[10]=y_shift->eval();
+                        rot_trans[11]=z_shift->eval();
+                        
+//                        auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,L2matching,L2err_per_point);
+//                        auto L1error_init = m->computeL1error(x1,y1,z1,x2,y2,z2,matching);
+//                        m->update_matching(matching);
+//                        m->get_solution(cont_x);
+//                        for(i=0;i<n;i++){
+//                            x[i] = cont_x[i];
+//                        }
+                        /* compute new_xm */
+//                        setSolution(vars.data(), x, n);
+                        
                         auto res=m->cutting_planes_solution(interior, 1e-6);
                         if(res.size()>=1){
                             for(i=0;i<res.size();i++){
@@ -206,10 +252,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         //    print_constraints();
     if (relax) relax_model();
         //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-8);
-    grb_mod->set(GRB_IntParam_Presolve,0);
+//    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
+//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+//    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+//    grb_mod->set(GRB_IntParam_Presolve,0);
         //grb_mod->set(GRB_IntParam_Threads, 4);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
