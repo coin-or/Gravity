@@ -753,7 +753,7 @@ int main (int argc, char * argv[])
             vector<int> new_matching(point_cloud_model.size());
             vector<int> matching(point_cloud_model.size());
 //
-            auto SOC_MIP = build_linobj_convex_OLD(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, false);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, false);
             apply_rot_trans(rot_trans, point_cloud_data);
             //SOC_MIP->print();
           //  solver<> S(SOC_MIP,gurobi);
@@ -6003,7 +6003,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     double u3_min=x3u_range->first+y3u_range->first+z3u_range->first;
     double u3_max=x3u_range->second+y3u_range->second+z3u_range->second;
-    var<> u1("u1"), u2("u2"), u3("u3");
+    var<> u1("u1",u1_min,u1_max), u2("u2",u2_min,u2_max), u3("u3",u3_min,u3_max);
         //    var<> tx("tx", pos_), ty("ty", pos_), tz("tz", pos_);
     Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
     Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
