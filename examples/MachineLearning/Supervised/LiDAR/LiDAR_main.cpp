@@ -189,7 +189,11 @@ shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model
 
 shared_ptr<Model<double>> build_SDP(vector<double>& point, vector<double>& rot_mat);
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, vector<int>& new_matching, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_t, const vector<int>& matching, indices cells, bool relax_ints);
+
+
+shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_ints);
+
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits);
 
 
 indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, const vector<double>& model_voronoi_out_radius, vector<vector<vector<double>>> model_voronoi_vertices, bool norm1);
@@ -577,10 +581,11 @@ int main (int argc, char * argv[])
             //        }
             //#endif
        //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, 0.23,0.24,-0.24,-0.23,-0.02,-0.01,  model_voronoi_normals, model_face_intercept);
-        //double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
-        //double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
+        double shift_min_xa = 0.23, shift_max_xa = 0.24, shift_min_ya = -0.24,shift_max_ya= -0.23,shift_min_za = -0.02,shift_max_za = -0.01;
+        double yaw_mina = -25*pi/180., yaw_maxa = 25*pi/180., pitch_mina = -25*pi/180.,pitch_maxa = 25.*pi/180.,roll_mina = -25*pi/180.,roll_maxa = 25*pi/180.;
 
-       // auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept);
+        //auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, roll_mina, roll_maxa,  pitch_mina, pitch_maxa, yaw_mina, yaw_maxa, shift_min_xa, shift_max_xa, shift_min_ya, shift_max_ya, shift_min_za, shift_max_za, model_voronoi_normals, model_face_intercept);
+       // auto valid_cellsa=preprocess(point_cloud_data, point_cloud_model, 25, shift_min_xa, shift_max_xa, shift_min_ya, shift_max_ya, shift_min_za, shift_max_za, model_voronoi_normals, model_face_intercept);
 #endif
         
         auto old_point_cloud = point_cloud_data;
@@ -726,7 +731,7 @@ int main (int argc, char * argv[])
 //            auto valid_cells = get_valid_pairs(point_cloud_model, point_cloud_data, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_out_radius,  model_voronoi_vertices, true);
             
             double time_start = get_wall_time();
-            auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept);
+            auto valid_cells=preprocess_QP(ext_data, ext_model, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept);
             double time_end = get_wall_time();
             auto prep_time = time_end - time_start;
             /* Terminal output */
@@ -735,8 +740,8 @@ int main (int argc, char * argv[])
             
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
             
-            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
-            apply_rot_trans(rot_trans, point_cloud_data);
+           // auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
+            //apply_rot_trans(rot_trans, point_cloud_data);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
@@ -746,10 +751,12 @@ int main (int argc, char * argv[])
                 //            int nb_threads=1;
                 //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
                 //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//            vector<int> new_matching(point_cloud_model.size());
-//            vector<int> matching(point_cloud_model.size());
+            vector<int> new_matching(point_cloud_model.size());
+            vector<int> matching(point_cloud_model.size());
 //
-//            auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, cells, false);
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, false);
+            //auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, valid_cells, false);
+            apply_rot_trans(rot_trans, point_cloud_data);
             //SOC_MIP->print();
           //  solver<> S(SOC_MIP,gurobi);
            // S.run();
@@ -5872,13 +5879,13 @@ void run_ICR(vector<vector<double>>& point_cloud_model, vector<vector<double>>& 
 }
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, vector<int>& new_matching, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<pair<double,double>>& min_max_model, const vector<int>& matching, indices cells, bool relax_ints){
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits){
     
-    double shift_min_x = 0.125, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = -0.125,shift_min_z = -0.125,shift_max_z = 0;
-    double yaw_min = -12.5*pi/180., yaw_max = 0, pitch_min = 12.5*pi/180.,pitch_max = 25.*pi/180.,roll_min = -12.5*pi/180.,roll_max = 0;
-
-
-    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+//    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
+//    double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
+//
+//
+//    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
     vector<double> zeros = {0,0,0};
@@ -5924,15 +5931,15 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 //    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
 //    double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z =-0.02,shift_max_z = -0.01;
 
-    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+    var<> x_shift("x_shift", new_shift_min_x, new_shift_max_x), y_shift("y_shift", new_shift_min_y, new_shift_max_y), z_shift("z_shift", new_shift_min_z, new_shift_max_z);
         //var<> x_shift("x_shift", 0.23, 0.24), y_shift("y_shift", -0.24, -0.23), z_shift("z_shift", -0.02, -0.01);
-    double shift_mag=std::max(pow(shift_max_x,2),pow(shift_min_x,2))+std::max(pow(shift_max_y,2),pow(shift_min_y,2))+std::max(pow(shift_max_z,2),pow(shift_min_z,2));
+    double shift_mag=std::max(pow(new_shift_max_x,2),pow(new_shift_min_x,2))+std::max(pow(new_shift_max_y,2),pow(new_shift_min_y,2))+std::max(pow(new_shift_max_z,2),pow(new_shift_min_z,2));
         Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     double angle_max = 25.*pi/180.;
-    var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
+    var<> yaw("yaw", new_yaw_min, new_yaw_max), pitch("pitch", new_pitch_min, new_pitch_max), roll("roll", new_roll_min, new_roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
     func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);r12.eval_all();
@@ -5955,29 +5962,53 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     var<> theta21_bin("theta21_bin",-1,1), theta22_bin("theta22_bin",0,1), theta23_bin("theta23_bin",-1,1);
     var<> theta31_bin("theta31_bin",-1,1), theta32_bin("theta32_bin",-1,1), theta33_bin("theta33_bin",0,1);
     
-    double min_model_x=min_max_model.at(0).first;
-    double max_model_x=min_max_model.at(0).second;
-    double min_model_y=min_max_model.at(1).first;
-    double max_model_y=min_max_model.at(1).second;
-    double min_model_z=min_max_model.at(2).first;
-    double max_model_z=min_max_model.at(2).second;
-    var<> new_xm("new_xm", min_model_x, max_model_x), new_ym("new_ym", min_model_y, max_model_y), new_zm("new_zm", min_model_z, max_model_z);
+//    double min_model_x=min_max_model.at(0).first;
+//    double max_model_x=min_max_model.at(0).second;
+//    double min_model_y=min_max_model.at(1).first;
+//    double max_model_y=min_max_model.at(1).second;
+//    double min_model_z=min_max_model.at(2).first;
+//    double max_model_z=min_max_model.at(2).second;
+    var<> new_xm("new_xm", -1, 1), new_ym("new_ym", -1, 1), new_zm("new_zm", -1, 1);
     
     bool hybrid=false;
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     
     
-    double tx_max=std::max(pow(shift_min_x,2), pow(shift_max_x,2));
-    double ty_max=std::max(pow(shift_min_y,2), pow(shift_max_y,2));
-    double tz_max=std::max(pow(shift_min_z,2), pow(shift_max_z,2));
+    double tx_max=std::max(pow(new_shift_min_x,2), pow(new_shift_max_x,2));
+    double ty_max=std::max(pow(new_shift_min_y,2), pow(new_shift_max_y,2));
+    double tz_max=std::max(pow(new_shift_min_z,2), pow(new_shift_max_z,2));
     var<> tx("tx", 0, tx_max), ty("ty", 0, ty_max), tz("tz", 0, tz_max);
+    auto x1u_range  = get_product_range(x_shift._range, theta11._range);
+    auto y1u_range  = get_product_range(y_shift._range, theta21._range);
+    auto z1u_range  = get_product_range(z_shift._range, theta31._range);
+    
+    double u1_min=x1u_range->first+y1u_range->first+z1u_range->first;
+    double u1_max=x1u_range->second+y1u_range->second+z1u_range->second;
+    
+    
+    auto x2u_range  = get_product_range(x_shift._range, theta12._range);
+    auto y2u_range  = get_product_range(y_shift._range, theta22._range);
+    auto z2u_range  = get_product_range(z_shift._range, theta32._range);
+    
+    double u2_min=x2u_range->first+y2u_range->first+z2u_range->first;
+    double u2_max=x2u_range->second+y2u_range->second+z2u_range->second;
+    
+    
+    auto x3u_range  = get_product_range(x_shift._range, theta13._range);
+    auto y3u_range  = get_product_range(y_shift._range, theta23._range);
+    auto z3u_range  = get_product_range(z_shift._range, theta33._range);
+    
+    double u3_min=x3u_range->first+y3u_range->first+z3u_range->first;
+    double u3_max=x3u_range->second+y3u_range->second+z3u_range->second;
+    var<> u1("u1", u1_min, u1_max), u2("u2", u2_min, u2_max), u3("u3",u3_min, u3_max);
         //    var<> tx("tx", pos_), ty("ty", pos_), tz("tz", pos_);
     Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
     Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
     Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
     if(true){
         Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
+        Reg->add(u1.in(R(1)),u2.in(R(1)),u3.in(R(1)));
     }
     
     theta11.initialize_all(1);
@@ -6453,7 +6484,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 }
     for (int i = 0; i<nd; i++){
         string i_str = to_string(i+1);
-        auto bounds = get_min_max(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, point_cloud_data[i], zeros);
+        auto bounds = get_min_max(new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, point_cloud_data[i], zeros);
         *new_x1_bounds = {bounds[0].first + x_shift.get_lb().eval(), bounds[0].second+ x_shift.get_ub().eval()};
         *new_y1_bounds = {bounds[1].first + y_shift.get_lb().eval(), bounds[1].second+ y_shift.get_ub().eval()};
         *new_z1_bounds = {bounds[2].first + z_shift.get_lb().eval(), bounds[2].second+ z_shift.get_ub().eval()};
@@ -6528,7 +6559,20 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         c_lb = c_lb_on;
         c_ub = c_ub_on;
     }
-    var<> c("c",c_lb,c_ub);
+    var<> c("c",0.0, 6.0);
+    
+    Constraint<> Def_u1("Def_u1");
+    Def_u1=u1-(theta11*x_shift+theta21*y_shift+theta31*z_shift);
+    Reg->add(Def_u1.in(range(0,0))==0);
+    
+    Constraint<> Def_u2("Def_u2");
+    Def_u2=u2-(theta21*x_shift+theta22*y_shift+theta32*z_shift);
+    Reg->add(Def_u2.in(range(0,0))==0);
+    
+    Constraint<> Def_u3("Def_u3");
+    Def_u3=u3-(theta31*x_shift+theta32*y_shift+theta33*z_shift);
+    Reg->add(Def_u3.in(range(0,0))==0);
+    
     if(!hybrid){
         Reg->add(c.in(cells));
         
@@ -6538,71 +6582,107 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         if(!separate){
             Constraint<> Def_c("Def_c");
             Def_c= c;
-            Def_c -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
-            Def_c -= (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
-            Def_c -= (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
-            Def_c -= (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
-            Def_c -= (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
-            Def_c -= (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
-            Def_c -= (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
-            Def_c -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
-            Def_c -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
-            Def_c -= (x2.to(cells)*x_shift.in(ids_theta));
-            Def_c -= (y2.to(cells)*y_shift.in(ids_theta));
-            Def_c -= (z2.to(cells)*z_shift.in(ids_theta));
+            Def_c += (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
+            Def_c += (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
+            Def_c += (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
+            Def_c += (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
+            Def_c += (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
+            Def_c += (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
+            Def_c += (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
+            Def_c += (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
+            Def_c += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            Def_c += (x2.to(cells)*x_shift.in(ids_theta));
+            Def_c += (y2.to(cells)*y_shift.in(ids_theta));
+            Def_c += (z2.to(cells)*z_shift.in(ids_theta));
+            Def_c -= (x1.from(cells)*u1.in(ids_theta));
+            Def_c -= (y1.from(cells)*u2.in(ids_theta));
+            Def_c -= (z1.from(cells)*u3.in(ids_theta));
+            Def_c -= 0.5*(x1.from(cells)*x1.from(cells));
+            Def_c -= 0.5*(y1.from(cells)*y1.from(cells));
+            Def_c -= 0.5*(z1.from(cells)*z1.from(cells));
+            Def_c -= 0.5*(x2.to(cells)*x2.to(cells));
+            Def_c -= 0.5*(y2.to(cells)*y2.to(cells));
+            Def_c -= 0.5*(z2.to(cells)*z2.to(cells));
+            Def_c -= 0.5*(tx.in(ids_theta)+ty.in(ids_theta)+tz.in(ids_theta));
             Reg->add(Def_c.in(cells)==0);
+            
+      
+            
         }
         else{
             
-            Constraint<> sumc("sumc");
-            sumc=sum(c)-0.5*(sumdi+nd*(shift_mag)+nd*(min_max_model.at(3).second));
+            //Constraint<> sumc("sumc");
+           // sumc=sum(c)-0.5*(sumdi+nd*(shift_mag)+nd*(min_max_model.at(3).second));
             //Reg->add(sumc.in(range(0,0))<=0);
             
                              
             Constraint<> Def_cu("Def_cu");
             Def_cu= c;
-            Def_cu -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
-            Def_cu -= (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
-            Def_cu -= (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
-            Def_cu -= (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
-            Def_cu -= (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
-            Def_cu -= (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
-            Def_cu -= (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
-            Def_cu -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
-            Def_cu -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
-            Def_cu -= (x2.to(cells)*x_shift.in(ids_theta));
-            Def_cu -= (y2.to(cells)*y_shift.in(ids_theta));
-            Def_cu -= (z2.to(cells)*z_shift.in(ids_theta));
-            Def_cu += c_lb*(1-bin);
-            Reg->add(Def_cu.in(cells)<=0);
+            Def_cu += (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
+            Def_cu += (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
+            Def_cu += (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
+            Def_cu += (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
+            Def_cu += (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
+            Def_cu += (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
+            Def_cu += (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
+            Def_cu += (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
+            Def_cu += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            Def_cu += (x2.to(cells)*x_shift.in(ids_theta));
+            Def_cu += (y2.to(cells)*y_shift.in(ids_theta));
+            Def_cu += (z2.to(cells)*z_shift.in(ids_theta));
+            Def_cu -= (x1.from(cells)*u1.in(ids_theta));
+            Def_cu -= (y1.from(cells)*u2.in(ids_theta));
+            Def_cu -= (z1.from(cells)*u3.in(ids_theta));
+            Def_cu -= 0.5*(x1.from(cells)*x1.from(cells));
+            Def_cu -= 0.5*(y1.from(cells)*y1.from(cells));
+            Def_cu -= 0.5*(z1.from(cells)*z1.from(cells));
+            Def_cu -= 0.5*(x2.to(cells)*x2.to(cells));
+            Def_cu -= 0.5*(y2.to(cells)*y2.to(cells));
+            Def_cu -= 0.5*(z2.to(cells)*z2.to(cells));
+            Def_cu -= 0.5*(tx.in(ids_theta)+ty.in(ids_theta)+tz.in(ids_theta));
+            Def_cu += 0*(1-bin);
+         //   Reg->add(Def_cu.in(cells)<=0);
 //            Reg->add_on_off_multivariate_refined(Def_cu.in(cells)<=0, bin, true);
             
-            Constraint<> Def_cl("Def_cl");
             
-            Def_cl += (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
-            Def_cl += (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
-            Def_cl += (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
-            Def_cl += (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
-            Def_cl += (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
-            Def_cl += (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
-            Def_cl += (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
-            Def_cl += (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
-            Def_cl += (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
-            Def_cl += (x2.to(cells)*x_shift.in(ids_theta));
-            Def_cl += (y2.to(cells)*y_shift.in(ids_theta));
-            Def_cl += (z2.to(cells)*z_shift.in(ids_theta));
+            
+            Constraint<> Def_cl("Def_cl");
+            Def_cl= 0;
+            Def_cl -= (x2.to(cells)*x1.from(cells)*theta11.in(ids_theta));
+            Def_cl -= (x2.to(cells)*y1.from(cells)*theta12.in(ids_theta));
+            Def_cl -= (x2.to(cells)*z1.from(cells)*theta13.in(ids_theta));
+            Def_cl -= (y2.to(cells)*x1.from(cells)*theta21.in(ids_theta));
+            Def_cl -= (y2.to(cells)*y1.from(cells)*theta22.in(ids_theta));
+            Def_cl -= (y2.to(cells)*z1.from(cells)*theta23.in(ids_theta));
+            Def_cl -= (z2.to(cells)*x1.from(cells)*theta31.in(ids_theta));
+            Def_cl -= (z2.to(cells)*y1.from(cells)*theta32.in(ids_theta));
+            Def_cl -= (z2.to(cells)*z1.from(cells)*theta33.in(ids_theta));
+            Def_cl -= (x2.to(cells)*x_shift.in(ids_theta));
+            Def_cl -= (y2.to(cells)*y_shift.in(ids_theta));
+            Def_cl -= (z2.to(cells)*z_shift.in(ids_theta));
+            Def_cl += (x1.from(cells)*u1.in(ids_theta));
+            Def_cl += (y1.from(cells)*u2.in(ids_theta));
+            Def_cl += (z1.from(cells)*u3.in(ids_theta));
+            Def_cl += 0.5*(x1.from(cells)*x1.from(cells));
+            Def_cl += 0.5*(y1.from(cells)*y1.from(cells));
+            Def_cl += 0.5*(z1.from(cells)*z1.from(cells));
+            Def_cl += 0.5*(x2.to(cells)*x2.to(cells));
+            Def_cl += 0.5*(y2.to(cells)*y2.to(cells));
+            Def_cl += 0.5*(z2.to(cells)*z2.to(cells));
+            Def_cl += 0.5*(tx.in(ids_theta)+ty.in(ids_theta)+tz.in(ids_theta));
             Def_cl -= c;
-            Def_cl -= c_ub*(1-bin);
+            Def_cl -= 6*(1-bin);
+            Reg->add(Def_cl.in(cells)<=0);
            // Reg->add(Def_cl.in(cells)<=0);
 //            Reg->add_on_off_multivariate_refined(Def_cl.in(cells)<=0, bin, true);
             
             Constraint<> c_off1("c_off1");
-            c_off1=c - c_ub*bin;
-            Reg->add(c_off1.in(cells)<=0);
+            c_off1=c - 6*bin;
+           // Reg->add(c_off1.in(cells)<=0);
             
             Constraint<> c_off2("c_off2");
-            c_off2=c_lb*bin - c;
-           // Reg->add(c_off2.in(cells)<=0);
+            c_off2=0*bin - c;
+           //Reg->add(c_off2.in(cells)<=0);
             
         }
     }
@@ -6610,7 +6690,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     if(hybrid){
         
-        double dmax=min_max_model[3].second;
+       // double dmax=min_max_model[3].second;
         
         Reg->add(new_xm.in(N1));
         Reg->add(new_ym .in(N1));
@@ -6637,15 +6717,15 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
         Constraint<> sum_newxm("sum_newxm");
         sum_newxm = sum(new_xm.in(N1))-nd*x_shift;
-        Reg->add(sum_newxm==0);
+        //Reg->add(sum_newxm==0);
         
         Constraint<> sum_newym("sum_newym");
         sum_newym = sum(new_ym.in(N1))-nd*y_shift;
-        Reg->add(sum_newym==0);
+        //Reg->add(sum_newym==0);
         
         Constraint<> sum_newzm("sum_newzm");
         sum_newzm = sum(new_zm.in(N1))-nd*z_shift;
-        Reg->add(sum_newzm==0);
+        //Reg->add(sum_newzm==0);
         
         if(hybrid){
             auto idstheta = theta11.repeat_id(N1.size());
@@ -6704,18 +6784,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     /* Objective function */
     
-    func<> obj = sum(x1*x1 + y1*y1 + z1*z1);
+    func<> obj = 0;
     if(!hybrid){
         param<> two("2");
         two.in(cells);
         two = 2;
         auto ids1 = theta11.repeat_id(cells.size());
         if(separate){
-            obj+= nd*(tx +ty+tz);
+           // obj+= sum(x1*x1 + y1*y1 + z1*z1);
+           // obj+= nd*(tx +ty+tz);
                 //        obj -= 2*sum(x2.to(cells)*xsh_bin) + 2*sum(y2.to(cells)*ysh_bin) + 2*sum(z2.to(cells)*zsh_bin);
                 //
-            obj+= product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
-            obj-= two.tr()*c;
+           // obj+= product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
+             obj+= two.tr()*c;
                 //                        obj.print();
                 //        auto ids1 = theta11.repeat_id(cells.size());
                 //        obj -= 2*sum(x2.to(cells)*x1.from(cells)*bin*theta11.in(ids1));
@@ -6740,13 +6821,13 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 //        obj -= 2*sum(z2.to(cells)*z1.from(cells)*theta33_bin);
         }
         else{
-            obj += nd*(tx +ty+tz);
-            obj -= two.tr()*(c*bin);
+            //obj += nd*(tx +ty+tz);
+            obj+= two.tr()*(c*bin);
                 //            obj.print();
                 //obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
                 //obj -= 2*sum(x2.to(cells)*x_shift.in(ids_repeat)*bin) + 2*sum(y2.to(cells)*y_shift.in(ids_repeat)*bin) + 2*sum(z2.to(cells)*z_shift.in(ids_repeat)*bin);
             
-            obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
+            //obj += product(x2.to(cells)*x2.to(cells),bin) + product(y2.to(cells)*y2.to(cells),bin) + product(z2.to(cells)*z2.to(cells),bin);
                 //            obj.print();
                 // obj-=2*product(c.in(cells), bin.in(cells));
                 // obj-=2*sum(c.in(cells)*bin.in(cells));
@@ -6765,7 +6846,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         }
     }
     else{
-        
+        obj+= sum(x1*x1 + y1*y1 + z1*z1);
         obj += sum(x2.to(cells)*x2.to(cells)*bin) + sum(y2.to(cells)*y2.to(cells)*bin) + sum(z2.to(cells)*z2.to(cells)*bin);
         
             // obj -=nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift);
@@ -6837,12 +6918,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         //    auto uf=mf-2*cf;
     
  
-    //Reg->print_solution();
+    
     //Reg->print();
     solver<> S(Reg,gurobi);
     S.use_callback();
     S.run();
-    
+   // Reg->print_solution();
     DebugOn("Theta matrix = " << endl);
     DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
     DebugOn("|" << theta21.eval() << " " << theta22.eval() << " " << theta23.eval() << "|" << endl);
@@ -6871,7 +6952,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             << endl);
     
     DebugOn("Determinant "<<det<<endl);
-        //Reg->print();
+        Reg->print_solution();
     rot_trans[0]=theta11.eval();
     rot_trans[1]=theta12.eval();
     rot_trans[2]=theta13.eval();;
@@ -6885,6 +6966,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     rot_trans[10]=y_shift.eval();
     rot_trans[11]=z_shift.eval();
     
+  
+    
     
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
@@ -6895,6 +6978,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     DebugOff("x shift = " << x_shift.eval() << endl);
     DebugOff("y shift = " << y_shift.eval() << endl);
     DebugOff("z shift = " << z_shift.eval() << endl);
+    
+
     
        /* //    indices voronoi_ids("voronoi_ids");
         //    voronoi_ids = indices(N1, *norm_x._indices);
@@ -9919,7 +10004,7 @@ indices preprocess(vector<vector<double>> point_cloud_data, vector<vector<double
             voro_model->min(obj);
            // voro_model->print();
             solver<> s(voro_model,ipopt);
-            s.run(5, 1e-6);
+            s.run(0, 1e-6);
             if(voro_model->_status!=0){
                 DebugOn("Missed pair: (" << i+1 << "," << j+1 << ")\n");
                 missed++;
@@ -10045,7 +10130,7 @@ indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<dou
 //            else{
                 S.run(0, 1e-6);
 //            }
-            if(voro_model->_status==0 && sqrt(voro_model->get_obj_val())<=dist_i[i]){
+            if(voro_model->_status==0 && (sqrt(voro_model->get_obj_val())+1e-6)<=dist_i[i]){
                 auto d=sqrt(voro_model->get_obj_val());
                 DebugOff("Data point radius = " << dist_i[i]<<endl);
                 DebugOff("Distance to voronoi cell = " << d << endl);
