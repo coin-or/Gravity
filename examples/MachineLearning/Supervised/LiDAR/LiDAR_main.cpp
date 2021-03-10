@@ -740,8 +740,8 @@ int main (int argc, char * argv[])
             
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
             
-           // auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
-            //apply_rot_trans(rot_trans, point_cloud_data);
+            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
+            apply_rot_trans(rot_trans, point_cloud_data);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
                 //            NC_SOC_MIQCP->print();
@@ -754,9 +754,8 @@ int main (int argc, char * argv[])
             vector<int> new_matching(point_cloud_model.size());
             vector<int> matching(point_cloud_model.size());
 //
-            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, false);
-            //auto SOC_MIP = build_linobj_convex(ext_model, ext_data, rot_trans,new_matching, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,min_max_model, matching, valid_cells, false);
-            apply_rot_trans(rot_trans, point_cloud_data);
+           // auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, separate=true, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, false);
+           // apply_rot_trans(rot_trans, point_cloud_data);
             //SOC_MIP->print();
           //  solver<> S(SOC_MIP,gurobi);
            // S.run();
@@ -1917,7 +1916,8 @@ tuple<double,double,double,double,double,double> run_ARMO_Global_reform(bool con
     
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            ids.add_in_row(i, to_string(j));
+            if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                ids.add_in_row(i, to_string(j));
         }
     }
     
@@ -3198,8 +3198,8 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     N1 = range(1,nd);
     N2 = range(1,nm);
-//    cells = valid_cells;
-    cells = indices(N1,N2);
+    cells = valid_cells;
+//    cells = indices(N1,N2);
     string name="Norm1_MISDP";
     
     auto Reg=make_shared<Model<>>(name);
@@ -3371,7 +3371,8 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     ids.add_empty_row();
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            ids.add_in_row(i, to_string(j));
+            if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                ids.add_in_row(i, to_string(j));
         }
     }
     
@@ -4400,7 +4401,8 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
     ids.add_empty_row();
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            ids.add_in_row(i, to_string(j));
+            if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                ids.add_in_row(i, to_string(j));
         }
     }
     
@@ -5125,7 +5127,8 @@ shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_mo
     ids.add_empty_row();
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            ids.add_in_row(i, to_string(j));
+            if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                ids.add_in_row(i, to_string(j));
         }
     }
     
@@ -6700,7 +6703,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
         for(auto i=0;i<nd;i++){
             for(auto j=1;j<=nm;j++){
-                ids.add_in_row(i, to_string(j));
+                if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                    ids.add_in_row(i, to_string(j));
             }
         }
         Constraint<> Def_newxm("Def_newxm");
@@ -7557,7 +7561,8 @@ shared_ptr<gravity::Model<double>> model_Global_reform(bool convex, string axis,
     
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            ids.add_in_row(i, to_string(j));
+            if(cells.has_key(to_string(i+1)+","+to_string(j)))
+                ids.add_in_row(i, to_string(j));
         }
     }
     
