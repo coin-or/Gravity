@@ -1563,15 +1563,44 @@ public:
     bool empty() const {
         return _keys->size() - _excluded_keys.size() == 0;
     }
-    void print() const{
-        cout << endl;
-        auto i = 0;
-        for(auto &key:*_keys){
-            if (_excluded_keys.count(i++)==0) {
-                cout << key << " ";
+    string to_str() const{
+        string str = "{";
+        if(is_matrix_indexed()){
+            auto nb_rows = get_nb_rows();
+            for (size_t i = 0; i<nb_rows; i++) {
+                for (size_t j = 0; j<_ids->at(i).size(); j++) {
+                    str += "(" + _keys->at(_ids->at(i).at(j)) + ")";
+                    if(j<_ids->at(i).size()-1)
+                        str += " ; ";
+                }
+                str += "\n";
             }
         }
-        cout << endl;
+        else if(is_indexed()){
+            int i = 0, nb_keys = _ids->at(0).size();
+            for(int idx = 0; idx < nb_keys; idx++){
+                str+= "(" + _keys->at(_ids->at(0).at(idx)) + ")";
+                if(idx<nb_keys-1)
+                    str += " ; ";
+            }
+        }
+        else {
+
+            int i = 0, nb_keys = _keys->size();
+            for(int idx = 0; idx < nb_keys; idx++){
+                if (_excluded_keys.count(i++)==0) {
+                    str += "(" + _keys->at(idx) + ")";
+                }
+                if(idx<nb_keys-1)
+                    str += " ; ";
+            }
+        }
+        str += "}";
+        return str;
+    }
+    
+    void print() const{
+        cout << to_str() << endl;
     }
     
     string first() const{
