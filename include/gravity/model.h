@@ -5090,6 +5090,14 @@ namespace gravity {
             }
         }
         
+        void reset_obj() {
+            _obj->uneval();
+            _first_call_jac = true;
+            _first_call_hess = true;
+            _first_call_grad_obj = true;
+            _obj_grad_vals.clear();
+        }
+        
         void reset_constrs() {
             for(auto& c_p :_cons)
             {

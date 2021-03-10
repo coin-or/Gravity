@@ -4367,6 +4367,10 @@ namespace gravity {
         }
         
         
+        double reeval() {
+            uneval();
+            return eval();
+        }
         
         void uneval() {
             _evaluated = false;
