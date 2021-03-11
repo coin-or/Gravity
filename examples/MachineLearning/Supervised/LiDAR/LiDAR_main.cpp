@@ -753,7 +753,7 @@ int main (int argc, char * argv[])
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
 //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
 
-          //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
+            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
 //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
@@ -2551,22 +2551,26 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
         //    Reg->add(l23.in(R(1)),l24.in(R(1)),l34.in(R(1)));
         //    Reg->add(d1.in(R(1)),d2.in(R(1)),d3.in(R(1)),d4.in(R(1)));
     
+    indices norm_red("norm_red");
+    norm_red = *norm_x._indices;
     
     indices ids = indices("in_x");
     ids.add_empty_row();
     for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
-            if(cells.has_key(to_string(i+1)+","+to_string(j)))
-                ids.add_in_row(i, to_string(j));
+            string model_key = to_string(j);
+            if(cells.has_key(to_string(i+1)+","+model_key)){
+                ids.add_in_row(i, model_key);
+            }
         }
     }
     
     bool add_shift_cut = false;
     
     if(add_shift_cut){
-        Constraint<> Centroid("Centroid");
-        Centroid = sum(new_x1) + sum(new_y1) + sum(new_z1) - (sum(new_xm) + sum(new_ym) + sum(new_zm));
-        Reg->add(Centroid==0);
+//        Constraint<> Centroid("Centroid");
+//        Centroid = sum(new_x1) + sum(new_y1) + sum(new_z1) - (sum(new_xm) + sum(new_ym) + sum(new_zm));
+//        Reg->add(Centroid==0);
         
         Constraint<> Centroid_tx("Centroid_tx");
         Centroid_tx = nd*x_shift - sum(new_xm);
@@ -2585,7 +2589,7 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
     
     if(add_voronoi){
         indices voronoi_ids("voronoi_ids");
-        voronoi_ids = indices(range(1,3), *norm_x._indices);
+        voronoi_ids = indices(N1, norm_red);
         auto voronoi_ids_coefs = voronoi_ids.ignore_ith(0, 1);
         auto voronoi_ids_m = voronoi_ids.from_ith(0, 1);
         auto voronoi_ids_data = voronoi_ids.ignore_ith(1, 2);
@@ -2613,7 +2617,7 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
     bool spatial_branching = false;
     if(spatial_branching){
         /* Spatial branching vars */
-        int nb_pieces = 5; // Divide each axis into nb_pieces
+        int nb_pieces = 3; // Divide each axis into nb_pieces
         indices spatial_ids("spatial_ids");
         spatial_ids = range(1,nb_pieces);
         indices theta_ids("theta_ids");

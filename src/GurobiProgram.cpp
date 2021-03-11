@@ -252,11 +252,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         //    print_constraints();
     if (relax) relax_model();
         //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
-    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
-    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
+//    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
 //    grb_mod->set(GRB_IntParam_Presolve,0);
         //grb_mod->set(GRB_IntParam_Threads, 4);
         //    if(use_callback){
