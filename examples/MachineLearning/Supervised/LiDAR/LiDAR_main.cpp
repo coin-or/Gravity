@@ -8025,7 +8025,7 @@ shared_ptr<Model<double>> build_linobj_convex_OLD(vector<vector<double>>& point_
     
  
     
-    Reg->print();
+   // Reg->print();
     solver<> S(Reg,gurobi);
     S.use_callback();
     S.run();
