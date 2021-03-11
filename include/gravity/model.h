@@ -2579,7 +2579,7 @@ namespace gravity {
         }
         
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
-        std::pair<bool,bool> has_violated_constraints(type tol){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
+        std::pair<bool,bool> has_violated_constraints(type tol, bool print = false){/*<< Returns true if some constraints are violated by the current solution with tolerance tol */
                 //    if (!_has_lazy) {
                 //        return false;
                 //    }
@@ -2607,8 +2607,10 @@ namespace gravity {
                                 c->_violated[inst] = false;
                                 diff = std::abs(c->eval(inst));
                                 if(diff > tol) {
-                                    DebugOn("Violated equation: " << c->to_str(inst,10));
-                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    if(print){
+                                        DebugOn("Violated equation: " << c->to_str(inst,10));
+                                        DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    }
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2634,8 +2636,10 @@ namespace gravity {
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff > tol) {
-                                    DebugOn("Violated inequality: " << c->to_str(inst,10));
-                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    if(print){
+                                        DebugOn("Violated inequality: " << c->to_str(inst,10));
+                                        DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    }
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2667,8 +2671,10 @@ namespace gravity {
                                 c->_violated[inst] = false;
                                 diff = c->eval(inst);
                                 if(diff < -tol) {
-                                    DebugOn("Violated inequality: " << c->to_str(inst,10));
-                                    DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    if(print){
+                                        DebugOn("Violated inequality: " << c->to_str(inst,10));
+                                        DebugOn(", violation = "<< to_string_with_precision(diff, 10) << endl);
+                                    }
                                     nb_viol++;
                                     //                        violated = true;
                                     if (*c->_all_lazy) {
@@ -2721,7 +2727,7 @@ namespace gravity {
          Returns true if the current solution satisfies bounds and constraints upt to tolerance tol
          @param[in] tol tolerance for constraint satisfaction
          */
-        bool is_feasible(type tol){
+        bool is_feasible(type tol, bool print = false){
             shared_ptr<param_> v;
             double viol = 0;
             bool feasible = true;
@@ -2742,7 +2748,8 @@ namespace gravity {
                     }
                 }
             }
-            feasible = feasible && !has_violated_constraints(tol).first && !has_violated_constraints(tol).second;
+            auto viol_c = has_violated_constraints(tol,print);
+            feasible = feasible && !viol_c.first && !viol_c.second;
             return feasible;
         }
         
@@ -7648,7 +7655,7 @@ namespace gravity {
         }
         
         
-        void update_matching(vector<int>& new_matching){
+        void update_matching(vector<int>& new_matching, const vector<vector<size_t>>& bin_ids){
             auto bin = get_var_ptr("bin");
             shared_ptr<vector<int>> bin_vals = nullptr;
             shared_ptr<vector<double>> cont_vals = nullptr;
@@ -7659,12 +7666,13 @@ namespace gravity {
                 bin_vals = static_pointer_cast<var<int>>(get_int_var(bin->get_id()))->_val;
                 cont_vals = static_pointer_cast<var<double>>(bin)->_val;
             }
-            int nd = new_matching.size();
-            int nm = bin_vals->size()/nd;
+            size_t n = bin_ids.size();
             int idx = 0;
-            for (int i = 0; i<nd; i++) {
-                for (int j = 0; j<nm; j++) {
-                    if(new_matching[i]==j){
+            double dist_abs = 0, err = 0;
+            for (auto i = 0; i< n; i++) {
+                auto m = bin_ids[i].size();
+                for (auto j = 0; j< m; j++) {
+                    if(new_matching[i]==bin_ids[i][j]){
                         bin_vals->at(idx)=1;
                         if(cont_vals)
                             cont_vals->at(idx)=1;
@@ -7682,17 +7690,17 @@ namespace gravity {
         /* Compute the L1 error for model and data sets
          @param[out] matching, vecor used to store the optimal match
          */
-        double computeL1error(const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, const shared_ptr<param<>>& x_model, const shared_ptr<param<>>& y_model, const shared_ptr<param<>>& z_model, vector<int>& matching){
-            size_t n = x_data->get_dim();
-            size_t m = x_model->get_dim();
+        double computeL1error(const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, const shared_ptr<param<>>& x_model, const shared_ptr<param<>>& y_model, const shared_ptr<param<>>& z_model, vector<int>& matching, const vector<vector<size_t>>& bin_ids){
+            size_t n = bin_ids.size();
             double dist_abs = 0, err = 0;
             for (auto i = 0; i< n; i++) {
                 double min_dist = numeric_limits<double>::max();
+                auto m = bin_ids[i].size();
                 for (auto j = 0; j< m; j++) {
-                    dist_abs = std::abs(x_data->_val->at(i) - x_model->_val->at(j)) + std::abs(y_data->_val->at(i) - y_model->_val->at(j)) + std::abs(z_data->_val->at(i) - z_model->_val->at(j));
+                    dist_abs = std::abs(x_data->_val->at(i) - x_model->_val->at(bin_ids[i][j])) + std::abs(y_data->_val->at(i) - y_model->_val->at(bin_ids[i][j])) + std::abs(z_data->_val->at(i) - z_model->_val->at(bin_ids[i][j]));
                     if(min_dist>dist_abs){
                         min_dist = dist_abs;
-                        matching[i] = j;
+                        matching[i] = bin_ids[i][j];
                     }
                 }
                 Debug("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
@@ -7702,7 +7710,49 @@ namespace gravity {
             return err;
         }
         
+        void apply_rot_trans(const vector<double>& theta_matrix, const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, shared_ptr<param<>>& new_x, shared_ptr<param<>>& new_y, shared_ptr<param<>>& new_z){
+            double shifted_x, shifted_y, shifted_z;
+            size_t n = x_data->get_dim();
+            /* Apply rotation */
+            for (auto i = 0; i< n; i++) {
+                new_x->_val->at(i) = x_data->_val->at(i)*theta_matrix[0] + y_data->_val->at(i)*theta_matrix[1] + z_data->_val->at(i)*theta_matrix[2];
+                new_y->_val->at(i) = x_data->_val->at(i)*theta_matrix[3] + y_data->_val->at(i)*theta_matrix[4] + z_data->_val->at(i)*theta_matrix[5];
+                new_z->_val->at(i) = x_data->_val->at(i)*theta_matrix[6] + y_data->_val->at(i)*theta_matrix[7] + z_data->_val->at(i)*theta_matrix[8];
+                new_x->_val->at(i) += theta_matrix[9];
+                new_y->_val->at(i) += theta_matrix[10];
+                new_z->_val->at(i) += theta_matrix[11];
+            }
+        }
         
+        /* Compute the L2 error for model and data sets
+         @param[out] matching, vecor used to store the optimal match
+         */
+        double computeL2error(const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, const shared_ptr<param<>>& x_model, const shared_ptr<param<>>& y_model, const shared_ptr<param<>>& z_model, vector<int>& matching, const vector<vector<size_t>>& bin_ids, shared_ptr<var<>>& x_diff, shared_ptr<var<>>& y_diff, shared_ptr<var<>>& z_diff){
+            size_t n = x_data->get_dim();
+            size_t m = x_model->get_dim();
+            double dist_sq = 0, err = 0, dx = 0, dy = 0, dz = 0;
+            for (auto i = 0; i< n; i++) {
+                double min_dist = numeric_limits<double>::max();
+                auto m = bin_ids[i].size();
+                for (auto j = 0; j< m; j++) {
+                    dx = std::pow(x_data->_val->at(i) - x_model->_val->at(bin_ids[i][j]),2);
+                    dy = std::pow(y_data->_val->at(i) - y_model->_val->at(bin_ids[i][j]),2);
+                    dz = std::pow(z_data->_val->at(i) - z_model->_val->at(bin_ids[i][j]),2);
+                    dist_sq = dx + dy + dz;
+                    if(min_dist>dist_sq){
+                        x_diff->_val->at(i) = dx;
+                        y_diff->_val->at(i) = dy;
+                        z_diff->_val->at(i) = dz;
+                        min_dist = dist_sq;
+                        matching[i] = bin_ids[i][j];
+                    }
+                }
+                Debug("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+                Debug("matching(" << i+1 << ") = " << matching[i]+1 << endl);
+                err += min_dist;
+            }
+            return err;
+        }
     };
 
         //    void compute_constrs(vector<Constraint*>& v, double* res, unsigned i, unsigned j);

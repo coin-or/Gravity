@@ -14,7 +14,9 @@ public:
     vector<double> cont_x, int_x;
     vector<double> rot_trans;
     vector<int> matching;
+    shared_ptr<vector<vector<size_t>>> bin_ids;
     shared_ptr<param<>> x1, x2, y1, y2, z1, z2;
+    shared_ptr<param<>> new_x1, new_y1, new_z1;
     Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
         x = new double[n];
@@ -26,11 +28,21 @@ public:
         rot_trans.resize(12);
         interior=interiorn;
         x1 = m->get_ptr_param<double>("x1");
-//        y1 = m->get_ptr_param<double>("y1");
-//        z1 = m->get_ptr_param<double>("z1");
-//        x2 = m->get_ptr_param<double>("x2");
-//        y2 = m->get_ptr_param<double>("y2");
-//        z2 = m->get_ptr_param<double>("z2");
+        new_x1 = make_shared<param<>>("new_x1");
+        new_x1->in(*x1->_indices);
+        y1 = m->get_ptr_param<double>("y1");
+        new_y1 = make_shared<param<>>("new_y1");
+        new_y1->in(*y1->_indices);
+        z1 = m->get_ptr_param<double>("z1");
+        new_z1 = make_shared<param<>>("new_z1");
+        new_z1->in(*z1->_indices);
+        x2 = m->get_ptr_param<double>("x2");
+        y2 = m->get_ptr_param<double>("y2");
+        z2 = m->get_ptr_param<double>("z2");
+        auto bin = m->get_ptr_var<int>("bin");
+        auto cstr = m->get_constraint("Def_newxm");
+        auto p = cstr->_params->begin();
+        bin_ids = p->second.first->_indices->_ids;
         matching.resize(x1->get_dim());
     }
     ~cuts(){
@@ -81,39 +93,6 @@ protected:
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
-                        auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
-                        auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
-                        auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
-                        auto x_shift = m->get_ptr_var<double>("x_shift");auto y_shift = m->get_ptr_var<double>("y_shift");auto z_shift = m->get_ptr_var<double>("z_shift");
-
-                        Debug("Theta matrix = " << endl);
-                        Debug("|" << theta11->eval() << " " << theta12->eval() << " " << theta13->eval() << "|" << endl);
-                        Debug("|" << theta21->eval() << " " << theta22->eval() << " " << theta23->eval() << "|" << endl);
-                        Debug("|" << theta31->eval() << " " << theta32->eval() << " " << theta33->eval() << "|" << endl);
-                       
-                        rot_trans[0]=theta11->eval();
-                        rot_trans[1]=theta12->eval();
-                        rot_trans[2]=theta13->eval();;
-                        rot_trans[3]=theta21->eval();
-                        rot_trans[4]=theta22->eval();
-                        rot_trans[5]=theta23->eval();
-                        rot_trans[6]=theta31->eval();
-                        rot_trans[7]=theta32->eval();
-                        rot_trans[8]=theta33->eval();
-                        rot_trans[9]=x_shift->eval();
-                        rot_trans[10]=y_shift->eval();
-                        rot_trans[11]=z_shift->eval();
-                        
-//                        auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,L2matching,L2err_per_point);
-//                        auto L1error_init = m->computeL1error(x1,y1,z1,x2,y2,z2,matching);
-//                        m->update_matching(matching);
-//                        m->get_solution(cont_x);
-//                        for(i=0;i<n;i++){
-//                            x[i] = cont_x[i];
-//                        }
-                        /* compute new_xm */
-//                        setSolution(vars.data(), x, n);
-                        
                         auto res=m->cutting_planes_solution(interior, 1e-6);
                         if(res.size()>=1){
                             for(i=0;i<res.size();i++){
@@ -126,6 +105,58 @@ protected:
                                 addCut(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
+                        if(false && m->is_feasible(1e-4)){
+                            auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
+                            auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
+                            auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
+                            auto x_shift = m->get_ptr_var<double>("x_shift");auto y_shift = m->get_ptr_var<double>("y_shift");auto z_shift = m->get_ptr_var<double>("z_shift");
+
+                            Debug("Theta matrix = " << endl);
+                            Debug("|" << theta11->eval() << " " << theta12->eval() << " " << theta13->eval() << "|" << endl);
+                            Debug("|" << theta21->eval() << " " << theta22->eval() << " " << theta23->eval() << "|" << endl);
+                            Debug("|" << theta31->eval() << " " << theta32->eval() << " " << theta33->eval() << "|" << endl);
+                           
+                            rot_trans[0]=theta11->eval();
+                            rot_trans[1]=theta12->eval();
+                            rot_trans[2]=theta13->eval();;
+                            rot_trans[3]=theta21->eval();
+                            rot_trans[4]=theta22->eval();
+                            rot_trans[5]=theta23->eval();
+                            rot_trans[6]=theta31->eval();
+                            rot_trans[7]=theta32->eval();
+                            rot_trans[8]=theta33->eval();
+                            rot_trans[9]=x_shift->eval();
+                            rot_trans[10]=y_shift->eval();
+                            rot_trans[11]=z_shift->eval();
+                            m->apply_rot_trans(rot_trans, x1, y1, z1, new_x1, new_y1, new_z1);
+                            auto x_diff = m->get_ptr_var<double>("x_diff");
+                            auto y_diff = m->get_ptr_var<double>("y_diff");
+                            auto z_diff = m->get_ptr_var<double>("z_diff");
+                            auto L2error_init = m->computeL2error(new_x1,new_y1,new_z1,x2,y2,z2,matching,*bin_ids,x_diff,y_diff,z_diff);
+    //                        auto L1error_init = m->computeL1error(x1,y1,z1,x2,y2,z2,matching);
+                            m->update_matching(matching,*bin_ids);
+                            /* compute new_xm */
+                            auto new_xm = m->get_ptr_var<double>("new_xm");
+                            auto new_ym = m->get_ptr_var<double>("new_ym");
+                            auto new_zm = m->get_ptr_var<double>("new_zm");
+                            int nd = x1->get_dim();
+                            for (i = 0; i<nd; i++) {
+                                new_xm->::param<>::set_val(i,x2->eval(matching[i]));
+                                new_ym->::param<>::set_val(i,y2->eval(matching[i]));
+                                new_zm->::param<>::set_val(i,z2->eval(matching[i]));
+                            }
+                            m->reset_constrs();
+                            m->is_feasible(1e-4,true);
+                            m->get_solution(cont_x);
+                            for(i=0;i<n;i++){
+                                x[i] = cont_x[i];
+                            }
+                            
+                            setSolution(vars.data(), x, n);
+                            double new_ub = useSolution();
+                            Debug("new UB = " << to_string_with_precision(new_ub, 6) << endl);
+                        }
+
                         m->set_solution(int_x);
                     }
                 }
@@ -263,10 +294,12 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,3600);
-    grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
-    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
-    grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
+    if(use_callback){
+        grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+        grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
+        grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
+    }
     grb_mod->update();
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     if(n==0)
@@ -274,11 +307,13 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
     if(n!=_model->get_nb_vars())
         throw invalid_argument("Number of variables in Gurobi model does not match Gravity!");
     Model<> interior;
-
     auto lin=_model->buildOA();
-    interior=lin->add_outer_app_solution(*_model);
-    cuts cb = cuts(_grb_vars, n, _model, interior);
-    grb_mod->setCallback(&cb);
+    if(use_callback){
+        interior=lin->add_outer_app_solution(*_model);
+    }
+        cuts cb = cuts(_grb_vars, n, _model, interior);
+        grb_mod->setCallback(&cb);
+        
         //    }
     grb_mod->optimize();
         //            grb_mod->write("~/mod.mps");
