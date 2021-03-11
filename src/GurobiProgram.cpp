@@ -274,11 +274,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
     if(n!=_model->get_nb_vars())
         throw invalid_argument("Number of variables in Gurobi model does not match Gravity!");
     Model<> interior;
-        //        _model->replace_integers();
-//    auto lin=_model->buildOA();
-//    interior=lin->add_outer_app_solution(*_model);
-//    cuts cb = cuts(_grb_vars, n, _model, interior);
-//    grb_mod->setCallback(&cb);
+//    _model->replace_integers();
+    auto lin=_model->buildOA();
+    interior=lin->add_outer_app_solution(*_model);
+    cuts cb = cuts(_grb_vars, n, _model, interior);
+    grb_mod->setCallback(&cb);
         //    }
     grb_mod->optimize();
         //            grb_mod->write("~/mod.mps");
