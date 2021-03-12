@@ -303,7 +303,7 @@ int main (int argc, char * argv[])
             //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=false;
+        bool downsample=true;
         if(downsample && data_nb_rows>10){
             fwdm=2;
             fwdd=2;
@@ -624,7 +624,7 @@ int main (int argc, char * argv[])
             vector<double> rot_trans;
             bool norm1 = true;
             if(norm1){
-                rot_trans.resize(13,0.0);
+                rot_trans.resize(15,0.0);
             }
             else{
                 rot_trans.resize(6,0.0);
@@ -636,13 +636,13 @@ int main (int argc, char * argv[])
 //            double shift_min_x = 0.12, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.24,shift_min_z = 0,shift_max_z = 0.06;
 //            double shift_min_x = 0.06, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.06,shift_max_z = 0.06;
 //            double shift_min_x = 0.18, shift_max_x = 0.3, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.3,shift_max_z = -0.18;
-            double shift_min_x = -0.02, shift_max_x = 0.02, shift_min_y = -0.02,shift_max_y = 0.02,shift_min_z = 0,shift_max_z = 0;
+            double shift_min_x = -0.01, shift_max_x = 0.01, shift_min_y = -0.01,shift_max_y = 0.01,shift_min_z = 0,shift_max_z = 0;
 //            double shift_min_x = 0.151, shift_max_x = 0.152, shift_min_y = -0.27,shift_max_y = -0.26,shift_min_z = 0.041,shift_max_z = 0.042;
 //            double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
 //            double yaw_min = -8.8*pi/180., yaw_max = -8.6*pi/180., pitch_min = 1.75*pi/180.,pitch_max = 1.85*pi/180.,roll_min = -5.7*pi/180.,roll_max = -5.5*pi/180.;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            double yaw_min = -120*pi/180., yaw_max = 120*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
+            double yaw_min = -120*pi/180., yaw_max = -100*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -686,75 +686,80 @@ int main (int argc, char * argv[])
             indices new_model_ids("new_model_ids");
             double upper_bound=L2error_init;
             int nb_total_threads=8;
-            auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, new_model_pts, new_model_ids, dist_cost, upper_bound, nb_total_threads);
-//            auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept, new_model_pts);
-            double time_end = get_wall_time();
-            auto prep_time = time_end - time_start;
-            /* Terminal output */
-            DebugOn("Preprocessing time = " << prep_time << endl);
-            
-            
-            int reduced_nm = new_model_pts.size();
-            /* Compute pair-wise distance between model points */
-            vector<vector<double>> model_pairwise_dist(reduced_nm-1);
-            /* Compute pair-wise min and max distance between Voronoi cells of model point pairs */
-            vector<vector<double>> voronoi_min_dist(reduced_nm-1), voronoi_max_dist(reduced_nm-1);
-            
-            for (int i = 0; i<reduced_nm-1; i++) {
-                auto pi = point_cloud_model[new_model_pts[i]];
-                model_pairwise_dist[i].resize(reduced_nm-i-1);
-                voronoi_min_dist[i].resize(reduced_nm-i-1);
-                voronoi_max_dist[i].resize(reduced_nm-i-1);
-                int pj_id = 0;
-                for (int j = i+1; j<reduced_nm; j++) {
-                    double min_dist = numeric_limits<double>::max(), max_dist = 0;
-                    auto pj = point_cloud_model[new_model_pts[j]];
-                    model_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
-                    voronoi_min_dist[i][pj_id] = model_pairwise_dist[i][pj_id] - model_voronoi_out_radius[i] - model_voronoi_out_radius[j];
-                    voronoi_max_dist[i][pj_id] = model_pairwise_dist[i][pj_id] + model_voronoi_out_radius[i] + model_voronoi_out_radius[j];
-                    pj_id++;
-                }
-            }
-            
-            /* Compute pair-wise distance between data points */
-            vector<vector<double>> data_pairwise_dist(data_nb_rows-1);
-            for (int i = 0; i<data_nb_rows-1; i++) {
-                auto pi = point_cloud_data[i];
-                data_pairwise_dist[i].resize(data_nb_rows-i-1);
-                int pj_id = 0;
-                for (int j = i+1; j<data_nb_rows; j++) {
-                    auto pj = point_cloud_data[j];
-                    data_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
-                    pj_id++;
-                }
-            }
-            
-            int nb_pairs = 0, nb_pairs_max = 10000;
+            indices valid_cells;
+            bool preprocess = false;
             /* Build the index set of incompatible pairs */
             vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-            for (int i = 0; i<data_nb_rows-1; i++) {
-                int pj_id = 0;
-                for (int j = i+1; j<data_nb_rows; j++) {
-                    double dp = data_pairwise_dist[i][pj_id];
-                    for (int k = 0; k<reduced_nm-1; k++) {
-                        int pk_id = 0;
-                        for (int l = k+1; l<reduced_nm; l++) {
-                            double dv_min = voronoi_min_dist[k][pk_id];
-                            double dv_max = voronoi_max_dist[k][pk_id];
-                            if(dp < dv_min || dp > dv_max){
-                                incompatibles.push_back({{i,j},{new_model_pts[k],new_model_pts[l]}});
-                                Debug("Imcompatible pairs: data(" << i << "," << j << ") with model(" << k << "," << l << ")" << endl);
-                                nb_pairs++;
-                            }
-                            pk_id++;
-                        }
+            if(preprocess){
+                valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, new_model_pts, new_model_ids, dist_cost, upper_bound, nb_total_threads);
+    //            auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept, new_model_pts);
+                double time_end = get_wall_time();
+                auto prep_time = time_end - time_start;
+                /* Terminal output */
+                DebugOn("Preprocessing time = " << prep_time << endl);
+                
+                
+                int reduced_nm = new_model_pts.size();
+                /* Compute pair-wise distance between model points */
+                vector<vector<double>> model_pairwise_dist(reduced_nm-1);
+                /* Compute pair-wise min and max distance between Voronoi cells of model point pairs */
+                vector<vector<double>> voronoi_min_dist(reduced_nm-1), voronoi_max_dist(reduced_nm-1);
+                
+                for (int i = 0; i<reduced_nm-1; i++) {
+                    auto pi = point_cloud_model[new_model_pts[i]];
+                    model_pairwise_dist[i].resize(reduced_nm-i-1);
+                    voronoi_min_dist[i].resize(reduced_nm-i-1);
+                    voronoi_max_dist[i].resize(reduced_nm-i-1);
+                    int pj_id = 0;
+                    for (int j = i+1; j<reduced_nm; j++) {
+                        double min_dist = numeric_limits<double>::max(), max_dist = 0;
+                        auto pj = point_cloud_model[new_model_pts[j]];
+                        model_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+                        voronoi_min_dist[i][pj_id] = model_pairwise_dist[i][pj_id] - model_voronoi_out_radius[i] - model_voronoi_out_radius[j];
+                        voronoi_max_dist[i][pj_id] = model_pairwise_dist[i][pj_id] + model_voronoi_out_radius[i] + model_voronoi_out_radius[j];
+                        pj_id++;
                     }
-                    pj_id++;
                 }
+                
+                /* Compute pair-wise distance between data points */
+                vector<vector<double>> data_pairwise_dist(data_nb_rows-1);
+                for (int i = 0; i<data_nb_rows-1; i++) {
+                    auto pi = point_cloud_data[i];
+                    data_pairwise_dist[i].resize(data_nb_rows-i-1);
+                    int pj_id = 0;
+                    for (int j = i+1; j<data_nb_rows; j++) {
+                        auto pj = point_cloud_data[j];
+                        data_pairwise_dist[i][pj_id] = std::sqrt(std::pow(pi[0] - pj[0],2) + std::pow(pi[1] - pj[1],2) + std::pow(pi[2] - pj[2],2));
+                        pj_id++;
+                    }
+                }
+                
+                int nb_pairs = 0, nb_pairs_max = 10000;
+                
+                for (int i = 0; i<data_nb_rows-1; i++) {
+                    int pj_id = 0;
+                    for (int j = i+1; j<data_nb_rows; j++) {
+                        double dp = data_pairwise_dist[i][pj_id];
+                        for (int k = 0; k<reduced_nm-1; k++) {
+                            int pk_id = 0;
+                            for (int l = k+1; l<reduced_nm; l++) {
+                                double dv_min = voronoi_min_dist[k][pk_id];
+                                double dv_max = voronoi_max_dist[k][pk_id];
+                                if(dp < dv_min || dp > dv_max){
+                                    incompatibles.push_back({{i,j},{new_model_pts[k],new_model_pts[l]}});
+                                    Debug("Imcompatible pairs: data(" << i << "," << j << ") with model(" << k << "," << l << ")" << endl);
+                                    nb_pairs++;
+                                }
+                                pk_id++;
+                            }
+                        }
+                        pj_id++;
+                    }
+                }
+                DebugOn("number of incompatible pairs = " << incompatibles.size() << endl);
+                if(incompatibles.size() > nb_pairs_max)
+                    incompatibles.resize(nb_pairs_max);
             }
-            DebugOn("number of incompatible pairs = " << incompatibles.size() << endl);
-            if(incompatibles.size() > nb_pairs_max)
-                incompatibles.resize(nb_pairs_max);
             //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  model_voronoi_normals, model_face_intercept);
             
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
@@ -3181,8 +3186,10 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
-    var<> scale("scale", 0.6, 1.4);
-    Reg->add(scale.in(R(1)));
+    var<> scale_x("scale_x", 0.6, 1.4);
+    var<> scale_y("scale_y", 0.6, 1.4);
+    var<> scale_z("scale_z", 0.6, 1.4);
+    Reg->add(scale_x.in(R(1)),scale_y.in(R(1)),scale_z.in(R(1)));
              
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
@@ -3650,27 +3657,27 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
         //    z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         //    Reg->add(z_rot1.in(N1)==0);
     Constraint<> x_abs1("x_abs1");
-    x_abs1 += x_diff - ((x1.in(N1)*scale.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)) - new_xm);
+    x_abs1 += x_diff - ((x1.in(N1)*scale_x.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale_x.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale_x.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)) - new_xm);
     Reg->add(x_abs1.in(N1)>=0);
     
     Constraint<> x_abs2("x_abs2");
-    x_abs2 += x_diff - (new_xm - (x1.in(N1)*scale.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)));
+    x_abs2 += x_diff - (new_xm - (x1.in(N1)*scale_x.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale_x.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale_x.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)));
     Reg->add(x_abs2.in(N1)>=0);
     
     Constraint<> y_abs1("y_abs1");
-    y_abs1 += y_diff - ((x1.in(N1)*scale.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)) - new_ym);
+    y_abs1 += y_diff - ((x1.in(N1)*scale_y.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale_y.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale_y.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)) - new_ym);
     Reg->add(y_abs1.in(N1)>=0);
     
     Constraint<> y_abs2("y_abs2");
-    y_abs2 += y_diff - (new_ym - (x1.in(N1)*scale.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)));
+    y_abs2 += y_diff - (new_ym - (x1.in(N1)*scale_y.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale_y.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale_y.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)));
     Reg->add(y_abs2.in(N1)>=0);
     
     Constraint<> z_abs1("z_abs1");
-    z_abs1 += z_diff - ((x1.in(N1)*scale.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)) - new_zm);
+    z_abs1 += z_diff - ((x1.in(N1)*scale_z.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale_z.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale_z.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)) - new_zm);
     Reg->add(z_abs1.in(N1)>=0);
     
     Constraint<> z_abs2("z_abs2");
-    z_abs2 += z_diff - (new_zm - (x1.in(N1)*scale.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)));
+    z_abs2 += z_diff - (new_zm - (x1.in(N1)*scale_z.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale_z.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale_z.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)));
     Reg->add(z_abs2.in(N1)>=0);
     
     bool add_delta_ij = false;
@@ -3757,32 +3764,32 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
         
         Constraint<> soc_12("soc_12");
         soc_12 = pow(theta13+theta31,2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
-        soc_12.add_to_callback();
+//        soc_12.add_to_callback();
         Reg->add(soc_12.in(range(0,0))<=0);
         
         Constraint<> soc_13("soc_13");
         soc_13 = pow(theta12-theta21,2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
-        soc_13.add_to_callback();
+//        soc_13.add_to_callback();
         Reg->add(soc_13.in(range(0,0))<=0);
         
         Constraint<> soc_14("soc_14");
         soc_14 = pow(theta23+theta32,2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
-        soc_14.add_to_callback();
+//        soc_14.add_to_callback();
         Reg->add(soc_14.in(range(0,0))<=0);
         
         Constraint<> soc_23("soc_23");
         soc_23 = pow(theta23-theta32,2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
-        soc_23.add_to_callback();
+//        soc_23.add_to_callback();
         Reg->add(soc_23.in(range(0,0))<=0);
         
         Constraint<> soc_24("soc_24");
         soc_24 = pow(theta12+theta21,2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
-        soc_24.add_to_callback();
+//        soc_24.add_to_callback();
         Reg->add(soc_24.in(range(0,0))<=0);
         
         Constraint<> soc_34("soc_34");
         soc_34 = pow(theta31-theta13,2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
-        soc_34.add_to_callback();
+//        soc_34.add_to_callback();
         Reg->add(soc_34.in(range(0,0))<=0);
         
         Constraint<> det_123("det_123");
@@ -3958,7 +3965,9 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     rot_trans[9]=x_shift.eval();
     rot_trans[10]=y_shift.eval();
     rot_trans[11]=z_shift.eval();
-    rot_trans[12]=scale.eval();
+    rot_trans[12]=scale_x.eval();
+    rot_trans[13]=scale_y.eval();
+    rot_trans[14]=scale_z.eval();
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
     auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
@@ -3968,7 +3977,9 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     DebugOn("x shift = " << x_shift.eval() << endl);
     DebugOn("y shift = " << y_shift.eval() << endl);
     DebugOn("z shift = " << z_shift.eval() << endl);
-    DebugOn("scale = " << scale.eval() << endl);
+    DebugOn("scale_x = " << scale_x.eval() << endl);
+    DebugOn("scale_y = " << scale_y.eval() << endl);
+    DebugOn("scale_z = " << scale_z.eval() << endl);
     return(Reg);
 }
 /* Find the farthest point attainable from input point by a 3d Rotation given rotation matrix bounds from rot_mat */
@@ -9971,10 +9982,10 @@ void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>&
         point_cloud[i][0] = shifted_x*theta_matrix[0] + shifted_y*theta_matrix[1] + shifted_z*theta_matrix[2];
         point_cloud[i][1] = shifted_x*theta_matrix[3] + shifted_y*theta_matrix[4] + shifted_z*theta_matrix[5];
         point_cloud[i][2] = shifted_x*theta_matrix[6] + shifted_y*theta_matrix[7] + shifted_z*theta_matrix[8];
-        if (theta_matrix.size()==13) {
+        if (theta_matrix.size()>=13) {
             point_cloud[i][0] *= theta_matrix[12];
-            point_cloud[i][1] *= theta_matrix[12];
-            point_cloud[i][2] *= theta_matrix[12];
+            point_cloud[i][1] *= theta_matrix[13];
+            point_cloud[i][2] *= theta_matrix[14];
         }
         point_cloud[i][0] += theta_matrix[9];
         point_cloud[i][1] += theta_matrix[10];
