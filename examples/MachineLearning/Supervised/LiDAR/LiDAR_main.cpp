@@ -635,13 +635,13 @@ int main (int argc, char * argv[])
 //            double shift_min_x = 0.12, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.24,shift_min_z = 0,shift_max_z = 0.06;
 //            double shift_min_x = 0.06, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.06,shift_max_z = 0.06;
 //            double shift_min_x = 0.18, shift_max_x = 0.3, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.3,shift_max_z = -0.18;
-            double shift_min_x = 0.15, shift_max_x = 0.16, shift_min_y = -0.3,shift_max_y = -0.2,shift_min_z = 0.04,shift_max_z = 0.05;
+            double shift_min_x = -0.01, shift_max_x = 0.01, shift_min_y = -0.03,shift_max_y = 0.03,shift_min_z = -0.04,shift_max_z = 0.04;
 //            double shift_min_x = 0.151, shift_max_x = 0.152, shift_min_y = -0.27,shift_max_y = -0.26,shift_min_z = 0.041,shift_max_z = 0.042;
 //            double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
 //            double yaw_min = -8.8*pi/180., yaw_max = -8.6*pi/180., pitch_min = 1.75*pi/180.,pitch_max = 1.85*pi/180.,roll_min = -5.7*pi/180.,roll_max = -5.5*pi/180.;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            double yaw_min = -25*pi/180., yaw_max = 0, pitch_min = 0,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 0;
+            double yaw_min = -45*pi/180., yaw_max = 45*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
