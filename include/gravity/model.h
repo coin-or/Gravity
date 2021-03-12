@@ -6492,7 +6492,7 @@ namespace gravity {
         template<typename T=type>
         bool add_iterative(const Model<type>& interior, vector<double>& obbt_solution, shared_ptr<Model<type>>& lin, std::string model_name,int& oacuts, double active_tol);
         template<typename T=type>
-        vector<vector<double>> cutting_planes_solution(const Model<type>& interior, double active_tol);
+        vector<vector<double>> cutting_planes_solution(const Model<type>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
     template<typename T=type>
     void model_fix_int(shared_ptr<gravity::Model<double>> relax);
     template<typename T=type>
