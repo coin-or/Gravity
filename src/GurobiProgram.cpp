@@ -17,35 +17,58 @@ public:
     shared_ptr<vector<vector<size_t>>> bin_ids;
     shared_ptr<param<>> x1, x2, y1, y2, z1, z2;
     shared_ptr<param<>> new_x1, new_y1, new_z1;
+    int soc_viol, soc_found,soc_added,det_viol, det_found, det_added;
+    int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     Model<> interior;
-    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn) {
+    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn, int& soc_violn, int& soc_foundn, int& soc_addedn, int& det_violn, int& det_foundn, int& det_addedn) {
         x = new double[n];
         vars = _grb_vars;
         n    = xn;
         m=mn;
         cont_x.resize(n);
         int_x.resize(n);
-        rot_trans.resize(12);
+        soc_viol=soc_violn;
+        soc_found=soc_foundn;
+        soc_added=soc_addedn;
+        det_viol=det_violn;
+        det_found=det_foundn;
+        det_added=det_addedn;
         interior=interiorn;
-        x1 = m->get_ptr_param<double>("x1");
-        new_x1 = make_shared<param<>>("new_x1");
-        new_x1->in(*x1->_indices);
-        y1 = m->get_ptr_param<double>("y1");
-        new_y1 = make_shared<param<>>("new_y1");
-        new_y1->in(*y1->_indices);
-        z1 = m->get_ptr_param<double>("z1");
-        new_z1 = make_shared<param<>>("new_z1");
-        new_z1->in(*z1->_indices);
-        x2 = m->get_ptr_param<double>("x2");
-        y2 = m->get_ptr_param<double>("y2");
-        z2 = m->get_ptr_param<double>("z2");
-        auto bin = m->get_ptr_var<int>("bin");
-        auto cstr = m->get_constraint("Def_newxm");
-        auto p = cstr->_params->begin();
-        bin_ids = p->second.first->_indices->_ids;
-        matching.resize(x1->get_dim());
+        if(false){
+            rot_trans.resize(12);
+            x1 = m->get_ptr_param<double>("x1");
+            new_x1 = make_shared<param<>>("new_x1");
+            new_x1->in(*x1->_indices);
+            y1 = m->get_ptr_param<double>("y1");
+            new_y1 = make_shared<param<>>("new_y1");
+            new_y1->in(*y1->_indices);
+            z1 = m->get_ptr_param<double>("z1");
+            new_z1 = make_shared<param<>>("new_z1");
+            new_z1->in(*z1->_indices);
+            x2 = m->get_ptr_param<double>("x2");
+            y2 = m->get_ptr_param<double>("y2");
+            z2 = m->get_ptr_param<double>("z2");
+            auto bin = m->get_ptr_var<int>("bin");
+            auto cstr = m->get_constraint("Def_newxm");
+            auto p = cstr->_params->begin();
+            bin_ids = p->second.first->_indices->_ids;
+            matching.resize(x1->get_dim());
+        }
     }
     ~cuts(){
+        DebugOn("soc_viol "<<soc_viol<<endl);
+        DebugOn("soc_found "<<soc_found<<endl);
+        DebugOn("soc_added "<<soc_added<<endl);
+        DebugOn("det_viol "<<det_viol<<endl);
+        DebugOn("det_found "<<det_found<<endl);
+        DebugOn("det_added "<<det_added<<endl);
+//        DebugOn("soc_viol_user "<<soc_viol_user<<endl);
+//        DebugOn("soc_found_user "<<soc_found_user<<endl);
+//        DebugOn("soc_added_user "<<soc_added_user<<endl);
+//        DebugOn("det_viol_user "<<det_viol_user<<endl);
+//        DebugOn("det_found_user "<<det_found_user<<endl);
+//        DebugOn("det_added_user "<<det_added_user<<endl);
+     
         delete [] x;
     }
 protected:
@@ -62,7 +85,7 @@ protected:
                         int_x[i] = x[i];
                     }
                     m->set_solution(int_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6);
+                    auto res=m->cutting_planes_solution(interior, 1e-6, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
                     if(res.size()>=1){
                         for(i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
@@ -74,6 +97,7 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
+                   // m->set_solution(int_x);
                         // delete[] x;
                 }
             }
@@ -93,18 +117,19 @@ protected:
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
-//                        auto res=m->cutting_planes_solution(interior, 1e-6);
-//                        if(res.size()>=1){
-//                            for(i=0;i<res.size();i++){
-//                                GRBLinExpr expr = 0;
-//                                for(j=0;j<res[i].size()-1;j+=2){
-//                                    int c=res[i][j];
-//                                    expr += res[i][j+1]*vars[c];
-//                                }
-//                                expr+=res[i][j];
-//                                addCut(expr, GRB_LESS_EQUAL, 0);
-//                            }
-//                        }
+                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                        if(res.size()>=1){
+                            for(i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                for(j=0;j<res[i].size()-1;j+=2){
+                                    int c=res[i][j];
+                                    expr += res[i][j+1]*vars[c];
+                                }
+                                expr+=res[i][j];
+                                addCut(expr, GRB_LESS_EQUAL, 0);
+                            }
+                        }
+                        if(false){
                         if(true || m->is_feasible(1e-4)){
                             auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
                             auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
@@ -158,6 +183,8 @@ protected:
                                 DebugOn("new UB = " << to_string_with_precision(new_ub, 6) << endl);
                         }
 
+                       
+                    }
                         m->set_solution(int_x);
                     }
                 }
@@ -295,7 +322,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,40);
     if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -309,13 +336,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         throw invalid_argument("Number of variables in Gurobi model does not match Gravity!");
     Model<> interior;
     auto lin=_model->buildOA();
+    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
+    vector<int> stats;
+    stats.resize(6,0);
     if(use_callback){
         interior=lin->add_outer_app_solution(*_model);
     }
-        cuts cb = cuts(_grb_vars, n, _model, interior);
+    //interior.print_solution();
+        cuts cb = cuts(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
         grb_mod->setCallback(&cb);
-        
-        //    }
+    
+    
     grb_mod->optimize();
         //            grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {

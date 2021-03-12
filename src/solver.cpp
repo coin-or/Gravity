@@ -580,10 +580,12 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
  @param[in] lin: Model to which linear cuts are added
  @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
  @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
 template<typename type>
 template<typename T>
-vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol)
+vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added)
 {
+
     vector<double> xsolution(_nb_vars);
     vector<double> xinterior(_nb_vars);
     vector<double> xcurrent, c_val;
@@ -617,6 +619,12 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                     fk=con->eval(i);
                     if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
                         constr_viol=true;
+                        if(cname.find("soc")!=std::string::npos){
+                            soc_viol++;
+                        }
+                        else if(cname.find("det")!=std::string::npos){
+                            det_viol++;
+                        }
                             //ToDo fix interior status and check for it
                         if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
                             auto con_interior=interior.get_constraint(cname);
@@ -624,6 +632,12 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                             auto res_search=con->binary_line_search(xinterior, i);
                             if(res_search){
                                 oa_cut=true;
+                                if(cname.find("soc")!=std::string::npos){
+                                    soc_found++;
+                                }
+                                else if(cname.find("det")!=std::string::npos){
+                                    det_found++;
+                                }
                                     //oa_cut=false;
                             }
                         }
@@ -647,10 +661,17 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
                         scale=1.0;
                         con->get_outer_coef(i, c_val, c0_val);
                         get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
+                        oa_cut=true;
                     }
                 }
                 if(oa_cut){
                     auto j=0;
+                    if(cname.find("soc")!=std::string::npos){
+                        soc_added++;
+                    }
+                    else if(cname.find("det")!=std::string::npos){
+                        det_added++;
+                    }
                     for (auto &v_p: con->get_vars()){
                         auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
                         cut.push_back(vid);
@@ -1392,5 +1413,5 @@ template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::str
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
-template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol);
+template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
 }
