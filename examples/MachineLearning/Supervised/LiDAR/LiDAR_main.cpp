@@ -303,7 +303,7 @@ int main (int argc, char * argv[])
             //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=true;
+        bool downsample=false;
         if(downsample && data_nb_rows>10){
             fwdm=3;
             fwdd=3;
@@ -503,7 +503,7 @@ int main (int argc, char * argv[])
             red_point_cloud_model[i] = point_cloud_model[volume[i].second];
         }
 #ifdef USE_MATPLOT
-            //                    plot(red_point_cloud_model,point_cloud_model,2);
+            //                  plot(red_point_cloud_model,point_cloud_model,2);
 #endif
             // Output the particle positions in gnuplot format
 //        model_con.draw_particles("my_points_p.gnu");
@@ -539,7 +539,7 @@ int main (int argc, char * argv[])
         auto ext_model = point_cloud_model;
         auto ext_data = point_cloud_data;
 #ifdef USE_MATPLOT
-            //        plot(ext_model,ext_data,1);
+                   plot(ext_model,ext_data,1);
 #endif
             //        ext_data = get_n_extreme_points(nb_ext, point_cloud_data);
         vector<double> x_vec_model(ext_model.size()), y_vec_model(ext_model.size()), z_vec_model(ext_model.size());
