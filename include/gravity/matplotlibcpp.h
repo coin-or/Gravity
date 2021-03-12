@@ -534,7 +534,6 @@ template <typename Numeric>
         Py_DECREF(axis3d);
         if (!axis3dmod) { throw std::runtime_error("Error loading module mpl_toolkits.mplot3d!"); }
     }
-    
     assert(x.size() == y.size());
     assert(y.size() == z.size());
     PyObject *xarray1 = detail::get_array(uav_x);

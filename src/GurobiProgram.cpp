@@ -27,23 +27,23 @@ public:
         int_x.resize(n);
         rot_trans.resize(12);
         interior=interiorn;
-        x1 = m->get_ptr_param<double>("x1");
-        new_x1 = make_shared<param<>>("new_x1");
-        new_x1->in(*x1->_indices);
-        y1 = m->get_ptr_param<double>("y1");
-        new_y1 = make_shared<param<>>("new_y1");
-        new_y1->in(*y1->_indices);
-        z1 = m->get_ptr_param<double>("z1");
-        new_z1 = make_shared<param<>>("new_z1");
-        new_z1->in(*z1->_indices);
-        x2 = m->get_ptr_param<double>("x2");
-        y2 = m->get_ptr_param<double>("y2");
-        z2 = m->get_ptr_param<double>("z2");
-        auto bin = m->get_ptr_var<int>("bin");
-        auto cstr = m->get_constraint("Def_newxm");
-        auto p = cstr->_params->begin();
-        bin_ids = p->second.first->_indices->_ids;
-        matching.resize(x1->get_dim());
+//        x1 = m->get_ptr_param<double>("x1");
+//        new_x1 = make_shared<param<>>("new_x1");
+//        new_x1->in(*x1->_indices);
+//        y1 = m->get_ptr_param<double>("y1");
+//        new_y1 = make_shared<param<>>("new_y1");
+//        new_y1->in(*y1->_indices);
+//        z1 = m->get_ptr_param<double>("z1");
+//        new_z1 = make_shared<param<>>("new_z1");
+//        new_z1->in(*z1->_indices);
+//        x2 = m->get_ptr_param<double>("x2");
+//        y2 = m->get_ptr_param<double>("y2");
+//        z2 = m->get_ptr_param<double>("z2");
+//        auto bin = m->get_ptr_var<int>("bin");
+//        auto cstr = m->get_constraint("Def_newxm");
+//        auto p = cstr->_params->begin();
+//        bin_ids = p->second.first->_indices->_ids;
+//        matching.resize(x1->get_dim());
     }
     ~cuts(){
         delete [] x;
@@ -52,7 +52,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=false;
+            bool mipnode=true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
@@ -93,19 +93,19 @@ protected:
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
-//                        auto res=m->cutting_planes_solution(interior, 1e-6);
-//                        if(res.size()>=1){
-//                            for(i=0;i<res.size();i++){
-//                                GRBLinExpr expr = 0;
-//                                for(j=0;j<res[i].size()-1;j+=2){
-//                                    int c=res[i][j];
-//                                    expr += res[i][j+1]*vars[c];
-//                                }
-//                                expr+=res[i][j];
-//                                addCut(expr, GRB_LESS_EQUAL, 0);
-//                            }
-//                        }
-                        if(true || m->is_feasible(1e-4)){
+                        auto res=m->cutting_planes_solution(interior, 1e-6);
+                        if(res.size()>=1){
+                            for(i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                for(j=0;j<res[i].size()-1;j+=2){
+                                    int c=res[i][j];
+                                    expr += res[i][j+1]*vars[c];
+                                }
+                                expr+=res[i][j];
+                                addCut(expr, GRB_LESS_EQUAL, 0);
+                            }
+                        }
+                        if(false && m->is_feasible(1e-4)){
                             auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
                             auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
                             auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
@@ -295,7 +295,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,180);
     if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);

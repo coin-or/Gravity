@@ -305,8 +305,9 @@ int main (int argc, char * argv[])
         int fwdd=1;
         bool downsample=false;
         if(downsample && data_nb_rows>10){
-            fwdm=3;
-            fwdd=3;
+            fwdm=2;
+            fwdd=2;
+            
         }
         for (int i = row0; i< model_nb_rows; i+=fwdm) { // Input iterator
             auto x = Model_doc.GetCell<double>(0, i);
@@ -623,7 +624,7 @@ int main (int argc, char * argv[])
             vector<double> rot_trans;
             bool norm1 = true;
             if(norm1){
-                rot_trans.resize(12,0.0);
+                rot_trans.resize(13,0.0);
             }
             else{
                 rot_trans.resize(6,0.0);
@@ -635,13 +636,13 @@ int main (int argc, char * argv[])
 //            double shift_min_x = 0.12, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.24,shift_min_z = 0,shift_max_z = 0.06;
 //            double shift_min_x = 0.06, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.06,shift_max_z = 0.06;
 //            double shift_min_x = 0.18, shift_max_x = 0.3, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.3,shift_max_z = -0.18;
-            double shift_min_x = -0.01, shift_max_x = 0.01, shift_min_y = -0.03,shift_max_y = 0.03,shift_min_z = -0.04,shift_max_z = 0.04;
+            double shift_min_x = -0.02, shift_max_x = 0.02, shift_min_y = -0.02,shift_max_y = 0.02,shift_min_z = 0,shift_max_z = 0;
 //            double shift_min_x = 0.151, shift_max_x = 0.152, shift_min_y = -0.27,shift_max_y = -0.26,shift_min_z = 0.041,shift_max_z = 0.042;
 //            double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
 //            double yaw_min = -8.8*pi/180., yaw_max = -8.6*pi/180., pitch_min = 1.75*pi/180.,pitch_max = 1.85*pi/180.,roll_min = -5.7*pi/180.,roll_max = -5.5*pi/180.;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            double yaw_min = -45*pi/180., yaw_max = 45*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
+            double yaw_min = -120*pi/180., yaw_max = 120*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -758,9 +759,9 @@ int main (int argc, char * argv[])
             
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
 //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
-//            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
+            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
             
-            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false, false);
+//            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false, false);
 //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
                 //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
@@ -3166,8 +3167,8 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     N1 = range(1,nd);
     N2 = range(1,nm);
-    cells = valid_cells;
-//    cells = indices(N1,N2);
+//    cells = valid_cells;
+    cells = indices(N1,N2);
     string name="Norm1_MISDP";
     
     auto Reg=make_shared<Model<>>(name);
@@ -3180,6 +3181,9 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     
     Reg->add(x_shift.in(R(1)),y_shift.in(R(1)),z_shift.in(R(1)));
     
+    var<> scale("scale", 0.6, 1.4);
+    Reg->add(scale.in(R(1)));
+             
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOn("Added " << cells.size() << " binary variables" << endl);
@@ -3646,27 +3650,27 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
         //    z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         //    Reg->add(z_rot1.in(N1)==0);
     Constraint<> x_abs1("x_abs1");
-    x_abs1 += x_diff - ((x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1) + x_shift.in(ids1)) - new_xm);
+    x_abs1 += x_diff - ((x1.in(N1)*scale.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)) - new_xm);
     Reg->add(x_abs1.in(N1)>=0);
     
     Constraint<> x_abs2("x_abs2");
-    x_abs2 += x_diff - (new_xm - (x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1) + x_shift.in(ids1)));
+    x_abs2 += x_diff - (new_xm - (x1.in(N1)*scale.in(ids1)*theta11.in(ids1) + y1.in(N1)*scale.in(ids1)*theta12.in(ids1) + z1.in(N1)*scale.in(ids1)*theta13.in(ids1) + x_shift.in(ids1)));
     Reg->add(x_abs2.in(N1)>=0);
     
     Constraint<> y_abs1("y_abs1");
-    y_abs1 += y_diff - ((x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1) + y_shift.in(ids1)) - new_ym);
+    y_abs1 += y_diff - ((x1.in(N1)*scale.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)) - new_ym);
     Reg->add(y_abs1.in(N1)>=0);
     
     Constraint<> y_abs2("y_abs2");
-    y_abs2 += y_diff - (new_ym - (x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1) + y_shift.in(ids1)));
+    y_abs2 += y_diff - (new_ym - (x1.in(N1)*scale.in(ids1)*theta21.in(ids1) + y1.in(N1)*scale.in(ids1)*theta22.in(ids1) + z1.in(N1)*scale.in(ids1)*theta23.in(ids1) + y_shift.in(ids1)));
     Reg->add(y_abs2.in(N1)>=0);
     
     Constraint<> z_abs1("z_abs1");
-    z_abs1 += z_diff - ((x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1) + z_shift.in(ids1)) - new_zm);
+    z_abs1 += z_diff - ((x1.in(N1)*scale.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)) - new_zm);
     Reg->add(z_abs1.in(N1)>=0);
     
     Constraint<> z_abs2("z_abs2");
-    z_abs2 += z_diff - (new_zm - (x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1) + z_shift.in(ids1)));
+    z_abs2 += z_diff - (new_zm - (x1.in(N1)*scale.in(ids1)*theta31.in(ids1) + y1.in(N1)*scale.in(ids1)*theta32.in(ids1) + z1.in(N1)*scale.in(ids1)*theta33.in(ids1) + z_shift.in(ids1)));
     Reg->add(z_abs2.in(N1)>=0);
     
     bool add_delta_ij = false;
@@ -3808,50 +3812,50 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
         det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
         det_234.add_to_callback();
         Reg->add(det_234.in(range(0,0))<=0);
-        if(convex){
-            Constraint<> row1("row1");
-            row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-            Reg->add(row1.in(range(0,0))<=1);
-            Constraint<> row2("row2");
-            row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-            Reg->add(row2.in(range(0,0))<=1);
-            Constraint<> row3("row3");
-            row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-            Reg->add(row3.in(range(0,0))<=1);
-            Constraint<> col1("col1");
-            col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-            Reg->add(col1.in(range(0,0))<=1);
-            Constraint<> col2("col2");
-            col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-            Reg->add(col2.in(range(0,0))<=1);
-            Constraint<> col3("col3");
-            col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-            Reg->add(col3.in(range(0,0))<=1);
-        }
-        else {
-            Constraint<> row1("row1");
-            row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-            Reg->add(row1==1);
-            Constraint<> row2("row2");
-            row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-            Reg->add(row2==1);
-            Constraint<> row3("row3");
-            row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-            Reg->add(row3==1);
-            Constraint<> col1("col1");
-            col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-            Reg->add(col1==1);
-            Constraint<> col2("col2");
-            col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-            Reg->add(col2==1);
-            Constraint<> col3("col3");
-            col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-            Reg->add(col3==1);
-        }
+        
     }
     
     
-    
+    if(convex){
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1.in(range(0,0))<=1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2.in(range(0,0))<=1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3.in(range(0,0))<=1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1.in(range(0,0))<=1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2.in(range(0,0))<=1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3.in(range(0,0))<=1);
+    }
+    else {
+        Constraint<> row1("row1");
+        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(row1==1);
+        Constraint<> row2("row2");
+        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(row2==1);
+        Constraint<> row3("row3");
+        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(row3==1);
+        Constraint<> col1("col1");
+        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(col1==1);
+        Constraint<> col2("col2");
+        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(col2==1);
+        Constraint<> col3("col3");
+        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(col3==1);
+    }
     
 //    for (int i = 1; i<=nd; i++) {
 //        string key = to_string(i)+","+to_string(init_matching.at(i-1)+1);
@@ -3887,6 +3891,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     }
     else {
         solver<> S(Reg,gurobi);
+        S.use_callback();
         S.run();
     }
         //    Reg->print();
@@ -3953,6 +3958,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     rot_trans[9]=x_shift.eval();
     rot_trans[10]=y_shift.eval();
     rot_trans[11]=z_shift.eval();
+    rot_trans[12]=scale.eval();
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
     auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
@@ -3962,7 +3968,7 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
     DebugOn("x shift = " << x_shift.eval() << endl);
     DebugOn("y shift = " << y_shift.eval() << endl);
     DebugOn("z shift = " << z_shift.eval() << endl);
-    
+    DebugOn("scale = " << scale.eval() << endl);
     return(Reg);
 }
 /* Find the farthest point attainable from input point by a 3d Rotation given rotation matrix bounds from rot_mat */
@@ -9965,6 +9971,11 @@ void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>&
         point_cloud[i][0] = shifted_x*theta_matrix[0] + shifted_y*theta_matrix[1] + shifted_z*theta_matrix[2];
         point_cloud[i][1] = shifted_x*theta_matrix[3] + shifted_y*theta_matrix[4] + shifted_z*theta_matrix[5];
         point_cloud[i][2] = shifted_x*theta_matrix[6] + shifted_y*theta_matrix[7] + shifted_z*theta_matrix[8];
+        if (theta_matrix.size()==13) {
+            point_cloud[i][0] *= theta_matrix[12];
+            point_cloud[i][1] *= theta_matrix[12];
+            point_cloud[i][2] *= theta_matrix[12];
+        }
         point_cloud[i][0] += theta_matrix[9];
         point_cloud[i][1] += theta_matrix[10];
         point_cloud[i][2] += theta_matrix[11];
@@ -10292,7 +10303,10 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
     keywords["marker"] = "s";
     keywords["linestyle"] = "None";
     keywords["ms"] = to_string(point_thick);
+//    keywords["aspect"] = "equal";
+    
     plt::plot3(x_vec_model, y_vec_model, z_vec_model,x_vec_data, y_vec_data, z_vec_data, keywords);
+    
     plt::show();
 }
 #endif
