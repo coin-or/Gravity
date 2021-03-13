@@ -6291,17 +6291,18 @@ double Model<type>::upper_bound_integral(SolverType ub_solver_type, double ub_so
     bool has_int=false;
     double ubi=this->get_obj_val();
     this->get_solution(ub_sol);
-    for(auto p:modelub->_vars){
-        if(p.second->_is_relaxed){
-            has_int=true;
-            auto v=modelub->template get_var<double>(p.second->_name);
-            for(auto key:*v._indices->_keys){
-                auto value=round(v.eval(key));
-                v.set_lb(key, value);
-                v.set_ub(key, value);
-            }
-        }
-    }
+    modelub->round_and_fix();
+//    for(auto p:modelub->_vars){
+//        if(p.second->_is_relaxed){
+//            has_int=true;
+//            auto v=modelub->template get_var<double>(p.second->_name);
+//            for(auto key:*v._indices->_keys){
+//                auto value=round(v.eval(key));
+//                v.set_lb(key, value);
+//                v.set_ub(key, value);
+//            }
+//        }
+//    }
     // modelub->print();
     if(has_int){
         solver<> UB_solver(modelub,ub_solver_type);
