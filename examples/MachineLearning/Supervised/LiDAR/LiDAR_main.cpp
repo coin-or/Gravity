@@ -637,13 +637,13 @@ int main (int argc, char * argv[])
 //            double shift_min_x = 0.06, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.06,shift_max_z = 0.06;
 //            double shift_min_x = 0.18, shift_max_x = 0.3, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.3,shift_max_z = -0.18;
             /* INPUT BOUNDS */
-            double shift_min_x = -0.5, shift_max_x = -0.4, shift_min_y = -0.05,shift_max_y = 0.05,shift_min_z = 0,shift_max_z = 0;
+            double shift_min_x = -0.05, shift_max_x = 0.05, shift_min_y = -0.05,shift_max_y = 0.05,shift_min_z = 0,shift_max_z = 0;
 //            double shift_min_x = 0.151, shift_max_x = 0.152, shift_min_y = -0.27,shift_max_y = -0.26,shift_min_z = 0.041,shift_max_z = 0.042;
 //            double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
 //            double yaw_min = -8.8*pi/180., yaw_max = -8.6*pi/180., pitch_min = 1.75*pi/180.,pitch_max = 1.85*pi/180.,roll_min = -5.7*pi/180.,roll_max = -5.5*pi/180.;
 //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            double yaw_min = 80*pi/180., yaw_max = 120*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
+            double yaw_min = -110*pi/180., yaw_max = -109*pi/180., pitch_min = 0,pitch_max = 0,roll_min = 0,roll_max = 0;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -766,18 +766,20 @@ int main (int argc, char * argv[])
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
 //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
 //            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
-            bool relax_integers = false, relax_sdp = false, rigid_transf = false;
+            bool relax_integers = true, relax_sdp = false, rigid_transf = true;
             auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, relax_integers, relax_sdp, rigid_transf);
 //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
                 // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-                //            auto SOC_MIQCP = build_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex = true, incompatibles);
+            auto SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex=true, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, relax_integers, relax_sdp, rigid_transf);
                 //            NC_SOC_MIQCP->print();
                 //            SOC_MIQCP->print();
-                //            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-                //            unsigned max_iter=1e3, max_time=3000;
-                //            int nb_threads=1;
-                //            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-                //            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+            double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+            unsigned max_iter=1e3, max_time=3000;
+            int nb_threads=1;
+            SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+//            NC_SOC_MIQCP->replace_integers();
+//            SOC_MIQCP->replace_integers();
+            auto res=NC_SOC_MIQCP->run_obbt(SOC_MIQCP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //            vector<int> new_matching(point_cloud_model.size());
 //            vector<int> matching(point_cloud_model.size());
 //
@@ -2996,49 +2998,49 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
         det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
         det_234.add_to_callback();
         Reg->add(det_234.in(range(0,0))<=0);
+        if(convex){
+            Constraint<> row1("row1");
+            row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+            Reg->add(row1.in(range(0,0))<=1);
+            Constraint<> row2("row2");
+            row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+            Reg->add(row2.in(range(0,0))<=1);
+            Constraint<> row3("row3");
+            row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+            Reg->add(row3.in(range(0,0))<=1);
+            Constraint<> col1("col1");
+            col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+            Reg->add(col1.in(range(0,0))<=1);
+            Constraint<> col2("col2");
+            col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+            Reg->add(col2.in(range(0,0))<=1);
+            Constraint<> col3("col3");
+            col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+            Reg->add(col3.in(range(0,0))<=1);
+        }
+        else {
+            Constraint<> row1("row1");
+            row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+            Reg->add(row1==1);
+            Constraint<> row2("row2");
+            row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+            Reg->add(row2==1);
+            Constraint<> row3("row3");
+            row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+            Reg->add(row3==1);
+            Constraint<> col1("col1");
+            col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+            Reg->add(col1==1);
+            Constraint<> col2("col2");
+            col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+            Reg->add(col2==1);
+            Constraint<> col3("col3");
+            col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+            Reg->add(col3==1);
+        }
+
+    }
         
-    }
-    if(convex){
-        Constraint<> row1("row1");
-        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-        Reg->add(row1.in(range(0,0))<=1);
-        Constraint<> row2("row2");
-        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-        Reg->add(row2.in(range(0,0))<=1);
-        Constraint<> row3("row3");
-        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-        Reg->add(row3.in(range(0,0))<=1);
-        Constraint<> col1("col1");
-        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-        Reg->add(col1.in(range(0,0))<=1);
-        Constraint<> col2("col2");
-        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-        Reg->add(col2.in(range(0,0))<=1);
-        Constraint<> col3("col3");
-        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-        Reg->add(col3.in(range(0,0))<=1);
-    }
-    else {
-        Constraint<> row1("row1");
-        row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-        Reg->add(row1==1);
-        Constraint<> row2("row2");
-        row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-        Reg->add(row2==1);
-        Constraint<> row3("row3");
-        row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-        Reg->add(row3==1);
-        Constraint<> col1("col1");
-        col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-        Reg->add(col1==1);
-        Constraint<> col2("col2");
-        col2 = pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-        Reg->add(col2==1);
-        Constraint<> col3("col3");
-        col3 = pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-        Reg->add(col3==1);
-    }
-    
     
     
 //    for (int i = 1; i<=nd; i++) {

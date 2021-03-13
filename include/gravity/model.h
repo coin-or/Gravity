@@ -620,6 +620,19 @@ namespace gravity {
                 obj_cpy.deep_copy(*m._obj);
                 set_objective(obj_cpy, _objt);
             }
+            for(const auto &vp: m._int_vars){
+                auto v = vp.second;
+                auto cont_v = get_ptr_var<double>(v->get_name(true,true));
+                if(v->is_integer()){
+                    auto v_int = static_pointer_cast<var<int>>(v);
+                    _int_vars[cont_v->get_id()] = v_int->ptr_deep_copy();
+                }
+                else {/* binary */
+                    auto v_bin = static_pointer_cast<var<bool>>(v);
+                    _int_vars[cont_v->get_id()] = v_bin->ptr_deep_copy();
+                }
+                
+            }
             return *this;
         }
         
@@ -5663,13 +5676,29 @@ namespace gravity {
                     new_v->copy_vals(v);
                     if(v->is_integer()){
                         auto v_int = static_pointer_cast<var<int>>(v_p.second);
-                        *new_v->_lb = func<>(*v_int->_lb);
-                        *new_v->_ub = func<>(*v_int->_ub);
+                        auto lb_param = param<double>(*static_pointer_cast<param<int>>(v_int->_lb->_params->begin()->second.first));
+                        auto ub_param = param<double>(*static_pointer_cast<param<int>>(v_int->_ub->_params->begin()->second.first));
+                        lb_param._name = "cont_"+lb_param._name;
+                        ub_param._name = "cont_"+ub_param._name;
+                        *new_v->_lb = func<>(lb_param);
+                        new_v->_lb->uneval();
+                        new_v->_lb->eval_all();
+                        *new_v->_ub = func<>(ub_param);
+                        new_v->_ub->uneval();
+                        new_v->_ub->eval_all();
                     }
                     else {/* binary */
                         auto v_bin = static_pointer_cast<var<bool>>(v_p.second);
-                        *new_v->_lb = func<>(*v_bin->_lb);
-                        *new_v->_ub = func<>(*v_bin->_ub);
+                        auto lb_param = param<double>(*static_pointer_cast<param<bool>>(v_bin->_lb->_params->begin()->second.first));
+                        auto ub_param = param<double>(*static_pointer_cast<param<bool>>(v_bin->_ub->_params->begin()->second.first));
+                        lb_param._name = "cont_"+lb_param._name;
+                        ub_param._name = "cont_"+ub_param._name;
+                        *new_v->_lb = func<>(lb_param);
+                        new_v->_lb->uneval();
+                        new_v->_lb->eval_all();
+                        *new_v->_ub = func<>(ub_param);
+                        new_v->_ub->uneval();
+                        new_v->_ub->eval_all();
                     }
                     v_p.second = new_v;
                 }
