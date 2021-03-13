@@ -123,7 +123,7 @@ private:
 	double * D_icp;
 
 	double ICP(Go_ICP::Matrix& R_icp, Go_ICP::Matrix& t_icp);
-	double InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut);
+	double InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut, int& nb_nodes);
 	double OuterBnB();
 	void Initialize();
 	void Clear();

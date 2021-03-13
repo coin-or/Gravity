@@ -48,7 +48,7 @@ public:
             x2 = m->get_ptr_param<double>("x2");
             y2 = m->get_ptr_param<double>("y2");
             z2 = m->get_ptr_param<double>("z2");
-            auto bin = m->get_ptr_var<int>("bin");
+            auto bin = m->get_ptr_var<double>("bin");
             auto cstr = m->get_constraint("Def_newxm");
             auto p = cstr->_params->begin();
             bin_ids = p->second.first->_indices->_ids;

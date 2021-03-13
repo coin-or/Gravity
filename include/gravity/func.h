@@ -9090,10 +9090,10 @@ namespace gravity {
         res._all_sign = conv_sign.second;
         res._range->first = gravity::min(std::cos(p1._range->first),std::cos(p1._range->second));
         res._range->second = gravity::max(std::cos(p1._range->first),std::cos(p1._range->second));
-        if(p1._range->first <0 && p1._range->second >0){
+        if(p1._range->first <0 && p1._range->second >0){/* zero is in the domain, i.e., cos max is 1 */
             res._range->second = 1;
         }
-        if((p1._range->first <-pi && p1._range->second >-pi) || (p1._range->first <pi && p1._range->second >pi)){
+        if((p1._range->first <-pi && p1._range->second >-pi) || (p1._range->first <pi && p1._range->second >pi)){/* -pi or pi is in the domain, i.e., cos min is -1 */
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9117,10 +9117,10 @@ namespace gravity {
         res._all_sign = conv_sign.second;
         res._range->first = gravity::min(std::sin(p1._range->first),std::sin(p1._range->second));
         res._range->second = gravity::max(std::sin(p1._range->first),std::sin(p1._range->second));
-        if(shifted_range.first <0 && shifted_range.second >0){
+        if((p1._range->first < -3*pi/2 && p1._range->second > -3*pi/2) || (p1._range->first <pi/2 && p1._range->second >pi/2)){/* -3pi/2 or pi/2 is in the domain, i.e., sin max is 1 */
             res._range->second = 1;
         }
-        if((shifted_range.first <-pi/2. && shifted_range.second >-pi/2.) || (shifted_range.first <pi/2. && shifted_range.second >pi/2.)){
+        if((p1._range->first < 3*pi/2 && p1._range->second > 3*pi/2) || (p1._range->first <-pi/2. && p1._range->second >-pi/2.)){/* 3pi/2 or -pi/2 is in the domain, i.e., sin min is -1 */
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9512,6 +9512,8 @@ namespace gravity {
     func<T> sin(const func<T>& f){
         func<T> res(uexpr<T>(sin_, f.copy()));
         auto shifted_range = *f._range;
+        shifted_range.first += pi/2.;
+        shifted_range.second += pi/2.;
         auto conv_sign = cos_sign_curvature(shifted_range);
         if (f.is_linear()) {
             res._all_convexity = conv_sign.first;
@@ -9525,14 +9527,12 @@ namespace gravity {
             res._range->second = 1;
         }
         else {
-            res._range->first = gravity::min(std::sin(f._range->first),std::sin(f._range->second));
-            res._range->second = gravity::max(std::sin(f._range->first),std::sin(f._range->second));
-            shifted_range.first += pi/2.;
-            shifted_range.second += pi/2.;
-            if(shifted_range.first <0 && shifted_range.second >0){
+            res._range->first = std::min(std::sin(f._range->first),std::sin(f._range->second));
+            res._range->second = std::max(std::sin(f._range->first),std::sin(f._range->second));
+            if((f._range->first < -3*pi/2 && f._range->second > -3*pi/2) || (f._range->first <pi/2 && f._range->second >pi/2)){/* -3pi/2 or pi/2 is in the domain, i.e., sin max is 1 */
                 res._range->second = 1;
             }
-            if((shifted_range.first <-pi/2. && shifted_range.second >-pi/2.) || (shifted_range.first <pi/2. && shifted_range.second >pi/2.)){
+            if((f._range->first < 3*pi/2 && f._range->second > 3*pi/2) || (f._range->first <-pi/2. && f._range->second >-pi/2.)){/* 3pi/2 or -pi/2 is in the domain, i.e., sin min is -1 */
                 res._range->first = -1;
             }
         }
