@@ -9120,7 +9120,7 @@ namespace gravity {
         if(shifted_range.first <0 && shifted_range.second >0){
             res._range->second = 1;
         }
-        if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+        if((shifted_range.first <-pi/2. && shifted_range.second >-pi/2.) || (shifted_range.first <pi/2. && shifted_range.second >pi/2.)){
             res._range->first = -1;
         }
         res._expr->_range->first = res._range->first;
@@ -9532,7 +9532,7 @@ namespace gravity {
             if(shifted_range.first <0 && shifted_range.second >0){
                 res._range->second = 1;
             }
-            if((shifted_range.first <-pi && shifted_range.second >-pi) || (shifted_range.first <pi && shifted_range.second >pi)){
+            if((shifted_range.first <-pi/2. && shifted_range.second >-pi/2.) || (shifted_range.first <pi/2. && shifted_range.second >pi/2.)){
                 res._range->first = -1;
             }
         }
