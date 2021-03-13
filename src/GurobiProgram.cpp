@@ -75,7 +75,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=false;
+            bool mipnode=true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
@@ -129,8 +129,7 @@ protected:
                                 addCut(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
-                        if(false){
-                        if(true || m->is_feasible(1e-4)){
+                        if(false && m->is_feasible(1e-4)){
                             auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
                             auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
                             auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
@@ -183,12 +182,12 @@ protected:
                                 DebugOn("new UB = " << to_string_with_precision(new_ub, 6) << endl);
                         }
 
-                       
-                    }
                         m->set_solution(int_x);
                     }
+                       
+                    }
                 }
-            }
+            
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
@@ -322,7 +321,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,40);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,100);
     if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
