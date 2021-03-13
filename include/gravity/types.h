@@ -1342,6 +1342,29 @@ public:
         *this = indices(vecs);
     }
     
+    /* Return an index set repeating the key at position pos n times
+     @param[in] n, number of time repeating the same key
+     @param[in] pos, position of correponsing key
+     */
+    indices repeat_id(int n, int pos=0) const{
+        if(_keys->empty()){
+            throw invalid_argument("cannot call repeat_id(int n, int pos=0) on empty index set");
+        }
+        if(pos >= _keys->size()){
+            throw invalid_argument("In repeat_id(int n, int pos=0), position chosen is out of bounds");
+        }
+        auto key_id = _keys_map->at(_keys->at(pos));
+        indices res(*this);
+        res.set_name(res.get_name() + "repeat_id(" + to_string(n)+ "," + to_string(pos) + ")");
+        res._ids = make_shared<vector<vector<size_t>>>();
+        res._ids->resize(1);
+        res._ids->at(0).resize(n);
+        for(int i = 0; i< n; i++){
+            res._ids->at(0).at(i) = key_id;
+        }
+        return res;
+    }
+    
     /** Adds all new keys found in ids
      @return index set of added indices.
      */

@@ -197,7 +197,7 @@ void GoICP::Clear()
 }
 
 // Inner Branch-and-Bound, iterating over the translation space
-double GoICP::InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut)
+double GoICP::InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut, int& nb_nodes)
 {
 	int i, j;
 	double transX, transY, transZ;
@@ -222,6 +222,7 @@ double GoICP::InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut)
 		nodeTransParent = queueTrans.top();
 		queueTrans.pop();
 
+        nb_nodes++;
 		if(optErrorT-nodeTransParent.lb < SSEThresh)
 		{
 			break;
@@ -240,7 +241,7 @@ double GoICP::InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut)
 			transY = nodeTrans.y + nodeTrans.w/2;
 			transZ = nodeTrans.z + nodeTrans.w/2;
 			
-			// For each data point, calculate the distance to it's closest point in the model cloud
+			// For each data point, calculate the distance to its closest point in the model cloud
 			for(i = 0; i < Nd; i++)
 			{
 				// Find distance between transformed point and closest point in model set ||R_r0 * x + t0 - y||
@@ -309,7 +310,7 @@ double GoICP::InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut)
 
 double GoICP::OuterBnB()
 {
-	int i, j;
+	int i, j, nb_nodes = 0;
 	ROTNODE nodeRot, nodeRotParent;
 	TRANSNODE nodeTrans;
 	double v1, v2, v3, t, ct, ct2,st, st2;
@@ -375,7 +376,7 @@ double GoICP::OuterBnB()
 		nodeRotParent = queueRot.top();
 		// ...and remove it from the queue
 		queueRot.pop();
-
+        nb_nodes++;
 		// Exit if the optError is less than or equal to the lower bound plus a small epsilon
 		if((optError-nodeRotParent.lb) <= SSEThresh)
 		{
@@ -449,7 +450,7 @@ double GoICP::OuterBnB()
 			// Run Inner Branch-and-Bound to find rotation upper bound
 			// Calculates the rotation upper bound by finding the translation upper bound for a given rotation,
 			// assuming that the rotation is known (zero rotation uncertainty radius)
-			ub = InnerBnB(NULL /*Rotation Uncertainty Radius*/, &nodeTrans);
+			ub = InnerBnB(NULL /*Rotation Uncertainty Radius*/, &nodeTrans, nb_nodes);
 
 			// If the upper bound is the best so far, run ICP
 			if(ub < optError)
@@ -503,7 +504,7 @@ double GoICP::OuterBnB()
 			// Calculates the rotation lower bound by finding the translation upper bound for a given rotation,
 			// assuming that the rotation is uncertain (a positive rotation uncertainty radius)
 			// Pass an array of rotation uncertainties for every point in data cloud at this level
-			lb = InnerBnB(maxRotDis[nodeRot.l], NULL /*Translation Node*/);
+			lb = InnerBnB(maxRotDis[nodeRot.l], NULL /*Translation Node*/, nb_nodes);
 
 			// If the best error so far is less than the lower bound, remove the rotation subcube from the queue
 			if(lb >= optError)
@@ -518,6 +519,7 @@ double GoICP::OuterBnB()
 		}
 	}
 
+    cout << "number of nodes explored = " << nb_nodes << endl;
 	return optError;
 }
 

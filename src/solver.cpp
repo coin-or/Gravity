@@ -132,6 +132,10 @@ Model<type> Model<type>::build_model_interior() const
         auto v = it.second;
         Interior.add_var(v);
     }
+    for (auto &it: Interior._vars)
+    {
+        it.second->_is_relaxed = false;
+    }
     /* Index set for eta variables*/
     indices ind_eta("ind_eta");
     /* Vector of indices, each element corresponds to a nonconvex constraint, and has indices of eta corresponding to all its instances */
