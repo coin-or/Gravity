@@ -7753,6 +7753,104 @@ namespace gravity {
             }
         }
         
+        /* Return the max distance from point (x1,y1,z1) for all possible rotations/translations with given bounds */
+        double get_max_dist(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double x1, double y1, double z1, double x_ref = 0, double y_ref = 0, double z_ref = 0, bool L1norm = false){
+            double shifted_x, shifted_y, shifted_z, yaw, roll, pitch;
+            double x_rot1, y_rot1, z_rot1;
+            vector<double> angles_yaw = {0, yaw_min, yaw_max};
+            vector<double> angles_roll = {0, roll_min, roll_max};
+            vector<double> angles_pitch = {0, pitch_min, pitch_max};
+            if(yaw_min >=0  || yaw_max <= 0){
+                angles_yaw = {yaw_min, yaw_max};
+                if(yaw_min==yaw_max){
+                    angles_yaw = {yaw_min};
+                }
+            }
+            if(roll_min >=0  || roll_max <= 0){
+                angles_roll = {roll_min, roll_max};
+                if(roll_min==roll_max){
+                    angles_roll = {roll_min};
+                }
+            }
+            if(pitch_min >=0  || pitch_max <= 0){
+                angles_pitch = {pitch_min, pitch_max};
+                if(pitch_min==pitch_max){
+                    angles_pitch = {pitch_min};
+                }
+            }
+            vector<double> tx = {tx_min, tx_max};
+            if(tx_min==tx_max){
+                tx = {tx_min};
+            }
+            vector<double> ty = {ty_min, ty_max};
+            if(ty_min==ty_max){
+                ty = {ty_min};
+            }
+            vector<double> tz = {tz_min, tz_max};
+            if(tz_min==tz_max){
+                tz = {tz_min};
+            }
+            double max_dist = 0, dist = 0;
+            shifted_x = x1 - x_ref;
+            shifted_y = y1 - y_ref;
+            shifted_z = z1 - z_ref;
+            for (int a = 0; a < angles_yaw.size(); a++){
+                yaw = angles_yaw[a];
+                for (int b = 0; b <angles_roll.size(); b++){
+                    roll = angles_roll[b];
+                    for (int c = 0; c <angles_pitch.size(); c++){
+                        pitch = angles_pitch[c];
+                        x_rot1 = shifted_x*std::cos(yaw)*std::cos(roll) + shifted_y*(std::cos(yaw)*std::sin(roll)*std::sin(pitch) - std::sin(yaw)*std::cos(pitch)) + shifted_z*(std::cos(yaw)*std::sin(roll)*std::cos(pitch) + std::sin(yaw)*std::sin(pitch));
+                        y_rot1 = shifted_x*std::sin(yaw)*std::cos(roll) + shifted_y*(std::sin(yaw)*std::sin(roll)*std::sin(pitch) + std::cos(yaw)*std::cos(pitch)) + shifted_z*(std::sin(yaw)*std::sin(roll)*std::cos(pitch) - std::cos(yaw)*std::sin(pitch));
+                        z_rot1 = shifted_x*(-std::sin(roll)) + shifted_y*(std::cos(roll)*std::sin(pitch)) + shifted_z*(std::cos(roll)*std::cos(pitch));
+                        x_rot1 += x_ref;
+                        y_rot1 += y_ref;
+                        z_rot1 += z_ref;
+                        if(L1norm){
+                            dist = std::abs(x1 - x_rot1) + std::abs(y1 - y_rot1) + std::abs(z1 - z_rot1);
+                        }
+                        else{
+                            dist = std::pow(x1 - x_rot1,2) + std::pow(y1 - y_rot1,2) + std::pow(z1 - z_rot1,2);
+                        }
+                        if(dist>max_dist){
+                            max_dist = dist;
+                        }
+                    }
+                }
+            }
+            double t_radius = std::sqrt(std::pow(std::max(std::abs(tx_min),std::abs(tx_max)),2) + std::pow(std::max(std::abs(ty_min),std::abs(ty_max)),2) + std::pow(std::max(std::abs(tz_min),std::abs(tz_max)),2));
+            DebugOff("Our t radius = " << to_string_with_precision(t_radius, 6) << endl);
+            DebugOff("Our r radius = " << to_string_with_precision(std::sqrt(max_dist), 6) << endl);
+            if(!L1norm)
+                return std::sqrt(max_dist) + t_radius;
+            return max_dist + std::max(std::abs(tx_min),std::abs(tx_max)) + std::max(std::abs(ty_min),std::abs(ty_max)) + std::max(std::abs(tz_min),std::abs(tz_max));
+        }
+        
+        vector<vector<int>> get_unreachables(double roll_lb, double roll_ub, double pitch_lb, double pitch_ub, double yaw_lb, double yaw_ub, double tx_lb, double tx_ub, double ty_lb, double ty_ub, double tz_lb, double tz_ub, const shared_ptr<param<>>& x_data, const shared_ptr<param<>>& y_data, const shared_ptr<param<>>& z_data, const shared_ptr<param<>>& x_model, const shared_ptr<param<>>& y_model, const shared_ptr<param<>>& z_model, const vector<vector<size_t>>& bin_ids, const shared_ptr<param<>>& model_voronoi_out_radius){
+            size_t n = x_data->get_dim();
+//            size_t m = x_model->get_dim();
+            vector<vector<int>> unreach(n);
+            double dist_sq = 0, err = 0, dx = 0, dy = 0, dz = 0;
+            int bin_id = 0;
+            for (auto i = 0; i< n; i++) {
+                auto max_dist = get_max_dist(roll_lb, roll_ub, pitch_lb, pitch_ub, yaw_lb, yaw_ub, tx_lb, tx_ub, ty_lb, ty_ub, tz_lb, tz_ub, x_data->_val->at(i), y_data->_val->at(i), z_data->_val->at(i));
+                auto m = bin_ids[i].size();
+                for (auto j = 0; j< m; j++) {
+                    dx = std::pow(x_data->_val->at(i) - x_model->_val->at(bin_ids[i][j]),2);
+                    dy = std::pow(y_data->_val->at(i) - y_model->_val->at(bin_ids[i][j]),2);
+                    dz = std::pow(z_data->_val->at(i) - z_model->_val->at(bin_ids[i][j]),2);
+                    dist_sq = dx + dy + dz;
+                    if(std::sqrt(dist_sq)>max_dist + model_voronoi_out_radius->_val->at(bin_ids[i][j])){
+                        Debug("incompatible pair: (" << i+1 << "," << bin_ids[i][j]+1 << ")\n");
+                        unreach[i].push_back(bin_id);
+                    }
+                    bin_id++;
+                }
+            }
+
+            return unreach;
+        }
+        
         /* Compute the L2 error for model and data sets
          @param[out] matching, vecor used to store the optimal match
          */
