@@ -8,7 +8,7 @@ class cuts: public GRBCallback
 {
 public:
     vector<GRBVar> vars;
-    int n;
+    int nb_vars, nb_spatial, nb_data, nb_model;
     Model<>* m;
     double *x;
     vector<double> cont_x, int_x;
@@ -17,43 +17,74 @@ public:
     shared_ptr<vector<vector<size_t>>> bin_ids;
     shared_ptr<param<>> x1, x2, y1, y2, z1, z2;
     shared_ptr<param<>> new_x1, new_y1, new_z1;
+    shared_ptr<param<>> angle_lb, angle_ub, cos_lb, cos_ub, sin_lb, sin_ub, t_lb, t_ub;
+    shared_ptr<param<>> model_voronoi_out_radius;
+    shared_ptr<var<>> bin, sbin_roll, sbin_pitch, sbin_yaw, sbin_tx, sbin_ty, sbin_tz;
+    shared_ptr<var<>> theta11, theta12, theta13, theta21, theta22, theta23, theta31, theta32, theta33, x_shift, y_shift, z_shift;
+    shared_ptr<var<>> x_diff, y_diff, z_diff;
+    
+
+    
     int soc_viol, soc_found,soc_added,det_viol, det_found, det_added;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     Model<> interior;
-    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mn, Model<>& interiorn, int& soc_violn, int& soc_foundn, int& soc_addedn, int& det_violn, int& det_foundn, int& det_addedn) {
-        x = new double[n];
+    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mod, Model<>& mod_int, int& soc_violn, int& soc_foundn, int& soc_addedn, int& det_violn, int& det_foundn, int& det_addedn) {
+        x = new double[nb_vars];
         vars = _grb_vars;
-        n    = xn;
-        m=mn;
-        cont_x.resize(n);
-        int_x.resize(n);
+        nb_vars = xn;
+        m = mod;
+        cont_x.resize(nb_vars);
+        int_x.resize(nb_vars);
         soc_viol=soc_violn;
         soc_found=soc_foundn;
         soc_added=soc_addedn;
         det_viol=det_violn;
         det_found=det_foundn;
         det_added=det_addedn;
-        interior=interiorn;
-        if(false){
-            rot_trans.resize(12);
-            x1 = m->get_ptr_param<double>("x1");
-            new_x1 = make_shared<param<>>("new_x1");
-            new_x1->in(*x1->_indices);
-            y1 = m->get_ptr_param<double>("y1");
-            new_y1 = make_shared<param<>>("new_y1");
-            new_y1->in(*y1->_indices);
-            z1 = m->get_ptr_param<double>("z1");
-            new_z1 = make_shared<param<>>("new_z1");
-            new_z1->in(*z1->_indices);
-            x2 = m->get_ptr_param<double>("x2");
-            y2 = m->get_ptr_param<double>("y2");
-            z2 = m->get_ptr_param<double>("z2");
-            auto bin = m->get_ptr_var<double>("bin");
-            auto cstr = m->get_constraint("Def_newxm");
-            auto p = cstr->_params->begin();
-            bin_ids = p->second.first->_indices->_ids;
-            matching.resize(x1->get_dim());
-        }
+        interior=mod_int;
+        rot_trans.resize(12);
+        model_voronoi_out_radius = m->get_ptr_param<double>("model_radius");
+        x1 = m->get_ptr_param<double>("x1");
+        new_x1 = make_shared<param<>>("new_x1");
+        new_x1->in(*x1->_indices);
+        y1 = m->get_ptr_param<double>("y1");
+        new_y1 = make_shared<param<>>("new_y1");
+        new_y1->in(*y1->_indices);
+        z1 = m->get_ptr_param<double>("z1");
+        new_z1 = make_shared<param<>>("new_z1");
+        new_z1->in(*z1->_indices);
+        x2 = m->get_ptr_param<double>("x2");
+        y2 = m->get_ptr_param<double>("y2");
+        z2 = m->get_ptr_param<double>("z2");
+        t_lb = m->get_ptr_param<double>("t_lb");
+        t_ub = m->get_ptr_param<double>("t_ub");
+        angle_lb = m->get_ptr_param<double>("angle_lb");
+        angle_ub = m->get_ptr_param<double>("angle_ub");
+        cos_lb = m->get_ptr_param<double>("cos_lb");
+        cos_ub = m->get_ptr_param<double>("cos_ub");
+        sin_lb = m->get_ptr_param<double>("sin_lb");
+        sin_ub = m->get_ptr_param<double>("sin_ub");
+        x_diff = m->get_ptr_var<double>("x_diff");
+        y_diff = m->get_ptr_var<double>("y_diff");
+        z_diff = m->get_ptr_var<double>("z_diff");
+        bin = m->get_ptr_var<double>("bin");
+        sbin_roll = m->get_ptr_var<double>("sbin_roll");
+        sbin_pitch = m->get_ptr_var<double>("sbin_pitch");
+        sbin_yaw = m->get_ptr_var<double>("sbin_yaw");
+        sbin_tx = m->get_ptr_var<double>("sbin_tx");
+        sbin_ty = m->get_ptr_var<double>("sbin_ty");
+        sbin_tz = m->get_ptr_var<double>("sbin_tz");
+        nb_spatial = sbin_tx->get_dim();
+        theta11 = m->get_ptr_var<double>("theta11"); theta12 = m->get_ptr_var<double>("theta12"); theta13 = m->get_ptr_var<double>("theta13");
+        theta21 = m->get_ptr_var<double>("theta21"); theta22 = m->get_ptr_var<double>("theta22"); theta23 = m->get_ptr_var<double>("theta23");
+        theta31 = m->get_ptr_var<double>("theta31"); theta32 = m->get_ptr_var<double>("theta32"); theta33 = m->get_ptr_var<double>("theta33");
+        x_shift = m->get_ptr_var<double>("x_shift"); y_shift = m->get_ptr_var<double>("y_shift"); z_shift = m->get_ptr_var<double>("z_shift");
+
+        auto cstr = m->get_constraint("Def_newxm");
+        auto p = cstr->_params->begin();
+        bin_ids = p->second.first->_indices->_ids;
+        nb_data = x1->get_dim();
+        matching.resize(nb_data);
     }
     ~cuts(){
         DebugOn("soc_viol "<<soc_viol<<endl);
@@ -80,8 +111,8 @@ protected:
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
                     int i,j;
-                    x=getSolution(vars.data(),n);
-                    for(i=0;i<n;i++){
+                    x=getSolution(vars.data(),nb_vars);
+                    for(i=0;i<nb_vars;i++){
                         int_x[i] = x[i];
                     }
                     m->set_solution(int_x);
@@ -97,8 +128,7 @@ protected:
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
-                   // m->set_solution(int_x);
-                        // delete[] x;
+//                    m->set_solution(int_x);
                 }
             }
             if(mipnode){
@@ -112,34 +142,30 @@ protected:
                         DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
                         int i,j;
                         m->get_solution(int_x);
-                        x=getNodeRel(vars.data(),n);
-                        for(i=0;i<n;i++){
+                        x=getNodeRel(vars.data(),nb_vars);
+                        for(i=0;i<nb_vars;i++){
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
-                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
-                        if(res.size()>=1){
-                            for(i=0;i<res.size();i++){
-                                GRBLinExpr expr = 0;
-                                for(j=0;j<res[i].size()-1;j+=2){
-                                    int c=res[i][j];
-                                    expr += res[i][j+1]*vars[c];
-                                }
-                                expr+=res[i][j];
-                                addCut(expr, GRB_LESS_EQUAL, 0);
-                            }
-                        }
+//                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+//                        if(res.size()>=1){
+//                            for(i=0;i<res.size();i++){
+//                                GRBLinExpr expr = 0;
+//                                for(j=0;j<res[i].size()-1;j+=2){
+//                                    int c=res[i][j];
+//                                    expr += res[i][j+1]*vars[c];
+//                                }
+//                                expr+=res[i][j];
+//                                addCut(expr, GRB_LESS_EQUAL, 0);
+//                            }
+//                        }
                         if(false && m->is_feasible(1e-4)){
-                            auto theta11 = m->get_ptr_var<double>("theta11");auto theta12 = m->get_ptr_var<double>("theta12");auto theta13 = m->get_ptr_var<double>("theta13");
-                            auto theta21 = m->get_ptr_var<double>("theta21");auto theta22 = m->get_ptr_var<double>("theta22");auto theta23 = m->get_ptr_var<double>("theta23");
-                            auto theta31 = m->get_ptr_var<double>("theta31");auto theta32 = m->get_ptr_var<double>("theta32");auto theta33 = m->get_ptr_var<double>("theta33");
-                            auto x_shift = m->get_ptr_var<double>("x_shift");auto y_shift = m->get_ptr_var<double>("y_shift");auto z_shift = m->get_ptr_var<double>("z_shift");
-
+                            
                             Debug("Theta matrix = " << endl);
                             Debug("|" << theta11->eval() << " " << theta12->eval() << " " << theta13->eval() << "|" << endl);
                             Debug("|" << theta21->eval() << " " << theta22->eval() << " " << theta23->eval() << "|" << endl);
                             Debug("|" << theta31->eval() << " " << theta32->eval() << " " << theta33->eval() << "|" << endl);
-                           
+                            
                             rot_trans[0]=theta11->eval();
                             rot_trans[1]=theta12->eval();
                             rot_trans[2]=theta13->eval();;
@@ -157,7 +183,7 @@ protected:
                             auto y_diff = m->get_ptr_var<double>("y_diff");
                             auto z_diff = m->get_ptr_var<double>("z_diff");
                             auto L2error_init = m->computeL2error(new_x1,new_y1,new_z1,x2,y2,z2,matching,*bin_ids,x_diff,y_diff,z_diff);
-    //                        auto L1error_init = m->computeL1error(x1,y1,z1,x2,y2,z2,matching);
+                                //                        auto L1error_init = m->computeL1error(x1,y1,z1,x2,y2,z2,matching);
                             m->update_matching(matching,*bin_ids);
                             /* compute new_xm */
                             auto new_xm = m->get_ptr_var<double>("new_xm");
@@ -169,24 +195,191 @@ protected:
                                 new_ym->::param<>::set_val(i,y2->eval(matching[i]));
                                 new_zm->::param<>::set_val(i,z2->eval(matching[i]));
                             }
-//                            m->reset_constrs();
-//                            m->is_feasible(1e-4);
+                                //                            m->reset_constrs();
+                                //                            m->is_feasible(1e-4);
                             m->get_solution(cont_x);
-                            for(i=0;i<n;i++){
+                            for(i=0;i<nb_vars;i++){
                                 x[i] = cont_x[i];
                             }
                             
-                            setSolution(vars.data(), x, n);
+                            setSolution(vars.data(), x, nb_vars);
                             double new_ub = useSolution();
                             if(new_ub<1e20)
                                 DebugOn("new UB = " << to_string_with_precision(new_ub, 6) << endl);
                         }
+                        bool add_cut = true;
+                        if(add_cut){
+                            /* Get hypercube bounds */
+                            double roll_lb = angle_lb->eval(0), roll_ub = angle_ub->eval(nb_spatial-1);
+                            double cos_roll_lb = 0, cos_roll_ub = 0;
+                            double sin_roll_lb = 0, sin_roll_ub = 0;
+                            int sbin_roll_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_roll->eval(i)==1){
+                                    roll_lb = angle_lb->eval(i);
+                                    roll_ub = angle_ub->eval(i);
+                                    cos_roll_lb = cos_lb->eval(i);
+                                    cos_roll_ub = cos_ub->eval(i);
+                                    sin_roll_lb = sin_lb->eval(i);
+                                    sin_roll_ub = sin_ub->eval(i);
+                                    sbin_roll_id = i;
+                                    break;
+                                }
+                            }
+                            double pitch_lb = angle_lb->eval(0), pitch_ub = angle_ub->eval(nb_spatial-1);
+                            double cos_pitch_lb = 0, cos_pitch_ub = 0;
+                            double sin_pitch_lb = 0, sin_pitch_ub = 0;
+                            int sbin_pitch_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_pitch->eval(i)==1){
+                                    pitch_lb = angle_lb->eval(i);
+                                    pitch_ub = angle_ub->eval(i);
+                                    cos_pitch_lb = cos_lb->eval(i);
+                                    cos_pitch_ub = cos_ub->eval(i);
+                                    sin_pitch_lb = sin_lb->eval(i);
+                                    sin_pitch_ub = sin_ub->eval(i);
+                                    sbin_pitch_id = i;
+                                    break;
+                                }
+                            }
+                            double yaw_lb = angle_lb->eval(0), yaw_ub = angle_ub->eval(nb_spatial-1);
+                            double cos_yaw_lb = 0, cos_yaw_ub = 0;
+                            double sin_yaw_lb = 0, sin_yaw_ub = 0;
+                            int sbin_yaw_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_yaw->eval(i)==1){
+                                    yaw_lb = angle_lb->eval(i);
+                                    yaw_ub = angle_ub->eval(i);
+                                    cos_yaw_lb = cos_lb->eval(i);
+                                    cos_yaw_ub = cos_ub->eval(i);
+                                    sin_yaw_lb = sin_lb->eval(i);
+                                    sin_yaw_ub = sin_ub->eval(i);
+                                    sbin_yaw_id = i;
+                                    break;
+                                }
+                            }
+                            double tx_lb = t_lb->eval(0), tx_ub = t_ub->eval(nb_spatial-1);
+                            int sbin_tx_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_tx->eval(i)==1){
+                                    tx_lb = t_lb->eval(i);
+                                    tx_ub = t_ub->eval(i);
+                                    sbin_tx_id = i;
+                                    break;
+                                }
+                            }
+                            double ty_lb = t_lb->eval(0), ty_ub = t_ub->eval(nb_spatial-1);
+                            int sbin_ty_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_ty->eval(i)==1){
+                                    ty_lb = t_lb->eval(i);
+                                    ty_ub = t_ub->eval(i);
+                                    sbin_ty_id = i;
+                                    break;
+                                }
+                            }
+                            double tz_lb = t_lb->eval(0), tz_ub = t_ub->eval(nb_spatial-1);
+                            int sbin_tz_id = -1;
+                            for (i =0; i<nb_spatial; i++) {
+                                if(sbin_tz->eval(i)==1){
+                                    tz_lb = t_lb->eval(i);
+                                    tz_ub = t_ub->eval(i);
+                                    sbin_tz_id = i;
+                                    break;
+                                }
+                            }
+                            if(sbin_roll_id!=-1 || sbin_pitch_id!=-1 || sbin_yaw_id!=-1 || sbin_tx_id!=-1 || sbin_ty_id!=-1 || sbin_tz_id!=-1){
+                                /* Compute mid-point in current hypercube */
+                                double roll = (roll_ub + roll_lb)/2.;
+                                double pitch = (pitch_ub + pitch_lb)/2.;
+                                double yaw = (yaw_ub + yaw_lb)/2.;
+                                double x_shift = (tx_lb + tx_ub)/2.;
+                                double y_shift = (ty_lb + ty_ub)/2.;
+                                double z_shift = (tz_lb + tz_ub)/2.;
+                                
+                                rot_trans[0]=cos(yaw)*cos(roll);
+                                rot_trans[1]=cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
+                                rot_trans[2]=cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
+                                rot_trans[3]=sin(yaw)*cos(roll);
+                                rot_trans[4]=sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
+                                rot_trans[5]=sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
+                                rot_trans[6]=sin(-1*roll);
+                                rot_trans[7]=cos(roll)*sin(pitch);
+                                rot_trans[8]=cos(roll)*cos(pitch);
+                                rot_trans[9]=x_shift;
+                                rot_trans[10]=y_shift;
+                                rot_trans[11]=z_shift;
+                                /* Get coordinates of midpoint (new_x1, new_y1, new_z1) */
+                                m->apply_rot_trans(rot_trans, x1, y1, z1, new_x1, new_y1, new_z1);
+                                double new_roll_ub = (roll_ub - roll_lb)/2.;
+                                double new_roll_lb = -new_roll_ub;
+                                double new_pitch_ub = (pitch_ub - pitch_lb)/2.;
+                                double new_pitch_lb = -new_pitch_ub;
+                                double new_yaw_ub = (yaw_ub - yaw_lb)/2.;
+                                double new_yaw_lb = -new_yaw_ub;
+                                double new_tx_ub = (tx_ub - tx_lb)/2.;
+                                double new_tx_lb = -new_tx_ub;
+                                double new_ty_ub = (ty_ub - ty_lb)/2.;
+                                double new_ty_lb = -new_ty_ub;
+                                double new_tz_ub = (tz_ub - tz_lb)/2.;
+                                double new_tz_lb = -new_tz_ub;
+                                auto L2error_init = m->computeL2error(new_x1,new_y1,new_z1,x2,y2,z2,matching,*bin_ids,x_diff,y_diff,z_diff);
 
+//                                vector<vector<int>> unreachables = m->get_unreachables(new_roll_lb, new_roll_ub, new_pitch_lb, new_pitch_ub, new_yaw_lb, new_yaw_ub, new_tx_lb, new_tx_ub, new_ty_lb, new_ty_ub, new_tz_lb, new_tz_ub, new_x1, new_y1, new_z1, x2, y2, z2, *bin_ids, model_voronoi_out_radius);
+                                /* add cuts */
+                                bool add_cuts = true;
+                                if(add_cuts){
+                                    int roll_id = sbin_roll->get_id() + sbin_roll_id;
+                                    int pitch_id = sbin_pitch->get_id() + sbin_pitch_id;
+                                    int yaw_id = sbin_yaw->get_id() + sbin_yaw_id;
+                                    int tx_id = sbin_tx->get_id() + sbin_tx_id;
+                                    int ty_id = sbin_ty->get_id() + sbin_ty_id;
+                                    int tz_id = sbin_tz->get_id() + sbin_tz_id;
+
+                                    for (i = 0; i<nb_data; i++) {
+                                        int x_diff_id = x_diff->get_id() + i;
+                                        int y_diff_id = y_diff->get_id() + i;
+                                        int z_diff_id = z_diff->get_id() + i;
+                                        double max_dist = m->get_max_dist(new_roll_lb, new_roll_ub, new_pitch_lb, new_pitch_ub, new_yaw_lb, new_yaw_ub, new_tx_lb, new_tx_ub, new_ty_lb, new_ty_ub, new_tz_lb, new_tz_ub, new_x1->_val->at(i), new_y1->_val->at(i), new_z1->_val->at(i));
+//                                        double max_dist = m->get_max_dist(roll_lb, roll_ub, pitch_lb, pitch_ub, yaw_lb, yaw_ub, tx_lb, tx_ub, ty_lb, ty_ub, tz_lb, tz_ub, x1->_val->at(i), y1->_val->at(i), z1->_val->at(i));
+                                        double lhs = x_diff->_val->at(i) + y_diff->_val->at(i) + z_diff->_val->at(i) - max_dist*max_dist;
+
+                                        if(lhs > 0){
+                                            GRBLinExpr expr = 0;
+                                            expr -= vars[x_diff_id] + vars[y_diff_id] + vars[z_diff_id];
+                                            if(sbin_roll_id!=-1)
+                                                expr -= lhs*(1-vars[roll_id]);
+                                            if(sbin_pitch_id!=-1)
+                                                expr -= lhs*(1-vars[pitch_id]);
+                                            if(sbin_yaw_id!=-1)
+                                                expr -= lhs*(1-vars[yaw_id]);
+                                            if(sbin_tx_id!=-1)
+                                                expr -= lhs*(1-vars[tx_id]);
+                                            if(sbin_ty_id!=-1)
+                                                expr -= lhs*(1-vars[ty_id]);
+                                            if(sbin_tz_id!=-1)
+                                                expr -= lhs*(1-vars[tz_id]);
+                                            expr += lhs;
+                                            addCut(expr, GRB_LESS_EQUAL, 0);
+//                                            cout << expr << endl;
+                                        }
+//                                        for (int pair_id: unreachables[i]) {
+//                                            int bin_id = bin->get_id() + pair_id;
+//                                            GRBLinExpr expr = 0;
+//                                            expr += vars[bin_id];
+//                                            expr -= (1-vars[roll_id]) + (1-vars[pitch_id]) + (1-vars[yaw_id]) + (1-vars[tx_id]) + (1-vars[ty_id]) + (1-vars[tz_id]);
+//                                            addCut(expr, GRB_LESS_EQUAL, 0);
+//            //                                cout << expr << endl;
+//                                        }
+                                    }
+                                }
+                            }
+                        }
                         m->set_solution(int_x);
                     }
-                       
-                    }
+                    
                 }
+            }
             
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
@@ -321,7 +514,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,60);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
     if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -462,6 +655,8 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     if(real_var->_is_relaxed){
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+                        _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
@@ -476,6 +671,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                     _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
                 }
                 break;
             }
