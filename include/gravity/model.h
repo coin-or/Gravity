@@ -198,6 +198,7 @@ namespace gravity {
         map<string, set<shared_ptr<Constraint<type>>>>      _v_in_cons; /**< Set of constraints where each variable appears. */
         shared_ptr<func<type>>                              _obj = nullptr; /**< Pointer to objective function */
         ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
+        double                                              _rel_obj_val = numeric_limits<double>::lowest();/*< Objective function value for a relaxation of the current model */
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
@@ -561,6 +562,7 @@ namespace gravity {
         
         Model& operator=(const Model& m){
             _name = m._name;
+            _rel_obj_val = m._rel_obj_val;
             for(auto &vp: m._vars){
                 switch (vp.second->get_intype()) {
                     case binary_: {
@@ -3824,6 +3826,10 @@ namespace gravity {
             return _obj->_val->at(0);
         }
         
+        type get_rel_obj_val() const{
+            return _rel_obj_val;
+        }
+        
         void print_obj_val(int prec = 5) const{
             cout << "Objective = " << to_string_with_precision(_obj->eval(),prec) << endl;
         }
@@ -5635,6 +5641,12 @@ namespace gravity {
         void read_solution(const string& fname);
         
         void read_var_solution(const string& fname, const string& vname);
+        
+        void print_var_bounds(int prec = 10){
+            for(auto& v: _vars){
+                v.second->print(prec);
+            }
+        }
         
         void print(int prec = 10){
             auto size_header = print_properties();

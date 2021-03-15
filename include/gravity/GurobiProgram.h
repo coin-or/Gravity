@@ -23,7 +23,7 @@ public:
     ~GurobiProgram();
     void reset_model();
 
-    bool solve(bool relax = false, double mipgap = 0.01, bool use_callback = false);
+    bool solve(bool relax = false, double mipgap = 0.01, bool use_callback = false, double max_time = 3600);
     void prepare_model();
     void update_model();
     void update_solution();
