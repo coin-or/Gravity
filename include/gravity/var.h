@@ -47,6 +47,7 @@ namespace gravity {
         /*These should eventually be shared_ptr<int>, or an object with an access to get_id_inst, or eval */
         shared_ptr<int> _num_partns;/*number of partitons*/
         int _cur_partn = 1;/*current partition we are focused on*/
+        int _priority = 0;
         
         
         /* Constructors */
@@ -628,6 +629,7 @@ namespace gravity {
         void    add_ub_only(type v); /**< Adds a new upper bound and -infinity in the corresponding lower bound*/
         
         
+        void    set_bounds(type lb, type ub);
         void    set_lb(type v);
         void    set_ub(type v);
         

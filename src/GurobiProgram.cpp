@@ -29,9 +29,9 @@ public:
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     Model<> interior;
     cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mod, Model<>& mod_int, int& soc_violn, int& soc_foundn, int& soc_addedn, int& det_violn, int& det_foundn, int& det_addedn) {
-        x = new double[nb_vars];
         vars = _grb_vars;
         nb_vars = xn;
+        x = new double[nb_vars];
         m = mod;
         cont_x.resize(nb_vars);
         int_x.resize(nb_vars);
@@ -147,18 +147,18 @@ protected:
                             cont_x[i] = x[i];
                         }
                         m->set_solution(cont_x);
-//                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
-//                        if(res.size()>=1){
-//                            for(i=0;i<res.size();i++){
-//                                GRBLinExpr expr = 0;
-//                                for(j=0;j<res[i].size()-1;j+=2){
-//                                    int c=res[i][j];
-//                                    expr += res[i][j+1]*vars[c];
-//                                }
-//                                expr+=res[i][j];
-//                                addCut(expr, GRB_LESS_EQUAL, 0);
-//                            }
-//                        }
+                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                        if(res.size()>=1){
+                            for(i=0;i<res.size();i++){
+                                GRBLinExpr expr = 0;
+                                for(j=0;j<res[i].size()-1;j+=2){
+                                    int c=res[i][j];
+                                    expr += res[i][j+1]*vars[c];
+                                }
+                                expr+=res[i][j];
+                                addCut(expr, GRB_LESS_EQUAL, 0);
+                            }
+                        }
                         if(false && m->is_feasible(1e-4)){
                             
                             Debug("Theta matrix = " << endl);
@@ -207,7 +207,7 @@ protected:
                             if(new_ub<1e20)
                                 DebugOn("new UB = " << to_string_with_precision(new_ub, 6) << endl);
                         }
-                        bool add_cut = true;
+                        bool add_cut = false;
                         if(add_cut){
                             /* Get hypercube bounds */
                             double roll_lb = angle_lb->eval(0), roll_ub = angle_ub->eval(nb_spatial-1);
@@ -325,7 +325,7 @@ protected:
                                 double new_tz_lb = -new_tz_ub;
                                 auto L2error_init = m->computeL2error(new_x1,new_y1,new_z1,x2,y2,z2,matching,*bin_ids,x_diff,y_diff,z_diff);
 
-//                                vector<vector<int>> unreachables = m->get_unreachables(new_roll_lb, new_roll_ub, new_pitch_lb, new_pitch_ub, new_yaw_lb, new_yaw_ub, new_tx_lb, new_tx_ub, new_ty_lb, new_ty_ub, new_tz_lb, new_tz_ub, new_x1, new_y1, new_z1, x2, y2, z2, *bin_ids, model_voronoi_out_radius);
+                                vector<vector<int>> unreachables = m->get_unreachables(new_roll_lb, new_roll_ub, new_pitch_lb, new_pitch_ub, new_yaw_lb, new_yaw_ub, new_tx_lb, new_tx_ub, new_ty_lb, new_ty_ub, new_tz_lb, new_tz_ub, new_x1, new_y1, new_z1, x2, y2, z2, *bin_ids, model_voronoi_out_radius);
                                 /* add cuts */
                                 bool add_cuts = true;
                                 if(add_cuts){
@@ -335,7 +335,20 @@ protected:
                                     int tx_id = sbin_tx->get_id() + sbin_tx_id;
                                     int ty_id = sbin_ty->get_id() + sbin_ty_id;
                                     int tz_id = sbin_tz->get_id() + sbin_tz_id;
-
+                                    GRBLinExpr bin_expr = 0;
+                                    if(sbin_roll_id!=-1)
+                                        bin_expr -= (1-vars[roll_id]);
+                                    if(sbin_pitch_id!=-1)
+                                        bin_expr -= (1-vars[pitch_id]);
+                                    if(sbin_yaw_id!=-1)
+                                        bin_expr -= (1-vars[yaw_id]);
+                                    if(sbin_tx_id!=-1)
+                                        bin_expr -= (1-vars[tx_id]);
+                                    if(sbin_ty_id!=-1)
+                                        bin_expr -= (1-vars[ty_id]);
+                                    if(sbin_tz_id!=-1)
+                                        bin_expr -= (1-vars[tz_id]);
+                                    bool empty_lhs = true;
                                     for (i = 0; i<nb_data; i++) {
                                         int x_diff_id = x_diff->get_id() + i;
                                         int y_diff_id = y_diff->get_id() + i;
@@ -343,7 +356,7 @@ protected:
                                         double max_dist = m->get_max_dist(new_roll_lb, new_roll_ub, new_pitch_lb, new_pitch_ub, new_yaw_lb, new_yaw_ub, new_tx_lb, new_tx_ub, new_ty_lb, new_ty_ub, new_tz_lb, new_tz_ub, new_x1->_val->at(i), new_y1->_val->at(i), new_z1->_val->at(i));
 //                                        double max_dist = m->get_max_dist(roll_lb, roll_ub, pitch_lb, pitch_ub, yaw_lb, yaw_ub, tx_lb, tx_ub, ty_lb, ty_ub, tz_lb, tz_ub, x1->_val->at(i), y1->_val->at(i), z1->_val->at(i));
                                         double lhs = x_diff->_val->at(i) + y_diff->_val->at(i) + z_diff->_val->at(i) - max_dist*max_dist;
-
+                                        
                                         if(lhs > 0){
                                             GRBLinExpr expr = 0;
                                             expr -= vars[x_diff_id] + vars[y_diff_id] + vars[z_diff_id];
@@ -363,14 +376,19 @@ protected:
                                             addCut(expr, GRB_LESS_EQUAL, 0);
 //                                            cout << expr << endl;
                                         }
-//                                        for (int pair_id: unreachables[i]) {
-//                                            int bin_id = bin->get_id() + pair_id;
+                                        for (int pair_id: unreachables[i]) {
+                                            int bin_id = bin->get_id() + pair_id;
 //                                            GRBLinExpr expr = 0;
-//                                            expr += vars[bin_id];
+                                            bin_expr += vars[bin_id];
+                                            empty_lhs = false;
 //                                            expr -= (1-vars[roll_id]) + (1-vars[pitch_id]) + (1-vars[yaw_id]) + (1-vars[tx_id]) + (1-vars[ty_id]) + (1-vars[tz_id]);
 //                                            addCut(expr, GRB_LESS_EQUAL, 0);
 //            //                                cout << expr << endl;
-//                                        }
+                                        }
+                                    }
+                                    if(!empty_lhs){
+                                        addCut(bin_expr, GRB_LESS_EQUAL, 0);
+//                                        cout << bin_expr << endl;
                                     }
                                 }
                             }
@@ -498,7 +516,7 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
+bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double max_time){
         //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
         //    print_constraints();
     if (relax) relax_model();
@@ -509,12 +527,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
 //    grb_mod->set(GRB_IntParam_Presolve,0);
-        //grb_mod->set(GRB_IntParam_Threads, 4);
+    grb_mod->set(GRB_IntParam_Threads, 1);
+    grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-//    grb_mod->set(GRB_IntParam_NumericFocus,3);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
+//    grb_mod->set(GRB_IntParam_MIPFocus,1);
+    grb_mod->set(GRB_IntParam_BranchDir, 1);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
     if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -535,14 +555,17 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         interior=lin->add_outer_app_solution(*_model);
     }
     //interior.print_solution();
-        cuts cb = cuts(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-        grb_mod->setCallback(&cb);
+//    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+//    grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
         //            grb_mod->write("~/mod.mps");
-    if (grb_mod->get(GRB_IntAttr_Status) != 2) {
-        cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
+    if (grb_mod->get(GRB_IntAttr_Status) == 3) {
+        cerr << "Infeasible model!\n";
+//        _model->print_var_bounds();
+        return false;
+//        cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
             //        return false;
     }
     update_solution();
@@ -556,18 +579,19 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback){
         //        }
         //    }
     _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
-    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
-    if (grb_mod->get(GRB_IntAttr_IsMIP)) {
-        cout.setf(ios::fixed);
-        cout.precision(3);
-        cout << "Results: " << grb_mod->get(GRB_DoubleAttr_ObjVal) << " & ";
-        cout.precision(4);
-        cout << (grb_mod->get(GRB_DoubleAttr_MIPGap))*100 << "% & ";
-        cout.precision(0);
-        cout << grb_mod->get(GRB_DoubleAttr_NodeCount) << " & ";
-        cout.precision(2);
-        cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
-    }
+    _model->_rel_obj_val = grb_mod->get(GRB_DoubleAttr_ObjBound);
+//    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
+//    if (grb_mod->get(GRB_IntAttr_IsMIP)) {
+//        cout.setf(ios::fixed);
+//        cout.precision(3);
+//        cout << "Results: " << grb_mod->get(GRB_DoubleAttr_ObjVal) << " & ";
+//        cout.precision(4);
+//        cout << (grb_mod->get(GRB_DoubleAttr_MIPGap))*100 << "% & ";
+//        cout.precision(0);
+//        cout << grb_mod->get(GRB_DoubleAttr_NodeCount) << " & ";
+//        cout.precision(2);
+//        cout << grb_mod->get(GRB_DoubleAttr_Runtime) << " & " << endl;
+//    }
         //    delete[] gvars;
     return true;
 }
@@ -630,7 +654,7 @@ void GurobiProgram::fill_in_grb_vmap(){
         if (!v->_new) {
             continue;
         }
-        v->_new = false;
+//        v->_new = false;
         auto idx = v->get_id();
         switch (v->get_intype()) {
             case float_: {
@@ -656,7 +680,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     if(real_var->_is_relaxed){
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                         _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
-                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
+                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
@@ -671,7 +695,7 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
                     _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
-                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, idx);/* Higher branching priority for integers added last to the model */
+                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
                 }
                 break;
             }
@@ -724,7 +748,7 @@ void GurobiProgram::create_grb_constraints(){
             DebugOn(c->_name<<"  lazy"<<endl);
             continue;
         }
-        c->_new = false;
+//        c->_new = false;
         
         if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
             throw invalid_argument("Gurobi cannot handle nonlinear constraints with more than two variables, try decomposing your constraints by introducing auxiliary variables.\n");
@@ -964,7 +988,7 @@ void GurobiProgram::set_grb_objective(){
     if (!_model->_obj->_new) {
         return;
     }
-    _model->_obj->_new = false;
+//    _model->_obj->_new = false;
     if (_model->_objt == minimize) objt = GRB_MINIMIZE;
     else objt = GRB_MAXIMIZE;
     qobj = 0;

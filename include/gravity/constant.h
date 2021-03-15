@@ -414,7 +414,7 @@ namespace gravity {
             return newc;
         };
                 
-        bool is_approx(double v, double precision = 1e-6){
+        bool is_approx(double v, double precision = 1e-4){
             return std::abs(_val - v) <= precision;
         }
         
