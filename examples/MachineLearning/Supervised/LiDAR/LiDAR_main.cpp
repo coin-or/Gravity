@@ -205,7 +205,7 @@ indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector
 
 //indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, const vector<double>& model_voronoi_out_radius, vector<vector<vector<double>>> model_voronoi_vertices, bool norm1);
 
-indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<double>> point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads);
+indices preprocess_QP(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads);
 
 
 shared_ptr<Model<double>> build_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching);
@@ -3421,6 +3421,7 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
 //    Debug("z shift = " << z_shift.eval() << endl);
     
 //    Reg->write_solution();
+    Reg->_status = 0;
     return(Reg);
 }
 
@@ -11431,7 +11432,7 @@ indices preprocess(vector<vector<double>> point_cloud_data, vector<vector<double
     DebugOff("Num "<<missed<<endl);
     return (cells);
 }
-indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<double>> point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads){
+indices preprocess_QP(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads){
     double time_start = get_wall_time();
     
     shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
@@ -11442,15 +11443,15 @@ indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<dou
     shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
     var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
-    func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
-    func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);r12.eval_all();
-    func<> r13 = cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);r13.eval_all();
-    func<> r21 = sin(yaw)*cos(roll);r21.eval_all();
-    func<> r22 = sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);r22.eval_all();
-    func<> r23 = sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);r23.eval_all();
-    func<> r31 = sin(-1*roll);r31.eval_all();
-    func<> r32 = cos(roll)*sin(pitch);r32.eval_all();
-    func<> r33 = cos(roll)*cos(pitch);r33.eval_all();
+    func<> r11 = cos(yaw)*cos(roll);
+    func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
+    func<> r13 = cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
+    func<> r21 = sin(yaw)*cos(roll);
+    func<> r22 = sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
+    func<> r23 = sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
+    func<> r31 = sin(-1*roll);
+    func<> r32 = cos(roll)*sin(pitch);
+    func<> r33 = cos(roll)*cos(pitch);
     
     
     var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
@@ -11501,7 +11502,6 @@ indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<dou
     }
     set<int> unique_model_pts;
     for (int j = 0; j<nm; j++) {
-        string j_str = to_string(j+1);
         auto voro_model=make_shared<Model<double>>("voro_model");
         var<> x("x",-1,1), y("y", -1,1),z("z", -1,1);
         voro_model->add(x.in(R(1)), y.in(R(1)), z.in(R(1)));
@@ -11590,15 +11590,13 @@ indices preprocess_QP(vector<vector<double>> point_cloud_data, vector<vector<dou
     }
     batch_models.clear();
     
-    
-    valid_cells  = indices();
     for (const auto &vcel:valid_cells_map) {
         auto key_data=to_string(vcel.first+1);
         auto cost_data=dist_cost_map[vcel.first];
         int count=0;
         for (auto const model_id: vcel.second) {
             auto key=key_data+","+to_string(model_id+1);
-            valid_cells.add(key);
+            valid_cells.insert(key);
 //            dist_cost.add_val(key, cost_data[count++]);
         }
     }
@@ -11624,7 +11622,7 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
     vector<double> rot_trans;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     auto nb_threads = std::thread::hardware_concurrency();
-//    nb_threads = 1;
+    nb_threads = 1;
     vector<pair<double,double>> shift_x_bounds(nb_threads), shift_y_bounds(nb_threads), shift_z_bounds(nb_threads);
     vector<pair<double,double>> roll_bounds(nb_threads), pitch_bounds(nb_threads), yaw_bounds(nb_threads);
     vector<indices> valid_cells(nb_threads, indices("valid_cells"));
@@ -11692,9 +11690,11 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
                 break;
         }
         lb_queue = new_lb_queue;
-        DebugOn("Just pruned " << old_size - lb_queue.size() << " nodes\n");
+        if(old_size - lb_queue.size()>0)
+            DebugOn("Just pruned " << old_size - lb_queue.size() << " node(s)\n");
         nb_pruned += old_size - lb_queue.size();
         DebugOn("Total pruned =  " << nb_pruned << endl);
+        DebugOn("Queue size = " << lb_queue.size() << "\n");
         treenode topnode = lb_queue.top();
         lb_queue.pop();
         models.clear();
@@ -11768,6 +11768,7 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
                 DebugOn("Infeasible model\n");
                 nb_pruned++;
                 DebugOn("Total pruned =  " << nb_pruned << endl);
+                DebugOn("Queue size = " << lb_queue.size() << "\n");
             }
 //            model->reset_constrs();
         }
