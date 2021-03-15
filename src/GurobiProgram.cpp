@@ -106,7 +106,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=true;
+            bool mipnode=false;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
@@ -535,11 +535,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_IntParam_MIPFocus,1);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
-    if(use_callback){
+//    if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
         grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    }
+//    }
     grb_mod->update();
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     if(n==0)
@@ -551,12 +551,12 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
     vector<int> stats;
     stats.resize(6,0);
-    if(use_callback){
+//    if(use_callback){
         interior=lin->add_outer_app_solution(*_model);
-    }
+//    }
     //interior.print_solution();
-//    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-//    grb_mod->setCallback(&cb);
+    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+    grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
@@ -745,7 +745,7 @@ void GurobiProgram::create_grb_constraints(){
         }
         if(c->_callback)
         {
-            DebugOn(c->_name<<"  lazy"<<endl);
+            DebugOff(c->_name<<"  lazy"<<endl);
             continue;
         }
 //        c->_new = false;

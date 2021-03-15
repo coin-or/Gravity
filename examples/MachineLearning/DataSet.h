@@ -20,6 +20,7 @@ class treenode
 public:
     pair<double,double> roll, pitch, yaw, tx, ty, tz;
     double ub = numeric_limits<double>::max(), lb = 0;
+    gravity::indices valid_cells;
     shared_ptr<gravity::Model<>> mod;
     friend bool operator < (const struct treenode & n1, const struct treenode & n2)
     {
@@ -28,7 +29,7 @@ public:
         else
             return n1.ub > n2.ub;
     }
-    treenode(shared_ptr<gravity::Model<>> mod, const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub):mod(mod),roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub){};
+    treenode(shared_ptr<gravity::Model<>> mod, const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub, const gravity::indices& valid_cells):mod(mod),roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub),valid_cells(valid_cells){};
 };
 
 class LidarPoint {
