@@ -723,6 +723,7 @@ int main (int argc, char * argv[])
             
             bool use_features = false;
             if(use_features){
+#ifdef USE_PCL
                 auto model_features = compute_features(point_cloud_model);
                 auto data_features = compute_features(point_cloud_data);
 
@@ -754,6 +755,7 @@ int main (int argc, char * argv[])
                     }
                 }
                 valid_cells.print();
+#endif
             }
             else {
                 valid_cells = indices(N1,N2);
