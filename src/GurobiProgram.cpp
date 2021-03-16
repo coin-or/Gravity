@@ -56,25 +56,25 @@ public:
         x2 = m->get_ptr_param<double>("x2");
         y2 = m->get_ptr_param<double>("y2");
         z2 = m->get_ptr_param<double>("z2");
-        t_lb = m->get_ptr_param<double>("t_lb");
-        t_ub = m->get_ptr_param<double>("t_ub");
-        angle_lb = m->get_ptr_param<double>("angle_lb");
-        angle_ub = m->get_ptr_param<double>("angle_ub");
-        cos_lb = m->get_ptr_param<double>("cos_lb");
-        cos_ub = m->get_ptr_param<double>("cos_ub");
-        sin_lb = m->get_ptr_param<double>("sin_lb");
-        sin_ub = m->get_ptr_param<double>("sin_ub");
-        x_diff = m->get_ptr_var<double>("x_diff");
-        y_diff = m->get_ptr_var<double>("y_diff");
-        z_diff = m->get_ptr_var<double>("z_diff");
-        bin = m->get_ptr_var<double>("bin");
-        sbin_roll = m->get_ptr_var<double>("sbin_roll");
-        sbin_pitch = m->get_ptr_var<double>("sbin_pitch");
-        sbin_yaw = m->get_ptr_var<double>("sbin_yaw");
-        sbin_tx = m->get_ptr_var<double>("sbin_tx");
-        sbin_ty = m->get_ptr_var<double>("sbin_ty");
-        sbin_tz = m->get_ptr_var<double>("sbin_tz");
-        nb_spatial = sbin_tx->get_dim();
+//        t_lb = m->get_ptr_param<double>("t_lb");
+//        t_ub = m->get_ptr_param<double>("t_ub");
+//        angle_lb = m->get_ptr_param<double>("angle_lb");
+//        angle_ub = m->get_ptr_param<double>("angle_ub");
+//        cos_lb = m->get_ptr_param<double>("cos_lb");
+//        cos_ub = m->get_ptr_param<double>("cos_ub");
+//        sin_lb = m->get_ptr_param<double>("sin_lb");
+//        sin_ub = m->get_ptr_param<double>("sin_ub");
+//        x_diff = m->get_ptr_var<double>("x_diff");
+//        y_diff = m->get_ptr_var<double>("y_diff");
+//        z_diff = m->get_ptr_var<double>("z_diff");
+//        bin = m->get_ptr_var<double>("bin");
+//        sbin_roll = m->get_ptr_var<double>("sbin_roll");
+//        sbin_pitch = m->get_ptr_var<double>("sbin_pitch");
+//        sbin_yaw = m->get_ptr_var<double>("sbin_yaw");
+//        sbin_tx = m->get_ptr_var<double>("sbin_tx");
+//        sbin_ty = m->get_ptr_var<double>("sbin_ty");
+//        sbin_tz = m->get_ptr_var<double>("sbin_tz");
+//        nb_spatial = sbin_tx->get_dim();
         theta11 = m->get_ptr_var<double>("theta11"); theta12 = m->get_ptr_var<double>("theta12"); theta13 = m->get_ptr_var<double>("theta13");
         theta21 = m->get_ptr_var<double>("theta21"); theta22 = m->get_ptr_var<double>("theta22"); theta23 = m->get_ptr_var<double>("theta23");
         theta31 = m->get_ptr_var<double>("theta31"); theta32 = m->get_ptr_var<double>("theta32"); theta33 = m->get_ptr_var<double>("theta33");
@@ -106,7 +106,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=false;
+            bool mipnode=true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
@@ -528,7 +528,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
 //    grb_mod->set(GRB_IntParam_Presolve,0);
     grb_mod->set(GRB_IntParam_Threads, 1);
-    grb_mod->set(GRB_IntParam_OutputFlag,0);
+//    grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
