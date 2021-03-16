@@ -8606,6 +8606,15 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     rot_trans[9]=x_shift.eval();
     rot_trans[10]=y_shift.eval();
     rot_trans[11]=z_shift.eval();
+    if(rot_trans.size()>12){
+        auto scale_x = M->get_var<double>("scale_x");auto scale_y = M->get_var<double>("scale_y");auto scale_z = M->get_var<double>("scale_z");
+        rot_trans[12]=scale_x.eval();
+        rot_trans[13]=scale_y.eval();
+        rot_trans[14]=scale_z.eval();
+        Debug("scale_x = " << scale_x.eval() << endl);
+        Debug("scale_y = " << scale_y.eval() << endl);
+        Debug("scale_z = " << scale_z.eval() << endl);
+    }
     
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
@@ -11713,7 +11722,9 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
     bool convex = false;
     double max_time = 60;
     int max_iter = 1e6;
-    vector<double> rot_trans;
+    vector<double> rot_trans(12);
+    if(!rigid_transf)
+        rot_trans.resize(15);
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     auto nb_threads = std::thread::hardware_concurrency();
 //    nb_threads = 1;
