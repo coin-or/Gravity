@@ -528,7 +528,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
 //    grb_mod->set(GRB_IntParam_Presolve,0);
     grb_mod->set(GRB_IntParam_Threads, 1);
-//    grb_mod->set(GRB_IntParam_OutputFlag,0);
+    grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
