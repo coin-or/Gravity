@@ -11711,7 +11711,7 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
     indices N2 = range(1,point_cloud_model.size());
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 20;
+    double max_time = 60;
     int max_iter = 1e6;
     vector<double> rot_trans;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
@@ -11742,8 +11742,8 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
     }
     run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time);
     if(nb_threads>1)
-        nb_threads=2;
-    for (int i = 0; i<nb_threads; i++) {
+        nb_threads=4;
+    for (int i = 0; i<models.size(); i++) {
         if(models[i]->_status==0){
             ub = models[i]->get_obj_val();
             lb = models[i]->get_rel_obj_val();
@@ -11764,7 +11764,7 @@ vector<double> BranchBound(vector<vector<double>>& point_cloud_model, vector<vec
     
     double elapsed_time = get_wall_time() - time_start;
     double opt_gap = (best_ub - best_lb)/best_ub;
-    double max_opt_gap = 0.01;/* 1% opt gap */
+    double max_opt_gap = 0.05;/* 5% opt gap */
     while (elapsed_time < total_time_max && !lb_queue.empty() && opt_gap > max_opt_gap) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
