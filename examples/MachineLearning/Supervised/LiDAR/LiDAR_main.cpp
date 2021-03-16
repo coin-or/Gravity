@@ -837,7 +837,7 @@ int main (int argc, char * argv[])
 //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
 //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
 //            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
-            bool relax_integers = false, relax_sdp = false, rigid_transf = false;
+            bool relax_integers = false, relax_sdp = true, rigid_transf = false;
             rot_trans = BranchBound(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
 //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf,0);
 //            solver<> S(NC_SOC_MIQCP,gurobi);
