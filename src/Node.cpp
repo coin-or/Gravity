@@ -1,8 +1,6 @@
 //
 //  Node.cpp
 //  Cycle_Basis_PF
-//  adapt from power tools
-//  Created by Hassan on 17/06/2014.
 
 //
 

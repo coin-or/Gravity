@@ -2,8 +2,6 @@
     //  solver.cpp
     //  Gravity++
     //
-    //  Created by Hassan on 30/01/2015.
-
     //
 
 #include <gravity/solver.h>

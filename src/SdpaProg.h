@@ -2,7 +2,6 @@
 ////  Sdpa.h
 ////  Gravity
 ////
-////  Created by Guanglei Wang on 11/7/17.
 ////
 ////
 //

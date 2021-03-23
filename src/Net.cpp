@@ -2,7 +2,6 @@
 //  Net.cpp
 //
 //
-//  Created by Guanglei Wang on 03/06/2017.
 //
 
 #include <gravity/Net.h>

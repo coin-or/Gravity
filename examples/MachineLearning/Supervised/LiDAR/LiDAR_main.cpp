@@ -1,10 +1,6 @@
-    //
-    //  LiDAR_main.cpp
-    //  Gravity
-    //
-    //  Created by Hassan Hijazi on 3 April 2020.
-    //
-    //
+//
+//  LiDAR_main.cpp
+//
 #include <stdio.h>
 #include <gravity/solver.h>
 #ifdef USE_OPT_PARSER

@@ -1,5 +1,4 @@
 //
-// Created by Hassan on 19/11/2015.
 //
 
 #ifndef GRAVITY_CONSTANT_H

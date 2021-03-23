@@ -2,8 +2,6 @@
 //  Arc.cpp
 //  Cycle_Basis_PF
 //
-//  Created by Hassan on 18/06/2014.
-
 //
 
 #include <gravity/Arc.h>

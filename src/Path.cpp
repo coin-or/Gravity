@@ -2,7 +2,6 @@
 //  Path.cpp
 //  Cycle_Basis_PF
 //
-//  Created by Hassan on 17/06/2014.
 
 //
 

@@ -2,7 +2,6 @@
 //  Auxiliary.h
 //  Gravity
 //
-//  Created by Hassan Hijazi on 1/3/18.
 //
 //
 

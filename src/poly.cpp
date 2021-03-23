@@ -2,7 +2,6 @@
 //  poly.cpp
 //  Gravity
 //
-//  Created by Hijazi, Hassan on 25 Oct 18.
 //
 //
 #include <cmath>

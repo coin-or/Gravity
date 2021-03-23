@@ -2,7 +2,6 @@
 //  solver.h
 //  Gravity
 //
-//  Created by Hassan
 
 #ifndef __Gravity____Solver__
 #define __Gravity____Solver__

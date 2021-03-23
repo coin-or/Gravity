@@ -2,7 +2,6 @@
 //  CplexProgram.h
 //  Gravity
 //
-//  Created by Hassan Hijazi on 06/06/2017.
 //
 //
 

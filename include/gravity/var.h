@@ -2,7 +2,6 @@
 //  var.h
 //  Gravity
 //
-//  Created by Hijazi, Hassan on 21/10/16.
 //
 //
 

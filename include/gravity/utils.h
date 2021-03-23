@@ -2,7 +2,6 @@
 //  Utils.h
 //  Gravity
 //
-//  Created by Hassan on Oct 1st 2017
 //
 
 #ifndef Gravity___Utils_h

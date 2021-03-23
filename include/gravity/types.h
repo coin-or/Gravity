@@ -2,7 +2,6 @@
 //  Type.h
 //  Gravity
 //
-//  Created by Hassan on 3 Jan 2016.
 //
 
 #ifndef Gravity___Type_h

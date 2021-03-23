@@ -2,7 +2,6 @@
 ////  expr.cpp
 ////  Gravity
 ////
-////  Created by Hijazi, Hassan on 24/10/16.
 ////
 ////
 #include <cmath>

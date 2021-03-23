@@ -2,7 +2,6 @@
 ////  MosekProgram.hpp
 ////  Gravity
 ////
-////  Created by Guanglei Wang on 14/7/17.
 ////
 ////   Note mosek fusion API is designed for CONIC Optimization. 
 //

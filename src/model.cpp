@@ -2,7 +2,6 @@
 //  model.cpp
 //  Gravity
 //
-//  Created by Hijazi, Hassan.
 //
 //
 //

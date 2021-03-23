@@ -2,7 +2,6 @@
 //  var.cpp
 //  Gravity
 //
-//  Created by Hijazi, Hassan on 21/10/16.
 //
 #include <gravity/var.h>
 #include <gravity/func.h>

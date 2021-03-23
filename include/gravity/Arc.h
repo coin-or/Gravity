@@ -2,8 +2,6 @@
 //  Arc.h
 //  Cycle_Basis_PF
 //
-//  Created by Hassan on 18/06/2014.
-
 //
 
 #ifndef Cycle_Basis_PF_Arc_h

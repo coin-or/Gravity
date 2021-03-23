@@ -1,6 +1,5 @@
 //  Net.h
 //  Network
-//  Guanglei WANG
 //  Copyright (c) All rights reserved
 //
 

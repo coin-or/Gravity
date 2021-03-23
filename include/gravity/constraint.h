@@ -2,7 +2,6 @@
     //  constraint.hpp
     //  Gravity
     //
-    //  Created by Hijazi, Hassan (Data61, Canberra City) on 6/5/17.
     //
     //
 

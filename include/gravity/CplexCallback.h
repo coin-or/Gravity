@@ -2,7 +2,6 @@
 ////  CplexProgram.h
 ////  Gravity
 ////
-////  Created by Mertcan Yetkin on 20/06/2019.
 ////
 ////
 //
