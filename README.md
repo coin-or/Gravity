@@ -1,69 +1,45 @@
-[![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Build Status](https://travis-ci.org/coin-or/Gravity.svg?branch=master)](https://travis-ci.org/coin-or/Gravity)
-[![Code Coverage](https://codecov.io/gh/coin-or/gravity/branch/master/graph/badge.svg)](https://codecov.io/gh/coin-or/Gravity)
-[![download](https://img.shields.io/badge/download%20%20-latest-blue.svg)](https://github.com/coin-or/Gravity/releases)
-
-<a href="https://goo.gl/f7QLcS"><img alt="Chat on Slack" height="40" width="172" src="https://platform.slack-edge.com/img/sign_in_with_slack.png" srcset="https://platform.slack-edge.com/img/sign_in_with_slack.png 1x, https://platform.slack-edge.com/img/sign_in_with_slack@2x.png 2x" /></a>
-
-<p align="center">
-<img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
-</p>
-<H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
-
-<p align="center"> Created by Hassan Hijazi. </p>
-
-<H2 align="center"> www.gravityopt.com </H2>
 
 
+# ARMO
 
-## License
+## Supported platforms
 
-Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
+ARMO was only tested on Mac OS and Linux, no Windows support at this point.
 
-[<img 
-src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
-
-### ** Contributors **
-Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
-
-Guanglei Wang, Ksenia Bestuzheva, Carleton Coffrin, Smitha Gopinath, Mertcan Yetkin
-
-*****************************
-See [INSTALL.md](INSTALL.md) for instructions on compiling Gravity
-
-After running make, the Gravity executables can be found under Gravity/bin/
-*****************************
-
-Getting Started
------------
-First, you will need to install an IDE, I recommend to choose among the following:
-
-[<img src="media/visual_studio.jpg" width="70">](https://www.visualstudio.com/downloads/) | 
-[<img src="media/clion.jpg" width="50">](https://www.jetbrains.com/clion/) | 
-[<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) | 
-[<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
+## Compiling
 
 
-Some Numerical Results:
------------
-Performance Profile on ACOPF
------------
+ARMO will download and link to [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools).
 
-The first figure below is a performance profile illustrating percentage of instances solved as a function of time.
-The figure compares Gravity, [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index.html) and AMPL's NL interface (used by [AMPL](http://ampl.com/) and [Pyomo](http://www.pyomo.org/)) on all standard instances found in the [PGLIB](https://github.com/power-grid-lib/pglib-opf) benchmark library.
+For a faster Ipopt, preferably build it with HSL libraries and make sure to specify the path to `IPOPT_ROOT_DIR` and `LASlib_ROOT_DIR` in your `bash_profile` file, e.g.:
 
-![Performance Profile on ACOPF](https://static.wixstatic.com/media/c6cff5_9b2b29e8a33840c59902fc95ffabf3ed~mv2.png/v1/crop/x_0,y_0,w_1064,h_600/fill/w_869,h_490,al_c,usm_0.66_1.00_0.01/c6cff5_9b2b29e8a33840c59902fc95ffabf3ed~mv2.png)
+`export IPOPT_ROOT_DIR="/Users/yourname/Dev/CoinIpopt/build"`
 
-The figure below compares model build time between Gravity and [JuMP](http://www.juliaopt.org/JuMP.jl/latest/index.html) on the [PGLIB](https://github.com/power-grid-lib/pglib-opf) benchmarks.
+`export LASlib_ROOT_DIR="/Users/yourname/Dev/LAStools/LASlib"`
 
-![Model Build Time on ACOPF](https://static.wixstatic.com/media/c6cff5_27ee822625f24072b01110748c6f3923~mv2.jpg)
+To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
------------
-Performance Profile on Inverse Ising Model
------------
+Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command (If you're having trouble with the installation, follow the steps described in [here](https://github.com/coin-or/Gravity/blob/LiDAR/.travis.yml)):
 
+For Registration:
 
-![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
 
+or 
 
-Click [here](www.gravityopt.com) for more details.
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
+
+or
+
+`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt GoICP` (This will run the Go-ICP algorithm)
+
+For Boresight Alignment:
+
+`Gravity/bin/Release/lidar Align /path_to_Cars_model.txt /path_to_Cars_data.txt /path_to_Cars_model_sub.txt /path_to_Cars_data_sub.txt`
+
+The first two command line arguments should point to the full point clouds, the second two should point to the subsampled point clouds.
+
+Datasets can be downloaded [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_402c21969b5d4bc49a340f97607027b1.zip) (full point clouds) and [here](https://c6cff554-9579-44a7-959e-fab75fd5d22a.usrfiles.com/archives/c6cff5_e271c09cc9824d0686aed597678615ec.zip) (subsampled point clouds)
+
+## Go-ICP
+ARMO includes the source code of [Go-ICP](https://github.com/yangjiaolong/Go-ICP) for comparison purposes.

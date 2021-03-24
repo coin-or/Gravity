@@ -18,14 +18,6 @@ if (Matplot)
  add_definitions(-DUSE_MATPLOT)
  find_package(Python3 COMPONENTS Development NumPy)
 endif()
-#set(Eigen_DIR "/opt/local/include/eigen3")
-#set(PCL_DIR "/Users/l297598/Utils/pcl/build")
-#find_package(PCL 1.3 REQUIRED COMPONENTS common features)
-#include_directories(${PCL_INCLUDE_DIRS})
-#message("PCL include dir: ${PCL_INCLUDE_DIRS}")
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
-#add_definitions(-DUSE_PCL)
 
 # Find GUROBI (optional)
 option(Gurobi "Link to GUROBI libraries" OFF)
@@ -78,31 +70,29 @@ if (OpenMPI)
     message("Compilers used: ${CMAKE_C_COMPILER} and ${CMAKE_CXX_COMPILER}")
     message(STATUS "Enable OpenMPI")
     add_definitions(-DUSE_MPI)
-#   find_package(OpenMPI REQUIRED)
-#   include_directories(${OpenMPI_INCLUDE_DIRS})
-#   set(LIBS ${LIBS} ${OpenMPI_LIBRARIES})
 endif()
 
-
-# Find LASlib.
-if (LASlib)
-        message(STATUS "Enable LASlib")
-        add_definitions(-DUSE_LASlib)
-        find_package(LASlib REQUIRED)
-        include_directories(${LASlib_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${LASlib_LIBRARIES})
-endif()
 
 
 # Find Ipopt.
 if (Ipopt)
-	message(STATUS "Enable IPOPT")
-	add_definitions(-DUSE_IPOPT)
-	find_package(IPOPT REQUIRED)
-	include_directories(${IPOPT_INCLUDE_DIRS}/..)
-	set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+message(STATUS "Enable IPOPT")
+add_definitions(-DUSE_IPOPT)
+find_package(IPOPT QUIET)
+if (IPOPT_FOUND)
+ message("-- Found IPOPT: ${IPOPT_INCLUDE_DIRS}")
+ include_directories(${IPOPT_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+else(IPOPT_FOUND)
+set(ADD_IPOPT TRUE)
+if(APPLE)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.dylib)
+elseif(UNIX)
+ set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
+endif(APPLE)
+ include(ExternalIpopt)
+endif (IPOPT_FOUND)
 endif()
-
 # Find xlnt
 if (Xlnt)
 	message(STATUS "Enable XLNT")
@@ -257,6 +247,21 @@ else(VORO_FOUND)
 endif()
 endif()
 
+if (LASlib)
+message(STATUS "Enable LASlib")
+add_definitions(-DUSE_LASlib)
+find_package(LASlib QUIET)
+if (LASlib_FOUND)
+ message("-- Found LASlib: ${LASlib_INCLUDE_DIRS}")
+ include_directories(${LASlib_INCLUDE_DIRS})
+ set(LIBS ${LIBS} ${LASlib_LIBRARIES})
+else(LASlib_FOUND)
+ set(ADD_LASlib TRUE)
+ message(STATUS "Will download LASlib library from https://github.com/LAStools/LAStools")
+ include(ExternalLASTOOLS)
+ set(LASlib_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/lastools/LASlib/lib/liblas.a)
+endif()
+endif()
 
 # cpp_option_parser
 if (OPT_PARSER)
@@ -288,13 +293,9 @@ set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
 # Inlude dir
 include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
-# Include Power dirs
-include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
-include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
-# Include ML dirs
-include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
-include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/LiDAR/LASlib)
+# Include ARMO dirs
+include_directories(${PROJECT_SOURCE_DIR}/ARMO)
 
 set(LIBS ${LIBS} ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/lib/Release ${PROJECT_SOURCE_DIR}/lib/Debug)
 # Compiler options
@@ -328,8 +329,7 @@ endif()
 
 
 add_subdirectory(src)
-add_subdirectory(examples)
-add_subdirectory(solvers)
+add_subdirectory(ARMO)
 
 #Get user defined configuration including passing project source directory into c++ code
 configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)
