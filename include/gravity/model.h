@@ -25,15 +25,15 @@
 #endif
 #ifdef USE_IPOPT
 #define HAVE_STDDEF_H
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpTNLP.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpTNLP.hpp>
 #undef HAVE_STDDEF_H
 #endif
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
 #endif
 #ifdef USE_BONMIN
-#include <coin/BonTMINLP.hpp>
+#include <BonTMINLP.hpp>
 #endif
 
 using namespace std;

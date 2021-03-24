@@ -8,8 +8,8 @@
 #include <mutex>
 
 #ifdef USE_BONMIN
-#include <coin/BonBonminSetup.hpp>
-#include <coin/BonCbc.hpp>
+#include <BonBonminSetup.hpp>
+#include <BonCbc.hpp>
 #endif
 using namespace gravity;
 using namespace std;

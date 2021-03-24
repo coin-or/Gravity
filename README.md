@@ -6,36 +6,48 @@
 
 ARMO was only tested on Mac OS and Linux, no Windows support at this point.
 
+## Dependencies
+
+ARMO's only dependency is [Cmake](https://cmake.org/) 3.2 or higher and a C++ compiler.
+
+
 ## Compiling
 
 
 ARMO will download and link to [Ipopt](https://github.com/coin-or/Ipopt) and [LASlib](https://github.com/LAStools/LAStools).
 
-For a faster Ipopt, preferably build it with HSL libraries and make sure to specify the path to `IPOPT_ROOT_DIR` and `LASlib_ROOT_DIR` in your `bash_profile` file, e.g.:
+For a faster Ipopt, preferably build it with HSL libraries and make sure to specify the path to `IPOPT_ROOT_DIR` in your `bash_profile` file, e.g.:
 
 `export IPOPT_ROOT_DIR="/Users/yourname/Dev/CoinIpopt/build"`
 
-`export LASlib_ROOT_DIR="/Users/yourname/Dev/LAStools/LASlib"`
-
 To run the MIQCPs with [Gurobi](http://www.gurobi.com), please install it on your system first.
 
-Then, simply follow the instructions to compile Gravity [here](https://github.com/coin-or/Gravity/blob/master/INSTALL.md) then run using the following command (If you're having trouble with the installation, follow the steps described in [here](https://github.com/coin-or/Gravity/blob/LiDAR/.travis.yml)):
+Then enter:
+`mkdir build`
+`cd build`
+`cmake -DGurobi=ON ..` if Gurobi is installed in your system otherwise just enter:
+`cmake ..`
+
+Finally enter:
+`make -j4`
+
+## Running
 
 For Registration:
 
-`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
+`Gravity/bin/Release/ARMO Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global` (This will run the nonconvex MIQCP model)
 
 or 
 
-`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
+`Gravity/bin/Release/ARMO Reg /path_to_toy_model.txt /path_to_toy_data.txt ARMO global convex` (This will run the convex MIQCP relaxation model)
 
 or
 
-`Gravity/bin/Release/lidar Reg /path_to_toy_model.txt /path_to_toy_data.txt GoICP` (This will run the Go-ICP algorithm)
+`Gravity/bin/Release/ARMO Reg /path_to_toy_model.txt /path_to_toy_data.txt GoICP` (This will run the Go-ICP algorithm)
 
 For Boresight Alignment:
 
-`Gravity/bin/Release/lidar Align /path_to_Cars_model.txt /path_to_Cars_data.txt /path_to_Cars_model_sub.txt /path_to_Cars_data_sub.txt`
+`Gravity/bin/Release/ARMO Align /path_to_Cars_model.txt /path_to_Cars_data.txt /path_to_Cars_model_sub.txt /path_to_Cars_data_sub.txt`
 
 The first two command line arguments should point to the full point clouds, the second two should point to the subsampled point clouds.
 
