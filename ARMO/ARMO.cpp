@@ -1046,12 +1046,12 @@ shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cl
             //        auto new_yaw_max = std::atan2(R21,R11);
             //        auto new_roll_max = std::atan2(-1*R31, std::sqrt(R32*R32+R33*R33));
         
-        auto go_icp_max_dist = get_GoICP_dist(roll_max, shift_max_x, point_cloud_data[i], false);
+//        auto go_icp_max_dist = get_GoICP_dist(roll_max, shift_max_x, point_cloud_data[i], false);
             //        DebugOn("SDP max dist = " << to_string_with_precision(max_sdp, 6) << endl);
             //        auto max_dist = get_max_dist(-new_roll_max, new_roll_max, -new_pitch_max, new_pitch_max, -new_yaw_max, new_yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
         
             //        lower_bound += std::max(0.,error_per_point[i] - max_dist);
-        go_icp_lb += std::max(0.,error_per_point[i] - go_icp_max_dist);
+//        go_icp_lb += std::max(0.,error_per_point[i] - go_icp_max_dist);
             //        SDP_lb += std::max(0.,error_per_point[i] - max_sdp);
             //        mid_point_lb.set_val(i,std::max(0.,error_per_point[i] - max_dist));
         x_range->first = x_range->first + y_range->first + z_range->first;
@@ -2000,12 +2000,12 @@ shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cl
             //        auto new_yaw_max = std::atan2(R21,R11);
             //        auto new_roll_max = std::atan2(-1*R31, std::sqrt(R32*R32+R33*R33));
         
-        auto go_icp_max_dist = get_GoICP_dist(roll_max, shift_max_x, point_cloud_data[i], false);
+//        auto go_icp_max_dist = get_GoICP_dist(roll_max, shift_max_x, point_cloud_data[i], false);
             //        DebugOn("SDP max dist = " << to_string_with_precision(max_sdp, 6) << endl);
             //        auto max_dist = get_max_dist(-new_roll_max, new_roll_max, -new_pitch_max, new_pitch_max, -new_yaw_max, new_yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
         
             //        lower_bound += std::max(0.,error_per_point[i] - max_dist);
-        go_icp_lb += std::max(0.,error_per_point[i] - go_icp_max_dist);
+//        go_icp_lb += std::max(0.,error_per_point[i] - go_icp_max_dist);
             //        SDP_lb += std::max(0.,error_per_point[i] - max_sdp);
             //        mid_point_lb.set_val(i,std::max(0.,error_per_point[i] - max_dist));
         auto xlb = x_range->first + y_range->first + z_range->first + x_shift.get_lb().eval();
@@ -3622,7 +3622,7 @@ vector<double> run_MISDP(vector<vector<double>>& point_cloud_model, vector<vecto
     Reg->print_solution();
     vector<double> rot(9);
     vector<int> matching(n1);
-    bool is_rotation = get_solution_rot(Reg, rot, matching);
+//    bool is_rotation = get_solution_rot(Reg, rot, matching);
     return rot;
 }
 
