@@ -11,9 +11,9 @@ file(GLOB ARMO_HEADERS ${PROJECT_SOURCE_DIR}/ARMO/*.hpp)
 file(GLOB ARMO_SOURCES ${PROJECT_SOURCE_DIR}/ARMO/*.cpp)
 
 
-if (NOT Matplot)
-  list(REMOVE_ITEM HEADERS ${PROJECT_INCLUDE_DIR}/matplotlibcpp.h)
-endif()
+#if (NOT Matplot)
+#  list(REMOVE_ITEM HEADERS ${PROJECT_INCLUDE_DIR}/matplotlibcpp.h)
+#endif()
 
 add_executable(ARMO ${ARMO_SOURCES} ${ARMO_HEADERS})
 target_link_libraries(ARMO gravity)
