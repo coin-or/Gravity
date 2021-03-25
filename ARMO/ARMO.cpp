@@ -106,9 +106,9 @@ int main (int argc, char * argv[])
         }
         data_nb_rows=point_cloud_data.size();
         model_nb_rows=point_cloud_model.size();
-        int reduced_nb_data = std::min(data_nb_rows, 50);
-        int reduced_nb_model = std::min(model_nb_rows, 500);
-        bool subsample = model_nb_rows>200;
+        int reduced_nb_data = std::min(data_nb_rows, 80);
+        int reduced_nb_model = std::min(model_nb_rows, 300);
+        bool subsample = model_nb_rows>50;
         if (subsample) {
             model_nb_rows = reduced_nb_model;
             data_nb_rows = reduced_nb_data;
@@ -253,7 +253,7 @@ int main (int argc, char * argv[])
             double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
             /* Use wider bounds for small instances */
             if(initial_point_cloud_model.size()<100){
-                yaw_min = -120*pi/180.; yaw_max = 120*pi/180.; pitch_min =-120*pi/180.; pitch_max = 120*pi/180.; roll_min =-120*pi/180.; roll_max=120*pi/180.;
+                yaw_min = -110*pi/180.; yaw_max = 110*pi/180.; pitch_min =-110*pi/180.; pitch_max = 110*pi/180.; roll_min =-110*pi/180.; roll_max=110*pi/180.;
             }
             /* Check if 2D data */
             bool fixed_x = bounds[0].second - bounds[0].first < 1e-6;
