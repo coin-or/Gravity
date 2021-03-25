@@ -5,8 +5,8 @@
 ## Supported platforms and Dependencies
 
 We provide a copy of the open-source code of ARMO for review purposes.
-ARMO was only tested on Mac OS and Linux. ARMO's only dependency is \href{https://cmake.org/}{Cmake} 3.2 or higher and a C++ compiler.
-ARMO includes \href{https://github.com/yangjiaolong/Go-ICP}{Go-ICP} for comparison purposes.
+ARMO was only tested on Mac OS and Linux. ARMO's only dependency is [Cmake](https://cmake.org/) 3.2 or higher and a C++ compiler.
+ARMO includes [Go-ICP](https://github.com/yangjiaolong/Go-ICP) for comparison purposes.
 
 ## Compiling
 
@@ -50,6 +50,6 @@ For Boresight Alignment:
 `Gravity/bin/Release/ARMO Align /path_to_Cars_model.txt /path_to_Cars_data.txt /path_to_Cars_model_sub.txt /path_to_Cars_data_sub.txt`
 
 The first two command line arguments should point to the full point clouds, the second two should point to the subsampled point clouds.
-Once finsihed, ARMO will produce LAZ files that can be visualized online at [plas.io](https://plas.io/).
+Once finsihed, ARMO will produce LAZ files (in the same directory of the input files) that can be visualized online at [plas.io](https://plas.io/).
 
 Datasets can be found under the `datasets` directory
