@@ -107,8 +107,8 @@ int main (int argc, char * argv[])
         data_nb_rows=point_cloud_data.size();
         model_nb_rows=point_cloud_model.size();
         int reduced_nb_data = std::min(data_nb_rows, 50);
-        int reduced_nb_model = std::min(model_nb_rows, 100);
-        bool subsample = false;
+        int reduced_nb_model = std::min(model_nb_rows, 500);
+        bool subsample = model_nb_rows>200;
         if (subsample) {
             model_nb_rows = reduced_nb_model;
             data_nb_rows = reduced_nb_data;
