@@ -33,9 +33,9 @@ before_install:
 - echo $LC_ALL
 - mkdir build && cd build && cmake .. -DIpopt=ON -DCov=ON -DDebug=ON
 script:
-- make lidar
-- ../bin/Debug/lidar Reg ../data_sets/LiDAR/toy_model.txt ../data_sets/LiDAR/toy_data.txt GoICP
-- ../bin/Debug/lidar Reg ../data_sets/LiDAR/toy_model.txt ../data_sets/LiDAR/toy_data.txt ARMO IPH
+- make
+- ../bin/Debug/ARMO Reg ../data_sets/Registration/toy_model.txt ../data_sets/Registration/toy_data.txt GoICP
+- ../bin/Debug/ARMO Reg ../data_sets/Registration/toy_model.txt ../data_sets/Registration/toy_data.txt
 - cd ../
 - ./get_code_cov.sh
 after_success: 
