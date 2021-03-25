@@ -106,9 +106,9 @@ int main (int argc, char * argv[])
         }
         data_nb_rows=point_cloud_data.size();
         model_nb_rows=point_cloud_model.size();
-        int reduced_nb_data = 50;
-        int reduced_nb_model = 50;
-        bool subsample = false;
+        int reduced_nb_data = std::min(data_nb_rows, 30);
+        int reduced_nb_model = std::min(model_nb_rows, 100);
+        bool subsample = true;
         if (subsample) {
             model_nb_rows = reduced_nb_model;
             data_nb_rows = reduced_nb_data;
@@ -229,7 +229,9 @@ int main (int argc, char * argv[])
         tuple<double,double,double,double,double,double,double> res_icp;
         tuple<double,double,double,double,double,double> res, res1, res2;
         vector<int> L2matching(data_nb_rows), L1matching(data_nb_rows);
+        vector<int> full_L2matching(initial_point_cloud_data.size()), full_L1matching(initial_point_cloud_data.size());
         vector<double> L2err_per_point(data_nb_rows), L1err_per_point(data_nb_rows);
+        vector<double> full_L2err_per_point(initial_point_cloud_data.size()), full_L1err_per_point(initial_point_cloud_data.size());
         auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,L2matching,L2err_per_point);
         DebugOn("Initial L2 = " << L2error_init << endl);
         
@@ -248,7 +250,7 @@ int main (int argc, char * argv[])
             double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
             /* Use wider bounds for small instances */
             if(data_nb_rows<100){
-                shift_min_x =  -0.25; shift_max_x = 0.25; shift_min_y = -0.25; shift_max_y = 0.25; shift_min_z = -0.25; shift_max_z = 0.25;
+//                shift_min_x =  -0.25; shift_max_x = 0.25; shift_min_y = -0.25; shift_max_y = 0.25; shift_min_z = -0.25; shift_max_z = 0.25;
                 yaw_min = -120*pi/180.; yaw_max = 120*pi/180.; pitch_min =-120*pi/180.; pitch_max = 120*pi/180.; roll_min =-120*pi/180.; roll_max=120*pi/180.;
             }
             /* Check if 2D data */
@@ -289,10 +291,8 @@ int main (int argc, char * argv[])
             indices N1 = range(1,point_cloud_data.size());
             indices N2 = range(1,point_cloud_model.size());
             indices valid_cells("valid_cells");
-            
-            bool use_features = false;
             valid_cells = indices(N1,N2);
-            bool preprocess = false, nonprop_scale = non_prop_scaling=="scale";
+            bool preprocess = true, nonprop_scale = non_prop_scaling=="scale";
             if(preprocess){
                 double scale = 1;
                 if(nonprop_scale)
@@ -306,7 +306,7 @@ int main (int argc, char * argv[])
             vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
             bool convex = false, relax_integers = false, relax_sdp = false;
             auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, nonprop_scale, perc_outliers);
-            double time_limit = 120;
+            double time_limit = 300;
 #ifdef USE_GUROBI
             solver<> S(NC_SOC_MIQCP,gurobi);
             S.use_callback();
@@ -326,8 +326,8 @@ int main (int argc, char * argv[])
             DebugOn("L2 before optimization = " << to_string_with_precision(L2error_init,12) << endl);
             auto L2error_final = computeL2error(point_cloud_model,point_cloud_data,L2matching,L2err_per_point);
             auto L1error_final = computeL1error(point_cloud_model,point_cloud_data,L1matching,L1err_per_point);
-            auto L2error_final_full = computeL2error(initial_point_cloud_model,initial_point_cloud_data,L2matching,L2err_per_point);
-            auto L1error_final_full = computeL1error(initial_point_cloud_model,initial_point_cloud_data,L1matching,L1err_per_point);
+            auto L2error_final_full = computeL2error(initial_point_cloud_model,initial_point_cloud_data,full_L2matching,full_L2err_per_point);
+            auto L1error_final_full = computeL1error(initial_point_cloud_model,initial_point_cloud_data,full_L1matching,full_L1err_per_point);
             DebugOn("L2 after optimization on downsampled = " << to_string_with_precision(L2error_final,12) << endl);
             DebugOn("L1 after optimization on downsampled = " << to_string_with_precision(L1error_final,12) << endl);
             DebugOn("L2 after optimization on full set = " << to_string_with_precision(L2error_final_full,12) << endl);
