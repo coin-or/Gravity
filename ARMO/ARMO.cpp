@@ -249,7 +249,7 @@ int main (int argc, char * argv[])
             double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
             double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
             /* Use wider bounds for small instances */
-            if(initial_point_cloud_data.size()<100){
+            if(initial_point_cloud_model.size()<100){
                 yaw_min = -120*pi/180.; yaw_max = 120*pi/180.; pitch_min =-120*pi/180.; pitch_max = 120*pi/180.; roll_min =-120*pi/180.; roll_max=120*pi/180.;
             }
             /* Check if 2D data */
