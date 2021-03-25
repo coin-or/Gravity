@@ -108,7 +108,7 @@ int main (int argc, char * argv[])
         model_nb_rows=point_cloud_model.size();
         int reduced_nb_data = std::min(data_nb_rows, 50);
         int reduced_nb_model = std::min(model_nb_rows, 100);
-        bool subsample = true;
+        bool subsample = false;
         if (subsample) {
             model_nb_rows = reduced_nb_model;
             data_nb_rows = reduced_nb_data;
@@ -119,6 +119,9 @@ int main (int argc, char * argv[])
         center_point_cloud(point_cloud_data);
         center_point_cloud(initial_point_cloud_model);
         center_point_cloud(initial_point_cloud_data);
+#ifdef USE_MATPLOT
+            plot(initial_point_cloud_model,initial_point_cloud_data,1);
+#endif
 #ifdef USE_VORO
         container model_con(x_min,x_max,y_min,y_max,z_min,z_max,10,10,10,false,false,false,8);
         for (int i = 0; i< model_nb_rows; i++) { // Input iterator
@@ -310,6 +313,7 @@ int main (int argc, char * argv[])
             solver<> S(NC_SOC_MIQCP,gurobi);
             S.use_callback();
             S.run(5,1e-6,time_limit,1000);
+            NC_SOC_MIQCP->print_solution();
 #else
             DebugOn("WARNING: this version was compiled without Gurobi, please install Gurobi and rerun cmake.\n");
             return 0;
