@@ -108,7 +108,7 @@ int main (int argc, char * argv[])
         model_nb_rows=point_cloud_model.size();
         int reduced_nb_data = 50;
         int reduced_nb_model = 50;
-        bool subsample = true;
+        bool subsample = false;
         if (subsample) {
             model_nb_rows = reduced_nb_model;
             data_nb_rows = reduced_nb_data;
