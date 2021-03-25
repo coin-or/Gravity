@@ -14,7 +14,9 @@ ExternalProject_Add(lastools
 
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DLASTOOLS_ROOT_DIR:PATH=${LASTOOLS_ROOT_DIR}")
 set(LASlib_INCLUDE_DIRS ${LASTOOLS_ROOT_DIR}/LASlib/inc)
+set(LASlib_INCLUDE_DIRS2 ${LASTOOLS_ROOT_DIR}/LASzip/src)
 include_directories(${LASlib_INCLUDE_DIRS})
+include_directories(${LASlib_INCLUDE_DIRS2})
 find_library(LASlib_LIBRARY1
         liblas.a
         HINTS /usr/local/lib
