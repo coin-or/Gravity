@@ -1,9 +1,10 @@
 set(IPOPT_ROOT_DIR "$ENV{IPOPT_ROOT_DIR}" CACHE PATH "IPOPT root directory.")
 message("Looking for Ipopt in ${IPOPT_ROOT_DIR}")
 
-
+if(WIN32)
+else()
 find_path(IPOPT_INCLUDE_DIR
-	NAMES IpNLP.hpp 
+	NAMES IpNLP.pp 
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include
@@ -25,7 +26,6 @@ find_library(IPOPT_LIBRARY
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 )
 endif()
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_INCLUDE_DIR)
 
@@ -41,3 +41,5 @@ else (IPOPT_FOUND)
 endif(IPOPT_FOUND)
 
 mark_as_advanced(IPOPT_LIBRARY IPOPT_INCLUDE_DIR)
+endif(WIN32)
+

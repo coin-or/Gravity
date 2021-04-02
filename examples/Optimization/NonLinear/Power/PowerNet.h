@@ -149,7 +149,7 @@ public:
     std::vector<Gen*> _conting_gens;
     
     /** Set of line contingencies */
-    std::vector<Arc*> _conting_lines;
+    std::vector<Line*> _conting_lines;
     
     
     /** Set of all PV generators */

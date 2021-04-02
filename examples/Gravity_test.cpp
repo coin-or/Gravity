@@ -22,7 +22,7 @@
 using namespace std;
 using namespace gravity;
 
-
+#ifdef USE_MP
 TEST_CASE("testing readNL() function on ex4.nl") {
     Model<> M;
     string NL_file = string(prj_dir)+"/data_sets/NL/ex4.nl";
@@ -49,7 +49,7 @@ TEST_CASE("testing readNL() function on waterlund32.nl") {
     M.restructure();
     DebugOn("Done Restructuring!");
 }
-
+#endif
 
 TEST_CASE("testing param, var anf func copy operators") {
     indices ids("ids");

@@ -6549,6 +6549,7 @@ namespace gravity {
 template <typename type>
 template<typename T,typename std::enable_if<is_arithmetic<T>::value>::type*>
 int Model<type>::readNL(const string& fname){    
+#ifdef USE_MP
     mp::Problem p;
     mp::ReadNLFile(fname, p);
     auto nb_vars = p.num_vars();
@@ -6739,7 +6740,7 @@ int Model<type>::readNL(const string& fname){
     DebugOn("Number of non linear constraints = " << nb_nonlin << endl);
     DebugOn("Number of sparsity degrees for linear constraints = " << constr_sparsity.size() << endl);
 
-    
+#endif
     return 0;
 }
     

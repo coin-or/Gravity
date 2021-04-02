@@ -160,7 +160,7 @@ get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
-
+if(!WIN32)
 include(ExternalProject)
 #CoinUtils
 if (CoinUtils)
@@ -200,8 +200,23 @@ else(MP_FOUND)
 endif()
 endif()
 
-
+endif()
 #Ipopt
+if(WIN32)
+add_definitions(-DUSE_IPOPT)
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
+add_subdirectory(thirdparty/Ipopt)
+# find_library(IPOPT_LIBRARIES 
+#     ipopt.dll
+# 	HINTS /usr/local/lib
+# 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
+# 	HINTS ${IPOPT_ROOT_DIR}/lib
+# )
+FIND_LIBRARY(IPOPT_LIBRARIES NAMES libipopt-3 PATHS "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
+set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
+#set(IPOPT_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/Ipopt/libIPOPT_LIBRARIES.a)
+else()
 if (Ipopt)
 message(STATUS "Enable IPOPT")
 add_definitions(-DUSE_IPOPT)
@@ -220,7 +235,9 @@ endif(APPLE)
  include(ExternalIpopt)
 endif (IPOPT_FOUND)
 endif()
+endif()
 # Eigen
+if(!WIN32)
 find_package(Eigen QUIET)
 if (EIGEN_FOUND)
  message("-- Found Eigen version ${EIGEN_VERSION}: ${EIGEN_INCLUDE_DIRS}")
@@ -231,7 +248,7 @@ else(EIGEN_FOUND)
  set(ADD_EIGEN TRUE)
 endif (EIGEN_FOUND)
 include_directories(${EIGEN_INCLUDE_DIR})
-
+endif()
 # cpp_option_parser
 if (OPT_PARSER)
 	set(OPT_PARSER_VERSION v1.0)
@@ -264,7 +281,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
-include_directories(${PROJECT_SOURCE_DIR}/solvers)
+# include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
 # Include ML dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
@@ -304,7 +321,7 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(solvers)
+# add_subdirectory(solvers)
 
 #Get user defined configuration including passing project source directory into c++ code
 configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)

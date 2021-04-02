@@ -17,7 +17,7 @@
 #endif
 #ifdef USE_IPOPT
 #include <gravity/IpoptProgram.h>
-//#include "IpoptInterfaceCommon.h"
+// #include "IpoptInterfaceCommon.h"
 #include <IpRegOptions.hpp>
 #include <IpJournalist.hpp>
 #include <IpIpoptApplication.hpp>
@@ -29,7 +29,9 @@
 
 using Ipopt::IsValid;
 using Ipopt::RegisteredOption;
+using Ipopt::RegisteredOptions;
 using Ipopt::EJournalLevel;
+using Ipopt::OptionsList;
 using Ipopt::Journal;
 using Ipopt::IpoptApplication;
 using Ipopt::SmartPtr;
@@ -121,6 +123,7 @@ namespace gravity {
             if (_stype==ipopt) {
 #ifdef USE_IPOPT
                 _model->replace_integers();
+                //  SmartPtr<IpoptApplication> iapp;
                 SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
                 iapp->RethrowNonIpoptException(true);
                 ApplicationReturnStatus status = iapp->Initialize();

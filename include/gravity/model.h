@@ -5,7 +5,7 @@
 //  Created by Hijazi, Hassan
 //
 //
-
+#define M_PI		3.14159265358979323846
 #ifndef model_hpp
 #define model_hpp
 
@@ -35,12 +35,16 @@
 #ifdef USE_BONMIN
 #include <BonTMINLP.hpp>
 #endif
+#ifdef USE_MP
 #include "mp/nl.h"
 #include "mp/problem.h"
+#include "mp/expr-visitor.h"
+#endif
+#ifdef USE_CoinUtils
 #include "CoinMpsIO.hpp"
 #include "CoinFileIO.hpp"
 #include "CoinModel.hpp"
-#include "mp/expr-visitor.h"
+#endif
 
 using namespace std;
 
@@ -7628,7 +7632,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
             return _obj->eval(c,i,j);
         }
-        
+#ifdef USE_CoinUtils
         int readMPS(const string& fname){
                 //string mps_file = "/Users/l297598/Downloads/fhnw-binpack4-58.mps", gms_file="/Users/l297598/Downloads/nvs24.gms";
             CoinMpsIO m;
@@ -7680,6 +7684,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             delete handler_;
             return status;
         }
+#endif
 
         template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
         int readNL(const string& fname);
@@ -7832,7 +7837,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         res.update_vars();
         return res;
     }
-
+#ifdef USE_MP
     // Converter of optimization problems from NL to Gravity format.
     class MPConverter : public mp::ExprVisitor<MPConverter, func<>> {
     public:
@@ -7952,7 +7957,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
 //        }
     };
 
-
+#endif
 
     
 }

@@ -56,6 +56,7 @@ endif()
 
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
+if(!WIN32)
 if(ADD_MP)
  add_dependencies(gravity mp)
 endif()
@@ -68,14 +69,21 @@ endif(ADD_EIGEN)
 if(ADD_IPOPT)
  add_dependencies(gravity ipopt)
 endif(ADD_IPOPT)
+endif()
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a ${MP_LIBRARY} ${CoinUtils_LIBRARY})
 endif()
 
 if(NOT OPT_PARSER)
+set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} ${MP_LIBRARY} ${CoinUtils_LIBRARY})
 endif()
+
+file(GLOB Power_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.cpp)
+add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
+LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/thirdparty/Ipopt)
+target_link_libraries(gravity_test gravity)
 
 if(Cov)
   set_target_properties(gravity

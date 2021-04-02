@@ -5,6 +5,17 @@ unset(IPOPT_HOME)
 
 # Download and build the IPOPT library and add its properties to the third party arguments.
 set(IPOPT_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build CACHE INTERNAL "")
+if(WIN32)
+ExternalProject_Add(ipopt
+    DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
+    DOWNLOAD_COMMAND curl -k -L ${IPOPT_DOWNLOAD_URL} -o Ipopt.tar.gz && tar -xzf Ipopt.tar.gz && rmdir ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && move Ipopt-3.12.13 ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && cd ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && mkdir build && cd ./ThirdParty/Mumps && ./get.Mumps && cd ../../build && ../configure --prefix=${IPOPT_ROOT_DIR} && make install -j24
+    URL ${IPOPT_DOWNLOAD_URL}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+else()
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
     DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && curl -k -L ${IPOPT_DOWNLOAD_URL} -o Ipopt.tar.gz && tar -xzf Ipopt.tar.gz && rm -fr ./Install/ipopt && mv Ipopt-3.12.13 ./Install/ipopt && cd ./Install/ipopt && mkdir build && cd ./ThirdParty/Mumps && export HTTP_PROXY=$ENV{HTTP_PROXY} && ./get.Mumps && cd ../../build && ../configure --prefix=${IPOPT_ROOT_DIR} && make install -j24
@@ -14,7 +25,7 @@ ExternalProject_Add(ipopt
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-
+endif()
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DIPOPT_ROOT_DIR:PATH=${IPOPT_ROOT_DIR}")
 set(IPOPT_INCLUDE_DIRS ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/include/coin)
 include_directories(${IPOPT_INCLUDE_DIRS})

@@ -448,7 +448,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     
@@ -467,7 +467,7 @@ public:
             }
             iter++;
         }
-        
+        return -1; 
     }
     
     type eval_lterm_cont_coef(int i) const{
@@ -513,6 +513,7 @@ public:
             }
             iter++;
         }
+        return 0;
     }
     
     type eval_lterm_int_coef(int i) const{
@@ -549,6 +550,7 @@ public:
             }
             iter++;
         }
+        return 0;
     }
         
     
