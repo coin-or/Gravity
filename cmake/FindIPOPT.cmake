@@ -2,7 +2,7 @@ set(IPOPT_ROOT_DIR "$ENV{IPOPT_ROOT_DIR}" CACHE PATH "IPOPT root directory.")
 message("Looking for Ipopt in ${IPOPT_ROOT_DIR}")
 
 find_path(IPOPT_INCLUDE_DIR
-	NAMES IpNLP.pp 
+	NAMES IpNLP.hpp 
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include
@@ -19,12 +19,12 @@ find_library(IPOPT_LIBRARY
 
 find_library(IPOPT_LIBRARY2
 	libipopt-3.dll
+	# libpynumero_ASL.dll.a
 	HINTS /usr/local/lib
-	HINTS "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt"
+	HINTS ${PROJECT_SOURCE_DIR}/bin/Release
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
-)
-# libpynumero_ASL.dll.a
+) 
 
 elseif(APPLE)
 find_library(IPOPT_LIBRARY 

@@ -205,7 +205,7 @@ endif()
 if(WIN32)
 # include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
-# add_subdirectory("thirdparty/Ipopt/include/coin-or")
+# add_subdirectory(thirdparty/Ipopt)
 # find_library(IPOPT_LIBRARIES 
 #     ipopt.dll
 # 	HINTS /usr/local/lib
@@ -228,7 +228,7 @@ if(APPLE)
 elseif(UNIX)
  set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
 elseif(WIN32) 
- set(IPOPT_LIBRARIES "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt-3.lib")
+ set(IPOPT_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt-3.lib)
 endif(APPLE)
 include(ExternalIpopt)
 endif (IPOPT_FOUND)

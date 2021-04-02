@@ -8,7 +8,7 @@ set(IPOPT_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build CACHE INTERNAL
 if(WIN32)
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-windows-64.tar.gz && tar -xzf idaes-solvers-windows-64.tar.gz -C ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
+    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-windows-64.tar.gz -o idaes-solvers-windows-64.tar.gz && tar -xvzf idaes-solvers-windows-64.tar.gz -C ${PROJECT_SOURCE_DIR}/bin/Release
     URL ${IPOPT_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
     CONFIGURE_COMMAND ""

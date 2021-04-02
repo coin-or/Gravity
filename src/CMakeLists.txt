@@ -72,7 +72,7 @@ endif(ADD_IPOPT)
 endif()
 if(OPT_PARSER)
 add_dependencies(gravity opt_parser)
-target_link_libraries(gravity ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a ${MP_LIBRARY} ${CoinUtils_LIBRARY})
+target_link_libraries(gravity ${IPOPT_DLL} ${CPLEX_LIBRARIES} ${GUROBI_LIBRARIES} ${IPOPT_LIBRARIES} ${BONMIN_LIBRARIES} ${SDPA_LIBRARIES} ${MOSEK_LIBRARIES} ${XLNT_LIBRARIES} ${OpenMPI_LIBRARIES} liboption_parser.a ${MP_LIBRARY} ${CoinUtils_LIBRARY})
 endif()
 
 if(NOT OPT_PARSER)
