@@ -8,7 +8,7 @@ set(IPOPT_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build CACHE INTERNAL
 if(WIN32)
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND curl -k -L ${IPOPT_DOWNLOAD_URL} -o Ipopt.tar.gz && tar -xzf Ipopt.tar.gz && rmdir ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && move Ipopt-3.12.13 ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && cd ${THIRDPARTY_INSTALL_PATH}/Install/ipopt && mkdir build && cd ./ThirdParty/Mumps && ./get.Mumps && cd ../../build && ../configure --prefix=${IPOPT_ROOT_DIR} && make install -j24
+    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-windows-64.tar.gz && tar -xzf idaes-solvers-windows-64.tar.gz -C ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
     URL ${IPOPT_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
     CONFIGURE_COMMAND ""

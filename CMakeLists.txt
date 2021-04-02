@@ -159,9 +159,9 @@ set_directory_properties(PROPERTIES EP_BASE ${CMAKE_BINARY_DIR}/third_party)
 get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
+include(ExternalProject)
 
 if(!WIN32)
-include(ExternalProject)
 #CoinUtils
 if (CoinUtils)
 message(STATUS "Enable CoinUtils")
@@ -201,23 +201,19 @@ endif()
 endif()
 
 endif()
-#Ipopt
+# Add Ipopt include dir and link to libraries
 if(WIN32)
-add_definitions(-DUSE_IPOPT)
-include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
+# include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
-add_subdirectory(thirdparty/Ipopt)
+# add_subdirectory("thirdparty/Ipopt/include/coin-or")
 # find_library(IPOPT_LIBRARIES 
 #     ipopt.dll
 # 	HINTS /usr/local/lib
 # 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
 # 	HINTS ${IPOPT_ROOT_DIR}/lib
 # )
-FIND_LIBRARY(IPOPT_LIBRARIES NAMES libipopt-3 PATHS "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
-set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
-#set(IPOPT_LIBRARIES ${CMAKE_BINARY_DIR}/thirdparty/Ipopt/libIPOPT_LIBRARIES.a)
-else()
-if (Ipopt)
+endif(WIN32)
+
 message(STATUS "Enable IPOPT")
 add_definitions(-DUSE_IPOPT)
 find_package(IPOPT QUIET)
@@ -231,11 +227,12 @@ if(APPLE)
  set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.dylib)
 elseif(UNIX)
  set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
-endif(APPLE) 
- include(ExternalIpopt)
+elseif(WIN32) 
+ set(IPOPT_LIBRARIES "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt-3.lib")
+endif(APPLE)
+include(ExternalIpopt)
 endif (IPOPT_FOUND)
-endif()
-endif()
+
 # Eigen
 if(!WIN32)
 find_package(Eigen QUIET)
@@ -276,8 +273,6 @@ execute_process(
 endif()
 
 set(UNZIPPED ON CACHE BOOL "Already unzipped" FORCE)
-# Inlude dir
-include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
