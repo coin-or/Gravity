@@ -1,6 +1,10 @@
 set(IPOPT_ROOT_DIR "$ENV{IPOPT_ROOT_DIR}" CACHE PATH "IPOPT root directory.")
 message("Looking for Ipopt in ${IPOPT_ROOT_DIR}")
 
+
+
+if(WIN32)
+
 find_path(IPOPT_INCLUDE_DIR
 	NAMES IpNLP.hpp 
 	HINTS /usr/local/include/coin
@@ -9,7 +13,6 @@ find_path(IPOPT_INCLUDE_DIR
 	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or
 )
 
-if(WIN32)
 find_library(IPOPT_LIBRARY 
 	libipopt-3.lib
 	HINTS /usr/local/lib
@@ -27,6 +30,12 @@ find_library(IPOPT_LIBRARY2
 ) 
 
 elseif(APPLE)
+find_path(IPOPT_INCLUDE_DIR
+	NAMES IpNLP.hpp 
+	HINTS /usr/local/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include
+)
 find_library(IPOPT_LIBRARY 
 	libipopt.dylib
 	HINTS /usr/local/lib
@@ -34,6 +43,12 @@ find_library(IPOPT_LIBRARY
 	HINTS ${IPOPT_ROOT_DIR}/lib
 )
 elseif(UNIX)
+find_path(IPOPT_INCLUDE_DIR
+	NAMES IpNLP.hpp 
+	HINTS /usr/local/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include
+)
 find_library(IPOPT_LIBRARY 
 	libipopt.so
 	HINTS /usr/local/lib
