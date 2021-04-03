@@ -83,7 +83,7 @@ endif()
 file(GLOB Power_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.cpp)
 add_executable(gravity_test ${Power_SOURCES} ${PROJECT_SOURCE_DIR}/examples/Gravity_test.cpp)
 LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/thirdparty/Ipopt)
-target_link_libraries(gravity_test gravity)
+target_link_libraries(gravity_test gravity ${IPOPT_LIBRARIES})
 
 if(Cov)
   set_target_properties(gravity

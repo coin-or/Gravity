@@ -13,15 +13,15 @@ if(WIN32)
 find_library(IPOPT_LIBRARY 
 	libipopt-3.lib
 	HINTS /usr/local/lib
-	HINTS "${PROJECT_SOURCE_DIR}/thirdparty/Ipopt"
+	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
 	HINTS ${IPOPT_ROOT_DIR}/lib
 )
 
 find_library(IPOPT_LIBRARY2
-	libipopt-3.dll
-	# libpynumero_ASL.dll.a
+	# libipopt-3.dll
+	libpynumero_ASL.dll.a
 	HINTS /usr/local/lib
-	HINTS ${PROJECT_SOURCE_DIR}/bin/Release
+	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
 ) 
@@ -42,7 +42,7 @@ find_library(IPOPT_LIBRARY
 )
 endif(WIN32)
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_INCLUDE_DIR)
+find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_LIBRARY2 IPOPT_INCLUDE_DIR)
 
 if(IPOPT_FOUND)
 	message("—- Found Ipopt include dir under ${IPOPT_INCLUDE_DIR}")
