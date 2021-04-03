@@ -6,14 +6,9 @@ unset(IPOPT_HOME)
 
 if(WIN32)
 set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
-set(Win_IPOPT_ROOT_DIR "${IPOPT_ROOT_DIR}/")
-STRING(REPLACE "/" "\\" Win_IPOPT_ROOT_DIR ${Win_IPOPT_ROOT_DIR})
-# message("-- Please add this path to your PATH environment variable = ${Win_IPOPT_ROOT_DIR}")
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
     DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-windows-64.tar.gz -o idaes-solvers-windows-64.tar.gz && tar -xvzf idaes-solvers-windows-64.tar.gz -C ${IPOPT_ROOT_DIR}
-    #  && copy ${IPOPT_ROOT_DIR}/libipopt-3.dll ${PROJECT_SOURCE_DIR}/bin/Release && copy ${IPOPT_ROOT_DIR}/libblas.dll ${PROJECT_SOURCE_DIR}/bin/Release && copy ${IPOPT_ROOT_DIR}/liblapack.dll ${PROJECT_SOURCE_DIR}/bin/Release && copy ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release
-    # && setx path ${Win_IPOPT_ROOT_DIR}
     URL ${IPOPT_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
     CONFIGURE_COMMAND ""
@@ -40,22 +35,6 @@ TARGET ipopt POST_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy 
 ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortran-5.dll)
 
-# add_custom_target(CopyAndRename
-#     COMMAND ${CMAKE_COMMAND} -E copy ${IPOPT_ROOT_DIR}/libipopt-3.dll ${PROJECT_SOURCE_DIR}/bin/Release/libipopt-3.dll
-# )
-# add_custom_target(CopyAndRename2
-#     COMMAND ${CMAKE_COMMAND} -E copy ${IPOPT_ROOT_DIR}/libblas.dll ${PROJECT_SOURCE_DIR}/bin/Release/libblas.dll
-# )
-# add_custom_target(CopyAndRename3
-#     COMMAND ${CMAKE_COMMAND} -E copy ${IPOPT_ROOT_DIR}/liblapack.dll ${PROJECT_SOURCE_DIR}/bin/Release/liblapack.dll
-# )
-# add_custom_target(CopyAndRename4
-#     COMMAND ${CMAKE_COMMAND} -E copy ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortran-5.dll
-# )
-# file(COPY ${IPOPT_ROOT_DIR}/libipopt-3.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
-# file(COPY ${IPOPT_ROOT_DIR}/libblas.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
-# file(COPY ${IPOPT_ROOT_DIR}/liblapack.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
-# file(COPY ${IPOPT_ROOT_DIR}/libgfortran-5.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
 else()
 
 # Download and build the IPOPT library and add its properties to the third party arguments.

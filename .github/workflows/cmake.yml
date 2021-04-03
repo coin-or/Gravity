@@ -110,10 +110,14 @@ jobs:
         if (NOT result EQUAL 0)
           message(FATAL_ERROR "Bad exit status")
         endif()
-
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Build
       shell: cmake -P {0}
+      working-directory: ${{runner.workspace}}/build
       run: |
         set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
 
@@ -127,7 +131,7 @@ jobs:
         endif()
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build .
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -137,6 +141,7 @@ jobs:
 
     - name: Run tests
       shell: cmake -P {0}
+      working-directory: ${{runner.workspace}}/build
       run: |
         include(ProcessorCount)
         ProcessorCount(N)
