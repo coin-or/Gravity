@@ -3,11 +3,9 @@ set(IPOPT_HOME https://www.coin-or.org/Tarballs/Ipopt)
 set(IPOPT_DOWNLOAD_URL ${IPOPT_HOME}/Ipopt-3.12.13.tgz)
 unset(IPOPT_HOME)
 
-# Download and build the IPOPT library and add its properties to the third party arguments.
-set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
 
 if(WIN32)
-
+set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
 set(Win_IPOPT_ROOT_DIR "${IPOPT_ROOT_DIR}/")
 STRING(REPLACE "/" "\\" Win_IPOPT_ROOT_DIR ${Win_IPOPT_ROOT_DIR})
 # message("-- Please add this path to your PATH environment variable = ${Win_IPOPT_ROOT_DIR}")
@@ -59,6 +57,9 @@ ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortra
 # file(COPY ${IPOPT_ROOT_DIR}/liblapack.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
 # file(COPY ${IPOPT_ROOT_DIR}/libgfortran-5.dll DESTINATION ${PROJECT_SOURCE_DIR}/bin/Release)
 else()
+
+# Download and build the IPOPT library and add its properties to the third party arguments.
+set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/third_party/Ipopt CACHE INTERNAL "")
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
     DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && curl -k -L ${IPOPT_DOWNLOAD_URL} -o Ipopt.tar.gz && tar -xzf Ipopt.tar.gz && rm -fr ./Install/ipopt && mv Ipopt-3.12.13 ./Install/ipopt && cd ./Install/ipopt && mkdir build && cd ./ThirdParty/Mumps && export HTTP_PROXY=$ENV{HTTP_PROXY} && ./get.Mumps && cd ../../build && ../configure --prefix=${IPOPT_ROOT_DIR} && make install -j24
