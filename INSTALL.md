@@ -1,18 +1,24 @@
-DEPENDENCIES
+For Windows users
 -------
-cmake: http://www.cmake.org (Version 3.2 or better)
+Gravity will automatically download and link to Ipopt libraries (linked with HSL) from [here](https://github.com/IDAES/idaes-ext/releases).
 
-Included ThirdParty Libraries
+First, install [Cmake](http://www.cmake.org).
+
+Then, follow the instructions to install Visual Studio Code and the Mingw extension [here](https://code.visualstudio.com/docs/cpp/config-mingw).
+
+Install the Cmake extension too, instructions can be found [here](https://code.visualstudio.com/docs/cpp/cmake-linux).
+
+Finally, open the Gravity directory from Visual Studio Code and go to the Cmake panel and click on Configure then Build.
+
+The executables will be under Gravity/bin/Release
+
+For MacOS and Linux users
 -------
+Download and install cmake: http://www.cmake.org (Version 3.2 or better)
 
-Eigen: https://github.com/eigenteam/eigen-git-mirror
-
-cpp_option_parser: https://github.com/nerzadler/cpp_option_parser
-
-OPTIONAL
+Optional thirdparty solvers
 -------
-
-Ipopt: https://projects.coin-or.org/Ipopt
+Gravity can link to the solvers below (see instructions in next section):
 
 Bonmin: https://projects.coin-or.org/Bonmin
 
@@ -21,12 +27,6 @@ Gurobi: http://www.gurobi.com
 Cplex: https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/
 
 Mosek: https://www.mosek.com
-
-Boost: http://www.boost.org/
-
-XLNT: https://github.com/tfussell/xlnt
-
-QPP: https://github.com/vsoftco/qpp
 
 -------
 
