@@ -13,7 +13,7 @@ jobs:
         - {
             name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
-            build_type: "Release", cc: "x86_64-w64-mingw32-gcc", cxx: "i686-w64-mingw32-g++"
+            build_type: "Release", cc: "x86_64-w64-mingw32-gcc", cxx: "x86-w64-mingw32-g++"
           }
         - {
             name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
@@ -51,7 +51,7 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
   
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D CMAKE_C_COMPILER=${{ matrix.config.cc }} -D CMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
+      run: cmake -D CMAKE_C_COMPILER=${{ matrix.config.cc }} -D CMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
