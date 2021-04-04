@@ -52,10 +52,12 @@ Getting Started
 -----------
 First, you will need to install an IDE, I recommend to choose among the following:
 
-[<img src="media/visual_studio.jpg" width="70">](https://www.visualstudio.com/downloads/) | 
-[<img src="media/clion.jpg" width="50">](https://www.jetbrains.com/clion/) | 
-[<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) | 
+[<img src="media/visual_studio.jpg" width="70">](https://www.visualstudio.com/downloads/) ||
+[<img src="media/clion.jpg" width="50">](https://www.jetbrains.com/clion/) || 
+[<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) || 
 [<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
+
+Then, follow the instructions presented in [INSTALL.md](INSTALL.md).
 
 The model below was implemented in Xcode:
 
