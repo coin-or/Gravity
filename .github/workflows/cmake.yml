@@ -13,7 +13,7 @@ jobs:
         - {
             name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
-            build_type: "Release", cc: "gcc", cxx: "g++"
+            build_type: "Release", cc: "gcc", cxx: "gxx"
           }
         - {
             name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
@@ -28,7 +28,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: egor-tensin/setup-mingw@v2
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -36,6 +35,7 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Configure CMake
+      - uses: egor-tensin/setup-mingw@v2
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
       env:
