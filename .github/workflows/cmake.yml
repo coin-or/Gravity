@@ -27,106 +27,32 @@ jobs:
           }
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
-    - name: Download CMake
-      id: cmake_and_ninja
-      shell: cmake -P {0}
-      run: |
-        set(cmake_version "3.16.2")
-        
-        message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: cmake -E make_directory ${{runner.workspace}}/build
 
-        if ("${{ runner.os }}" STREQUAL "Windows")
-          set(cmake_suffix "win64-x64.zip")
-          set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
-        elseif ("${{ runner.os }}" STREQUAL "Linux")
-          set(cmake_suffix "Linux-x86_64.tar.gz")
-          set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
-        elseif ("${{ runner.os }}" STREQUAL "macOS")
-          set(cmake_suffix "Darwin-x86_64.tar.gz")
-          set(cmake_dir "cmake-${cmake_version}-Darwin-x86_64/CMake.app/Contents/bin")
-        endif()
-
-        set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
-        file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
-
-        # Save the path for other steps
-        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
-        message("::set-output name=cmake_dir::${cmake_dir}")
-
-        if (NOT "${{ runner.os }}" STREQUAL "Windows")
-          execute_process(
-            COMMAND chmod +x ${cmake_dir}/cmake
-          )
-        endif()
-
-    - name: Configure
-      shell: cmake -P {0}
-      run: |
-        set(ENV{CC} ${{ matrix.config.cc }})
-        set(ENV{CXX} ${{ matrix.config.cxx }})
-
-        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
-          execute_process(
-            COMMAND "${{ matrix.config.environment_script }}" && set
-            OUTPUT_FILE environment_script_output.txt
-          )
-          file(STRINGS environment_script_output.txt output_lines)
-          foreach(line IN LISTS output_lines)
-            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
-              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
-            endif()
-          endforeach()
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -S .
-            -B build
-            -D CMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: set(ENV{CC} ${{matrix.config.cc}}) set(ENV{CXX} ${{matrix.config.cxx}}) cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
-      shell: cmake -P {0}
-      run: |
-        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config $BUILD_TYPE
 
-        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
-          file(STRINGS environment_script_output.txt output_lines)
-          foreach(line IN LISTS output_lines)
-            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
-              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
-            endif()
-          endforeach()
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-
-    - name: Run tests
-      shell: cmake -P {0}
-      run: |
-        include(ProcessorCount)
-        ProcessorCount(N)
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/ctest -j ${N}
-          WORKING_DIRECTORY build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Running tests failed!")
-        endif()
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest -C $BUILD_TYPE
