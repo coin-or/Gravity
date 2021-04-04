@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Build Status](https://travis-ci.com/coin-or/Gravity.svg?branch=master)](https://travis-ci.com/coin-or/Gravity)
-![CMake](https://github.com/coin-or/Gravity/workflows/CMake/badge.svg)
+[![Travis](https://travis-ci.com/coin-or/Gravity.svg?branch=master)](https://travis-ci.com/coin-or/Gravity)
+[![Github Actions](https://github.com/coin-or/Gravity/actions/workflows/cmake.yml/badge.svg)](https://github.com/coin-or/Gravity/actions/workflows/cmake.yml)
 [![Code Coverage](https://codecov.io/gh/coin-or/gravity/branch/master/graph/badge.svg)](https://codecov.io/gh/coin-or/Gravity)
 [![download](https://img.shields.io/badge/download%20%20-latest-blue.svg)](https://github.com/coin-or/Gravity/releases)
 
