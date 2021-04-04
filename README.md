@@ -11,7 +11,7 @@
 </p>
 <H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
 
-<p align="center"> Created by Hassan Hijazi. </p>
+<p align="center"> Created by Hassan Hijazi - hlh@lanl.gov. </p>
 
 <H2 align="center"> www.gravityopt.com </H2>
 
@@ -38,15 +38,8 @@ Bibtex ref:
 }`
 
 ## Contributors
-Hassan Hijazi, Los Alamos National Laboratory, The Australian National University | hlh@lanl.gov
+See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
 
-Guanglei Wang, Ksenia Bestuzheva, Carleton Coffrin, Smitha Gopinath, Mertcan Yetkin
-
-*****************************
-See [INSTALL.md](INSTALL.md) for instructions on compiling Gravity
-
-After running make, the Gravity executables can be found under Gravity/bin/
-*****************************
 
 Getting Started
 -----------
@@ -58,6 +51,8 @@ First, you will need to install an IDE, I recommend to choose among the followin
 [<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
 
 Then, follow the instructions presented in [INSTALL.md](INSTALL.md).
+
+After building, the Gravity library can be found under `Gravity/lib`, and the executables (from [`Gravity/examples`](https://github.com/coin-or/Gravity/tree/master/examples)) can be found under `Gravity/bin/Release`
 
 The model below was implemented in Xcode:
 
