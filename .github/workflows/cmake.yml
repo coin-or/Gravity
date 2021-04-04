@@ -46,7 +46,20 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
   
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D CMAKE_C_COMPILER=${{ matrix.config.cc }} -D CMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
+      run: | 
+        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+          execute_process(
+            COMMAND "${{ matrix.config.environment_script }}" && set
+            OUTPUT_FILE environment_script_output.txt
+          )
+          file(STRINGS environment_script_output.txt output_lines)
+          foreach(line IN LISTS output_lines)
+            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+            endif()
+          endforeach()
+        endif()
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D CMAKE_C_COMPILER=${{ matrix.config.cc }} -D CMAKE_CXX_COMPILER=${{ matrix.config.cxx }}
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
