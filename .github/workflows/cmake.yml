@@ -13,7 +13,7 @@ jobs:
         - {
             name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
-            build_type: "Release", cc: "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\x86_64-w64-mingw32-gcc.exe", cxx: "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\x86_64-w64-mingw32-g++.exe"
+            build_type: "Release", cc: "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin\\x86_64-w64-mingw32-gcc.exe", cxx: "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin\\x86_64-w64-mingw32-g++.exe"
           }
         - {
             name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
@@ -42,9 +42,9 @@ jobs:
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
-      env:
-        CC: ${{ matrix.config.cc }}
-        CXX: ${{ matrix.config.cxx }}
+      # env:
+      #   CC: ${{ matrix.config.cc }}
+      #   CXX: ${{ matrix.config.cxx }}
       shell: bash
       working-directory: ${{runner.workspace}}/build
       # Note the current convention is to use the -S and -B options here to specify source 
