@@ -13,18 +13,18 @@ jobs:
         - {
             name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
             os: windows-latest,
-            build_type: "Release", cc: "x86_64-w64-mingw32-gcc", cxx: "x86-w64-mingw32-g++"
+            build_type: "Release", cc: "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\x86_64-w64-mingw32-gcc.exe", cxx: "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\x86_64-w64-mingw32-g++.exe"
           }
         - {
             name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: "Release", cc: "gcc", cxx: "g++"
           }
-        - {
-            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
-            os: macos-latest,
-            build_type: "Release", cc: "clang", cxx: "clang++"
-          }
+        # - {
+        #     name: "macOS Latest Clang", artifact: "macOS.tar.xz",
+        #     os: macos-latest,
+        #     build_type: "Release", cc: "clang", cxx: "clang++"
+        #   }
 
     steps:
     - uses: actions/checkout@v2
