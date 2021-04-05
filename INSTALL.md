@@ -2,6 +2,8 @@ For Windows users
 -------
 Gravity will automatically download and link to Ipopt libraries (linked with HSL) from [here](https://github.com/IDAES/idaes-ext/releases).
 
+Note: If you have an old version of Windows (prior to 2018), you will need to install [curl](https://curl.se/windows/) and [tar](http://gnuwin32.sourceforge.net/packages/gtar.htm).
+
 First, install [Cmake](http://www.cmake.org).
 
 Then, follow the instructions to install Visual Studio Code and the Mingw extension [here](https://code.visualstudio.com/docs/cpp/config-mingw).
