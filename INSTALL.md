@@ -10,7 +10,7 @@ Then, follow the instructions to install Visual Studio Code and the Mingw extens
 
 Install the Cmake extension too, instructions can be found [here](https://code.visualstudio.com/docs/cpp/cmake-linux).
 
-Finally, open the Gravity directory from Visual Studio Code and go to the Cmake panel and click on Configure then Build.
+Finally, open the Gravity directory from Visual Studio Code and go to the Cmake panel (Cmake icon on the left) and click on Configure then Build (make sure to select the Mingw GCC 8.1.0 Kit).
 
 The executables will be under Gravity/bin/Release
 
