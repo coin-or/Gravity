@@ -43,19 +43,19 @@ public:
         det_added=det_addedn;
         interior=mod_int;
         rot_trans.resize(12);
-        model_voronoi_out_radius = m->get_ptr_param<double>("model_radius");
-        x1 = m->get_ptr_param<double>("x1");
-        new_x1 = make_shared<param<>>("new_x1");
-        new_x1->in(*x1->_indices);
-        y1 = m->get_ptr_param<double>("y1");
-        new_y1 = make_shared<param<>>("new_y1");
-        new_y1->in(*y1->_indices);
-        z1 = m->get_ptr_param<double>("z1");
-        new_z1 = make_shared<param<>>("new_z1");
-        new_z1->in(*z1->_indices);
-        x2 = m->get_ptr_param<double>("x2");
-        y2 = m->get_ptr_param<double>("y2");
-        z2 = m->get_ptr_param<double>("z2");
+//        model_voronoi_out_radius = m->get_ptr_param<double>("model_radius");
+//        x1 = m->get_ptr_param<double>("x1");
+//        new_x1 = make_shared<param<>>("new_x1");
+//        new_x1->in(*x1->_indices);
+//        y1 = m->get_ptr_param<double>("y1");
+//        new_y1 = make_shared<param<>>("new_y1");
+//        new_y1->in(*y1->_indices);
+//        z1 = m->get_ptr_param<double>("z1");
+//        new_z1 = make_shared<param<>>("new_z1");
+//        new_z1->in(*z1->_indices);
+//        x2 = m->get_ptr_param<double>("x2");
+//        y2 = m->get_ptr_param<double>("y2");
+//        z2 = m->get_ptr_param<double>("z2");
 //        t_lb = m->get_ptr_param<double>("t_lb");
 //        t_ub = m->get_ptr_param<double>("t_ub");
 //        angle_lb = m->get_ptr_param<double>("angle_lb");
@@ -80,11 +80,11 @@ public:
         theta31 = m->get_ptr_var<double>("theta31"); theta32 = m->get_ptr_var<double>("theta32"); theta33 = m->get_ptr_var<double>("theta33");
         x_shift = m->get_ptr_var<double>("x_shift"); y_shift = m->get_ptr_var<double>("y_shift"); z_shift = m->get_ptr_var<double>("z_shift");
 
-        auto cstr = m->get_constraint("Def_newxm");
-        auto p = cstr->_params->begin();
-        bin_ids = p->second.first->_indices->_ids;
-        nb_data = x1->get_dim();
-        matching.resize(nb_data);
+//        auto cstr = m->get_constraint("Def_newxm");
+//        auto p = cstr->_params->begin();
+//        bin_ids = p->second.first->_indices->_ids;
+//        nb_data = x1->get_dim();
+//        matching.resize(nb_data);
     }
     ~cuts(){
         DebugOn("soc_viol "<<soc_viol<<endl);
@@ -106,7 +106,7 @@ protected:
     void callback() {
         try {
             bool incumbent=true;
-            bool mipnode=true;
+            bool mipnode=false;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?

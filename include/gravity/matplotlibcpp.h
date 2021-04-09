@@ -603,8 +603,255 @@ template <typename Numeric>
     Py_DECREF(kwargs);
     if (res) Py_DECREF(res);
 }
+template <typename Numeric>
+    void plot3(const std::vector<Numeric> &uav_x,
+               const std::vector<Numeric> &uav_y,
+               const std::vector<Numeric> &uav_z, const std::vector<Numeric> &x,
+           const std::vector<Numeric> &y,
+           const std::vector<Numeric> &z,const std::vector<Numeric> &a,
+               const std::vector<Numeric> &b,
+               const std::vector<Numeric> &c,           const std::map<std::string, std::string> &keywords =
+           std::map<std::string, std::string>())
+{
+    // Same as with plot_surface: We lazily load the modules here the first time
+    // this function is called because I'm not sure that we can assume "matplotlib
+    // installed" implies "mpl_toolkits installed" on all platforms, and we don't
+    // want to require it for people who don't need 3d plots.
+    static PyObject *mpl_toolkitsmod = nullptr, *axis3dmod = nullptr;
+    if (!mpl_toolkitsmod) {
+        detail::_interpreter::get();
+        
+        PyObject* mpl_toolkits = PyString_FromString("mpl_toolkits");
+        PyObject* axis3d = PyString_FromString("mpl_toolkits.mplot3d");
+        if (!mpl_toolkits || !axis3d) { throw std::runtime_error("couldnt create string"); }
+        
+        mpl_toolkitsmod = PyImport_Import(mpl_toolkits);
+        Py_DECREF(mpl_toolkits);
+        if (!mpl_toolkitsmod) { throw std::runtime_error("Error loading module mpl_toolkits!"); }
+        
+        axis3dmod = PyImport_Import(axis3d);
+        Py_DECREF(axis3d);
+        if (!axis3dmod) { throw std::runtime_error("Error loading module mpl_toolkits.mplot3d!"); }
+    }
+    assert(x.size() == y.size());
+    assert(y.size() == z.size());
+    PyObject *xarray1 = detail::get_array(uav_x);
+    PyObject *yarray1 = detail::get_array(uav_y);
+    PyObject *zarray1 = detail::get_array(uav_z);
+    
+    PyObject *xarray = detail::get_array(x);
+    PyObject *yarray = detail::get_array(y);
+    PyObject *zarray = detail::get_array(z);
     
     
+    PyObject *xarray2 = detail::get_array(a);
+    PyObject *yarray2 = detail::get_array(b);
+    PyObject *zarray2 = detail::get_array(c);
+    
+    // construct positional args
+    PyObject *args = PyTuple_New(3);
+    PyTuple_SetItem(args, 0, xarray);
+    PyTuple_SetItem(args, 1, yarray);
+    PyTuple_SetItem(args, 2, zarray);
+    
+    PyObject *args1 = PyTuple_New(3);
+    PyTuple_SetItem(args1, 0, xarray1);
+    PyTuple_SetItem(args1, 1, yarray1);
+    PyTuple_SetItem(args1, 2, zarray1);
+    
+    PyObject *args2 = PyTuple_New(3);
+    PyTuple_SetItem(args2, 0, xarray2);
+    PyTuple_SetItem(args2, 1, yarray2);
+    PyTuple_SetItem(args2, 2, zarray2);
+    
+    // Build up the kw args.
+    PyObject *kwargs = PyDict_New();
+    
+    for (std::map<std::string, std::string>::const_iterator it = keywords.begin();
+         it != keywords.end(); ++it) {
+        PyDict_SetItemString(kwargs, it->first.c_str(),
+                             PyString_FromString(it->second.c_str()));
+    }
+    
+    PyObject *fig =
+    PyObject_CallObject(detail::_interpreter::get().s_python_function_figure,
+                        detail::_interpreter::get().s_python_empty_tuple);
+    if (!fig) throw std::runtime_error("Call to figure() failed.");
+    
+    PyObject *gca_kwargs = PyDict_New();
+    PyDict_SetItemString(gca_kwargs, "projection", PyString_FromString("3d"));
+    
+    PyObject *gca = PyObject_GetAttrString(fig, "gca");
+    if (!gca) throw std::runtime_error("No gca");
+    Py_INCREF(gca);
+    PyObject *axis = PyObject_Call(
+                                   gca, detail::_interpreter::get().s_python_empty_tuple, gca_kwargs);
+    
+    if (!axis) throw std::runtime_error("No axis");
+    Py_INCREF(axis);
+    
+    Py_DECREF(gca);
+    Py_DECREF(gca_kwargs);
+    
+    PyObject *plot3 = PyObject_GetAttrString(axis, "plot");
+    if (!plot3) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot3);
+    PyObject *res = PyObject_Call(plot3, args, kwargs);
+    if (!res) throw std::runtime_error("Failed 3D line plot");
+    PyObject *plot4 = PyObject_GetAttrString(axis, "plot");
+    if (!plot4) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot4);
+    PyObject *res1 = PyObject_Call(plot4, args1, kwargs);
+    if (!res1) throw std::runtime_error("Failed 3D line plot");
+    PyObject *plot5 = PyObject_GetAttrString(axis, "plot");
+    if (!plot5) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot5);
+    PyObject *res2 = PyObject_Call(plot5, args2, kwargs);
+    if (!res2) throw std::runtime_error("Failed 3D line plot");
+    Py_DECREF(plot3);
+    Py_DECREF(plot4);
+    Py_DECREF(plot5);
+    Py_DECREF(axis);
+    Py_DECREF(args);
+    Py_DECREF(args1);
+    Py_DECREF(args2);
+    Py_DECREF(kwargs);
+    if (res) Py_DECREF(res);
+}
+
+template <typename Numeric>
+    void plot3(const std::vector<Numeric> &uav_x,
+               const std::vector<Numeric> &uav_y,
+               const std::vector<Numeric> &uav_z, const std::vector<Numeric> &x,
+           const std::vector<Numeric> &y,
+           const std::vector<Numeric> &z,const std::vector<Numeric> &a,
+               const std::vector<Numeric> &b,
+               const std::vector<Numeric> &c,  const std::vector<Numeric> &d,
+               const std::vector<Numeric> &e,
+               const std::vector<Numeric> &f,           const std::map<std::string, std::string> &keywords =
+           std::map<std::string, std::string>())
+{
+    // Same as with plot_surface: We lazily load the modules here the first time
+    // this function is called because I'm not sure that we can assume "matplotlib
+    // installed" implies "mpl_toolkits installed" on all platforms, and we don't
+    // want to require it for people who don't need 3d plots.
+    static PyObject *mpl_toolkitsmod = nullptr, *axis3dmod = nullptr;
+    if (!mpl_toolkitsmod) {
+        detail::_interpreter::get();
+        
+        PyObject* mpl_toolkits = PyString_FromString("mpl_toolkits");
+        PyObject* axis3d = PyString_FromString("mpl_toolkits.mplot3d");
+        if (!mpl_toolkits || !axis3d) { throw std::runtime_error("couldnt create string"); }
+        
+        mpl_toolkitsmod = PyImport_Import(mpl_toolkits);
+        Py_DECREF(mpl_toolkits);
+        if (!mpl_toolkitsmod) { throw std::runtime_error("Error loading module mpl_toolkits!"); }
+        
+        axis3dmod = PyImport_Import(axis3d);
+        Py_DECREF(axis3d);
+        if (!axis3dmod) { throw std::runtime_error("Error loading module mpl_toolkits.mplot3d!"); }
+    }
+    assert(x.size() == y.size());
+    assert(y.size() == z.size());
+    PyObject *xarray1 = detail::get_array(uav_x);
+    PyObject *yarray1 = detail::get_array(uav_y);
+    PyObject *zarray1 = detail::get_array(uav_z);
+    
+    PyObject *xarray = detail::get_array(x);
+    PyObject *yarray = detail::get_array(y);
+    PyObject *zarray = detail::get_array(z);
+    
+    
+    PyObject *xarray2 = detail::get_array(a);
+    PyObject *yarray2 = detail::get_array(b);
+    PyObject *zarray2 = detail::get_array(c);
+    
+    PyObject *xarray3 = detail::get_array(d);
+    PyObject *yarray3 = detail::get_array(e);
+    PyObject *zarray3 = detail::get_array(f);
+    
+    // construct positional args
+    PyObject *args = PyTuple_New(3);
+    PyTuple_SetItem(args, 0, xarray);
+    PyTuple_SetItem(args, 1, yarray);
+    PyTuple_SetItem(args, 2, zarray);
+    
+    PyObject *args1 = PyTuple_New(3);
+    PyTuple_SetItem(args1, 0, xarray1);
+    PyTuple_SetItem(args1, 1, yarray1);
+    PyTuple_SetItem(args1, 2, zarray1);
+    
+    PyObject *args2 = PyTuple_New(3);
+    PyTuple_SetItem(args2, 0, xarray2);
+    PyTuple_SetItem(args2, 1, yarray2);
+    PyTuple_SetItem(args2, 2, zarray2);
+    
+    PyObject *args3 = PyTuple_New(3);
+    PyTuple_SetItem(args3, 0, xarray3);
+    PyTuple_SetItem(args3, 1, yarray3);
+    PyTuple_SetItem(args3, 2, zarray3);
+    
+    // Build up the kw args.
+    PyObject *kwargs = PyDict_New();
+    
+    for (std::map<std::string, std::string>::const_iterator it = keywords.begin();
+         it != keywords.end(); ++it) {
+        PyDict_SetItemString(kwargs, it->first.c_str(),
+                             PyString_FromString(it->second.c_str()));
+    }
+    
+    PyObject *fig =
+    PyObject_CallObject(detail::_interpreter::get().s_python_function_figure,
+                        detail::_interpreter::get().s_python_empty_tuple);
+    if (!fig) throw std::runtime_error("Call to figure() failed.");
+    
+    PyObject *gca_kwargs = PyDict_New();
+    PyDict_SetItemString(gca_kwargs, "projection", PyString_FromString("3d"));
+    
+    PyObject *gca = PyObject_GetAttrString(fig, "gca");
+    if (!gca) throw std::runtime_error("No gca");
+    Py_INCREF(gca);
+    PyObject *axis = PyObject_Call(
+                                   gca, detail::_interpreter::get().s_python_empty_tuple, gca_kwargs);
+    
+    if (!axis) throw std::runtime_error("No axis");
+    Py_INCREF(axis);
+    
+    Py_DECREF(gca);
+    Py_DECREF(gca_kwargs);
+    
+    PyObject *plot3 = PyObject_GetAttrString(axis, "plot");
+    if (!plot3) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot3);
+    PyObject *res = PyObject_Call(plot3, args, kwargs);
+    if (!res) throw std::runtime_error("Failed 3D line plot");
+    PyObject *plot4 = PyObject_GetAttrString(axis, "plot");
+    if (!plot4) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot4);
+    PyObject *res1 = PyObject_Call(plot4, args1, kwargs);
+    if (!res1) throw std::runtime_error("Failed 3D line plot");
+    PyObject *plot5 = PyObject_GetAttrString(axis, "plot");
+    if (!plot5) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot5);
+    PyObject *res2 = PyObject_Call(plot5, args2, kwargs);
+    if (!res2) throw std::runtime_error("Failed 3D line plot");
+    PyObject *plot6 = PyObject_GetAttrString(axis, "plot");
+    if (!plot6) throw std::runtime_error("No 3D line plot");
+    Py_INCREF(plot6);
+    PyObject *res3 = PyObject_Call(plot6, args3, kwargs);
+    if (!res3) throw std::runtime_error("Failed 3D line plot");
+    Py_DECREF(plot3);
+    Py_DECREF(plot4);
+    Py_DECREF(plot5);
+    Py_DECREF(plot6);
+    Py_DECREF(axis);
+    Py_DECREF(args);
+    Py_DECREF(args1);
+    Py_DECREF(args2);
+    Py_DECREF(args3);
+    Py_DECREF(kwargs);
+    if (res) Py_DECREF(res);
+}
 template <typename Numeric>
 void plot3(const std::vector<Numeric> &x,
                   const std::vector<Numeric> &y,
