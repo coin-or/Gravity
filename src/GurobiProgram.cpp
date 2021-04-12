@@ -552,11 +552,11 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     vector<int> stats;
     stats.resize(6,0);
 //    if(use_callback){
-        interior=lin->add_outer_app_solution(*_model);
+     //   interior=lin->add_outer_app_solution(*_model);
 //    }
     //interior.print_solution();
-    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-    grb_mod->setCallback(&cb);
+//    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+//    grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
