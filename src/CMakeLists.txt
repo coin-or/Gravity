@@ -55,7 +55,8 @@ if (NOT Mosek)
 endif()
 
 
-add_library(gravity STATIC SHARED ${SOURCES} ${HEADERS})
+add_library(gravityStatic STATIC ${SOURCES} ${HEADERS})
+add_library(gravity SHARED ${SOURCES} ${HEADERS})
 if(!WIN32)
 if(ADD_MP)
  add_dependencies(gravity mp)
