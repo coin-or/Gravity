@@ -22,7 +22,7 @@ public:
     shared_ptr<var<>> bin, sbin_roll, sbin_pitch, sbin_yaw, sbin_tx, sbin_ty, sbin_tz;
     shared_ptr<var<>> theta11, theta12, theta13, theta21, theta22, theta23, theta31, theta32, theta33, x_shift, y_shift, z_shift;
     shared_ptr<var<>> x_diff, y_diff, z_diff;
-    
+    double objc=999;
 
     
     int soc_viol, soc_found,soc_added,det_viol, det_found, det_added;
@@ -107,6 +107,7 @@ protected:
         try {
             bool incumbent=true;
             bool mipnode=false;
+            bool get_lb=true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                         // Found an integer feasible solution - does it visit every node?
@@ -398,7 +399,26 @@ protected:
                     
                 }
             }
-            
+           // if(get_lb)
+//            {
+//                if (where == GRB_CB_MIPNODE){
+//                    int stat=getIntInfo(GRB_CB_MIPNODE_STATUS);
+//                    if(stat==2){
+//                        m->get_solution(int_x);
+//                        double* xa = getNodeRel(vars.data(), nb_vars);
+//                        for(auto i=0;i<nb_vars;i++){
+//                            cont_x[i]=xa[i];
+//                        }
+//                        setSolution(vars.data(), xa, nb_vars);
+//                        delete[] xa;
+//                        m->set_solution(cont_x);
+//                       // m->reset();
+//                        m->_obj->eval();
+//                        objc=m->get_obj_val();
+//                        m->set_solution(int_x);
+//                    }
+//                }
+//            }
         } catch (GRBException e) {
             cout << "Error number: " << e.getErrorCode() << endl;
             cout << e.getMessage() << endl;
@@ -552,11 +572,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     vector<int> stats;
     stats.resize(6,0);
 //    if(use_callback){
-     //   interior=lin->add_outer_app_solution(*_model);
+        //interior=lin->add_outer_app_solution(*_model);
 //    }
-    //interior.print_solution();
-//    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-//    grb_mod->setCallback(&cb);
+    //cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+    //grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
@@ -569,6 +588,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
             //        return false;
     }
     update_solution();
+    
         //    GRBVar* gvars = grb_mod->getVars();
         //    for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
         ////        cout << gvars[i].get(GRB_StringAttr_VarName) << "  " << gvars[i].get(GRB_DoubleAttr_X) << endl;
