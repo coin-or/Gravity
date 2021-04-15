@@ -217,7 +217,7 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
 
 shared_ptr<Model<double>> build_norm2_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, const indices& new_model_ids, const param<>& dist_cost, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching, const vector<double>& error_per_point, param<>& model_radius, bool relax_ints, bool relax_sdp = false, bool rigid_transf = true, double perc_outliers = 0);
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits);
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits, double ub);
 
 shared_ptr<Model<double>> build_linobj_convex_OLD(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits);
 
@@ -6316,7 +6316,7 @@ void run_ICR(vector<vector<double>>& point_cloud_model, vector<vector<double>>& 
 }
 
 
-shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits){
+shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits, double ub){
     
     //    double shift_min_x = -0.25, shift_max_x = 0.25, shift_min_y = -0.25,shift_max_y = 0.25,shift_min_z = -0.25,shift_max_z = 0.25;
     //    double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
@@ -6495,8 +6495,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     }
     
     
-    
-    
+
 
     Constraint<> txsq("txsq");
     txsq = pow(x_shift,2) - tx;
@@ -6588,15 +6587,15 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Constraint<> row1("row1");
     row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
     // row1.add_to_callback();
-    Reg->add(row1.in(range(0,0))<=1);
+    Reg->add(row1.in(range(0,0))==1);
     Constraint<> row2("row2");
     row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
     //  row2.add_to_callback();
-    Reg->add(row2.in(range(0,0))<=1);
+    Reg->add(row2.in(range(0,0))==1);
     Constraint<> row3("row3");
     row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
     // row3.add_to_callback();
-    Reg->add(row3.in(range(0,0))<=1);
+    Reg->add(row3.in(range(0,0))==1);
     Constraint<> col1("col1");
     col1 = pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
     // col1.add_to_callback();
@@ -6726,6 +6725,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         z_rot1 += new_z1 -z_shift;
         z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
         Reg->add(z_rot1.in(N1)==0);
+        
+        param<> ub_par("ub_par");
+        ub_par=ub;
+        Constraint<> cut_off("cut_off");
+        cut_off=delta-ub_par;
+        //Reg->add(cut_off.in(range(0,0))<=0);
         
         // Constraint<> Def_delta("Def_delta");
         // Def_delta=pow(new_x1, 2)+pow(new_y1, 2)+pow(new_z1, 2)-pow(delta,2);
@@ -6982,10 +6987,10 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
     Reg->min(obj);
     
-    //    Reg->print();
-    //    solver<> S(Reg,gurobi);
-    //    S.use_callback();
-    //    S.run();
+        Reg->print();
+        solver<> S(Reg,gurobi);
+        S.use_callback();
+        S.run();
     //   // Reg->print_solution();
     //    DebugOn("Theta matrix = " << endl);
     //    DebugOn("|" << theta11.eval() << " " << theta12.eval() << " " << theta13.eval() << "|" << endl);
@@ -11999,6 +12004,8 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
     vector<int> new_matching(N1.size());
     bool convex = false;
     double max_time = 30;
+    double max_time_init=30;
+    bool max_time_increase=false;
     int max_iter = 1e6;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     auto nb_threads = std::thread::hardware_concurrency()/2;
@@ -12010,7 +12017,7 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
     vector<double> best_rot_trans(12);
     DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models;
-    double lb = 0, ub = 12, ub_=12, best_lb = 0, best_ub = numeric_limits<double>::max();
+    double lb = 0, ub = 12, ub_=12, best_lb = 0, best_ub = 12;
     int nb_pruned = 0;
     priority_queue<treenode> lb_queue;
     for (int i = 0; i<nb_threads; i++) {
@@ -12027,7 +12034,7 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
         valid_cells[i] = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
         DebugOff("v size "<<valid_cells[i].size()<<endl);
         if(valid_cells[i].size()!=0){
-            auto model = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false);
+            auto model = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
             model->write();
             models.push_back(model);
         }
@@ -12074,6 +12081,11 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
         opt_gap = (best_ub - best_lb)/best_ub;
         if(opt_gap_old-opt_gap <= eps){
             max_time=std::min(max_time*2, 120.0);
+            max_time_increase=true;
+        }
+        if(opt_gap_old-opt_gap > eps && max_time_increase){
+            max_time=std::max(max_time/2.0, max_time_init);
+            max_time_increase=false;
         }
         opt_gap_old=opt_gap;
         DebugOn("Best UB so far = " << to_string_with_precision(best_ub,6) << endl);
@@ -12168,7 +12180,7 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
             valid_cells[i] = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             
             if((valid_cells[i].size()!=0)){
-                auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false);
+                auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
                 models.push_back(m);
             }
             else {
