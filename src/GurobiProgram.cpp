@@ -572,10 +572,10 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     vector<int> stats;
     stats.resize(6,0);
    // if(use_callback){
-        interior=lin->add_outer_app_solution(*_model);
+        //interior=lin->add_outer_app_solution(*_model);
    // }
-    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-    grb_mod->setCallback(&cb);
+    //cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+   // grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
@@ -587,7 +587,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //        cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
             //        return false;
     }
-    update_solution();
+ 
     
         //    GRBVar* gvars = grb_mod->getVars();
         //    for(int i = 0; i < grb_mod->get(GRB_IntAttr_NumVars); ++i) {
@@ -598,7 +598,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //            cout << "\n";
         //        }
         //    }
-    _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
+    double res=-999.0;
+    if(grb_mod->get(GRB_IntAttr_SolCount) >= 1){
+        _model->_obj->set_val(grb_mod->get(GRB_DoubleAttr_ObjVal));
+        update_solution();
+    }
+    else{
+        _model->_obj->set_val(res);
+    }
     _model->_rel_obj_val = grb_mod->get(GRB_DoubleAttr_ObjBound);
 //    cout << "\n***** Optimal Objective = " << _model->get_obj_val() << " *****\n";
 //    if (grb_mod->get(GRB_IntAttr_IsMIP)) {
