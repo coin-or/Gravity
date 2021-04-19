@@ -734,12 +734,22 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         file >>  ws >>word;
         
         arc->tbound.max = atof(word.c_str())*pi/180.;
+        
         if (arc->tbound.min==0 && arc->tbound.max==0) {
-            DebugOff("Angle bounds are equal to zero. Setting them to -+60");
-            arc->tbound.min = -60.*pi/180.;
-            arc->tbound.max = 60.*pi/180.;
-            
-        }
+                    DebugOn("Angle bounds are equal to zero. Setting them to -+60"<<endl);
+                    arc->tbound.min = -pi/3.;
+                    arc->tbound.max = pi/3.;
+                }
+                if (arc->tbound.min<-pi/3) {
+                    DebugOn("Lower bound on phase angles is smaller than -60, setting it to -60"<<endl);
+                     arc->tbound.min = -pi/3.;
+                }
+                if (arc->tbound.max>pi/3) {
+                    DebugOn("Upper bound on phase angles is larger than 60, setting it to 60"<<endl);
+                     arc->tbound.max =  pi/3.;
+                }
+    
+        
         if (reversed && reverse_arcs) {
             arc->g /= pow(arc->tr,2);
             arc->b /= pow(arc->tr,2);
@@ -842,6 +852,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
             tan_th_min.set_val(name,tan(th_min.eval(name)));
             tan_th_max.set_val(name,tan(th_max.eval(name)));
         }
+
         if (arc->tbound.min >= 0) {
             wr_max.add_val(name,bus_s->vbound.max*bus_d->vbound.max*cos(th_min.eval(name)));
             wr_min.add_val(name,bus_s->vbound.min*bus_d->vbound.min*cos(th_max.eval(name)));
@@ -863,6 +874,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         cphi.add_val(name, cos(0.5*(arc->tbound.min+arc->tbound.max)));
         sphi.add_val(name, sin(0.5*(arc->tbound.min+arc->tbound.max)));
         cos_d.add_val(name, cos(0.5*(arc->tbound.max-arc->tbound.min)));
+      
         getline(file, word,'\n');
         file >> word;
     }
@@ -2484,8 +2496,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     PAD_UB = Im_Wij.in(node_pairs);
     PAD_UB <= tan_th_max*R_Wij.in(node_pairs);
     SDPOPF->add(PAD_UB.in(node_pairs));
-    
-    
+
+
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij.in(node_pairs);
     PAD_LB >= tan_th_min*R_Wij.in(node_pairs);
