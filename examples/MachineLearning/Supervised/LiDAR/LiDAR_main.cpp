@@ -12491,7 +12491,7 @@ vector<double> BranchBound2(vector<vector<double>>& point_cloud_model, vector<ve
     int max_iter = 1e6;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     auto nb_threads = std::thread::hardware_concurrency()/2;
-    //nb_threads = 1;
+    //nb_threads = 2;
     vector<pair<double,double>> shift_x_bounds(nb_threads), shift_y_bounds(nb_threads), shift_z_bounds(nb_threads);
     vector<pair<double,double>> roll_bounds(nb_threads), pitch_bounds(nb_threads), yaw_bounds(nb_threads);
     vector<indices> valid_cells(nb_threads, indices("valid_cells"));
