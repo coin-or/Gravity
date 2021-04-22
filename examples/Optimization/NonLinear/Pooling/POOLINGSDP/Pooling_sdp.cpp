@@ -34,6 +34,7 @@
         SPP_NC->print();
         solver<> Sq(SPP_NC, ipopt);
         Sq.run(0, 1e-6);
+        exit(0);
         auto g = SPP_NC->get_interaction_graph();
         g.pool_get_tree_decomp_bags();
         

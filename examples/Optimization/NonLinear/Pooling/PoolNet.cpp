@@ -977,7 +977,8 @@ for (auto &out:*Outputs._keys) {
     }
     row_id++;
 }
-    
+    func<> obj;
+    obj=0;
     indices a = indices("a");
     indices b = indices("b");
     for (auto &in:*Inputs._keys) {
@@ -994,32 +995,26 @@ for (auto &out:*Outputs._keys) {
                     if(pool2==pool1){
                         b.add_in_row(row_id, pool_out);
                         a.add_in_row(row_id, ip);
+                        obj+=cost_ip(ip)*q(ip)*y(pool_out);
                     }
                 }
             }
         }
         row_id++;
     }
+    obj.print();
 
-//Constraint<> costq("costq");
-//costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
-//SPP->add(costq==0);
 
-    cost_ip.print();
-
-    (q.in(a)*y.in(b)).print();
-    param<> u("u");
-    for (const string& ip:*Inputs._keys) {
-        u.add_val(ip, 1);
-    }
-    u.print();
+//    (q.in(a)*y.in(b)).print();
+//
+//    (cost_ip.in(q_per_ypo_per_input_matrix)).print();
     
-    func<> r=(q.in(a)*y.in(b));
-    
-    SPP->min(u.tr()*q.in(a)*y.in(b));
+    func<> obj2=(q.tr()*cost_ip.in(q_per_ypo_per_input_matrix)*y);
+    obj2.print();
     
     
-
+    
+    SPP->min(obj);
 
 
     return SPP;
