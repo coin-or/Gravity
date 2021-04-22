@@ -30,7 +30,10 @@
         poolnet.readgrid(fname);
         SolverType solv_type = ipopt;
         
-        auto SPP_NC=build_pool_pqform(poolnet, ipopt);
+        auto SPP_NC=build_pool_qform(poolnet);
+        SPP_NC->print();
+        solver<> Sq(SPP_NC, ipopt);
+        Sq.run(0, 1e-6);
         auto g = SPP_NC->get_interaction_graph();
         g.pool_get_tree_decomp_bags();
         
@@ -169,7 +172,7 @@
         objvar_max = 1e6;
         var<> x("x",x_min, x_max), y("y", y_min, y_max);
         var<> q("q", q_min, q_max), z("z", z_min, z_max);
-        var<> objvar("objvar",objvar_min, objvar_max);
+        var<> objvar("objvar", objvar_min, objvar_max);
         var<> Wij("Wij", Wij_min, Wij_max);
         var<> Wii("Wii", Wii_min, Wii_max);
         

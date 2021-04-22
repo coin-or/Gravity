@@ -713,7 +713,7 @@ int output = 0;
 
 
 //do bounds on x,y,z using preprocessign in paper!
-//This is p-q-formulaiton of pooling problem!
+//This is q-formulaiton of pooling problem!
 
 
 
@@ -963,39 +963,64 @@ SPP->add(product_quality_ub.in(outputs_attr)<=0);
 //sumy=sum(y);
 // SPP->add_lazy(sumy>=11);
 
-//row_id = 0;
-//indices pool_per_output = indices("pool_per_output");
-//for (auto &out:*Outputs._keys) {
-//    pool_per_output.add_empty_row();
-//    for (const string& pool_out:*pools_outputs._keys) {
-//        auto pos = nthOccurrence(pool_out, ",", 1);
-//        auto out1 = pool_out.substr(pos+1);
-//
-//        if(out1==out){
-//            pool_per_output.add_in_row(row_id, pool_out);
-//        }
-//    }
-//    row_id++;
-//}
+row_id = 0;
+indices pool_per_output = indices("pool_per_output");
+for (auto &out:*Outputs._keys) {
+    pool_per_output.add_empty_row();
+    for (const string& pool_out:*pools_outputs._keys) {
+        auto pos = nthOccurrence(pool_out, ",", 1);
+        auto out1 = pool_out.substr(pos+1);
+
+        if(out1==out){
+            pool_per_output.add_in_row(row_id, pool_out);
+        }
+    }
+    row_id++;
+}
+    
+    indices a = indices("a");
+    indices b = indices("b");
+    for (auto &in:*Inputs._keys) {
+        a.add_empty_row();
+        b.add_empty_row();
+        for (const string& ip:*inputs_pools._keys) {
+            auto pos = nthOccurrence(ip, ",", 1);
+            auto in1 = ip.substr(0,pos);
+            auto pool1=ip.substr(pos+1);
+            if(in1==in){
+                for (const string& pool_out:*pools_outputs._keys) {
+                    auto pos = nthOccurrence(pool_out, ",", 1);
+                    auto pool2 = pool_out.substr(0,pos);
+                    if(pool2==pool1){
+                        b.add_in_row(row_id, pool_out);
+                        a.add_in_row(row_id, ip);
+                    }
+                }
+            }
+        }
+        row_id++;
+    }
 
 //Constraint<> costq("costq");
 //costq=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool))-cq;
 //SPP->add(costq==0);
 
-//SPP->min((cost_ip.in(q_per_ypo_per_input_matrix).tr()*q).tr()*y);
-    SPP->min(q.tr()*cost_ip.in(q_per_ypo_per_input_matrix)*y);
-//auto obj=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
-//auto obj1=(cost_ip.in(in_arcs_per_pool)*q.in(in_arcs_per_pool));
+    cost_ip.print();
 
-//    func<> a=(product(y.in(pool_per_output), obj1));
-//    a.print();
+    (q.in(a)*y.in(b)).print();
+    param<> u("u");
+    for (const string& ip:*Inputs._keys) {
+        u.add_val(ip, 1);
+    }
+    u.print();
+    
+    func<> r=(q.in(a)*y.in(b));
+    
+    SPP->min(u.tr()*q.in(a)*y.in(b));
+    
+    
 
-//auto obj= y.in(pool_per_output)*(cq);
-// obj1.eval_all();
-// obj.print();
-//
-//   auto obj= product(cost_ip, )+product(cost_io, z)+product(cost_po, y);
-//   SPP->min(obj);
+
 
     return SPP;
 
