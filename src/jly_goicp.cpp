@@ -42,7 +42,7 @@ GoICP::GoICP()
 	initNodeRot.lb = 0;
 	initNodeTrans.lb = 0;
 
-	doTrim = true;
+	doTrim = false;
 }
 
 // Build Distance Transform
@@ -530,4 +530,12 @@ double GoICP::Register()
 	Clear();
 
 	return optError;
+}
+double GoICP::run_ICP()
+{
+    Initialize();
+    ICP(R_init, T_init);
+    Clear();
+
+    return optError;
 }

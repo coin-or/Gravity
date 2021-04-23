@@ -93,6 +93,7 @@ public:
 
 	GoICP();
 	double Register();
+   
 	void BuildDT();
 
 	double MSEThresh;
@@ -102,6 +103,11 @@ public:
 	double optError;
 	Go_ICP::Matrix optR;
 	Go_ICP::Matrix optT;
+    
+    Go_ICP::Matrix R_init;
+    Go_ICP::Matrix T_init;
+    
+    double run_ICP();
 
 	clock_t clockBegin;
 
