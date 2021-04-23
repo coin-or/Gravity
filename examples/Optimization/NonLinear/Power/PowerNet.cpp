@@ -2368,17 +2368,45 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
             Constraint<> SOC_Kojima1_theta("SOC_Kojima1_theta");
             SOC_Kojima1_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2], 2)+pow(Im_Wij_[0] + cos(theta)*Im_Wij_[2]+sin(theta)*R_Wij_[2], 2)-Wii_[0]*(Wii_[1]+Wii_[2]+2*(cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1]));
             SDPOPF->add(SOC_Kojima1_theta.in(bags_theta) <= 0);
-            
-            
+
+
             Constraint<> SOC_Kojima2_theta("SOC_Kojima2_theta");
             SOC_Kojima2_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[0] - cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[1]*(Wii_[0]+Wii_[2]+2*(cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2]));
             SDPOPF->add(SOC_Kojima2_theta.in(bags_theta) <= 0);
-            
-            
+
+
             Constraint<> SOC_Kojima3_theta("SOC_Kojima3_theta");
             SOC_Kojima3_theta = pow(R_Wij_[2] + cos(theta)*R_Wij_[1]+sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[2] + cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[2]*(Wii_[0]+Wii_[1]+2*(cos(theta)*R_Wij_[0]-sin(theta)*Im_Wij_[0]));
             SDPOPF->add(SOC_Kojima3_theta.in(bags_theta) <= 0);
             
+//            var<> z1("z1", pos_),z2("z2", pos_),z3("z3", pos_);
+//            SDPOPF->add(z1.in(bags_theta), z2.in(bags_theta),z3.in(bags_theta));
+//
+//            Constraint<> def_z1("def_z1");
+//            def_z1=z1-(Wii_[1]+Wii_[2]+2*(cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1]));
+//            SDPOPF->add(def_z1.in(bags_theta) == 0);
+//
+//            Constraint<> def_z2("def_z2");
+//            def_z2=z2-(Wii_[0]+Wii_[2]+2*(cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2]));
+//            SDPOPF->add(def_z2.in(bags_theta) == 0);
+//
+//            Constraint<> def_z3("def_z3");
+//            def_z3=z3-(Wii_[0]+Wii_[1]+2*(cos(theta)*R_Wij_[0]-sin(theta)*Im_Wij_[0]));
+//            SDPOPF->add(def_z3.in(bags_theta) == 0);
+//
+//            Constraint<> SOC_Kojima1_theta("SOC_Kojima1_theta");
+//            SOC_Kojima1_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[2]-sin(theta)*Im_Wij_[2], 2)+pow(Im_Wij_[0] + cos(theta)*Im_Wij_[2]+sin(theta)*R_Wij_[2], 2)-Wii_[0]*z1;
+//           // SDPOPF->add(SOC_Kojima1_theta.in(bags_theta) <= 0);
+//
+//
+//            Constraint<> SOC_Kojima2_theta("SOC_Kojima2_theta");
+//            SOC_Kojima2_theta = pow(R_Wij_[0] + cos(theta)*R_Wij_[1]-sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[0] - cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[1]*(z2);
+//           // SDPOPF->add(SOC_Kojima2_theta.in(bags_theta) <= 0);
+//
+//
+//            Constraint<> SOC_Kojima3_theta("SOC_Kojima3_theta");
+//            SOC_Kojima3_theta = pow(R_Wij_[2] + cos(theta)*R_Wij_[1]+sin(theta)*Im_Wij_[1], 2)+pow(Im_Wij_[2] + cos(theta)*Im_Wij_[1]-sin(theta)*R_Wij_[1], 2)-Wii_[2]*(z3);
+//          //  SDPOPF->add(SOC_Kojima3_theta.in(bags_theta) <= 0);
         }
         
         //        /* Second-order cone constraints */
