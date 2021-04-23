@@ -194,6 +194,14 @@ int main (int argc, char * argv[]) {
     unsigned max_iter=1e3;
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
 
+    lb_solver_type = gurobi;
+    sdp_kim = false;
+    auto nonlin_obj=true;
+    current=true;
+    auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+    SDP->print();
+    solver<> s(SDP, gurobi);
+    s.run(5, 1e-6);
     if(!linearize){
         auto nonlin_obj=true;
         current=true;
