@@ -901,8 +901,8 @@ int main (int argc, char * argv[])
             //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
             //            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
             bool relax_integers = false, relax_sdp = false, rigid_transf = true;
-            run_ICP_only(point_cloud_model, point_cloud_data);
-           // rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
+            //run_ICP_only(point_cloud_model, point_cloud_data);
+            rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
             //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //            solver<> S(NC_SOC_MIQCP,gurobi);
             //           S.use_callback();
@@ -8047,7 +8047,7 @@ double build_upperbound(vector<double>& solutionlb,vector<vector<double>>& point
     //  Reg->round_and_fix();
     // Reg->print();
     solver<> S(Reg, ipopt);
-    S.run();
+    S.run(0, 1e-6);
     // Reg->print_solution();
     
     
@@ -13015,7 +13015,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     double opt_gap = (best_ub - best_lb)/best_ub;
     double max_opt_gap = 0.05;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
-    double eps=0.001;
+    double eps=0.01;
     while (elapsed_time < total_time_max && !lb_queue.empty() && opt_gap > max_opt_gap) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
@@ -13054,7 +13054,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
         if(old_size - lb_queue.size()>0)
             DebugOn("Just pruned " << old_size - lb_queue.size() << " node(s)\n");
         nb_pruned += old_size - lb_queue.size();
-        DebugOn("Total pruned =  " << nb_pruned << endl);
+        DebugOn("Total infeasible =  " << infeasible_count << endl);
         DebugOn("Queue size = " << lb_queue.size() << "\n");
         
         double max_incr=0, max_ratio=1;
