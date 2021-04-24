@@ -13096,14 +13096,14 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             lb_queue.pop();
             if(node.lb < best_ub)
                 new_lb_queue.push(node);
-            else
-                break;
         }
         lb_queue = new_lb_queue;
-        if(old_size - lb_queue.size()>0)
+        if(old_size - lb_queue.size()>0){
             DebugOn("Just pruned " << old_size - lb_queue.size() << " node(s)\n");
-        nb_pruned += old_size - lb_queue.size();
+            nb_pruned += old_size - lb_queue.size();
+        }
         DebugOn("Total infeasible =  " << infeasible_count << endl);
+        DebugOn("Total pruned =  " << nb_pruned << endl);
         DebugOn("Queue size = " << lb_queue.size() << "\n");
         
         double max_incr=0, max_ratio=1;
@@ -13250,11 +13250,11 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
                 pos_vec.push_back(i);
             }
             else {
-                DebugOn("v size "<<valid_cells[i].size()<<endl);
-                DebugOn("Infeasible model\n");
+                DebugOff("v size "<<valid_cells[i].size()<<endl);
+                DebugOff("Infeasible model\n");
                 nb_pruned++;
-                DebugOn("Total pruned =  " << nb_pruned << endl);
-                DebugOn("Queue size = " << lb_queue.size() << "\n");
+                DebugOff("Total pruned =  " << nb_pruned << endl);
+                DebugOff("Queue size = " << lb_queue.size() << "\n");
             }
             valid_cells[i+1] = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             
