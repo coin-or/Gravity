@@ -44,6 +44,7 @@
 using namespace std;
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
+using namespace Go_ICP;
 #ifdef USE_QHULL
 #include "libqhullcpp/RboxPoints.h"
 #include "libqhullcpp/QhullError.h"
@@ -280,7 +281,8 @@ shared_ptr<Model<double>> build_linear_lowerbound(vector<vector<double>>& point_
 
 shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept,  bool relax_inits);
 double build_upperbound(vector<double>& solutionlb,vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans);
-tuple<double,double,double,double,double,double,double> run_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
+GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
+tuple<double,double,double,double,double,double,double> run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z);
 int main (int argc, char * argv[])
 {
     //    read_laz("/Users/l297598/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz");
@@ -388,19 +390,6 @@ int main (int argc, char * argv[])
             xyz.push_back(y);
             xyz.push_back(z);
             initial_point_cloud_data.push_back(xyz);
-            
-            //            if(x_max<x)
-            //                x_max = x;
-            //            if(y_max<y)
-            //                y_max = y;
-            //            if(z_max<z)
-            //                z_max = z;
-            //            if(x_min>x)
-            //                x_min = x;
-            //            if(y_min>y)
-            //                y_min = y;
-            //            if(z_min>z)
-            //                z_min = z;
             x_vec1.push_back(x);
             y_vec1.push_back(y);
             z_vec1.push_back(z);
@@ -579,9 +568,6 @@ int main (int argc, char * argv[])
         //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, 0.23,0.24,-0.24,-0.23,-0.02,-0.01,  model_voronoi_normals, model_face_intercept);
         double shift_min_xa = 0.23, shift_max_xa = 0.24, shift_min_ya = -0.24,shift_max_ya= -0.23,shift_min_za = -0.02,shift_max_za = -0.01;
         double yaw_mina = -25*pi/180., yaw_maxa = 25*pi/180., pitch_mina = -25*pi/180.,pitch_maxa = 25.*pi/180.,roll_mina = -25*pi/180.,roll_maxa = 25*pi/180.;
-        
-        //auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, roll_mina, roll_maxa,  pitch_mina, pitch_maxa, yaw_mina, yaw_maxa, shift_min_xa, shift_max_xa, shift_min_ya, shift_max_ya, shift_min_za, shift_max_za, model_voronoi_normals, model_face_intercept);
-        // auto valid_cellsa=preprocess(point_cloud_data, point_cloud_model, 25, shift_min_xa, shift_max_xa, shift_min_ya, shift_max_ya, shift_min_za, shift_max_za, model_voronoi_normals, model_face_intercept);
 #endif
         
         auto old_point_cloud = point_cloud_data;
@@ -685,29 +671,8 @@ int main (int argc, char * argv[])
             bool separate=true;
             bool linearize=false;
             //input
-            //            0.23,0.24,-0.24,-0.23,-0.02,-0.01
-            //            double shift_min_x = 0.12, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.24,shift_min_z = 0,shift_max_z = 0.06;
-            //            double shift_min_x = 0.06, shift_max_x = 0.18, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.06,shift_max_z = 0.06;
-            //            double shift_min_x = 0.18, shift_max_x = 0.3, shift_min_y = -0.3,shift_max_y = -0.18,shift_min_z = -0.3,shift_max_z = -0.18;
-            /* INPUT BOUNDS */
-            //            double shift_min_x =  -0.031, shift_max_x = -0.031, shift_min_y = -0.012,shift_max_y = -0.012,shift_min_z = 0.11,shift_max_z = 0.11;
-            //            double shift_min_x =  -0.05, shift_max_x = 0.0, shift_min_y = -0.05,shift_max_y = 0,shift_min_z = 0.1,shift_max_z = 0.15;
-            //            double shift_min_x =  -0.025, shift_max_x = -0.025, shift_min_y = -0.06,shift_max_y = -0.06,shift_min_z = 0.026,shift_max_z = 0.026;
             double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-            // double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-            //            double shift_min_x = 0.151, shift_max_x = 0.152, shift_min_y = -0.27,shift_max_y = -0.26,shift_min_z = 0.041,shift_max_z = 0.042;
-            //            double shift_min_x = 0.23, shift_max_x = 0.24, shift_min_y = -0.24,shift_max_y = -0.23,shift_min_z = -0.02,shift_max_z = -0.01;
-            //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25.*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            //            double yaw_min = -8.8*pi/180., yaw_max = -8.6*pi/180., pitch_min = 1.75*pi/180.,pitch_max = 1.85*pi/180.,roll_min = -5.7*pi/180.,roll_max = -5.5*pi/180.;
-            //            double yaw_min = -25*pi/180., yaw_max = 25*pi/180., pitch_min = -25*pi/180.,pitch_max = 25*pi/180.,roll_min = -25*pi/180.,roll_max = 25*pi/180.;
-            //            double yaw_min = 7.5*pi/180., yaw_max = 7.5*pi/180., pitch_min =-8*pi/180.,pitch_max = -8*pi/180.,roll_min =0.36*pi/180.,roll_max = 0.36*pi/180.;
-            //double yaw_min = -5.03*pi/180., yaw_max =-5.02*pi/180., pitch_min =-12.09*pi/180.,pitch_max = -12.07*pi/180.,roll_min =-10.99*pi/180.,roll_max = -10.91*pi/180.;
-            //            double yaw_min = -165*pi/180., yaw_max = -165*pi/180., pitch_min =91*pi/180.,pitch_max = 91*pi/180.,roll_min =-15*pi/180.,roll_max = -15*pi/180.;
-            //double yaw_min = -1*pi/180., yaw_max = 1*pi/180., pitch_min =-1*pi/180.,pitch_max = 1*pi/180.,roll_min =-1*pi/180.,roll_max = 1*pi/180.;
             double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
-            //double roll_min= -5.03*pi/180,  roll_max=-5.02*pi/180,  pitch_min=-12.08*pi/180,  pitch_max=-12.07*pi/180,  yaw_min=-10.93*pi/180,  yaw_max=-10.92*pi/180;
-            
-            //double shift_min_x = 0.311, shift_max_x=0.312, shift_min_y=-0.125, shift_max_y=-0.124, shift_min_z=0.221, shift_max_z=0.222;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -816,18 +781,10 @@ int main (int argc, char * argv[])
             /* Build the index set of incompatible pairs */
             vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
             if(preprocess){
-                //                auto valid_cells1=preprocess_QP(point_cloud_data, point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                //                valid_cells1.print();
-                //
-                
+            
                 valid_cells= preprocess_poltyope_intersect(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
                 valid_cells.print();
                 
-                //                auto valid_cells3=preprocess_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                //                valid_cells3.print();
-                
-                // exit(0);
-                //            auto valid_cells=preprocess_QP(point_cloud_data, point_cloud_model, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, model_voronoi_normals, model_face_intercept, new_model_pts);
                 double time_end = get_wall_time();
                 auto prep_time = time_end - time_start;
                 /* Terminal output */
@@ -895,24 +852,17 @@ int main (int argc, char * argv[])
                 if(incompatibles.size() > nb_pairs_max)
                     incompatibles.resize(nb_pairs_max);
             }
-            //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  model_voronoi_normals, model_face_intercept);
-            
-            //            auto valid_cells=get_valid_pairs(point_cloud_model, point_cloud_data, -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., -25*pi/180., 25*pi/180., 0.23,0.24,-0.24,-0.23,-0.02,-0.01,norm_x, norm_y,norm_z,   intercept,model_voronoi_out_radius, false);
-            //            shift_min_x = 0.151; shift_max_x = 0.152; shift_min_y = -0.27;shift_max_y = -0.26;shift_min_z = 0.041;shift_max_z = 0.042;
-            //            auto NC_SOC_MIQCP = build_norm1_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
+        
             bool relax_integers = false, relax_sdp = false, rigid_transf = true;
-            //run_ICP_only(point_cloud_model, point_cloud_data);
-            rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
+            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
+            run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z);
+            go.Clear();
+            //rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
             //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //            solver<> S(NC_SOC_MIQCP,gurobi);
             //           S.use_callback();
             //            S.run(5,1e-6,9000,100000);
             // get_solution(NC_SOC_MIQCP, rot_trans, L2matching);
-            //   auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, false);
-            // auto NC_SOC_MIQCP = build_new_SOC_MIQCP(point_cloud_model, point_cloud_data, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, matching);
-            //            auto SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, roll_min, roll_max,  pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, convex=true, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, relax_integers, relax_sdp, rigid_transf);
-            //            NC_SOC_MIQCP->print();
-            //            SOC_MIQCP->print();
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
             unsigned max_iter=1e3, max_time=3000;
             int nb_threads=1;
@@ -927,12 +877,12 @@ int main (int argc, char * argv[])
             
             
             //auto SOC_MIPlin = build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point,  model_voronoi_normals,  model_face_intercept, false);
-            apply_rot_trans(rot_trans, point_cloud_data);
-            
-            apply_rot_trans(rot_trans, point_cloud_data);
-            
-            
-            apply_rot_trans(rot_trans, initial_point_cloud_data);
+//            apply_rot_trans(rot_trans, point_cloud_data);
+//
+//            apply_rot_trans(rot_trans, point_cloud_data);
+//
+//
+//            apply_rot_trans(rot_trans, initial_point_cloud_data);
             
             //SOC_MIP->print();
             //  solver<> S(SOC_MIP,gurobi);
@@ -10752,7 +10702,55 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
 }
 
 /* Run ICP on point clouds */
-tuple<double,double,double,double,double,double,double> run_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+tuple<double,double,double,double,double,double,double> run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z){
+    
+    var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
+    func<> r11 = cos(yaw)*cos(roll);
+    func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
+    func<> r13 = cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
+    func<> r21 = sin(yaw)*cos(roll);
+    func<> r22 = sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
+    func<> r23 = sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
+    func<> r31 = sin(-1*roll);
+    func<> r32 = cos(roll)*sin(pitch);
+    func<> r33 = cos(roll)*cos(pitch);
+    
+    
+    var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
+    var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
+    var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
+
+    goicp.R_init.val[0][0]=(std::max(-1.,r11._range->first)+ std::min(1.,r11._range->second))/2.0;
+    goicp.R_init.val[0][1]=(std::max(-1.,r12._range->first)+ std::min(1.,r12._range->second))/2.0;
+    goicp.R_init.val[0][2]=(std::max(-1.,r13._range->first)+ std::min(1.,r13._range->second))/2.0;
+    goicp.R_init.val[1][0]=(std::max(-1.,r21._range->first)+ std::min(1.,r21._range->second))/2.0;
+    goicp.R_init.val[1][1]=(std::max(-1.,r22._range->first)+ std::min(1.,r22._range->second))/2.0;
+    goicp.R_init.val[1][2]=(std::max(-1.,r23._range->first)+ std::min(1.,r23._range->second))/2.0;
+    goicp.R_init.val[2][0]=(std::max(-1.,r31._range->first)+ std::min(1.,r31._range->second))/2.0;
+    goicp.R_init.val[2][1]=(std::max(-1.,r32._range->first)+ std::min(1.,r32._range->second))/2.0;
+    goicp.R_init.val[2][2]=(std::max(-1.,r33._range->first)+ std::min(1.,r33._range->second))/2.0;
+    goicp.T_init.val[0][0]=(shift_min_x+shift_max_x)/2.0;
+    goicp.T_init.val[1][0]=(shift_min_y+shift_max_y)/2.0;
+    goicp.T_init.val[2][0]=(shift_min_z+shift_max_z)/2.0;
+    
+    auto error=goicp.run_ICP();
+    auto pitch_sol = atan2(goicp.R_init.val[2][1], goicp.R_init.val[2][2])*180/pi;
+    auto roll_sol = atan2(-goicp.R_init.val[2][0], std::sqrt(goicp.R_init.val[2][1]*goicp.R_init.val[2][1]+goicp.R_init.val[2][2]*goicp.R_init.val[2][2]))*180/pi;
+    auto yaw_sol = atan2(goicp.R_init.val[1][0],goicp.R_init.val[0][0])*180/pi;
+    DebugOff("Roll (degrees) = " << to_string_with_precision(roll,12) << endl);
+    DebugOff("Pitch (degrees) = " << to_string_with_precision(pitch,12) << endl);
+    DebugOff("Yaw (degrees) = " << to_string_with_precision(yaw,12) << endl);
+    auto tx = goicp.T_init.val[0][0];
+    auto ty = goicp.T_init.val[1][0];
+    auto tz = goicp.T_init.val[2][0];
+    DebugOff("tx = " << tx << endl);
+    DebugOff("ty = " << ty << endl);
+    DebugOff("tz = " << tz << endl);
+    DebugOn("ICP error "<<error<<endl);
+    return {roll_sol,pitch_sol,yaw_sol,tx,ty,tz,error};
+}
+/* Run ICP on point clouds */
+GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
     int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
@@ -10809,48 +10807,12 @@ tuple<double,double,double,double,double,double,double> run_ICP_only(const vecto
         goicp.Nd = NdDownsampled; // Only use first NdDownsampled data points (assumes data points are randomly ordered)
     }
     cout << "Model ID: " << modelFName << " (" << goicp.Nm << "), Data ID: " << dataFName << " (" << goicp.Nd << ")" << endl;
-    cout << "Registering..." << endl;
-    clockBegin = clock();
     goicp.R_init=Go_ICP::Matrix::eye(3);
     goicp.T_init=Go_ICP::Matrix::ones(3,1)*0;
+    goicp.Initialize();
   
-    goicp.R_init.val[0][0]=0.9;
-    goicp.R_init.val[0][1]=0.1;
-    goicp.R_init.val[0][2]=0.4;
-    goicp.R_init.val[1][0]=0.9;
-    goicp.R_init.val[1][1]=0.1;
-    goicp.R_init.val[1][2]=0.4;
-    goicp.R_init.val[2][0]=0.9;
-    goicp.R_init.val[2][1]=0.1;
-    goicp.R_init.val[2][2]=0.4;
-    goicp.T_init.val[0][0]=0.1;
-    goicp.T_init.val[1][0]=0.1;
-    goicp.T_init.val[2][0]=0.1;
-    
-    goicp.run_ICP();
-    clockEnd = clock();
-    double time = (double)(clockEnd - clockBegin)/CLOCKS_PER_SEC;
-    cout << "Optimal Rotation Matrix:" << endl;
-    cout << goicp.R_init << endl;
-    cout << "Optimal Translation Vector:" << endl;
-    cout << goicp.T_init << endl;
-    cout << "Finished in " << time << endl;
-    auto pitch = atan2(goicp.R_init.val[2][1], goicp.R_init.val[2][2])*180/pi;
-    auto roll = atan2(-goicp.R_init.val[2][0], std::sqrt(goicp.R_init.val[2][1]*goicp.R_init.val[2][1]+goicp.R_init.val[2][2]*goicp.R_init.val[2][2]))*180/pi;
-    auto yaw = atan2(goicp.R_init.val[1][0],goicp.R_init.val[0][0])*180/pi;
-    DebugOn("Roll (degrees) = " << to_string_with_precision(roll,12) << endl);
-    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch,12) << endl);
-    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw,12) << endl);
-    auto tx = goicp.T_init.val[0][0];
-    auto ty = goicp.T_init.val[1][0];
-    auto tz = goicp.T_init.val[2][0];
-    DebugOn("tx = " << tx << endl);
-    DebugOn("ty = " << ty << endl);
-    DebugOn("tz = " << tz << endl);
-    DebugOn("err "<<goicp.optError<<endl);
-    return {roll,pitch,yaw,tx,ty,tz,goicp.optError};
+    return goicp;
 }
-
 
 tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
     double roll = 0, pitch = 0, yaw = 1; /* at least one nonzero to enter the while loop */
@@ -12173,33 +12135,43 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     bool feas=true;
     
     if(row1._range->first>=(1+1e-4) || row1._range->second<=(1-1e-4)){
+        DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
         feas=false;
     }
     else if(row2._range->first>=(1+1e-4) || row2._range->second<=(1-1e-4)){
+        DebugOn("row2 "<<row2._range->first<<" "<<row2._range->second<<endl);
         feas=false;
     }
     else if(row3._range->first>=(1+1e-4) || row3._range->second<=(1-1e-4)){
+        DebugOn("row3 "<<row3._range->first<<" "<<row3._range->second<<endl);
         feas=false;
     }
     else if(col1._range->first>=(1+1e-4) || col1._range->second<=(1-1e-4)){
+        DebugOn("col1 "<<col1._range->first<<" "<<col1._range->second<<endl);
         feas=false;
     }
     else if(col2._range->first>=(1+1e-4) || col2._range->second<=(1-1e-4)){
+        DebugOn("col2 "<<col2._range->first<<" "<<col2._range->second<<endl);
         feas=false;
     }
     else if(col3._range->first>=(1+1e-4) || col3._range->second<=(1-1e-4)){
+        DebugOn("col3 "<<col3._range->first<<" "<<col3._range->second<<endl);
         feas=false;
     }
     else if(row12._range->first>=1e-4 || row12._range->second<=(-1e-4)){
+        DebugOn("row12 "<<row12._range->first<<" "<<row12._range->second<<endl);
         feas=false;
     }
     else if(row13._range->first>=1e-4 || row13._range->second<=(-1e-4)){
+        DebugOn("row13 "<<row13._range->first<<" "<<row13._range->second<<endl);
         feas=false;
     }
     else if(row23._range->first>=1e-4 || row23._range->second<=(-1e-4)){
+        DebugOn("row23 "<<row23._range->first<<" "<<row23._range->second<<endl);
         feas=false;
     }
     else if(det._range->first>=(1+1e-4) || det._range->second<=(1-1e-4)){
+        DebugOn("det "<<det._range->first<<" "<<det._range->second<<endl);
         feas=false;
     }
 
