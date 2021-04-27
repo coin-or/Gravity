@@ -533,9 +533,8 @@ double GoICP::Register()
 }
 double GoICP::run_ICP()
 {
-    Initialize();
-    ICP(R_init, T_init);
-    Clear();
 
-    return optError;
+    auto error=ICP(R_init, T_init);
+
+    return error;
 }
