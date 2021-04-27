@@ -13307,10 +13307,16 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
                 infeasible_count++;
             }
         }
+        best_lb = lb_queue.top().lb;
+        opt_gap = (best_ub - best_lb)/best_ub;
     
         elapsed_time = get_wall_time() - time_start;
         //        max_time += 1;
     }
+    DebugOn("UB final "<<best_ub<<endl);
+    DebugOn("LB final "<<best_lb<<endl);
+    DebugOn("Gap final "<<(best_ub-best_ub/best_ub*100.0)<<endl);
+
     vector<double> res(N1.size());
     apply_rot_trans(best_rot_trans, point_cloud_data);
     auto L2err=computeL2error(point_cloud_model, point_cloud_data, new_matching, res);
