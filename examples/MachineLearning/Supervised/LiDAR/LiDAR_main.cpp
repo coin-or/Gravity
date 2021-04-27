@@ -282,7 +282,7 @@ shared_ptr<Model<double>> build_linear_lowerbound(vector<vector<double>>& point_
 shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept,  bool relax_inits);
 double build_upperbound(vector<double>& solutionlb,vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans);
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
-tuple<double,double,double,double,double,double,double> run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z);
+double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans_ub);
 int main (int argc, char * argv[])
 {
     //    read_laz("/Users/l297598/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz");
@@ -854,10 +854,11 @@ int main (int argc, char * argv[])
             }
         
             bool relax_integers = false, relax_sdp = false, rigid_transf = true;
-            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
-            run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z);
-            go.Clear();
-            //rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
+//            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
+//            vector<double> rt(12);
+//            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
+//            go.Clear();
+            rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
             //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //            solver<> S(NC_SOC_MIQCP,gurobi);
             //           S.use_callback();
@@ -10702,8 +10703,7 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
 }
 
 /* Run ICP on point clouds */
-tuple<double,double,double,double,double,double,double> run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z){
-    
+double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans_ub){
     var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     func<> r11 = cos(yaw)*cos(roll);
     func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
@@ -10747,7 +10747,20 @@ tuple<double,double,double,double,double,double,double> run_ICP_only(GoICP& goic
     DebugOff("ty = " << ty << endl);
     DebugOff("tz = " << tz << endl);
     DebugOn("ICP error "<<error<<endl);
-    return {roll_sol,pitch_sol,yaw_sol,tx,ty,tz,error};
+    rot_trans_ub[0]=goicp.R_init.val[0][0];
+    rot_trans_ub[1]=goicp.R_init.val[0][1];
+    rot_trans_ub[2]=goicp.R_init.val[0][2];
+    rot_trans_ub[3]=goicp.R_init.val[1][0];
+    rot_trans_ub[4]=goicp.R_init.val[1][1];
+    rot_trans_ub[5]=goicp.R_init.val[1][2];
+    rot_trans_ub[6]=goicp.R_init.val[2][0];
+    rot_trans_ub[7]=goicp.R_init.val[2][1];
+    rot_trans_ub[8]=goicp.R_init.val[2][2];
+    rot_trans_ub[9] = goicp.T_init.val[0][0];
+    rot_trans_ub[10] = goicp.T_init.val[1][0];
+    rot_trans_ub[11] = goicp.T_init.val[2][0];
+    
+    return error;
 }
 /* Run ICP on point clouds */
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
@@ -12992,8 +13005,8 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     /* INPUT BOUNDS */
     double time_start = get_wall_time();
     double total_time_max = 9000;
-    double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-    double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+    double shift_min_x =  -0.5, shift_max_x = 0.5, shift_min_y = -0.5,shift_max_y = 0.5,shift_min_z = -0.5,shift_max_z = 0.5;
+    double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
     vector<int> new_matching(N1.size());
@@ -13020,6 +13033,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     vector<vector<double>> rot_trans(nb_threads, vector<double>(12));
     vector<double> rot_trans_r(12);
     vector<double> best_rot_trans(12);
+    vector<double> sol_gur(12);
     vector<int> pos_vec(nb_threads);
     DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models;
@@ -13031,6 +13045,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     auto valid_cells_r = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, valid_cells_ro, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
     auto model = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_r, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
     lb_queue.push(treenode_n(model, roll_bounds_r, pitch_bounds_r, yaw_bounds_r, shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, ub, ub_, depth_r, valid_cells_r));
+    auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
 
     double elapsed_time = get_wall_time() - time_start;
     double opt_gap = (best_ub - best_lb)/best_ub;
@@ -13260,22 +13275,29 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             if(models[i]->_status==0){
                 ub_ = models[i]->get_obj_val();
                 int pos=pos_vec[i];
-                if(ub_>=0 && ub_<=best_ub){
-                    vector<double> solution_lb;
-                    vector<double> rot_trans_ub;
-                    rot_trans_ub.resize(12);
-                    auto binc = models[i]->get_var<int>("bin");
-                    auto v_keys=binc.get_keys();
-                    for(auto it_key=v_keys->begin(); it_key!=v_keys->end(); it_key++){
-                        auto key = *it_key;
-                        solution_lb.push_back(binc.eval(key));
+                    if(ub_>=0 && ub_<=best_ub){
+                        vector<double> solution_lb;
+                        vector<double> rot_trans_ub;
+                        rot_trans_ub.resize(12);
+                        auto binc = models[i]->get_var<int>("bin");
+                        auto v_keys=binc.get_keys();
+                        for(auto it_key=v_keys->begin(); it_key!=v_keys->end(); it_key++){
+                            auto key = *it_key;
+                            solution_lb.push_back(binc.eval(key));
+                        }
+                        ub= build_upperbound(solution_lb,point_cloud_model, point_cloud_data, *(binc._indices), roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_ub);
+                        if(ub<best_ub){
+                            best_ub = ub;
+                            best_rot_trans=rot_trans_ub;
+                            //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
+                        }
+//                        ub= run_ICP_only(goicp, roll_bounds[pos].first, roll_bounds[pos].second,  pitch_bounds[pos].first, pitch_bounds[pos].second, yaw_bounds[pos].first, yaw_bounds[pos].second, shift_x_bounds[pos].first, shift_x_bounds[pos].second, shift_y_bounds[pos].first, shift_y_bounds[pos].second, shift_z_bounds[pos].first, shift_z_bounds[pos].second,rot_trans_ub);
+//                        if(ub<best_ub){
+//                            best_ub = ub;
+//                            best_rot_trans=rot_trans_ub;
+//                            //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
+//                        }
                     }
-                    ub= build_upperbound(solution_lb,point_cloud_model, point_cloud_data, *(binc._indices), roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_ub);
-                    if(ub<best_ub){
-                        best_ub = ub;
-                   // bool is_rotation  = get_solution(models[i], best_rot_trans, new_matching);
-                    }
-                }
                 lb = std::max(models[i]->get_rel_obj_val(), best_lb);
                 if(lb<best_lb)
                     best_lb = lb;
@@ -13289,6 +13311,23 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
         elapsed_time = get_wall_time() - time_start;
         //        max_time += 1;
     }
+    vector<double> res(N1.size());
+    apply_rot_trans(best_rot_trans, point_cloud_data);
+    auto L2err=computeL2error(point_cloud_model, point_cloud_data, new_matching, res);
+    DebugOn("L2err "<<L2err<<endl);
+    DebugOn("Matching"<<endl);
+    for(auto i=0;i<new_matching.size();i++){
+        DebugOn(new_matching[i]<<endl);
+    }
+    auto pitch = atan2(best_rot_trans[7], best_rot_trans[8])*180/pi;
+    auto roll = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]))*180/pi;
+    auto yaw = atan2(best_rot_trans[3],best_rot_trans[0])*180/pi;
+    DebugOn("roll "<< roll<<endl);
+    DebugOn("pitch "<< pitch<<endl);
+    DebugOn("yaw "<< yaw<<endl);
+    DebugOn("tx "<<best_rot_trans[9]<<endl);
+    DebugOn("ty "<<best_rot_trans[10]<<endl);
+    DebugOn("tz "<<best_rot_trans[11]<<endl);
     return best_rot_trans;
 }
 /* Save LAZ files */
