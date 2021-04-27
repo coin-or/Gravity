@@ -114,6 +114,8 @@ public:
 	double trimFraction;
 	int inlierNum;
 	bool doTrim;
+    void Initialize();
+    void Clear();
 
 private:
 	//temp variables
@@ -131,8 +133,7 @@ private:
 	double ICP(Go_ICP::Matrix& R_icp, Go_ICP::Matrix& t_icp);
 	double InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut, int& nb_nodes);
 	double OuterBnB();
-	void Initialize();
-	void Clear();
+	
 
 };
 
