@@ -860,14 +860,14 @@ int main (int argc, char * argv[])
 //            vector<double> rt(12);
 //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
 //            go.Clear();
-//            auto R=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
-//                        solver<> S(R,gurobi);
+            auto R=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
+                        solver<> S(R,ipopt);
 //            S.use_callback();
 //           // R->replace_integers();
-//                        S.run(5,1e-6);
-//            R->print();
+                        S.run(0,1e-6);
+            R->print();
 //
-//            R->print_solution();
+            R->print_solution();
             rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
                       //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
 //                        solver<> S1(NC_SOC_MIQCP,gurobi);
@@ -7689,7 +7689,7 @@ double build_upperbound(vector<double>& solutionlb,vector<vector<double>>& point
     for(auto i=0;i<nd;i++){
         for(auto j=0;j<nm;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j+1))){
-                bin.set_val(to_string(i+1)+","+to_string(j+1), solutionlb[count++]);
+                bin.set_val(to_string(i+1)+","+to_string(j+1), round(solutionlb[count++]));
             }
         }
     }
@@ -8828,10 +8828,11 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
                     vface.add_in_row(q, to_string(q+1));
                     q++;
                 }
+                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
                 auto cL_val=std::max(sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r*(-1), c_min);
                 auto cU_val=std::min(sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r, c_max);
                 cL.set_val(to_string(i+1)+","+to_string(j), cL_val);
-                cU.set_val(to_string(i+1)+","+to_string(j), cU_val);
+                cU.set_val(to_string(i+1)+","+to_string(j), dmd-cU_val*2);
                 xL.set_val(to_string(i+1)+","+to_string(j), x_lb[i]);
                 xU.set_val(to_string(i+1)+","+to_string(j), x_ub[i]);
                 yL.set_val(to_string(i+1)+","+to_string(j), y_lb[i]);
@@ -8842,8 +8843,8 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
         }
         box_i.clear();
     }
-    var<> c("c",cL, cU);
-    Reg->add(c.in(cells));
+    //var<> c("c",cL, cU);
+    //Reg->add(c.in(cells));
     
     double tx_max=std::max(pow(new_shift_min_x,2), pow(new_shift_max_x,2));
     double ty_max=std::max(pow(new_shift_min_y,2), pow(new_shift_max_y,2));
@@ -8865,27 +8866,27 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
         dm_root.add_val(to_string(i+1), (x+y+z)*(-1));
     }
     
-    indices idsij = indices("idsij");
-    idsij.add_empty_row();
-    param<> dm("dm");
-    dm.in(cells);
-    param<> dm_pr("dm_pr");
-    dm_pr.in(cells);
-    param<> dd("dd");
-    for(auto i=0;i<nd;i++){
-        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
-        auto di_r=(sqrt(di)+sqrt(shift_mag_max));
-        dd.add_val(to_string(i+1), pow(di_r,2));
-        for(auto j=1;j<=nm;j++){
-            if(cells.has_key(to_string(i+1)+","+to_string(j))){
-                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
-                auto dmd_r=sqrt(dmd)*di_r*(-1);
-                dm.set_val(to_string(i+1)+","+to_string(j), dmd);
-                dm_pr.set_val(to_string(i+1)+","+to_string(j), dmd_r);
-                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
-            }
-        }
-    }
+//    indices idsij = indices("idsij");
+//    idsij.add_empty_row();
+//    param<> dm("dm");
+//    dm.in(cells);
+//    param<> dm_pr("dm_pr");
+//    dm_pr.in(cells);
+//    param<> dd("dd");
+//    for(auto i=0;i<nd;i++){
+//        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
+//        auto di_r=(sqrt(di)+sqrt(shift_mag_max));
+//        dd.add_val(to_string(i+1), pow(di_r,2));
+//        for(auto j=1;j<=nm;j++){
+//            if(cells.has_key(to_string(i+1)+","+to_string(j))){
+//                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
+//                auto dmd_r=sqrt(dmd)*di_r*(-1);
+//                dm.set_val(to_string(i+1)+","+to_string(j), dmd);
+//                dm_pr.set_val(to_string(i+1)+","+to_string(j), dmd_r);
+//                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
+//            }
+//        }
+//    }
     
 //    Constraint<> txsq("txsq");
 //    txsq = pow(x_shift,2) - tx;
@@ -8981,7 +8982,9 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
     //obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(tx+ty+tz)-two.tr()*(c*bin)+sum(dm*bin));
    // obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)-two.tr()*(c*bin)+sum(dm*bin));
     
-    obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*(new_shift_min_x+new_shift_max_x)+y_shift*(new_shift_min_y+new_shift_max_y)+z_shift*(new_shift_min_z+new_shift_max_z)-new_shift_min_x*new_shift_max_x-new_shift_min_y*new_shift_max_y-new_shift_min_z*new_shift_max_z)-two.tr()*(c*bin)+sum(dm*bin));
+   // obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*(new_shift_min_x+new_shift_max_x)+y_shift*(new_shift_min_y+new_shift_max_y)+z_shift*(new_shift_min_z+new_shift_max_z)-new_shift_min_x*new_shift_max_x-new_shift_min_y*new_shift_max_y-new_shift_min_z*new_shift_max_z)-product(cU, bin)+sum(dm*bin));
+    
+    obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*(new_shift_min_x+new_shift_max_x)+y_shift*(new_shift_min_y+new_shift_max_y)+z_shift*(new_shift_min_z+new_shift_max_z)-new_shift_min_x*new_shift_max_x-new_shift_min_y*new_shift_max_y-new_shift_min_z*new_shift_max_z)+sum(cU*bin));
     
     
     //obj+=(sum(new_x1*new_x1)+sum(new_y1*new_y1)+sum(new_z1*new_z1)-two.tr()*cx-two.tr()*cy-two.tr()*cz+sum(new_xm*new_xm)+sum(new_ym*new_ym)+sum(new_zm*new_zm));
@@ -13188,7 +13191,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             DebugOn("max time "<< max_time);
             break;
         }
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time);
+        run_parallel(models, ipopt, 1e-4, nb_threads, "", max_iter, max_time);
         for (int i = 0; i<models.size(); i++) {
             if(models[i]->_status==0){
                 ub_ = models[i]->get_obj_val();
@@ -13197,7 +13200,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
                         vector<double> solution_lb;
                         vector<double> rot_trans_ub;
                         rot_trans_ub.resize(12);
-                        auto binc = models[i]->get_var<int>("bin");
+                        auto binc = models[i]->get_var<double>("bin");
                         auto v_keys=binc.get_keys();
                         for(auto it_key=v_keys->begin(); it_key!=v_keys->end(); it_key++){
                             auto key = *it_key;
@@ -13216,7 +13219,8 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
 //                            //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
 //                        }
                     }
-                lb = models[i]->get_rel_obj_val();
+               // lb = models[i]->get_rel_obj_val();
+                lb = models[i]->get_obj_val();
                 //lb = std::max(models[i]->get_rel_obj_val(), best_lb);
                 if(lb<best_lb)
                     best_lb = lb;
