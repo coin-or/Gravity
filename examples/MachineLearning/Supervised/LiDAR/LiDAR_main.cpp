@@ -860,17 +860,19 @@ int main (int argc, char * argv[])
 //            vector<double> rt(12);
 //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
 //            go.Clear();
-            auto R=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
-                        solver<> S(R,gurobi);
-           // R->replace_integers();
-                        S.run(5,1e-6);
-            R->print();
-            //R->print_solution();
-         //   rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
-            //            auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
-            //            solver<> S(NC_SOC_MIQCP,gurobi);
-            //           S.use_callback();
-            //            S.run(5,1e-6,9000,100000);
+//            auto R=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
+//                        solver<> S(R,gurobi);
+//            S.use_callback();
+//           // R->replace_integers();
+//                        S.run(5,1e-6);
+//            R->print();
+//
+//            R->print_solution();
+            rot_trans = BranchBound3(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf);
+                      //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
+//                        solver<> S1(NC_SOC_MIQCP,gurobi);
+//                       S1.use_callback();
+//                        S1.run(5,1e-6,9000,100000);
             // get_solution(NC_SOC_MIQCP, rot_trans, L2matching);
             double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
             unsigned max_iter=1e3, max_time=3000;
@@ -8579,9 +8581,9 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
     var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
     var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
     
-    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
-    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
-    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
+//    Reg->add(theta11.in(R(1)),theta12.in(R(1)),theta13.in(R(1)));
+//    Reg->add(theta21.in(R(1)),theta22.in(R(1)),theta23.in(R(1)));
+//    Reg->add(theta31.in(R(1)),theta32.in(R(1)),theta33.in(R(1)));
     
     DebugOn("Added " << cells.size() << " binary variables" << endl);
     
@@ -8599,65 +8601,65 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
 //    Constraint<> diag_4("diag_4");
 //    diag_4=theta11-theta22+theta33-1;
 //    Reg->add(diag_4.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_12("soc_12");
-    //        soc_12 = pow(theta13+theta31,2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
-    //       // soc_12.add_to_callback();
-    //        Reg->add(soc_12.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_13("soc_13");
-    //        soc_13 = pow(theta12-theta21,2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
-    //        //soc_13.add_to_callback();
-    //        Reg->add(soc_13.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_14("soc_14");
-    //        soc_14 = pow(theta23+theta32,2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
-    //        //soc_14.add_to_callback();
-    //        Reg->add(soc_14.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_23("soc_23");
-    //        soc_23 = pow(theta23-theta32,2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
-    //        //soc_23.add_to_callback();
-    //        Reg->add(soc_23.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_24("soc_24");
-    //        soc_24 = pow(theta12+theta21,2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
-    //        //soc_24.add_to_callback();
-    //        Reg->add(soc_24.in(range(0,0))<=0);
-    //
-    //        Constraint<> soc_34("soc_34");
-    //        soc_34 = pow(theta31-theta13,2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
-    //       // soc_34.add_to_callback();
-    //        Reg->add(soc_34.in(range(0,0))<=0);
-    //
-    //        Constraint<> det_123("det_123");
-    //        det_123+=(theta13+theta31)*((theta13+theta31)*(1+theta11+theta22+theta33)-(theta23-theta32)*(theta12-theta21));
-    //        det_123-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1+theta11+theta22+theta33)-pow(theta23-theta32,2));
-    //        det_123-=(theta12-theta21)*((theta13+theta31)*(theta23-theta32)-(theta12-theta21)*(1+theta11-theta22-theta33));
-    //        det_123.add_to_callback();
-    //        Reg->add(det_123.in(range(0,0))<=0);
-    //
-    //        Constraint<> det_124("det_124");
-    //        det_124+=(theta13+theta31)*((theta13+theta31)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta12+theta21));
-    //        det_124-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1-theta11+theta22-theta33)-pow(theta12+theta21,2));
-    //        det_124-=(theta23+theta32)*((theta13+theta31)*(theta12+theta21)-(theta23+theta32)*(1+theta11-theta22-theta33));
-    //        det_124.add_to_callback();
-    //        Reg->add(det_124.in(range(0,0))<=0);
-    //
-    //        Constraint<> det_134("det_134");
-    //        det_134+=(theta12-theta21)*((theta12-theta21)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta31-theta13));
-    //        det_134-=(1-theta11-theta22+theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
-    //        det_134-=(theta23+theta32)*((theta12-theta21)*(theta31-theta13)-(theta23+theta32)*(1+theta11+theta22+theta33));
-    //        det_134.add_to_callback();
-    //        Reg->add(det_134.in(range(0,0))<=0);
-    //
-    //        Constraint<> det_234("det_234");
-    //        det_234+=(theta23-theta32)*((theta23-theta32)*(1-theta11+theta22-theta33)-(theta12+theta21)*(theta31-theta13));
-    //        det_234-=(1+theta11-theta22-theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
-    //        det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
-    //        det_234.add_to_callback();
-    //        Reg->add(det_234.in(range(0,0))<=0);
-    //
+//
+//            Constraint<> soc_12("soc_12");
+//            soc_12 = pow(theta13+theta31,2)-(1-theta11-theta22+theta33)*(1+theta11-theta22-theta33);
+//           // soc_12.add_to_callback();
+//            Reg->add(soc_12.in(range(0,0))<=0);
+//
+//            Constraint<> soc_13("soc_13");
+//            soc_13 = pow(theta12-theta21,2)-(1-theta11-theta22+theta33)*(1+theta11+theta22+theta33);
+//            //soc_13.add_to_callback();
+//            Reg->add(soc_13.in(range(0,0))<=0);
+//
+//            Constraint<> soc_14("soc_14");
+//            soc_14 = pow(theta23+theta32,2)-(1-theta11-theta22+theta33)*(1-theta11+theta22-theta33);
+//            //soc_14.add_to_callback();
+//            Reg->add(soc_14.in(range(0,0))<=0);
+//
+//            Constraint<> soc_23("soc_23");
+//            soc_23 = pow(theta23-theta32,2)-(1+theta11-theta22-theta33)*(1+theta11+theta22+theta33);
+//            //soc_23.add_to_callback();
+//            Reg->add(soc_23.in(range(0,0))<=0);
+//
+//            Constraint<> soc_24("soc_24");
+//            soc_24 = pow(theta12+theta21,2)-(1+theta11-theta22-theta33)*(1-theta11+theta22-theta33);
+//            //soc_24.add_to_callback();
+//            Reg->add(soc_24.in(range(0,0))<=0);
+//
+//            Constraint<> soc_34("soc_34");
+//            soc_34 = pow(theta31-theta13,2)-(1+theta11+theta22+theta33)*(1-theta11+theta22-theta33);
+//           // soc_34.add_to_callback();
+//            Reg->add(soc_34.in(range(0,0))<=0);
+//    //
+//            Constraint<> det_123("det_123");
+//            det_123+=(theta13+theta31)*((theta13+theta31)*(1+theta11+theta22+theta33)-(theta23-theta32)*(theta12-theta21));
+//            det_123-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1+theta11+theta22+theta33)-pow(theta23-theta32,2));
+//            det_123-=(theta12-theta21)*((theta13+theta31)*(theta23-theta32)-(theta12-theta21)*(1+theta11-theta22-theta33));
+//            det_123.add_to_callback();
+//            Reg->add(det_123.in(range(0,0))<=0);
+//
+//            Constraint<> det_124("det_124");
+//            det_124+=(theta13+theta31)*((theta13+theta31)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta12+theta21));
+//            det_124-=(1-theta11-theta22+theta33)*((1+theta11-theta22-theta33)*(1-theta11+theta22-theta33)-pow(theta12+theta21,2));
+//            det_124-=(theta23+theta32)*((theta13+theta31)*(theta12+theta21)-(theta23+theta32)*(1+theta11-theta22-theta33));
+//            det_124.add_to_callback();
+//            Reg->add(det_124.in(range(0,0))<=0);
+//
+//            Constraint<> det_134("det_134");
+//            det_134+=(theta12-theta21)*((theta12-theta21)*(1-theta11+theta22-theta33)-(theta23+theta32)*(theta31-theta13));
+//            det_134-=(1-theta11-theta22+theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
+//            det_134-=(theta23+theta32)*((theta12-theta21)*(theta31-theta13)-(theta23+theta32)*(1+theta11+theta22+theta33));
+//            det_134.add_to_callback();
+//            Reg->add(det_134.in(range(0,0))<=0);
+//
+//            Constraint<> det_234("det_234");
+//            det_234+=(theta23-theta32)*((theta23-theta32)*(1-theta11+theta22-theta33)-(theta12+theta21)*(theta31-theta13));
+//            det_234-=(1+theta11-theta22-theta33)*((1+theta11+theta22+theta33)*(1-theta11+theta22-theta33)-pow(theta31-theta13,2));
+//            det_234-=(theta12+theta21)*((theta23-theta32)*(theta31-theta13)-(theta12+theta21)*(1+theta11+theta22+theta33));
+//            det_234.add_to_callback();
+//            Reg->add(det_234.in(range(0,0))<=0);
+//    //
 //    Constraint<> row1("row1");
 //    row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
 //    // row1.add_to_callback();
@@ -8909,15 +8911,15 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
         }
     }
     
-    auto ids1 = theta11.repeat_id(N1.size());
-    
-    auto idst = theta11.repeat_id(cells.size());
-    Constraint<> def_c("def_c");
-    def_c=c-(x1.from(cells)*theta11.in(idst) + y1.from(cells)*theta12.in(idst) + z1.from(cells)*theta13.in(idst)+x_shift)*x2.to(cells)-(x1.from(cells)*theta21.in(idst) + y1.from(cells)*theta22.in(idst) + z1.from(cells)*theta23.in(idst)+y_shift)*y2.to(cells)-(x1.from(cells)*theta31.in(idst) + y1.from(cells)*theta32.in(idst) + z1.from(cells)*theta33.in(idst)+z_shift)*z2.to(cells);
-   // Reg->add(def_c.in(cells)>=0);
-    
-    Constraint<> def_c1("def_c1");
-    def_c1=c-(x1.from(cells)*theta11.in(idst) + y1.from(cells)*theta12.in(idst) + z1.from(cells)*theta13.in(idst))*x2.to(cells)-xxU.to(cells)-(x1.from(cells)*theta21.in(idst) + y1.from(cells)*theta22.in(idst) + z1.from(cells)*theta23.in(idst))*y2.to(cells)-yyU.to(cells)-(x1.from(cells)*theta31.in(idst) + y1.from(cells)*theta32.in(idst) + z1.from(cells)*theta33.in(idst))*z2.to(cells)-zzU.to(cells);
+//    auto ids1 = theta11.repeat_id(N1.size());
+//
+//    auto idst = theta11.repeat_id(cells.size());
+//    Constraint<> def_c("def_c");
+//    def_c=c-(x1.from(cells)*theta11.in(idst) + y1.from(cells)*theta12.in(idst) + z1.from(cells)*theta13.in(idst))*x2.to(cells)-(x1.from(cells)*theta21.in(idst) + y1.from(cells)*theta22.in(idst) + z1.from(cells)*theta23.in(idst))*y2.to(cells)-(x1.from(cells)*theta31.in(idst) + y1.from(cells)*theta32.in(idst) + z1.from(cells)*theta33.in(idst))*z2.to(cells);
+//    //Reg->add(def_c.in(cells)<=0);
+//
+//    Constraint<> def_c1("def_c1");
+//    def_c1=c-(x1.from(cells)*theta11.in(idst) + y1.from(cells)*theta12.in(idst) + z1.from(cells)*theta13.in(idst))*x2.to(cells)-xxU.to(cells)-(x1.from(cells)*theta21.in(idst) + y1.from(cells)*theta22.in(idst) + z1.from(cells)*theta23.in(idst))*y2.to(cells)-yyU.to(cells)-(x1.from(cells)*theta31.in(idst) + y1.from(cells)*theta32.in(idst) + z1.from(cells)*theta33.in(idst))*z2.to(cells)-zzU.to(cells);
     //Reg->add(def_c1.in(cells)>=0);
     
 //        var<> xij("xij", xL, xU), yij("yij", yL, yU), zij("zij", zL, zU);
@@ -8977,6 +8979,7 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
     
     
     //obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(tx+ty+tz)-two.tr()*(c*bin)+sum(dm*bin));
+   // obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)-two.tr()*(c*bin)+sum(dm*bin));
     
     obj+=(sum(x1*x1)+sum(y1*y1)+sum(z1*z1)-nd*(x_shift*(new_shift_min_x+new_shift_max_x)+y_shift*(new_shift_min_y+new_shift_max_y)+z_shift*(new_shift_min_z+new_shift_max_z)-new_shift_min_x*new_shift_max_x-new_shift_min_y*new_shift_max_y-new_shift_min_z*new_shift_max_z)-two.tr()*(c*bin)+sum(dm*bin));
     
