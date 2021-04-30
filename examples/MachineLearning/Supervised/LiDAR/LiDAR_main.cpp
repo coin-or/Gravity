@@ -9242,6 +9242,10 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
     cL.in(cells);
     param<> cU("cU");
     cU.in(cells);
+    param<> cLv("cLv");
+    cLv.in(cells);
+    param<> cUv("cUv");
+    cUv.in(cells);
     param<> xxU("xxU"),xxL("xxL"),yyU("yyU"),yyL("yyL"),zzU("zzU"),zzL("zzL");
     
     for(auto j=1;j<=nm;j++){
@@ -9367,8 +9371,10 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
                 auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
                 auto cL_val=std::max(sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r*(-1), c_min);
                 auto cU_val=std::min(sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r, c_max);
-                cL.set_val(to_string(i+1)+","+to_string(j), std::min(cL_val,0.0));
-                cU.set_val(to_string(i+1)+","+to_string(j), std::max(cU_val,0.0));
+                cLv.set_val(to_string(i+1)+","+to_string(j), std::min(cL_val,0.0));
+                cUv.set_val(to_string(i+1)+","+to_string(j), std::max(cU_val,0.0));
+                cL.set_val(to_string(i+1)+","+to_string(j), cL_val);
+                cU.set_val(to_string(i+1)+","+to_string(j), cU_val);
                 xL.set_val(to_string(i+1)+","+to_string(j), x_lb[i]);
                 xU.set_val(to_string(i+1)+","+to_string(j), x_ub[i]);
                 yL.set_val(to_string(i+1)+","+to_string(j), y_lb[i]);
@@ -9379,7 +9385,7 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
         }
         box_i.clear();
     }
-    var<> c("c",cL, cU);
+    var<> c("c",cLv, cUv);
     Reg->add(c.in(cells));
     
     double tx_max=std::max(pow(new_shift_min_x,2), pow(new_shift_max_x,2));
@@ -13539,6 +13545,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     double max_opt_gap = 0.05;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
     double eps=0.01;
+    int prep_count=0;
     while (elapsed_time < total_time_max && !lb_queue.empty() && opt_gap > max_opt_gap) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
@@ -13578,6 +13585,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
         }
         DebugOn("Total infeasible =  " << infeasible_count << endl);
         DebugOn("Total pruned =  " << nb_pruned << endl);
+        DebugOn("Total discared =  " << prep_count << endl);
         DebugOn("Queue size = " << lb_queue.size() << "\n");
         
         double max_incr=0, max_ratio=1;
@@ -13727,7 +13735,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             else {
                 DebugOff("v size "<<valid_cells[i].size()<<endl);
                 DebugOff("Infeasible model\n");
-                nb_pruned++;
+                prep_count++;
                 DebugOff("Total pruned =  " << nb_pruned << endl);
                 DebugOff("Queue size = " << lb_queue.size() << "\n");
             }
@@ -13745,7 +13753,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             else {
                 DebugOff("v size "<<valid_cells[i].size()<<endl);
                 DebugOff("Infeasible model\n");
-                nb_pruned++;
+                prep_count++;
                 DebugOff("Total pruned =  " << nb_pruned << endl);
                 DebugOff("Queue size = " << lb_queue.size() << "\n");
             }
