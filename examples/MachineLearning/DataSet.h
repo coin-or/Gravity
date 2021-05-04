@@ -28,7 +28,7 @@ public:
         if(n1.lb != n2.lb)
             return n1.lb > n2.lb;
         else
-            return n1.ub_ > n2.ub_;
+            return n1.depth > n2.depth;
     }
     treenode_n(shared_ptr<gravity::Model<>> mod, const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub, double ub_, int depth, const gravity::indices& valid_cells):mod(mod),roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub),ub_(ub_), depth(depth), valid_cells(valid_cells){};
 };
