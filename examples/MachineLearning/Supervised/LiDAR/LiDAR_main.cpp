@@ -14392,7 +14392,6 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
     treenode_n topnode=lb_queue.top();
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
-    nb_threads=6;
     for(auto i=0;i<(nb_threads-2);i+=2){
         topnode=lb_queue.top();
         lb_queue.pop();
@@ -14469,7 +14468,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
     while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
-        if(opt_gap_old-opt_gap <= eps){
+        if(opt_gap_old-opt_gap <= eps && iter>=5){
             max_time=std::min(max_time*2, 120.0);
             max_time_increase=true;
         }
