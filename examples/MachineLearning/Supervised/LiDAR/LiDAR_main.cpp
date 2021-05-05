@@ -13142,44 +13142,84 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     bool feas=true;
     
     if(row1._range->first>=(1+1e-4) || row1._range->second<=(1-1e-4)){
-        DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
         feas=false;
+        DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
+        DebugOn("feas "<<feas<<endl);
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
     }
     else if(row2._range->first>=(1+1e-4) || row2._range->second<=(1-1e-4)){
         DebugOn("row2 "<<row2._range->first<<" "<<row2._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(row3._range->first>=(1+1e-4) || row3._range->second<=(1-1e-4)){
         DebugOn("row3 "<<row3._range->first<<" "<<row3._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(col1._range->first>=(1+1e-4) || col1._range->second<=(1-1e-4)){
         DebugOn("col1 "<<col1._range->first<<" "<<col1._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(col2._range->first>=(1+1e-4) || col2._range->second<=(1-1e-4)){
         DebugOn("col2 "<<col2._range->first<<" "<<col2._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(col3._range->first>=(1+1e-4) || col3._range->second<=(1-1e-4)){
         DebugOn("col3 "<<col3._range->first<<" "<<col3._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(row12._range->first>=1e-4 || row12._range->second<=(-1e-4)){
         DebugOn("row12 "<<row12._range->first<<" "<<row12._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(row13._range->first>=1e-4 || row13._range->second<=(-1e-4)){
         DebugOn("row13 "<<row13._range->first<<" "<<row13._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(row23._range->first>=1e-4 || row23._range->second<=(-1e-4)){
         DebugOn("row23 "<<row23._range->first<<" "<<row23._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
     else if(det._range->first>=(1+1e-4) || det._range->second<=(1-1e-4)){
         DebugOn("det "<<det._range->first<<" "<<det._range->second<<endl);
         feas=false;
+        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        DebugOn("feas "<<feas<<endl);
     }
 
     if(feas){
@@ -14752,6 +14792,8 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
     DebugOn("UB final "<<best_ub<<endl);
     DebugOn("LB final "<<best_lb<<endl);
     DebugOn("Gap final "<<(best_ub-best_lb)/best_ub*100.0<<endl);
+    DebugOn("Elapsed time "<<elapsed_time<<endl);
+    DebugOn("Total iter "<<iter<<endl);
 
     vector<double> res(N1.size());
     apply_rot_trans(best_rot_trans, point_cloud_data);
