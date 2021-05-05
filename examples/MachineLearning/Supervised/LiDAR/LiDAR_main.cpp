@@ -13126,7 +13126,7 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
     var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
     
-    
+ 
     func<> row1 = pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
     func<> row2 = pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
     func<> row3 = pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
@@ -13144,10 +13144,19 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     if(row1._range->first>=(1+1e-4) || row1._range->second<=(1-1e-4)){
         feas=false;
         DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(row2._range->first>=(1+1e-4) || row2._range->second<=(1-1e-4)){
         DebugOn("row2 "<<row2._range->first<<" "<<row2._range->second<<endl);
@@ -13155,7 +13164,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(row3._range->first>=(1+1e-4) || row3._range->second<=(1-1e-4)){
         DebugOn("row3 "<<row3._range->first<<" "<<row3._range->second<<endl);
@@ -13163,7 +13181,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(col1._range->first>=(1+1e-4) || col1._range->second<=(1-1e-4)){
         DebugOn("col1 "<<col1._range->first<<" "<<col1._range->second<<endl);
@@ -13171,7 +13198,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(col2._range->first>=(1+1e-4) || col2._range->second<=(1-1e-4)){
         DebugOn("col2 "<<col2._range->first<<" "<<col2._range->second<<endl);
@@ -13179,7 +13215,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(col3._range->first>=(1+1e-4) || col3._range->second<=(1-1e-4)){
         DebugOn("col3 "<<col3._range->first<<" "<<col3._range->second<<endl);
@@ -13187,7 +13232,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(row12._range->first>=1e-4 || row12._range->second<=(-1e-4)){
         DebugOn("row12 "<<row12._range->first<<" "<<row12._range->second<<endl);
@@ -13195,7 +13249,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(row13._range->first>=1e-4 || row13._range->second<=(-1e-4)){
         DebugOn("row13 "<<row13._range->first<<" "<<row13._range->second<<endl);
@@ -13203,7 +13266,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(row23._range->first>=1e-4 || row23._range->second<=(-1e-4)){
         DebugOn("row23 "<<row23._range->first<<" "<<row23._range->second<<endl);
@@ -13211,7 +13283,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
     else if(det._range->first>=(1+1e-4) || det._range->second<=(1-1e-4)){
         DebugOn("det "<<det._range->first<<" "<<det._range->second<<endl);
@@ -13219,7 +13300,16 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
         DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
         DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("feas "<<feas<<endl);
+        DebugOn("Discard "<<feas<<endl);
+        theta11.print();
+        theta12.print();
+        theta13.print();
+        theta21.print();
+        theta22.print();
+        theta23.print();
+        theta31.print();
+        theta32.print();
+        theta33.print();
     }
 
     if(feas){
