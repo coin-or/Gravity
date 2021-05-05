@@ -14392,7 +14392,8 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
     treenode_n topnode=lb_queue.top();
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
-    for(auto i=0;i<thread_half;i+=2){
+    nb_threads=6;
+    for(auto i=0;i<(nb_threads-2);i+=2){
         topnode=lb_queue.top();
         lb_queue.pop();
         double x_shift_increment = (topnode.tx.second - topnode.tx.first)/2.0;
