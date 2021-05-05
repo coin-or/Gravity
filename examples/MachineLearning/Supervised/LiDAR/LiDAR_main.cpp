@@ -13141,177 +13141,177 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     
     bool feas=true;
     
-    if(row1._range->first>=(1+1e-4) || row1._range->second<=(1-1e-4)){
-        feas=false;
-        DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(row2._range->first>=(1+1e-4) || row2._range->second<=(1-1e-4)){
-        DebugOn("row2 "<<row2._range->first<<" "<<row2._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(row3._range->first>=(1+1e-4) || row3._range->second<=(1-1e-4)){
-        DebugOn("row3 "<<row3._range->first<<" "<<row3._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(col1._range->first>=(1+1e-4) || col1._range->second<=(1-1e-4)){
-        DebugOn("col1 "<<col1._range->first<<" "<<col1._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(col2._range->first>=(1+1e-4) || col2._range->second<=(1-1e-4)){
-        DebugOn("col2 "<<col2._range->first<<" "<<col2._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(col3._range->first>=(1+1e-4) || col3._range->second<=(1-1e-4)){
-        DebugOn("col3 "<<col3._range->first<<" "<<col3._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(row12._range->first>=1e-4 || row12._range->second<=(-1e-4)){
-        DebugOn("row12 "<<row12._range->first<<" "<<row12._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(row13._range->first>=1e-4 || row13._range->second<=(-1e-4)){
-        DebugOn("row13 "<<row13._range->first<<" "<<row13._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(row23._range->first>=1e-4 || row23._range->second<=(-1e-4)){
-        DebugOn("row23 "<<row23._range->first<<" "<<row23._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-    else if(det._range->first>=(1+1e-4) || det._range->second<=(1-1e-4)){
-        DebugOn("det "<<det._range->first<<" "<<det._range->second<<endl);
-        feas=false;
-        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
-        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
-        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
-        DebugOn("Discard "<<feas<<endl);
-        theta11.print();
-        theta12.print();
-        theta13.print();
-        theta21.print();
-        theta22.print();
-        theta23.print();
-        theta31.print();
-        theta32.print();
-        theta33.print();
-    }
-
+//    if(row1._range->first>=(1+1e-4) || row1._range->second<=(1-1e-4)){
+//        feas=false;
+//        DebugOn("row1 "<<row1._range->first<<" "<<row1._range->second<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(row2._range->first>=(1+1e-4) || row2._range->second<=(1-1e-4)){
+//        DebugOn("row2 "<<row2._range->first<<" "<<row2._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(row3._range->first>=(1+1e-4) || row3._range->second<=(1-1e-4)){
+//        DebugOn("row3 "<<row3._range->first<<" "<<row3._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(col1._range->first>=(1+1e-4) || col1._range->second<=(1-1e-4)){
+//        DebugOn("col1 "<<col1._range->first<<" "<<col1._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(col2._range->first>=(1+1e-4) || col2._range->second<=(1-1e-4)){
+//        DebugOn("col2 "<<col2._range->first<<" "<<col2._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(col3._range->first>=(1+1e-4) || col3._range->second<=(1-1e-4)){
+//        DebugOn("col3 "<<col3._range->first<<" "<<col3._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(row12._range->first>=1e-4 || row12._range->second<=(-1e-4)){
+//        DebugOn("row12 "<<row12._range->first<<" "<<row12._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(row13._range->first>=1e-4 || row13._range->second<=(-1e-4)){
+//        DebugOn("row13 "<<row13._range->first<<" "<<row13._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(row23._range->first>=1e-4 || row23._range->second<=(-1e-4)){
+//        DebugOn("row23 "<<row23._range->first<<" "<<row23._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+//    else if(det._range->first>=(1+1e-4) || det._range->second<=(1-1e-4)){
+//        DebugOn("det "<<det._range->first<<" "<<det._range->second<<endl);
+//        feas=false;
+//        DebugOn("roll min "<< roll_min<<"\t"<<"roll max "<< roll_max<<endl);
+//        DebugOn("pitch min "<< pitch_min<<"\t"<<"pitch max "<< pitch_max<<endl);
+//        DebugOn("yaw min "<< yaw_min<<"\t"<<"yaw max "<< yaw_max<<endl);
+//        DebugOn("Discard "<<feas<<endl);
+//        theta11.print();
+//        theta12.print();
+//        theta13.print();
+//        theta21.print();
+//        theta22.print();
+//        theta23.print();
+//        theta31.print();
+//        theta32.print();
+//        theta33.print();
+//    }
+    feas=true;
     if(feas){
         
         var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
