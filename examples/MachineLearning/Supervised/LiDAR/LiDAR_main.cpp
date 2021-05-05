@@ -14656,7 +14656,9 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
         topnode = lb_queue.top();
         while(topnode.lb<=best_ub) {
             lb_queue.pop();
-            if(topnode.ub_>0 && false){
+            bool branch1=false;
+            bool branch2=false;
+            if(topnode.ub_>0){
                 auto model_parent= topnode.mod;
                 vector<double> sol(6);
                 get_angle_rotation_transl_matrix(model_parent, sol);
@@ -14718,8 +14720,11 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                     yaw_bounds[i] = {topnode.yaw.first, yaw_};
                     yaw_bounds[i+1] = {yaw_,topnode.yaw.second};
                 }
+                if(max_ratio<=0.4){
+                    branch1=true;
+                }
             }
-            if((topnode.ub_<=0 || max_ratio==1) || true){
+            if(!branch1){
                 double x_shift_increment = (topnode.tx.second - topnode.tx.first)/2.0;
                 max_incr = x_shift_increment;
                 double y_shift_increment = (topnode.ty.second - topnode.ty.first)/2.0;
@@ -14779,14 +14784,17 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                 else{
                     DebugOff("max_incr "<<max_incr<<endl);
                 }
+                branch2=true;
             }
-            
+            if(!branch1 && !branch2){
+                throw invalid_argument("Error in branching");
+            }
             auto vi = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             valid_cells.push_back(vi);
             if((valid_cells[i].size()!=0)){
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
-                if(topnode.ub_>0 && max_ratio<1){
+                if(branch1){
                    initialize_model_from_parent(topnode.mod, m);
                 }
                 models.push_back(m);
@@ -14805,7 +14813,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
             if((valid_cells[i+1].size()!=0)){
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
-                if(topnode.ub_>0 && max_ratio<1){
+                if(branch1){
                     initialize_model_from_parent(topnode.mod, m);
                 }
                 models.push_back(m);
