@@ -14662,7 +14662,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                 auto model_parent= topnode.mod;
                 vector<double> sol(6);
                 get_angle_rotation_transl_matrix(model_parent, sol);
-                auto roll_=sol[0];auto pitch_=sol[1];auto yaw_=sol[2];
+                auto roll_=sol[0]*pi/180.;auto pitch_=sol[1]*pi/180.;auto yaw_=sol[2]*pi/180.;
                 auto tx_=sol[3];auto ty_=sol[4];auto tz_=sol[5];
                 max_ratio=1;
                 double x_shift_increment = std::abs(0.5-(topnode.tx.second-tx_)/(topnode.tx.second-topnode.tx.first));
