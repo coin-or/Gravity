@@ -10095,12 +10095,12 @@ std::pair<int,double> build_polyhedral_ipopt(vector<vector<double>>& point_cloud
     //obj+=delta;
     Reg->min(obj);
     
-    Reg->print();
+    //Reg->print();
     
     //Reg->print();
     solver<> S(Reg,ipopt);
     //S.use_callback();
-    S.run(5, 1e-6, 5, 100);
+    S.run(0, 1e-6, 5, 100);
     //Reg->print_solution();
 //    vector<double> solution_lb, rot_trans_ub;
 //    //solution_lb.resize(Reg->_nb_vars);
