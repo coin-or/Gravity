@@ -286,7 +286,7 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
 double build_upperbound(vector<double>& solutionlb,vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans);
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
 double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans_ub);
-shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, bool relax_inits);
+std::pair<int, double> build_polyhedral_ipopt(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, bool relax_inits);
 shared_ptr<Model<double>> build_linobj_ipopt(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits, double ub);
 int main (int argc, char * argv[])
 {
@@ -865,7 +865,7 @@ int main (int argc, char * argv[])
 //            vector<double> rt(12);
 //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
 //            go.Clear();
-            //auto R=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
+            auto R=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min,new_pitch_max,  new_yaw_min, new_yaw_max,  new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,  norm_x, norm_y,  norm_z,  intercept, init_matching,  error_per_point,  model_voronoi_normals,  model_face_intercept,  relax_integers);
 //            auto R=build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, new_roll_min, new_roll_max,new_pitch_min, new_pitch_max,  new_yaw_min,  new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y,  new_shift_max_y,  new_shift_min_z, new_shift_max_z,  rot_trans, false,  incompatibles,   norm_x,   norm_y,   norm_z,   intercept,init_matching,  error_per_point, false,100.0);
 //                        solver<> S(R,gurobi);
 ////            S.use_callback();
@@ -9352,42 +9352,37 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
     //var<> tx("tx", pos_), ty("ty",pos_), tz("tz", pos_);
     
     //Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
-    param<> dm_root("dm_root");
-    param<> x2_sq("x2_sq");
-    param<> y2_sq("y2_sq");
-    param<> z2_sq("z2_sq");
-    for(auto i=0;i<nm;i++){
-        auto x=pow(point_cloud_model.at(i)[0],2)*(-1);
-        auto y=pow(point_cloud_model.at(i)[1],2)*(-1);
-        auto z=pow(point_cloud_model.at(i)[2],2)*(-1);
-        x2_sq.add_val(to_string(i+1), x);
-        y2_sq.add_val(to_string(i+1), y);
-        z2_sq.add_val(to_string(i+1), z);
-        dm_root.add_val(to_string(i+1), (x+y+z)*(-1));
-    }
-    
-    indices idsij = indices("idsij");
-    idsij.add_empty_row();
+
     param<> dm("dm");
-    dm.in(cells);
-    param<> dm_pr("dm_pr");
-    dm_pr.in(cells);
-    param<> dd("dd");
-    for(auto i=0;i<nd;i++){
-        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
-        auto di_r=(sqrt(di)+sqrt(shift_mag_max));
-        dd.add_val(to_string(i+1), pow(di_r,2));
-        for(auto j=1;j<=nm;j++){
-            if(cells.has_key(to_string(i+1)+","+to_string(j))){
-                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
-                auto dmd_r=sqrt(dmd)*di_r*(-1);
-                dm.set_val(to_string(i+1)+","+to_string(j), dmd);
-                dm_pr.set_val(to_string(i+1)+","+to_string(j), dmd_r);
-                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
-            }
-        }
+    for(auto i=0;i<nm;i++){
+        auto x=pow(point_cloud_model.at(i)[0],2);
+        auto y=pow(point_cloud_model.at(i)[1],2);
+        auto z=pow(point_cloud_model.at(i)[2],2);
+        dm.add_val(to_string(i+1), (x+y+z));
     }
     
+//    indices idsij = indices("idsij");
+//    idsij.add_empty_row();
+//    param<> dm("dm");
+//    dm.in(cells);
+//    param<> dm_pr("dm_pr");
+//    dm_pr.in(cells);
+//    param<> dd("dd");
+//    for(auto i=0;i<nd;i++){
+//        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
+//        auto di_r=(sqrt(di)+sqrt(shift_mag_max));
+//        dd.add_val(to_string(i+1), pow(di_r,2));
+//        for(auto j=1;j<=nm;j++){
+//            if(cells.has_key(to_string(i+1)+","+to_string(j))){
+//                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
+//                auto dmd_r=sqrt(dmd)*di_r*(-1);
+//                dm.set_val(to_string(i+1)+","+to_string(j), dmd);
+//                dm_pr.set_val(to_string(i+1)+","+to_string(j), dmd_r);
+//                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
+//            }
+//        }
+//    }
+//
 //    Constraint<> txsq("txsq");
 //    txsq = pow(x_shift,2) - tx;
 //    //txsq.add_to_callback();
@@ -9521,7 +9516,7 @@ shared_ptr<Model<double>> build_polyhedral(vector<vector<double>>& point_cloud_m
 //    DebugOn("Determinant "<<det<<endl);
     return(Reg);
 }
-shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, bool relax_inits){
+std::pair<int,double> build_polyhedral_ipopt(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, bool relax_inits){
     
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     size_t nm = point_cloud_model.size(), nd = point_cloud_data.size();
@@ -9749,25 +9744,30 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
     cLv.in(cells);
     param<> cUv("cUv");
     cUv.in(cells);
-    param<> xxU("xxU"),xxL("xxL"),yyU("yyU"),yyL("yyL"),zzU("zzU"),zzL("zzL");
-    
-    for(auto j=1;j<=nm;j++){
-        auto x=point_cloud_model.at(j-1)[0];
-        auto y=point_cloud_model.at(j-1)[1];
-        auto z=point_cloud_model.at(j-1)[2];
-        xxL.add_val(to_string(j),std::min(new_shift_min_x*x, new_shift_max_x*x));
-        xxU.add_val(to_string(j),std::max(new_shift_min_x*x, new_shift_max_x*x));
-        yyL.add_val(to_string(j),std::min(new_shift_min_y*y, new_shift_max_y*y));
-        yyU.add_val(to_string(j),std::max(new_shift_min_y*y, new_shift_max_y*y));
-        zzL.add_val(to_string(j),std::min(new_shift_min_z*z, new_shift_max_z*z));
-        zzU.add_val(to_string(j),std::max(new_shift_min_z*z, new_shift_max_z*z));
-    }
+//    param<> xxU("xxU"),xxL("xxL"),yyU("yyU"),yyL("yyL"),zzU("zzU"),zzL("zzL");
+//
+//    for(auto j=1;j<=nm;j++){
+//        auto x=point_cloud_model.at(j-1)[0];
+//        auto y=point_cloud_model.at(j-1)[1];
+//        auto z=point_cloud_model.at(j-1)[2];
+//        xxL.add_val(to_string(j),std::min(new_shift_min_x*x, new_shift_max_x*x));
+//        xxU.add_val(to_string(j),std::max(new_shift_min_x*x, new_shift_max_x*x));
+//        yyL.add_val(to_string(j),std::min(new_shift_min_y*y, new_shift_max_y*y));
+//        yyU.add_val(to_string(j),std::max(new_shift_min_y*y, new_shift_max_y*y));
+//        zzL.add_val(to_string(j),std::min(new_shift_min_z*z, new_shift_max_z*z));
+//        zzU.add_val(to_string(j),std::max(new_shift_min_z*z, new_shift_max_z*z));
+//    }
     
     vector<vector<vector<double>>> box;
     vector<vector<double>> box_i;
     vector<double> coord_i;
     coord_i.resize(3);
-    
+    param<> xm_min_i("xm_min_i");
+    param<> ym_min_i("ym_min_i");
+    param<> zm_min_i("zm_min_i");
+    param<> xm_max_i("xm_max_i");
+    param<> ym_max_i("ym_max_i");
+    param<> zm_max_i("zm_max_i");
     shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
@@ -9845,6 +9845,9 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
         box_i.push_back(coord_i);
         auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
         auto di_r=(sqrt(di));
+        auto x_min_val=100.0, x_max_val=-999.0;
+        auto y_min_val=100.0, y_max_val=-999.0;
+        auto z_min_val=100.0, z_max_val=-999.0;
         for(auto j=1;j<=nm;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j))){
                 auto x=point_cloud_model.at(j-1)[0];
@@ -9859,6 +9862,24 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
                     if(inner_prod<=c_min){
                         c_min=inner_prod;
                     }
+                }
+                if(x>=x_max_val){
+                    x_max_val=x;
+                }
+                if(y>=y_max_val){
+                    y_max_val=y;
+                }
+                if(z>=z_max_val){
+                    z_max_val=z;
+                }
+                if(x<=x_min_val){
+                    x_min_val=x;
+                }
+                if(y<=y_min_val){
+                    y_min_val=y;
+                }
+                if(z<=z_min_val){
+                    z_min_val=z;
                 }
                 auto normals=model_voronoi_normals.at(j-1);
                 auto intercepts=model_face_intercept.at(j-1);
@@ -9886,6 +9907,12 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
                 zU.set_val(to_string(i+1)+","+to_string(j), z_ub[i]);
             }
         }
+        xm_min_i.add_val(to_string(i+1), x_min_val);
+        xm_max_i.add_val(to_string(i+1), x_max_val);
+        ym_min_i.add_val(to_string(i+1), y_min_val);
+        ym_max_i.add_val(to_string(i+1), y_max_val);
+        zm_min_i.add_val(to_string(i+1), z_min_val);
+        zm_max_i.add_val(to_string(i+1), z_max_val);
         box_i.clear();
     }
     var<> c("c",cLv, cUv);
@@ -9916,19 +9943,14 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
     var<> tx("tx", tx_min, tx_max), ty("ty",ty_min, ty_max), tz("tz", tz_min, tz_max);
     
     Reg->add(tx.in(R(1)),ty.in(R(1)),tz.in(R(1)));
-    param<> dm_root("dm_root");
-    param<> x2_sq("x2_sq");
-    param<> y2_sq("y2_sq");
-    param<> z2_sq("z2_sq");
+    param<> dmj("dmj");
     for(auto i=0;i<nm;i++){
-        auto x=pow(point_cloud_model.at(i)[0],2)*(-1);
-        auto y=pow(point_cloud_model.at(i)[1],2)*(-1);
-        auto z=pow(point_cloud_model.at(i)[2],2)*(-1);
-        x2_sq.add_val(to_string(i+1), x);
-        y2_sq.add_val(to_string(i+1), y);
-        z2_sq.add_val(to_string(i+1), z);
-        dm_root.add_val(to_string(i+1), (x+y+z)*(-1));
+        auto x=pow(point_cloud_model.at(i)[0],2);
+        auto y=pow(point_cloud_model.at(i)[1],2);
+        auto z=pow(point_cloud_model.at(i)[2],2);
+        dmj.add_val(to_string(i+1), (x+y+z));
     }
+
     
     indices idsij = indices("idsij");
     idsij.add_empty_row();
@@ -10043,6 +10065,10 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
     Def_tz = nd*z_shift-sum(new_zm);
     Reg->add(Def_tz==0);
     
+    Constraint<> dist_model("dist_model");
+    dist_model=xm_min_i*xm_max_i+ym_min_i*ym_max_i+zm_min_i*zm_max_i+product(dmj.in(ids),bin.in_matrix(1, 1))-new_xm*(xm_min_i+xm_max_i)-new_ym*(ym_min_i+ym_max_i)-new_zm*(zm_min_i+zm_max_i);
+    Reg->add(dist_model.in(N1)<=0);
+    
 
     
     param<> two("2");
@@ -10069,10 +10095,12 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
     //obj+=delta;
     Reg->min(obj);
     
+    Reg->print();
+    
     //Reg->print();
-    //solver<> S(Reg,gurobi);
+    solver<> S(Reg,ipopt);
     //S.use_callback();
-    //S.run();
+    S.run(0, 1e-6, 5, 100);
     //Reg->print_solution();
 //    vector<double> solution_lb, rot_trans_ub;
 //    //solution_lb.resize(Reg->_nb_vars);
@@ -10093,7 +10121,9 @@ shared_ptr<Model<double>> build_polyhedral_ipopt(vector<vector<double>>& point_c
 //            << endl);
 //
 //    DebugOn("Determinant "<<det<<endl);
-    return(Reg);
+    pair<int, double> res;
+    res={Reg->_status, Reg->get_obj_val()};
+    return(res);
 }
 void round_bin(shared_ptr<Model<double>>& M, int nd, int nm){
     auto bin = M->get_ptr_var<double>("bin");
@@ -14168,7 +14198,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
     auto valid_cells_ro=indices(N1,N2);
     auto valid_cells_r = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, valid_cells_ro, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
     //auto model = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_r, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
-    auto model=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max,pitch_min,pitch_max,  yaw_min, yaw_max,  shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  rot_trans_r, false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
+    auto model=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max,pitch_min,pitch_max,  yaw_min, yaw_max,  shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  rot_trans_r, false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
  
     lb_queue.push(treenode_n(model, roll_bounds_r, pitch_bounds_r, yaw_bounds_r, shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, ub, ub_, depth_r, valid_cells_r));
     //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
@@ -14360,7 +14390,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             
             if((valid_cells[i].size()!=0)){
                 //auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
-                auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
+                auto m=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(topnode.ub_>0 && max_ratio<1){
                    // initialize_model_from_parent(topnode.mod, m);
                 }
@@ -14378,7 +14408,7 @@ vector<double> BranchBound3(vector<vector<double>>& point_cloud_model, vector<ve
             
             if((valid_cells[i+1].size()!=0)){
                 //auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, false, best_ub);
-                auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
+                auto m=build_polyhedral(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(topnode.ub_>0 && max_ratio<1){
                     //initialize_model_from_parent(topnode.mod, m);
                 }
@@ -14579,7 +14609,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
             yaw_bounds[i+1] = {topnode.yaw.first+yaw_increment, topnode.yaw.second};
         }
         if(max_incr==0){
-            DebugOn("Warn: Identical child nodes"<<endl);
+            throw invalid_argument("Warn: Identical child nodes");
         }
         else{
             DebugOff("max_incr "<<max_incr<<endl);
@@ -14662,7 +14692,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                 auto model_parent= topnode.mod;
                 vector<double> sol(6);
                 get_angle_rotation_transl_matrix(model_parent, sol);
-                auto roll_=sol[0]*pi/180.;auto pitch_=sol[1]*pi/180.;auto yaw_=sol[2]*pi/180.;
+                auto roll_=sol[0]*pi/180.0;auto pitch_=sol[1]*pi/180.0;auto yaw_=sol[2]*pi/180.0;
                 auto tx_=sol[3];auto ty_=sol[4];auto tz_=sol[5];
                 max_ratio=1;
                 double x_shift_increment = std::abs(0.5-(topnode.tx.second-tx_)/(topnode.tx.second-topnode.tx.first));
@@ -14684,44 +14714,44 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                 double yaw_increment = std::abs(0.5-(topnode.yaw.second-yaw_)/(topnode.yaw.second-topnode.yaw.first));
                 if(yaw_increment<=0.4 && yaw_increment>max_ratio)
                     max_ratio = yaw_increment;
-                shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
-                shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
-                shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
-                roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
-                pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
-                yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
-                shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
-                shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
-                shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
-                roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
-                pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
-                yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
-                if(max_ratio==x_shift_increment){
-                    shift_x_bounds[i] = {topnode.tx.first, tx_};
-                    shift_x_bounds[i+1] = {tx_,topnode.tx.second};
-                }
-                else if(max_ratio==y_shift_increment){
-                    shift_y_bounds[i] = {topnode.ty.first, ty_};
-                    shift_y_bounds[i+1] = {ty_,topnode.ty.second};
-                }
-                else if(max_ratio==z_shift_increment){
-                    shift_z_bounds[i] = {topnode.tz.first, tz_};
-                    shift_z_bounds[i+1] = {tz_,topnode.tz.second};
-                }
-                else if(max_ratio==roll_increment){
-                    roll_bounds[i] = {topnode.roll.first, roll_};
-                    roll_bounds[i+1] = {roll_,topnode.roll.second};
-                }
-                else if(max_ratio==pitch_increment){
-                    pitch_bounds[i] = {topnode.pitch.first, pitch_};
-                    pitch_bounds[i+1] = {pitch_,topnode.pitch.second};
-                }
-                else{
-                    yaw_bounds[i] = {topnode.yaw.first, yaw_};
-                    yaw_bounds[i+1] = {yaw_,topnode.yaw.second};
-                }
                 if(max_ratio<=0.4){
                     branch1=true;
+                    shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                    shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                    shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                    shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                    shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                    shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                    if(max_ratio==x_shift_increment){
+                        shift_x_bounds[i] = {topnode.tx.first, tx_};
+                        shift_x_bounds[i+1] = {tx_,topnode.tx.second};
+                    }
+                    else if(max_ratio==y_shift_increment){
+                        shift_y_bounds[i] = {topnode.ty.first, ty_};
+                        shift_y_bounds[i+1] = {ty_,topnode.ty.second};
+                    }
+                    else if(max_ratio==z_shift_increment){
+                        shift_z_bounds[i] = {topnode.tz.first, tz_};
+                        shift_z_bounds[i+1] = {tz_,topnode.tz.second};
+                    }
+                    else if(max_ratio==roll_increment){
+                        roll_bounds[i] = {topnode.roll.first, roll_};
+                        roll_bounds[i+1] = {roll_,topnode.roll.second};
+                    }
+                    else if(max_ratio==pitch_increment){
+                        pitch_bounds[i] = {topnode.pitch.first, pitch_};
+                        pitch_bounds[i+1] = {pitch_,topnode.pitch.second};
+                    }
+                    else{
+                        yaw_bounds[i] = {topnode.yaw.first, yaw_};
+                        yaw_bounds[i+1] = {yaw_,topnode.yaw.second};
+                    }
                 }
             }
             if(!branch1){
@@ -14843,15 +14873,15 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time);
-        for (int i = 0; i<models.size(); i++) {
-            if(models[i]->_status==0){
-                ub_ = models[i]->get_obj_val();
-                int pos=pos_vec[i];
+        for (int j = 0; j<models.size(); j++) {
+            if(models[j]->_status==0){
+                ub_ = models[j]->get_obj_val();
+                int pos=pos_vec[j];
                     if(ub_<=best_ub && iter%5==0){
                         vector<double> solution_lb;
                         vector<double> rot_trans_ub;
                         rot_trans_ub.resize(12);
-                        auto binc = models[i]->get_var<int>("bin");
+                        auto binc = models[j]->get_var<int>("bin");
                         auto v_keys=binc.get_keys();
                         for(auto it_key=v_keys->begin(); it_key!=v_keys->end(); it_key++){
                             auto key = *it_key;
@@ -14872,10 +14902,10 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                     }
                // lb = models[i]->get_rel_obj_val();
                 //lb = models[i]->get_obj_val();
-                lb = std::max(models[i]->get_rel_obj_val(), best_lb);
+                lb = std::max(models[j]->get_rel_obj_val(), best_lb);
                 if(lb<best_lb)
                     best_lb = lb;
-                lb_queue.push(treenode_n(models[i], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, ub, ub_, depth_vec[pos], valid_cells[pos]));
+                lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, ub, ub_, depth_vec[pos], valid_cells[pos]));
             }
             else{
                 infeasible_count++;
