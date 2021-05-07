@@ -14771,10 +14771,10 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
         yaw_bounds_new.clear();
         valid_cells_new.clear();
         depth_vec_new.clear();
+        iter++;
+        int i=models_new_count;
         models_count=0;
         models_new_count=0;
-        iter++;
-        int i=0;
         topnode = lb_queue.top();
         while(topnode.lb<=best_ub) {
             lb_queue.pop();
@@ -15003,6 +15003,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
             DebugOn("max time "<< max_time);
             break;
         }
+        DebugOn("models size "<<models.size());
         run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time);
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
