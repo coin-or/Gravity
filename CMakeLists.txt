@@ -201,6 +201,7 @@ endif()
 endif()
 
 endif()
+if(IPOPT)
 # Add Ipopt include dir and link to libraries
 if(WIN32)
 # include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
@@ -232,6 +233,7 @@ elseif(WIN32)
 endif(APPLE)
 include(ExternalIpopt)
 endif (IPOPT_FOUND)
+endif()
 
 # Eigen
 if(!WIN32)
