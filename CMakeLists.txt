@@ -201,7 +201,7 @@ endif()
 endif()
 
 endif()
-if(IPOPT)
+if(Ipopt)
 # Add Ipopt include dir and link to libraries
 if(WIN32)
 # include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt")
