@@ -6993,16 +6993,21 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             param<> ym_max_i("ym_max_i");
             param<> zm_max_i("zm_max_i");
             
+            param<> drt_prod_min("drt_prod_min");
+            
             vector<vector<vector<double>>> box;
             vector<vector<double>> box_i;
+            vector<vector<double>> rbox;
             vector<double> coord_i;
             coord_i.resize(3);
+            vector<double> rc;
+            rc.resize(3);
             
             //            shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
             //            shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
             //            shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
             vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
-            
+            vector<double> rx_lb, rx_ub, ry_lb, ry_ub, rz_lb, rz_ub;
             for(auto i=0;i<nd;i++){
                 //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
                 //dist_i.push_back(max_dist_i);
@@ -7018,48 +7023,86 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 auto z_range  = get_product_range(z1_bounds, theta13._range);
                 x_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_x);
                 x_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_x);
+                rx_lb.push_back(x_range->first + y_range->first + z_range->first);
+                rx_ub.push_back(x_range->second + y_range->second + z_range->second);
                 x_range  = get_product_range(x1_bounds, theta21._range);
                 y_range  = get_product_range(y1_bounds, theta22._range);
                 z_range  = get_product_range(z1_bounds, theta23._range);
                 y_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_y);
                 y_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_y);
+                ry_lb.push_back(x_range->first + y_range->first + z_range->first);
+                ry_ub.push_back(x_range->second + y_range->second + z_range->second);
                 x_range  = get_product_range(x1_bounds, theta31._range);
                 y_range  = get_product_range(y1_bounds, theta32._range);
                 z_range  = get_product_range(z1_bounds, theta33._range);
                 z_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_z);
                 z_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_z);
+                rz_lb.push_back(x_range->first + y_range->first + z_range->first);
+                rz_ub.push_back(x_range->second + y_range->second + z_range->second);
                 coord_i[0]=x_lb[i];
                 coord_i[1]=y_lb[i];
                 coord_i[2]=z_lb[i];
+                rc[0]=rx_lb[i];
+                rc[1]=ry_lb[i];
+                rc[2]=rz_lb[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_lb[i];
                 coord_i[1]=y_ub[i];
                 coord_i[2]=z_lb[i];
+                rc[0]=rx_lb[i];
+                rc[1]=ry_ub[i];
+                rc[2]=rz_lb[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_ub[i];
                 coord_i[1]=y_ub[i];
                 coord_i[2]=z_lb[i];
+                rc[0]=rx_ub[i];
+                rc[1]=ry_ub[i];
+                rc[2]=rz_lb[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_ub[i];
                 coord_i[1]=y_lb[i];
                 coord_i[2]=z_lb[i];
+                rc[0]=rx_ub[i];
+                rc[1]=ry_lb[i];
+                rc[2]=rz_lb[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_lb[i];
                 coord_i[1]=y_lb[i];
                 coord_i[2]=z_ub[i];
+                rc[0]=rx_lb[i];
+                rc[1]=ry_lb[i];
+                rc[2]=rz_ub[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_lb[i];
                 coord_i[1]=y_ub[i];
                 coord_i[2]=z_ub[i];
+                rc[0]=rx_lb[i];
+                rc[1]=ry_ub[i];
+                rc[2]=rz_ub[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_ub[i];
                 coord_i[1]=y_ub[i];
                 coord_i[2]=z_ub[i];
+                rc[0]=rx_ub[i];
+                rc[1]=ry_ub[i];
+                rc[2]=rz_ub[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 coord_i[0]=x_ub[i];
                 coord_i[1]=y_lb[i];
                 coord_i[2]=z_ub[i];
+                rc[0]=rx_ub[i];
+                rc[1]=ry_lb[i];
+                rc[2]=rz_ub[i];
                 box_i.push_back(coord_i);
+                rbox.push_back(rc);
                 auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
                 auto di_r=2*(sqrt(di)+sqrt(shift_mag_max));
                 auto x_min_val=100.0, x_max_val=-999.0;
@@ -7098,6 +7141,20 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                                 c_min=inner_prod;
                             }
                         }
+                        double drt_min=100.0, drt_max=-999.0;
+                        for(auto k=0;k<8;k++){
+                            auto dm1=2*(std::max(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::max(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::max(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
+                            if(dm1>=drt_max){
+                                drt_max=dm1;
+                            }
+                            auto dm2=2*(std::min(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::min(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::min(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
+                            if(dm2<=drt_min){
+                                drt_min=dm2;
+                            }
+                        }
+                        drt_min=std::max(drt_min, (-2)*sqrt(di)*sqrt(shift_mag_max));
+                        drt_max=std::min(drt_max, 2*sqrt(di)*sqrt(shift_mag_max));
+                        drt_prod_min.add_val(to_string(i+1), drt_min);
                         auto c_max_=std::min(c_max,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r);
                         auto c_max__=std::min(c_max_, 2*model_inner_prod_max[j-1]);
                         auto c_min_=std::max(c_min,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r*(-1));
@@ -7121,12 +7178,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
                 box_i.clear();
             }
             
+            Constraint<> delta_lower_N("delta_lower_N");
+            //delta_lower=(x1*x1)+(y1*y1)+(z1*z1)+(product(dm_root.in(idsij), bin.in_matrix(1, 1)))-delta;
+            //delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)+sum(dm_root*bin)-delta;
+            delta_lower_N=(x1*x1)+(y1*y1)+(z1*z1)+(tx+ty+tz)+drt_prod_min+product(dm_cells.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+            Reg->add(delta_lower_N.in(N1)<=0);
+            delta_lower_N.print();
+            
             
             Constraint<> delta_lower("delta_lower");
             //delta_lower=(x1*x1)+(y1*y1)+(z1*z1)+(product(dm_root.in(idsij), bin.in_matrix(1, 1)))-delta;
             //delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)+sum(dm_root*bin)-delta;
             delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(tx+ty+tz)+sum(dm_cells*bin)-delta;
-            Reg->add(delta_lower<=0);
+           // Reg->add(delta_lower<=0);
             
             
             
