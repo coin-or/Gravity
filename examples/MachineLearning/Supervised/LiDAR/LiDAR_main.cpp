@@ -6735,38 +6735,74 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(col3.in(range(0,0))==1);
     
     
-    param<> deltax_lb("deltax_lb");
-    // x_new_lb.in(N1);
-    param<> deltax_ub("deltax_ub");
-    //x_new_ub.in(N1);
-    param<> deltay_lb("deltay_lb");
-    //y_new_lb.in(N1);
-    param<> deltay_ub("deltay_ub");
-    //y_new_ub.in(N1);
-    param<> deltaz_lb("deltaz_lb");
-    //z_new_lb.in(N1);
-    param<> deltaz_ub("deltaz_ub");
-    //z_new_ub.in(N1);
-    param<> x_new_lb("x_new_lb");
-    // x_new_lb.in(N1);
-    param<> x_new_ub("x_new_ub");
-    //x_new_ub.in(N1);
-    param<> y_new_lb("y_new_lb");
-    //y_new_lb.in(N1);
-    param<> y_new_ub("y_new_ub");
-    //y_new_ub.in(N1);
-    param<> z_new_lb("z_new_lb");
-    //z_new_lb.in(N1);
-    param<> z_new_ub("z_new_ub");
-    //z_new_ub.in(N1);
-    double deltax_min, deltay_min, deltaz_min;
-    shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
-    shared_ptr<pair<double,double>> new_y1_bounds = make_shared<pair<double,double>>();
-    shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
+    
+    param<> dm("dm");
+    param<> d_sq_root("d_sq_root");
+    for(auto i=0;i<nm;i++){
+        auto dmd=pow(point_cloud_model.at(i)[0],2)+pow(point_cloud_model.at(i)[1],2)+pow(point_cloud_model.at(i)[2],2);
+        auto dmd_r=sqrt(dmd);
+        dm.add_val(to_string(i+1), dmd);
+        d_sq_root.add_val(to_string(i+1), dmd_r);
+    }
+    
+    
+    indices idsij = indices("idsij");
+    idsij.add_empty_row();
+    
+    param<> dm_root("dm_root");
+    dm_root.in(cells);
+    for(auto i=0;i<nd;i++){
+        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
+        auto di_r=2*(sqrt(di)+sqrt(shift_mag_max));
+        for(auto j=1;j<=nm;j++){
+            if(cells.has_key(to_string(i+1)+","+to_string(j))){
+                auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
+                auto dmd_r=dmd-sqrt(dmd)*di_r;
+                dm_root.set_val(to_string(i+1)+","+to_string(j), dmd_r);
+                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
+            }
+        }
+    }
+    
+    param<> cL("cL");
+    cL.in(cells);
+    param<> cU("cU");
+    cU.in(cells);
+    param<> dm_cells("dm_cells");
+    dm_cells.in(cells);
+    
+    param<> xm_min_i("xm_min_i");
+    param<> ym_min_i("ym_min_i");
+    param<> zm_min_i("zm_min_i");
+    param<> xm_max_i("xm_max_i");
+    param<> ym_max_i("ym_max_i");
+    param<> zm_max_i("zm_max_i");
+    
+    param<> drt_prod_min("drt_prod_min");
+    param<> rot_x_min("rot_x_min");
+    param<> rot_x_max("rot_x_max");
+    param<> rot_y_min("rot_y_min");
+    param<> rot_y_max("rot_y_max");
+    param<> rot_z_min("rot_z_min");
+    param<> rot_z_max("rot_z_max");
+    
+    vector<vector<vector<double>>> box;
+    vector<vector<double>> box_i;
+    vector<vector<double>> rbox;
+    vector<double> coord_i;
+    coord_i.resize(3);
+    vector<double> rc;
+    rc.resize(3);
+    
     shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
+    vector<double> rx_lb, rx_ub, ry_lb, ry_ub, rz_lb, rz_ub;
     for(auto i=0;i<nd;i++){
+        //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
+        //dist_i.push_back(max_dist_i);
+        // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
         x1_bounds->first = point_cloud_data.at(i)[0];
         x1_bounds->second = point_cloud_data.at(i)[0];
         y1_bounds->first = point_cloud_data.at(i)[1];
@@ -6776,60 +6812,185 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-        *new_x1_bounds = {x_range->first + y_range->first + z_range->first + new_shift_min_x,
-            x_range->second + y_range->second + z_range->second+ new_shift_max_x};
-        x_new_lb.add_val(to_string(i+1),new_x1_bounds->first);
-        x_new_ub.add_val(to_string(i+1),new_x1_bounds->second);
-        auto xm_lb = xm_min-new_x1_bounds->second;
-        auto xm_ub = xm_max-new_x1_bounds->first;
-        if(xm_lb<=0 && xm_ub>=0)
-            deltax_min=0;
-        else
-            deltax_min=std::min(pow(xm_lb,2), pow(xm_ub,2));
-        deltax_lb.add_val(to_string(i+1), deltax_min);
-        deltax_ub.add_val(to_string(i+1), std::max(pow(xm_lb,2), pow(xm_ub,2)));
+        x_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_x);
+        x_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_x);
+        rx_lb.push_back(x_range->first + y_range->first + z_range->first);
+        rx_ub.push_back(x_range->second + y_range->second + z_range->second);
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-        *new_y1_bounds = {x_range->first + y_range->first + z_range->first + new_shift_min_y,
-            x_range->second + y_range->second + z_range->second+ new_shift_max_y};
-        y_new_lb.add_val(to_string(i+1),new_y1_bounds->first);
-        y_new_ub.add_val(to_string(i+1),new_y1_bounds->second);
-        auto ym_lb = ym_min-new_y1_bounds->second;
-        auto ym_ub = ym_max-new_y1_bounds->first;
-        if(ym_lb<=0 && ym_ub>=0)
-            deltay_min=0;
-        else
-            deltay_min=std::min(pow(ym_lb,2), pow(ym_ub,2));
-        deltay_lb.add_val(to_string(i+1), deltay_min);
-        deltay_ub.add_val(to_string(i+1), std::max(pow(ym_lb,2), pow(ym_ub,2)));
+        y_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_y);
+        y_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_y);
+        ry_lb.push_back(x_range->first + y_range->first + z_range->first);
+        ry_ub.push_back(x_range->second + y_range->second + z_range->second);
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
-        *new_z1_bounds = {x_range->first + y_range->first + z_range->first + new_shift_min_z,
-            x_range->second + y_range->second + z_range->second+ new_shift_max_z};
-        z_new_lb.add_val(to_string(i+1),new_z1_bounds->first);
-        z_new_ub.add_val(to_string(i+1),new_z1_bounds->second);
-        auto zm_lb = zm_min-new_z1_bounds->second;
-        auto zm_ub = zm_max-new_z1_bounds->first;
-        if(zm_lb<=0 && zm_ub>=0)
-            deltaz_min=0;
-        else
-            deltaz_min=std::min(pow(zm_lb,2), pow(zm_ub,2));
-        deltaz_lb.add_val(to_string(i+1), deltaz_min);
-        deltaz_ub.add_val(to_string(i+1), std::max(pow(zm_lb,2), pow(zm_ub,2)));
+        z_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_z);
+        z_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_z);
+        rz_lb.push_back(x_range->first + y_range->first + z_range->first);
+        rz_ub.push_back(x_range->second + y_range->second + z_range->second);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_lb[i];
+        rc[0]=rx_lb[i];
+        rc[1]=ry_lb[i];
+        rc[2]=rz_lb[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_lb[i];
+        rc[0]=rx_lb[i];
+        rc[1]=ry_ub[i];
+        rc[2]=rz_lb[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_lb[i];
+        rc[0]=rx_ub[i];
+        rc[1]=ry_ub[i];
+        rc[2]=rz_lb[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_lb[i];
+        rc[0]=rx_ub[i];
+        rc[1]=ry_lb[i];
+        rc[2]=rz_lb[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_ub[i];
+        rc[0]=rx_lb[i];
+        rc[1]=ry_lb[i];
+        rc[2]=rz_ub[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_ub[i];
+        rc[0]=rx_lb[i];
+        rc[1]=ry_ub[i];
+        rc[2]=rz_ub[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_ub[i];
+        rc[0]=rx_ub[i];
+        rc[1]=ry_ub[i];
+        rc[2]=rz_ub[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_ub[i];
+        rc[0]=rx_ub[i];
+        rc[1]=ry_lb[i];
+        rc[2]=rz_ub[i];
+        box_i.push_back(coord_i);
+        rbox.push_back(rc);
+        auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
+        auto di_r=2*(sqrt(di)+sqrt(shift_mag_max));
+        auto x_min_val=100.0, x_max_val=-999.0;
+        auto y_min_val=100.0, y_max_val=-999.0;
+        auto z_min_val=100.0, z_max_val=-999.0;
+        for(auto j=1;j<=nm;j++){
+            if(cells.has_key(to_string(i+1)+","+to_string(j))){
+                auto x=point_cloud_model.at(j-1)[0];
+                auto y=point_cloud_model.at(j-1)[1];
+                auto z=point_cloud_model.at(j-1)[2];
+                if(x>=x_max_val){
+                    x_max_val=x;
+                }
+                if(y>=y_max_val){
+                    y_max_val=y;
+                }
+                if(z>=z_max_val){
+                    z_max_val=z;
+                }
+                if(x<=x_min_val){
+                    x_min_val=x;
+                }
+                if(y<=y_min_val){
+                    y_min_val=y;
+                }
+                if(z<=z_min_val){
+                    z_min_val=z;
+                }
+                double c_min=100, c_max=-999;
+                for(auto k=0;k<8;k++){
+                    auto inner_prod=2*(box_i[k][0]*x+box_i[k][1]*y+box_i[k][2]*z);
+                    if(inner_prod>=c_max){
+                        c_max=inner_prod;
+                    }
+                    if(inner_prod<=c_min){
+                        c_min=inner_prod;
+                    }
+                }
+              
+                auto c_max_=std::min(c_max,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r);
+                auto c_max__=std::min(c_max_, 2*model_inner_prod_max[j-1]);
+                auto c_min_=std::max(c_min,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r*(-1));
+                auto c_min__=std::max(c_min_, 2*model_inner_prod_min[j-1]);
+                //auto c_maxf=std::max(c_min__, c_max__);
+                cL.set_val(to_string(i+1)+","+to_string(j), c_min__);
+                cU.set_val(to_string(i+1)+","+to_string(j), c_max__);
+                dm_cells.set_val(to_string(i+1)+","+to_string(j), pow(x,2)+pow(y,2)+pow(z,2)-c_max__);
+                auto dmd_r=sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r-c_max__;
+                if(dmd_r<-0.0001){
+                    DebugOff("dmdr "<<dmd_r<<endl);
+                }
+            }
+        }
+        double drt_min=100.0, drt_max=-999.0;
+        for(auto k=0;k<8;k++){
+            auto dm1=2*(std::max(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::max(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::max(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
+            if(dm1>=drt_max){
+                drt_max=dm1;
+            }
+            auto dm2=2*(std::min(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::min(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::min(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
+            if(dm2<=drt_min){
+                drt_min=dm2;
+            }
+        }
+        drt_min=std::max(drt_min, (-2)*sqrt(di)*sqrt(shift_mag_max));
+        drt_max=std::min(drt_max, 2*sqrt(di)*sqrt(shift_mag_max));
+        drt_prod_min.add_val(to_string(i+1), drt_min);
+        rot_x_min.add_val(to_string(i+1), rx_lb[i]);
+        rot_x_max.add_val(to_string(i+1), rx_ub[i]);
+        rot_y_min.add_val(to_string(i+1), ry_lb[i]);
+        rot_y_max.add_val(to_string(i+1), ry_ub[i]);
+        rot_z_min.add_val(to_string(i+1), rz_lb[i]);
+        rot_z_max.add_val(to_string(i+1), rz_ub[i]);
+        xm_min_i.add_val(to_string(i+1), x_min_val);
+        xm_max_i.add_val(to_string(i+1), x_max_val);
+        ym_min_i.add_val(to_string(i+1), y_min_val);
+        ym_max_i.add_val(to_string(i+1), y_max_val);
+        zm_min_i.add_val(to_string(i+1), z_min_val);
+        zm_max_i.add_val(to_string(i+1), z_max_val);
+        box_i.clear();
+        rbox.clear();
     }
+
     // var<> new_x1("new_x1", x_new_lb, x_new_ub),new_y1("new_y1", y_new_lb, y_new_ub),new_z1("new_z1", z_new_lb, z_new_ub);
     
     var<> new_x1("new_x1"),new_y1("new_y1"),new_z1("new_z1");
     var<> deltax("deltax"), deltay("deltay"), deltaz("deltaz");
-    if(hybrid){
+    var<> rotx("rotx", rot_x_min, rot_x_max), roty("roty", rot_y_min, rot_y_max), rotz("rotz", rot_z_min, rot_z_max);
         //var<> deltax("deltax", deltax_lb, deltax_ub), deltay("deltay", deltay_lb, deltay_ub), deltaz("deltaz", deltaz_lb, deltaz_ub);
         
         // double dmax=min_max_model[3].second;
-        Reg->add(new_x1.in(N1));
-        Reg->add(new_y1.in(N1));
-        Reg->add(new_z1.in(N1));
+//        Reg->add(new_x1.in(N1));
+//        Reg->add(new_y1.in(N1));
+//        Reg->add(new_z1.in(N1));
+        Reg->add(rotx.in(N1));
+        Reg->add(roty.in(N1));
+        Reg->add(rotz.in(N1));
         Reg->add(new_xm.in(N1));
         Reg->add(new_ym.in(N1));
         Reg->add(new_zm.in(N1));
@@ -6850,17 +7011,17 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         auto ids1 = theta11.repeat_id(N1.size());
         Constraint<> Def_newxm("Def_newxm");
         Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1));
-        Def_newxm += x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1)+x_shift;
+        Def_newxm += rotx+x_shift;
         Reg->add(Def_newxm.in(N1)==0);
         
         Constraint<> Def_newym("Def_newym");
         Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1));
-        Def_newym += x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1)+y_shift;
+        Def_newym += roty+y_shift;
         Reg->add(Def_newym.in(N1)==0);
         
         Constraint<> Def_newzm("Def_newzm");
         Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1));
-        Def_newzm += x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1)+z_shift;
+        Def_newzm += rotz+z_shift;
         Reg->add(Def_newzm.in(N1)==0);
         
         Constraint<> sum_newxm("sum_newxm");
@@ -6877,19 +7038,19 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
         //auto ids1 = theta11.repeat_id(N1.size());
         Constraint<> x_rot1("x_rot1");
-        x_rot1 += new_x1 -x_shift+new_xm;
+        x_rot1 += rotx;
         x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1);
-        //Reg->add(x_rot1.in(N1)==0);
+        Reg->add(x_rot1.in(N1)==0);
         
         Constraint<> y_rot1("y_rot1");
-        y_rot1 += new_y1 - y_shift+new_ym;
+        y_rot1 += roty;
         y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1);
-        //Reg->add(y_rot1.in(N1)==0);
+        Reg->add(y_rot1.in(N1)==0);
         
         Constraint<> z_rot1("z_rot1");
-        z_rot1 += new_z1 -z_shift+new_zm;
+        z_rot1 += rotz;
         z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1);
-        //Reg->add(z_rot1.in(N1)==0);
+        Reg->add(z_rot1.in(N1)==0);
         
         param<> ub_par("ub_par");
         ub_par=ub;
@@ -6914,285 +7075,44 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         Reg->add(Def_delta<=0);
         
         if(hybrid){
-            auto idstheta = theta11.repeat_id(N1.size());
-            Constraint<> limit_neg("limit_neg");
-            limit_neg=2*(new_xm*x1*theta11.in(idstheta));
-            limit_neg+= 2*(new_xm*y1*theta12.in(idstheta));
-            limit_neg+= 2*(new_xm*z1*theta13.in(idstheta));
-            limit_neg+= 2*(new_ym*x1*theta21.in(idstheta));
-            limit_neg+= 2*(new_ym*y1*theta22.in(idstheta));
-            limit_neg+= 2*(new_ym*z1*theta23.in(idstheta));
-            limit_neg+= 2*(new_zm*x1*theta31.in(idstheta));
-            limit_neg+= 2*(new_zm*y1*theta32.in(idstheta));
-            limit_neg+= 2*(new_zm*z1*theta33.in(idstheta));
-            limit_neg-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-            limit_neg-=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2);
-            // Reg->add(limit_neg.in(N1)<=0);
-            
-            Constraint<> limit_pos("limit_pos");
-            limit_pos-=2*(new_xm*x1*theta11.in(idstheta));
-            limit_pos-= 2*(new_xm*y1*theta12.in(idstheta));
-            limit_pos-= 2*(new_xm*z1*theta13.in(idstheta));
-            limit_pos-= 2*(new_ym*x1*theta21.in(idstheta));
-            limit_pos-= 2*(new_ym*y1*theta22.in(idstheta));
-            limit_pos-= 2*(new_ym*z1*theta23.in(idstheta));
-            limit_pos-= 2*(new_zm*x1*theta31.in(idstheta));
-            limit_pos-= 2*(new_zm*y1*theta32.in(idstheta));
-            limit_pos-= 2*(new_zm*z1*theta33.in(idstheta));
-            limit_pos-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-            limit_pos-=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2);
-            // Reg->add(limit_pos.in(N1)<=0);
-            
-            var<> ex("ex");
+    
             // Reg->add(ex.in(N1));
-            param<> dm("dm");
-            param<> d_sq_root("d_sq_root");
-            for(auto i=0;i<nm;i++){
-                auto dmd=pow(point_cloud_model.at(i)[0],2)+pow(point_cloud_model.at(i)[1],2)+pow(point_cloud_model.at(i)[2],2);
-                auto dmd_r=sqrt(dmd);
-                dm.add_val(to_string(i+1), dmd);
-                d_sq_root.add_val(to_string(i+1), dmd_r);
-            }
-            
-            param<> cd("cd");
-            for(auto i=0;i<nd;i++){
-                auto dmd=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
-                auto dmd_r=2*(sqrt(dmd)+sqrt(shift_mag_max));
-                cd.add_val(to_string(i+1), dmd_r);
-            }
-            
-            indices idsij = indices("idsij");
-            idsij.add_empty_row();
-            
-            param<> dm_root("dm_root");
-            dm_root.in(cells);
-            for(auto i=0;i<nd;i++){
-                auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
-                auto di_r=2*(sqrt(di)+sqrt(shift_mag_max));
-                for(auto j=1;j<=nm;j++){
-                    if(cells.has_key(to_string(i+1)+","+to_string(j))){
-                        auto dmd=pow(point_cloud_model.at(j-1)[0],2)+pow(point_cloud_model.at(j-1)[1],2)+pow(point_cloud_model.at(j-1)[2],2);
-                        auto dmd_r=dmd-sqrt(dmd)*di_r;
-                        dm_root.set_val(to_string(i+1)+","+to_string(j), dmd_r);
-                        idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
-                    }
-                }
-            }
-            
-            param<> cL("cL");
-            cL.in(cells);
-            param<> cU("cU");
-            cU.in(cells);
-            param<> dm_cells("dm_cells");
-            dm_cells.in(cells);
-            
-            param<> xm_min_i("xm_min_i");
-            param<> ym_min_i("ym_min_i");
-            param<> zm_min_i("zm_min_i");
-            param<> xm_max_i("xm_max_i");
-            param<> ym_max_i("ym_max_i");
-            param<> zm_max_i("zm_max_i");
-            
-            param<> drt_prod_min("drt_prod_min");
-            
-            vector<vector<vector<double>>> box;
-            vector<vector<double>> box_i;
-            vector<vector<double>> rbox;
-            vector<double> coord_i;
-            coord_i.resize(3);
-            vector<double> rc;
-            rc.resize(3);
-            
-            //            shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
-            //            shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
-            //            shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
-            vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
-            vector<double> rx_lb, rx_ub, ry_lb, ry_ub, rz_lb, rz_ub;
-            for(auto i=0;i<nd;i++){
-                //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
-                //dist_i.push_back(max_dist_i);
-                // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
-                x1_bounds->first = point_cloud_data.at(i)[0];
-                x1_bounds->second = point_cloud_data.at(i)[0];
-                y1_bounds->first = point_cloud_data.at(i)[1];
-                y1_bounds->second = point_cloud_data.at(i)[1];
-                z1_bounds->first = point_cloud_data.at(i)[2];
-                z1_bounds->second = point_cloud_data.at(i)[2];
-                auto x_range  = get_product_range(x1_bounds, theta11._range);
-                auto y_range  = get_product_range(y1_bounds, theta12._range);
-                auto z_range  = get_product_range(z1_bounds, theta13._range);
-                x_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_x);
-                x_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_x);
-                rx_lb.push_back(x_range->first + y_range->first + z_range->first);
-                rx_ub.push_back(x_range->second + y_range->second + z_range->second);
-                x_range  = get_product_range(x1_bounds, theta21._range);
-                y_range  = get_product_range(y1_bounds, theta22._range);
-                z_range  = get_product_range(z1_bounds, theta23._range);
-                y_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_y);
-                y_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_y);
-                ry_lb.push_back(x_range->first + y_range->first + z_range->first);
-                ry_ub.push_back(x_range->second + y_range->second + z_range->second);
-                x_range  = get_product_range(x1_bounds, theta31._range);
-                y_range  = get_product_range(y1_bounds, theta32._range);
-                z_range  = get_product_range(z1_bounds, theta33._range);
-                z_lb.push_back(x_range->first + y_range->first + z_range->first + new_shift_min_z);
-                z_ub.push_back(x_range->second + y_range->second + z_range->second+ new_shift_max_z);
-                rz_lb.push_back(x_range->first + y_range->first + z_range->first);
-                rz_ub.push_back(x_range->second + y_range->second + z_range->second);
-                coord_i[0]=x_lb[i];
-                coord_i[1]=y_lb[i];
-                coord_i[2]=z_lb[i];
-                rc[0]=rx_lb[i];
-                rc[1]=ry_lb[i];
-                rc[2]=rz_lb[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_lb[i];
-                coord_i[1]=y_ub[i];
-                coord_i[2]=z_lb[i];
-                rc[0]=rx_lb[i];
-                rc[1]=ry_ub[i];
-                rc[2]=rz_lb[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_ub[i];
-                coord_i[1]=y_ub[i];
-                coord_i[2]=z_lb[i];
-                rc[0]=rx_ub[i];
-                rc[1]=ry_ub[i];
-                rc[2]=rz_lb[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_ub[i];
-                coord_i[1]=y_lb[i];
-                coord_i[2]=z_lb[i];
-                rc[0]=rx_ub[i];
-                rc[1]=ry_lb[i];
-                rc[2]=rz_lb[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_lb[i];
-                coord_i[1]=y_lb[i];
-                coord_i[2]=z_ub[i];
-                rc[0]=rx_lb[i];
-                rc[1]=ry_lb[i];
-                rc[2]=rz_ub[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_lb[i];
-                coord_i[1]=y_ub[i];
-                coord_i[2]=z_ub[i];
-                rc[0]=rx_lb[i];
-                rc[1]=ry_ub[i];
-                rc[2]=rz_ub[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_ub[i];
-                coord_i[1]=y_ub[i];
-                coord_i[2]=z_ub[i];
-                rc[0]=rx_ub[i];
-                rc[1]=ry_ub[i];
-                rc[2]=rz_ub[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                coord_i[0]=x_ub[i];
-                coord_i[1]=y_lb[i];
-                coord_i[2]=z_ub[i];
-                rc[0]=rx_ub[i];
-                rc[1]=ry_lb[i];
-                rc[2]=rz_ub[i];
-                box_i.push_back(coord_i);
-                rbox.push_back(rc);
-                auto di=pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2);
-                auto di_r=2*(sqrt(di)+sqrt(shift_mag_max));
-                auto x_min_val=100.0, x_max_val=-999.0;
-                auto y_min_val=100.0, y_max_val=-999.0;
-                auto z_min_val=100.0, z_max_val=-999.0;
-                for(auto j=1;j<=nm;j++){
-                    if(cells.has_key(to_string(i+1)+","+to_string(j))){
-                        auto x=point_cloud_model.at(j-1)[0];
-                        auto y=point_cloud_model.at(j-1)[1];
-                        auto z=point_cloud_model.at(j-1)[2];
-                        if(x>=x_max_val){
-                            x_max_val=x;
-                        }
-                        if(y>=y_max_val){
-                            y_max_val=y;
-                        }
-                        if(z>=z_max_val){
-                            z_max_val=z;
-                        }
-                        if(x<=x_min_val){
-                            x_min_val=x;
-                        }
-                        if(y<=y_min_val){
-                            y_min_val=y;
-                        }
-                        if(z<=z_min_val){
-                            z_min_val=z;
-                        }
-                        double c_min=100, c_max=-999;
-                        for(auto k=0;k<8;k++){
-                            auto inner_prod=2*(box_i[k][0]*x+box_i[k][1]*y+box_i[k][2]*z);
-                            if(inner_prod>=c_max){
-                                c_max=inner_prod;
-                            }
-                            if(inner_prod<=c_min){
-                                c_min=inner_prod;
-                            }
-                        }
-                        double drt_min=100.0, drt_max=-999.0;
-                        for(auto k=0;k<8;k++){
-                            auto dm1=2*(std::max(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::max(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::max(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
-                            if(dm1>=drt_max){
-                                drt_max=dm1;
-                            }
-                            auto dm2=2*(std::min(rbox[k][0]*new_shift_max_x, rbox[k][0]*new_shift_min_x)+std::min(rbox[k][1]*new_shift_max_y, rbox[k][1]*new_shift_min_y)+std::min(rbox[k][2]*new_shift_max_z, rbox[k][2]*new_shift_min_z));
-                            if(dm2<=drt_min){
-                                drt_min=dm2;
-                            }
-                        }
-                        drt_min=std::max(drt_min, (-2)*sqrt(di)*sqrt(shift_mag_max));
-                        drt_max=std::min(drt_max, 2*sqrt(di)*sqrt(shift_mag_max));
-                        drt_prod_min.add_val(to_string(i+1), drt_min);
-                        auto c_max_=std::min(c_max,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r);
-                        auto c_max__=std::min(c_max_, 2*model_inner_prod_max[j-1]);
-                        auto c_min_=std::max(c_min,sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r*(-1));
-                        auto c_min__=std::max(c_min_, 2*model_inner_prod_min[j-1]);
-                        //auto c_maxf=std::max(c_min__, c_max__);
-                        cL.set_val(to_string(i+1)+","+to_string(j), c_min__);
-                        cU.set_val(to_string(i+1)+","+to_string(j), c_max__);
-                        dm_cells.set_val(to_string(i+1)+","+to_string(j), pow(x,2)+pow(y,2)+pow(z,2)-c_max__);
-                        auto dmd_r=sqrt(pow(x,2)+pow(y,2)+pow(z,2))*di_r-c_max__;
-                        if(dmd_r<-0.0001){
-                            DebugOff("dmdr "<<dmd_r<<endl);
-                        }
-                    }
-                }
-                xm_min_i.add_val(to_string(i+1), x_min_val);
-                xm_max_i.add_val(to_string(i+1), x_max_val);
-                ym_min_i.add_val(to_string(i+1), y_min_val);
-                ym_max_i.add_val(to_string(i+1), y_max_val);
-                zm_min_i.add_val(to_string(i+1), z_min_val);
-                zm_max_i.add_val(to_string(i+1), z_max_val);
-                box_i.clear();
-            }
-            
+            auto idst = x_shift.repeat_id(N1.size());
+            var<> rotx_shiftx("rotx_shiftx"), roty_shifty("roty_shifty"), rotz_shiftz("rotz_shiftz");
+            Reg->add(rotx_shiftx.in(N1));
+            Reg->add(roty_shifty.in(N1));
+            Reg->add(rotz_shiftz.in(N1));
+            Reg->add_McCormick("rotx_shiftx", rotx_shiftx, rotx, x_shift.in(idst));
+            Reg->add_McCormick("roty_shifty", roty_shifty, roty, y_shift.in(idst));
+            Reg->add_McCormick("rotz_shiftz", rotz_shiftz, rotz, z_shift.in(idst));
             Constraint<> delta_lower_N("delta_lower_N");
             //delta_lower=(x1*x1)+(y1*y1)+(z1*z1)+(product(dm_root.in(idsij), bin.in_matrix(1, 1)))-delta;
             //delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)+sum(dm_root*bin)-delta;
-            delta_lower_N=(x1*x1)+(y1*y1)+(z1*z1)+(tx+ty+tz)+drt_prod_min+product(dm_cells.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+            delta_lower_N=(x1*x1)+(y1*y1)+(z1*z1)+(tx+ty+tz)+2*(rotx_shiftx+roty_shifty+rotz_shiftz)+product(dm_cells.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
             Reg->add(delta_lower_N.in(N1)<=0);
-            delta_lower_N.print();
+//
+            Constraint<> sum_rotx("sum_rotx");
+            sum_rotx=sum(rotx_shiftx);
+            Reg->add(sum_rotx==0);
+
+            Constraint<> sum_roty("sum_roty");
+            sum_roty=sum(roty_shifty);
+            Reg->add(sum_roty==0);
+
+            Constraint<> sum_rotz("sum_rotz");
+            sum_rotz=sum(rotz_shiftz);
+            Reg->add(sum_rotz==0);
             
             
             Constraint<> delta_lower("delta_lower");
             //delta_lower=(x1*x1)+(y1*y1)+(z1*z1)+(product(dm_root.in(idsij), bin.in_matrix(1, 1)))-delta;
             //delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(x_shift*x_shift+y_shift*y_shift+z_shift*z_shift)+sum(dm_root*bin)-delta;
             delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(tx+ty+tz)+sum(dm_cells*bin)-delta;
-           // Reg->add(delta_lower<=0);
+            //Reg->add(delta_lower<=0);
             
-            
+            Constraint<> dist_rot("dist_rot");
+            dist_rot=rot_x_min*rot_x_max+rot_y_min*rot_y_max+rot_z_min*rot_z_max+pow(x1,2)+pow(y1,2)+pow(z1,2)-rotx*(rot_x_min+rot_x_max)-roty*(rot_y_min+rot_y_max)-rotz*(rot_z_min+rot_z_max);
+            Reg->add(dist_rot.in(N1)<=0);
             
 //            Constraint<> dist_model("dist_model");
 //            dist_model=pow(new_xm,2)+pow(new_ym,2)+pow(new_zm,2)-product(dm.in(ids),bin.in_matrix(1, 1));
@@ -7206,36 +7126,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             dist_data1=new_x1*new_x1+new_y1*new_y1+new_z1*new_z1-pow((sqrt(pow(x1,2)+pow(y1,2)+pow(z1,2))+sqrt(shift_mag_max)),2);
             // Reg->add(dist_data1.in(N1)<=0);
             
-            Constraint<> dist_data2("dist_data2");
-            dist_data2=x_new_lb*x_new_ub+y_new_lb*y_new_ub+z_new_lb*z_new_ub+pow((sqrt(pow(x1,2)+pow(y1,2)+pow(z1,2))-sqrt(shift_mag_max)),2)-new_x1*(x_new_ub+x_new_lb)-new_y1*(y_new_ub+y_new_lb)-new_z1*(z_new_ub+z_new_lb);
+            //Constraint<> dist_data2("dist_data2");
+//            dist_data2=x_new_lb*x_new_ub+y_new_lb*y_new_ub+z_new_lb*z_new_ub+pow((sqrt(pow(x1,2)+pow(y1,2)+pow(z1,2))-sqrt(shift_mag_max)),2)-new_x1*(x_new_ub+x_new_lb)-new_y1*(y_new_ub+y_new_lb)-new_z1*(z_new_ub+z_new_lb);
            // Reg->add(dist_data2.in(N1)<=0);
             
-            
-            
-            
-            
-            Constraint<> def_ex("def_ex");
-            def_ex=ex-product(d_sq_root.in(ids),bin.in_matrix(1, 1));
-            //Reg->add(def_ex.in(N1)==0);
-            
-            
-            
-            Constraint<> limit_neg_bin("limit_neg_bin");
-            limit_neg_bin=2*(new_xm*x1*theta11.in(idstheta));
-            limit_neg_bin+= 2*(new_xm*y1*theta12.in(idstheta));
-            limit_neg_bin+= 2*(new_xm*z1*theta13.in(idstheta));
-            limit_neg_bin+= 2*(new_ym*x1*theta21.in(idstheta));
-            limit_neg_bin+= 2*(new_ym*y1*theta22.in(idstheta));
-            limit_neg_bin+= 2*(new_ym*z1*theta23.in(idstheta));
-            limit_neg_bin+= 2*(new_zm*x1*theta31.in(idstheta));
-            limit_neg_bin+= 2*(new_zm*y1*theta32.in(idstheta));
-            limit_neg_bin+= 2*(new_zm*z1*theta33.in(idstheta));
-            limit_neg_bin-=pow(x1,2)+pow(y1,2)+pow(z1,2);
-            limit_neg_bin-=product(dm.in(ids),bin.in_matrix(1, 1));
-            // Reg->add(limit_neg_bin.in(N1)<=0);
-            
         }
-    }
+
    
     
     /* Objective function */
@@ -7254,7 +7150,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     
 
     //
-    
+    Reg->print();
     return(Reg);
 }
 void initialize_model_from_parent(shared_ptr<Model<double>>parent, shared_ptr<Model<double>> child){
