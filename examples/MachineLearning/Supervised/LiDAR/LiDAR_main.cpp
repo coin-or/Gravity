@@ -6994,7 +6994,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         Reg->add(new_xm.in(N1));
         Reg->add(new_ym.in(N1));
         Reg->add(new_zm.in(N1));
-        Reg->add(delta.in(R(1)));
+        //Reg->add(delta.in(R(1)));
         Reg->add(deltax.in(N1));
         Reg->add(deltay.in(N1));
         Reg->add(deltaz.in(N1));
@@ -7056,7 +7056,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         ub_par=ub;
         Constraint<> cut_off("cut_off");
         cut_off=delta-ub_par;
-        Reg->add(cut_off.in(range(0,0))<=0);
+        //Reg->add(cut_off.in(range(0,0))<=0);
         
         Constraint<> Def_deltax("Def_deltax");
         Def_deltax=pow(new_xm, 2)-deltax;
@@ -7072,7 +7072,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         
         Constraint<> Def_delta("Def_delta");
         Def_delta=sum(deltax)+sum(deltay)+sum(deltaz)-delta;
-        Reg->add(Def_delta<=0);
+        //Reg->add(Def_delta<=0);
         
         if(hybrid){
     
@@ -7142,8 +7142,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     param<> one("one");
     one.in(N1);
     one = 1;
-    //obj+=sum(deltax)+sum(deltay)+sum(deltaz);
-    obj+=(delta);
+    obj+=sum(deltax)+sum(deltay)+sum(deltaz);
+    //obj+=(delta);
     
     
     Reg->min(obj);
@@ -15020,13 +15020,17 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
 //                            best_rot_trans=rot_trans_ub;
 //                            //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
 //                        }
-                    }
+                    
                // lb = models[i]->get_rel_obj_val();
                 //lb = models[i]->get_obj_val();
                 lb = std::max(models[j]->get_rel_obj_val(), best_lb);
                 if(lb<best_lb)
                     best_lb = lb;
                 lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, ub, ub_, depth_vec[pos], valid_cells[pos]));
+                    }
+                else{
+                    infeasible_count++;
+                }
             }
             else{
                 infeasible_count++;
