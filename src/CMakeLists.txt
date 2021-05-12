@@ -89,7 +89,7 @@ if(Cov)
     LINK_FLAGS    "-lgcov --coverage -fprofile-arcs"
   )
 endif()
-
+install(TARGETS gravity DESTINATION lib)
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
 SET(CMAKE_INSTALL_RPATH "${PROJ_LIB_DIR}")

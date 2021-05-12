@@ -322,5 +322,4 @@ add_subdirectory(examples)
 
 #Get user defined configuration including passing project source directory into c++ code
 configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)
-install(TARGETS gravity DESTINATION lib)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/gravity DESTINATION include)
