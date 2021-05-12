@@ -14542,13 +14542,13 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
     /* INPUT BOUNDS */
     double time_start = get_wall_time();
     double total_time_max = 9000;
-    double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-    double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+    double shift_min_x =  -0.5, shift_max_x = 0.5, shift_min_y = -0.5,shift_max_y = 0.5,shift_min_z = -0.5,shift_max_z = 0.5;
+    double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 30;
+    double max_time = 10;
     double max_time_init=30;
     bool max_time_increase=false;
     int max_iter = 1e6;
@@ -14681,8 +14681,8 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         if(opt_gap_old-opt_gap <= eps && iter>=5){
-            max_time=std::min(max_time*2, 120.0);
-            max_time_increase=true;
+            //max_time=std::min(max_time*2, 120.0);
+            //max_time_increase=true;
         }
         if(opt_gap_old-opt_gap > eps && max_time_increase){
             max_time=std::max(max_time/2.0, max_time_init);
@@ -14964,6 +14964,7 @@ vector<double> BranchBound4(vector<vector<double>>& point_cloud_model, vector<ve
                     lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, ub, ub_, depth_vec[pos], valid_cells[pos]));
                 }
                 else{
+                    DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
                     infeasible_count++;
                 }
             }
