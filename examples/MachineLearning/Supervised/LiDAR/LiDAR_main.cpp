@@ -15140,7 +15140,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     
     double elapsed_time = get_wall_time() - time_start;
     double opt_gap = (best_ub - best_lb)/best_ub;
-    double max_opt_gap = 0.05;/* 5% opt gap */
+    double max_opt_gap = 0.01;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
     double eps=0.01;
     int prep_count=0;
@@ -15223,6 +15223,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
         int i=models_new_count;
         models_count=0;
         models_new_count=0;
+        topnode=lb_queue.top();
         while(topnode.lb<=best_ub) {
             lb_queue.pop();
             bool branch1=false;
@@ -15436,6 +15437,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             }
             i+=2;
             topnode = lb_queue.top();
+            DebugOn("lb "<<topnode.lb<<" size "<< models.size()<<endl);
             if(topnode.lb>=0 && models.size()>=nb_threads){
                 break;
             }

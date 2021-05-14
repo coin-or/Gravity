@@ -553,12 +553,12 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
 //    grb_mod->set(GRB_IntParam_MIPFocus,1);
-    grb_mod->set(GRB_IntParam_BranchDir, 1);
+    //grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
 //    if(use_callback){
-        grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
-        grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
-        grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
+        //grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+        //grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
+        //grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
 //    }
     grb_mod->update();
     int n=grb_mod->get(GRB_IntAttr_NumVars);
