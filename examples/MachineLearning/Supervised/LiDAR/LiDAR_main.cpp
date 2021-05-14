@@ -15423,7 +15423,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 }
             }
             else if(valid_cells[i].size()>500){
-                lb_queue.push(treenode_n(model, roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], -1.0, best_ub, -1.0, topnode.depth+1, valid_cells[i]));
+                lb_queue.push(treenode_n(model, roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], topnode.lb, best_ub, -1.0, topnode.depth+1, valid_cells[i]));
             }
             else {
                 DebugOff("v size "<<valid_cells[i].size()<<endl);
@@ -15459,7 +15459,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 }
             }
             else if(valid_cells[i+1].size()>500){
-                lb_queue.push(treenode_n(model, roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], -1.0, best_ub, -1.0, topnode.depth+1, valid_cells[i+1]));
+                lb_queue.push(treenode_n(model, roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], topnode.lb, best_ub, -1.0, topnode.depth+1, valid_cells[i+1]));
             }
             else {
                 DebugOff("v size "<<valid_cells[i].size()<<endl);
@@ -15474,7 +15474,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             i+=2;
             topnode = lb_queue.top();
             DebugOn("lb "<<topnode.lb<<" size "<< models.size()<<endl);
-            if(topnode.lb>=0 && models.size()>=nb_threads){
+            if(models.size()>=nb_threads){
                 break;
             }
         }
