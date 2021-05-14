@@ -15521,7 +15521,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 {
                     if(lb<best_lb)
                         best_lb = lb;
-                    lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, ub, ub_, depth_vec[pos], valid_cells[pos]));
+                    lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, best_ub, ub_, depth_vec[pos], valid_cells[pos]));
                 }
                 else{
                     DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
