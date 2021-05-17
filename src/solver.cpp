@@ -327,7 +327,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
 }
 
 /* Runds models stored in the vector in parallel, using solver of stype and tolerance tol */
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time){
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, double cut_off){
     std::vector<thread> threads;
     std::vector<bool> feasible;
     if(models.size()==0){
@@ -345,7 +345,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time));
+        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time, cut_off));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){
@@ -353,8 +353,8 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     }
     return 0;
 }
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter){
-    return run_parallel(models,stype,tol,nr_threads,"",max_iter);
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter, double cut_off){
+    return run_parallel(models,stype,tol,nr_threads,"",max_iter, cut_off);
 };
 
 /*Returns a model that can compute interior point of nonlin model. Generates OA cuts to nonlin model at solution of nonlin model and adds it to current model.

@@ -13543,9 +13543,15 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         if(valid_cells_map.size()<nd){
             found_all=false;
         }
+        int vmin=1000000, vmin_pos=0;
         if(found_all){
             for (const auto &vcel:valid_cells_map) {
                 auto key_data=to_string(vcel.first+1);
+                auto vs=vcel.second.size();
+                if(vs<=vmin){
+                    vmin=vs;
+                    vmin_pos=vcel.first;
+                }
                 //  auto cost_data=dist_cost_map[vcel.first];
                 int count=0;
                 for (auto const model_id: vcel.second) {
@@ -13568,7 +13574,6 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
             
         }
         else{
-            
             DebugOff("Number of valid cells = " << 0 << endl);
         }
     }
@@ -15051,7 +15056,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     indices N2 = range(1,point_cloud_model.size());
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 10;
+    double max_time = 30;
     double max_time_init=30;
     bool max_time_increase=false;
     int max_iter = 1e6;
@@ -15413,7 +15418,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             valid_cells.push_back(vi);
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
-            if(valid_cells[i].size()>=1 && valid_cells[i].size()<=500){
+            if(valid_cells[i].size()>=1 && valid_cells[i].size()<=4000){
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans[i], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(branch1){
@@ -15436,7 +15441,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                     valid_cells_new.push_back(valid_cells[i]);
                 }
             }
-            else if(valid_cells[i].size()>500){
+            else if(valid_cells[i].size()>4000){
                 lb_queue.push(treenode_n(model, roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], topnode.lb, best_ub, -1.0, topnode.depth+1, valid_cells[i]));
             }
             else {
@@ -15449,7 +15454,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             auto vi1 = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             valid_cells.push_back(vi1);
             depth_vec.push_back(topnode.depth+1);
-            if(valid_cells[i+1].size()>=1 && valid_cells[i+1].size()<=500){
+            if(valid_cells[i+1].size()>=1 && valid_cells[i+1].size()<=4000){
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(branch1){
@@ -15472,7 +15477,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                     valid_cells_new.push_back(valid_cells[i+1]);
                 }
             }
-            else if(valid_cells[i+1].size()>500){
+            else if(valid_cells[i+1].size()>4000){
                 lb_queue.push(treenode_n(model, roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], topnode.lb, best_ub, -1.0, topnode.depth+1, valid_cells[i+1]));
             }
             else {
@@ -15499,7 +15504,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size());
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time);
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, best_ub);
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
                 ub_ = models[j]->get_obj_val();
