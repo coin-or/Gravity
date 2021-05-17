@@ -536,7 +536,7 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double max_time){
+bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double max_time, double cut_off){
         //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
         //    print_constraints();
     if (relax) relax_model();
@@ -555,6 +555,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_IntParam_MIPFocus,1);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
+    grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
 //    if(use_callback){
         //grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
         //grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
@@ -580,7 +581,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     
     grb_mod->optimize();
         //            grb_mod->write("~/mod.mps");
-    if (grb_mod->get(GRB_IntAttr_Status) == 3) {
+    if (grb_mod->get(GRB_IntAttr_Status) == 3 || grb_mod->get(GRB_IntAttr_Status) == 6) {
         cerr << "Infeasible model!\n";
 //        _model->print_var_bounds();
         return false;

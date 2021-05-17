@@ -243,7 +243,7 @@ public:
         return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
     }
     /* run model */
-    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit){
+    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit, double cut_off=1e9){
         int return_status = -1, dyn_max_iter = 20;
         bool violated_constraints = true, optimal = true, solver_violated=false;
         unsigned nb_it = 0;
@@ -440,7 +440,7 @@ public:
                         grb_prog->prepare_model();
                         //DebugOn("calling prep after init"<<endl);
                     
-                    optimal = grb_prog->solve(output, tol, _use_callback, time_limit);
+                    optimal = grb_prog->solve(output, tol, _use_callback, time_limit, cut_off);
                     return_status = optimal ? 0 : -1;
                     //                        delete grb_prog->grb_mod;
                     //                        delete grb_prog->grb_env;
@@ -621,13 +621,16 @@ public:
     void get_pstart(std::vector<double>& vbasis, std::map<std::string,double>& cbasis){
         throw invalid_argument("get pstart not defined on this branch");
     }
+    int run(int output, type tol ,const string& lin_solver, int max_iter, double time_limit,  double cut_off){
+        return run(output, tol, max_iter, 1e-6, true, {false,""}, time_limit, cut_off);
+    }
 };
 
 template<typename type>
-int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6){
+int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6, double cut_off=1e9){
     int return_status = -1;
     for (auto i = start; i<end; i++) {
-        return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver, max_iter, max_batch_time);
+        return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver, max_iter, max_batch_time, cut_off);
         DebugOff("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
     }
@@ -646,9 +649,9 @@ int run_models_solver(const std::vector<shared_ptr<Model<type>>>& models, const 
 
 /* Runs models stored in the vector in parallel, using solver of stype and tolerance tol */
 //run_parallel,ref(vec),stype,tol,nr_threads,lin_solver,max_iter);
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6);
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype = ipopt, double tol = 1e-6, unsigned nr_threads=std::thread::hardware_concurrency(), const string& lin_solver="", int max_iter=1e6, int max_batch_time=1e6, double cut_off=1e9);
 
-int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter);
+int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravity::SolverType stype, double tol, unsigned nr_threads, int max_iter, double cut_off=1e9);
 int run_parallel_new(const std::vector<std::string> objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string modelname, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool initialize_resolve);
 int initialize_run_parallel(const std::vector<std::string> objective_models_worker, std::vector<shared_ptr<gravity::Model<double>>>& models,  gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis);
 #ifdef USE_MPI
