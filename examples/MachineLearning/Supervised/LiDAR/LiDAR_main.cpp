@@ -13049,7 +13049,7 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
         }
         Constraint<> region("region");
         region=a*x+b*y+c*z+d;
-       // voro_model->add(region.in(voronoi_ids)<=0);
+        //voro_model->add(region.in(voronoi_ids)<=0);
         
         Constraint<> inner_sphere("inner_sphere");
         inner_sphere=xlb*xub+ylb*yub+zlb*zub+inner_radius_sq-x*(xub+xlb)-y*(yub+ylb)-z*(zub+zlb);
@@ -13686,9 +13686,13 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             box_new_i.clear();
         }
         set<int> unique_model_pts;
-        for (int j = 0; j<nm; j++) {
-            auto vertices=model_voronoi_vertices.at(j);
-            for(auto i=0;i<nd;i++){
+        bool found_all=true;
+        vector<double> min_cost_i;
+        double min_cost_sum=0;
+        for(auto i=0;i<nd;i++){
+            DebugOn("i "<<i<<endl);
+            for (int j = 0; j<nm; j++) {
+                auto vertices=model_voronoi_vertices.at(j);
                 if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                     DebugOff("continued");
                     continue;
@@ -13706,7 +13710,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
-                        DebugOn(res.first<<" "<<res.second<<endl);
+                        DebugOn(res.first<<endl);
                         if(unique_model_pts.insert(j).second){
                             new_model_pts.push_back(j);
                             new_model_ids.insert(to_string(i));
@@ -13714,6 +13718,8 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         if(res.first<=upper_bound){
                             valid_cells_map[i].push_back(j);
                             dist_cost_map[i].push_back(res.first);
+                            auto key=to_string(i+1)+","+to_string(j+1);
+                            valid_cells.insert(key);
                         }
                         
                     }
@@ -13722,59 +13728,64 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                 }
             }
-        }
-        for(auto i=0;i<nd;i++){
-            DebugOff(valid_cells_map[i].size()<<endl);
-        }
-        bool found_all=true;
-        if(valid_cells_map.size()<nd){
-            found_all=false;
-        }
-        vector<double> min_cost_i;
-        double min_cost_sum=0;
-        for (const auto &vcel:valid_cells_map) {
-              auto cost_data=dist_cost_map[vcel.first];
-            auto costmin=*min_element(cost_data.begin(), cost_data.end());
+            if(valid_cells_map[i].size()==0){
+                break;
+                found_all=false;
+            }
+            auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
             min_cost_i.push_back(costmin);
             min_cost_sum+=costmin;
         }
-        DebugOn("min cost sum "<<min_cost_sum<<endl);
-        if(min_cost_sum>upper_bound){
-            found_all=false;
-        }
-        int vmin=1000000, vmin_pos=0;
+//        for(auto i=0;i<nd;i++){
+//            DebugOff(valid_cells_map[i].size()<<endl);
+//        }
        
-        if(found_all){
-            for (const auto &vcel:valid_cells_map) {
-                auto key_data=to_string(vcel.first+1);
-                auto vs=vcel.second.size();
-                if(vs<=vmin){
-                    vmin=vs;
-                    vmin_pos=vcel.first;
-                }
-                  auto cost_data=dist_cost_map[vcel.first];
-               // min_cost_i.push_back(*min_element(cost_data.begin(), cost_data.end()));
-                int count=0;
-                DebugOn("i "<<vcel.first<<endl);
-                for (auto const model_id: vcel.second) {
-                    auto key=key_data+","+to_string(model_id+1);
-                    valid_cells.insert(key);
-                    DebugOn(cost_data[count]<<endl);
-                    count++;
-                    //            dist_cost.add_val(key, cost_data[count++]);
-                }
-                if(count==0){
-                    DebugOn("no possible match found for data point "<<key_data<<endl);
-                    found_all=false;
-                    break;
-                }
-            }
-        }
+       
+       
+//        if(found_all){
+//            vector<double> min_cost_i;
+//            double min_cost_sum=0;
+//            for (const auto &vcel:valid_cells_map) {
+//                  auto cost_data=dist_cost_map[vcel.first];
+//                auto costmin=*min_element(cost_data.begin(), cost_data.end());
+//                min_cost_i.push_back(costmin);
+//                min_cost_sum+=costmin;
+//            }
+//            DebugOn("min cost sum "<<min_cost_sum<<endl);
+//            if(min_cost_sum>upper_bound){
+//                found_all=false;
+//            }
+//            int vmin=1000000, vmin_pos=0;
+//            for (const auto &vcel:valid_cells_map) {
+//                auto key_data=to_string(vcel.first+1);
+//                auto vs=vcel.second.size();
+//                if(vs<=vmin){
+//                    vmin=vs;
+//                    vmin_pos=vcel.first;
+//                }
+//                  auto cost_data=dist_cost_map[vcel.first];
+//               // min_cost_i.push_back(*min_element(cost_data.begin(), cost_data.end()));
+//                int count=0;
+//                DebugOn("i "<<vcel.first<<endl);
+//                for (auto const model_id: vcel.second) {
+//                    auto key=key_data+","+to_string(model_id+1);
+//                    valid_cells.insert(key);
+//                    DebugOn(cost_data[count]<<endl);
+//                    count++;
+//                    //            dist_cost.add_val(key, cost_data[count++]);
+//                }
+//                if(count==0){
+//                    DebugOn("no possible match found for data point "<<key_data<<endl);
+//                    found_all=false;
+//                    break;
+//                }
+//            }
+//        }
         if(found_all){
             DebugOn("min cost for each data point "<<endl);
-            for(auto i=0;i<min_cost_i.size();i++){
-                DebugOn(min_cost_i[i]<<endl);
-            }
+//            for(auto i=0;i<min_cost_i.size();i++){
+//                DebugOn(min_cost_i[i]<<endl);
+//            }
             DebugOff("Number of old pairs = " << old_cells.size() << endl);
             DebugOff("Number of valid cells = " << valid_cells.size() << endl);
             DebugOff("Number of discarded pairs = " << old_cells.size() - valid_cells.size() << endl);
