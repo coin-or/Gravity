@@ -247,7 +247,9 @@ shared_ptr<Model<double>> build_new_SOC_MIQCP(vector<vector<double>>& point_clou
 
 shared_ptr<Model<double>> build_projected_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z, param<>& intercept, const vector<int>& init_matching);
 
+pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, vector<double> center);
 
+pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> coords, vector<vector<double>> new_coords, vector<double> center, vector<double> plane, double xl, double xu, double yl, double yu, double zl, double zu);
 
 shared_ptr<Model<double>> build_norm1_SOC_MIQCP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans, bool convex, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_ints);
 
@@ -13513,6 +13515,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         vector<int> inf;
         vector<int> feas;
         vector<vector<double>> new_vert_i;
+        vector<vector<double>> plane_eq;
         for(auto i=0;i<nd;i++){
             auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
             sphere_inner_sq.push_back(pow((d_root-shift_mag_max_root),2));
@@ -13580,6 +13583,11 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             auto b=(-1)*(y_lb[i]+y_ub[i]);
             auto c=(-1)*(z_lb[i]+z_ub[i]);
             auto d=sphere_inner_sq[i]+x_lb[i]*x_ub[i]+y_lb[i]*y_ub[i]+z_lb[i]*z_ub[i];
+            vector<double> eq_i(4);
+            eq_i[0]=a;
+            eq_i[1]=b;
+            eq_i[2]=c;
+            eq_i[3]=d;
             for(auto k=0;k<8;k++){
                 auto xk=box_i[k][0];
                 auto yk=box_i[k][1];
@@ -13652,6 +13660,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             }
             box.push_back(box_new_i);
             vertex_new.push_back(new_vert_i);
+            plane_eq.push_back(eq_i);
             box_i.clear();
             feas.clear();
             inf.clear();
@@ -13678,11 +13687,17 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         }
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
+                        auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
+                        DebugOn(res.first<<" "<<res.second<<endl);
                         if(unique_model_pts.insert(j).second){
                             new_model_pts.push_back(j);
                             new_model_ids.insert(to_string(i));
                         }
-                        valid_cells_map[i].push_back(j);
+                        if(res.first<=upper_bound){
+                            valid_cells_map[i].push_back(j);
+                            dist_cost_map[i].push_back(res.first);
+                        }
+                        
                     }
                     else{
                         DebugOn("infeasible cell"<<endl);
@@ -13697,7 +13712,20 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         if(valid_cells_map.size()<nd){
             found_all=false;
         }
+        vector<double> min_cost_i;
+        double min_cost_sum=0;
+        for (const auto &vcel:valid_cells_map) {
+              auto cost_data=dist_cost_map[vcel.first];
+            auto costmin=*min_element(cost_data.begin(), cost_data.end());
+            min_cost_i.push_back(costmin);
+            min_cost_sum+=costmin;
+        }
+        DebugOn("min cost sum "<<min_cost_sum<<endl);
+        if(min_cost_sum>upper_bound){
+            found_all=false;
+        }
         int vmin=1000000, vmin_pos=0;
+       
         if(found_all){
             for (const auto &vcel:valid_cells_map) {
                 auto key_data=to_string(vcel.first+1);
@@ -13706,11 +13734,14 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     vmin=vs;
                     vmin_pos=vcel.first;
                 }
-                //  auto cost_data=dist_cost_map[vcel.first];
+                  auto cost_data=dist_cost_map[vcel.first];
+               // min_cost_i.push_back(*min_element(cost_data.begin(), cost_data.end()));
                 int count=0;
+                DebugOn("i "<<vcel.first<<endl);
                 for (auto const model_id: vcel.second) {
                     auto key=key_data+","+to_string(model_id+1);
                     valid_cells.insert(key);
+                    DebugOn(cost_data[count]<<endl);
                     count++;
                     //            dist_cost.add_val(key, cost_data[count++]);
                 }
@@ -13722,6 +13753,10 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             }
         }
         if(found_all){
+            DebugOn("min cost for each data point "<<endl);
+            for(auto i=0;i<min_cost_i.size();i++){
+                DebugOn(min_cost_i[i]<<endl);
+            }
             DebugOff("Number of old pairs = " << old_cells.size() << endl);
             DebugOff("Number of valid cells = " << valid_cells.size() << endl);
             DebugOff("Number of discarded pairs = " << old_cells.size() - valid_cells.size() << endl);
@@ -13741,8 +13776,9 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
     DebugOff("Voronoi preprocessing time = " << prep_time << endl);
     return valid_cells;
 }
-/*Min and maximum distance squared to given centre ((x-cx)^2+(y-cy)^2+(z-cz)^2) is computed over a box X, where each vertex corresponds to bounds (not a general polytope). x,y,z in X: xL \le x \le xu, yL \le yU, zL
- le z \le zU. Max distance may be computed by a general polytope given the vertices of the polytope.*/
+/*Min and maximum distance squared to given centre ((x-cx)^2+(y-cy)^2+(z-cz)^2) is computed over a polytope Y. Bounding box X, where each vertex corresponds to bounds (not a general polytope). x,y,z in X: xL \le x \le xu, yL \le yU, zL \le z \le zU. Max distance is computed by a general polytope Y given the vertices of the polytope. Minimum distance is calculated over a bounding box X which oversetimates Y
+ @coords: vector of extreme points of Y
+ @center: point to which distance is computed. center is  avector of coordinates cx,cy,cz*/
 pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, vector<double> center){
     double max_dist=-999.0, min_dist=0.0;
     double xl=99999.0, xu=-999.0, yl=99999.0, yu=-999.0, zl=99999.0, zu=-999.0;
@@ -13781,30 +13817,30 @@ pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, 
         min_dist+=0.0;
     }
     else if(xu-cx<=-tol){
-        min_dist+=pow(xu,2);
+        min_dist+=pow(xu-cx,2);
     }
     else if(cx-xl<=-tol){
-        min_dist+=pow(xl,2);
+        min_dist+=pow(xl-cx,2);
     }
     
     if(cy-yl>=-tol && yu-cy>=-tol){
         min_dist+=0.0;
     }
     else if(yu-cy<=-tol){
-        min_dist+=pow(yu,2);
+        min_dist+=pow(yu-cy,2);
     }
     else if(cy-yl<=-tol){
-        min_dist+=pow(yl,2);
+        min_dist+=pow(yl-cy,2);
     }
     
     if(cz-zl>=-tol && zu-cz>=-tol){
         min_dist+=0.0;
     }
     else if(zu-cz<=-tol){
-        min_dist+=pow(zu,2);
+        min_dist+=pow(zu-cz,2);
     }
     else if(cz-zl<=-tol){
-        min_dist+=pow(zl,2);
+        min_dist+=pow(zl-cz,2);
     }
     std::pair<double,double> res;
     res={min_dist, max_dist};
@@ -13816,7 +13852,7 @@ pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, 
  @center: vector of cx,cy,cz. Point to which distance is computed
  @plane: equation of the plane is in the form ax+by+cz+d \le 0. Vector of values a,b,c,d.
  @xl,xu,yl,yu,zl,zu: minimum and maximum values of x, y, z in the box*/
-pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coords, vector<vector<double>> new_coords, vector<double> center, vector<double> plane, double xl, double xu, double yl, double yu, double zl, double zu){
+pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> coords, vector<vector<double>> new_coords, vector<double> center, vector<double> plane, double xl, double xu, double yl, double yu, double zl, double zu){
     double max_dist=-999.0, min_dist=0.0, min_dist_t=0.0;
     const double tol=1e-10;
     double xs, ys, zs;
@@ -13841,11 +13877,11 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
         xs=cx;
     }
     else if(xu-cx<=-tol){
-        min_dist_t+=pow(xu,2);
+        min_dist_t+=pow(xu-cx,2);
         xs=xu;
     }
     else if(cx-xl<=-tol){
-        min_dist_t+=pow(xl,2);
+        min_dist_t+=pow(xl-cx,2);
         xs=xl;
     }
     
@@ -13854,11 +13890,11 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
         ys=cy;
     }
     else if(yu-cy<=-tol){
-        min_dist_t+=pow(yu,2);
+        min_dist_t+=pow(yu-cy,2);
         ys=yu;
     }
     else if(cy-yl<=-tol){
-        min_dist_t+=pow(yl,2);
+        min_dist_t+=pow(yl-cy,2);
         ys=yl;
     }
     
@@ -13867,11 +13903,11 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
         zs=cz;
     }
     else if(zu-cz<=-tol){
-        min_dist_t+=pow(zu,2);
+        min_dist_t+=pow(zu-cz,2);
         zs=zu;
     }
     else if(cz-zl<=-tol){
-        min_dist_t+=pow(zl,2);
+        min_dist_t+=pow(zl-cz,2);
         zs=zl;
     }
     if(a*xs+b*ys+c*zs+intercept<=0){
@@ -13887,7 +13923,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
             ys=lamda_a/2.0*(yl+yu)+cy;
             zs=lamda_a/2.0*(zl+zu)+cz;
             if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                min_dist=pow(xs,2)+pow(ys,2)+pow(zs,2);
+                min_dist=pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2);
                 min_found=true;
             }
         }
@@ -13898,7 +13934,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 ys=lamda_1/2.0*(yl+yu)+cy;
                 zs=lamda_1/2.0*(zl+zu)+cz;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             auto lamda_2=2*(intercept-xl*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
@@ -13907,7 +13943,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 ys=lamda_2/2.0*(yl+yu)+cy;
                 zs=lamda_2/2.0*(zl+zu)+cz;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             auto lamda_3=2*(intercept-cx*(xl+xu)-yu*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
@@ -13916,7 +13952,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 xs=lamda_3/2.0*(xl+xu)+cx;
                 zs=lamda_3/2.0*(zl+zu)+cz;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             auto lamda_4=2*(intercept-cx*(xl+xu)-yl*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
@@ -13925,7 +13961,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 xs=lamda_4/2.0*(xl+xu)+cx;
                 zs=lamda_4/2.0*(zl+zu)+cz;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             auto lamda_5=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zu*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
@@ -13934,7 +13970,7 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 xs=lamda_5/2.0*(xl+xu)+cx;
                 ys=lamda_5/2.0*(yl+yu)+cy;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             auto lamda_6=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zl*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
@@ -13943,18 +13979,18 @@ pair<double,double> min_max_euclidean_distsq_polytope(vector<vector<double>> coo
                 xs=lamda_6/2.0*(xl+xu)+cx;
                 ys=lamda_6/2.0*(zl+zu)+cy;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs,2)+pow(ys,2)+pow(zs,2));
+                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             for(auto k=0;k<new_coords.size();k++){
                 auto x=new_coords[k][0];
                 auto y=new_coords[k][1];
                 auto z=new_coords[k][2];
-                min_dist_t=std::min(min_dist_t, pow(x,2)+pow(y,2)+pow(z,2));
+                min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
             }
+            min_dist=min_dist_t;
         }
     }
-    min_dist=min_dist_t;
     std::pair<double,double> res;
     res={min_dist, max_dist};
     return res;
