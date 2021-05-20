@@ -807,13 +807,17 @@ int main (int argc, char * argv[])
             vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
             if(preprocess){
                 
-                valid_cells= preprocess_poltyope_intersect(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                valid_cells.print();
+                auto valid_cells1= preprocess_poltyope_intersect(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+                valid_cells1.print();
                 DebugOn(valid_cells.size()<<endl);
                 
                 auto v1= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
                 v1.print();
                 DebugOn(v1.size()<<endl);
+                
+                
+                auto v2=preprocess_new(point_cloud_data,  point_cloud_model, v1, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+                v2.print();
                 
                 double time_end = get_wall_time();
                 auto prep_time = time_end - time_start;
@@ -13009,10 +13013,10 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
         param<> xlb("xlb"), xub("xub"),ylb("ylb"), yub("yub"),zlb("zlb"), zub("zub");
         param<> inner_radius_sq("inner_radius_sq");
         //        param<> x_data("x_data"), y_data("y_data"), z_data("z_data");
-        //        param<> x_model("x_model"), y_model("y_model"), z_model("z_model");
-        //        x_model.add_val("0", point_cloud_model.at(j)[0]);
-        //        y_model.add_val("0", point_cloud_model.at(j)[1]);
-        //        z_model.add_val("0", point_cloud_model.at(j)[2]);
+                param<> x_model("x_model"), y_model("y_model"), z_model("z_model");
+                x_model.add_val("0", point_cloud_model.at(j)[0]);
+                y_model.add_val("0", point_cloud_model.at(j)[1]);
+                z_model.add_val("0", point_cloud_model.at(j)[2]);
         //        x_data.add_val("0", 0);
         //        y_data.add_val("0", 0);
         //        z_data.add_val("0", 0);
@@ -13045,7 +13049,7 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
         }
         Constraint<> region("region");
         region=a*x+b*y+c*z+d;
-        voro_model->add(region.in(voronoi_ids)<=0);
+       // voro_model->add(region.in(voronoi_ids)<=0);
         
         Constraint<> inner_sphere("inner_sphere");
         inner_sphere=xlb*xub+ylb*yub+zlb*zub+inner_radius_sq-x*(xub+xlb)-y*(yub+ylb)-z*(zub+zlb);
@@ -13055,17 +13059,17 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
         //        radius=(x-x_data)*(x-x_data)+(y-y_data)*(y-y_data)+(z-z_data)*(z-z_data)-min_dist_sq;
         //        voro_model->add(radius.in(range(0,0))<=0);
         
-        //        func<> obj=(x-x_model)*(x-x_model)+(y-y_model)*(y-y_model)+(z-z_model)*(z-z_model);
-        func<> obj=(x)*(x)+(y)*(y)+(z)*(z);
+                func<> obj=(x-x_model)*(x-x_model)+(y-y_model)*(y-y_model)+(z-z_model)*(z-z_model);
+        //func<> obj=(x)*(x)+(y)*(y)+(z)*(z);
         voro_model->min(obj);
         for(auto i=0;i<nd;i++){
             string key_name=to_string(i)+","+to_string(j);
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1)))
                 continue;
-            if(dist_vj_max<=sphere_inner_sq[i]-1e-6){
-                new_test++;
-                continue;
-            }
+//            if(dist_vj_max<=sphere_inner_sq[i]-1e-6){
+//                new_test++;
+//                continue;
+//            }
             
             bool intersect=false;
             //            x_data = point_cloud_data[i][0];
@@ -13096,7 +13100,7 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
     double time_end = get_wall_time();
     auto prep_time = time_end - time_start;
     DebugOn("Model build time = " << prep_time << endl);
-    run_parallel(batch_models, ipopt, 1e-6, nb_total_threads, 1000);
+    run_parallel(batch_models, ipopt, 1e-9, nb_total_threads, 10000);
     for(auto k=0;k<batch_models.size();k++){
         auto status_k=batch_models[k]->_status;
         auto obj_k=batch_models[k]->get_obj_val();
@@ -13105,8 +13109,9 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
         auto jk=keyk.substr(keyk.find_first_of(",")+1);
         auto ik_int=std::atoi(ik.c_str());
         auto jk_int=std::atoi(jk.c_str());
-        if(status_k==0 && ((obj_k - sphere_outer_sq[ik_int])<=1e-6)){
-            auto d=std::max((obj_k-1e-6),0.0);
+       // if(status_k==0 && ((obj_k - sphere_outer_sq[ik_int])<=1e-6)){
+        if(status_k==0){
+            auto d=std::max((obj_k-1e-9),0.0);
             DebugOff("Distance to voronoi cell = " << ik_int+1 << "," << jk_int+1 <<" "<< d << endl);
             if(unique_model_pts.insert(jk_int).second){
                 new_model_pts.push_back(jk_int);
@@ -13122,13 +13127,26 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
     }
     batch_models.clear();
     
+    vector<double> min_cost_i;
+    double min_cost_sum=0;
+    for (const auto &vcel:valid_cells_map) {
+          auto cost_data=dist_cost_map[vcel.first];
+        auto costmin=*min_element(cost_data.begin(), cost_data.end());
+        min_cost_i.push_back(costmin);
+        min_cost_sum+=costmin;
+    }
+    DebugOn("min cost sum "<<min_cost_sum<<endl);
+    
     for (const auto &vcel:valid_cells_map) {
         auto key_data=to_string(vcel.first+1);
         auto cost_data=dist_cost_map[vcel.first];
         int count=0;
+        DebugOn("i "<<vcel.first<<endl);
         for (auto const model_id: vcel.second) {
             auto key=key_data+","+to_string(model_id+1);
             valid_cells.insert(key);
+            DebugOn(cost_data[count]<<endl);
+            count++;
             //            dist_cost.add_val(key, cost_data[count++]);
         }
     }
@@ -13427,7 +13445,7 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     //        DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     auto time_end = get_wall_time();
     auto prep_time = time_end - time_start;
-    DebugOff("Voronoi preprocessing time = " << prep_time << endl);
+    DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     return valid_cells;
 }
 indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads){
@@ -13773,7 +13791,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
     //        DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     auto time_end = get_wall_time();
     auto prep_time = time_end - time_start;
-    DebugOff("Voronoi preprocessing time = " << prep_time << endl);
+    DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     return valid_cells;
 }
 /*Min and maximum distance squared to given centre ((x-cx)^2+(y-cy)^2+(z-cz)^2) is computed over a polytope Y. Bounding box X, where each vertex corresponds to bounds (not a general polytope). x,y,z in X: xL \le x \le xu, yL \le yU, zL \le z \le zU. Max distance is computed by a general polytope Y given the vertices of the polytope. Minimum distance is calculated over a bounding box X which oversetimates Y
@@ -13910,7 +13928,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
         min_dist_t+=pow(zl-cz,2);
         zs=zl;
     }
-    if(a*xs+b*ys+c*zs+intercept<=0){
+    if(a*xs+b*ys+c*zs+intercept<=tol){
         min_dist=min_dist_t;
     }
     else{
@@ -13955,7 +13973,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
-            auto lamda_4=2*(intercept-cx*(xl+xu)-yl*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
+            auto lamda_4=2*(intercept-cx*(xl+xu)-yl*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
             if(lamda_4>=0){
                 ys=yl;
                 xs=lamda_4/2.0*(xl+xu)+cx;
@@ -13977,16 +13995,16 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
             if(lamda_6>=0){
                 zs=zl;
                 xs=lamda_6/2.0*(xl+xu)+cx;
-                ys=lamda_6/2.0*(zl+zu)+cy;
+                ys=lamda_6/2.0*(yl+yu)+cy;
                 if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
             for(auto k=0;k<new_coords.size();k++){
-                auto x=new_coords[k][0];
-                auto y=new_coords[k][1];
-                auto z=new_coords[k][2];
-                min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                auto xk=new_coords[k][0];
+                auto yk=new_coords[k][1];
+                auto zk=new_coords[k][2];
+                min_dist_t=std::min(min_dist_t, pow(xk-cx,2)+pow(yk-cy,2)+pow(zk-cz,2));
             }
             min_dist=min_dist_t;
         }
