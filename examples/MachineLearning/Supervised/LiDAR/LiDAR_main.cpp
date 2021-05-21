@@ -13492,7 +13492,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
     -theta12*(theta21*theta33-theta31*theta23)+theta13*(theta21*theta32-theta31*theta22);
     
     bool feas=true;
-  
+    bool found_all=true;
     feas=true;
     if(feas){
         
@@ -13686,7 +13686,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             box_new_i.clear();
         }
         set<int> unique_model_pts;
-        bool found_all=true;
+        
         vector<double> min_cost_i;
         double min_cost_sum=0;
         for(auto i=0;i<nd;i++){
