@@ -15959,7 +15959,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size());
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
                 ub_ = models[j]->get_obj_val();
@@ -15982,7 +15982,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
 //                    }
 //                }
                                         ub= run_ICP_only(goicp, roll_bounds[pos].first, roll_bounds[pos].second,  pitch_bounds[pos].first, pitch_bounds[pos].second, yaw_bounds[pos].first, yaw_bounds[pos].second, shift_x_bounds[pos].first, shift_x_bounds[pos].second, shift_y_bounds[pos].first, shift_y_bounds[pos].second, shift_z_bounds[pos].first, shift_z_bounds[pos].second,rot_trans_ub);
-                                        if(ub-1e-4<=best_ub){
+                                        if(ub+1e-4<=best_ub){
                                             point_cloud_data_copy=point_cloud_data;
                                             apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
                                             auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
@@ -16027,6 +16027,15 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     DebugOn("Total iter "<<iter<<endl);
     DebugOn("Queue size = " << lb_queue.size() << "\n");
     DebugOn("lb que top = " << lb_queue.top().lb << "\n");
+    while(!lb_queue.empty())
+    {
+        auto node = lb_queue.top();
+        DebugOn(node.tx.first<<" "<< node.tx.second<<" "<<node.ty.first<<" "<<node.ty.second<<" "<<node.tz.first<<" "<<node.tz.second);
+        DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second);
+        lb_queue.pop();
+        if(node.lb > best_ub)
+            break;
+    }
     
     apply_rot_trans(best_rot_trans, point_cloud_data);
     auto L2err=computeL2error(point_cloud_model, point_cloud_data, new_matching, res);
