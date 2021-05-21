@@ -13729,8 +13729,8 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                 }
             }
             if(valid_cells_map[i].size()==0){
-                break;
                 found_all=false;
+                break;
             }
             auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
             min_cost_i.push_back(costmin);
