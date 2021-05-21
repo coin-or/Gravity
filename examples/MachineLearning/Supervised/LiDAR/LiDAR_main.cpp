@@ -13676,7 +13676,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                 }
             }
-            box.push_back(box_new_i);
+            box.push_back(box_i);
             vertex_new.push_back(new_vert_i);
             plane_eq.push_back(eq_i);
             box_i.clear();
@@ -13709,7 +13709,8 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         }
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
-                        auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
+                        //auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
+                        auto res=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
                         DebugOff(res.first<<endl);
                         if(res.first<=upper_bound){
                             valid_cells_map[i].push_back(j);
@@ -15959,7 +15960,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size());
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
                 ub_ = models[j]->get_obj_val();
@@ -15989,6 +15990,11 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                                             if(L2erri<=best_ub){
                                                 best_ub=L2erri;
                                                 best_rot_trans=rot_trans_ub;
+                                                DebugOn("best ub "<<best_ub<<endl);
+                                                DebugOn(best_rot_trans[0]<<" "<<best_rot_trans[1]<<" "<<best_rot_trans[2]<<endl);
+                                                DebugOn(best_rot_trans[3]<<" "<<best_rot_trans[4]<<" "<<best_rot_trans[5]<<endl);
+                                                DebugOn(best_rot_trans[6]<<" "<<best_rot_trans[7]<<" "<<best_rot_trans[8]<<endl);
+                                                DebugOn(best_rot_trans[9]<<" "<<best_rot_trans[10]<<" "<<best_rot_trans[11]<<endl);
                                             }
                                            
                                             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
