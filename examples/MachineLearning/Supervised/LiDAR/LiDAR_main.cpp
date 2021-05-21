@@ -13452,7 +13452,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
     nbFails=0;
     planeStatPerPair = 0;
     indices valid_cells("valid_cells");
-    
+    indices valid_cells_empty("valid_cells_empty");
     double time_start = get_wall_time();
     int new_test=0;
     shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
@@ -13803,7 +13803,12 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
     auto time_end = get_wall_time();
     auto prep_time = time_end - time_start;
     DebugOn("Voronoi preprocessing time = " << prep_time << endl);
-    return valid_cells;
+    if(found_all){
+        return valid_cells;
+    }
+    else{
+        return valid_cells_empty;
+    }
 }
 /*Min and maximum distance squared to given centre ((x-cx)^2+(y-cy)^2+(z-cz)^2) is computed over a polytope Y. Bounding box X, where each vertex corresponds to bounds (not a general polytope). x,y,z in X: xL \le x \le xu, yL \le yU, zL \le z \le zU. Max distance is computed by a general polytope Y given the vertices of the polytope. Minimum distance is calculated over a bounding box X which oversetimates Y
  @coords: vector of extreme points of Y
