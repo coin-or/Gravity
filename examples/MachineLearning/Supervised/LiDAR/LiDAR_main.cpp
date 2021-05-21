@@ -696,8 +696,8 @@ int main (int argc, char * argv[])
             bool separate=true;
             bool linearize=false;
             //input
-            double shift_min_x =  -0.01, shift_max_x = 0.01, shift_min_y = -0.01,shift_max_y = 0.01,shift_min_z = -0.01,shift_max_z = 0.01;
-            double yaw_min = -0.01*pi/180., yaw_max = 0.01*pi/180., pitch_min =-0.01*pi/180.,pitch_max = 1*pi/180.,roll_min =-0.1*pi/180.,roll_max = 1*pi/180.;
+            double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
+            double yaw_min = -10*pi/180., yaw_max = 0.01*pi/180., pitch_min =-0.01*pi/180.,pitch_max = 1*pi/180.,roll_min =-0.1*pi/180.,roll_max = 1*pi/180.;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -807,17 +807,17 @@ int main (int argc, char * argv[])
             vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
             if(preprocess){
                 
-                auto valid_cells1= preprocess_poltyope_intersect(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                valid_cells1.print();
+                valid_cells= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+                //valid_cells1.print();
                 DebugOn(valid_cells.size()<<endl);
                 
-                auto v1= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                v1.print();
-                DebugOn(v1.size()<<endl);
-                
-                
-                auto v2=preprocess_new(point_cloud_data,  point_cloud_model, v1, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                v2.print();
+//                auto v1= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+//                v1.print();
+//                DebugOn(v1.size()<<endl);
+//
+//
+//                auto v2=preprocess_new(point_cloud_data,  point_cloud_model, v1, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+//                v2.print();
                 
                 double time_end = get_wall_time();
                 auto prep_time = time_end - time_start;
@@ -903,7 +903,7 @@ int main (int argc, char * argv[])
             //            R->print();
             ////
             //            R->print_solution();
-           // rot_trans = BranchBound6(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
+            rot_trans = BranchBound6(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
             //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //                        solver<> S1(NC_SOC_MIQCP,gurobi);
             //                       S1.use_callback();
@@ -13690,7 +13690,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         vector<double> min_cost_i;
         double min_cost_sum=0;
         for(auto i=0;i<nd;i++){
-            DebugOn("i "<<i<<endl);
+            DebugOff("i "<<i<<endl);
             for (int j = 0; j<nm; j++) {
                 auto vertices=model_voronoi_vertices.at(j);
                 if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
@@ -13710,7 +13710,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
-                        DebugOn(res.first<<endl);
+                        DebugOff(res.first<<endl);
                         if(unique_model_pts.insert(j).second){
                             new_model_pts.push_back(j);
                             new_model_ids.insert(to_string(i));
@@ -13724,7 +13724,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         
                     }
                     else{
-                        DebugOn("infeasible cell"<<endl);
+                        DebugOff("infeasible cell"<<endl);
                     }
                 }
             }
@@ -13782,7 +13782,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
 //            }
 //        }
         if(found_all){
-            DebugOn("min cost for each data point "<<endl);
+            DebugOff("min cost for each data point "<<endl);
 //            for(auto i=0;i<min_cost_i.size();i++){
 //                DebugOn(min_cost_i[i]<<endl);
 //            }
@@ -15540,7 +15540,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     depth_vec_new.resize(0);
     pos_vec_new.resize(0);
     auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
-    auto valid_cells_r = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, valid_cells_ro, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
+    auto valid_cells_r = preprocess_poltyope_intersect_new(point_cloud_data, point_cloud_model, valid_cells_ro, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
     auto model = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_r, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point, model_inner_prod_min, model_inner_prod_max, false, best_ub);
     //auto model=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells_r, roll_min, roll_max,pitch_min,pitch_max,  yaw_min, yaw_max,  shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  rot_trans_r, false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
     lb_queue.push(treenode_n(model, roll_bounds_r, pitch_bounds_r, yaw_bounds_r, shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, ub, ub_, depth_r, valid_cells_r));
@@ -15851,7 +15851,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             if(!branch1 && !branch2){
                 throw invalid_argument("Error in branching");
             }
-            auto vi = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
+            auto vi = preprocess_poltyope_intersect_new(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             valid_cells.push_back(vi);
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
@@ -15888,7 +15888,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 DebugOff("Total pruned =  " << nb_pruned << endl);
                 DebugOff("Queue size = " << lb_queue.size() << "\n");
             }
-            auto vi1 = preprocess_poltyope_intersect(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
+            auto vi1 = preprocess_poltyope_intersect_new(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, 0, nb_threads);
             valid_cells.push_back(vi1);
             depth_vec.push_back(topnode.depth+1);
             if(valid_cells[i+1].size()>=1 && valid_cells[i+1].size()<=4000){
