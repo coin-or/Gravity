@@ -13478,6 +13478,7 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
     return valid_cells;
 }
 indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads){
+    bool option_cost_new=false;
     nbFails=0;
     planeStatPerPair = 0;
     indices valid_cells("valid_cells");
@@ -13657,7 +13658,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     auto els=vs[el];
                     auto vertex_found=false;
                     if(std::find (inf.begin(), inf.end(), elf)==inf.end()||std::find (inf.begin(), inf.end(), els)==inf.end()){
-                        double xel=0.0, yel=0.0, zel=0.0;
+                        double xel=100000.0, yel=100000.0, zel=100000.0;
                         if(plane_x[el]==-1){
                             xel=x_lb[i];
                         }
@@ -13676,19 +13677,19 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         if(plane_z[el]==1){
                             zel=z_ub[i];
                         }
-                        if(plane_x[el]==0){
+                        if(plane_x[el]==0 && abs(a)>1e-10){
                             xel=(-d-c*zel-b*yel)/a;
                             if(xel<=x_ub[i] && xel>=x_lb[i]){
                                 vertex_found=true;
                             }
                         }
-                        if(plane_y[el]==0){
+                        if(plane_y[el]==0 && abs(b)>1e-10){
                             yel=(-d-c*zel-a*xel)/b;
                             if(yel<=y_ub[i] && yel>=y_lb[i]){
                                 vertex_found=true;
                             }
                         }
-                        if(plane_z[el]==0){
+                        if(plane_z[el]==0 && abs(c)>1e-10){
                             zel=(-d-a*xel-b*yel)/c;
                             if(zel<=z_ub[i] && zel>=z_lb[i]){
                                 vertex_found=true;
@@ -13705,7 +13706,12 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                 }
             }
-            box.push_back(box_i);
+            if(option_cost_new){
+                box.push_back(box_new_i);
+            }
+            else{
+                box.push_back(box_i);
+            }
             vertex_new.push_back(new_vert_i);
             plane_eq.push_back(eq_i);
             box_i.clear();
@@ -13738,8 +13744,13 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         }
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
-                        //auto res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
-                        auto res=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
+                        pair<double,double> res;
+                        if(option_cost_new){
+                            res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
+                        }
+                        else{
+                            res=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
+                        }
                         DebugOff(res.first<<endl);
                         if(res.first<=upper_bound){
                             valid_cells_map[i].push_back(j);
@@ -13985,70 +13996,78 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
     else{
         bool min_found=false;
         min_dist_t=99999.0;
-        auto temp=2.0*(intercept-cx*(xl+xu)-cy*(yl+yu)-cz*(zl+zu));
-        auto lamda_a=temp/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
-        if(lamda_a>=0){
-            xs=lamda_a/2.0*(xl+xu)+cx;
-            ys=lamda_a/2.0*(yl+yu)+cy;
-            zs=lamda_a/2.0*(zl+zu)+cz;
-            if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                min_dist=pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2);
-                min_found=true;
+        if(abs(xl+xu)>=1e-10 && abs(yl+yu)>=1e-10 && abs(zl+zu)>=1e-10){
+            auto temp=2.0*(intercept-cx*(xl+xu)-cy*(yl+yu)-cz*(zl+zu));
+            auto lamda_a=temp/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
+            if(lamda_a>=0){
+                xs=lamda_a/2.0*(xl+xu)+cx;
+                ys=lamda_a/2.0*(yl+yu)+cy;
+                zs=lamda_a/2.0*(zl+zu)+cz;
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                    min_dist=pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2);
+                    min_found=true;
+                }
             }
         }
         if(!min_found){
-            auto lamda_1=2*(intercept-xu*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
-            if(lamda_1>=0){
-                xs=xu;
-                ys=lamda_1/2.0*(yl+yu)+cy;
-                zs=lamda_1/2.0*(zl+zu)+cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+            if(abs(yl+yu)>=1e-10 && abs(zl+zu)>=1e-10){
+                auto lamda_1=2*(intercept-xu*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
+                if(lamda_1>=0){
+                    xs=xu;
+                    ys=lamda_1/2.0*(yl+yu)+cy;
+                    zs=lamda_1/2.0*(zl+zu)+cz;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
+                }
+                auto lamda_2=2*(intercept-xl*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
+                if(lamda_2>=0){
+                    xs=xl;
+                    ys=lamda_2/2.0*(yl+yu)+cy;
+                    zs=lamda_2/2.0*(zl+zu)+cz;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
                 }
             }
-            auto lamda_2=2*(intercept-xl*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
-            if(lamda_2>=0){
-                xs=xl;
-                ys=lamda_2/2.0*(yl+yu)+cy;
-                zs=lamda_2/2.0*(zl+zu)+cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+            if(abs(xl+xu)>=1e-10 && abs(zl+zu)>=1e-10){
+                auto lamda_3=2*(intercept-cx*(xl+xu)-yu*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
+                if(lamda_3>=0){
+                    ys=yu;
+                    xs=lamda_3/2.0*(xl+xu)+cx;
+                    zs=lamda_3/2.0*(zl+zu)+cz;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
+                }
+                auto lamda_4=2*(intercept-cx*(xl+xu)-yl*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
+                if(lamda_4>=0){
+                    ys=yl;
+                    xs=lamda_4/2.0*(xl+xu)+cx;
+                    zs=lamda_4/2.0*(zl+zu)+cz;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
                 }
             }
-            auto lamda_3=2*(intercept-cx*(xl+xu)-yu*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
-            if(lamda_3>=0){
-                ys=yu;
-                xs=lamda_3/2.0*(xl+xu)+cx;
-                zs=lamda_3/2.0*(zl+zu)+cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+            if(abs(xl+xu)>=1e-10 && abs(yl+yu)>=1e-10){
+                auto lamda_5=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zu*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
+                if(lamda_5>=0){
+                    zs=zu;
+                    xs=lamda_5/2.0*(xl+xu)+cx;
+                    ys=lamda_5/2.0*(yl+yu)+cy;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
                 }
-            }
-            auto lamda_4=2*(intercept-cx*(xl+xu)-yl*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
-            if(lamda_4>=0){
-                ys=yl;
-                xs=lamda_4/2.0*(xl+xu)+cx;
-                zs=lamda_4/2.0*(zl+zu)+cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
-                }
-            }
-            auto lamda_5=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zu*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
-            if(lamda_5>=0){
-                zs=zu;
-                xs=lamda_5/2.0*(xl+xu)+cx;
-                ys=lamda_5/2.0*(yl+yu)+cy;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
-                }
-            }
-            auto lamda_6=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zl*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
-            if(lamda_6>=0){
-                zs=zl;
-                xs=lamda_6/2.0*(xl+xu)+cx;
-                ys=lamda_6/2.0*(yl+yu)+cy;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                auto lamda_6=2*(intercept-cx*(xl+xu)-cy*(yl+yu)-zl*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
+                if(lamda_6>=0){
+                    zs=zl;
+                    xs=lamda_6/2.0*(xl+xu)+cx;
+                    ys=lamda_6/2.0*(yl+yu)+cy;
+                    if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                        min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
+                    }
                 }
             }
             for(auto k=0;k<new_coords.size();k++){
