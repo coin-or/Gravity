@@ -14034,13 +14034,13 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 xs=xu;
                 ys=cy;
                 zs=cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 xs=xl;
                 ys=cy;
                 zs=cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 xs=-(b*ys+c*zs+intercept)/a;
@@ -14074,13 +14074,13 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 ys=yu;
                 xs=cx;
                 zs=cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 ys=yl;
                 xs=cx;
                 zs=cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 ys=-(a*xs+c*zs+intercept)/b;
@@ -14114,13 +14114,13 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 zs=zu;
                 ys=cy;
                 xs=cx;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 zs=zl;
                 ys=cy;
                 xs=cx;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=0){
+                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl && a*xs+b*ys+c*zs+intercept<=1e-10){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
                 xs=-(b*ys+a*xs+intercept)/c;
