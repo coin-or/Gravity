@@ -13736,7 +13736,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
             min_cost_i.push_back(costmin);
             min_cost_sum+=costmin;
             if(min_cost_sum-1e-4>=upper_bound){
-		DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
+                DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
                 found_all=false;
                 break;
             }
@@ -15532,6 +15532,9 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     vector<double> best_rot_trans(12);
     vector<double> sol_gur(12);
     vector<int> pos_vec(nb_threads), pos_vec_new;
+    vector<double> res(N1.size());
+    auto point_cloud_data_copy=point_cloud_data;
+    
     DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models, models_new;
     double lb = 0, ub = 12, ub_=-1, best_lb = 0, best_ub = 12;
@@ -15637,6 +15640,11 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             best_rot_trans=rot_trans_ub;
             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
         }
+    }
+    apply_rot_trans(best_rot_trans, point_cloud_data_copy);
+    auto L2errinit=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+    if(L2errinit<=12.0){
+        best_ub=L2errinit;
     }
     //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
     
@@ -15928,7 +15936,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 lb_queue.push(treenode_n(model, roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], topnode.lb, best_ub, -1.0, topnode.depth+1, valid_cells[i+1]));
             }
             else {
-                DebugOff("v size "<<valid_cells[i].size()<<endl);
+                DebugOff("v size "<<valid_cells[i+1].size()<<endl);
                 DebugOff("Infeasible model\n");
                 prep_count++;
                 DebugOff("Total pruned =  " << nb_pruned << endl);
@@ -15951,7 +15959,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size());
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, best_ub);
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
                 ub_ = models[j]->get_obj_val();
@@ -15974,9 +15982,23 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
 //                    }
 //                }
                                         ub= run_ICP_only(goicp, roll_bounds[pos].first, roll_bounds[pos].second,  pitch_bounds[pos].first, pitch_bounds[pos].second, yaw_bounds[pos].first, yaw_bounds[pos].second, shift_x_bounds[pos].first, shift_x_bounds[pos].second, shift_y_bounds[pos].first, shift_y_bounds[pos].second, shift_z_bounds[pos].first, shift_z_bounds[pos].second,rot_trans_ub);
-                                        if(ub<best_ub){
-                                            best_ub = ub;
-                                            best_rot_trans=rot_trans_ub;
+                                        if(ub-1e-4<=best_ub){
+      					    DebugOn("best ub "<<best_ub<<"ub "<<ub<<endl);
+                                            DebugOn(rot_trans_ub[0]<<" "<<rot_trans_ub[1]<<" "<<rot_trans_ub[2]<<endl);
+                                            DebugOn(rot_trans_ub[3]<<" "<<rot_trans_ub[4]<<" "<<rot_trans_ub[5]<<endl);
+                                            DebugOn(rot_trans_ub[6]<<" "<<rot_trans_ub[7]<<" "<<rot_trans_ub[8]<<endl);
+                                            DebugOn(rot_trans_ub[9]<<" "<<rot_trans_ub[10]<<" "<<rot_trans_ub[11]<<endl);
+                                            auto deti=rot_trans_ub[0]*(rot_trans_ub[4]*rot_trans_ub[8]-rot_trans_ub[7]*rot_trans_ub[5]);
+                                            deti-=rot_trans_ub[1]*(rot_trans_ub[3]*rot_trans_ub[8]-rot_trans_ub[6]*rot_trans_ub[5]);
+                                            deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
+                                            DebugOn("det "<<deti<<endl);
+                                            point_cloud_data_copy=point_cloud_data;
+                                            apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
+                                            auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+                                            if(L2erri<=best_ub){
+                                                best_ub=L2erri;
+                                                best_rot_trans=rot_trans_ub;
+                                            }
                                             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
                                         }
                 }
@@ -15986,7 +16008,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 lb = std::max(models[j]->get_rel_obj_val(), best_lb);
                 if(lb<=best_ub)
                 {
-                    if(lb<best_lb)
+                    if(lb<=best_lb)
                         best_lb = lb;
                     lb_queue.push(treenode_n(models[j], roll_bounds[pos],  pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds[pos], shift_y_bounds[pos], shift_z_bounds[pos], lb, best_ub, ub_, depth_vec[pos], valid_cells[pos]));
                 }
@@ -15999,7 +16021,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 infeasible_count++;
             }
         }
-        best_lb = lb_queue.top().lb;
+        //best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         
         elapsed_time = get_wall_time() - time_start;
@@ -16011,8 +16033,9 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     DebugOn("Gap final "<<(best_ub-best_lb)/best_ub*100.0<<endl);
     DebugOn("Elapsed time "<<elapsed_time<<endl);
     DebugOn("Total iter "<<iter<<endl);
+    DebugOn("Queue size = " << lb_queue.size() << "\n");
+    DebugOn("lb que top = " << lb_queue.top().lb << "\n");
     
-    vector<double> res(N1.size());
     apply_rot_trans(best_rot_trans, point_cloud_data);
     auto L2err=computeL2error(point_cloud_model, point_cloud_data, new_matching, res);
     DebugOn("L2err "<<L2err<<endl);
