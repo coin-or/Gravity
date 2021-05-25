@@ -13996,9 +13996,9 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
     else{
         bool min_found=false;
         min_dist_t=99999.0;
-        if(abs(xl+xu)>=1e-10 && abs(yl+yu)>=1e-10 && abs(zl+zu)>=1e-10){
-            auto temp=2.0*(intercept-cx*(xl+xu)-cy*(yl+yu)-cz*(zl+zu));
-            auto lamda_a=temp/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
+        if(abs(xl+xu)>=1e-10 || abs(yl+yu)>=1e-10 || abs(zl+zu)>=1e-10){
+            double temp=2.0*(intercept-cx*(xl+xu)-cy*(yl+yu)-cz*(zl+zu));
+            double lamda_a=temp/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
             if(lamda_a>=0){
                 xs=lamda_a/2.0*(xl+xu)+cx;
                 ys=lamda_a/2.0*(yl+yu)+cy;
@@ -14010,7 +14010,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
             }
         }
         if(!min_found){
-            if(abs(yl+yu)>=1e-10 && abs(zl+zu)>=1e-10){
+            if(abs(yl+yu)>=1e-10 || abs(zl+zu)>=1e-10){
                 auto lamda_1=2.0*(intercept-xu*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
                 if(lamda_1>=0){
                     xs=xu;
@@ -14050,7 +14050,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
-            if(abs(xl+xu)>=1e-10 && abs(zl+zu)>=1e-10){
+            if(abs(xl+xu)>=1e-10 || abs(zl+zu)>=1e-10){
                 auto lamda_3=2.0*(intercept-cx*(xl+xu)-yu*(yl+yu)-cz*(zl+zu))/((xl+xu)*(xl+xu)+(zl+zu)*(zl+zu));
                 if(lamda_3>=0){
                     ys=yu;
@@ -14090,7 +14090,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                 }
             }
-            if(abs(xl+xu)>=1e-10 && abs(yl+yu)>=1e-10){
+            if(abs(xl+xu)>=1e-10 || abs(yl+yu)>=1e-10){
                 auto lamda_5=2.0*(intercept-cx*(xl+xu)-cy*(yl+yu)-zu*(zl+zu))/((xl+xu)*(xl+xu)+(yl+yu)*(yl+yu));
                 if(lamda_5>=0){
                     zs=zu;
