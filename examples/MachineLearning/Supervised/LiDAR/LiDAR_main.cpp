@@ -811,13 +811,13 @@ int main (int argc, char * argv[])
                 //valid_cells1.print();
                 DebugOn(valid_cells.size()<<endl);
                 
-                auto v1= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                v1.print();
-               DebugOn(v1.size()<<endl);
+                //auto v1= preprocess_poltyope_intersect_new(point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+                //v1.print();
+              // DebugOn(v1.size()<<endl);
 //
 //
-                auto v2=preprocess_new(point_cloud_data,  point_cloud_model, v1, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
-                v2.print();
+                //auto v2=preprocess_new(point_cloud_data,  point_cloud_model, v1, roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, shift_min_x,  shift_max_x,shift_min_y, shift_max_y, shift_min_z,  shift_max_z,  model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices, new_model_pts,  new_model_ids, dist_cost, upper_bound, nb_total_threads);
+                //v2.print();
                 
                 double time_end = get_wall_time();
                 auto prep_time = time_end - time_start;
@@ -16092,7 +16092,6 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
 //                }
                                         ub= run_ICP_only(goicp, roll_bounds[pos].first, roll_bounds[pos].second,  pitch_bounds[pos].first, pitch_bounds[pos].second, yaw_bounds[pos].first, yaw_bounds[pos].second, shift_x_bounds[pos].first, shift_x_bounds[pos].second, shift_y_bounds[pos].first, shift_y_bounds[pos].second, shift_z_bounds[pos].first, shift_z_bounds[pos].second,rot_trans_ub);
                                         if(ub+1e-4<=best_ub){
-                                           
                                             DebugOn("best ub "<<best_ub<<" ub "<<ub<<endl);
                                             DebugOn(rot_trans_ub[0]<<" "<<rot_trans_ub[1]<<" "<<rot_trans_ub[2]<<endl);
                                             DebugOn(rot_trans_ub[3]<<" "<<rot_trans_ub[4]<<" "<<rot_trans_ub[5]<<endl);
@@ -16106,6 +16105,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                                             apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
                                             auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
                                             if(L2erri<=best_ub){
+                                                DebugOn("best ub "<<best_ub<<" ub "<<ub<<endl);
                                                 best_ub=L2erri;
                                                 best_rot_trans=rot_trans_ub;
                                             }
@@ -16149,9 +16149,12 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
     auto pitch_rad = atan2(best_rot_trans[7], best_rot_trans[8]);
     auto roll_rad = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
     auto yaw_rad = atan2(best_rot_trans[3],best_rot_trans[0]);
-    DebugOn("roll rad"<< roll_rad<<endl);
-    DebugOn("pitch rad"<< pitch_rad<<endl);
-    DebugOn("yaw rad"<< yaw_rad<<endl);
+    DebugOn("roll rad "<< roll_rad<<endl);
+    DebugOn("pitch rad "<< pitch_rad<<endl);
+    DebugOn("yaw rad "<< yaw_rad<<endl);
+    DebugOn("tx "<<best_rot_trans[9]<<endl);
+    DebugOn("ty "<<best_rot_trans[10]<<endl);
+    DebugOn("tz "<<best_rot_trans[11]<<endl);
     while(!lb_queue.empty())
     {
         auto node = lb_queue.top();
