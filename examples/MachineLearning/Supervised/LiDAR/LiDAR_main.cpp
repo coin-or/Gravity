@@ -16347,7 +16347,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                 
                 // lb = models[i]->get_rel_obj_val();
                 //lb = models[i]->get_obj_val();
-                lb = std::max(models[j]->get_rel_obj_val(), best_lb);
+                lb = models[j]->get_rel_obj_val();
                 if(lb-1e-6<=best_ub)
                 {
                     if(lb<=best_lb)
@@ -16829,7 +16829,7 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
             auto vi1 = preprocess_poltyope_intersect_opt(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, best_ub, nb_threads);
             valid_cells.push_back(vi1);
             depth_vec.push_back(topnode.depth+1);
-            if(valid_cells[i+1].size()>=1 && valid_cells[i+1].size()<=4000){
+            if(valid_cells[i+1].size()>=1){
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(branch1){
@@ -16923,7 +16923,7 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
                 
                 // lb = models[i]->get_rel_obj_val();
                 //lb = models[i]->get_obj_val();
-                lb = std::max(models[j]->get_rel_obj_val(), best_lb);
+                lb = models[j]->get_rel_obj_val();
                 if(lb-1e-6<=best_ub)
                 {
                     if(lb<=best_lb)
