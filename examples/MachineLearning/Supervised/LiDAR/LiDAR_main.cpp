@@ -13658,7 +13658,7 @@ indices preprocess_poltyope_intersect_opt(const vector<vector<double>>& point_cl
                 
                 //voro_model->print();
                 solver<> s(voro_model, ipopt);
-                s.run(0, 1e-6);
+                s.run(5, 1e-6);
                 if(voro_model->_status==0){
                     auto dist_vj_max=-999.0;
                     for(auto k=0;k<vertices.size();k++){
@@ -13674,7 +13674,7 @@ indices preprocess_poltyope_intersect_opt(const vector<vector<double>>& point_cl
                         solver<> s1(voro_model2, ipopt);
                         s1.run(0, 1e-6);
                         if(voro_model2->_status==-1|| (voro_model2->_status==0 && voro_model2->get_obj_val()-1e-6<=upper_bound)){
-                            DebugOff("status "<<voro_model2->_status<<" "<<voro_model2->get_obj_val()<<endl);
+                            DebugOn("status "<<voro_model2->_status<<" "<<voro_model2->get_obj_val()<<endl);
                             valid_cells_map[i].push_back(j);
                             dist_cost_map[i].push_back(voro_model2->get_obj_val());
                             auto key=to_string(i+1)+","+to_string(j+1);
@@ -15989,10 +15989,18 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
         }
     }
-    apply_rot_trans(best_rot_trans, point_cloud_data_copy);
-    auto L2errinit=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-    if(L2errinit<=12.0){
-        best_ub=L2errinit;
+    best_ub=12.0;
+    auto pitch_rad1 = atan2(best_rot_trans[7], best_rot_trans[8]);
+    auto roll_rad1 = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
+    auto yaw_rad1 = atan2(best_rot_trans[3],best_rot_trans[0]);
+    if(pitch_rad1>=pitch_min && pitch_rad1<=pitch_max && roll_rad1>=roll_min && roll_rad1<=roll_max && yaw_rad1>=yaw_min && yaw_rad1<=yaw_max){
+        if(best_rot_trans[9]>=shift_min_x && best_rot_trans[9]<=shift_max_x && best_rot_trans[10]>=shift_min_y && best_rot_trans[10]<=shift_max_y && best_rot_trans[11]>=shift_min_z && best_rot_trans[11]<=shift_max_z ){
+            apply_rot_trans(best_rot_trans, point_cloud_data_copy);
+            auto L2errinit=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+            if(L2errinit<=12.0){
+                best_ub=L2errinit;
+            }
+        }
     }
     //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
     
@@ -16332,13 +16340,20 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                                             deti-=rot_trans_ub[1]*(rot_trans_ub[3]*rot_trans_ub[8]-rot_trans_ub[6]*rot_trans_ub[5]);
                                             deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
                                             DebugOn("det "<<deti<<endl);
-                                            point_cloud_data_copy=point_cloud_data;
-                                            apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
-                                            auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-                                            if(L2erri<=best_ub){
-                                                best_ub=L2erri;
-                                                best_rot_trans=rot_trans_ub;
-                                                DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+                                            auto pitch_rad2 = atan2(rot_trans_ub[7], rot_trans_ub[8]);
+                                            auto roll_rad2 = atan2(rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
+                                            auto yaw_rad2 = atan2(rot_trans_ub[3],rot_trans_ub[0]);
+                                            if(pitch_rad2>=pitch_min && pitch_rad2<=pitch_max && roll_rad2>=roll_min && roll_rad2<=roll_max && yaw_rad2>=yaw_min && yaw_rad2<=yaw_max){
+                                                if(rot_trans_ub[9]>=shift_min_x && rot_trans_ub[9]<=shift_max_x && rot_trans_ub[10]>=shift_min_y && rot_trans_ub[10]<=shift_max_y && rot_trans_ub[11]>=shift_min_z && rot_trans_ub[11]<=shift_max_z ){
+                                                    point_cloud_data_copy=point_cloud_data;
+                                                    apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
+                                                    auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+                                                        if(L2erri<=best_ub){
+                                                            best_ub=L2erri;
+                                                            best_rot_trans=rot_trans_ub;
+                                                            DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+                                                        }
+                                                }
                                             }
                                             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
                                         }
@@ -16564,10 +16579,18 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
         }
     }
-    apply_rot_trans(best_rot_trans, point_cloud_data_copy);
-    auto L2errinit=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-    if(L2errinit<=12.0){
-        best_ub=L2errinit;
+    best_ub=12.0;
+    auto pitch_rad1 = atan2(best_rot_trans[7], best_rot_trans[8]);
+    auto roll_rad1 = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
+    auto yaw_rad1 = atan2(best_rot_trans[3],best_rot_trans[0]);
+    if(pitch_rad1>=pitch_min && pitch_rad1<=pitch_max && roll_rad1>=roll_min && roll_rad1<=roll_max && yaw_rad1>=yaw_min && yaw_rad1<=yaw_max){
+        if(best_rot_trans[9]>=shift_min_x && best_rot_trans[9]<=shift_max_x && best_rot_trans[10]>=shift_min_y && best_rot_trans[10]<=shift_max_y && best_rot_trans[11]>=shift_min_z && best_rot_trans[11]<=shift_max_z ){
+            apply_rot_trans(best_rot_trans, point_cloud_data_copy);
+            auto L2errinit=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+            if(L2errinit<=12.0){
+                best_ub=L2errinit;
+            }
+        }
     }
     //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
     
@@ -16597,8 +16620,10 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
         DebugOn("Queue size = " << lb_queue.size() << "\n");
         DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
         DebugOn("iter "<<iter<<endl);
-        if(elapsed_time >= total_time_max || opt_gap <= max_opt_gap)
+        if(elapsed_time >= total_time_max || opt_gap <= max_opt_gap){
+            DebugOn("max gap or time exceeded "<<endl);
             break;
+        }
         // Discard all nodes with high lower bounds in the queue
         //        int old_size = lb_queue.size();
         //        priority_queue<treenode_n> new_lb_queue;
@@ -16828,7 +16853,7 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
             auto vi1 = preprocess_poltyope_intersect_opt(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, best_ub, nb_threads);
             valid_cells.push_back(vi1);
             depth_vec.push_back(topnode.depth+1);
-            if(valid_cells[i+1].size()>=1){
+            if(valid_cells[i+1].size()>=1){ 
                 auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                 //auto m=build_polyhedral_ipopt(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans[i+1], false,  incompatible_pairs,  norm_x, norm_y,  norm_z,  intercept, init_matching,  init_err_per_point,  model_voronoi_normals,  model_face_intercept,  false);
                 if(branch1){
@@ -16907,13 +16932,20 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
                                             deti-=rot_trans_ub[1]*(rot_trans_ub[3]*rot_trans_ub[8]-rot_trans_ub[6]*rot_trans_ub[5]);
                                             deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
                                             DebugOn("det "<<deti<<endl);
-                                            point_cloud_data_copy=point_cloud_data;
-                                            apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
-                                            auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-                                            if(L2erri<=best_ub){
-                                                best_ub=L2erri;
-                                                best_rot_trans=rot_trans_ub;
-                                                DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+                                            auto pitch_rad2 = atan2(rot_trans_ub[7], rot_trans_ub[8]);
+                                            auto roll_rad2 = atan2(rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
+                                            auto yaw_rad2 = atan2(rot_trans_ub[3],rot_trans_ub[0]);
+                                            if(pitch_rad2>=pitch_min && pitch_rad2<=pitch_max && roll_rad2>=roll_min && roll_rad2<=roll_max && yaw_rad2>=yaw_min && yaw_rad2<=yaw_max){
+                                                if(rot_trans_ub[9]>=shift_min_x && rot_trans_ub[9]<=shift_max_x && rot_trans_ub[10]>=shift_min_y && rot_trans_ub[10]<=shift_max_y && rot_trans_ub[11]>=shift_min_z && rot_trans_ub[11]<=shift_max_z ){
+                                                    point_cloud_data_copy=point_cloud_data;
+                                                    apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
+                                                    auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+                                                        if(L2erri<=best_ub){
+                                                            best_ub=L2erri;
+                                                            best_rot_trans=rot_trans_ub;
+                                                            DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+                                                        }
+                                                }
                                             }
                                            
                                             //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
