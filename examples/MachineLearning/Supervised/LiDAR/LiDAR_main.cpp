@@ -907,7 +907,7 @@ int main (int argc, char * argv[])
             //            R->print();
             ////
             //            R->print_solution();
-            rot_trans = BranchBound4_ICP(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
+            rot_trans = BranchBound6(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
             //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //                        solver<> S1(NC_SOC_MIQCP,gurobi);
             //                       S1.use_callback();
@@ -13964,9 +13964,6 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                             DebugOn("Failed to find vertex "<<endl);
                         }
                     }
-                    else{
-                        DebugOn("Edge set is faulty "<<endl);
-                    }
                 }
             }
             if(option_cost_new){
@@ -16873,7 +16870,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size());
-        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
+        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time);
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
                 ub_ = models[j]->get_obj_val();
