@@ -16901,7 +16901,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
             DebugOn("max time "<< max_time);
             break;
         }
-        DebugOn("models size "<<models.size());
+        DebugOn("models size "<<models.size()<<endl);
         run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time);
         for (int j = 0; j<models.size(); j++) {
             if(models[j]->_status==0){
@@ -16925,7 +16925,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
 //                    }
 //                }
                                         ub= run_ICP_only(goicp, roll_bounds[pos].first, roll_bounds[pos].second,  pitch_bounds[pos].first, pitch_bounds[pos].second, yaw_bounds[pos].first, yaw_bounds[pos].second, shift_x_bounds[pos].first, shift_x_bounds[pos].second, shift_y_bounds[pos].first, shift_y_bounds[pos].second, shift_z_bounds[pos].first, shift_z_bounds[pos].second,rot_trans_ub);
-                                        if(ub<=best_ub+1e-4){
+                                        if(ub<=best_ub+1e-2){
                                             DebugOn("best ub "<<best_ub<<" ub "<<ub<<endl);
                                             DebugOn(rot_trans_ub[0]<<" "<<rot_trans_ub[1]<<" "<<rot_trans_ub[2]<<endl);
                                             DebugOn(rot_trans_ub[3]<<" "<<rot_trans_ub[4]<<" "<<rot_trans_ub[5]<<endl);
