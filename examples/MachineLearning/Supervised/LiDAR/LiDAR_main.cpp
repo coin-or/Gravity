@@ -14179,7 +14179,7 @@ pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, 
  @plane: equation of the plane is in the form ax+by+cz+d \le 0. Vector of values a,b,c,d.
  @xl,xu,yl,yu,zl,zu: minimum and maximum values of x, y, z in the box*/
 pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> coords, vector<vector<double>> new_coords, vector<double> center, vector<double> plane, double xl, double xu, double yl, double yu, double zl, double zu){
-    bool min_found=false;
+    bool min_found=false, min_found_new=false;
     double max_dist=-999.0, min_dist=0.0, min_dist_t=0.0;
     const double tol=0;
     double xs, ys, zs;
@@ -14257,7 +14257,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
             }
         }
         if(!min_found){
-            bool min_found_new=false;
+            min_found_new=false;
             if(abs(yl+yu)>=1e-10 || abs(zl+zu)>=1e-10){
                 auto lamda_1=2.0*(intercept-xu*(xl+xu)-cy*(yl+yu)-cz*(zl+zu))/((yl+yu)*(yl+yu)+(zl+zu)*(zl+zu));
                 if(lamda_1>=-1e-10){
@@ -14406,7 +14406,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
         }
     }
     if(!min_found && !min_found_new){
-        DebugOn("dist failed"<endl);
+        DebugOn("dist failed"<<endl);
     }
     std::pair<double,double> res;
     res={min_dist, max_dist};
