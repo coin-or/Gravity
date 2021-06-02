@@ -13803,6 +13803,26 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         coord_i.resize(3);
         double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
         double shift_mag_max_root=sqrt(shift_mag_max);
+        double shift_mag_min=0.0;
+        if(shift_min_x<=0 && shift_max_x>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_x,2),pow(shift_max_x,2));
+        }
+        if(shift_min_y<=0 && shift_max_y>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_y,2),pow(shift_max_y,2));
+        }
+        if(shift_min_z<=0 && shift_max_z>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
+        }
+        double shift_mag_min_root=sqrt(shift_mag_min);
         vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
         vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
         vector<vector<int>> vert_edge(8);
@@ -13821,9 +13841,17 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         vector<int> feas;
         vector<vector<double>> new_vert_i;
         vector<vector<double>> plane_eq;
+        double siq=0;
         for(auto i=0;i<nd;i++){
+            siq=0.0;
             auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
-            sphere_inner_sq.push_back(pow((d_root-shift_mag_max_root),2));
+            if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+                siq=0.0;
+            }
+            else{
+                siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+            }
+            sphere_inner_sq.push_back(siq);
             // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
             x1_bounds->first = point_cloud_data.at(i)[0];
             x1_bounds->second = point_cloud_data.at(i)[0];
@@ -14027,12 +14055,13 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         }
                     }
                     else{
-                        DebugOff("infeasible cell"<<endl);
+                        DebugOn("Infeasible cell i "<<i <<" j "<<j<<" "<<endl);
                     }
                 }
             }
             if(valid_cells_map[i].size()==0){
                 found_all=false;
+                DebugOn("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
                 break;
             }
             auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
@@ -14375,6 +14404,9 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 min_dist=min_dist_t;
             }
         }
+    }
+    if(!min_found && !min_found_new){
+        DebugOn("dist failed"<endl);
     }
     std::pair<double,double> res;
     res={min_dist, max_dist};
@@ -16998,8 +17030,8 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
     /* INPUT BOUNDS */
     double time_start = get_wall_time();
     double total_time_max = 900000;
-    double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-    double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+    double shift_min_x =  -0.5, shift_max_x = 0.5, shift_min_y = -0.5,shift_max_y = 0.5,shift_min_z = -0.5,shift_max_z = 0.5;
+    double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
     vector<int> new_matching(N1.size());
@@ -17531,6 +17563,7 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
                 }
             }
             else{
+                DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
                 infeasible_count++;
             }
         }
