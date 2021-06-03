@@ -13841,6 +13841,8 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         vector<int> feas;
         vector<vector<double>> new_vert_i;
         vector<vector<double>> plane_eq;
+        bool vertex_found_i, vertex_found_l, vertex_found_k;
+        vector<bool> vec_vfi;
         double siq=0;
         for(auto i=0;i<nd;i++){
             siq=0.0;
@@ -13935,13 +13937,15 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     inf.push_back(k);
                 }
             }
+            vertex_found_i=true;
             for(auto k=0;k<inf.size();k++){
+                vertex_found_k=true;
                 auto edge_set_k=vert_edge[inf[k]];
                 for(auto l=0;l<edge_set_k.size();l++){
                     auto el=edge_set_k[l];
                     auto elf=vf[el];
                     auto els=vs[el];
-                    auto vertex_found=false;
+                    bool vertex_found=false;
                     if(std::find (inf.begin(), inf.end(), elf)==inf.end()||std::find (inf.begin(), inf.end(), els)==inf.end()){
                         double xel=100000.0, yel=100000.0, zel=100000.0;
                         if(plane_x[el]==-1){
@@ -13964,19 +13968,19 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         }
                         if(plane_x[el]==0 && abs(a)>1e-10){
                             xel=(-d-c*zel-b*yel)/a;
-                            if(xel<=x_ub[i]+1e-6 && xel>=x_lb[i]-1e-6){
+                            if(xel<=x_ub[i]+1e-9 && xel>=x_lb[i]-1e-9){
                                 vertex_found=true;
                             }
                         }
                         if(plane_y[el]==0 && abs(b)>1e-10){
                             yel=(-d-c*zel-a*xel)/b;
-                            if(yel<=y_ub[i]+1e-6 && yel>=y_lb[i]-1e-6){
+                            if(yel<=y_ub[i]+1e-9 && yel>=y_lb[i]-1e-9){
                                 vertex_found=true;
                             }
                         }
                         if(plane_z[el]==0 && abs(c)>1e-10){
                             zel=(-d-a*xel-b*yel)/c;
-                            if(zel<=z_ub[i]+1e-6 && zel>=z_lb[i]-1e-6){
+                            if(zel<=z_ub[i]+1e-9 && zel>=z_lb[i]-1e-9){
                                 vertex_found=true;
                             }
                         }
@@ -13991,10 +13995,23 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                         else{
                             DebugOn("Failed to find vertex "<<endl);
                         }
+                        if(vertex_found && vertex_found_k){
+                            vertex_found_k=true;
+                        }
+                        else{
+                            vertex_found_k=false;
+                        }
                     }
                 }
+                if(vertex_found_k && vertex_found_i){
+                    vertex_found_i=true;
+                }
+                else{
+                    vertex_found_i=false;
+                }
             }
-            if(option_cost_new){
+            vec_vfi.push_back(vertex_found_i);
+            if(option_cost_new && vertex_found_i){
                 box.push_back(box_new_i);
             }
             else{
@@ -14033,7 +14050,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         pair<double,double> res;
-                        if(option_cost_new){
+                        if(option_cost_new && vec_vfi[i]){
                             res=min_max_euclidean_distsq_box_plane(box[i],vertex_new[i],point_cloud_model.at(j), plane_eq[i], x_lb[i], x_ub[i],y_lb[i], y_ub[i],z_lb[i], z_ub[i]);
                         }
                         else{
@@ -14237,7 +14254,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
         min_dist_t+=pow(zl-cz,2);
         zs=zl;
     }
-    if(a*xs+b*ys+c*zs+intercept<=1e-6){
+    if(a*xs+b*ys+c*zs+intercept<=1e-9){
         min_dist=min_dist_t;
         min_found=true;
     }
@@ -14250,7 +14267,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 xs=lamda_a/2.0*(xl+xu)+cx;
                 ys=lamda_a/2.0*(yl+yu)+cy;
                 zs=lamda_a/2.0*(zl+zu)+cz;
-                if(xs<=xu && xs>=xl && ys<=yu && ys>=yl && zs<=zu && zs>=zl){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                     min_dist=pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2);
                     min_found=true;
                 }
@@ -14264,7 +14281,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     xs=xu;
                     ys=lamda_1/2.0*(yl+yu)+cy;
                     zs=lamda_1/2.0*(zl+zu)+cz;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14274,7 +14291,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     xs=xl;
                     ys=lamda_2/2.0*(yl+yu)+cy;
                     zs=lamda_2/2.0*(zl+zu)+cz;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14284,21 +14301,14 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 xs=xu;
                 ys=cy;
                 zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
                 xs=xl;
                 ys=cy;
                 zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
-                    min_found_new=true;
-                }
-                xs=-(b*ys+c*zs+intercept)/a;
-                ys=cy;
-                zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
@@ -14309,7 +14319,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     ys=yu;
                     xs=lamda_3/2.0*(xl+xu)+cx;
                     zs=lamda_3/2.0*(zl+zu)+cz;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14319,7 +14329,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     ys=yl;
                     xs=lamda_4/2.0*(xl+xu)+cx;
                     zs=lamda_4/2.0*(zl+zu)+cz;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14329,21 +14339,14 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 ys=yu;
                 xs=cx;
                 zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
                 ys=yl;
                 xs=cx;
                 zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
-                    min_found_new=true;
-                }
-                ys=-(a*xs+c*zs+intercept)/b;
-                xs=cx;
-                zs=cz;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
@@ -14354,7 +14357,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     zs=zu;
                     xs=lamda_5/2.0*(xl+xu)+cx;
                     ys=lamda_5/2.0*(yl+yu)+cy;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14364,7 +14367,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                     zs=zl;
                     xs=lamda_6/2.0*(xl+xu)+cx;
                     ys=lamda_6/2.0*(yl+yu)+cy;
-                    if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                    if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9){
                         min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                         min_found_new=true;
                     }
@@ -14374,21 +14377,14 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
                 zs=zu;
                 ys=cy;
                 xs=cx;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
                 zs=zl;
                 ys=cy;
                 xs=cx;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6 && a*xs+b*ys+c*zs+intercept<=1e-6){
-                    min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
-                    min_found_new=true;
-                }
-                xs=-(b*ys+a*xs+intercept)/c;
-                ys=cy;
-                xs=cx;
-                if(xs<=xu+1e-6 && xs>=xl-1e-6 && ys<=yu+1e-6 && ys>=yl-1e-6 && zs<=zu+1e-6 && zs>=zl-1e-6){
+                if(xs<=xu+1e-9 && xs>=xl-1e-9 && ys<=yu+1e-9 && ys>=yl-1e-9 && zs<=zu+1e-9 && zs>=zl-1e-9 && a*xs+b*ys+c*zs+intercept<=1e-9){
                     min_dist_t=std::min(min_dist_t, pow(xs-cx,2)+pow(ys-cy,2)+pow(zs-cz,2));
                     min_found_new=true;
                 }
