@@ -13004,12 +13004,40 @@ indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vec
     vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
     double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
     double shift_mag_max_root=sqrt(shift_mag_max);
+    double shift_mag_min=0.0;
+    if(shift_min_x<=0 && shift_max_x>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_x,2),pow(shift_max_x,2));
+    }
+    if(shift_min_y<=0 && shift_max_y>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_y,2),pow(shift_max_y,2));
+    }
+    if(shift_min_z<=0 && shift_max_z>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
+    }
+    double shift_mag_min_root=sqrt(shift_mag_min);
+    double siq;
     for(auto i=0;i<nd;i++){
-        auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
-        dist_i.push_back(max_dist_i);
+        //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
+        //dist_i.push_back(max_dist_i);
         
+        siq=0.0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
-        sphere_inner_sq.push_back(pow((d_root-shift_mag_max_root),2));
+        if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+            siq=0.0;
+        }
+        else{
+            siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+        }
+        sphere_inner_sq.push_back(siq);
         sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
         
         x1_bounds->first = point_cloud_data.at(i)[0];
@@ -13331,12 +13359,40 @@ indices preprocess_poltyope_intersect(const vector<vector<double>>& point_cloud_
         coord_i.resize(3);
         double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
         double shift_mag_max_root=sqrt(shift_mag_max);
+        double shift_mag_min=0.0;
+        if(shift_min_x<=0 && shift_max_x>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_x,2),pow(shift_max_x,2));
+        }
+        if(shift_min_y<=0 && shift_max_y>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_y,2),pow(shift_max_y,2));
+        }
+        if(shift_min_z<=0 && shift_max_z>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
+        }
+        double shift_mag_min_root=sqrt(shift_mag_min);
+        double siq;
         for(auto i=0;i<nd;i++){
             //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
             //dist_i.push_back(max_dist_i);
             
+            siq=0.0;
             auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
-            sphere_inner_sq.push_back(pow((d_root-shift_mag_max_root),2));
+            if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+                siq=0.0;
+            }
+            else{
+                siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+            }
+            sphere_inner_sq.push_back(siq);
             // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
             
             x1_bounds->first = point_cloud_data.at(i)[0];
@@ -13552,15 +13608,40 @@ indices preprocess_poltyope_intersect_opt(const vector<vector<double>>& point_cl
         coord_i.resize(3);
         double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
         double shift_mag_max_root=sqrt(shift_mag_max);
-        vector<int> inf;
-        vector<int> feas;
-        vector<vector<double>> new_vert_i;
-        set<int> unique_model_pts;
-        vector<double> min_cost_i;
-        double min_cost_sum=0;
+        double shift_mag_min=0.0;
+        if(shift_min_x<=0 && shift_max_x>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_x,2),pow(shift_max_x,2));
+        }
+        if(shift_min_y<=0 && shift_max_y>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_y,2),pow(shift_max_y,2));
+        }
+        if(shift_min_z<=0 && shift_max_z>=0){
+            shift_mag_min+=0;
+        }
+        else{
+            shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
+        }
+        double shift_mag_min_root=sqrt(shift_mag_min);
+        double siq;
         for(auto i=0;i<nd;i++){
+            //  auto max_dist_i = get_max_dist(roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, point_cloud_data[i], zeros, false);
+            //dist_i.push_back(max_dist_i);
+            
+            siq=0.0;
             auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
-            sphere_inner_sq.push_back(pow((d_root-shift_mag_max_root),2));
+            if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+                siq=0.0;
+            }
+            else{
+                siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+            }
+            sphere_inner_sq.push_back(siq);
             // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
             x1_bounds->first = point_cloud_data.at(i)[0];
             x1_bounds->second = point_cloud_data.at(i)[0];
