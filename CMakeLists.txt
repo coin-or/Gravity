@@ -36,6 +36,9 @@ option(Ipopt "Link to IPOPT libraries" ON)
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
 
+# Find CDD (REQUIRED)
+option(CDD "Link to CDD libraries" ON)
+
 # Find QHULL (OPTIONAL)
 option(QHULL "Link to QHULL libraries" OFF)
 
@@ -91,6 +94,15 @@ if (LASlib)
         find_package(LASlib REQUIRED)
         include_directories(${LASlib_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${LASlib_LIBRARIES})
+endif()
+
+# Find cddlib.
+if (CDD)
+        message(STATUS "Enable CDD")
+        add_definitions(-DUSE_CDD)
+        find_package(CDD REQUIRED)
+        include_directories(${CDD_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${CDD_LIBRARIES})
 endif()
 
 

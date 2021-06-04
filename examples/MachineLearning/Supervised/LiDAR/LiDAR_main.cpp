@@ -90,6 +90,13 @@ using namespace voro;
 
 #endif
 
+#ifdef USE_CDD
+extern "C" {
+#include "setoper.h"
+#include "cdd.h"
+}
+#endif
+
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
 #define DEFAULT_MODEL_FNAME "model.txt"
@@ -804,6 +811,34 @@ int main (int argc, char * argv[])
             else {
                 valid_cells = indices(N1,N2);
             }
+            
+#ifdef USE_CDD
+            
+            dd_set_global_constants();  /* First, this must be called to use cddlib. */
+            
+            dd_PolyhedraPtr poly;
+            dd_MatrixPtr A, B, G;
+            dd_rowrange m;
+            dd_colrange d;
+            dd_ErrorType err;
+
+            
+
+            m=4; d=3;
+            A=dd_CreateMatrix(m,d);
+            dd_set_si(A->matrix[0][0],7); dd_set_si(A->matrix[0][1],-3); dd_set_si(A->matrix[0][2], 0);
+            dd_set_si(A->matrix[1][0],7); dd_set_si(A->matrix[1][1], 0); dd_set_si(A->matrix[1][2],-3);
+            dd_set_si(A->matrix[2][0],1); dd_set_si(A->matrix[2][1], 1); dd_set_si(A->matrix[2][2], 0);
+            dd_set_si(A->matrix[3][0],1); dd_set_si(A->matrix[3][1], 0); dd_set_si(A->matrix[3][2], 1);
+            /* 7 - 3 x1          >= 0
+               7         - 3x2   >= 0
+               1 +   x1          >= 0
+               1         +  x2   >= 0
+            */
+            A->representation=dd_Inequality;
+            poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
+            
+#endif
             bool preprocess = true;
             
             //            valid_cells = get_valid_pairs(point_cloud_data, point_cloud_model, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, norm_x, norm_y, norm_z, intercept, model_voronoi_out_radius, new_model_pts, new_model_ids,false);
@@ -14490,6 +14525,7 @@ pair<double,double> min_max_euclidean_distsq_box_plane(vector<vector<double>> co
     }
     if(!min_found && !min_found_new){
         DebugOn("dist failed"<<endl);
+        min_dist=0;
     }
     std::pair<double,double> res;
     res={min_dist, max_dist};
