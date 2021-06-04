@@ -13599,6 +13599,12 @@ indices preprocess_poltyope_intersect_opt(const vector<vector<double>>& point_cl
         vector<double> zeros = {0,0,0};
         vector<shared_ptr<Model<double>>> batch_models;
         int missed=0;
+        vector<int> inf;
+        vector<int> feas;
+        vector<vector<double>> new_vert_i;
+        set<int> unique_model_pts;
+        vector<double> min_cost_i;
+        double min_cost_sum=0;
         vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
         vector<vector<vector<double>>> box;
         vector<vector<vector<double>>> vertex_new;
