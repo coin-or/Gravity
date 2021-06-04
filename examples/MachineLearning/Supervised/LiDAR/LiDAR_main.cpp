@@ -817,26 +817,49 @@ int main (int argc, char * argv[])
             dd_set_global_constants();  /* First, this must be called to use cddlib. */
             
             dd_PolyhedraPtr poly;
-            dd_MatrixPtr A, B, G;
+            dd_MatrixPtr A,  G;
             dd_rowrange m;
             dd_colrange d;
             dd_ErrorType err;
 
             
-
+            double ina=7.5;
             m=4; d=3;
+            vector<vector<double>> vc(m);
             A=dd_CreateMatrix(m,d);
-            dd_set_si(A->matrix[0][0],7); dd_set_si(A->matrix[0][1],-3); dd_set_si(A->matrix[0][2], 0);
-            dd_set_si(A->matrix[1][0],7); dd_set_si(A->matrix[1][1], 0); dd_set_si(A->matrix[1][2],-3);
-            dd_set_si(A->matrix[2][0],1); dd_set_si(A->matrix[2][1], 1); dd_set_si(A->matrix[2][2], 0);
-            dd_set_si(A->matrix[3][0],1); dd_set_si(A->matrix[3][1], 0); dd_set_si(A->matrix[3][2], 1);
+            dd_set_d(A->matrix[0][0],ina); dd_set_d(A->matrix[0][1],-3.0); dd_set_d(A->matrix[0][2], 0.0);
+            dd_set_d(A->matrix[1][0],7); dd_set_d(A->matrix[1][1], 0); dd_set_d(A->matrix[1][2],-3.0);
+            dd_set_d(A->matrix[2][0],1); dd_set_d(A->matrix[2][1], 1.0); dd_set_d(A->matrix[2][2], 0);
+            dd_set_d(A->matrix[3][0],1.0); dd_set_d(A->matrix[3][1], 0); dd_set_d(A->matrix[3][2], 1.0);
             /* 7 - 3 x1          >= 0
                7         - 3x2   >= 0
                1 +   x1          >= 0
                1         +  x2   >= 0
             */
             A->representation=dd_Inequality;
-            poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
+            if (err!=dd_NoError){
+                poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
+                printf("\nInput is H-representation:\n");
+                  G=dd_CopyGenerators(poly);
+                  dd_WriteMatrix(stdout,A);  printf("\n");
+                  dd_WriteMatrix(stdout,G);
+                for(auto i=0;i<G->rowsize;i++){
+                    for(auto j=1;j<G->colsize;j++){
+                        DebugOn(*G->matrix[i][j]<<" ");
+                        vc[i].push_back(*G->matrix[i][j]);
+                    }
+                    DebugOn(endl);
+                }
+                dd_FreeMatrix(A);
+                dd_FreeMatrix(G);
+                dd_FreePolyhedra(poly);
+                dd_free_global_constants();
+            }
+            else{
+                DebugOn("Failed");
+            }
+
+              
             
 #endif
             bool preprocess = true;
