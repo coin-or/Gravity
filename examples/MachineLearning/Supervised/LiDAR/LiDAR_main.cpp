@@ -97,6 +97,12 @@ extern "C" {
 }
 #endif
 
+#ifdef USE_GJK
+extern "C" {
+#include "openGJK.h"
+}
+#endif
+
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
 #define DEFAULT_MODEL_FNAME "model.txt"
@@ -812,54 +818,114 @@ int main (int argc, char * argv[])
                 valid_cells = indices(N1,N2);
             }
             
-#ifdef USE_CDD
+#ifdef USE_GJK
+            vector<vector<double>> vec, vec2;
+            vec.resize(4);
+            vec[0].push_back(0.0);
+            vec[0].push_back(1.0);
+            vec[0].push_back(0.0);
+            vec[1].push_back(1.0);
+            vec[1].push_back(0.0);
+            vec[1].push_back(0.0);
+            vec[2].push_back(0.0);
+            vec[2].push_back(0.0);
+            vec[2].push_back(0.0);
+            vec[3].push_back(1.0);
+            vec[3].push_back(1.0);
+            vec[3].push_back(0.0);
             
-            dd_set_global_constants();  /* First, this must be called to use cddlib. */
+            vec2.resize(1);
+            vec2[0].push_back(0.0);
+            vec2[0].push_back(1.0);
+            vec2[0].push_back(1.0);
+//            vec2[1].push_back(1.0);
+//            vec2[1].push_back(0.0);
+//            vec2[1].push_back(1.0);
+//            vec2[2].push_back(0.0);
+//            vec2[2].push_back(0.0);
+//            vec2[2].push_back(1.0);
+//            vec2[3].push_back(1.0);
+//            vec2[3].push_back(1.0);
+//            vec2[3].push_back(1.0);
             
-            dd_PolyhedraPtr poly;
-            dd_MatrixPtr A,  G;
-            dd_rowrange m;
-            dd_colrange d;
-            dd_ErrorType err;
+            
+            
+            double (**vrtx1) = NULL,   (**vrtx2) = NULL;
+            /* Squared distance computed by openGJK.                                 */
+              double dd;
+              /* Structure of simplex used by openGJK.                                 */
+              struct simplex  s;
+              /* Number of vertices defining body 1 and body 2, respectively.          */
+              int    nvrtx1,
+                     nvrtx2;
+            
+            double **arr = (double **)malloc(vec.size() * sizeof(double *));
+            for (int i=0; i<vec.size(); i++)
+               arr[i] = (double *)malloc(3 * sizeof(double));
 
-            
-            double ina=7.5;
-            m=4; d=3;
-            vector<vector<double>> vc(m);
-            A=dd_CreateMatrix(m,d);
-            dd_set_d(A->matrix[0][0],ina); dd_set_d(A->matrix[0][1],-3.0); dd_set_d(A->matrix[0][2], 0.0);
-            dd_set_d(A->matrix[1][0],7); dd_set_d(A->matrix[1][1], 0); dd_set_d(A->matrix[1][2],-3.0);
-            dd_set_d(A->matrix[2][0],1); dd_set_d(A->matrix[2][1], 1.0); dd_set_d(A->matrix[2][2], 0);
-            dd_set_d(A->matrix[3][0],1.0); dd_set_d(A->matrix[3][1], 0); dd_set_d(A->matrix[3][2], 1.0);
-            /* 7 - 3 x1          >= 0
-               7         - 3x2   >= 0
-               1 +   x1          >= 0
-               1         +  x2   >= 0
-            */
-            A->representation=dd_Inequality;
-            if (err!=dd_NoError){
-                poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
-                printf("\nInput is H-representation:\n");
-                  G=dd_CopyGenerators(poly);
-                  dd_WriteMatrix(stdout,A);  printf("\n");
-                  dd_WriteMatrix(stdout,G);
-                for(auto i=0;i<G->rowsize;i++){
-                    for(auto j=1;j<G->colsize;j++){
-                        DebugOn(*G->matrix[i][j]<<" ");
-                        vc[i].push_back(*G->matrix[i][j]);
-                    }
-                    DebugOn(endl);
-                }
-                dd_FreeMatrix(A);
-                dd_FreeMatrix(G);
-                dd_FreePolyhedra(poly);
-                dd_free_global_constants();
+             /* Read and store vertices' coordinates. */
+            for (auto i = 0; i<vec.size(); i++)
+            {
+                arr[i][0]=vec[i][0];
+                arr[i][1]=vec[i][1];
+                arr[i][2]=vec[i][2];
             }
-            else{
-                DebugOn("Failed");
+            
+            double **arr2 = (double **)malloc(vec2.size() * sizeof(double *));
+            for (int i=0; i<vec2.size(); i++)
+               arr2[i] = (double *)malloc(3 * sizeof(double));
+
+             /* Read and store vertices' coordinates. */
+            for (auto i = 0; i<vec2.size(); i++)
+            {
+                arr2[i][0]=vec2[i][0];
+                arr2[i][1]=vec2[i][1];
+                arr2[i][2]=vec2[i][2];
+            }
+            
+            
+            
+            
+            
+            nvrtx1=vec.size();
+            nvrtx2=vec2.size();
+            
+              /* Structures of body 1 and body 2, respectively.                        */
+              struct bd       bd1;
+              struct bd       bd2;
+            
+            bd1.coord = arr;
+            bd1.numpoints = nvrtx1;
+
+            /* Import coordinates of object 2. */
+          
+            bd2.coord = arr2;
+            bd2.numpoints = nvrtx2;
+
+            /* Initialise simplex as empty */
+            s.nvrtx = 0;
+
+         
+            /* Verify input of body A. */
+            for (int i = 0; i < bd1.numpoints; ++i) {
+              printf ( "%.2f ", bd1.coord[i][0]);
+              printf ( "%.2f ", bd1.coord[i][1]);
+              printf ( "%.2f\n",bd1.coord[i][2]);
             }
 
-              
+            /* Verify input of body B. */
+            for (int i = 0; i < bd2.numpoints; ++i) {
+              printf ( "%.2f ", bd2.coord[i][0]);
+              printf ( "%.2f ", bd2.coord[i][1]);
+              printf ( "%.2f\n", bd2.coord[i][2]);
+            }
+         
+
+            /* For importing openGJK this is Step 3: invoke the GJK procedure. */
+            /* Compute squared distance using GJK algorithm. */
+            dd = gjk (bd1, bd2, &s);
+
+            DebugOn("Distance "<<dd<<endl);
             
 #endif
             bool preprocess = true;
@@ -14264,6 +14330,65 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
         return valid_cells_empty;
     }
 }
+
+#ifdef USE_CDD
+vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces){
+    vector<vector<double>> res(0);
+    dd_set_global_constants();  /* First, this must be called to use cddlib. */
+    
+    dd_PolyhedraPtr poly;
+    dd_MatrixPtr A,  G;
+    dd_rowrange m;
+    dd_colrange d;
+    dd_ErrorType err;
+    
+    m=halfspaces.size();
+    d=4;
+    A=dd_CreateMatrix(m,d);
+    /*plane coeffiients are fed to cdd in geq format and the constant is the first entry for each row followed by other 3 dimensions; halfspaces has planes in leq format
+      */
+    for(auto i=0;i<m;i++){
+        auto plane=halfspaces[i];
+        dd_set_d(A->matrix[i][0],plane[3]*(-1));
+        dd_set_d(A->matrix[i][1],plane[0]*(-1));
+        dd_set_d(A->matrix[i][2],plane[1]*(-1));
+        dd_set_d(A->matrix[i][3],plane[2]*(-1));
+    }
+
+    A->representation=dd_Inequality;
+    poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
+    if (err==dd_NoError){
+        printf("\nInput is H-representation:\n");
+        G=dd_CopyGenerators(poly);
+        if(G->colsize!=4){
+            throw invalid_argument("Vertex enumeration did not make 3D vertices");
+        }
+        if(G->rowsize==0){
+            throw invalid_argument("Vertex enumeration found no vertices");
+        }
+        res.resize(G->rowsize);
+        for(auto i=0;i<G->rowsize;i++){
+            if(*G->matrix[i][0]!=1){
+                throw invalid_argument("Vertex enumeration found unbounded polytope");
+            }
+            for(auto j=1;j<G->colsize;j++){
+                DebugOff(*G->matrix[i][j]<<" ");
+                res[i].push_back(*G->matrix[i][j]);
+            }
+            DebugOff(endl);
+        }
+        dd_FreeMatrix(A);
+        dd_FreeMatrix(G);
+        dd_FreePolyhedra(poly);
+        dd_free_global_constants();
+    }
+    else{
+        DebugOn("Vertex Enumeration Failed");
+    }
+    return res;
+}
+
+#endif
 /*Min and maximum distance squared to given centre ((x-cx)^2+(y-cy)^2+(z-cz)^2) is computed over a polytope Y. Bounding box X, where each vertex corresponds to bounds (not a general polytope). x,y,z in X: xL \le x \le xu, yL \le yU, zL \le z \le zU. Max distance is computed by a general polytope Y given the vertices of the polytope. Minimum distance is calculated over a bounding box X which oversetimates Y
  @coords: vector of extreme points of Y
  @center: point to which distance is computed. center is  avector of coordinates cx,cy,cz*/
