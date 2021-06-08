@@ -14522,6 +14522,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                 }
                 auto res=test_general<VerticesOnly>(box[i],vertices);
                 DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
+                double dist=0;
                 if(!res){
                     auto dist_vj_max=-999.0;
                     for(auto k=0;k<vertices.size();k++){
@@ -14532,68 +14533,75 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                         }
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
-                        bool status=true;
-                        vector<vector<double>> halfspaces;
-                        halfspaces.push_back(eq_i);
-                        vector<double> vec1(4, 0.0);
-                        vec1[0]=-1;
-                        vec1[3]=x_lb[i];
-                        halfspaces.push_back(vec1);
-                        vec1.clear();
-                        vec1.resize(4,0);
-                        vec1[0]=1;
-                        vec1[3]=x_ub[i]*(-1);
-                        halfspaces.push_back(vec1);
-                        vec1.clear();
-                        vec1.resize(4,0);
-                        vec1[1]=-1;
-                        vec1[3]=y_lb[i];
-                        halfspaces.push_back(vec1);
-                        vec1.clear();
-                        vec1.resize(4,0);
-                        vec1[1]=1;
-                        vec1[3]=y_ub[i]*(-1);
-                        halfspaces.push_back(vec1);
-                        vec1.clear();
-                        vec1.resize(4,0);
-                        vec1[2]=-1;
-                        vec1[3]=z_lb[i];
-                        halfspaces.push_back(vec1);
-                        vec1.clear();
-                        vec1.resize(4,0);
-                        vec1[2]=1;
-                        vec1[3]=z_ub[i]*(-1);
-                        halfspaces.push_back(vec1);
-                        for(auto k=0;k<model_voronoi_normals[j].size();k++){
-                            vec1.clear();
-                            vec1.resize(4);
-                            vec1[0]=model_voronoi_normals[j][k][0];
-                            vec1[1]=model_voronoi_normals[j][k][1];
-                            vec1[2]=model_voronoi_normals[j][k][2];
-                            vec1[3]=model_face_intercept[j][k];
-                            halfspaces.push_back(vec1);
+                        if(point_cloud_model.at(j)[0]>=x_lb[i]-1e-6 && point_cloud_model.at(j)[1]>=y_lb[i]-1e-6 && point_cloud_model.at(j)[2]>=z_lb[i]-1e-6 && point_cloud_model.at(j)[0]<=x_ub[i]-1e-6 &&
+                           point_cloud_model.at(j)[1]<=y_ub[i]-1e-6 &&
+                           point_cloud_model.at(j)[2]<=z_ub[i]-1e-6){
+                            dist=0.0;
                         }
-                        status=true;
-                        auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
-                        if(status){
-                            vector<vector<double>> mpoint;
-                            mpoint.push_back(point_cloud_model.at(j));
-                            auto dist=distance_polytopes_gjk(vec_vertex, mpoint);
-//                            auto res3=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
-//                            double dist=res3.first;
-                            if(dist-1e-6<=upper_bound){
-                                valid_cells_map[i].push_back(j);
-                                dist_cost_map[i].push_back(dist);
-                                auto key=to_string(i+1)+","+to_string(j+1);
-                                valid_cells.insert(key);
-                                if(unique_model_pts.insert(j).second){
-                                    new_model_pts.push_back(j);
-                                    new_model_ids.insert(to_string(i));
-                                }
+                        else{
+                            bool status=true;
+                            vector<vector<double>> halfspaces;
+                            halfspaces.push_back(eq_i);
+                            vector<double> vec1(4, 0.0);
+                            vec1[0]=-1;
+                            vec1[3]=x_lb[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4,0);
+                            vec1[0]=1;
+                            vec1[3]=x_ub[i]*(-1);
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4,0);
+                            vec1[1]=-1;
+                            vec1[3]=y_lb[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4,0);
+                            vec1[1]=1;
+                            vec1[3]=y_ub[i]*(-1);
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4,0);
+                            vec1[2]=-1;
+                            vec1[3]=z_lb[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4,0);
+                            vec1[2]=1;
+                            vec1[3]=z_ub[i]*(-1);
+                            halfspaces.push_back(vec1);
+                            for(auto k=0;k<model_voronoi_normals[j].size();k++){
+                                vec1.clear();
+                                vec1.resize(4);
+                                vec1[0]=model_voronoi_normals[j][k][0];
+                                vec1[1]=model_voronoi_normals[j][k][1];
+                                vec1[2]=model_voronoi_normals[j][k][2];
+                                vec1[3]=model_face_intercept[j][k];
+                                halfspaces.push_back(vec1);
                             }
-                            else{
-                                DebugOn("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
+                            status=true;
+                            auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
+                            if(status){
+                                vector<vector<double>> mpoint;
+                                mpoint.push_back(point_cloud_model.at(j));
+                                dist=distance_polytopes_gjk(vec_vertex, mpoint);
                             }
+                        }
+                        //                            auto res3=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
+                        //                            double dist=res3.first;
+                        if(dist-1e-6<=upper_bound){
+                            valid_cells_map[i].push_back(j);
+                            dist_cost_map[i].push_back(dist);
+                            auto key=to_string(i+1)+","+to_string(j+1);
+                            valid_cells.insert(key);
+                            if(unique_model_pts.insert(j).second){
+                                new_model_pts.push_back(j);
+                                new_model_ids.insert(to_string(i));
+                            }
+                        }
+                        else{
+                            DebugOn("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
                         }
                     }
                     else{
@@ -14618,12 +14626,11 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
         if(found_all){
             DebugOff("min cost for each data point "<<endl);
             for(auto i=0;i<min_cost_i.size();i++){
-                DebugOn(min_cost_i[i]<<endl);
+                DebugOff(min_cost_i[i]<<endl);
             }
             DebugOff("Number of old pairs = " << old_cells.size() << endl);
             DebugOff("Number of valid cells = " << valid_cells.size() << endl);
             DebugOff("Number of discarded pairs = " << old_cells.size() - valid_cells.size() << endl);
-            
         }
         else{
             DebugOff("Number of valid cells = " << 0 << endl);
@@ -14647,6 +14654,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
 
 #ifdef USE_CDD
 vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces, bool& status){
+    status=true;
     vector<vector<double>> res(0);
     dd_set_global_constants();  /* First, this must be called to use cddlib. */
     
@@ -14672,13 +14680,13 @@ vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces,
     A->representation=dd_Inequality;
     poly=dd_DDMatrix2Poly(A, &err);  /* compute the second (generator) representation */
     if (err==dd_NoError){
-        printf("\nInput is H-representation:\n");
         G=dd_CopyGenerators(poly);
         if(G->colsize!=4){
             throw invalid_argument("Vertex enumeration did not make 3D vertices");
         }
         if(G->rowsize==0){
-            throw invalid_argument("Vertex enumeration found no vertices");
+            DebugOn("Vertex enumeration failed to find vertices");
+            status=false;
         }
         res.resize(G->rowsize);
         for(auto i=0;i<G->rowsize;i++){
@@ -14773,7 +14781,7 @@ double distance_polytopes_gjk(vector<vector<double>> vec1, vector<vector<double>
     free(bd2.coord);
     
     dd*=dd;
-    DebugOn("Distance sqrd"<<dd<<endl);
+    DebugOff("Distance sqrd "<<dd<<endl);
     return dd;
 }
             
