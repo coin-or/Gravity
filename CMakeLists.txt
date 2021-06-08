@@ -36,6 +36,12 @@ option(Ipopt "Link to IPOPT libraries" ON)
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
 
+# Find CDD (REQUIRED)
+option(CDD "Link to CDD libraries" ON)
+
+# Find GJK (REQUIRED)
+option(GJK "Link to GJK libraries" ON)
+
 # Find QHULL (OPTIONAL)
 option(QHULL "Link to QHULL libraries" OFF)
 
@@ -92,6 +98,25 @@ if (LASlib)
         include_directories(${LASlib_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${LASlib_LIBRARIES})
 endif()
+
+# Find cddlib.
+if (CDD)
+        message(STATUS "Enable CDD")
+        add_definitions(-DUSE_CDD)
+        find_package(CDD REQUIRED)
+        include_directories(${CDD_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${CDD_LIBRARIES})
+endif()
+
+# Find gjklib.
+if (GJK)
+        message(STATUS "Enable GJK")
+        add_definitions(-DUSE_GJK)
+        find_package(GJK REQUIRED)
+        include_directories(${GJK_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${GJK_LIBRARIES})
+endif()
+
 
 
 # Find Ipopt.
