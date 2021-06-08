@@ -14531,7 +14531,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                             dist_vj_max=dist_v;
                         }
                     }
-                    if(dist_vj_max>=sphere_inner_sq[i]-1e-6 || true){
+                    if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         bool status=true;
                         vector<vector<double>> halfspaces;
                        // halfspaces.push_back(eq_i);
@@ -14564,6 +14564,15 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                         vec1[2]=1;
                         vec1[3]=z_ub[i]*(-1);
                         halfspaces.push_back(vec1);
+                        for(auto k=0;k<model_voronoi_normals[j].size();k++){
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=model_voronoi_normals[j][k][0];
+                            vec1[1]=model_voronoi_normals[j][k][1];
+                            vec1[2]=model_voronoi_normals[j][k][2];
+                            vec1[3]=model_face_intercept[j][k];
+                            halfspaces.push_back(vec1);
+                        }
                         status=true;
                         auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
                         if(status){
