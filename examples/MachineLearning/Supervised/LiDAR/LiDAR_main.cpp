@@ -14509,11 +14509,6 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
             }
             vertex_new.push_back(new_vert_i);
             plane_eq.push_back(eq_i);
-            box_i.clear();
-            feas.clear();
-            inf.clear();
-            new_vert_i.clear();
-            box_new_i.clear();
             for (int j = 0; j<nm; j++) {
                 auto vertices=model_voronoi_vertices.at(j);
                 if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
@@ -14534,8 +14529,8 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                     }
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         if(point_cloud_model.at(j)[0]>=x_lb[i]-1e-6 && point_cloud_model.at(j)[1]>=y_lb[i]-1e-6 && point_cloud_model.at(j)[2]>=z_lb[i]-1e-6 && point_cloud_model.at(j)[0]<=x_ub[i]-1e-6 &&
-                           point_cloud_model.at(j)[1]<=y_ub[i]-1e-6 &&
-                           point_cloud_model.at(j)[2]<=z_ub[i]-1e-6){
+                            point_cloud_model.at(j)[1]<=y_ub[i]-1e-6 &&
+                            point_cloud_model.at(j)[2]<=z_ub[i]-1e-6){
                             dist=0.0;
                         }
                         else{
@@ -14587,9 +14582,11 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                                 mpoint.push_back(point_cloud_model.at(j));
                                 dist=distance_polytopes_gjk(vec_vertex, mpoint);
                             }
+                            else{
+                                auto res3=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+                                dist=res3.first;
+                            }
                         }
-                        //                            auto res3=min_max_euclidean_distsq_box(box[i],point_cloud_model.at(j));
-                        //                            double dist=res3.first;
                         if(dist-1e-6<=upper_bound){
                             valid_cells_map[i].push_back(j);
                             dist_cost_map[i].push_back(dist);
@@ -14622,6 +14619,11 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                 found_all=false;
                 break;
             }
+            box_i.clear();
+            feas.clear();
+            inf.clear();
+            new_vert_i.clear();
+            box_new_i.clear();
         }
         if(found_all){
             DebugOff("min cost for each data point "<<endl);
