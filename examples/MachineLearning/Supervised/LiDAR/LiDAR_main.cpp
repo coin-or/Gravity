@@ -14232,7 +14232,7 @@ indices preprocess_poltyope_intersect_new(const vector<vector<double>>& point_cl
 }
 
 indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads){
-    bool option_cost_new=false;
+    bool option_cost_new=true;
     nbFails=0;
     planeStatPerPair = 0;
     indices valid_cells("valid_cells");
@@ -14534,7 +14534,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                     if(dist_vj_max>=sphere_inner_sq[i]-1e-6){
                         bool status=true;
                         vector<vector<double>> halfspaces;
-                       // halfspaces.push_back(eq_i);
+                        halfspaces.push_back(eq_i);
                         vector<double> vec1(4, 0.0);
                         vec1[0]=-1;
                         vec1[3]=x_lb[i];
