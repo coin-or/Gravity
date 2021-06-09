@@ -13302,7 +13302,7 @@ bool sphericalDisjoint(const Convex & a, const Convex & b) {
         if( ! a.differenceCoversZeroInDir(b, vA, vB, positiveBound.averageDirection()) ) return true;
         if(planeStatPerPair >= INTER_MAX_ITER) {
             ++nbFails;
-            DebugOn("fail "<<endl);
+            DebugOn("Failed in intersection detection "<<endl);
             return false;
         }
         positiveBound.clip(b.vertex(vB) - a.vertex(vA), tempPoly); positiveBound.swap(tempPoly);
@@ -14346,7 +14346,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                 siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
             }
             sphere_inner_sq.push_back(siq);
-            // sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
+            sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
             x1_bounds->first = point_cloud_data.at(i)[0];
             x1_bounds->second = point_cloud_data.at(i)[0];
             y1_bounds->first = point_cloud_data.at(i)[1];
@@ -14577,8 +14577,65 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                                 vec1[3]=model_face_intercept[j][k];
                                 halfspaces.push_back(vec1);
                             }
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_lb[i];
+                            vec1[1]=2*y_lb[i];
+                            vec1[2]=2*z_lb[i];
+                            vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_ub[i];
+                            vec1[1]=2*y_lb[i];
+                            vec1[2]=2*z_lb[i];
+                            vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_ub[i];
+                            vec1[1]=2*y_ub[i];
+                            vec1[2]=2*z_lb[i];
+                            vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_lb[i];
+                            vec1[1]=2*y_ub[i];
+                            vec1[2]=2*z_lb[i];
+                            vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_lb[i];
+                            vec1[1]=2*y_lb[i];
+                            vec1[2]=2*z_ub[i];
+                            vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_ub[i];
+                            vec1[1]=2*y_lb[i];
+                            vec1[2]=2*z_ub[i];
+                            vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_ub[i];
+                            vec1[1]=2*y_ub[i];
+                            vec1[2]=2*z_ub[i];
+                            vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
+                            vec1.clear();
+                            vec1.resize(4);
+                            vec1[0]=2*x_lb[i];
+                            vec1[1]=2*y_ub[i];
+                            vec1[2]=2*z_ub[i];
+                            vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                            halfspaces.push_back(vec1);
                             status=true;
                             auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
+                            DebugOn("VE size "<<vec_vertex.size()<<endl);
                             if(status){
                                 vector<vector<double>> mpoint;
                                 mpoint.push_back(point_cloud_model.at(j));
@@ -14689,7 +14746,7 @@ vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces,
             throw invalid_argument("Vertex enumeration did not make 3D vertices");
         }
         if(G->rowsize==0){
-            DebugOn("Vertex enumeration failed to find vertices");
+            DebugOn("Vertex enumeration Failed to find vertices");
             status=false;
         }
         res.resize(G->rowsize);
@@ -18978,6 +19035,7 @@ vector<double> BranchBound8(vector<vector<double>>& point_cloud_model, vector<ve
             auto vi1 = preprocess_poltyope_cdd_gjk(point_cloud_data, point_cloud_model, topnode.valid_cells, roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, model_voronoi_normals, model_face_intercept,model_voronoi_vertices, new_model_pts, new_model_ids, dist_cost, best_ub, nb_threads, min_cost_sum);
             valid_cells.push_back(vi1);
             depth_vec.push_back(topnode.depth+1);
+            DebugOn(vi1.size()<<endl);
             if(valid_cells[i+1].size()> nd){
                 lb_queue.push(treenode_m(roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], std::max(min_cost_sum, topnode.lb), best_ub, -1.0, topnode.depth+1, valid_cells[i+1], false));
                 // auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
