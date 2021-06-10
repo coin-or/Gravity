@@ -14630,7 +14630,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                         halfspaces.push_back(vec1);
                         status=true;
                         auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
-                        DebugOn("VE size "<<vec_vertex.size()<<endl);
+                        DebugOff("VE size "<<vec_vertex.size()<<endl);
                         if(status){
                             vector<vector<double>> mpoint;
                             mpoint.push_back(point_cloud_model.at(j));
@@ -14643,7 +14643,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                     }
                     if(dist-1e-6<=upper_bound){
                         valid_cells_map[i].push_back(j);
-                        dist_cost_map[i].push_back(dist-1e-6);
+                        dist_cost_map[i].push_back(std::max(dist-1e-6,0.0));
                         auto key=to_string(i+1)+","+to_string(j+1);
                         valid_cells.insert(key);
                         if(unique_model_pts.insert(j).second){
@@ -14697,7 +14697,8 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
     auto prep_time = time_end - time_start;
     DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     if(found_all){
-        min_cost_sum-=1e-4;
+        min_cost_sum=std::max(min_cost_sum-1e-4,0.0);
+        DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         return valid_cells;
     }
     else{
@@ -18696,8 +18697,8 @@ vector<double> BranchBound8(vector<vector<double>>& point_cloud_model, vector<ve
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 30;
-    double max_time_init=30;
+    double max_time = 10;
+    double max_time_init=10;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
@@ -18758,7 +18759,7 @@ vector<double> BranchBound8(vector<vector<double>>& point_cloud_model, vector<ve
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
     int imax=(nb_threads-2);
-    int test_ub=50;
+    int test_ub=5;
     for(auto i=0;i<imax;i+=2){
         DebugOff("entered loop "<<i<<endl);
         topnode=lb_queue.top();
@@ -19218,8 +19219,8 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 30;
-    double max_time_init=30;
+    double max_time = 10;
+    double max_time_init=10;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
@@ -19267,7 +19268,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
     int imax=(nb_threads-2);
-    int test_ub=10;
+    int test_ub=50;
     
     best_ub=12.0;
     
@@ -19406,7 +19407,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
             if(valid_cells[i].size()> nd){
-                if(valid_cells[i].size()<=10){
+                if(valid_cells[i].size()<=1000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                     models.push_back(m);
                     pos_vec.push_back(i);
@@ -19431,18 +19432,10 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
                     lb_queue.push(treenode_m(roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], std::max(ub, topnode.lb), best_ub, -1.0, topnode.depth+1, valid_cells[i], true));
                 }
                 else{
-                    if(roll_bounds[i].first<=-0.114455 && roll_bounds[i].second>=-0.114455 && pitch_bounds[i].first<=0.801738 && pitch_bounds[i].second>=0.801738 && yaw_bounds[i].first<=0.502898 && yaw_bounds[i].second>=0.502898){
-                        DebugOn(shift_x_bounds[i].first<<" "<<shift_x_bounds[i].second<<" "<<shift_y_bounds[i].first<<" "<<shift_y_bounds[i].second<<" "<<shift_z_bounds[i].first<<" "<<shift_z_bounds[i].second<<endl);
-                        DebugOn("Cell eliminated");
-                    }
                     infeasible_count++;
                 }
             }
             else {
-                if(roll_bounds[i].first<=-0.114455 && roll_bounds[i].second>=-0.114455 && pitch_bounds[i].first<=0.801738 && pitch_bounds[i].second>=0.801738 && yaw_bounds[i].first<=0.502898 && yaw_bounds[i].second>=0.502898){
-                    DebugOn(shift_x_bounds[i].first<<" "<<shift_x_bounds[i].second<<" "<<shift_y_bounds[i].first<<" "<<shift_y_bounds[i].second<<" "<<shift_z_bounds[i].first<<" "<<shift_z_bounds[i].second<<endl);
-                    DebugOn("Cell eliminated");
-                }
                 DebugOff("v size "<<valid_cells[i].size()<<endl);
                 DebugOff("Infeasible model\n");
                 prep_count++;
@@ -19454,7 +19447,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi1.size()<<endl);
             if(valid_cells[i+1].size()> nd){
-                if(valid_cells[i+1].size()<=10){
+                if(valid_cells[i+1].size()<=1000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, false, best_ub);
                         models.push_back(m);
                         pos_vec.push_back(i+1);
@@ -19479,18 +19472,10 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
                     lb_queue.push(treenode_m(roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], std::max(ub, topnode.lb), best_ub, -1.0, topnode.depth+1, valid_cells[i+1], true));
                 }
                 else{
-                    if(roll_bounds[i+1].first<=-0.114455 && roll_bounds[i+1].second>=-0.114455 && pitch_bounds[i+1].first<=0.801738 && pitch_bounds[i+1].second>=0.801738 && yaw_bounds[i+1].first<=0.502898 && yaw_bounds[i+1].second>=0.502898){
-                        DebugOn(shift_x_bounds[i+1].first<<" "<<shift_x_bounds[i+1].second<<" "<<shift_y_bounds[i+1].first<<" "<<shift_y_bounds[i+1].second<<" "<<shift_z_bounds[i+1].first<<" "<<shift_z_bounds[i+1].second<<endl);
-                        DebugOn("Cell eliminated");
-                    }
                         infeasible_count++;
                 }
             }
             else {
-                if(roll_bounds[i+1].first<=-0.114455 && roll_bounds[i+1].second>=-0.114455 && pitch_bounds[i+1].first<=0.801738 && pitch_bounds[i+1].second>=0.801738 && yaw_bounds[i+1].first<=0.502898 && yaw_bounds[i+1].second>=0.502898){
-                    DebugOn(shift_x_bounds[i+1].first<<" "<<shift_x_bounds[i+1].second<<" "<<shift_y_bounds[i+1].first<<" "<<shift_y_bounds[i+1].second<<" "<<shift_z_bounds[i+1].first<<" "<<shift_z_bounds[i+1].second<<endl);
-                    DebugOn("Cell eliminated");
-                }
                 DebugOff("v size "<<valid_cells[i+1].size()<<endl);
                 DebugOff("Infeasible model\n");
                 prep_count++;
@@ -19498,23 +19483,10 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
                 DebugOff("Queue size = " << lb_queue.size() << "\n");
             }
             
-            if(i>0 && i%test_ub==0){
+            if((i>0 && i%test_ub==0)||iter==0){
                 vector<double> solution_lb;
                 vector<double> rot_trans_ub;
                 rot_trans_ub.resize(12);
-                //                    auto binc = models[j]->get_var<int>("bin");
-                //                    auto v_keys=binc.get_keys();
-                //                    for(auto it_key=v_keys->begin(); it_key!=v_keys->end(); it_key++){
-                //                        auto key = *it_key;
-                //                        solution_lb.push_back(binc.eval(key));
-                //                    }
-                //                    ub= build_upperbound(solution_lb,point_cloud_model, point_cloud_data, *(binc._indices), roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans_ub);
-                //                    if(ub<best_ub){
-                //                        best_ub = ub;
-                //                        best_rot_trans=rot_trans_ub;
-                //                        //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
-                //                    }
-                //                }
                 ub= run_ICP_only(goicp, roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second,rot_trans_ub);
                 if(ub<=best_ub+1e-2){
                     DebugOff("best ub "<<best_ub<<" ub "<<ub<<endl);
@@ -19567,7 +19539,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size()<<endl);
-        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time);
+        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
                 for (int j = 0; j<models.size(); j++) {
                     int pos=pos_vec[j];
                     if(models[j]->_status==0){
@@ -19583,17 +19555,9 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
                         else{
                             DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
                             infeasible_count++;
-                            if(roll_bounds[pos].first<=-0.114455 && roll_bounds[pos].second>=-0.114455 && pitch_bounds[pos].first<=0.801738 && pitch_bounds[pos].second>=0.801738 && yaw_bounds[pos].first<=0.502898 && yaw_bounds[pos].second>=0.502898){
-                                DebugOn(shift_x_bounds[pos].first<<" "<<shift_x_bounds[pos].second<<" "<<shift_y_bounds[pos].first<<" "<<shift_y_bounds[pos].second<<" "<<shift_z_bounds[pos].first<<" "<<shift_z_bounds[pos].second<<endl);
-                                DebugOn("Cell eliminated");
-                            }
                         }
                     }
                     else{
-                        if(roll_bounds[pos].first<=-0.114455 && roll_bounds[pos].second>=-0.114455 && pitch_bounds[pos].first<=0.801738 && pitch_bounds[pos].second>=0.801738 && yaw_bounds[pos].first<=0.502898 && yaw_bounds[pos].second>=0.502898){
-                            DebugOn(shift_x_bounds[pos].first<<" "<<shift_x_bounds[pos].second<<" "<<shift_y_bounds[pos].first<<" "<<shift_y_bounds[pos].second<<" "<<shift_z_bounds[pos].first<<" "<<shift_z_bounds[pos].second<<endl);
-                            DebugOn("Cell eliminated");
-                        }
                         infeasible_count++;
                     }
                 }
