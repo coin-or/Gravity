@@ -619,8 +619,6 @@ int main (int argc, char * argv[])
         //        }
         //#endif
         //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, 0.23,0.24,-0.24,-0.23,-0.02,-0.01,  model_voronoi_normals, model_face_intercept);
-        double shift_min_xa = 0.23, shift_max_xa = 0.24, shift_min_ya = -0.24,shift_max_ya= -0.23,shift_min_za = -0.02,shift_max_za = -0.01;
-        double yaw_mina = -25*pi/180., yaw_maxa = 25*pi/180., pitch_mina = -25*pi/180.,pitch_maxa = 25.*pi/180.,roll_mina = -25*pi/180.,roll_maxa = 25*pi/180.;
 #endif
         
         auto old_point_cloud = point_cloud_data;
@@ -724,8 +722,8 @@ int main (int argc, char * argv[])
             bool separate=true;
             bool linearize=false;
             //input
-            double shift_min_x =  -0.5, shift_max_x = 0.5, shift_min_y = -0.5,shift_max_y = 0.5,shift_min_z = -0.5,shift_max_z = 0.5;
-            double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
+            double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
+            double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
             
             double roll_mid = (roll_max + roll_min)/2.;
             double pitch_mid = (pitch_max + pitch_min)/2.;
@@ -934,7 +932,7 @@ int main (int argc, char * argv[])
             //            R->print();
             ////
             //            R->print_solution();
-            rot_trans = BranchBound9(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
+           // rot_trans = BranchBound9(point_cloud_model, point_cloud_data, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, new_model_pts, new_model_ids, relax_integers, relax_sdp, rigid_transf, model_inner_prod_min, model_inner_prod_max);
             //  auto NC_SOC_MIQCP = build_norm2_SOC_MIQCP(point_cloud_model, point_cloud_data, valid_cells, new_model_ids, dist_cost, new_roll_min, new_roll_max,  new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rot_trans, convex, incompatibles, norm_x, norm_y, norm_z, intercept, L2matching, L2err_per_point, model_radius, relax_integers, relax_sdp, rigid_transf);
             //                        solver<> S1(NC_SOC_MIQCP,gurobi);
             //                       S1.use_callback();
@@ -950,10 +948,12 @@ int main (int argc, char * argv[])
             //            vector<int> new_matching(point_cloud_model.size());
             //            vector<int> matching(point_cloud_model.size());
             //
-            //auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, model_inner_prod_min, model_inner_prod_max,false, 12.0);
-//            solver<> S1(SOC_MIP,gurobi);
+            dist_cost.print();
+            auto SOC_MIP = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point, model_inner_prod_min, model_inner_prod_max,dist_cost, false, 12.0);
+            SOC_MIP->print();
+            solver<> S1(SOC_MIP,gurobi);
 //            //S1.use_callback();
-//            S1.run(5,1e-4);
+           S1.run(5,1e-4);
             
             
             //auto SOC_MIPlin = build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point,  model_voronoi_normals,  model_face_intercept, false);
@@ -7076,6 +7076,30 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
             dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
         }
     }
+    
+    
+//    for(auto i=0;i<nd;i++){
+//        double dmaxij=999999.0;
+//        int dpos=0;
+//        auto x1=point_cloud_data.at(i)[0];
+//        auto y1=point_cloud_data.at(i)[1];
+//        auto z1=point_cloud_data.at(i)[2];
+//        if (std::find (dist_matched.begin(), dist_matched.end(), i)==dist_matched.end()){
+//            for(auto j=i+1;j<nd;j++){
+//                auto x2=point_cloud_data.at(j)[0];
+//                auto y2=point_cloud_data.at(j)[1];
+//                auto z2=point_cloud_data.at(j)[2];
+//                auto dij=pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2);
+//                if(dij<=dmaxij){
+//                    dmaxij=dij;
+//                    dpos=j;
+//                }
+//            }
+//            dist_matched.push_back(dpos);
+//            dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
+//        }
+//    }
+    
     //dist_cells.print();
     
     auto ids1 = theta11.repeat_id(N1.size());
@@ -7181,9 +7205,12 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         delta_lower=sum(x1*x1)+sum(y1*y1)+sum(z1*z1)+nd*(tx+ty+tz)+sum(dm_cells*bin)-delta;
         //Reg->add(delta_lower<=0);
         
-        Constraint<> delta_cost("delta_cost");
-        delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
-        Reg->add(delta_cost.in(N1)<=0);
+        
+        if(dist_cost._indices->_keys->size()!=0){
+            Constraint<> delta_cost("delta_cost");
+            delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+            Reg->add(delta_cost.in(N1)<=0);
+        }
         
         Constraint<> dist_rot("dist_rot");
         dist_rot=rot_x_min*rot_x_max+rot_y_min*rot_y_max+rot_z_min*rot_z_max+pow(x1,2)+pow(y1,2)+pow(z1,2)-rotx*(rot_x_min+rot_x_max)-roty*(rot_y_min+rot_y_max)-rotz*(rot_z_min+rot_z_max);
@@ -19271,7 +19298,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
     int imax=(nb_threads-2);
-    int test_ub=10;
+    int test_ub=50;
     
     best_ub=12.0;
     
