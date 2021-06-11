@@ -19271,7 +19271,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
     int imax=(nb_threads-2);
-    int test_ub=2;
+    int test_ub=10;
     
     best_ub=12.0;
     
@@ -19411,7 +19411,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
             if(valid_cells[i].size()> nd){
-                if(valid_cells[i].size()<=10){
+                if(valid_cells[i].size()<=1000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost, false, best_ub);
                     models.push_back(m);
                     pos_vec.push_back(i);
@@ -19452,7 +19452,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi1.size()<<endl);
             if(valid_cells[i+1].size()> nd){
-                if(valid_cells[i+1].size()<=10){
+                if(valid_cells[i+1].size()<=1000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost1, false, best_ub);
                         models.push_back(m);
                         pos_vec.push_back(i+1);
