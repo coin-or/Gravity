@@ -714,6 +714,38 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
             _name = name;
         }
         
+        template <typename T>
+        param<T> get_param(const string& vname) const{
+            auto it = _params_name.find(vname);
+            if (it==_params_name.end()) {
+                throw invalid_argument("In function: Model::get_param(const string& vname) const, unable to find parameter with given name");
+            }
+            auto v = dynamic_pointer_cast<param<T>>(it->second);
+            if(v){
+                return *v;
+            }
+            throw invalid_argument("In function: Model::get_param<T>(const string& vname) const, cannot cast parameter, make sure to use the right numerical type T");
+        }
+        
+        template <typename T>
+        void add_param(param<T>& v){//Add variables by copy
+            auto name = v._name.substr(0,v._name.find_first_of("."));
+            //            auto name = v._name;
+            v._name = name;
+            if (_params_name.count(v._name)==0) {
+                v.set_id(_nb_params);
+                v.set_vec_id(_params.size());
+                shared_ptr<param_> newv;
+                newv = v.pcopy();
+                _params_name[name] = newv;
+                _params[_params.size()] = newv;
+                _nb_params += v.get_dim();
+            }
+            else {
+                throw invalid_argument("adding param with same name, please rename: " + v._name);
+            }
+        }
+        
         void add_var(const shared_ptr<param_>& v){
             switch (v->get_intype()) {
                 case binary_:
