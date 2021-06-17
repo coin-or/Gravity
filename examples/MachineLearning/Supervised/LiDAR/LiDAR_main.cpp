@@ -7256,7 +7256,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
         angleij_rot=(rot_x_min.from(angle_cells)+rot_x_min.to(angle_cells))*(rot_x_max.from(angle_cells)+rot_x_max.to(angle_cells));
         angleij_rot+=(rot_y_min.from(angle_cells)+rot_y_min.to(angle_cells))*(rot_y_max.from(angle_cells)+rot_y_max.to(angle_cells));
         angleij_rot+=(rot_z_min.from(angle_cells)+rot_z_min.to(angle_cells))*(rot_z_max.from(angle_cells)+rot_z_max.to(angle_cells));
-        angleij_rot+=pow(x1.from(angle_cells)+x1.to(angle_cells),2)+pow(y1.from(angle_cells)+y1.to(angle_cells),2)+pow(z1.from(angle_cells)+z1.to(angle_cells),2);
+        angleij_rot+=pow((x1.from(angle_cells)+x1.to(angle_cells)),2)+pow((y1.from(angle_cells)+y1.to(angle_cells)),2)+pow((z1.from(angle_cells)+z1.to(angle_cells)),2);
         angleij_rot-=(rotx.from(angle_cells)+rotx.to(angle_cells))*(rot_x_min.from(angle_cells)+rot_x_min.to(angle_cells)+rot_x_max.from(angle_cells)+rot_x_max.to(angle_cells));
         angleij_rot-=(roty.from(angle_cells)+roty.to(angle_cells))*(rot_y_min.from(angle_cells)+rot_y_min.to(angle_cells)+rot_y_max.from(angle_cells)+rot_y_max.to(angle_cells));
         angleij_rot-=(rotz.from(angle_cells)+rotz.to(angle_cells))*(rot_z_min.from(angle_cells)+rot_z_min.to(angle_cells)+rot_z_max.from(angle_cells)+rot_z_max.to(angle_cells));
@@ -14552,7 +14552,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                             box_new_i.push_back(v);
                         }
                         else{
-                            DebugOn("Failed to find vertex "<<endl);
+                            DebugOn("Failed to find vertex in prep "<<endl);
                         }
                         if(vertex_found && vertex_found_k){
                             vertex_found_k=true;
@@ -14719,7 +14719,7 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
                         }
                     }
                     else{
-                        DebugOn("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
+                        DebugOff("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
                     }
                 }
             }
@@ -14806,7 +14806,7 @@ vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces,
             throw invalid_argument("Vertex enumeration did not make 3D vertices");
         }
         if(G->rowsize==0){
-            DebugOn("Vertex enumeration Failed to find vertices");
+            DebugOn("Vertex enumeration Failed to find vertices"<<endl);
             status=false;
         }
         res.resize(G->rowsize);
@@ -14826,7 +14826,7 @@ vector<vector<double>> vertex_enumeration_cdd(vector<vector<double>> halfspaces,
         dd_free_global_constants();
     }
     else{
-        DebugOn("Vertex Enumeration Failed");
+        DebugOn("Vertex Enumeration Failed in cdd"<<endl);
         status=false;
     }
     return (res);
@@ -19286,8 +19286,8 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 10;
-    double max_time_init=10;
+    double max_time = 20;
+    double max_time_init=20;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
@@ -19476,7 +19476,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
             if(valid_cells[i].size()> nd){
-                if(valid_cells[i].size()<=1000){
+                if(valid_cells[i].size()<=100000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost, false, best_ub);
                     models.push_back(m);
                     pos_vec.push_back(i);
@@ -19517,7 +19517,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi1.size()<<endl);
             if(valid_cells[i+1].size()> nd){
-                if(valid_cells[i+1].size()<=1000){
+                if(valid_cells[i+1].size()<=100000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost1, false, best_ub);
                         models.push_back(m);
                         pos_vec.push_back(i+1);
@@ -19579,13 +19579,13 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
             break;
         }
         DebugOn("models size "<<models.size()<<endl);
-        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time, (best_ub));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
                 for (int j = 0; j<models.size(); j++) {
                     int pos=pos_vec[j];
                     if(models[j]->_status==0){
                         ub_ = models[j]->get_obj_val();
                         
-                        lb = std::max(models[j]->get_rel_obj_val()-1e-4, best_lb);
+                        lb = std::max(models[j]->get_rel_obj_val(), best_lb);
                         if(lb<=best_ub)
                         {
                             if(lb<=best_lb)
@@ -19751,7 +19751,7 @@ vector<double> BranchBound10(vector<vector<double>>& point_cloud_model, vector<v
     double max_incr=0, max_ratio=1;
     int thread_half=nb_threads/2;
     int imax=(nb_threads-2);
-    int test_ub=50;
+    int test_ub=10;
     
     best_ub=12.0;
     
