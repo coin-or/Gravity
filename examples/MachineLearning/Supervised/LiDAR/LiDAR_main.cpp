@@ -21380,7 +21380,7 @@ vector<double> BranchBound11(vector<vector<double>>& point_cloud_model, vector<v
     DebugOn("tz "<<best_rot_trans[11]<<endl);
     return best_rot_trans;
 }
-void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data){
+void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model,  vector<pair<double, double>>& min_max_d){
     vector<double> rot_trans_ub;
     vector<int> new_matching(point_cloud_data.size());
     vector<double> res(point_cloud_data.size());
@@ -21410,6 +21410,13 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                     best_ub=L2erri;
                     best_rot_trans=rot_trans_ub;
                     DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+                    double bub_sq_root=sqrt(best_ub);
+                    min_max_d[0].first=std::max(min_max_model[0].first-bub_sq_root, -1.0);
+                    min_max_d[0].second=std::min(min_max_model[0].second+bub_sq_root, 1.0);
+                    min_max_d[1].first=std::max(min_max_model[1].first-bub_sq_root, -1.0);
+                    min_max_d[1].second=std::min(min_max_model[1].second+bub_sq_root, 1.0);
+                    min_max_d[2].first=std::max(min_max_model[2].first-bub_sq_root, -1.0);
+                    min_max_d[2].second=std::min(min_max_model[2].second+bub_sq_root,1.0);
                 }
             }
         }
