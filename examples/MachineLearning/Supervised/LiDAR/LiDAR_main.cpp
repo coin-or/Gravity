@@ -15759,10 +15759,9 @@ indices preprocess_poltyope_cdd_gjk_bounds(const vector<vector<double>>& point_c
     
     min_cost_sum=0.0;
     
-    bool feas=true;
+   
     bool found_all=true;
-    feas=true;
-    if(feas){
+ 
         
         var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
         
@@ -16258,7 +16257,7 @@ indices preprocess_poltyope_cdd_gjk_bounds(const vector<vector<double>>& point_c
         else{
             DebugOff("Number of valid cells = " << 0 << endl);
         }
-    }
+    
     //  DebugOn("Number of discarded pairs by inner sphere test = " << new_test << endl);
     //    valid_cells.print();
     //        time_end = get_wall_time();
@@ -16279,6 +16278,7 @@ indices preprocess_poltyope_cdd_gjk_bounds(const vector<vector<double>>& point_c
     if(found_all){
         min_cost_sum=std::max(min_cost_sum-1e-4,0.0);
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
+        DebugOn("min cost cij "<< (min_sum_di_sq-cu_sum+shift_mag_min*point_cloud_data.size())<<endl);
         return valid_cells;
     }
     else{
