@@ -20553,7 +20553,7 @@ vector<double> BranchBound12(GoICP& goicp, vector<vector<double>>& point_cloud_m
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi.size()<<endl);
             if(valid_cells[i].size()> nd){
-                if(valid_cells[i].size()<=100000){
+                if(valid_cells[i].size()<=8000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i], roll_bounds[i].first, roll_bounds[i].second,  pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost, false, best_ub);
                     models.push_back(m);
                     pos_vec.push_back(i);
@@ -20594,7 +20594,7 @@ vector<double> BranchBound12(GoICP& goicp, vector<vector<double>>& point_cloud_m
             depth_vec.push_back(topnode.depth+1);
             DebugOn(vi1.size()<<endl);
             if(valid_cells[i+1].size()> nd){
-                if(valid_cells[i+1].size()<=100000){
+                if(valid_cells[i+1].size()<=8000){
                     auto m = build_linobj_convex(point_cloud_model, point_cloud_data, valid_cells[i+1], roll_bounds[i+1].first, roll_bounds[i+1].second,  pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, rot_trans_temp, false, incompatible_pairs, norm_x, norm_y, norm_z, intercept,init_matching, init_err_per_point,  model_inner_prod_min, model_inner_prod_max, dist_cost1, false, best_ub);
                         models.push_back(m);
                         pos_vec.push_back(i+1);
@@ -20660,7 +20660,7 @@ vector<double> BranchBound12(GoICP& goicp, vector<vector<double>>& point_cloud_m
         }
         DebugOn("upper bound time "<<ut_total<<endl);
         DebugOn("models size "<<models.size()<<endl);
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-4));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
                 for (int j = 0; j<models.size(); j++) {
                     int pos=pos_vec[j];
                     if(models[j]->_status==0){
@@ -20678,16 +20678,16 @@ vector<double> BranchBound12(GoICP& goicp, vector<vector<double>>& point_cloud_m
                                     point_cloud_data_copy=point_cloud_data;
                                     apply_rot_trans(rot_trans, point_cloud_data_copy);
                                     auto L2err=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-                                    if(L2err<=best_ub){
                                     leaf_node=true;
-                                    best_ub=ub_;
-                                    best_rot_trans=rot_trans;
+                                    if(L2err<=best_ub){
+                                        best_ub=ub_;
+                                        best_rot_trans=rot_trans;
                                     }
                                 }
                             }
                         }
                         
-                        lb = std::max(models[j]->get_rel_obj_val()-1e-4, best_lb);
+                        lb = std::max(models[j]->get_rel_obj_val(), best_lb);
                         if(lb<=best_ub)
                         {
                             if(lb<=best_lb)
