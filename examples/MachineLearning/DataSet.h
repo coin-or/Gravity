@@ -14,6 +14,24 @@ using namespace std;
 //using namespace nanoflann;
 
 class UAVPoint;
+class treenode_p
+{
+public:
+    pair<double,double> roll, pitch, yaw, tx, ty, tz;
+    vector<pair<double,double>> min_max_model;
+    double ub = numeric_limits<double>::max(), ub_ = numeric_limits<double>::max(),lb = 0;
+    int depth;
+    gravity::indices valid_cells;
+    bool leaf;
+    friend bool operator < (const struct treenode_p & n1, const struct treenode_p & n2)
+    {
+        if(n1.lb != n2.lb)
+            return n1.lb > n2.lb;
+        else
+            return n1.depth > n2.depth;
+    }
+    treenode_p(const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub, double ub_, int depth, const gravity::indices& valid_cells, bool leaf,vector<pair<double,double>> min_max_model):roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub),ub_(ub_), depth(depth), valid_cells(valid_cells), leaf(leaf), min_max_model(min_max_model){};
+};
 class treenode_m
 {
 public:
