@@ -7,7 +7,6 @@
     //
 
 #include <gravity/solver.h>
-#include <mutex>
 
 #ifdef USE_BONMIN
 #include <coin/BonBonminSetup.hpp>
