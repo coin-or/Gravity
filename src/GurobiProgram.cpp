@@ -45,12 +45,12 @@ public:
         rot_trans.resize(12);
     }
     ~cuts(){
-        DebugOn("soc_viol "<<soc_viol<<endl);
-        DebugOn("soc_found "<<soc_found<<endl);
-        DebugOn("soc_added "<<soc_added<<endl);
-        DebugOn("det_viol "<<det_viol<<endl);
-        DebugOn("det_found "<<det_found<<endl);
-        DebugOn("det_added "<<det_added<<endl);
+        DebugOn("soc_viol "<<soc_viol_user<<endl);
+        DebugOn("soc_found "<<soc_found_user<<endl);
+        DebugOn("soc_added "<<soc_added_user<<endl);
+        DebugOn("det_viol "<<det_viol_user<<endl);
+        DebugOn("det_found "<<det_found_user<<endl);
+        DebugOn("det_added "<<det_added_user<<endl);
 
      
         delete [] x;
@@ -275,7 +275,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-    grb_mod->set(GRB_IntParam_MIPFocus,3);
+    //grb_mod->set(GRB_IntParam_MIPFocus,3);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
