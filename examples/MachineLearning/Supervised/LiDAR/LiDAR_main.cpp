@@ -17490,6 +17490,24 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
     new_ty_max/=ndd;
     new_tz_min/=ndd;
     new_tz_max/=ndd;
+    if(new_tx_min>shift_min_x+1e-3){
+        DebugOn("new tx lb "<new_tx_min<<endl);
+    }
+    if(new_ty_min>shift_min_y+1e-3){
+        DebugOn("new ty lb "<new_ty_min<<endl);
+    }
+    if(new_tz_min>shift_min_z+1e-3){
+        DebugOn("new tz lb "<new_tz_min<<endl);
+    }
+    if(new_tx_max<shift_max_x-1e-3){
+        DebugOn("new tx ub "<new_tx_max<<endl);
+    }
+    if(new_ty_max<shift_max_y-1e-3){
+        DebugOn("new ty ub "<new_ty_max<<endl);
+    }
+    if(new_tz_max<shift_max_z-1e-3){
+        DebugOn("new tz ub "<new_tz_max<<endl);
+    }
     
     //  DebugOn("Number of discarded pairs by inner sphere test = " << new_test << endl);
     //    valid_cells.print();
@@ -22377,14 +22395,14 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 10;
-    double max_time_init=10;
+    double max_time = 30;
+    double max_time_init=30;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
     int infeasible_count=0;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
-    auto nb_threads = std::thread::hardware_concurrency();
+    size_t nb_threads = std::thread::hardware_concurrency();
     //int nb_threads = 1;
     vector<pair<double, double>> min_max_d;
     min_max_d.resize(3);
@@ -22412,7 +22430,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     vector<double> rot_trans_r(12);
    
     vector<double> sol_gur(12);
-    vector<int> pos_vec(nb_threads), pos_vec_new;
+    vector<int> pos_vec;
     vector<double> vec_lb;
     vector<treenode_p> vec_node;
     vector<bool> m_vec;
@@ -22446,7 +22464,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     lb_queue.push(treenode_p(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, ub, ub_, depth_r, valid_cells_r, false, newmm_r));
     double max_incr=0, max_ratio=1;
     int nb_threads_half=nb_threads/2;
-    int test_ub=1;
+    int test_ub=10;
     treenode_p topnode=lb_queue.top();
     
     int max_cell_size=15000;
@@ -22459,12 +22477,22 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     double opt_gap = (best_ub - best_lb)/best_ub;
     double max_opt_gap = 0.01;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
-    double eps=0.01;
+    double eps=0.001;
     int prep_count=0;
     double ut_total=0;
     while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
+        if(opt_gap_old-opt_gap <= eps){
+            max_time=std::min(max_time*2, 120.0);
+            max_time_increase=true;
+        }
+        if(opt_gap_old-opt_gap > eps && max_time_increase){
+            max_time=std::max(max_time/2.0, max_time_init);
+            if(max_time==max_time_init){
+                max_time_increase=false;
+            }
+        }
         opt_gap_old=opt_gap;
         DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);
         DebugOn("Best LB so far = " << to_string_with_precision(best_lb,9) << endl);
@@ -22622,8 +22650,6 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
             if(lb_queue.empty()){
                 break;
             }
-            
-            i+=2;
             topnode = lb_queue.top();
             DebugOff("lb "<<topnode.lb<<" ub "<<topnode.ub<<" size "<< models.size()<<endl);
             DebugOff("models.s "<<models.size()<<endl);
@@ -22757,7 +22783,6 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
     int num=vec_node.size();
     if(num==0){
         DebugOff("in run_parallel(models...), models is empty, returning");
-        return -1;
     }
     vector<param<double>> vec_dist_cost;
     for(auto i=0;i<num;i++){
