@@ -477,7 +477,7 @@ int main (int argc, char * argv[])
         }
         //input
         double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
-        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+        double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
         vector<pair<double, double>> min_max_d;
         double best_ub;
         vector<double> best_rot_trans;
