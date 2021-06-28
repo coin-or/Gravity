@@ -45,12 +45,12 @@ public:
         rot_trans.resize(12);
     }
     ~cuts(){
-        DebugOn("soc_viol "<<soc_viol_user<<endl);
-        DebugOn("soc_found "<<soc_found_user<<endl);
-        DebugOn("soc_added "<<soc_added_user<<endl);
-        DebugOn("det_viol "<<det_viol_user<<endl);
-        DebugOn("det_found "<<det_found_user<<endl);
-        DebugOn("det_added "<<det_added_user<<endl);
+        DebugOff("soc_viol "<<soc_viol_user<<endl);
+        DebugOff("soc_found "<<soc_found_user<<endl);
+        DebugOff("soc_added "<<soc_added_user<<endl);
+        DebugOff("det_viol "<<det_viol_user<<endl);
+        DebugOff("det_found "<<det_found_user<<endl);
+        DebugOff("det_added "<<det_added_user<<endl);
 
      
         delete [] x;
@@ -111,7 +111,7 @@ protected:
                                     expr += res[i][j+1]*vars[c];
                                 }
                                 expr+=res[i][j];
-                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                addCut(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
                         }
@@ -271,7 +271,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
     grb_mod->set(GRB_IntParam_Threads, 1);
-    grb_mod->set(GRB_IntParam_OutputFlag,1);
+    grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
@@ -279,7 +279,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
-    cut_off=0.0973;
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){

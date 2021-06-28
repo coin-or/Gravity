@@ -17450,12 +17450,12 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         }
         vector<pair<double, double>> new_min_max_i;
         new_min_max_i.resize(3);
-        new_min_max_i[0].first=xm_min;
-        new_min_max_i[0].second=xm_max;
-        new_min_max_i[1].first=ym_min;
-        new_min_max_i[1].second=ym_max;
-        new_min_max_i[2].first=zm_min;
-        new_min_max_i[2].second=zm_max;
+        new_min_max_i[0].first=xm_min-ub_root;
+        new_min_max_i[0].second=xm_max+ub_root;
+        new_min_max_i[1].first=ym_min-ub_root;
+        new_min_max_i[1].second=ym_max+ub_root;
+        new_min_max_i[2].first=zm_min-ub_root;
+        new_min_max_i[2].second=zm_max+ub_root;
         new_min_max_each_d.push_back(new_min_max_i);
         new_tx_min+=xm_min;
         new_tx_max+=xm_max;
@@ -22421,16 +22421,17 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     size_t nb_threads = std::thread::hardware_concurrency();
     //int nb_threads = 1;
+    double ub_root=sqrt(best_ub);
     vector<vector<pair<double, double>>> min_max_each_d;
     vector<vector<pair<double, double>>> new_min_max_each_d;
     vector<pair<double, double>> min_max_d;
     min_max_d.resize(3);
-    min_max_d[0].first=-1;
-    min_max_d[0].second=1;
-    min_max_d[1].first=-1;
-    min_max_d[1].second=1;
-    min_max_d[2].first=-1;
-    min_max_d[2].second=1;
+    min_max_d[0].first=std::max(min_max_model[0].first-ub_root, -1.0);
+    min_max_d[0].second=std::min(min_max_model[0].second+ub_root, 1.0);
+    min_max_d[1].first=std::max(min_max_model[1].first-ub_root, -1.0);
+    min_max_d[1].second=std::min(min_max_model[1].second+ub_root, 1.0);
+    min_max_d[2].first=std::max(min_max_model[2].first-ub_root, -1.0);
+    min_max_d[2].second=std::min(min_max_model[2].second+ub_root, 1.0);
     for(auto i=0;i<nd;i++){
         min_max_each_d.push_back(min_max_d);
     }
@@ -22795,7 +22796,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         }
                     }
                 }
-                else{
+                if(!leaf_node){
                     lb = std::max(models[j]->get_rel_obj_val(), vec_lb[pos]);
                 }
                 if(lb<=best_ub)
