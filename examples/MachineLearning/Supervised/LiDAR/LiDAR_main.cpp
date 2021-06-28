@@ -22412,8 +22412,8 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 30;
-    double max_time_init=30;
+    double max_time = 10;
+    double max_time_init=10;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
