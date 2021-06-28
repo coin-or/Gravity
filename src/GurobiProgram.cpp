@@ -111,7 +111,7 @@ protected:
                                     expr += res[i][j+1]*vars[c];
                                 }
                                 expr+=res[i][j];
-                                addLazy(expr, GRB_LESS_EQUAL, 0);
+                                addCut(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
                         }
