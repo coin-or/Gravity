@@ -111,7 +111,7 @@ protected:
                                     expr += res[i][j+1]*vars[c];
                                 }
                                 expr+=res[i][j];
-                                addCut(expr, GRB_LESS_EQUAL, 0);
+                                addLazy(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
                         }
@@ -270,13 +270,12 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
-    grb_mod->set(GRB_DoubleParam_Cutoff,0.0938186);
     grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-    //grb_mod->set(GRB_IntParam_MIPFocus,-1);
+    grb_mod->set(GRB_IntParam_MIPFocus,3);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
