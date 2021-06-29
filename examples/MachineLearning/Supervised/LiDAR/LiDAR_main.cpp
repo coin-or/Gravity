@@ -22539,7 +22539,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int test_ub=10;
     treenode_p topnode=lb_queue.top();
     
-    for(auto i=0;i<100;i+=2){
+    for(auto i=0;i<nb_threads;i+=2){
         DebugOff("entered loop "<<i<<endl);
         topnode=lb_queue.top();
         lb_queue.pop();
