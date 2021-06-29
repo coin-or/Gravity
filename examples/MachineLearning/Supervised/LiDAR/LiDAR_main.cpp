@@ -551,22 +551,22 @@ int main (int argc, char * argv[])
                 if(ip<=model_ip_min){
                     model_ip_min=ip;
                 }
-                if(xmin<=vertices[0]){
+                if(vertices[0]<=xmin){
                     xmin=vertices[0];
                 }
-                if(xmax>=vertices[0]){
+                if(vertices[0]>=xmax){
                     xmax=vertices[0];
                 }
-                if(ymin<=vertices[1]){
+                if(vertices[1]<=ymin){
                     ymin=vertices[1];
                 }
-                if(ymax>=vertices[1]){
+                if(vertices[1]>=ymax){
                     ymax=vertices[1];
                 }
-                if(zmin<=vertices[2]){
+                if(vertices[2]<=zmin){
                     zmin=vertices[2];
                 }
-                if(zmax>=vertices[2]){
+                if(vertices[2]>=zmax){
                     zmax=vertices[2];
                 }
                 model_voronoi_vertices[idx][i]=vertices;
@@ -22539,7 +22539,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int test_ub=10;
     treenode_p topnode=lb_queue.top();
     
-    for(auto i=0;i<nb_threads;i+=2){
+    for(auto i=0;i<100;i+=2){
         DebugOff("entered loop "<<i<<endl);
         topnode=lb_queue.top();
         lb_queue.pop();
