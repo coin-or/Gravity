@@ -945,7 +945,7 @@ int main (int argc, char * argv[])
                 vector<vector<pair<double, double>>> min_max_each_do, nmdo;
                 vector<vector<pair<double, double>>> new_min_max_each_do;
                 vector<pair<double, double>> min_max_do;
-                double ub_root=0.09722;
+                double ub_root=sqrt(best_ub/2.0);
                 min_max_do.resize(3);
                 min_max_do[0].first=std::max(min_max_model[0].first-ub_root, -1.0);
                 min_max_do[0].second=std::min(min_max_model[0].second+ub_root, 1.0);
@@ -953,10 +953,10 @@ int main (int argc, char * argv[])
                 min_max_do[1].second=std::min(min_max_model[1].second+ub_root, 1.0);
                 min_max_do[2].first=std::max(min_max_model[2].first-ub_root, -1.0);
                 min_max_do[2].second=std::min(min_max_model[2].second+ub_root, 1.0);
-                for(auto i=0;i<73;i++){
+                for(auto i=0;i<point_cloud_data.size();i++){
                     min_max_each_do.push_back(min_max_do);
                 }
-                preprocess_poltyope_cdd_gjk_centroid( point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x,  shift_max_x,shift_min_y, shift_max_y,  shift_min_z,  shift_max_z,  min_max_each_do, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  dist_cost, 0.09722, 0,  min_cost_sum, valid_cells_new,  new_shift_min_x,  new_shift_max_x,new_shift_min_y, new_shift_max_y, new_shift_min_z,  new_shift_max_z, nmdo, prep_time_total, model_voronoi_min_max);
+                preprocess_poltyope_cdd_gjk_centroid( point_cloud_data,  point_cloud_model, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x,  shift_max_x,shift_min_y, shift_max_y,  shift_min_z,  shift_max_z,  min_max_each_do, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  dist_cost, best_ub, 0,  min_cost_sum, valid_cells_new,  new_shift_min_x,  new_shift_max_x,new_shift_min_y, new_shift_max_y, new_shift_min_z,  new_shift_max_z, nmdo, prep_time_total, model_voronoi_min_max);
                 
                 //valid_cells1.print();
                 DebugOn(valid_cells.size()<<endl);
@@ -6873,6 +6873,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         auto z_range  = get_product_range(z1_bounds, theta13._range);
         *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_x, min_max_i[0].second)};
         if(new_x1_bounds->first>=new_x1_bounds->second-1e-8){
+            DebugOn("model infeasible in creation "<<endl);
             found_all=false;
             break;
         }
@@ -6883,6 +6884,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         z_range  = get_product_range(z1_bounds, theta23._range);
         *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_y, min_max_i[1].second)};
         if(new_y1_bounds->first>=new_y1_bounds->second-1e-8){
+            DebugOn("model infeasible in creation "<<endl);
             found_all=false;
             break;
         }
@@ -6894,6 +6896,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         *new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_z, min_max_i[2].second)};
         if(new_z1_bounds->first>=new_z1_bounds->second-1e-8){
             found_all=false;
+            DebugOn("model infeasible in creation "<<endl);
             break;
         }
         z_lb.push_back(new_z1_bounds->first);
@@ -6965,53 +6968,53 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         }
     }
     
-    indices dist_cells=indices("dist_cells");
-    vector<int> dist_matched;
-    for(auto i=0;i<nd;i++){
-        double dmaxij=-999.0;
-        int dpos=0;
-        auto x1=point_cloud_data.at(i)[0];
-        auto y1=point_cloud_data.at(i)[1];
-        auto z1=point_cloud_data.at(i)[2];
-        if (std::find (dist_matched.begin(), dist_matched.end(), i)==dist_matched.end()){
-            for(auto j=i+1;j<nd;j++){
-                auto x2=point_cloud_data.at(j)[0];
-                auto y2=point_cloud_data.at(j)[1];
-                auto z2=point_cloud_data.at(j)[2];
-                auto dij=pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2);
-                if(dij>=dmaxij){
-                    dmaxij=dij;
-                    dpos=j;
-                }
-            }
-            dist_matched.push_back(dpos);
-            dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
-        }
-    }
-    
-    indices angle_cells=indices("angle_cells");
-    vector<int> angle_matched;
-    for(auto i=0;i<nd;i++){
-        double amaxij=99999.0;
-        int apos=0;
-        auto x1p=point_cloud_data.at(i)[0];
-        auto y1p=point_cloud_data.at(i)[1];
-        auto z1p=point_cloud_data.at(i)[2];
-        if (std::find (angle_matched.begin(), angle_matched.end(), i)==angle_matched.end()){
-            for(auto j=i+1;j<nd;j++){
-                auto x2p=point_cloud_data.at(j)[0];
-                auto y2p=point_cloud_data.at(j)[1];
-                auto z2p=point_cloud_data.at(j)[2];
-                auto aij=x1p*x2p+y1p*y2p+z1p*z2p;
-                if(aij<=amaxij){
-                    amaxij=aij;
-                    apos=j;
-                }
-            }
-            angle_matched.push_back(apos);
-            angle_cells.insert(to_string(i+1)+","+to_string(apos+1));
-        }
-    }
+//    indices dist_cells=indices("dist_cells");
+//    vector<int> dist_matched;
+//    for(auto i=0;i<nd;i++){
+//        double dmaxij=-999.0;
+//        int dpos=0;
+//        auto x1=point_cloud_data.at(i)[0];
+//        auto y1=point_cloud_data.at(i)[1];
+//        auto z1=point_cloud_data.at(i)[2];
+//        if (std::find (dist_matched.begin(), dist_matched.end(), i)==dist_matched.end()){
+//            for(auto j=i+1;j<nd;j++){
+//                auto x2=point_cloud_data.at(j)[0];
+//                auto y2=point_cloud_data.at(j)[1];
+//                auto z2=point_cloud_data.at(j)[2];
+//                auto dij=pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2);
+//                if(dij>=dmaxij){
+//                    dmaxij=dij;
+//                    dpos=j;
+//                }
+//            }
+//            dist_matched.push_back(dpos);
+//            dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
+//        }
+//    }
+//
+//    indices angle_cells=indices("angle_cells");
+//    vector<int> angle_matched;
+//    for(auto i=0;i<nd;i++){
+//        double amaxij=99999.0;
+//        int apos=0;
+//        auto x1p=point_cloud_data.at(i)[0];
+//        auto y1p=point_cloud_data.at(i)[1];
+//        auto z1p=point_cloud_data.at(i)[2];
+//        if (std::find (angle_matched.begin(), angle_matched.end(), i)==angle_matched.end()){
+//            for(auto j=i+1;j<nd;j++){
+//                auto x2p=point_cloud_data.at(j)[0];
+//                auto y2p=point_cloud_data.at(j)[1];
+//                auto z2p=point_cloud_data.at(j)[2];
+//                auto aij=x1p*x2p+y1p*y2p+z1p*z2p;
+//                if(aij<=amaxij){
+//                    amaxij=aij;
+//                    apos=j;
+//                }
+//            }
+//            angle_matched.push_back(apos);
+//            angle_cells.insert(to_string(i+1)+","+to_string(apos+1));
+//        }
+//    }
     
     auto ids1 = theta11.repeat_id(N1.size());
     Constraint<> Def_newxm("Def_newxm");
@@ -7053,20 +7056,20 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
 //    sum_rotz = sum(rotzt);
 //    Reg->add(sum_rotz==nd*z_shift);
     
-    //auto ids1 = theta11.repeat_id(N1.size());
+    auto ids2 = x_shift.repeat_id(N1.size());
     Constraint<> x_rot1("x_rot1");
     x_rot1 += rotxt;
-    x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1)+x_shift;
+    x_rot1 -= x1.in(N1)*theta11.in(ids1) + y1.in(N1)*theta12.in(ids1) + z1.in(N1)*theta13.in(ids1)+x_shift.in(ids2);
     Reg->add(x_rot1.in(N1)==0);
     
     Constraint<> y_rot1("y_rot1");
     y_rot1 += rotyt;
-    y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1)+y_shift;
+    y_rot1 -= x1.in(N1)*theta21.in(ids1) + y1.in(N1)*theta22.in(ids1) + z1.in(N1)*theta23.in(ids1)+y_shift.in(ids2);
     Reg->add(y_rot1.in(N1)==0);
     
     Constraint<> z_rot1("z_rot1");
     z_rot1 += rotzt;
-    z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1)+z_shift;
+    z_rot1 -= x1.in(N1)*theta31.in(ids1) + y1.in(N1)*theta32.in(ids1) + z1.in(N1)*theta33.in(ids1)+z_shift.in(ids2);
     Reg->add(z_rot1.in(N1)==0);
     
     Constraint<> Def_deltax("Def_deltax");
@@ -23147,7 +23150,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int test_ub=10;
     treenode_p topnode=lb_queue.top();
     
-    for(auto i=0;i<100;i+=2){
+    for(auto i=0;i<nb_threads;i+=2){
         DebugOff("entered loop "<<i<<endl);
         topnode=lb_queue.top();
         lb_queue.pop();
