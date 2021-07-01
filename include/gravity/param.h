@@ -1008,12 +1008,20 @@ namespace gravity {
 
             if (_indices && _indices->_type==matrix_) {
                 if (_indices->_ids->size() <= i) {
+                    DebugOn("_indices->_name "<< _indices->get_name()<<" ");
+                    DebugOn("i,j "<< i <<" "<<j<<endl);
+                    DebugOn("_indices->_ids->size()"<<_indices->_ids->size()<<endl);
                     throw invalid_argument("eval(i,j): out of range");
                 }
                 if (_indices->_ids->at(i).size()<=j){
                     return 0;
                 }
                 if (_indices->_ids->at(i).at(j) >= _val->size()) {
+                    DebugOn("_indices->_name "<< _indices->get_name()<<" ");
+                    DebugOn("i,j "<< i <<" "<<j<<endl);
+                    DebugOn("_indices->_ids->size()" <<_indices->_ids->size()<<endl);
+                    DebugOn("_val->size() "<<_val->size()<<endl);
+                    DebugOn("_indices->_ids->at(i).at(j) "<<_indices->_ids->at(i).at(j)<<endl);
                     throw invalid_argument("eval(i,j): out of range");
                 }
                 return _val->at(_indices->_ids->at(i).at(j));
