@@ -48,6 +48,9 @@ option(QHULL "Link to QHULL libraries" OFF)
 # Find VORO (REQUIRED)
 option(VORO "Link to VORO libraries" ON)
 
+# Find Eigen3 (optional)
+#option(Eigen3 "Link to Eigen3 libraries" OFF)
+
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
 
@@ -116,6 +119,14 @@ if (GJK)
         include_directories(${GJK_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${GJK_LIBRARIES})
 endif()
+
+# Find Eigen3.
+#if (Eigen3)
+ #       message(STATUS "Enable Eigen3")
+  #      add_definitions(-DUSE_EIGEN3)
+   #     find_package(Eigen3 REQUIRED)
+    #    include_directories(${EIGEN3_INCLUDE_DIRS})
+#endif()
 
 
 

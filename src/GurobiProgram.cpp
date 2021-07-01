@@ -271,7 +271,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
     grb_mod->set(GRB_IntParam_Threads, 1);
-    grb_mod->set(GRB_IntParam_OutputFlag,0);
+    grb_mod->set(GRB_IntParam_OutputFlag,1);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
@@ -279,6 +279,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
+    cut_off=0.0972224207;
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){
@@ -432,8 +433,8 @@ void GurobiProgram::fill_in_grb_vmap(){
                     auto vid = idx + i;
                     if(real_var->_is_relaxed){
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                        _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
-                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
+                        //_grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                        //_grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
@@ -446,9 +447,13 @@ void GurobiProgram::fill_in_grb_vmap(){
                 auto real_var = (var<int>*)v;
                 for (int i = 0; i < real_var->_dim[0]; i++) {
                     auto vid = idx + i;
-                    _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_INTEGER, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                    _grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
-                    _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
+                    //if(i<=500){
+                    _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_BINARY, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+//                    }else{
+//                        _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
+//                    }
+                    //_grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                    //_grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, real_var->_priority);/* branching priority for integers */
                 }
                 break;
             }
