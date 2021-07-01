@@ -477,10 +477,10 @@ int main (int argc, char * argv[])
             point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
         }
         //input
-//        double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
-//        double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
-        double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
-        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+        double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
+        double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
+//        double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
+//        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
         vector<pair<double, double>> min_max_d;
         double best_ub;
         vector<double> best_rot_trans;
@@ -23653,7 +23653,7 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                     DebugOn("tx "<<rot_trans_ub[9]<<endl);
                     DebugOn("ty "<<rot_trans_ub[10]<<endl);
                     DebugOn("tz "<<rot_trans_ub[11]<<endl);
-                    double bub_sq_root=sqrt(best_ub);
+                    double bub_sq_root=sqrt(best_ub/2.0);
                     min_max_d.resize(3);
                     min_max_d[0].first=std::max(min_max_model[0].first-bub_sq_root, -1.0);
                     min_max_d[0].second=std::min(min_max_model[0].second+bub_sq_root, 1.0);
