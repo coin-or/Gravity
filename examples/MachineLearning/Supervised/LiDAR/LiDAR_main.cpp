@@ -1040,7 +1040,7 @@ int main (int argc, char * argv[])
             bool relax_integers = false, relax_sdp = false, rigid_transf = true;
             vector<int> init_matching;
             vector<double> error_per_point;
-            //auto result=BranchBound11(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max);
+            auto result=BranchBound11(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max);
             //            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
             //            vector<double> rt(12);
             //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
@@ -1071,12 +1071,12 @@ int main (int argc, char * argv[])
             //            vector<int> matching(point_cloud_model.size());
             //
             //            dist_cost.print();
-            vector<vector<pair<double, double>>> min_max_dg;
-            auto SOC_MIP = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_new, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, dist_cost, 0.09722, nmdo);
-            SOC_MIP->print();
-            solver<> S1(SOC_MIP,gurobi);
-                        //S1.use_callback();
-            S1.run(5,1e-4);
+//            vector<vector<pair<double, double>>> min_max_dg;
+//            auto SOC_MIP = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_new, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, dist_cost, 0.09722, nmdo);
+//            SOC_MIP->print();
+//            solver<> S1(SOC_MIP,gurobi);
+//                        //S1.use_callback();
+//            S1.run(5,1e-4);
             
             
             //auto SOC_MIPlin = build_polyhedral(point_cloud_model, point_cloud_data, valid_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, rot_trans, separate=false, incompatibles, norm_x, norm_y, norm_z, intercept,L2matching, L2err_per_point,  model_voronoi_normals,  model_face_intercept, false);
