@@ -27,6 +27,10 @@
 #include <set>
 #include <future>
 #include <thread>
+#ifdef USE_EIGEN3
+//#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
+#include <Eigen/Dense>
+#endif
 //#include <tclap/CmdLine.h>
 //#include <sqlite3.h>
 
@@ -465,8 +469,15 @@ int main (int argc, char * argv[])
 #ifdef USE_QHULL
         min_max_t=get_translation_bounds(min_max_model, pcd);
 #endif
-        
-        
+         Eigen::Matrix3f A;
+   Eigen::Vector3f b;
+   A << 1,2,3,  4,5,6,  7,8,10;
+   b << 3, 3, 4;
+        Eigen::Vector3f xs = A.fullPivLu().solve(b);
+        double relative_error = (A*xs - b).norm() / b.norm(); // norm() is L2 norm
+        DebugOn("error "<<relative_error<<endl);
+        DebugOn("error "<<(A*xs - b).norm()<<endl);
+        DebugOn(xs[0]<<endl);
         int reduced_nb_data = 50;
         int reduced_nb_model = 200;
         bool subsample = false;
@@ -16439,11 +16450,8 @@ indices preprocess_poltyope_cdd_gjk(const vector<vector<double>>& point_cloud_da
             auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
             min_cost_i.push_back(costmin);
             min_cost_sum+=costmin;
-            if(min_cost_sum-1e-4>upper_bound){
-                DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
+            if(min_cost_sum-1e-4>upper_bound)
                 found_all=false;
-                break;
-            }
             box_i.clear();
             feas.clear();
             inf.clear();
@@ -23184,16 +23192,34 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
         pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
         yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
         if(max_incr==x_shift_increment){
+            if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
+                shift_x_bounds[i] = {topnode.tx.first, 0};
+                shift_x_bounds[i+1] = {0, topnode.tx.second};
+            }
+            else{
             shift_x_bounds[i] = {topnode.tx.first, topnode.tx.first+x_shift_increment};
             shift_x_bounds[i+1] = {topnode.tx.first+x_shift_increment, topnode.tx.second};
+            }
         }
         else if(max_incr==y_shift_increment){
+            if(topnode.ty.first<=-0.1 && topnode.ty.second>=0.1){
+                shift_y_bounds[i] = {topnode.ty.first, 0};
+                shift_y_bounds[i+1] = {0, topnode.ty.second};
+            }
+            else{
             shift_y_bounds[i] = {topnode.ty.first, topnode.ty.first+y_shift_increment};
             shift_y_bounds[i+1] = {topnode.ty.first+y_shift_increment, topnode.ty.second};
+            }
         }
         else if(max_incr==z_shift_increment){
+            if(topnode.tz.first<=-0.1 && topnode.tz.second>=0.1){
+                shift_z_bounds[i] = {topnode.tz.first, 0};
+                shift_z_bounds[i+1] = {0, topnode.tz.second};
+            }
+            else{
             shift_z_bounds[i] = {topnode.tz.first, topnode.tz.first+z_shift_increment};
             shift_z_bounds[i+1] = {topnode.tz.first+z_shift_increment, topnode.tz.second};
+            }
         }
         else if(max_incr==roll_increment){
             roll_bounds[i] = {topnode.roll.first, topnode.roll.first+roll_increment};
@@ -23341,18 +23367,36 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                     parent_cells.push_back(topnode.valid_cells);
                     depth_vec.push_back(topnode.depth+1);
                     if(max_incr==x_shift_increment){
+                        if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
+                            shift_x_bounds[i] = {topnode.tx.first, 0};
+                            shift_x_bounds[i+1] = {0, topnode.tx.second};
+                        }
+                        else{
                         shift_x_bounds[i] = {topnode.tx.first, topnode.tx.first+x_shift_increment};
                         shift_x_bounds[i+1] = {topnode.tx.first+x_shift_increment, topnode.tx.second};
+                        }
                         branch2=true;
                     }
                     else if(max_incr==y_shift_increment){
+                        if(topnode.ty.first<=-0.1 && topnode.ty.second>=0.1){
+                            shift_y_bounds[i] = {topnode.ty.first, 0};
+                            shift_y_bounds[i+1] = {0, topnode.ty.second};
+                        }
+                        else{
                         shift_y_bounds[i] = {topnode.ty.first, topnode.ty.first+y_shift_increment};
                         shift_y_bounds[i+1] = {topnode.ty.first+y_shift_increment, topnode.ty.second};
+                        }
                         branch2=true;
                     }
                     else if(max_incr==z_shift_increment){
+                        if(topnode.tz.first<=-0.1 && topnode.tz.second>=0.1){
+                            shift_z_bounds[i] = {topnode.tz.first, 0};
+                            shift_z_bounds[i+1] = {0, topnode.tz.second};
+                        }
+                        else{
                         shift_z_bounds[i] = {topnode.tz.first, topnode.tz.first+z_shift_increment};
                         shift_z_bounds[i+1] = {topnode.tz.first+z_shift_increment, topnode.tz.second};
+                        }
                         branch2=true;
                     }
                     else if(max_incr==roll_increment){
