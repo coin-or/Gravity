@@ -60,9 +60,9 @@ endif()
 
 
 add_library(gravity STATIC ${SOURCES} ${HEADERS})
-if(ADD_EIGEN)
- add_dependencies(gravity eigen)
-endif(ADD_EIGEN)
+#if(ADD_Eigen3)
+ #add_dependencies(gravity eigen)
+#endif(ADD_Eigen3)
 if(ADD_GoICP)
  add_dependencies(gravity GoICP)
 endif(ADD_GoICP)
