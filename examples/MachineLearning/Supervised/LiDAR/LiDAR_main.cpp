@@ -471,16 +471,7 @@ int main (int argc, char * argv[])
 #ifdef USE_QHULL
         min_max_t=get_translation_bounds(min_max_model, pcd);
 #endif
-         Eigen::Matrix3f A;
-   Eigen::Vector3f b;
-   A << 1,2,3,  4,5,6,  7,8,10;
-   b << 3, 3, 4;
-        Eigen::Vector3f xs = A.fullPivLu().solve(b);
-        double relative_error = (A*xs - b).norm() / b.norm(); // norm() is L2 norm
-        DebugOn("error "<<relative_error<<endl);
-        DebugOn("error "<<(A*xs - b).norm()<<endl);
-        DebugOn(xs[0]<<endl);
-        int reduced_nb_data = 50;
+                int reduced_nb_data = 50;
         int reduced_nb_model = 200;
         bool subsample = false;
         if (subsample) {
@@ -500,8 +491,8 @@ int main (int argc, char * argv[])
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
         
 #ifdef USE_VORO
-        //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
-        container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
+        container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
+        //container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
         //container model_con(min_max_d[0].first,min_max_d[0].second,min_max_d[1].first,min_max_d[1].second,min_max_d[2].first,min_max_d[2].second,10,10,10,false,false,false,8);
         //container model_con(x_min,x_max,y_min, y_max, z_min, z_max,10,10,10,false,false,false,8);
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
@@ -840,6 +831,80 @@ int main (int argc, char * argv[])
             //            auto Reg_nc=model_Global_reform(false, "full", point_cloud_model, point_cloud_data, rot_trans, norm1);
             bool separate=true;
             bool linearize=false;
+            int nd=point_cloud_data.size();
+            int nm=point_cloud_model.size();
+            indices dii_in("dii_in");
+            param<double> dii("dii");
+            for(auto i=0;i<nd;i++){
+                for(auto j=0;j<nd;j++){
+                    dii_in.insert(to_string(i+1)+","+ to_string(j+1));
+                }
+            }
+            
+            for(auto i=0;i<nd;i++){
+                dii.add_val(to_string(i+1)+","+to_string(i+1), 0.0);
+                auto xi=point_cloud_data[i][0];
+                auto yi=point_cloud_data[i][1];
+                auto zi=point_cloud_data[i][2];
+                for(auto j=i+1;j<nd;j++){
+                    auto xj=point_cloud_data[j][0];
+                    auto yj=point_cloud_data[j][1];
+                    auto zj=point_cloud_data[j][2];
+                    auto d=pow(xi-xj, 2)+pow(yi-yj, 2)+pow(zi-zj, 2);
+                    dii.add_val(to_string(i+1)+","+ to_string(j+1), d);
+                    dii.add_val(to_string(j+1)+","+ to_string(i+1), d);
+                }
+            }
+            
+            vector<int> max_j(nm);
+            double minxm=100, maxxm=-1, minym=100, maxym=-1, minzm=100, maxzm=-1;
+            int posminx=0, posmaxx=0, posminy=0, posmaxy=0, posminz=0, posmaxz=0;
+            double ub_root=sqrt(best_ub);
+            for(auto j=0;j<nm;j++){
+                auto r=std::min(model_voronoi_out_radius[j], ub_root);
+                auto xj=point_cloud_model[j][0];
+                auto yj=point_cloud_model[j][1];
+                auto zj=point_cloud_model[j][2];
+                vector<int> max_ji(nd, 0);
+                for(auto i=0;i<nd;i++){
+                    for(auto k=0;k<nd;k++){
+                        auto d=dii.eval(to_string(i+1)+","+ to_string(k+1));
+                        if(d<=4*r*r){
+                            max_ji[i]++;
+                        }
+                        else{
+                            DebugOn("catch");
+                        }
+                    }
+                }
+                max_j[j]=*max_element(max_ji.begin(), max_ji.end());
+                if(xj<=minxm){
+                    minxm=xj;
+                    posminx=max_j[j];
+                }
+                if(xj>=maxxm){
+                    maxxm=xj;
+                    posmaxx=max_j[j];
+                }
+                if(yj<=minym){
+                    minym=yj;
+                    posminy=max_j[j];
+                }
+                if(yj>=maxym){
+                    maxym=yj;
+                    posmaxy=max_j[j];
+                }
+                if(zj<=minzm){
+                    minzm=zj;
+                    posminz=max_j[j];
+                }
+                if(zj>=maxzm){
+                    maxzm=zj;
+                    posmaxz=max_j[j];
+                }
+            }
+            
+            
             
             
             double roll_mid = (roll_max + roll_min)/2.;
@@ -959,7 +1024,7 @@ int main (int argc, char * argv[])
                 vector<vector<pair<double, double>>> min_max_each_do, nmdo;
                 vector<vector<pair<double, double>>> new_min_max_each_do;
                 vector<pair<double, double>> min_max_do;
-                double ub_root=sqrt(best_ub/2.0);
+                //double ub_root=sqrt(best_ub);
                 min_max_do.resize(3);
                 min_max_do[0].first=std::max(min_max_model[0].first-ub_root, -1.0);
                 min_max_do[0].second=std::min(min_max_model[0].second+ub_root, 1.0);
@@ -7372,7 +7437,8 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
     Reg->add(T11.in(R(1)),T12.in(R(1)),T13.in(R(1)));
     Reg->add(T21.in(R(1)),T22.in(R(1)),T23.in(R(1)));
     Reg->add(T31.in(R(1)),T32.in(R(1)),T33.in(R(1)));
-    double ub_root=sqrt(ub);
+    double
+    qrt(ub);
     //var<> new_xm("new_xm", ub_root*(-1), ub_root), new_ym("new_ym", ub_root*(-1), ub_root), new_zm("new_zm", ub_root*(-1), ub_root);
     var<> new_xm("new_xm"), new_ym("new_ym"), new_zm("new_zm");
     var<> delta("delta");
@@ -17138,7 +17204,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
     set<int> unique_model_pts;
     vector<double> min_cost_i;
     min_cost_sum=0.0;
-    double ub_root=sqrt(upper_bound/2.0);
+    double ub_root=sqrt(upper_bound);
   
     double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
     double shift_mag_max_root=sqrt(shift_mag_max);
@@ -17749,7 +17815,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     set<int> unique_model_pts;
     vector<double> min_cost_i;
     min_cost_sum=0.0;
-    double ub_root=sqrt(upper_bound/2.0);
+    double ub_root=sqrt(upper_bound);
   
     double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
     double shift_mag_max_root=sqrt(shift_mag_max);
@@ -23116,7 +23182,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
     size_t nb_threads = std::thread::hardware_concurrency();
     //int nb_threads = 1;
-    double ub_root=sqrt(best_ub/2.0);
+    double ub_root=sqrt(best_ub);
     vector<vector<pair<double, double>>> min_max_each_d;
     vector<vector<pair<double, double>>> new_min_max_each_d;
     vector<pair<double, double>> min_max_d;
