@@ -292,6 +292,8 @@ double  maximum_inscribed_sphere_all_points(vector<vector<double>> point_cloud_d
 
 vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_cloud);
 
+bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert);
+
 #ifdef USE_PCL
 /* PCL functions */
 /* Compute fpfh for each point in ext_model */
@@ -18151,8 +18153,8 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
             auto zm= point_cloud_model.at(j)[2];
             auto min_max_voro_j=model_voronoi_min_max[j];
             double cost_alt_j=cost_alt;
-            cost_alt_j+=pow(xm,2)+pow(ym,2)+pow(zm,2);
             double dc_ij=pow(xm,2)+pow(ym,2)+pow(zm,2);
+            cost_alt_j+=dc_ij;
             double max_m_box=-999, max_m_ve=-999;
             for(auto k=0;k<box[i].size();k++){
                 auto xb=box[i][k][0];
@@ -18168,9 +18170,9 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                     dc_ij-=2.0*max_m_box;
                     dist=0.0;
                     if(cost_alt_j>=dist){
-                        DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                        DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                     }
-                   // dist=std::max(dist, cost_alt_j);
+                    dist=std::max(dist, cost_alt_j);
                     res=false;
                     dist_calculated=true;
             }
@@ -18296,9 +18298,9 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                         cost_alt_j-=2.0*max_m_ve;
                         dc_ij-=2.0*max_m_ve;
                         if(cost_alt_j>=dist){
-                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                            DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
-                        //dist=std::max(dist, cost_alt_j);
+                        dist=std::max(dist, cost_alt_j);
                     }
                     else{
                         
@@ -18309,7 +18311,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                         if(cost_alt_j>=dist){
                             DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
-                        //dist=std::max(dist, cost_alt_j);
+                        dist=std::max(dist, cost_alt_j);
                         
 //                        vec_vertex=vertices;
 //                        for(auto k=0;k<box[i].size();k++){
@@ -18394,9 +18396,9 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         dist_alt_cost_sum+=dist_cost_alt_i;
         if(i==nd-1){
             if(dist_alt_cost_sum>=min_cost_sum){
-                DebugOn("alt cost exceeds "<<dist_alt_cost_sum<<" "<<min_cost_sum<<endl);
+                DebugOn("alt cost SUM exceeds "<<dist_alt_cost_sum<<" "<<min_cost_sum<<endl);
             }
-           // min_cost_sum=std::max(min_cost_sum, dist_alt_cost_sum);
+            min_cost_sum=std::max(min_cost_sum, dist_alt_cost_sum);
         }
         if(min_cost_sum-1e-4>upper_bound){
             DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
@@ -24390,9 +24392,9 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
         DebugOn(node.tx.first<<" "<< node.tx.second<<" "<<node.ty.first<<" "<<node.ty.second<<" "<<node.tz.first<<" "<<node.tz.second<<endl);
         DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second<<endl);
         compute_upper_boundICP(goicp, node.roll.first, node.roll.second, node.pitch.first, node.pitch.second, node.yaw.first, node.yaw.second, node.tx.first, node.tx.second, node.ty.first, node.ty.second, node.tz.first, node.tz.second, node.roll.first, node.roll.second, node.pitch.first, node.pitch.second, node.yaw.first, node.yaw.second, node.tx.first, node.tx.second, node.ty.first, node.ty.second, node.tz.first, node.tz.second, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, min_max_model,min_max_d);
-        auto pitchr = atan2(best_rot_trans[7], best_rot_trans[8])*180/pi;
-        auto rollr = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]))*180/pi;
-        auto yawr = atan2(best_rot_trans[3],best_rot_trans[0])*180/pi;
+        auto pitchr = atan2(best_rot_trans[7], best_rot_trans[8]);
+        auto rollr = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
+        auto yawr = atan2(best_rot_trans[3],best_rot_trans[0]);
         if(node.roll.first-1e-3<=rollr && rollr<=node.roll.second+1e-3 && node.pitch.first-1e-3<=pitchr && pitchr<=node.pitch.second+1e-3 && node.yaw.first-1e-3<=yawr && yawr<=node.yaw.second+1e-3 && node.tx.first-1e-3<=best_rot_trans[9] && best_rot_trans[9]<=node.tx.second+1e-3 && node.ty.first-1e-3<=best_rot_trans[10] && best_rot_trans[10]<=node.ty.second+1e-3 && node.tz.first-1e-3<=best_rot_trans[11] && best_rot_trans[11]<=node.tz.second+1e-3){
             DebugOn("True interval contained "<<endl);
         }
