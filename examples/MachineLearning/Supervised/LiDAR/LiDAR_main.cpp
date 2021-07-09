@@ -6952,7 +6952,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-        *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_x, min_max_i[0].second)};
+        *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_x};
         if(new_x1_bounds->first>=new_x1_bounds->second-1e-8){
             DebugOn("model infeasible in creation "<<endl);
             found_all=false;
@@ -6963,7 +6963,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_y, min_max_i[1].second)};
+        *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_y};
         if(new_y1_bounds->first>=new_y1_bounds->second-1e-8){
             DebugOn("model infeasible in creation "<<endl);
             found_all=false;
@@ -6974,7 +6974,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
-        *new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_z, min_max_i[2].second)};
+        *new_z1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + new_shift_min_z, std::min(x_range->second + y_range->second + z_range->second, d_root)+ new_shift_max_z};
         if(new_z1_bounds->first>=new_z1_bounds->second-1e-8){
             found_all=false;
             DebugOn("model infeasible in creation "<<endl);
@@ -17867,11 +17867,6 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     map<int,vector<int>> valid_cells_map;
-    map<int,vector<double>> cu_cells_map;
-    map<int,vector<double>> cl_cells_map;
-    param<double> cu("cu");
-    param<double> cl("cl");
-    double cu_sum=0.0, cl_sum=0.0;
     map<int, vector<double>> dist_cost_map;
     map<int, vector<double>> dist_alt_cost_map;
     double dist_alt_cost_sum=0;
@@ -17960,7 +17955,8 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-        *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
+      //  *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
+        *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x};
         rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_x1_bounds->first>=new_x1_bounds->second-1e-8){
@@ -17972,7 +17968,8 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
+//        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
+        *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y};
         rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_y1_bounds->first>=new_y1_bounds->second-1e-8){
@@ -17984,7 +17981,8 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
-        *new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z, min_max_i[2].second)};
+        //*new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z, min_max_i[2].second)};
+        *new_z1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z};
         rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_z1_bounds->first>=new_z1_bounds->second-1e-8){
@@ -18155,30 +18153,26 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
             double cost_alt_j=cost_alt;
             cost_alt_j+=pow(xm,2)+pow(ym,2)+pow(zm,2);
             double dc_ij=pow(xm,2)+pow(ym,2)+pow(zm,2);
-            double min_m_box=999, min_m_ve=999;
+            double max_m_box=-999, max_m_ve=-999;
             for(auto k=0;k<box[i].size();k++){
                 auto xb=box[i][k][0];
                 auto yb=box[i][k][1];
                 auto zb=box[i][k][2];
                 auto ip=xb*xm+yb*ym+zb*zm;
-                if(ip<=min_m_box){
-                    min_m_box=ip;
+                if(ip>=max_m_box){
+                    max_m_box=ip;
                 }
             }
             if(xm>=x_lb[i]-1e-6 && ym>=y_lb[i]-1e-6 && zm>=z_lb[i]-1e-6 && xm<=x_ub[i]-1e-6 && ym<=y_ub[i]-1e-6 && zm<=z_ub[i]-1e-6){
-                    cost_alt_j-=2.0*min_m_box;
-                    dc_ij-=2.0*min_m_box;
+                    cost_alt_j-=2.0*max_m_box;
+                    dc_ij-=2.0*max_m_box;
                     dist=0.0;
                     if(cost_alt_j>=dist){
-                        DebugOn("alt cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                        DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                     }
                    // dist=std::max(dist, cost_alt_j);
                     res=false;
                     dist_calculated=true;
-//                    vec_vertex=vertices;
-//                    for(auto k=0;k<box[i].size();k++){
-//                        vec_vertex.push_back(box[i][k]);
-//                    }
             }
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
@@ -18295,14 +18289,14 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                             auto ybv=vec_vertex[k][1];
                             auto zbv=vec_vertex[k][2];
                             auto ip=xbv*xm+ybv*ym+zbv*zm;
-                            if(ip<=min_m_ve){
-                                min_m_ve=ip;
+                            if(ip>=max_m_ve){
+                                max_m_ve=ip;
                             }
                         }
-                        cost_alt_j-=2.0*min_m_ve;
-                        dc_ij-=2.0*min_m_ve;
+                        cost_alt_j-=2.0*max_m_ve;
+                        dc_ij-=2.0*max_m_ve;
                         if(cost_alt_j>=dist){
-                            DebugOn("alt cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
                         //dist=std::max(dist, cost_alt_j);
                     }
@@ -18310,10 +18304,10 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                         
                         auto res3=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
                         dist=res3.first;
-                        cost_alt_j-=2.0*min_m_box;
-                        dc_ij-=2.0*min_m_box;
+                        cost_alt_j-=2.0*max_m_box;
+                        dc_ij-=2.0*max_m_box;
                         if(cost_alt_j>=dist){
-                            DebugOn("alt cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                            DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
                         //dist=std::max(dist, cost_alt_j);
                         
