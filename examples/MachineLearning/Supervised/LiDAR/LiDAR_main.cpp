@@ -24510,7 +24510,7 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
         vec_lb[i]=std::max(vec_lb[i], vec_node[i].lb);
         shared_ptr<Model<double>> m;
         bool model_created=false;
-        if(valid_cells[i].size()>=nd && valid_cells[i].size()<=10000){
+        if(valid_cells[i].size()>=nd && valid_cells[i].size()<=100000){
             //shared_ptr<Model<double>> build_linobj_convex_clean(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, vector<pair<double, double>> min_max_data);
             m = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells[i], vec_node[i].roll.first, vec_node[i].roll.second, vec_node[i].pitch.first, vec_node[i].pitch.second, vec_node[i].yaw.first, vec_node[i].yaw.second, new_shift_x_min[i], new_shift_x_max[i], new_shift_y_min[i], new_shift_y_max[i], new_shift_z_min[i], new_shift_z_max[i], vec_dist_cost[i], upper_bound, new_min_max_model[i], model_created);
             if(!model_created){
