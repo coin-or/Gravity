@@ -92,30 +92,29 @@ protected:
                         DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
                         int nct=getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
                         if(nct%20==0){
-                        double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
-                        double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
-                        DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
-                        int i,j;
-                        m->get_solution(int_x);
-                        x=getNodeRel(vars.data(),nb_vars);
-                        for(i=0;i<nb_vars;i++){
-                            cont_x[i] = x[i];
-                        }
-                        m->set_solution(cont_x);
-                        auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
-                        if(res.size()>=1){
-                            for(i=0;i<res.size();i++){
-                                GRBLinExpr expr = 0;
-                                for(j=0;j<res[i].size()-1;j+=2){
-                                    int c=res[i][j];
-                                    expr += res[i][j+1]*vars[c];
+                            double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
+                            double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
+                            DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
+                            int i,j;
+                            m->get_solution(int_x);
+                            x=getNodeRel(vars.data(),nb_vars);
+                            for(i=0;i<nb_vars;i++){
+                                cont_x[i] = x[i];
+                            }
+                            m->set_solution(cont_x);
+                            auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                            if(res.size()>=1){
+                                for(i=0;i<res.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    for(j=0;j<res[i].size()-1;j+=2){
+                                        int c=res[i][j];
+                                        expr += res[i][j+1]*vars[c];
+                                    }
+                                    expr+=res[i][j];
+                                    addCut(expr, GRB_LESS_EQUAL, 0);
                                 }
-                                expr+=res[i][j];
-                                addCut(expr, GRB_LESS_EQUAL, 0);
                             }
                         }
-                        }
-                        
                         m->set_solution(int_x);
                     }
                     
@@ -265,7 +264,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     if (relax) relax_model();
         //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-4);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
     grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-4);
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
