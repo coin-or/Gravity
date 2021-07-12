@@ -485,7 +485,7 @@ int main (int argc, char * argv[])
         //input
         double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
         double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
-//        double shift_min_x =  -0.1, shift_max_x = 0.1, shift_min_y = -0.1,shift_max_y = 0.1,shift_min_z = -0.1,shift_max_z = 0.1;
+//        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
 //        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
         vector<pair<double, double>> min_max_d;
         double best_ub;
@@ -493,8 +493,8 @@ int main (int argc, char * argv[])
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
         
 #ifdef USE_VORO
-        //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
-        container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
+        container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
+        //container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
         //container model_con(min_max_d[0].first,min_max_d[0].second,min_max_d[1].first,min_max_d[1].second,min_max_d[2].first,min_max_d[2].second,10,10,10,false,false,false,8);
         //container model_con(x_min,x_max,y_min, y_max, z_min, z_max,10,10,10,false,false,false,8);
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
@@ -1155,7 +1155,8 @@ int main (int argc, char * argv[])
             //
             //            dist_cost.print();
 //            vector<vector<pair<double, double>>> min_max_dg;
-//            auto SOC_MIP = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_new, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, dist_cost, 0.09722, nmdo);
+//            bool found_all=true;
+//            auto SOC_MIP = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_new, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, dist_cost, 0.09722, nmdo, found_all);
 //            SOC_MIP->print();
 //            solver<> S1(SOC_MIP,gurobi);
 //                        //S1.use_callback();
@@ -6569,7 +6570,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     int m = av_nb_pairs;
     string i_str, j_str;
-    double xm_max = numeric_limits<double>::lowest(), ym_max = numeric_limits<double>::lowest(), zm_max = numeric_limits<double>::lowest();
+    double xm_max = numeric_limits<double>::lowest(), ym_max = numeric_limits<double>::lowest(), zm_max = numeric_limits<double>::lowest();\
     double xm_min = numeric_limits<double>::max(), ym_min = numeric_limits<double>::max(), zm_min = numeric_limits<double>::max();
     
     
@@ -7029,8 +7030,8 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     if(found_all){
     var<> new_x1("new_x1"),new_y1("new_y1"),new_z1("new_z1");
     var<> deltax("deltax"), deltay("deltay"), deltaz("deltaz");
-    var<> rotxt("rotxt", rot_xt_min, rot_xt_max), rotyt("rotyt", rot_yt_min, rot_yt_max), rotzt("rotzt", rot_zt_min, rot_zt_max);
-   // var<> rotxt("rotxt"), rotyt("rotyt"), rotzt("rotzt");
+    //var<> rotxt("rotxt", rot_xt_min, rot_xt_max), rotyt("rotyt", rot_yt_min, rot_yt_max), rotzt("rotzt", rot_zt_min, rot_zt_max);
+    var<> rotxt("rotxt"), rotyt("rotyt"), rotzt("rotzt");
     
     Reg->add(rotxt.in(N1));
     Reg->add(rotyt.in(N1));
@@ -7127,17 +7128,17 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     sum_newzm = sum(new_zm.in(N1));
     //Reg->add(sum_newzm==0);
     
-//    Constraint<> sum_rotx("sum_rotx");
-//    sum_rotx = sum(rotxt);
-//    Reg->add(sum_rotx==nd*x_shift);
-//
-//    Constraint<> sum_roty("sum_roty");
-//    sum_roty = sum(rotyt);
-//    Reg->add(sum_roty==nd*y_shift);
-//
-//    Constraint<> sum_rotz("sum_rotz");
-//    sum_rotz = sum(rotzt);
-//    Reg->add(sum_rotz==nd*z_shift);
+    Constraint<> sum_rotx("sum_rotx");
+    sum_rotx = sum(rotxt)+sum(new_xm);
+    Reg->add(sum_rotx==nd*x_shift);
+
+    Constraint<> sum_roty("sum_roty");
+    sum_roty = sum(rotyt)+sum(new_ym);
+    Reg->add(sum_roty==nd*y_shift);
+
+    Constraint<> sum_rotz("sum_rotz");
+    sum_rotz = sum(rotzt)+sum(new_zm);
+    Reg->add(sum_rotz==nd*z_shift);
     
     auto ids2 = x_shift.repeat_id(N1.size());
     Constraint<> x_rot1("x_rot1");
@@ -18298,7 +18299,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                         cost_alt_j-=2.0*max_m_ve;
                         dc_ij-=2.0*max_m_ve;
                         if(cost_alt_j>=dist){
-                            DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
                         dist=std::max(dist, cost_alt_j);
                     }
@@ -18309,7 +18310,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
                         cost_alt_j-=2.0*max_m_box;
                         dc_ij-=2.0*max_m_box;
                         if(cost_alt_j>=dist){
-                            DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
                         dist=std::max(dist, cost_alt_j);
                         
@@ -18370,7 +18371,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
         }
         if(valid_cells_map[i].size()==0){
             found_all=false;
-            DebugOn("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
+            DebugOff("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
             break;
         }
         vector<pair<double, double>> new_min_max_i;
@@ -18494,12 +18495,12 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
     else{
         new_cells=valid_cells_empty;
     }
-    new_tx_min=shift_min_x;
-    new_tx_max=shift_max_x;
-    new_ty_min=shift_min_y;
-    new_ty_max=shift_max_y;
-    new_tz_min=shift_min_z;
-    new_tz_max=shift_max_z;
+//    new_tx_min=shift_min_x;
+//    new_tx_max=shift_max_x;
+//    new_ty_min=shift_min_y;
+//    new_ty_max=shift_max_y;
+//    new_tz_min=shift_min_z;
+//    new_tz_max=shift_max_z;
 }
 void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<pair<double, double>>>& min_max_each_d, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, vector<vector<pair<double, double>>>& new_min_max_each_d, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max)
 {
