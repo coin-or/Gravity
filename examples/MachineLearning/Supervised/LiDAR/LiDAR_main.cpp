@@ -18932,7 +18932,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 if(!dist_calculated){
                     countd++;
                     if(countd>=85){
-                        DebugOn("reached debug "<<endl);
+                        DebugOff("reached debug "<<endl);
                     }
                     bool status=true;
                     vector<vector<double>> halfspaces;
@@ -19046,7 +19046,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         if(status1){
                             dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
                         }
-                        if((std::abs(dist-dist1)>=1e-6 && status && status1)||true){
+                        if((std::abs(dist-dist1)>=1e-6 && status && status1)){
                             DebugOn("error in vec_vertex1"<<endl);
                             DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
                             DebugOn("dist "<<dist<<" "<<dist1<<endl);
@@ -19333,10 +19333,10 @@ bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facet
 //        return false;
 //    }
     for(auto i=0;i<feas_set_a.size();i++){
-        new_vert.push_back(vertex_set_a[feas_set_a[i]]);
+         add_vertex(new_vert, vertex_set_a[feas_set_a[i]], model_point);
     }
     for(auto i=0;i<feas_set_b.size();i++){
-        new_vert.push_back(vertex_set_b[feas_set_b[i]]);
+     add_vertex(new_vert, vertex_set_b[feas_set_b[i]], model_point);
     }
     
    if(feas_set_a.size()>=0 && feas_set_a.size()<vertex_set_a.size()){
@@ -19393,61 +19393,30 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         solution[0]=xs[0];
                         solution[1]=xs[1];
                         solution[2]=xs[2];
-                        double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
-                        bool la=false, lb=false, lc=false;
-                        bool line_segment=true;
-                        if(std::abs(xb-xa)<=1e-6){
-                            la=true;
-                        }
-                        else{
-                            lamda_a=(solution[0]-xa)/(xb-xa);
-                            if(lamda_a>=1-1e-9 || lamda_a<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(std::abs(yb-ya)<=1e-6){
-                            lb=true;
-                        }
-                        else{
-                            lamda_b=(solution[1]-ya)/(yb-ya);
-                            if(lamda_b>=1-1e-9 || lamda_b<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(std::abs(zb-za)<=1e-6){
-                            lc=true;
-                        }
-                        else{
-                            lamda_c=(solution[2]-za)/(zb-za);
-                            if(lamda_c>=1-1e-9 || lamda_c<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(line_segment){
-                            lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
-                            if((la||lamda-lamda_a<=1e-3) && (lb||lamda-lamda_b<=1e-3) && (lc||lamda-lamda_c<=1e-3)){
-                                bool feas=true;
+                                bool feas1=true, feas2=true;
+    for(auto j=0;j<facets_a.size();j++){
+                                    auto al=facets_a[j][0];
+                                    auto bl=facets_a[j][1];
+                                    auto cl=facets_a[j][2];
+                                    auto dl=facets_a[j][3];
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
+                                        feas1=false;
+                                    }
+                                }
                                 for(auto j=0;j<facets_b.size();j++){
                                     auto al=facets_b[j][0];
                                     auto bl=facets_b[j][1];
                                     auto cl=facets_b[j][2];
                                     auto dl=facets_b[j][3];
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
-                                        feas=false;
+                                        feas2=false;
                                     }
                                 }
-                                if(feas){
+                                if(feas1 && feas2){
                                     vertex_found_i=true;
                                     add_vertex(new_vert, solution, model_point);
                                 }
                             }
-                            else{
-                                DebugOn("la "<<la<<" "<<lb<<" "<<lc<<endl);
-                                DebugOn("la "<<lamda_a<<" "<<lamda_b<<" "<<lamda_c<<endl);
-                                DebugOn("xa "<<xa<<" "<<xb<<" "<<ya<<" "<<yb<<" "<<za<<" "<<zb<<endl);
-                            }
-                        }
-                    }
                     else{
                         DebugOn("solve failed");
                     }
@@ -19501,60 +19470,34 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                     double error=(A*xs - b).norm();
                     if(error<=1e-6){
                         vertex_found_i=true;
-                        vector<double> solution(3);
+              vector<double> solution(3);
                         solution[0]=xs[0];
                         solution[1]=xs[1];
                         solution[2]=xs[2];
-                        double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
-                        bool la=false, lb=false, lc=false;
-                        bool line_segment=true;
-                        if(std::abs(xb-xa)<=1e-6){
-                            la=true;
-                        }
-                        else{
-                            lamda_a=(solution[0]-xa)/(xb-xa);
-                            if(lamda_a>=1-1e-9 || lamda_a<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(std::abs(yb-ya)<=1e-6){
-                            lb=true;
-                        }
-                        else{
-                            lamda_b=(solution[1]-ya)/(yb-ya);
-                            if(lamda_b>=1-1e-9 || lamda_b<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(std::abs(zb-za)<=1e-6){
-                            lc=true;
-                        }
-                        else{
-                            lamda_c=(solution[2]-za)/(zb-za);
-                            if(lamda_c>=1-1e-9 || lamda_c<=1e-9){
-                                line_segment=false;
-                            }
-                        }
-                        if(line_segment){
-                            lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
-                            if((la||lamda-lamda_a<=1e-3) && (lb||lamda-lamda_b<=1e-3) && (lc||lamda-lamda_c<=1e-3)){
-                                bool feas=true;
-                                for(auto j=0;j<facets_b.size();j++){
-                                    auto al=facets_b[j][0];
-                                    auto bl=facets_b[j][1];
-                                    auto cl=facets_b[j][2];
-                                    auto dl=facets_b[j][3];
-                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
-                                        feas=false;
-                                    }
-                                }
-                                if(feas){
-                                    vertex_found_i=true;
+                                bool feas1=true, feas2=true;
+    for(auto j=0;j<facets_a.size();j++){                                                         
+                                    auto al=facets_a[j][0];                                      
+                                    auto bl=facets_a[j][1];                                      
+                                    auto cl=facets_a[j][2];                                      
+                                    auto dl=facets_a[j][3];                                      
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){   
+                                        feas1=false;                                             
+                                    }                                                            
+                                }                                                                
+                                for(auto j=0;j<facets_b.size();j++){                             
+                                    auto al=facets_b[j][0];                                      
+                                    auto bl=facets_b[j][1];                                      
+                                    auto cl=facets_b[j][2];                                      
+                                    auto dl=facets_b[j][3];                                      
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){   
+                                        feas2=false;                                             
+                                    }                                                            
+                                }                                                                
+                                if(feas1 && feas2){                                              
+                                    vertex_found_i=true;                                         
                                     add_vertex(new_vert, solution, model_point);
-                                }
-                            }
-                        }
-                    }
+                                }                                                                
+                            }                     
                     else{
                         DebugOn("solve failed");
                     }
