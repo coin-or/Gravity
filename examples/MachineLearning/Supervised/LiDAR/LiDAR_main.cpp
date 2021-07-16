@@ -495,8 +495,8 @@ int main (int argc, char * argv[])
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
         
 #ifdef USE_VORO
-        container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
-        //container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
+        //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
+        container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
         //container model_con(min_max_d[0].first,min_max_d[0].second,min_max_d[1].first,min_max_d[1].second,min_max_d[2].first,min_max_d[2].second,10,10,10,false,false,false,8);
         //container model_con(x_min,x_max,y_min, y_max, z_min, z_max,10,10,10,false,false,false,8);
         for (int i = row0; i< model_nb_rows; i++) { // Input iterator
@@ -19038,7 +19038,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     vector<vector<double>> vec_vertex1;
                     double dist1=0;
                     auto status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
-                    DebugOn("VE size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<" "<<status<<" "<<status1<<endl);
+                    DebugOff("VE size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<" "<<status<<" "<<status1<<endl);
                     if(status){
                         vector<vector<double>> mpoint;
                         mpoint.push_back(point_cloud_model.at(j));
@@ -19046,11 +19046,11 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         if(status1){
                             dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
                         }
-                        if(std::abs(dist-dist1)>=1e-6 && status && status1){
+                        if((std::abs(dist-dist1)>=1e-6 && status && status1)||true){
                             DebugOn("error in vec_vertex1"<<endl);
                             DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
                             DebugOn("dist "<<dist<<" "<<dist1<<endl);
-                            DebugOn("delta "<<std::abs(dist-dist1)<<endl);
+                            DebugOn("delta "<<j<<" "<<std::abs(dist-dist1)<<endl);
                         }
                         dist=dist1;
                         for(auto k=0;k<vec_vertex.size();k++){
@@ -19387,7 +19387,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                     b << plane1[3]*(-1), plane2[3]*(-1), plane3[3]*(-1);
                     Eigen::Vector3f xs = A.fullPivLu().solve(b);
                     double error=(A*xs - b).norm();
-                    DebugOn("err "<<error<<endl);
+                    DebugOff("err "<<error<<endl);
                     if(error<=1e-6){
                         vector<double> solution(3);
                         solution[0]=xs[0];
@@ -19396,7 +19396,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
                         bool la=false, lb=false, lc=false;
                         bool line_segment=true;
-                        if(std::abs(xb-xa)<=1e-9){
+                        if(std::abs(xb-xa)<=1e-6){
                             la=true;
                         }
                         else{
@@ -19405,7 +19405,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                 line_segment=false;
                             }
                         }
-                        if(std::abs(yb-ya)<=1e-9){
+                        if(std::abs(yb-ya)<=1e-6){
                             lb=true;
                         }
                         else{
@@ -19414,7 +19414,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                 line_segment=false;
                             }
                         }
-                        if(std::abs(zb-za)<=1e-9){
+                        if(std::abs(zb-za)<=1e-6){
                             lc=true;
                         }
                         else{
@@ -19425,7 +19425,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         }
                         if(line_segment){
                             lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
-                            if((la||lamda-lamda_a<=1e-4) && (lb||lamda-lamda_b<=1e-4) && (lc||lamda-lamda_c<=1e-4)){
+                            if((la||lamda-lamda_a<=1e-3) && (lb||lamda-lamda_b<=1e-3) && (lc||lamda-lamda_c<=1e-3)){
                                 bool feas=true;
                                 for(auto j=0;j<facets_b.size();j++){
                                     auto al=facets_b[j][0];
@@ -19440,6 +19440,11 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     vertex_found_i=true;
                                     add_vertex(new_vert, solution, model_point);
                                 }
+                            }
+                            else{
+                                DebugOn("la "<<la<<" "<<lb<<" "<<lc<<endl);
+                                DebugOn("la "<<lamda_a<<" "<<lamda_b<<" "<<lamda_c<<endl);
+                                DebugOn("xa "<<xa<<" "<<xb<<" "<<ya<<" "<<yb<<" "<<za<<" "<<zb<<endl);
                             }
                         }
                     }
@@ -19503,7 +19508,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
                         bool la=false, lb=false, lc=false;
                         bool line_segment=true;
-                        if(std::abs(xb-xa)<=1e-9){
+                        if(std::abs(xb-xa)<=1e-6){
                             la=true;
                         }
                         else{
@@ -19512,7 +19517,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                 line_segment=false;
                             }
                         }
-                        if(std::abs(yb-ya)<=1e-9){
+                        if(std::abs(yb-ya)<=1e-6){
                             lb=true;
                         }
                         else{
@@ -19521,7 +19526,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                 line_segment=false;
                             }
                         }
-                        if(std::abs(zb-za)<=1e-9){
+                        if(std::abs(zb-za)<=1e-6){
                             lc=true;
                         }
                         else{
@@ -19532,7 +19537,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         }
                         if(line_segment){
                             lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
-                            if((la||lamda-lamda_a<=1e-4) && (lb||lamda-lamda_b<=1e-4) && (lc||lamda-lamda_c<=1e-4)){
+                            if((la||lamda-lamda_a<=1e-3) && (lb||lamda-lamda_b<=1e-3) && (lc||lamda-lamda_c<=1e-3)){
                                 bool feas=true;
                                 for(auto j=0;j<facets_b.size();j++){
                                     auto al=facets_b[j][0];
