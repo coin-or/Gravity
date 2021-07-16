@@ -259,7 +259,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
 
 indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<double>& model_voronoi_out_radius, vector<int>& new_model_pts, indices& new_model_ids, bool norm1);
 
-vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<vector<vector<double>>> model_voronoi_vertices,  const vector<double>& model_inner_prod_min,const vector<double>& model_inner_prod_max, vector<pair<double, double>> min_max_model,  vector<double>& best_rot_trans, double best_ub, const vector<vector<pair<double, double>>>& model_voronoi_min_max);
+vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<vector<vector<double>>> model_voronoi_vertices,  const vector<double>& model_inner_prod_min,const vector<double>& model_inner_prod_max, vector<pair<double, double>> min_max_model,  vector<double>& best_rot_trans, double best_ub, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes);
 
 //indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, const vector<double>& model_voronoi_out_radius, vector<vector<vector<double>>> model_voronoi_vertices, bool norm1);
 
@@ -292,7 +292,7 @@ double  maximum_inscribed_sphere_all_points(vector<vector<double>> point_cloud_d
 
 vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_cloud);
 
-bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert);
+bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point);
 
 #ifdef USE_PCL
 /* PCL functions */
@@ -307,7 +307,8 @@ void save_feature_file(const string& filename, const pcl::PointCloud<pcl::PointN
 const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
     return c1.first > c2.first;
 }
-bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert);
+bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point);
+void add_vertex(std::vector<std::vector<double>>& new_vert, std::vector<double> solution, const std::vector<double>& model_point);
 indices preprocess(vector<vector<double>> point_cloud_data, vector<vector<double>> point_cloud_model, double angle_max_deg, double shift_min_x,double shift_max_x,double shift_min_y,double shift_max_y,double shift_min_z,double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept);
 indices preprocess_new(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& new_model_pts, indices& new_model_ids, param<>& dist_cost, double upper_bound, int nb_total_threads);
 
@@ -335,7 +336,8 @@ vector<double> BranchBound12(GoICP& goicp, vector<vector<double>>& point_cloud_m
 void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model,  vector<pair<double, double>>& min_max_d);
 GoICP Initialize_BB(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model, vector<pair<double, double>>& min_max_data,double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& best_ub, vector<double>& best_rot_trans);
 void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<pair<double, double>>>& min_max_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, vector<vector<pair<double, double>>>& new_min_max_model, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max);
-void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<bool>& m_vec, vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, vector<vector<vector<pair<double,double>>>>& new_min_max_model, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max);
+void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<bool>& m_vec, vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, vector<vector<vector<pair<double,double>>>>& new_min_max_model, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes);
+void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<pair<double, double>>>& min_max_each_d, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, vector<vector<pair<double, double>>>& new_min_max_each_d, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes);
 #ifdef USE_GJK
 double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double>>& vec2);
 #endif
@@ -511,8 +513,8 @@ int main (int argc, char * argv[])
         vector<vector<vector<double>>> model_voronoi_vertices(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
         vector<vector<pair<double, double>>> model_voronoi_min_max(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
         vector<vector<vector<double>>> model_face_pts(model_nb_rows);/* Store a point from each facet of the voronoi cell of each point */
-        vector<vector<vector<int>>> vertex_edge(model_nb_rows);/* For each cell, for each vertex, store list of other vertices it is linked to */
-        vector<vector<vector<pair<int, int>>>> vertex_edge_planes(model_nb_rows);/* For each cell, for each vertex, store list of other vertices it is linked to */
+        vector<vector<vector<int>>> model_voronoi_vertex_edge(model_nb_rows);/* For each cell, for each vertex, store list of other vertices it is linked to */
+        vector<vector<vector<pair<int, int>>>> model_voronoi_vertex_edge_planes(model_nb_rows);/* For each vertex, corresponding to each edge containing the vertex (Vertex_edge), the two planes that make the edge are given*/
         vector<vector<vector<int>>> facet_vertex(model_nb_rows);/* For each cell, for each facet, store list of vertices on the facet */
         vector<vector<double>> model_face_intercept(model_nb_rows);/* Store the constant part (intercept) in the equation of the voronoi cell of each point */
         vector<double> model_voronoi_in_radius(model_nb_rows);/* Store the radius of the largest ball contained IN the voronoi cell of each point */
@@ -542,7 +544,7 @@ int main (int argc, char * argv[])
                 }
                 DebugOff(endl);
             }
-            vertex_edge[idx]=ve;
+            model_voronoi_vertex_edge[idx]=ve;
             volume[idx] = {c.volume(),idx};
             int v_idx = 0;
             double max_dist = 0;
@@ -665,6 +667,7 @@ int main (int argc, char * argv[])
             }
             model_voronoi_in_radius[idx] = min_dist;/* the radius of the largest ball in the voronoi cell is the distance from the center to the nearest facet */
             face_id=0;
+            /* fv stores for each plane, all the vertices that are on the plane*/
             vector<vector<int>> fv(nb_faces);
             for (int f_id = 0; f_id<nb_faces; f_id++) {
                 int nb_v = face_vert[face_id];
@@ -678,17 +681,17 @@ int main (int argc, char * argv[])
                 DebugOn(endl);
             }
             facet_vertex[idx]=fv;
-            
+            /* fv stores for each plane, all the vertices that are on the plane*/
             vector<vector<pair<int, int>>> vep(nb_vertices);
             for(auto i=0;i<nb_vertices;i++){
                 for(auto j=0;j<ve[i].size();j++){
                     vector<int> p;
-                    int vj=ve[i][j];
+                    int vj=ve[i][j];/*vj loops over all vertices that are connected to i by edge*/
                     for(auto k=0;k<fv.size();k++){
                         if(std::find(fv[k].begin(),fv[k].end(),i)!=fv[k].end() && std::find(fv[k].begin(),fv[k].end(),vj)!=fv[k].end()){
                             p.push_back(k);
                         }
-                        if(p.size()==2){
+                        if(p.size()==2){ /* Each edge is defined by  two planes*/
                             break;
                         }
                     }
@@ -696,10 +699,10 @@ int main (int argc, char * argv[])
                         throw invalid_argument("no two planes found defining an edge");
                     }
                     pair<int,int> pair_p={p[0], p[1]};
-                    vep[i].push_back(pair_p);
+                    vep[i].push_back(pair_p);/* for each vertices i and vj, for each edge, ve[i][j], vep[i][j] shows pair of planes defining that edge */
                 }
             }
-            vertex_edge_planes[idx]=vep;
+            model_voronoi_vertex_edge_planes[idx]=vep;
             v.clear();
             face_vert.clear();
         } while (cl.inc());
@@ -1123,7 +1126,7 @@ int main (int argc, char * argv[])
             bool relax_integers = false, relax_sdp = false, rigid_transf = true;
             vector<int> init_matching;
             vector<double> error_per_point;
-            auto result=BranchBound11(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max);
+            auto result=BranchBound11(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes);
             //            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
             //            vector<double> rt(12);
             //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
@@ -18502,20 +18505,32 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
 //    new_tz_min=shift_min_z;
 //    new_tz_max=shift_max_z;
 }
-void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<pair<double, double>>>& min_max_each_d, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, vector<vector<pair<double, double>>>& new_min_max_each_d, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max)
+void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<pair<double, double>>>& min_max_each_d, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, vector<vector<pair<double, double>>>& new_min_max_each_d, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes)
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
     indices valid_cells_empty("valid_cells_empty");
     double time_start = get_wall_time();
     int new_test=0;
-    new_min_max_each_d.clear();
+    planeStatPerPair = 0;
     shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> new_y1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
     shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> tx_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> ty_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> tz_bounds = make_shared<pair<double,double>>();
+    tx_bounds->first=shift_min_x;
+    tx_bounds->second=shift_max_x;
+    ty_bounds->first=shift_min_y;
+    ty_bounds->second=shift_max_y;
+    tz_bounds->first=shift_min_z;
+    tz_bounds->second=shift_max_z;
     var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
@@ -18547,11 +18562,10 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
 
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
-    vector<vector<int>> vertex_edge(8);
-    vector<vector<pair<int, int>>> vertex_edge_planes(8);
-    
     map<int,vector<int>> valid_cells_map;
     map<int, vector<double>> dist_cost_map;
+    map<int, vector<double>> dist_alt_cost_map;
+    double dist_alt_cost_sum=0;
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
     vector<double> dist_i;
@@ -18567,7 +18581,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vector<double> coord_i;
     coord_i.resize(3);
     set<int> unique_model_pts;
-    vector<double> min_cost_i;
+    vector<double> min_cost_i(nd);
     min_cost_sum=0.0;
     double ub_root=sqrt(upper_bound);
   
@@ -18593,8 +18607,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
     }
     double shift_mag_min_root=sqrt(shift_mag_min);
-    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
-    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
     vector<vector<int>> vert_edge(8);
     vert_edge[0]={0, 3, 8};
     vert_edge[1]={0, 1, 9};
@@ -18604,9 +18616,12 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vert_edge[5]={4, 5, 9};
     vert_edge[6]={5, 6, 10};
     vert_edge[7]={6, 7, 11};
-    vector<int> plane_x={0,1,0,-1,0,1,0,-1,-1,1,1,-1};
-    vector<int> plane_y={-1,0,1,0,-1,0,1,0,-1,-1,1,1};
-    vector<int> plane_z={-1,-1,-1,-1,1,1,1,1,0,0,0,0};
+    vector<vector<int>> vertex_edge(8);
+    vector<vector<std::pair<int, int>>> vertex_edge_plane(8);
+    vector<vector<double>> planes;
+    planes.reserve(6);
+    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
+    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
     vertex_edge[0]={1, 3, 4};
     vertex_edge[1]={0, 2, 5};
     vertex_edge[2]={1, 3, 6};
@@ -18615,23 +18630,28 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vertex_edge[5]={4, 6, 1};
     vertex_edge[6]={5, 7, 2};
     vertex_edge[7]={4, 6, 3};
-    vertex_edge_planes[0]={{2,4}, {0,4}, {0,2}};
-    vertex_edge_planes[1]={{2,4}, {1,4}, {1,2}};
-    vertex_edge_planes[2]={{1,4}, {3,4}, {1,3}};
-    vertex_edge_planes[3]={{0,4}, {3,4}, {0,3}};
-    vertex_edge_planes[4]={{2,5}, {0,5}, {0,2}};
-    vertex_edge_planes[5]={{2,5}, {1,5}, {1,2}};
-    vertex_edge_planes[6]={{1,5}, {3,5}, {1,3}};
-    vertex_edge_planes[7]={{0,5}, {3,5}, {0,3}};
+    vertex_edge_plane[0]={std::make_pair(1,2), std::make_pair(0,2), std::make_pair(0,1)};
+    vertex_edge_plane[1]={std::make_pair(1,2), std::make_pair(2,3), std::make_pair(1,3)};
+    vertex_edge_plane[2]={std::make_pair(2,3), std::make_pair(2,4), std::make_pair(3,4)};
+    vertex_edge_plane[3]={std::make_pair(0,2), std::make_pair(2,4), std::make_pair(0,4)};
+    vertex_edge_plane[4]={std::make_pair(1,5), std::make_pair(0,5), std::make_pair(0,1)};
+    vertex_edge_plane[5]={std::make_pair(1,5), std::make_pair(3,5), std::make_pair(1,3)};
+    vertex_edge_plane[6]={std::make_pair(3,5), std::make_pair(4,5), std::make_pair(3,4)};
+    vertex_edge_plane[7]={std::make_pair(0,5), std::make_pair(4,5), std::make_pair(0,4)};
+    
+    
+    vector<int> plane_x={0,1,0,-1,0,1,0,-1,-1,1,1,-1};
+    vector<int> plane_y={-1,0,1,0,-1,0,1,0,-1,-1,1,1};
+    vector<int> plane_z={-1,-1,-1,-1,1,1,1,1,0,0,0,0};
     vector<int> inf;
     vector<int> feas;
     vector<vector<double>> new_vert_i;
     vector<vector<double>> plane_eq;
-    vector<vector<double>> facets_i;
     bool vertex_found_i, vertex_found_l, vertex_found_k;
-    vector<bool> vec_vfi;
+    vector<bool> vec_vfi(nd);
     double siq=0;
     double min_sum_di_sq=0;
+    int countd=0;
     for(auto i=0;i<nd;i++){
         siq=0.0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
@@ -18653,7 +18673,10 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-        *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
+      //  *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
+        *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x};
+        rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_x1_bounds->first>=new_x1_bounds->second-1e-8){
             found_all=false;
             break;
@@ -18663,7 +18686,10 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
+//        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
+        *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y};
+        rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_y1_bounds->first>=new_y1_bounds->second-1e-8){
             found_all=false;
             break;
@@ -18673,13 +18699,21 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
-        *new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z, min_max_i[2].second)};
+        //*new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z, min_max_i[2].second)};
+        *new_z1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z};
+        rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
         if(new_z1_bounds->first>=new_z1_bounds->second-1e-8){
             found_all=false;
             break;
         }
         z_lb.push_back(new_z1_bounds->first);
         z_ub.push_back(new_z1_bounds->second);
+        x_range  = get_product_range(rot_x1_bounds, tx_bounds);
+        y_range  = get_product_range(rot_y1_bounds, ty_bounds);
+        z_range  = get_product_range(rot_z1_bounds, tz_bounds);
+        double dist_cost_alt_i=pow(point_cloud_data[i][0],2)+pow(point_cloud_data[i][1],2)+pow(point_cloud_data[i][2],2)+shift_mag_min;
+        double cost_alt=dist_cost_alt_i+2*(x_range->first+y_range->first+z_range->first);
         coord_i[0]=x_lb[i];
         coord_i[1]=y_lb[i];
         coord_i[2]=z_lb[i];
@@ -18712,74 +18746,183 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         coord_i[1]=y_ub[i];
         coord_i[2]=z_ub[i];
         box_i.push_back(coord_i);
-        
-        vector<double> eq_i(4);
-        eq_i[0]=-1;
-        eq_i[1]=0;
-        eq_i[2]=0;
-        eq_i[3]=x_lb[i]*(-1);
-        facets_i.push_back(eq_i);
-        eq_i[0]=1;
-        eq_i[1]=0;
-        eq_i[2]=0;
-        eq_i[3]=x_ub[i];
-        facets_i.push_back(eq_i);
-        eq_i[0]=0;
-        eq_i[1]=-1;
-        eq_i[2]=0;
-        eq_i[3]=y_lb[i]*(-1);
-        facets_i.push_back(eq_i);
-        eq_i[0]=0;
-        eq_i[1]=1;
-        eq_i[2]=0;
-        eq_i[3]=y_ub[i];
-        facets_i.push_back(eq_i);
-        eq_i[0]=0;
-        eq_i[1]=0;
-        eq_i[2]=-1;
-        eq_i[3]=z_lb[i]*(-1);
-        facets_i.push_back(eq_i);
-        eq_i[0]=0;
-        eq_i[1]=0;
-        eq_i[2]=1;
-        eq_i[3]=z_ub[i];
-        facets_i.push_back(eq_i);
-        
+        vector<double> pl(4,0);
+        pl[0]=-1;
+        pl[3]=x_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[1]=-1;
+        pl[3]=y_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[2]=-1;
+        pl[3]=z_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[0]=1;
+        pl[3]=-x_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[1]=1;
+        pl[3]=-y_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[2]=1;
+        pl[3]=-z_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+      //  pl.resize(4,0);
+
         auto a=(-1)*(x_lb[i]+x_ub[i]);
         auto b=(-1)*(y_lb[i]+y_ub[i]);
         auto c=(-1)*(z_lb[i]+z_ub[i]);
         auto d=sphere_inner_sq[i]+x_lb[i]*x_ub[i]+y_lb[i]*y_ub[i]+z_lb[i]*z_ub[i];
+        vector<double> eq_i(4);
         eq_i[0]=a;
         eq_i[1]=b;
         eq_i[2]=c;
         eq_i[3]=d;
-        box.push_back(box_i);
+        for(auto k=0;k<8;k++){
+            auto xk=box_i[k][0];
+            auto yk=box_i[k][1];
+            auto zk=box_i[k][2];
+            if(a*xk+b*yk+c*zk+d<=1e-6){
+                feas.push_back(k);
+                box_new_i.push_back(box_i[k]);
+                DebugOff("val "<<a*xk+b*yk+c*zk+d<<endl);
+            }
+            else{
+                DebugOff("val "<<a*xk+b*yk+c*zk+d<<endl);
+                inf.push_back(k);
+            }
+        }
+        vertex_found_i=true;
+        for(auto k=0;k<inf.size();k++){
+            vertex_found_k=true;
+            auto edge_set_k=vert_edge[inf[k]];
+            for(auto l=0;l<edge_set_k.size();l++){
+                auto el=edge_set_k[l];
+                auto elf=vf[el];
+                auto els=vs[el];
+                bool vertex_found=false;
+                if(std::find (inf.begin(), inf.end(), elf)==inf.end()||std::find (inf.begin(), inf.end(), els)==inf.end()){
+                    double xel=100000.0, yel=100000.0, zel=100000.0;
+                    if(plane_x[el]==-1){
+                        xel=x_lb[i];
+                    }
+                    if(plane_x[el]==1){
+                        xel=x_ub[i];
+                    }
+                    if(plane_y[el]==-1){
+                        yel=y_lb[i];
+                    }
+                    if(plane_y[el]==1){
+                        yel=y_ub[i];
+                    }
+                    if(plane_z[el]==-1){
+                        zel=z_lb[i];
+                    }
+                    if(plane_z[el]==1){
+                        zel=z_ub[i];
+                    }
+                    if(plane_x[el]==0 && abs(a)>1e-10){
+                        xel=(-d-c*zel-b*yel)/a;
+                        if(xel<=x_ub[i]+1e-9 && xel>=x_lb[i]-1e-9){
+                            vertex_found=true;
+                        }
+                    }
+                    if(plane_y[el]==0 && abs(b)>1e-10){
+                        yel=(-d-c*zel-a*xel)/b;
+                        if(yel<=y_ub[i]+1e-9 && yel>=y_lb[i]-1e-9){
+                            vertex_found=true;
+                        }
+                    }
+                    if(plane_z[el]==0 && abs(c)>1e-10){
+                        zel=(-d-a*xel-b*yel)/c;
+                        if(zel<=z_ub[i]+1e-9 && zel>=z_lb[i]-1e-9){
+                            vertex_found=true;
+                        }
+                    }
+                    if(vertex_found){
+                        vector<double> v(3);
+                        v[0]=xel;
+                        v[1]=yel;
+                        v[2]=zel;
+                        new_vert_i.push_back(v);
+                        box_new_i.push_back(v);
+                    }
+                    else{
+                        DebugOn("Failed to find vertex in prep "<<endl);
+                    }
+                    if(vertex_found && vertex_found_k){
+                        vertex_found_k=true;
+                    }
+                    else{
+                        vertex_found_k=false;
+                    }
+                }
+            }
+            if(vertex_found_k && vertex_found_i){
+                vertex_found_i=true;
+            }
+            else{
+                vertex_found_i=false;
+            }
+        }
+        vec_vfi.push_back(vertex_found_i);
+        if(option_cost_new && vertex_found_i){
+            box.push_back(box_new_i);
+        }
+        else{
+            box.push_back(box_i);
+        }
+        vertex_new.push_back(new_vert_i);
         plane_eq.push_back(eq_i);
         double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
         double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
         double xv_min=9999.0, yv_min=9999.0, zv_min=9999.0;
         double xv_max=-9999.0, yv_max=-9999.0, zv_max=-9999.0;
         for (int j = 0; j<nm; j++) {
+            auto vertices=model_voronoi_vertices.at(j);
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                 DebugOff("continued");
                 continue;
             }
-            auto vertices=model_voronoi_vertices.at(j);
             bool dist_calculated=false;
             bool res=true;
-            double dist=0.0;
+            double dist=0;
             auto xm= point_cloud_model.at(j)[0];
             auto ym= point_cloud_model.at(j)[1];
             auto zm= point_cloud_model.at(j)[2];
             auto min_max_voro_j=model_voronoi_min_max[j];
+            double cost_alt_j=cost_alt;
+            double dc_ij=pow(xm,2)+pow(ym,2)+pow(zm,2);
+            cost_alt_j+=dc_ij;
+            double max_m_box=-999, max_m_ve=-999;
+            for(auto k=0;k<box[i].size();k++){
+                auto xb=box[i][k][0];
+                auto yb=box[i][k][1];
+                auto zb=box[i][k][2];
+                auto ip=xb*xm+yb*ym+zb*zm;
+                if(ip>=max_m_box){
+                    max_m_box=ip;
+                }
+            }
             if(xm>=x_lb[i]-1e-6 && ym>=y_lb[i]-1e-6 && zm>=z_lb[i]-1e-6 && xm<=x_ub[i]-1e-6 && ym<=y_ub[i]-1e-6 && zm<=z_ub[i]-1e-6){
+                    cost_alt_j-=2.0*max_m_box;
+                    dc_ij-=2.0*max_m_box;
                     dist=0.0;
+                    if(cost_alt_j>=dist){
+                        DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                    }
+                    dist=std::max(dist, cost_alt_j);
                     res=false;
                     dist_calculated=true;
-//                    vec_vertex=vertices;
-//                    for(auto k=0;k<box[i].size();k++){
-//                        vec_vertex.push_back(box[i][k]);
-//                    }
             }
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
@@ -18787,11 +18930,166 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             }
             if(!res){
                 if(!dist_calculated){
-                    
+                    countd++;
+                    if(countd>=85){
+                        DebugOn("reached debug "<<endl);
+                    }
+                    bool status=true;
+                    vector<vector<double>> halfspaces;
+                    //halfspaces.push_back(eq_i);
+                    vector<double> vec1(4, 0.0);
+                    vec1[0]=-1;
+                    vec1[3]=x_lb[i];
+                    halfspaces.push_back(vec1);
+                    vec1.clear();
+                    vec1.resize(4,0);
+                    vec1[0]=1;
+                    vec1[3]=x_ub[i]*(-1);
+                    halfspaces.push_back(vec1);
+                    vec1.clear();
+                    vec1.resize(4,0);
+                    vec1[1]=-1;
+                    vec1[3]=y_lb[i];
+                    halfspaces.push_back(vec1);
+                    vec1.clear();
+                    vec1.resize(4,0);
+                    vec1[1]=1;
+                    vec1[3]=y_ub[i]*(-1);
+                    halfspaces.push_back(vec1);
+                    vec1.clear();
+                    vec1.resize(4,0);
+                    vec1[2]=-1;
+                    vec1[3]=z_lb[i];
+                    halfspaces.push_back(vec1);
+                    vec1.clear();
+                    vec1.resize(4,0);
+                    vec1[2]=1;
+                    vec1[3]=z_ub[i]*(-1);
+                    halfspaces.push_back(vec1);
+                    vector<vector<double>> model_halfspaces;
+                    for(auto k=0;k<model_voronoi_normals[j].size();k++){
+                        vec1.clear();
+                        vec1.resize(4);
+                        vec1[0]=model_voronoi_normals[j][k][0];
+                        vec1[1]=model_voronoi_normals[j][k][1];
+                        vec1[2]=model_voronoi_normals[j][k][2];
+                        vec1[3]=model_face_intercept[j][k];
+                        halfspaces.push_back(vec1);
+                        model_halfspaces.push_back(vec1);
+                    }
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_lb[i];
+                    //                        vec1[1]=2*y_lb[i];
+                    //                        vec1[2]=2*z_lb[i];
+                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_ub[i];
+                    //                        vec1[1]=2*y_lb[i];
+                    //                        vec1[2]=2*z_lb[i];
+                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_ub[i];
+                    //                        vec1[1]=2*y_ub[i];
+                    //                        vec1[2]=2*z_lb[i];
+                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_lb[i];
+                    //                        vec1[1]=2*y_ub[i];
+                    //                        vec1[2]=2*z_lb[i];
+                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_lb[i];
+                    //                        vec1[1]=2*y_lb[i];
+                    //                        vec1[2]=2*z_ub[i];
+                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_ub[i];
+                    //                        vec1[1]=2*y_lb[i];
+                    //                        vec1[2]=2*z_ub[i];
+                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_ub[i];
+                    //                        vec1[1]=2*y_ub[i];
+                    //                        vec1[2]=2*z_ub[i];
+                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    //                        vec1.clear();
+                    //                        vec1.resize(4);
+                    //                        vec1[0]=2*x_lb[i];
+                    //                        vec1[1]=2*y_ub[i];
+                    //                        vec1[2]=2*z_ub[i];
+                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
+                    //                        halfspaces.push_back(vec1);
+                    status=true;
+                    auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
+                    vector<vector<double>> vec_vertex1;
+                    double dist1=0;
+                    auto status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
+                    DebugOn("VE size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<" "<<status<<" "<<status1<<endl);
+                    if(status){
+                        vector<vector<double>> mpoint;
+                        mpoint.push_back(point_cloud_model.at(j));
+                        dist=distance_polytopes_gjk(vec_vertex, mpoint);
+                        if(status1){
+                            dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
+                        }
+                        if(std::abs(dist-dist1)>=1e-6 && status && status1){
+                            DebugOn("error in vec_vertex1"<<endl);
+                            DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
+                            DebugOn("dist "<<dist<<" "<<dist1<<endl);
+                            DebugOn("delta "<<std::abs(dist-dist1)<<endl);
+                        }
+                        dist=dist1;
+                        for(auto k=0;k<vec_vertex.size();k++){
+                            auto xbv=vec_vertex[k][0];
+                            auto ybv=vec_vertex[k][1];
+                            auto zbv=vec_vertex[k][2];
+                            auto ip=xbv*xm+ybv*ym+zbv*zm;
+                            if(ip>=max_m_ve){
+                                max_m_ve=ip;
+                            }
+                        }
+                        cost_alt_j-=2.0*max_m_ve;
+                        dc_ij-=2.0*max_m_ve;
+                        if(cost_alt_j>=dist){
+                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                        }
+                        dist=std::max(dist, cost_alt_j);
+                    }
+                    else{
+                        
+                        auto res3=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+                        dist=res3.first;
+                        cost_alt_j-=2.0*max_m_box;
+                        dc_ij-=2.0*max_m_box;
+                        if(cost_alt_j>=dist){
+                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                        }
+                        dist=std::max(dist, cost_alt_j);
+                        
+//                        vec_vertex=vertices;
+//                        for(auto k=0;k<box[i].size();k++){
+//                            vec_vertex.push_back(box[i][k]);
+//                        }
+                    }
                 }
                 if(dist-1e-6<=upper_bound){
                     valid_cells_map[i].push_back(j);
                     dist_cost_map[i].push_back(std::max(dist-1e-6,0.0));
+                    dist_alt_cost_map[i].push_back(dc_ij-1e-6);
                     auto key=to_string(i+1)+","+to_string(j+1);
                     dist_cost.add_val(key, std::max(dist-1e-6,0.0));
                     valid_cells.insert(key);
@@ -18839,17 +19137,17 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         }
         if(valid_cells_map[i].size()==0){
             found_all=false;
-            DebugOn("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
+            DebugOff("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
             break;
         }
         vector<pair<double, double>> new_min_max_i;
         new_min_max_i.resize(3);
-        new_min_max_i[0].first=std::max(xm_min-ub_root, xv_min);
-        new_min_max_i[0].second=std::min(xm_max+ub_root, xv_max);
-        new_min_max_i[1].first=std::max(ym_min-ub_root, yv_min);
-        new_min_max_i[1].second=std::min(ym_max+ub_root, yv_max);
-        new_min_max_i[2].first=std::max(zm_min-ub_root, zv_min);
-        new_min_max_i[2].second=std::min(zm_max+ub_root, zv_max);
+        new_min_max_i[0].first=std::max(xm_min-ub_root, xv_min)-1e-6;
+        new_min_max_i[0].second=std::min(xm_max+ub_root, xv_max)+1e-6;
+        new_min_max_i[1].first=std::max(ym_min-ub_root, yv_min)-1e-6;
+        new_min_max_i[1].second=std::min(ym_max+ub_root, yv_max)+1e-6;
+        new_min_max_i[2].first=std::max(zm_min-ub_root, zv_min)-1e-6;
+        new_min_max_i[2].second=std::min(zm_max+ub_root, zv_max)+1e-6;
         new_min_max_each_d.push_back(new_min_max_i);
         new_tx_min+=xm_min;
         new_tx_max+=xm_max;
@@ -18858,15 +19156,28 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_tz_min+=zm_min;
         new_tz_max+=zm_max;
         auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
+        auto alt_cost_min=*min_element(dist_alt_cost_map[i].begin(), dist_alt_cost_map[i].end());
         min_cost_i.push_back(costmin);
         min_cost_sum+=costmin;
-        if(min_cost_sum-1e-6>=upper_bound){
+        dist_cost_alt_i+=alt_cost_min-1e-6;
+        dist_alt_cost_sum+=dist_cost_alt_i;
+        if(i==nd-1){
+            if(dist_alt_cost_sum>=min_cost_sum){
+                DebugOn("alt cost SUM exceeds "<<dist_alt_cost_sum<<" "<<min_cost_sum<<endl);
+            }
+            min_cost_sum=std::max(min_cost_sum, dist_alt_cost_sum);
+        }
+        if(min_cost_sum-1e-4>upper_bound){
             DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
             found_all=false;
             break;
         }
         box_i.clear();
-        facets_i.clear();
+        feas.clear();
+        inf.clear();
+        new_vert_i.clear();
+        box_new_i.clear();
+        planes.clear();
     }
     if(found_all){
         DebugOff("min cost for each data point "<<endl);
@@ -18880,48 +19191,50 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     else{
         DebugOff("Number of valid cells = " << 0 << endl);
     }
-    double ndd=point_cloud_data.size()*1.0;
-    new_tx_min/=ndd;
-    new_tx_max/=ndd;
-    new_ty_min/=ndd;
-    new_ty_max/=ndd;
-    new_tz_min/=ndd;
-    new_tz_max/=ndd;
-    new_tx_min=std::max(new_tx_min-1e-6, shift_min_x);
-    new_tx_max=std::min(new_tx_max+1e-6, shift_max_x);
-    new_ty_min=std::max(new_ty_min-1e-6, shift_min_y);
-    new_ty_max=std::min(new_ty_max+1e-6, shift_max_y);
-    new_tz_min=std::max(new_tz_min-1e-6, shift_min_z);
-    new_tz_max=std::min(new_tz_max+1e-6, shift_max_z);
+    if(found_all){
+        double ndd=point_cloud_data.size()*1.0;
+        new_tx_min/=ndd;
+        new_tx_max/=ndd;
+        new_ty_min/=ndd;
+        new_ty_max/=ndd;
+        new_tz_min/=ndd;
+        new_tz_max/=ndd;
+        new_tx_min=std::max(new_tx_min-1e-6, shift_min_x);
+        new_tx_max=std::min(new_tx_max+1e-6, shift_max_x);
+        new_ty_min=std::max(new_ty_min-1e-6, shift_min_y);
+        new_ty_max=std::min(new_ty_max+1e-6, shift_max_y);
+        new_tz_min=std::max(new_tz_min-1e-6, shift_min_z);
+        new_tz_max=std::min(new_tz_max+1e-6, shift_max_z);
         if(new_tx_min>=new_tx_max+1e-10 || new_tx_max<=new_tx_min-1e-10){
-            found_all=false;
+           // found_all=false;
             DebugOn("new tx lb ub bounds cross "<<new_tx_min<<" "<<new_tx_max<<endl);
         }
         if(new_ty_min>=new_ty_max+1e-10 || new_ty_max<=new_ty_min-1e-10){
-            found_all=false;
+          //  found_all=false;
             DebugOn("new ty lb ub bounds cross "<<new_ty_min<<" "<<new_ty_max<<endl);
         }
         if(new_tz_min>=new_tz_max+1e-10 || new_tz_max<=new_tz_min-1e-10){
-            found_all=false;
+          //  found_all=false;
             DebugOn("new tz lb ub bounds cross "<<new_tz_min<<" "<<new_tz_max<<endl);
         }
-    if(new_tx_min>shift_min_x+1e-3){
-        DebugOn("new tx lb "<<new_tx_min<<endl);
-    }
-    if(new_ty_min>shift_min_y+1e-3){
-        DebugOn("new ty lb "<<new_ty_min<<endl);
-    }
-    if(new_tz_min>shift_min_z+1e-3){
-        DebugOn("new tz lb "<<new_tz_min<<endl);
-    }
-    if(new_tx_max<shift_max_x-1e-3){
-        DebugOn("new tx ub "<<new_tx_max<<endl);
-    }
-    if(new_ty_max<shift_max_y-1e-3){
-        DebugOn("new ty ub "<<new_ty_max<<endl);
-    }
-    if(new_tz_max<shift_max_z-1e-3){
-        DebugOn("new tz ub "<<new_tz_max<<endl);
+        if(new_tx_min>shift_min_x+1e-3){
+            DebugOn("new tx lb "<<new_tx_min<<endl);
+        }
+        if(new_ty_min>shift_min_y+1e-3){
+            DebugOn("new ty lb "<<new_ty_min<<endl);
+        }
+        if(new_tz_min>shift_min_z+1e-3){
+            DebugOn("new tz lb "<<new_tz_min<<endl);
+        }
+        if(new_tx_max<shift_max_x-1e-3){
+            DebugOn("new tx ub "<<new_tx_max<<endl);
+        }
+        if(new_ty_max<shift_max_y-1e-3){
+            DebugOn("new ty ub "<<new_ty_max<<endl);
+        }
+        if(new_tz_max<shift_max_z-1e-3){
+            DebugOn("new tz ub "<<new_tz_max<<endl);
+        }
     }
     
     //  DebugOn("Number of discarded pairs by inner sphere test = " << new_test << endl);
@@ -18942,18 +19255,25 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     }
     
     if(found_all){
-        min_cost_sum=std::max(min_cost_sum-1e-6,0.0);
+        min_cost_sum=std::max(min_cost_sum-1e-4,0.0);
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         new_cells=valid_cells;
     }
     else{
         new_cells=valid_cells_empty;
     }
+//    new_tx_min=shift_min_x;
+//    new_tx_max=shift_max_x;
+//    new_ty_min=shift_min_y;
+//    new_ty_max=shift_max_y;
+//    new_tz_min=shift_min_z;
+//    new_tz_max=shift_max_z;
 }
-bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert){
+bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point){
     bool res=true;
     vector<int> feas_set_a, infeas_set_a,  feas_set_b, infeas_set_b;
-    vector<vector<int>> infeas_facet_set_a, infeas_facet_set_b;
+    vector<vector<int>> infeas_facet_set_a(vertex_set_a.size()), infeas_facet_set_b(vertex_set_b.size());
+    /*k is added to feas_set_a if feasible wrt all facets of B*/
     for(auto k=0;k<vertex_set_a.size();k++){
         auto xk=vertex_set_a[k][0];
         auto yk=vertex_set_a[k][1];
@@ -18961,11 +19281,13 @@ bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facet
         bool feas=true;
         vector<int> inf_facet;
         for(auto l=0;l<facets_b.size();l++){
-            auto al=facets_b[l][1];
-            auto bl=facets_b[l][2];
-            auto cl=facets_b[l][3];
-            auto dl=facets_b[l][4];
-            if(al*xk+bl*yk+cl*zk+dl>=1e-6){
+            auto al=facets_b[l][0];
+            auto bl=facets_b[l][1];
+            auto cl=facets_b[l][2];
+            auto dl=facets_b[l][3];
+            auto val=al*xk+bl*yk+cl*zk+dl;
+            DebugOff("val a"<< al*xk+bl*yk+cl*zk+dl<<endl);
+            if(al*xk+bl*yk+cl*zk+dl>=0){
                 feas=false;
                 inf_facet.push_back(l);
             }
@@ -18975,9 +19297,10 @@ bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facet
         }
         else{
             infeas_set_a.push_back(k);
-            infeas_facet_set_a.push_back(inf_facet);
+            infeas_facet_set_a[k]=inf_facet;
         }
     }
+    /*k is added to feas_set_b if feasible wrt all facets of A*/
     for(auto k=0;k<vertex_set_b.size();k++){
         auto xk=vertex_set_b[k][0];
         auto yk=vertex_set_b[k][1];
@@ -18985,11 +19308,13 @@ bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facet
         bool feas=true;
         vector<int> inf_facet;
         for(auto l=0;l<facets_a.size();l++){
-            auto al=facets_a[l][1];
-            auto bl=facets_a[l][2];
-            auto cl=facets_a[l][3];
-            auto dl=facets_a[l][4];
-            if(al*xk+bl*yk+cl*zk+dl>=1e-6){
+            auto al=facets_a[l][0];
+            auto bl=facets_a[l][1];
+            auto cl=facets_a[l][2];
+            auto dl=facets_a[l][3];
+            auto valb=al*xk+bl*yk+cl*zk+dl;
+            DebugOff("val b"<< al*xk+bl*yk+cl*zk+dl<<endl);
+            if(al*xk+bl*yk+cl*zk+dl>=0){
                 feas=false;
                 inf_facet.push_back(l);
             }
@@ -18999,68 +19324,127 @@ bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facet
         }
         else{
             infeas_set_b.push_back(k);
-            infeas_facet_set_b.push_back(inf_facet);
+            infeas_facet_set_b[k]=inf_facet;
         }
     }
     new_vert.clear();
+//    if(feas_set_a.size()>0 && feas_set_b.size()>0){
+//        DebugOn("Both vertices intersect");
+//        return false;
+//    }
     for(auto i=0;i<feas_set_a.size();i++){
-        new_vert.push_back(vertex_set_a[i]);
+        new_vert.push_back(vertex_set_a[feas_set_a[i]]);
     }
     for(auto i=0;i<feas_set_b.size();i++){
-        new_vert.push_back(vertex_set_b[i]);
+        new_vert.push_back(vertex_set_b[feas_set_b[i]]);
     }
-    if(feas_set_a.size()>0 && feas_set_b.size()>0){
-        DebugOn("Both vertices intersect");
-        return false;
+    
+   if(feas_set_a.size()>=0 && feas_set_a.size()<vertex_set_a.size()){
+        res=compute_vertices(vertex_set_a, facets_a, facets_b, vertex_edge_a, vertex_edge_plane_a,   feas_set_a, infeas_set_a, infeas_facet_set_a, new_vert, model_point);
     }
-    else if(feas_set_a.size()>0 && feas_set_a.size()<vertex_set_a.size()){
-        res=compute_vertices(vertex_set_a, facets_a, facets_b, vertex_edge_a, vertex_edge_plane_a,   feas_set_a, infeas_set_a, infeas_facet_set_a, new_vert);
+    if(feas_set_b.size()>=0 && feas_set_b.size()<vertex_set_b.size()){
+        res=compute_vertices(vertex_set_b, facets_b, facets_a, vertex_edge_b, vertex_edge_plane_b,   feas_set_b, infeas_set_b, infeas_facet_set_b, new_vert, model_point);
     }
-    else if(feas_set_b.size()>0 && feas_set_b.size()<vertex_set_b.size()){
-        res=compute_vertices(vertex_set_b, facets_b, facets_a, vertex_edge_b, vertex_edge_plane_b,   feas_set_b, infeas_set_b, infeas_facet_set_b, new_vert);
-    }
-    else if(feas_set_a.size()==0 && feas_set_b.size()==0){
-        return false;
-    }
+//    else if(feas_set_a.size()==0 && feas_set_b.size()==0){
+//        DebugOn("no vertex intersection found "<<endl);
+//        return false;
+//    }
     return res;
 }
-bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert){
+bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point){
     bool vertex_found=true, vertex_found_i=true;
+    /*Loops over all vertices of A that are  inside B*/
     for(auto i=0;i<feas_set_a.size();i++){
-        auto ve_i=vertex_edge_a[i];
-        auto vep_i=vertex_edge_plane_a[i];
-        auto xa=vertex_set_a[i][0];
-        auto ya=vertex_set_a[i][1];
-        auto za=vertex_set_a[i][2];
+        auto vi=feas_set_a[i];
+        auto ve_i=vertex_edge_a[vi];
+        auto vep_i=vertex_edge_plane_a[vi];
+        auto xa=vertex_set_a[vi][0];
+        auto ya=vertex_set_a[vi][1];
+        auto za=vertex_set_a[vi][2];
+        /*Loops over all vertices that have edge with i*/
         for(auto k=0;k<ve_i.size();k++){
             auto vj=ve_i[k];
             auto xb=vertex_set_a[vj][0];
             auto yb=vertex_set_a[vj][1];
             auto zb=vertex_set_a[vj][2];
+            /* finds vertex vj that is infeasible to set B*/
             if(std::find(infeas_set_a.begin(),infeas_set_a.end(), vj)!=infeas_set_a.end()){
-                auto edge_pair=vep_i[vj];
+                auto edge_pair=vep_i[k];
                 vertex_found_i=false;
                 auto inf_facet_set_j=infeas_facet_set_a[vj];
+//                for(auto m=0;m<infeas_facet_set_a[vi].size();m++){
+//                    inf_facet_set_j.push_back(infeas_facet_set_a[vi][m]);
+//                }
+                /* finds plane of B (inf_facet_set_j[l]) that separates vertices i and vj*/
                 for(auto l=0;l<inf_facet_set_j.size();l++){
                     vector<double> plane1, plane2, plane3;
                     plane1=facets_a[edge_pair.first];
                     plane2=facets_a[edge_pair.second];
-                    plane3=facets_b[l];
+                    plane3=facets_b[inf_facet_set_j[l]];
                     Eigen::Matrix3f A;
                     Eigen::Vector3f b;
                     A << plane1[0], plane1[1], plane1[2],  plane2[0], plane2[1], plane2[2],  plane3[0], plane3[1], plane3[2];
-                    b << plane1[3], plane2[3], plane3[3];
+                    b << plane1[3]*(-1), plane2[3]*(-1), plane3[3]*(-1);
                     Eigen::Vector3f xs = A.fullPivLu().solve(b);
                     double error=(A*xs - b).norm();
+                    DebugOn("err "<<error<<endl);
                     if(error<=1e-6){
                         vector<double> solution(3);
                         solution[0]=xs[0];
                         solution[1]=xs[1];
                         solution[2]=xs[2];
-                        if(solution[0]>=xa && solution[0]<=xb && solution[1]>=ya && solution[1]<=yb && solution[2]>=za && solution[2]<=zb){
-                            vertex_found_i=true;
-                            new_vert.push_back(solution);
+                        double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
+                        bool la=false, lb=false, lc=false;
+                        bool line_segment=true;
+                        if(std::abs(xb-xa)<=1e-9){
+                            la=true;
                         }
+                        else{
+                            lamda_a=(solution[0]-xa)/(xb-xa);
+                            if(lamda_a>=1-1e-9 || lamda_a<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(std::abs(yb-ya)<=1e-9){
+                            lb=true;
+                        }
+                        else{
+                            lamda_b=(solution[1]-ya)/(yb-ya);
+                            if(lamda_b>=1-1e-9 || lamda_b<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(std::abs(zb-za)<=1e-9){
+                            lc=true;
+                        }
+                        else{
+                            lamda_c=(solution[2]-za)/(zb-za);
+                            if(lamda_c>=1-1e-9 || lamda_c<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(line_segment){
+                            lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
+                            if((la||lamda-lamda_a<=1e-4) && (lb||lamda-lamda_b<=1e-4) && (lc||lamda-lamda_c<=1e-4)){
+                                bool feas=true;
+                                for(auto j=0;j<facets_b.size();j++){
+                                    auto al=facets_b[j][0];
+                                    auto bl=facets_b[j][1];
+                                    auto cl=facets_b[j][2];
+                                    auto dl=facets_b[j][3];
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
+                                        feas=false;
+                                    }
+                                }
+                                if(feas){
+                                    vertex_found_i=true;
+                                    add_vertex(new_vert, solution, model_point);
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        DebugOn("solve failed");
                     }
                 }
             }
@@ -19072,7 +19456,144 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
             vertex_found=false;
         }
     }
+    vertex_found_i=true;
+    for(auto i=0;i<infeas_set_a.size();i++)
+    {
+        auto vi=infeas_set_a[i];
+        auto ve_i=vertex_edge_a[vi];
+        auto vep_i=vertex_edge_plane_a[vi];
+        auto xa=vertex_set_a[vi][0];
+        auto ya=vertex_set_a[vi][1];
+        auto za=vertex_set_a[vi][2];
+        auto inf_facet_set_i=infeas_facet_set_a[vi];
+        /*Loops over all vertices that have edge with i*/
+        for(auto k=0;k<ve_i.size();k++){
+            auto vj=ve_i[k];
+            auto xb=vertex_set_a[vj][0];
+            auto yb=vertex_set_a[vj][1];
+            auto zb=vertex_set_a[vj][2];
+            /* finds vertex vj that is infeasible to set B*/
+            if(std::find(infeas_set_a.begin(),infeas_set_a.end(), vj)!=infeas_set_a.end()){
+                auto edge_pair=vep_i[k];
+                auto inf_facet_set_j=infeas_facet_set_a[vj];
+                auto inf_facet_set_u=inf_facet_set_j;
+                for(auto m=0;m<infeas_facet_set_a[vi].size();m++){
+                    inf_facet_set_u.push_back(infeas_facet_set_a[vi][m]);
+                }
+                /* finds plane of B (inf_facet_set_j[l]) that separates vertices i and vj*/
+                for(auto l=0;l<inf_facet_set_u.size();l++){
+                    if(std::find(inf_facet_set_i.begin(), inf_facet_set_i.end(), inf_facet_set_u[l])==inf_facet_set_i.end()||std::find(inf_facet_set_j.begin(), inf_facet_set_j.end(), inf_facet_set_u[l])==inf_facet_set_j.end()){
+                        vertex_found_i=false;
+                    vector<double> plane1, plane2, plane3;
+                    plane1=facets_a[edge_pair.first];
+                    plane2=facets_a[edge_pair.second];
+                    plane3=facets_b[inf_facet_set_u[l]];
+                    Eigen::Matrix3f A;
+                    Eigen::Vector3f b;
+                    A << plane1[0], plane1[1], plane1[2],  plane2[0], plane2[1], plane2[2],  plane3[0], plane3[1], plane3[2];
+                    b << plane1[3]*(-1), plane2[3]*(-1), plane3[3]*(-1);
+                    Eigen::Vector3f xs = A.fullPivLu().solve(b);
+                    double error=(A*xs - b).norm();
+                    if(error<=1e-6){
+                        vertex_found_i=true;
+                        vector<double> solution(3);
+                        solution[0]=xs[0];
+                        solution[1]=xs[1];
+                        solution[2]=xs[2];
+                        double lamda_a=0, lamda_b=0, lamda_c=0, lamda=0;
+                        bool la=false, lb=false, lc=false;
+                        bool line_segment=true;
+                        if(std::abs(xb-xa)<=1e-9){
+                            la=true;
+                        }
+                        else{
+                            lamda_a=(solution[0]-xa)/(xb-xa);
+                            if(lamda_a>=1-1e-9 || lamda_a<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(std::abs(yb-ya)<=1e-9){
+                            lb=true;
+                        }
+                        else{
+                            lamda_b=(solution[1]-ya)/(yb-ya);
+                            if(lamda_b>=1-1e-9 || lamda_b<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(std::abs(zb-za)<=1e-9){
+                            lc=true;
+                        }
+                        else{
+                            lamda_c=(solution[2]-za)/(zb-za);
+                            if(lamda_c>=1-1e-9 || lamda_c<=1e-9){
+                                line_segment=false;
+                            }
+                        }
+                        if(line_segment){
+                            lamda=std::max(std::max(lamda_a, lamda_b), lamda_c);
+                            if((la||lamda-lamda_a<=1e-4) && (lb||lamda-lamda_b<=1e-4) && (lc||lamda-lamda_c<=1e-4)){
+                                bool feas=true;
+                                for(auto j=0;j<facets_b.size();j++){
+                                    auto al=facets_b[j][0];
+                                    auto bl=facets_b[j][1];
+                                    auto cl=facets_b[j][2];
+                                    auto dl=facets_b[j][3];
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
+                                        feas=false;
+                                    }
+                                }
+                                if(feas){
+                                    vertex_found_i=true;
+                                    add_vertex(new_vert, solution, model_point);
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        DebugOn("solve failed");
+                    }
+                    }
+                }
+            }
+        }
+        if(vertex_found && vertex_found_i){
+            vertex_found=true;
+        }
+        else{
+            vertex_found=false;
+        }
+    }
+    
     return vertex_found;
+}
+
+void add_vertex(std::vector<std::vector<double>>& new_vert, std::vector<double> solution, const std::vector<double>& model_point){
+    auto xs=solution[0];
+    auto ys=solution[1];
+    auto zs=solution[2];
+    auto xm=model_point[0];
+    auto ym=model_point[1];
+    auto zm=model_point[2];
+    auto ds=pow(xs-xm,2)+pow(ys-ym,2)+pow(zs-zm,2);
+    bool added=false;
+    for(auto i=0;i<new_vert.size();i++){
+        auto x=new_vert[i][0];
+        auto y=new_vert[i][1];
+        auto z=new_vert[i][2];
+        if(std::abs(x-xs)<=1e-6 && std::abs(y-ys)<=1e-6 && std::abs(z-zs)<=1e-6){
+            auto dm=pow(x-xm,2)+pow(y-ym,2)+pow(z-zm,2);
+            if(ds<=dm){
+                new_vert[i][0]=xs;
+                new_vert[i][1]=ys;
+                new_vert[i][2]=zs;
+            }
+            added=true;
+        }
+    }
+    if(!added){
+        new_vert.push_back(solution);
+    }
 }
 #ifdef USE_CDD
 vector<vector<double>> vertex_enumeration_cdd(const vector<vector<double>>& halfspaces, bool& status){
@@ -23912,7 +24433,7 @@ vector<double> BranchBound9(vector<vector<double>>& point_cloud_model, vector<ve
     DebugOn("tz "<<best_rot_trans[11]<<endl);
     return best_rot_trans;
 }
-vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<vector<vector<double>>> model_voronoi_vertices,  const vector<double>& model_inner_prod_min,const vector<double>& model_inner_prod_max, vector<pair<double, double>> min_max_model,  vector<double>& best_rot_trans, double best_ub, const vector<vector<pair<double, double>>>& model_voronoi_min_max)
+vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept, vector<vector<vector<double>>> model_voronoi_vertices,  const vector<double>& model_inner_prod_min,const vector<double>& model_inner_prod_max, vector<pair<double, double>> min_max_model,  vector<double>& best_rot_trans, double best_ub, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes)
 {
     /* INPUT BOUNDS */
     
@@ -24305,7 +24826,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
       
     
 
-        run_preprocess_parallel(point_cloud_data,  point_cloud_model,  model_voronoi_normals,  model_face_intercept, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, new_shift_x_min, new_shift_x_max, new_shift_y_min,  new_shift_y_max, new_shift_z_min, new_shift_z_max, new_min_max_model, max_cell_size, model_voronoi_min_max);
+        run_preprocess_parallel(point_cloud_data,  point_cloud_model,  model_voronoi_normals,  model_face_intercept, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, new_shift_x_min, new_shift_x_max, new_shift_y_min,  new_shift_y_max, new_shift_z_min, new_shift_z_max, new_min_max_model, max_cell_size, model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes);
                     for (int j = 0; j<m_vec.size(); j++) {
                         if(!m_vec[j] && valid_cells[j].size()>=nd){
                             shift_x_bounds_r={new_shift_x_min[j], new_shift_x_max[j]};
@@ -24432,7 +24953,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     return best_rot_trans;
     
 }
-void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<bool>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, vector<vector<vector<pair<double,double>>>>& new_min_max_model, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max){
+void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<bool>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, vector<vector<vector<pair<double,double>>>>& new_min_max_model, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes){
     std::vector<thread> threads;
     
     int nd=point_cloud_data.size();
@@ -24494,7 +25015,8 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
     for (size_t i = 0; i < num; ++i) {
         //  double new_tx_min=vec_node[i].tx.first,new_tx_max=vec_node[i].tx.second,new_ty_min=vec_node[i].ty.first,new_ty_max=vec_node[i].ty.second, new_tz_min=vec_node[i].tz.first,new_tz_max=vec_node[i].tz.second;
         
-        preprocess_poltyope_cdd_gjk_centroid( ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max));
+       // preprocess_poltyope_cdd_gjk_centroid( ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max));
+        preprocess_poltyope_ve_gjk_centroid(ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes));
         DebugOn("v size "<<valid_cells[i].size()<<endl);
         
         //        new_shift_x_min[i]=new_tx_min;
