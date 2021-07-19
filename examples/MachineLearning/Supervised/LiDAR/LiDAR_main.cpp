@@ -19051,6 +19051,16 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                             DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
                             DebugOn("dist "<<dist<<" "<<dist1<<endl);
                             DebugOn("delta "<<j<<" "<<std::abs(dist-dist1)<<endl);
+                            DebugOn("end"<<endl);
+                            if(dist1>dist){
+                                DebugOn("distances crossed"<<endl);
+                            }
+                        }
+                        if(status && status1 && vec_vertex.size()!=vec_vertex1.size()){
+                            DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
+                            DebugOn("dist "<<dist<<" "<<dist1<<endl);
+                            DebugOn("beta "<<j<<" "<<std::abs(dist-dist1)<<endl);
+                            DebugOn("end"<<endl);
                         }
                         dist=dist1;
                         for(auto k=0;k<vec_vertex.size();k++){
@@ -19399,8 +19409,12 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto bl=facets_a[j][1];
                                     auto cl=facets_a[j][2];
                                     auto dl=facets_a[j][3];
-                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas1=false;
+                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOn("end"<<endl);
                                     }
                                 }
                                 for(auto j=0;j<facets_b.size();j++){
@@ -19408,8 +19422,12 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto bl=facets_b[j][1];
                                     auto cl=facets_b[j][2];
                                     auto dl=facets_b[j][3];
-                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas2=false;
+                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOn("end"<<endl);
                                     }
                                 }
                                 if(feas1 && feas2){
@@ -19480,18 +19498,26 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto bl=facets_a[j][1];                                      
                                     auto cl=facets_a[j][2];                                      
                                     auto dl=facets_a[j][3];                                      
-                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){   
-                                        feas1=false;                                             
-                                    }                                                            
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
+                                        feas1=false;
+                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOn("end"<<endl);
+                                    }
                                 }                                                                
                                 for(auto j=0;j<facets_b.size();j++){                             
                                     auto al=facets_b[j][0];                                      
                                     auto bl=facets_b[j][1];                                      
                                     auto cl=facets_b[j][2];                                      
                                     auto dl=facets_b[j][3];                                      
-                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-6){   
-                                        feas2=false;                                             
-                                    }                                                            
+                                    if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
+                                        feas2=false;
+                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOn("end"<<endl);
+                                    }
                                 }                                                                
                                 if(feas1 && feas2){                                              
                                     vertex_found_i=true;                                         
