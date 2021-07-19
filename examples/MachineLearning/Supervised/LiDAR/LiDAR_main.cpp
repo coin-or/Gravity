@@ -19404,17 +19404,19 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                         solution[1]=xs[1];
                         solution[2]=xs[2];
                                 bool feas1=true, feas2=true;
-    for(auto j=0;j<facets_a.size();j++){
+                        for(auto j=0;j<facets_a.size();j++){
                                     auto al=facets_a[j][0];
                                     auto bl=facets_a[j][1];
                                     auto cl=facets_a[j][2];
                                     auto dl=facets_a[j][3];
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas1=false;
+                                        if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
                                         DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
                                         DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
                                         DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
                                         DebugOn("end"<<endl);
+                                        }
                                     }
                                 }
                                 for(auto j=0;j<facets_b.size();j++){
@@ -19424,10 +19426,12 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto dl=facets_b[j][3];
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas2=false;
+                                        if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
                                         DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
                                         DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
                                         DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
                                         DebugOn("end"<<endl);
+                                        }
                                     }
                                 }
                                 if(feas1 && feas2){
@@ -19500,10 +19504,12 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto dl=facets_a[j][3];                                      
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas1=false;
+                                        if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
                                         DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
                                         DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
                                         DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
                                         DebugOn("end"<<endl);
+                                    }
                                     }
                                 }                                                                
                                 for(auto j=0;j<facets_b.size();j++){                             
@@ -19514,9 +19520,11 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas2=false;
                                         DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
                                         DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
                                         DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
                                         DebugOn("end"<<endl);
+                                        }
                                     }
                                 }                                                                
                                 if(feas1 && feas2){                                              
@@ -19563,6 +19571,7 @@ void add_vertex(std::vector<std::vector<double>>& new_vert, std::vector<double> 
                 new_vert[i][2]=zs;
             }
             added=true;
+            DebugOn("identical vertex found"<<endl);
         }
     }
     if(!added){
