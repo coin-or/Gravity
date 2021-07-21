@@ -7133,15 +7133,15 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     
     Constraint<> sum_rotx("sum_rotx");
     sum_rotx = sum(rotxt)+sum(new_xm);
-    Reg->add(sum_rotx==nd*x_shift);
+    //Reg->add(sum_rotx==nd*x_shift);
 
     Constraint<> sum_roty("sum_roty");
     sum_roty = sum(rotyt)+sum(new_ym);
-    Reg->add(sum_roty==nd*y_shift);
+    //Reg->add(sum_roty==nd*y_shift);
 
     Constraint<> sum_rotz("sum_rotz");
     sum_rotz = sum(rotzt)+sum(new_zm);
-    Reg->add(sum_rotz==nd*z_shift);
+    //Reg->add(sum_rotz==nd*z_shift);
     
     auto ids2 = x_shift.repeat_id(N1.size());
     Constraint<> x_rot1("x_rot1");
@@ -18509,6 +18509,9 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
+    indices valid_cells_new("valid_cells_new");
+    param<double> dist_cost_first("dist_cost_first");
+    param<double> dist_cost_second("dist_cost_second");
     indices valid_cells_empty("valid_cells_empty");
     double time_start = get_wall_time();
     int new_test=0;
@@ -18559,11 +18562,14 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     new_ty_max=0;
     new_tz_min=0;
     new_tz_max=0;
-
+    
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     map<int,vector<int>> valid_cells_map;
     map<int, vector<double>> dist_cost_map;
+    map<int, vector<double>> dist_root_novoro_map_j;
+    map<int, vector<int>> pos_novoro_map_j;
+    map<int, bool> new_model_pts;
     map<int, vector<double>> dist_alt_cost_map;
     double dist_alt_cost_sum=0;
     int nd=point_cloud_data.size();
@@ -18584,7 +18590,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vector<double> min_cost_i(nd);
     min_cost_sum=0.0;
     double ub_root=sqrt(upper_bound);
-  
+    
     double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
     double shift_mag_max_root=sqrt(shift_mag_max);
     double shift_mag_min=0.0;
@@ -18651,7 +18657,21 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vector<bool> vec_vfi(nd);
     double siq=0;
     double min_sum_di_sq=0;
-    int countd=0;
+    param<double> dii("dii");
+    for(auto i=0;i<nd;i++){
+        dii.add_val(to_string(i+1)+","+to_string(i+1), 0.0);
+        auto xi=point_cloud_data[i][0];
+        auto yi=point_cloud_data[i][1];
+        auto zi=point_cloud_data[i][2];
+        for(auto j=i+1;j<nd;j++){
+            auto xj=point_cloud_data[j][0];
+            auto yj=point_cloud_data[j][1];
+            auto zj=point_cloud_data[j][2];
+            auto d=pow(xi-xj, 2)+pow(yi-yj, 2)+pow(zi-zj, 2);
+            dii.add_val(to_string(i+1)+","+ to_string(j+1), sqrt(d));
+            dii.add_val(to_string(j+1)+","+ to_string(i+1), sqrt(d));
+        }
+    }
     for(auto i=0;i<nd;i++){
         siq=0.0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
@@ -18673,7 +18693,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-      //  *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
+        //  *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
         *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x};
         rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
@@ -18686,7 +18706,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-//        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
+        //        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
         *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y};
         rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
@@ -18776,8 +18796,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         pl[3]=-z_ub[i];
         planes.push_back(pl);
         pl.clear();
-      //  pl.resize(4,0);
-
+        //  pl.resize(4,0);
+        
         auto a=(-1)*(x_lb[i]+x_ub[i]);
         auto b=(-1)*(y_lb[i]+y_ub[i]);
         auto c=(-1)*(z_lb[i]+z_ub[i]);
@@ -18913,27 +18933,29 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     max_m_box=ip;
                 }
             }
+            double dist_novoro=0;
             if(xm>=x_lb[i]-1e-6 && ym>=y_lb[i]-1e-6 && zm>=z_lb[i]-1e-6 && xm<=x_ub[i]-1e-6 && ym<=y_ub[i]-1e-6 && zm<=z_ub[i]-1e-6){
-                    cost_alt_j-=2.0*max_m_box;
-                    dc_ij-=2.0*max_m_box;
-                    dist=0.0;
-                    if(cost_alt_j>=dist){
-                        DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
-                    }
-                    dist=std::max(dist, cost_alt_j);
-                    res=false;
-                    dist_calculated=true;
+                cost_alt_j-=2.0*max_m_box;
+                dc_ij-=2.0*max_m_box;
+                dist=0.0;
+                if(cost_alt_j>=dist){
+                    DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
+                }
+                dist=std::max(dist, cost_alt_j);
+                res=false;
+                dist_calculated=true;
+                dist_novoro=0.0;
+            }
+            else{
+                auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+                dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
             }
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
-            DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
+                DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
             }
             if(!res){
                 if(!dist_calculated){
-                    countd++;
-                    if(countd>=85){
-                        DebugOff("reached debug "<<endl);
-                    }
                     bool status=true;
                     vector<vector<double>> halfspaces;
                     //halfspaces.push_back(eq_i);
@@ -18977,96 +18999,20 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         halfspaces.push_back(vec1);
                         model_halfspaces.push_back(vec1);
                     }
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_lb[i];
-                    //                        vec1[1]=2*y_lb[i];
-                    //                        vec1[2]=2*z_lb[i];
-                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_ub[i];
-                    //                        vec1[1]=2*y_lb[i];
-                    //                        vec1[2]=2*z_lb[i];
-                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_ub[i];
-                    //                        vec1[1]=2*y_ub[i];
-                    //                        vec1[2]=2*z_lb[i];
-                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_lb[i];
-                    //                        vec1[1]=2*y_ub[i];
-                    //                        vec1[2]=2*z_lb[i];
-                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_lb[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_lb[i];
-                    //                        vec1[1]=2*y_lb[i];
-                    //                        vec1[2]=2*z_ub[i];
-                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_ub[i];
-                    //                        vec1[1]=2*y_lb[i];
-                    //                        vec1[2]=2*z_ub[i];
-                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_lb[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_ub[i];
-                    //                        vec1[1]=2*y_ub[i];
-                    //                        vec1[2]=2*z_ub[i];
-                    //                        vec1[3]=-pow(x_ub[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    //                        vec1.clear();
-                    //                        vec1.resize(4);
-                    //                        vec1[0]=2*x_lb[i];
-                    //                        vec1[1]=2*y_ub[i];
-                    //                        vec1[2]=2*z_ub[i];
-                    //                        vec1[3]=-pow(x_lb[i],2)-pow(y_ub[i],2)-pow(z_ub[i],2)-sphere_outer_sq[i];
-                    //                        halfspaces.push_back(vec1);
-                    status=true;
-                    auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
+                    bool status1=true;
+                    //auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
                     vector<vector<double>> vec_vertex1;
                     double dist1=0;
-                    auto status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
-                    DebugOff("VE size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<" "<<status<<" "<<status1<<endl);
-                    if(status){
+                    status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
+                    if(status1){
                         vector<vector<double>> mpoint;
                         mpoint.push_back(point_cloud_model.at(j));
-                        dist=distance_polytopes_gjk(vec_vertex, mpoint);
-                        if(status1){
-                            dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
-                        }
-                        if((std::abs(dist-dist1)>=1e-6 && status && status1)){
-                            DebugOn("error in vec_vertex1"<<endl);
-                            DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
-                            DebugOn("dist "<<dist<<" "<<dist1<<endl);
-                            DebugOn("delta "<<j<<" "<<std::abs(dist-dist1)<<endl);
-                            DebugOn("end"<<endl);
-                            if(dist1>dist){
-                                DebugOn("distances crossed"<<endl);
-                            }
-                        }
-                        if(status && status1 && vec_vertex.size()!=vec_vertex1.size()){
-                            DebugOn("vec_vertex size "<<vec_vertex.size()<<" "<<vec_vertex1.size()<<endl);
-                            DebugOn("dist "<<dist<<" "<<dist1<<endl);
-                            DebugOn("beta "<<j<<" "<<std::abs(dist-dist1)<<endl);
-                            DebugOn("end"<<endl);
-                        }
+                        dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
                         dist=dist1;
-                        for(auto k=0;k<vec_vertex.size();k++){
-                            auto xbv=vec_vertex[k][0];
-                            auto ybv=vec_vertex[k][1];
-                            auto zbv=vec_vertex[k][2];
+                        for(auto k=0;k<vec_vertex1.size();k++){
+                            auto xbv=vec_vertex1[k][0];
+                            auto ybv=vec_vertex1[k][1];
+                            auto zbv=vec_vertex1[k][2];
                             auto ip=xbv*xm+ybv*ym+zbv*zm;
                             if(ip>=max_m_ve){
                                 max_m_ve=ip;
@@ -19080,7 +19026,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         dist=std::max(dist, cost_alt_j);
                     }
                     else{
-                        
                         auto res3=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
                         dist=res3.first;
                         cost_alt_j-=2.0*max_m_box;
@@ -19089,19 +19034,17 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                             DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
                         }
                         dist=std::max(dist, cost_alt_j);
-                        
-//                        vec_vertex=vertices;
-//                        for(auto k=0;k<box[i].size();k++){
-//                            vec_vertex.push_back(box[i][k]);
-//                        }
                     }
                 }
-                if(dist-1e-6<=upper_bound){
+                if(dist-1e-5<=upper_bound){
+                    new_model_pts.insert ( std::pair<int,bool>(j,true) );
                     valid_cells_map[i].push_back(j);
-                    dist_cost_map[i].push_back(std::max(dist-1e-6,0.0));
+                    dist_cost_map[i].push_back(std::max(dist-1e-5,0.0));
+                    dist_root_novoro_map_j[j].push_back(dist_novoro);
+                    pos_novoro_map_j[j].push_back(i);
                     dist_alt_cost_map[i].push_back(dc_ij-1e-6);
                     auto key=to_string(i+1)+","+to_string(j+1);
-                    dist_cost.add_val(key, std::max(dist-1e-6,0.0));
+                    dist_cost_first.add_val(key, std::max(dist-1e-5,0.0));
                     valid_cells.insert(key);
                     if(xm<=xm_min){
                         xm_min=xm;
@@ -19189,6 +19132,53 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         box_new_i.clear();
         planes.clear();
     }
+    for (auto j = 0; j<nm; j++) {
+        if(new_model_pts.find(j)!=new_model_pts.end()){
+            auto drj=*max_element(dist_root_novoro_map_j[j].begin(), dist_root_novoro_map_j[j].end());
+            auto drjpos=max_element(dist_root_novoro_map_j[j].begin(), dist_root_novoro_map_j[j].end())-dist_root_novoro_map_j[j].begin();
+            auto max_i=pos_novoro_map_j[j][drjpos];
+            if(drj>=1e-6){
+                for(auto i=0;i<nd;i++){
+                    if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (i==max_i)){
+                        DebugOff("continued");
+                        continue;
+                    }
+                    auto di=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
+                    if(drj>=di){
+                        auto dij_root=drj-di;
+                        auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                        if(dij_root*dij_root>=dij){
+                            dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                            DebugOn("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    double min_i=0;
+    double min_cost_sum_new=0;
+    for(auto i=0;i<nd;i++){
+        min_i=999;
+        found_all=false;
+        for(auto j=0;j<nm;j++){
+            if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                if(dij<=min_i){
+                    min_i=dij;
+                }
+                if(dij<=upper_bound){
+                    valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
+                    dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
+                    found_all=true;
+                }
+            }
+        }
+        min_cost_sum_new+=min_i;
+        if(min_cost_sum_new-1e-4>=upper_bound){
+            found_all=false;
+        }
+    }
     if(found_all){
         DebugOff("min cost for each data point "<<endl);
         for(auto i=0;i<min_cost_i.size();i++){
@@ -19216,15 +19206,15 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_tz_min=std::max(new_tz_min-1e-6, shift_min_z);
         new_tz_max=std::min(new_tz_max+1e-6, shift_max_z);
         if(new_tx_min>=new_tx_max+1e-10 || new_tx_max<=new_tx_min-1e-10){
-           // found_all=false;
+            // found_all=false;
             DebugOn("new tx lb ub bounds cross "<<new_tx_min<<" "<<new_tx_max<<endl);
         }
         if(new_ty_min>=new_ty_max+1e-10 || new_ty_max<=new_ty_min-1e-10){
-          //  found_all=false;
+            //  found_all=false;
             DebugOn("new ty lb ub bounds cross "<<new_ty_min<<" "<<new_ty_max<<endl);
         }
         if(new_tz_min>=new_tz_max+1e-10 || new_tz_max<=new_tz_min-1e-10){
-          //  found_all=false;
+            //  found_all=false;
             DebugOn("new tz lb ub bounds cross "<<new_tz_min<<" "<<new_tz_max<<endl);
         }
         if(new_tx_min>shift_min_x+1e-3){
@@ -19257,7 +19247,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     prep_time_total+=prep_time;
     DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     if(found_all){
-        double cr=((old_cells.size()-valid_cells.size())*1.0)/(old_cells.size()*1.0)*100.0;
+        double cr=((old_cells.size()-valid_cells_new.size())*1.0)/(old_cells.size()*1.0)*100.0;
         DebugOn("cells removed "<<cr<<endl);
     }
     else{
@@ -19267,17 +19257,12 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     if(found_all){
         min_cost_sum=std::max(min_cost_sum-1e-4,0.0);
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
-        new_cells=valid_cells;
+        new_cells=valid_cells_new;
+        dist_cost=dist_cost_second;
     }
     else{
         new_cells=valid_cells_empty;
     }
-//    new_tx_min=shift_min_x;
-//    new_tx_max=shift_max_x;
-//    new_ty_min=shift_min_y;
-//    new_ty_max=shift_max_y;
-//    new_tz_min=shift_min_z;
-//    new_tz_max=shift_max_z;
 }
 bool vert_enum(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a, vector<vector<double>> vertex_set_b, vector<vector<double>> facets_b,  vector<vector<int>> vertex_edge_b, vector<vector<pair<int, int>>> vertex_edge_plane_b, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point){
     bool res=true;
@@ -19412,10 +19397,10 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas1=false;
                                         if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
-                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
-                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
-                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
-                                        DebugOn("end"<<endl);
+                                        DebugOff("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOff("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOff("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOff("end"<<endl);
                                         }
                                     }
                                 }
@@ -19427,10 +19412,10 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas2=false;
                                         if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
-                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
-                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
-                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
-                                        DebugOn("end"<<endl);
+                                        DebugOff("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOff("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOff("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOff("end"<<endl);
                                         }
                                     }
                                 }
@@ -19505,10 +19490,10 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas1=false;
                                         if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
-                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
-                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
-                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
-                                        DebugOn("end"<<endl);
+                                        DebugOff("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOff("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOff("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOff("end"<<endl);
                                     }
                                     }
                                 }                                                                
@@ -19519,11 +19504,11 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                     auto dl=facets_b[j][3];                                      
                                     if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl>=1e-7){
                                         feas2=false;
-                                        DebugOn("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
                                         if(al*solution[0]+bl*solution[1]+cl*solution[2]+dl<=1e-3){
-                                        DebugOn("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
-                                        DebugOn("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
-                                        DebugOn("end"<<endl);
+                                            DebugOff("false "<<al*solution[0]+bl*solution[1]+cl*solution[2]+dl<<endl);
+                                        DebugOff("al  "<<al<<" "<<bl<<" "<<cl<<" "<<dl<<endl);
+                                        DebugOff("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
+                                        DebugOff("end"<<endl);
                                         }
                                     }
                                 }                                                                
@@ -19571,7 +19556,7 @@ void add_vertex(std::vector<std::vector<double>>& new_vert, std::vector<double> 
                 new_vert[i][2]=zs;
             }
             added=true;
-            DebugOn("identical vertex found"<<endl);
+            DebugOff("identical vertex found"<<endl);
         }
     }
     if(!added){
@@ -25031,7 +25016,7 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
             pos_vec.push_back(i);
         }
     }
-    DebugOn("new_shift_max_size "<<new_shift_x_max.size()<<endl);
+    DebugOff("new_shift_max_size "<<new_shift_x_max.size()<<endl);
 }
 void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model,  vector<pair<double, double>>& min_max_d){
     vector<double> rot_trans_ub;
