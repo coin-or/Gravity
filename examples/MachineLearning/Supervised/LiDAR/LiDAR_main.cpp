@@ -19148,6 +19148,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         box_new_i.clear();
         planes.clear();
     }
+    if(found_all){
     for (auto j = 0; j<nm; j++) {
         map<int, bool> old_i;
         if(new_model_pts.find(j)!=new_model_pts.end()){
@@ -19228,6 +19229,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         if(min_cost_sum_new-1e-4>=upper_bound){
             found_all=false;
         }
+    }
+        min_cost_sum=min_cost_sum_new;
     }
     if(found_all){
         DebugOff("min cost for each data point "<<endl);
