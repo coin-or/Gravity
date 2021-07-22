@@ -19131,34 +19131,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         planes.clear();
     }
     if(found_all){
-        for (auto i = 0; i<nd; i++) {
-            map<int, bool> old_j;
-            for(auto k=0;k<valid_cells_map[i].size()-1;k++){
-                auto it=std::next(valid_cells_map[i].begin(),k);
-                auto dki=it->first;
-                auto max_j=it->second;
-                old_j[max_j]=true;
-                if(dki>=1e-6){
-                    for(auto j=0;j<nm;j++){
-                        if(old_j.find(j)==old_j.end()){
-                            if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (j==max_j)){
-                                DebugOff("continued");
-                                continue;
-                            }
-                            auto djk=djj.eval(to_string(j+1)+","+ to_string(max_j+1));
-                            if(dki>=djk){
-                                auto dij_root=dki-djk;
-                                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                                if(dij_root*dij_root>=dij){
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
-                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         for (auto j = 0; j<nm; j++) {
             map<int, bool> old_i;
             if(new_model_pts.find(j)!=new_model_pts.end()){
@@ -19182,6 +19154,34 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                         dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                         DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for (auto i = 0; i<nd; i++) {
+            map<int, bool> old_j;
+            for(auto k=0;k<valid_cells_map[i].size()-1;k++){
+                auto it=std::next(valid_cells_map[i].begin(),k);
+                auto dki=it->first;
+                auto max_j=it->second;
+                old_j[max_j]=true;
+                if(dki>=1e-6){
+                    for(auto j=0;j<nm;j++){
+                        if(old_j.find(j)==old_j.end()){
+                            if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (j==max_j)){
+                                DebugOff("continued");
+                                continue;
+                            }
+                            auto djk=djj.eval(to_string(j+1)+","+ to_string(max_j+1));
+                            if(dki>=djk){
+                                auto dij_root=dki-djk;
+                                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                                if(dij_root*dij_root>=dij){
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
                             }
                         }
