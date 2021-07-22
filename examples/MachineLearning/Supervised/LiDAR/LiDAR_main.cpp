@@ -19131,38 +19131,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         planes.clear();
     }
     if(found_all){
-    for (auto j = 0; j<nm; j++) {
-        map<int, bool> old_i;
-        if(new_model_pts.find(j)!=new_model_pts.end()){
-            for(auto k=0;k<dist_root_novoro_map_j[j].size()-1;k++){
-                auto it=std::next(dist_root_novoro_map_j[j].begin(),k);
-                auto dkj=it->first;
-                auto max_i=it->second;
-                old_i[max_i]=true;
-                if(dkj>=1e-6){
-                    for(auto i=0;i<nd;i++){
-                        if(old_i.find(i)==old_i.end()){
-                            if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (i==max_i)){
-                                DebugOff("continued");
-                                continue;
-                            }
-                            auto dik=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
-                            if(dkj>=dik){
-                                auto dij_root=dkj-dik;
-                                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                                if(dij_root*dij_root>=dij){
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
-                                    DebugOn("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    for (auto i = 0; i<nd; i++) {
-        map<int, bool> old_j;
+        for (auto i = 0; i<nd; i++) {
+            map<int, bool> old_j;
             for(auto k=0;k<valid_cells_map[i].size()-1;k++){
                 auto it=std::next(valid_cells_map[i].begin(),k);
                 auto dki=it->first;
@@ -19181,37 +19151,72 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
                                 if(dij_root*dij_root>=dij){
                                     dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
-                                    DebugOn("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-    double min_i=0;
-    double min_cost_sum_new=0;
-    for(auto i=0;i<nd;i++){
-        min_i=999;
-        found_all=false;
-        for(auto j=0;j<nm;j++){
-            if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
-                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                if(dij<=min_i){
-                    min_i=dij;
-                }
-                if(dij<=upper_bound){
-                    valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
-                    dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
-                    found_all=true;
+        for (auto j = 0; j<nm; j++) {
+            map<int, bool> old_i;
+            if(new_model_pts.find(j)!=new_model_pts.end()){
+                for(auto k=0;k<dist_root_novoro_map_j[j].size()-1;k++){
+                    auto it=std::next(dist_root_novoro_map_j[j].begin(),k);
+                    auto dkj=it->first;
+                    auto max_i=it->second;
+                    old_i[max_i]=true;
+                    if(dkj>=1e-6){
+                        for(auto i=0;i<nd;i++){
+                            if(old_i.find(i)==old_i.end()){
+                                if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (i==max_i)){
+                                    DebugOff("continued");
+                                    continue;
+                                }
+                                auto dik=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
+                                if(dkj>=dik){
+                                    auto dij_root=dkj-dik;
+                                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                                    if(dij_root*dij_root>=dij){
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                        DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        min_cost_sum_new+=min_i;
-        if(min_cost_sum_new-1e-4>=upper_bound){
+        double min_i=0;
+        double min_cost_sum_new=0;
+        for(auto i=0;i<nd;i++){
+            min_i=999;
             found_all=false;
+            for(auto j=0;j<nm;j++){
+                if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                    if(dij<=upper_bound){
+                        valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
+                        dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
+                        if(dij<=min_i){
+                            min_i=dij;
+                        }
+                        found_all=true;
+                    }
+                }
+            }
+            min_cost_sum_new+=min_i;
+            if(min_cost_sum_new-1e-4>=upper_bound){
+                DebugOn("min cost sum exceeds ub");
+                found_all=false;
+            }
+            if(!found_all){
+                DebugOn("found_all_false");
+                break;
+            }
         }
-    }
         min_cost_sum=min_cost_sum_new;
     }
     if(found_all){
@@ -19512,12 +19517,12 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                     double error=(A*xs - b).norm();
                     if(error<=1e-6){
                         vertex_found_i=true;
-              vector<double> solution(3);
+                        vector<double> solution(3);
                         solution[0]=xs[0];
                         solution[1]=xs[1];
                         solution[2]=xs[2];
-                                bool feas1=true, feas2=true;
-    for(auto j=0;j<facets_a.size();j++){                                                         
+                        bool feas1=true, feas2=true;
+                        for(auto j=0;j<facets_a.size();j++){
                                     auto al=facets_a[j][0];                                      
                                     auto bl=facets_a[j][1];                                      
                                     auto cl=facets_a[j][2];                                      
@@ -19530,7 +19535,7 @@ bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>
                                         DebugOff("sol  "<<solution[0]<<" "<<solution[1]<<" "<<solution[2] <<endl);
                                         DebugOff("end"<<endl);
                                     }
-                                    }
+                                  }
                                 }                                                                
                                 for(auto j=0;j<facets_b.size();j++){                             
                                     auto al=facets_b[j][0];                                      
@@ -24960,6 +24965,9 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
 void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<bool>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, vector<vector<vector<pair<double,double>>>>& new_min_max_model, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj){
     std::vector<thread> threads;
     
+    
+    vector<shared_ptr<Model<double>>> temp_models;
+    
     int nd=point_cloud_data.size();
     int num=vec_node.size();
     if(num==0){
@@ -24977,6 +24985,7 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
     valid_cells.resize(num);
     m_vec.resize(num);
     vec_lb.resize(num);
+    temp_models.resize(num);
     
     
     vec_prep_time.resize(num);
@@ -25017,21 +25026,17 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
     
     //auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < num; ++i) {
-        //  double new_tx_min=vec_node[i].tx.first,new_tx_max=vec_node[i].tx.second,new_ty_min=vec_node[i].ty.first,new_ty_max=vec_node[i].ty.second, new_tz_min=vec_node[i].tz.first,new_tz_max=vec_node[i].tz.second;
-        
-       // preprocess_poltyope_cdd_gjk_centroid( ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max));
-        preprocess_poltyope_ve_gjk_centroid(ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes), ref(dii), ref(djj));
+
+        threads.push_back(thread(&preprocess_poltyope_ve_gjk_centroid, ref(point_cloud_data), ref(point_cloud_model), vec_node[i].valid_cells, vec_node[i].roll.first,vec_node[i].roll.second, vec_node[i].pitch.first,vec_node[i].pitch.second, vec_node[i].yaw.first,vec_node[i].yaw.second, vec_node[i].tx.first,vec_node[i].tx.second,vec_node[i].ty.first,vec_node[i].ty.second,vec_node[i].tz.first,vec_node[i].tz.second,ref(vec_node[i].min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(vec_dist_cost[i]), upper_bound, lower_bound,  ref(vec_lb[i]), ref(valid_cells[i]),ref(new_shift_x_min[i]), ref(new_shift_x_max[i]),  ref(new_shift_y_min[i]),  ref(new_shift_y_max[i]), ref(new_shift_z_min[i]), ref(new_shift_z_max[i]), ref(new_min_max_model[i]), ref(vec_prep_time[i]), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes), ref(dii), ref(djj)));
         DebugOn("v size "<<valid_cells[i].size()<<endl);
         
-        //        new_shift_x_min[i]=new_tx_min;
-        //        new_shift_x_max[i]=new_tx_max;
-        //        new_shift_y_min[i]=new_ty_min;
-        //        new_shift_y_min[i]=new_ty_max;
-        //        new_shift_z_min[i]=new_tz_min;
-        //        new_shift_z_min[i]=new_tz_max;
-        //        new_min_max_model[i]=new_mm;
-        
     }
+
+    /* Join the threads with the main thread */
+    for(auto &t : threads){
+        t.join();
+    }
+    threads.clear();
     
     for(auto i=0;i<num;i++){
         vec_lb[i]=std::max(vec_lb[i], vec_node[i].lb);
@@ -25052,6 +25057,27 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
         }
     }
     DebugOff("new_shift_max_size "<<new_shift_x_max.size()<<endl);
+}
+
+
+void run_preprocess_model(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, shared_ptr<Model<double>>& model_i, bool& m_vec_i, int& pos_vec_i, double& vec_lb_i, treenode_p vec_node_i, indices& valid_cells_i, param<double>& dist_cost_i, int nb_threads, double upper_bound, double lower_bound, double& new_shift_x_min_i, double& new_shift_x_max_i, double& new_shift_y_min_i, double& new_shift_y_max_i, double& new_shift_z_min_i, double& new_shift_z_max_i,double& prep_time_i, vector<vector<pair<double,double>>>& new_min_max_model_i, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj){
+    int nd=point_cloud_data.size();
+       preprocess_poltyope_ve_gjk_centroid(ref(point_cloud_data), ref(point_cloud_model), vec_node_i.valid_cells, vec_node_i.roll.first,vec_node_i.roll.second, vec_node_i.pitch.first,vec_node_i.pitch.second, vec_node_i.yaw.first,vec_node_i.yaw.second, vec_node_i.tx.first,vec_node_i.tx.second,vec_node_i.ty.first,vec_node_i.ty.second,vec_node_i.tz.first,vec_node_i.tz.second,ref(vec_node_i.min_max_model), ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(dist_cost_i), upper_bound, lower_bound,  ref(vec_lb_i), ref(valid_cells_i),ref(new_shift_x_min_i), ref(new_shift_x_max_i),  ref(new_shift_y_min_i),  ref(new_shift_y_max_i), ref(new_shift_z_min_i), ref(new_shift_z_max_i), ref(new_min_max_model_i), ref(prep_time_i), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes), ref(dii), ref(djj));
+
+        DebugOn("v size "<<valid_cells_i.size()<<endl);
+
+ 
+    bool model_created=false;
+        if(valid_cells_i.size()>=nd){
+            //shared_ptr<Model<double>> build_linobj_convex_clean(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, vector<pair<double, double>> min_max_data);
+            model_i = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first, vec_node_i.yaw.second, new_shift_x_min_i, new_shift_x_max_i, new_shift_y_min_i, new_shift_y_max_i, new_shift_z_min_i, new_shift_z_max_i, dist_cost_i, upper_bound, new_min_max_model_i, model_created);
+            if(!model_created){
+                indices valid_cells_empty("valid_cells_empty");
+                valid_cells_i=valid_cells_empty;
+            }
+        }
+    m_vec_i=model_created;
+    
 }
 void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model,  vector<pair<double, double>>& min_max_d){
     vector<double> rot_trans_ub;
