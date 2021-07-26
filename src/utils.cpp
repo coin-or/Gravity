@@ -246,6 +246,22 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     }
     return bnd;
 }
+/*use nthreads on num of problems; if nthreads>num, more than one thread for each problem*/
+std::vector<int> bounds_gurobi_threads(size_t num, unsigned nthreads){
+    if(nthreads<num){
+        DebugOn("threads cannot be strictly lesser than num");
+    }
+    std::vector<int>bnd;
+    int delta = num / nthreads;
+    int rem=num%nthreads;
+    for (auto i = 0; i < num; ++i) {
+        bnd.push_back(delta);
+        if(i<rem){
+            bnd[i]++;
+        }
+    }
+    return bnd;
+}
 
 void set_activetol_initrefine(double& active_tol, double& active_root_tol, double viol_obbt_init,double viol_root_init, int& nb_init_refine, int nb_root_refine, double lb_solver_tol, int run_obbt_iter){
     if(run_obbt_iter==1){
