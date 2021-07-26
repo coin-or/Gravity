@@ -258,7 +258,7 @@ void GurobiProgram::reset_model(){
     grb_mod = new GRBModel(*grb_env);
 }
 
-bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double max_time, double cut_off){
+bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double max_time, double cut_off, int threads){
         //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
         //    print_constraints();
     if (relax) relax_model();
@@ -269,7 +269,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
-    grb_mod->set(GRB_IntParam_Threads, 1);
+    grb_mod->set(GRB_IntParam_Threads, threads);
     grb_mod->set(GRB_IntParam_OutputFlag,1);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);

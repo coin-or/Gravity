@@ -333,9 +333,11 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
         DebugOff("in run_parallel(models...), models is empty, returning");
         return -1;
     }
+    int num_threads=nr_threads;
     /* Split models into nr_threads parts */
     auto nr_threads_ = std::min((size_t)nr_threads,models.size());
     std::vector<size_t> limits = bounds(nr_threads_, models.size());
+    std::vector<int> thread_each = bounds_gurobi_threads(models.size(), num_threads);
     DebugOff("Running on " << nr_threads_ << " threads." << endl);
     DebugOff("limits size = " << limits.size() << endl);
     for (size_t i = 0; i < limits.size(); ++i) {
@@ -344,7 +346,7 @@ int run_parallel(const vector<shared_ptr<gravity::Model<double>>>& models, gravi
     /* Launch all threads in parallel */
     auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
     for (size_t i = 0; i < nr_threads_; ++i) {
-        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time, cut_off));
+        threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time, cut_off, thread_each[i]));
     }
     /* Join the threads with the main thread */
     for(auto &t : threads){

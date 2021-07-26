@@ -48,6 +48,7 @@ op::OptionParser readOptions(int argc, char * argv[]);
 //the last chunck will be slightly larger
 std::vector<size_t> bounds(unsigned parts, size_t mem);
 
+std::vector<int> bounds_gurobi_threads(size_t mem, unsigned parts);
 
 gravity::Sign reverse(gravity::Sign s);
 

@@ -243,7 +243,7 @@ public:
         return run(output, tol, max_iter, 1e-6, false, {false,""}, 1e+6);
     }
     /* run model */
-    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit, double cut_off=1e9){
+    int run(int output, type tol , int max_iter, double mipgap, bool relax, pair<bool,string> lin_solver, double time_limit, double cut_off=1e9, int threads=1){
         int return_status = -1, dyn_max_iter = 20;
         bool violated_constraints = true, optimal = true, solver_violated=false;
         unsigned nb_it = 0;
@@ -624,13 +624,16 @@ public:
     int run(int output, type tol ,const string& lin_solver, int max_iter, double time_limit,  double cut_off){
         return run(output, tol, max_iter, 1e-6, true, {false,""}, time_limit, cut_off);
     }
+    int run(int output, type tol ,const string& lin_solver, int max_iter, double time_limit,  double cut_off, int threads){
+        return run(output, tol, max_iter, 1e-6, true, {false,""}, time_limit, cut_off, threads);
+    }
 };
 
 template<typename type>
-int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6, double cut_off=1e9){
+int run_models(const std::vector<shared_ptr<Model<type>>>& models, size_t start, size_t end, SolverType stype, type tol, const string& lin_solver="", unsigned max_iter = 1e6, int max_batch_time=1e6, double cut_off=1e9, int threads=1){
     int return_status = -1;
     for (auto i = start; i<end; i++) {
-        return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver, max_iter, max_batch_time, cut_off);
+        return_status = solver<type>((models.at(i)),stype).run(0, tol, lin_solver, max_iter, max_batch_time, cut_off, threads);
         DebugOff("Return status "<<return_status << endl);
         //            models.at(i)->print_solution(24);
     }
