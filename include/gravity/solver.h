@@ -440,7 +440,7 @@ public:
                         grb_prog->prepare_model();
                         //DebugOn("calling prep after init"<<endl);
                     
-                    optimal = grb_prog->solve(output, tol, _use_callback, time_limit, cut_off);
+                    optimal = grb_prog->solve(output, tol, _use_callback, time_limit, cut_off, threads);
                     return_status = optimal ? 0 : -1;
                     //                        delete grb_prog->grb_mod;
                     //                        delete grb_prog->grb_env;
