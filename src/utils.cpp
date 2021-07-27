@@ -252,12 +252,16 @@ std::vector<int> bounds_gurobi_threads(size_t num, unsigned nthreads){
         DebugOn("threads cannot be strictly lesser than num");
     }
     std::vector<int>bnd;
-    int delta = num / nthreads;
-    int rem=num%nthreads;
+   
+    int a=num;
+    int b=nthreads;
+    int delta = a/b;
+    int rem=a%b;
     for (auto i = 0; i < num; ++i) {
         bnd.push_back(delta);
         if(i<rem){
             bnd[i]++;
+            DebugOn("thread now 2 "<<bnd[i]<<endl);
         }
     }
     return bnd;
