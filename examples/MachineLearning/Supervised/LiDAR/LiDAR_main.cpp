@@ -18946,7 +18946,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 dist_novoro=0.0;
             }
             else{
-                auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+                auto resd=min_max_euclidean_distsq_box_plane(box_new_i, new_vert_i, point_cloud_model.at(j), eq_i, x_lb[i],x_ub[i], y_lb[i],y_ub[i],z_lb[i],z_ub[i]);
+                //auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
                 dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
             }
             if(!dist_calculated){
@@ -19035,7 +19036,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         dist=std::max(dist, cost_alt_j);
                     }
                 }
-                if(dist-1e-5<=upper_bound){
+                if(dist-1e-5<=upper_bound*(nd-1)/nd){
                     new_model_pts.insert ( std::pair<int,bool>(j,true) );
                     auto c=std::max(dist-1e-5,0.0);
                     auto csq=sqrt(c);
@@ -19199,7 +19200,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             for(auto j=0;j<nm;j++){
                 if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                     auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                    if(dij<=upper_bound){
+                    if(dij<=upper_bound*(nd-1)/nd){
                         valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
                         dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
                         if(dij<=min_i){
@@ -19248,15 +19249,15 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_tz_min=std::max(new_tz_min-1e-6, shift_min_z);
         new_tz_max=std::min(new_tz_max+1e-6, shift_max_z);
         if(new_tx_min>=new_tx_max+1e-10 || new_tx_max<=new_tx_min-1e-10){
-            // found_all=false;
+            found_all=false;
             DebugOn("new tx lb ub bounds cross "<<new_tx_min<<" "<<new_tx_max<<endl);
         }
         if(new_ty_min>=new_ty_max+1e-10 || new_ty_max<=new_ty_min-1e-10){
-            //  found_all=false;
+            found_all=false;
             DebugOn("new ty lb ub bounds cross "<<new_ty_min<<" "<<new_ty_max<<endl);
         }
         if(new_tz_min>=new_tz_max+1e-10 || new_tz_max<=new_tz_min-1e-10){
-            //  found_all=false;
+            found_all=false;
             DebugOn("new tz lb ub bounds cross "<<new_tz_min<<" "<<new_tz_max<<endl);
         }
         if(new_tx_min>shift_min_x+1e-3){
