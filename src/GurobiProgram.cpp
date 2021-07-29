@@ -264,8 +264,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     if (relax) relax_model();
         //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
-    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-4);
-    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-4);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
@@ -280,6 +280,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
     //cut_off=0.0972224207;
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
+   // grb_mod->set(GRB_DoubleParam_Heuristics,0);
+    //grb_mod->set(GRB_IntParam_Cuts,2);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){
         grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
