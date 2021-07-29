@@ -18946,8 +18946,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 dist_novoro=0.0;
             }
             else{
-                auto resd=min_max_euclidean_distsq_box_plane(box_new_i, new_vert_i, point_cloud_model.at(j), eq_i, x_lb[i],x_ub[i], y_lb[i],y_ub[i],z_lb[i],z_ub[i]);
-                //auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+                //auto resd=min_max_euclidean_distsq_box_plane(box_new_i, new_vert_i, point_cloud_model.at(j), eq_i, x_lb[i],x_ub[i], y_lb[i],y_ub[i],z_lb[i],z_ub[i]);
+                auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
                 dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
             }
             if(!dist_calculated){
@@ -24861,7 +24861,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                 ub_ = models[j]->get_obj_val();
                 auto lb_ =  models[j]->get_rel_obj_val();
                 auto leaf_node=false;
-                if(ub_>=0 && (ub_-lb_/ub_)<=1e-4){
+                if(ub_>=0 && (ub_-lb_/ub_)<=1e-6){
                     if(ub_<=best_ub-1e-4){
                         //models[j]->print_solution();
                         //models[j]->print();
@@ -24872,11 +24872,12 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                             point_cloud_data_copy=point_cloud_data;
                             apply_rot_trans(rot_trans, point_cloud_data_copy);
                             auto L2err=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
-                            //leaf_node=true;
+                            leaf_node=true;
                             DebugOn("leaf lb "<<lb_<<" L2 "<<L2err<<" ub_ "<<ub_<<endl);
                             if(L2err<=best_ub){
                                 best_ub=L2err;
                                 best_rot_trans=rot_trans;
+                                DebugOn("new best ub "<<best_ub<<" ub_ "<<ub_<<" lb_ "<<lb_<<endl);
                                 //leaf_node=true;
                                 //lb=L2err;
                             }
@@ -24886,7 +24887,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                 if(true){
                     lb = std::max(models[j]->get_rel_obj_val(), vec_lb[pos]);
                 }
-                if(lb<=best_ub)
+                if(lb-1e-4<=best_ub)
                 {
                     shift_x_bounds_r={new_shift_x_min[pos], new_shift_x_max[pos]};
                     shift_y_bounds_r={new_shift_y_min[pos], new_shift_y_max[pos]};
@@ -24926,7 +24927,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     while(!lb_queue.empty())
     {
         auto node = lb_queue.top();
-        DebugOn("node lb "<<node.lb<<endl);
+        DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
         DebugOn(node.tx.first<<" "<< node.tx.second<<" "<<node.ty.first<<" "<<node.ty.second<<" "<<node.tz.first<<" "<<node.tz.second<<endl);
         DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second<<endl);
         compute_upper_boundICP(goicp, node.roll.first, node.roll.second, node.pitch.first, node.pitch.second, node.yaw.first, node.yaw.second, node.tx.first, node.tx.second, node.ty.first, node.ty.second, node.tz.first, node.tz.second, node.roll.first, node.roll.second, node.pitch.first, node.pitch.second, node.yaw.first, node.yaw.second, node.tx.first, node.tx.second, node.ty.first, node.ty.second, node.tz.first, node.tz.second, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, min_max_model,min_max_d);
