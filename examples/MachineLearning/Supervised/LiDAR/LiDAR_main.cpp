@@ -18777,7 +18777,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 dist=std::max(dist,dist_cost_old.eval(to_string(i+1)+","+to_string(j+1)));
                 if(dist<=upper_bound*(nd-1)/nd && dist<=dist_cost_max_min){
                     new_model_pts.insert ( std::pair<int,bool>(j,true) );
-                    auto c=std::max(dist,0.0);
+                    auto c=std::max(dist-1e-6,0.0);
                     auto csq=sqrt(c);
                     valid_cells_map[i].insert(pair<double, int>(csq, j));
                     dist_cost_map[i].push_back(c);
@@ -18785,7 +18785,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     dist_alt_cost_map[i].push_back(dc_ij-1e-6);
                     auto key=to_string(i+1)+","+to_string(j+1);
                     dist_cost_first.add_val(key, c);
-                    dist_cost_max.add_val(key, dist_max);
+                    dist_cost_max.add_val(key, dist_max+1e-6);
                     valid_cells.insert(key);
                     if(dist_max<=dist_cost_max_min){
                         dist_cost_max_min=dist_max;
@@ -18869,7 +18869,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 if(dik>=djk){
                                     auto dij_root=dik-djk;
                                     if(dij_root>=dij){
-                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
                                         DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                         
                                     }
@@ -18877,7 +18877,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 else if(djk>=dik_u){
                                     auto dij_root=djk-dik_u;
                                     if(dij_root>=dij){
-                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
                                        // DebugOn("djk "<<djk<<"dik_u "<<dik_u<<endl);
                                         DebugOff("better cost "<<dij*dij<<" "<< dij_root*dij_root<<endl);
                                         
@@ -18909,7 +18909,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                             if(dkj>=dik){
                                 auto dij_root=dkj-dik;
                                 if(dij_root>=dij){
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
                                     DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
                             }
@@ -18917,7 +18917,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 auto dij_root=dik-dkj_u;
                                 if(dij_root>=dij){
                                    // DebugOn("dij_root*dij_root "<<dij_root*dij_root<<"dij "<<dij*dij<<endl);
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
                                     DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
                             }
@@ -24587,7 +24587,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         }
                     }
         DebugOn("models size "<<models.size()<<endl);
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-3));
         for (int j = 0; j<models.size(); j++) {
             int pos=pos_vec[j];
             if(models[j]->_status==0){
