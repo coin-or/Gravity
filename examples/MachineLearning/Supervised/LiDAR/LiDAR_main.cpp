@@ -18765,8 +18765,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
             dist=resd.first;
             dist_max=resd.second;
-            dist=std::max(dist, cost_alt_j);
             cost_alt_j-=2.0*max_m_box;
+            dist=std::max(dist, cost_alt_j-1e-6);
             dc_ij-=2.0*max_m_box;
             dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
             if(!dist_calculated){
@@ -24194,8 +24194,8 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 10;
-    double max_time_init=10;
+    double max_time = 20;
+    double max_time_init=20;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
@@ -24587,7 +24587,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         }
                     }
         DebugOn("models size "<<models.size()<<endl);
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub+1e-3));
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
         for (int j = 0; j<models.size(); j++) {
             int pos=pos_vec[j];
             if(models[j]->_status==0){
