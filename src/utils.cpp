@@ -258,15 +258,15 @@ std::vector<int> bounds_gurobi_threads(size_t num, unsigned nthreads){
     int delta = b/a;
     int rem=b%a;
     if(rem>=1){
-        DebugOn("thread must be 2 "<<endl);
-        DebugOn("rem "<<rem<<endl);
-        DebugOn("delta "<<delta<<endl);
+        DebugOff("thread must be 2 "<<endl);
+        DebugOff("rem "<<rem<<endl);
+        DebugOff("delta "<<delta<<endl);
     }
     for (auto i = 0; i < a; ++i) {
         bnd.push_back(delta);
         if(i<rem){
             bnd[i]++;
-            DebugOn("thread now 2 "<<bnd[i]<<endl);
+            DebugOff("thread now 2 "<<bnd[i]<<endl);
         }
     }
     return bnd;
