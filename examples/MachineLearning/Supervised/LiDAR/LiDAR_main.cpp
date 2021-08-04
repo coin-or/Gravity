@@ -18524,6 +18524,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     indices valid_cells("valid_cells");
     indices valid_cells_new("valid_cells_new");
     param<double> dist_cost_first("dist_cost_first");
+    param<double> dist_cost_max("dist_cost_max");
     param<double> dist_cost_second("dist_cost_second");
     indices valid_cells_empty("valid_cells_empty");
     double time_start = get_wall_time();
@@ -18580,6 +18581,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     
     map<int, map<double, int, std::greater<double>>> valid_cells_map;
     map<int, vector<double>> dist_cost_map;
+    vector<double> dist_cost_max_min_i;
     map<int, map<double, int, std::greater<double>>> dist_root_novoro_map_j;
     map<int, bool> new_model_pts;
     map<int, vector<double>> dist_alt_cost_map;
@@ -18625,52 +18627,13 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
     }
     double shift_mag_min_root=sqrt(shift_mag_min);
-    vector<vector<int>> vert_edge(8);
-    vert_edge[0]={0, 3, 8};
-    vert_edge[1]={0, 1, 9};
-    vert_edge[2]={1, 2, 10};
-    vert_edge[3]={2, 3, 11};
-    vert_edge[4]={4, 7, 8};
-    vert_edge[5]={4, 5, 9};
-    vert_edge[6]={5, 6, 10};
-    vert_edge[7]={6, 7, 11};
-    vector<vector<int>> vertex_edge(8);
-    vector<vector<std::pair<int, int>>> vertex_edge_plane(8);
     vector<vector<double>> planes;
     planes.reserve(6);
-    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
-    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
-    vertex_edge[0]={1, 3, 4};
-    vertex_edge[1]={0, 2, 5};
-    vertex_edge[2]={1, 3, 6};
-    vertex_edge[3]={0, 2, 7};
-    vertex_edge[4]={5, 7, 0};
-    vertex_edge[5]={4, 6, 1};
-    vertex_edge[6]={5, 7, 2};
-    vertex_edge[7]={4, 6, 3};
-    vertex_edge_plane[0]={std::make_pair(1,2), std::make_pair(0,2), std::make_pair(0,1)};
-    vertex_edge_plane[1]={std::make_pair(1,2), std::make_pair(2,3), std::make_pair(1,3)};
-    vertex_edge_plane[2]={std::make_pair(2,3), std::make_pair(2,4), std::make_pair(3,4)};
-    vertex_edge_plane[3]={std::make_pair(0,2), std::make_pair(2,4), std::make_pair(0,4)};
-    vertex_edge_plane[4]={std::make_pair(1,5), std::make_pair(0,5), std::make_pair(0,1)};
-    vertex_edge_plane[5]={std::make_pair(1,5), std::make_pair(3,5), std::make_pair(1,3)};
-    vertex_edge_plane[6]={std::make_pair(3,5), std::make_pair(4,5), std::make_pair(3,4)};
-    vertex_edge_plane[7]={std::make_pair(0,5), std::make_pair(4,5), std::make_pair(0,4)};
-    
-    
-    vector<int> plane_x={0,1,0,-1,0,1,0,-1,-1,1,1,-1};
-    vector<int> plane_y={-1,0,1,0,-1,0,1,0,-1,-1,1,1};
-    vector<int> plane_z={-1,-1,-1,-1,1,1,1,1,0,0,0,0};
-    vector<int> inf;
-    vector<int> feas;
     vector<vector<double>> new_vert_i;
     vector<vector<double>> plane_eq;
-    bool vertex_found_i, vertex_found_l, vertex_found_k;
     vector<bool> vec_vfi(nd);
     double siq=0;
     double min_sum_di_sq=0;
-
-    
     for(auto i=0;i<nd;i++){
         siq=0.0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
@@ -18692,7 +18655,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         auto x_range  = get_product_range(x1_bounds, theta11._range);
         auto y_range  = get_product_range(y1_bounds, theta12._range);
         auto z_range  = get_product_range(z1_bounds, theta13._range);
-        //  *new_x1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, min_max_i[0].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x, min_max_i[0].second)};
         *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x};
         rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
@@ -18705,7 +18667,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
-        //        *new_y1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, min_max_i[1].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y, min_max_i[1].second)};
         *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y};
         rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
@@ -18718,7 +18679,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         x_range  = get_product_range(x1_bounds, theta31._range);
         y_range  = get_product_range(y1_bounds, theta32._range);
         z_range  = get_product_range(z1_bounds, theta33._range);
-        //*new_z1_bounds = {std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, min_max_i[2].first), std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z, min_max_i[2].second)};
         *new_z1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z};
         rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
         rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
@@ -18765,147 +18725,11 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         coord_i[1]=y_ub[i];
         coord_i[2]=z_ub[i];
         box_i.push_back(coord_i);
-        vector<double> pl(4,0);
-        pl[0]=-1;
-        pl[3]=x_lb[i];
-        planes.push_back(pl);
-        pl.clear();
-        pl.resize(4,0);
-        pl[1]=-1;
-        pl[3]=y_lb[i];
-        planes.push_back(pl);
-        pl.clear();
-        pl.resize(4,0);
-        pl[2]=-1;
-        pl[3]=z_lb[i];
-        planes.push_back(pl);
-        pl.clear();
-        pl.resize(4,0);
-        pl[0]=1;
-        pl[3]=-x_ub[i];
-        planes.push_back(pl);
-        pl.clear();
-        pl.resize(4,0);
-        pl[1]=1;
-        pl[3]=-y_ub[i];
-        planes.push_back(pl);
-        pl.clear();
-        pl.resize(4,0);
-        pl[2]=1;
-        pl[3]=-z_ub[i];
-        planes.push_back(pl);
-        pl.clear();
-        //  pl.resize(4,0);
-        
-        auto a=(-1)*(x_lb[i]+x_ub[i]);
-        auto b=(-1)*(y_lb[i]+y_ub[i]);
-        auto c=(-1)*(z_lb[i]+z_ub[i]);
-        auto d=sphere_inner_sq[i]+x_lb[i]*x_ub[i]+y_lb[i]*y_ub[i]+z_lb[i]*z_ub[i];
-        vector<double> eq_i(4);
-        eq_i[0]=a;
-        eq_i[1]=b;
-        eq_i[2]=c;
-        eq_i[3]=d;
-        for(auto k=0;k<8;k++){
-            auto xk=box_i[k][0];
-            auto yk=box_i[k][1];
-            auto zk=box_i[k][2];
-            if(a*xk+b*yk+c*zk+d<=1e-6){
-                feas.push_back(k);
-                box_new_i.push_back(box_i[k]);
-                DebugOff("val "<<a*xk+b*yk+c*zk+d<<endl);
-            }
-            else{
-                DebugOff("val "<<a*xk+b*yk+c*zk+d<<endl);
-                inf.push_back(k);
-            }
-        }
-        vertex_found_i=true;
-        for(auto k=0;k<inf.size();k++){
-            vertex_found_k=true;
-            auto edge_set_k=vert_edge[inf[k]];
-            for(auto l=0;l<edge_set_k.size();l++){
-                auto el=edge_set_k[l];
-                auto elf=vf[el];
-                auto els=vs[el];
-                bool vertex_found=false;
-                if(std::find (inf.begin(), inf.end(), elf)==inf.end()||std::find (inf.begin(), inf.end(), els)==inf.end()){
-                    double xel=100000.0, yel=100000.0, zel=100000.0;
-                    if(plane_x[el]==-1){
-                        xel=x_lb[i];
-                    }
-                    if(plane_x[el]==1){
-                        xel=x_ub[i];
-                    }
-                    if(plane_y[el]==-1){
-                        yel=y_lb[i];
-                    }
-                    if(plane_y[el]==1){
-                        yel=y_ub[i];
-                    }
-                    if(plane_z[el]==-1){
-                        zel=z_lb[i];
-                    }
-                    if(plane_z[el]==1){
-                        zel=z_ub[i];
-                    }
-                    if(plane_x[el]==0 && abs(a)>1e-10){
-                        xel=(-d-c*zel-b*yel)/a;
-                        if(xel<=x_ub[i]+1e-9 && xel>=x_lb[i]-1e-9){
-                            vertex_found=true;
-                        }
-                    }
-                    if(plane_y[el]==0 && abs(b)>1e-10){
-                        yel=(-d-c*zel-a*xel)/b;
-                        if(yel<=y_ub[i]+1e-9 && yel>=y_lb[i]-1e-9){
-                            vertex_found=true;
-                        }
-                    }
-                    if(plane_z[el]==0 && abs(c)>1e-10){
-                        zel=(-d-a*xel-b*yel)/c;
-                        if(zel<=z_ub[i]+1e-9 && zel>=z_lb[i]-1e-9){
-                            vertex_found=true;
-                        }
-                    }
-                    if(vertex_found){
-                        vector<double> v(3);
-                        v[0]=xel;
-                        v[1]=yel;
-                        v[2]=zel;
-                        new_vert_i.push_back(v);
-                        box_new_i.push_back(v);
-                    }
-                    else{
-                        DebugOn("Failed to find vertex in prep "<<endl);
-                    }
-                    if(vertex_found && vertex_found_k){
-                        vertex_found_k=true;
-                    }
-                    else{
-                        vertex_found_k=false;
-                    }
-                }
-            }
-            if(vertex_found_k && vertex_found_i){
-                vertex_found_i=true;
-            }
-            else{
-                vertex_found_i=false;
-            }
-        }
-        vec_vfi.push_back(vertex_found_i);
-        if(option_cost_new && vertex_found_i){
-            box.push_back(box_new_i);
-        }
-        else{
-            box.push_back(box_i);
-        }
-        vertex_new.push_back(new_vert_i);
-        plane_eq.push_back(eq_i);
+        box.push_back(box_i);
+    
         double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
         double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
-        double xv_min=9999.0, yv_min=9999.0, zv_min=9999.0;
-        double xv_max=-9999.0, yv_max=-9999.0, zv_max=-9999.0;
+        double dist_cost_max_min=9999;
         for (int j = 0; j<nm; j++) {
             auto vertices=model_voronoi_vertices.at(j);
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
@@ -18915,6 +18739,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             bool dist_calculated=false;
             bool res=true;
             double dist=0;
+            double dist_max=0;
             auto xm= point_cloud_model.at(j)[0];
             auto ym= point_cloud_model.at(j)[1];
             auto zm= point_cloud_model.at(j)[2];
@@ -18934,110 +18759,23 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             }
             double dist_novoro=0;
             if(xm>=x_lb[i]-1e-6 && ym>=y_lb[i]-1e-6 && zm>=z_lb[i]-1e-6 && xm<=x_ub[i]-1e-6 && ym<=y_ub[i]-1e-6 && zm<=z_ub[i]-1e-6){
-                cost_alt_j-=2.0*max_m_box;
-                dc_ij-=2.0*max_m_box;
-                dist=0.0;
-                if(cost_alt_j>=dist){
-                    DebugOn("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
-                }
-                dist=std::max(dist, cost_alt_j);
                 res=false;
                 dist_calculated=true;
-                dist_novoro=0.0;
             }
-            else{
-                //auto resd=min_max_euclidean_distsq_box_plane(box_new_i, new_vert_i, point_cloud_model.at(j), eq_i, x_lb[i],x_ub[i], y_lb[i],y_ub[i],z_lb[i],z_ub[i]);
-                auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
-                dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
-            }
+            auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+            dist=resd.first;
+            dist_max=resd.second;
+            dist=std::max(dist, cost_alt_j);
+            cost_alt_j-=2.0*max_m_box;
+            dc_ij-=2.0*max_m_box;
+            dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
                 DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
             }
             if(!res){
-                if(!dist_calculated){
-                    bool status=true;
-                    vector<vector<double>> halfspaces;
-                    //halfspaces.push_back(eq_i);
-                    vector<double> vec1(4, 0.0);
-                    vec1[0]=-1;
-                    vec1[3]=x_lb[i];
-                    halfspaces.push_back(vec1);
-                    vec1.clear();
-                    vec1.resize(4,0);
-                    vec1[0]=1;
-                    vec1[3]=x_ub[i]*(-1);
-                    halfspaces.push_back(vec1);
-                    vec1.clear();
-                    vec1.resize(4,0);
-                    vec1[1]=-1;
-                    vec1[3]=y_lb[i];
-                    halfspaces.push_back(vec1);
-                    vec1.clear();
-                    vec1.resize(4,0);
-                    vec1[1]=1;
-                    vec1[3]=y_ub[i]*(-1);
-                    halfspaces.push_back(vec1);
-                    vec1.clear();
-                    vec1.resize(4,0);
-                    vec1[2]=-1;
-                    vec1[3]=z_lb[i];
-                    halfspaces.push_back(vec1);
-                    vec1.clear();
-                    vec1.resize(4,0);
-                    vec1[2]=1;
-                    vec1[3]=z_ub[i]*(-1);
-                    halfspaces.push_back(vec1);
-                    vector<vector<double>> model_halfspaces;
-                    for(auto k=0;k<model_voronoi_normals[j].size();k++){
-                        vec1.clear();
-                        vec1.resize(4);
-                        vec1[0]=model_voronoi_normals[j][k][0];
-                        vec1[1]=model_voronoi_normals[j][k][1];
-                        vec1[2]=model_voronoi_normals[j][k][2];
-                        vec1[3]=model_face_intercept[j][k];
-                        halfspaces.push_back(vec1);
-                        model_halfspaces.push_back(vec1);
-                    }
-                    bool status1=true;
-                    //auto vec_vertex=vertex_enumeration_cdd(halfspaces, status);
-                    vector<vector<double>> vec_vertex1;
-                    double dist1=0;
-                    status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
-                    if(status1){
-                        vector<vector<double>> mpoint;
-                        mpoint.push_back(point_cloud_model.at(j));
-                        dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
-                        dist=dist1;
-                        for(auto k=0;k<vec_vertex1.size();k++){
-                            auto xbv=vec_vertex1[k][0];
-                            auto ybv=vec_vertex1[k][1];
-                            auto zbv=vec_vertex1[k][2];
-                            auto ip=xbv*xm+ybv*ym+zbv*zm;
-                            if(ip>=max_m_ve){
-                                max_m_ve=ip;
-                            }
-                        }
-                        cost_alt_j-=2.0*max_m_ve;
-                        dc_ij-=2.0*max_m_ve;
-                        if(cost_alt_j>=dist){
-                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
-                        }
-                        dist=std::max(dist-1e-5, cost_alt_j-1e-6);
-                    }
-                    else{
-                        auto res3=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
-                        dist=res3.first;
-                        cost_alt_j-=2.0*max_m_box;
-                        dc_ij-=2.0*max_m_box;
-                        if(cost_alt_j>=dist){
-                            DebugOff("altj cost exceeds "<<cost_alt_j<<" "<<dist<<endl);
-                        }
-                        dist=std::max(dist-1e-6, cost_alt_j-1e-6);
-                    }
-                }
                 dist=std::max(dist,dist_cost_old.eval(to_string(i+1)+","+to_string(j+1)));
-                if(dist<=upper_bound*(nd-1)/nd){
+                if(dist<=upper_bound*(nd-1)/nd && dist<=dist_cost_max_min){
                     new_model_pts.insert ( std::pair<int,bool>(j,true) );
                     auto c=std::max(dist,0.0);
                     auto csq=sqrt(c);
@@ -19047,7 +18785,11 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     dist_alt_cost_map[i].push_back(dc_ij-1e-6);
                     auto key=to_string(i+1)+","+to_string(j+1);
                     dist_cost_first.add_val(key, c);
+                    dist_cost_max.add_val(key, dist_max);
                     valid_cells.insert(key);
+                    if(dist_max<=dist_cost_max_min){
+                        dist_cost_max_min=dist_max;
+                    }
                     if(xm<=xm_min){
                         xm_min=xm;
                     }
@@ -19066,30 +18808,13 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     if(zm>=zm_max){
                         zm_max=zm;
                     }
-                    if(min_max_voro_j[0].first<=xv_min){
-                        xv_min=min_max_voro_j[0].first;
-                    }
-                    if(min_max_voro_j[0].second>=xv_max){
-                        xv_max=min_max_voro_j[0].second;
-                    }
-                    if(min_max_voro_j[1].first<=yv_min){
-                        yv_min=min_max_voro_j[1].first;
-                    }
-                    if(min_max_voro_j[1].second>=yv_max){
-                        yv_max=min_max_voro_j[1].second;
-                    }
-                    if(min_max_voro_j[2].first<=zv_min){
-                        zv_min=min_max_voro_j[2].first;
-                    }
-                    if(min_max_voro_j[2].second>=zv_max){
-                        zv_max=min_max_voro_j[2].second;
-                    }
                 }
                 else{
                     DebugOff("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
                 }
             }
         }
+        dist_cost_max_min_i.push_back(dist_cost_max_min);
         if(valid_cells_map[i].size()==0){
             found_all=false;
             DebugOff("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
@@ -19097,12 +18822,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         }
         vector<pair<double, double>> new_min_max_i;
         new_min_max_i.resize(3);
-        new_min_max_i[0].first=std::max(xm_min-ub_root, xv_min)-1e-6;
-        new_min_max_i[0].second=std::min(xm_max+ub_root, xv_max)+1e-6;
-        new_min_max_i[1].first=std::max(ym_min-ub_root, yv_min)-1e-6;
-        new_min_max_i[1].second=std::min(ym_max+ub_root, yv_max)+1e-6;
-        new_min_max_i[2].first=std::max(zm_min-ub_root, zv_min)-1e-6;
-        new_min_max_i[2].second=std::min(zm_max+ub_root, zv_max)+1e-6;
         new_min_max_each_d.push_back(new_min_max_i);
         new_tx_min+=xm_min;
         new_tx_max+=xm_max;
@@ -19128,35 +18847,40 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             break;
         }
         box_i.clear();
-        feas.clear();
-        inf.clear();
         new_vert_i.clear();
         box_new_i.clear();
         planes.clear();
     }
     if(found_all){
-        for (auto j = 0; j<nm; j++) {
-            map<int, bool> old_i;
-            if(new_model_pts.find(j)!=new_model_pts.end()){
-                for(auto k=0;k<dist_root_novoro_map_j[j].size()-1;k++){
-                    auto it=std::next(dist_root_novoro_map_j[j].begin(),k);
-                    auto dkj=it->first;
-                    auto max_i=it->second;
-                    old_i[max_i]=true;
-                    if(dkj>=1e-6){
-                        for(auto i=0;i<nd;i++){
-                            if(old_i.find(i)==old_i.end()){
-                                if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (i==max_i)){
-                                    DebugOff("continued");
-                                    continue;
-                                }
-                                auto dik=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
-                                if(dkj>=dik){
-                                    auto dij_root=dkj-dik;
-                                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                                    if(dij_root*dij_root>=dij){
+        for (auto i = 0; i<nd; i++) {
+            for(auto k=0;k<valid_cells_map[i].size();k++){
+                auto it=std::next(valid_cells_map[i].begin(),k);
+                auto dik=it->first;
+                auto max_j=it->second;
+                auto dik_u=sqrt(dist_cost_max.eval(to_string(i+1)+","+ to_string(max_j+1)));
+                if(dik>=1e-6){
+                    for(auto l=0;l<valid_cells_map[i].size();l++){
+                        if(l!=k){
+                            auto itl=std::next(valid_cells_map[i].begin(),l);
+                            auto dij=itl->first;
+                            auto j=itl->second;
+                            {
+                                auto djk=djj.eval(to_string(j+1)+","+ to_string(max_j+1));
+                                if(dik>=djk){
+                                    auto dij_root=dik-djk;
+                                    if(dij_root>=dij){
                                         dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                         DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                        
+                                    }
+                                }
+                                else if(djk>=dik_u){
+                                    auto dij_root=djk-dik_u;
+                                    if(dij_root>=dij){
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                       // DebugOn("djk "<<djk<<"dik_u "<<dik_u<<endl);
+                                        DebugOff("better cost "<<dij*dij<<" "<< dij_root*dij_root<<endl);
+                                        
                                     }
                                 }
                             }
@@ -19165,25 +18889,34 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 }
             }
         }
-        for (auto i = 0; i<nd; i++) {
-            map<int, bool> old_j;
-            for(auto k=0;k<valid_cells_map[i].size()-1;k++){
-                auto it=std::next(valid_cells_map[i].begin(),k);
-                auto dki=it->first;
-                auto max_j=it->second;
-                old_j[max_j]=true;
-                if(dki>=1e-6){
-                    for(auto j=0;j<nm;j++){
-                        if(old_j.find(j)==old_j.end()){
-                            if(!valid_cells.has_key(to_string(i+1)+","+to_string(j+1)) || (j==max_j)){
+        for (auto j = 0; j<nm; j++) {
+            if(new_model_pts.find(j)!=new_model_pts.end()){
+                for(auto k=0;k<dist_root_novoro_map_j[j].size();k++){
+                    auto it=std::next(dist_root_novoro_map_j[j].begin(),k);
+                    auto dkj=it->first;
+                    auto max_i=it->second;
+                    auto dkj_u=sqrt(dist_cost_max.eval(to_string(max_i+1)+","+ to_string(j+1)));
+                    if(dkj>=1e-6){
+                        for(auto l=0;l<dist_root_novoro_map_j[j].size();l++){
+                            if(l==k){
                                 DebugOff("continued");
                                 continue;
                             }
-                            auto djk=djj.eval(to_string(j+1)+","+ to_string(max_j+1));
-                            if(dki>=djk){
-                                auto dij_root=dki-djk;
-                                auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                                if(dij_root*dij_root>=dij){
+                            auto itl=std::next(dist_root_novoro_map_j[j].begin(),l);
+                            auto dij=itl->first;
+                            auto i=itl->second;
+                            auto dik=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
+                            if(dkj>=dik){
+                                auto dij_root=dkj-dik;
+                                if(dij_root>=dij){
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                }
+                            }
+                            else if(dik>=dkj_u){
+                                auto dij_root=dik-dkj_u;
+                                if(dij_root>=dij){
+                                   // DebugOn("dij_root*dij_root "<<dij_root*dij_root<<"dij "<<dij*dij<<endl);
                                     dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                     DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
@@ -19201,7 +18934,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             for(auto j=0;j<nm;j++){
                 if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                     auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                    if(dij<=upper_bound*(nd-1)/nd){
+                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i]){
                         valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
                         dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
                         if(dij<=min_i){
