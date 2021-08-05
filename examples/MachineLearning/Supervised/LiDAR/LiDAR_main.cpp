@@ -18766,9 +18766,9 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             dist=resd.first;
             dist_max=resd.second;
             cost_alt_j-=2.0*max_m_box;
-            dist=std::max(dist, cost_alt_j-1e-6);
+            dist=std::max(dist, cost_alt_j);
             dc_ij-=2.0*max_m_box;
-            dist_novoro=sqrt(std::max(resd.first-1e-6, 0.0));
+            dist_novoro=sqrt(std::max(resd.first, 0.0));
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
                 DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
@@ -18777,15 +18777,15 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 dist=std::max(dist,dist_cost_old.eval(to_string(i+1)+","+to_string(j+1)));
                 if(dist<=upper_bound*(nd-1)/nd && dist<=dist_cost_max_min){
                     new_model_pts.insert ( std::pair<int,bool>(j,true) );
-                    auto c=std::max(dist-1e-6,0.0);
+                    auto c=std::max(dist,0.0);
                     auto csq=sqrt(c);
                     valid_cells_map[i].insert(pair<double, int>(csq, j));
                     dist_cost_map[i].push_back(c);
                     dist_root_novoro_map_j[j].insert(pair<double, int>(dist_novoro, i));
-                    dist_alt_cost_map[i].push_back(dc_ij-1e-6);
+                    dist_alt_cost_map[i].push_back(dc_ij);
                     auto key=to_string(i+1)+","+to_string(j+1);
                     dist_cost_first.add_val(key, c);
-                    dist_cost_max.add_val(key, dist_max+1e-6);
+                    dist_cost_max.add_val(key, dist_max);
                     valid_cells.insert(key);
                     if(dist_max<=dist_cost_max_min){
                         dist_cost_max_min=dist_max;
@@ -18841,7 +18841,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             }
             min_cost_sum=std::max(min_cost_sum, dist_alt_cost_sum);
         }
-        if(min_cost_sum-1e-4>upper_bound){
+        if(min_cost_sum>=upper_bound+1e-6){
             DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
             found_all=false;
             break;
@@ -18869,7 +18869,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 if(dik>=djk){
                                     auto dij_root=dik-djk;
                                     if(dij_root>=dij){
-                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                         DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                         
                                     }
@@ -18877,7 +18877,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 else if(djk>=dik_u){
                                     auto dij_root=djk-dik_u;
                                     if(dij_root>=dij){
-                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                        // DebugOn("djk "<<djk<<"dik_u "<<dik_u<<endl);
                                         DebugOff("better cost "<<dij*dij<<" "<< dij_root*dij_root<<endl);
                                         
@@ -18909,7 +18909,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                             if(dkj>=dik){
                                 auto dij_root=dkj-dik;
                                 if(dij_root>=dij){
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                     DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
                             }
@@ -18917,7 +18917,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                                 auto dij_root=dik-dkj_u;
                                 if(dij_root>=dij){
                                    // DebugOn("dij_root*dij_root "<<dij_root*dij_root<<"dij "<<dij*dij<<endl);
-                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root-1e-6);
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
                                     DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
                                 }
                             }
@@ -18945,7 +18945,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 }
             }
             min_cost_sum_new+=min_i;
-            if(min_cost_sum_new-1e-4>=upper_bound){
+            if(min_cost_sum_new>=upper_bound+1e-6){
                 DebugOn("min cost sum exceeds ub");
                 found_all=false;
             }
@@ -19032,7 +19032,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     }
     
     if(found_all){
-        min_cost_sum=std::max(min_cost_sum-1e-4,0.0);
+        min_cost_sum=std::max(min_cost_sum,0.0);
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         new_cells=valid_cells_new;
         dist_cost=dist_cost_second;
