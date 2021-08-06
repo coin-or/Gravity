@@ -19031,7 +19031,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             for(auto j=0;j<nm;j++){
                 if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                     auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
-                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i] && dij<=sum_other_i){
+                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i] && dij<=(upper_bound-sum_other_i)){
                         valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
                         dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
                         if(dij<=min_i){
