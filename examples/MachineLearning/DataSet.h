@@ -20,6 +20,7 @@ public:
     pair<double,double> roll, pitch, yaw, tx, ty, tz;
     double ub = numeric_limits<double>::max(), ub_ = numeric_limits<double>::max(),lb = 0;
     int depth;
+    vector<double> costs_upto;
     gravity::indices valid_cells;
     gravity::param<double> dist_cost_cells;
     bool leaf;
@@ -30,7 +31,7 @@ public:
         else
             return n1.depth > n2.depth;
     }
-    treenode_p(const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub, double ub_, int depth, const gravity::indices& valid_cells, bool leaf, gravity::param<double>& dist_cost_cells):roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub),ub_(ub_), depth(depth), valid_cells(valid_cells), leaf(leaf), dist_cost_cells(dist_cost_cells){};
+    treenode_p(const pair<double,double>& roll, const pair<double,double>& pitch, const pair<double,double>& yaw, const pair<double,double>& tx,const pair<double,double>& ty,const pair<double,double>& tz, double lb, double ub, double ub_, int depth, const gravity::indices& valid_cells, bool leaf, gravity::param<double>& dist_cost_cells,  vector<double>& costs_upto):roll(roll),pitch(pitch),yaw(yaw),tx(tx),ty(ty),tz(tz),lb(lb),ub(ub),ub_(ub_), depth(depth), valid_cells(valid_cells), leaf(leaf), dist_cost_cells(dist_cost_cells), costs_upto(costs_upto){};
 };
 class treenode_m
 {
