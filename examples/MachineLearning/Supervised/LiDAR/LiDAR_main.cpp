@@ -18579,11 +18579,9 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
     
     map<int, map<double, int, std::greater<double>>> valid_cells_map;
-    map<int, vector<double>> dist_cost_map;
     vector<double> dist_cost_max_min_i;
     map<int, map<double, int, std::greater<double>>> dist_root_novoro_map_j;
     map<int, bool> new_model_pts;
-    map<int, vector<double>> dist_alt_cost_map;
     double dist_alt_cost_sum=0;
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
@@ -18600,7 +18598,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     vector<double> coord_i;
     coord_i.resize(3);
     set<int> unique_model_pts;
-    vector<double> min_cost_i(nd);
     min_cost_sum=0.0;
     double ub_root=sqrt(upper_bound);
     vector<vector<int>> vertex_edge(8);
@@ -18773,7 +18770,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
     
         double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
         double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
-        double dist_cost_max_min=9999;
+        double dist_cost_max_min=9999, cost_min=9999;
         for (int j = 0; j<nm; j++) {
             auto vertices=model_voronoi_vertices.at(j);
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
@@ -18862,8 +18859,10 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                     if(dist_min_v<=upper_bound*(nd-1)/nd && dist_min_v<=dist_cost_max_min){
                         new_model_pts.insert ( std::pair<int,bool>(j,true) );
                         auto c=std::max(dist_min_v,0.0);
+                        if(c<=cost_min){
+                            cost_min=c;
+                        }
                         valid_cells_map[i].insert(pair<double, int>(dist_novoro, j));
-                        dist_cost_map[i].push_back(c);
                         dist_root_novoro_map_j[j].insert(pair<double, int>(dist_novoro, i));
                         auto key=to_string(i+1)+","+to_string(j+1);
                         dist_cost_first.add_val(key, c);
@@ -18912,9 +18911,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_ty_max+=ym_max;
         new_tz_min+=zm_min;
         new_tz_max+=zm_max;
-        auto costmin=*min_element(dist_cost_map[i].begin(), dist_cost_map[i].end());
-        min_cost_i.push_back(costmin);
-        min_cost_sum+=costmin;
+        min_cost_sum+=cost_min;
         if(min_cost_sum>=upper_bound+1e-6){
             DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
             found_all=false;
@@ -19000,13 +18997,41 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         }
         double min_i=0;
         double min_cost_sum_new=0;
-        for(auto i=0;i<nd;i++){
+        vector<double> v_min_i;
+        for(auto i=0;i<nd;i++)
+        {
             min_i=999;
             found_all=false;
             for(auto j=0;j<nm;j++){
                 if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                     auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
                     if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i]){
+                        if(dij<=min_i){
+                            min_i=dij;
+                        }
+                        found_all=true;
+                    }
+                }
+            }
+            v_min_i.push_back(min_i);
+            if(!found_all){
+                DebugOn("found_all_false");
+                break;
+            }
+        }
+        for(auto i=0;i<nd && found_all;i++){
+            min_i=999;
+            found_all=false;
+            double sum_other_i=0;
+            for(auto l=0;l<nd;l++){
+                if(l!=i){
+                    sum_other_i+=v_min_i[l];
+                }
+            }
+            for(auto j=0;j<nm;j++){
+                if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i] && dij<=sum_other_i){
                         valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
                         dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
                         if(dij<=min_i){
@@ -19027,18 +19052,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             }
         }
         min_cost_sum=min_cost_sum_new;
-    }
-    if(found_all){
-        DebugOff("min cost for each data point "<<endl);
-        for(auto i=0;i<min_cost_i.size();i++){
-            DebugOff(min_cost_i[i]<<endl);
-        }
-        DebugOff("Number of old pairs = " << old_cells.size() << endl);
-        DebugOff("Number of valid cells = " << valid_cells.size() << endl);
-        DebugOff("Number of discarded pairs = " << old_cells.size() - valid_cells.size() << endl);
-    }
-    else{
-        DebugOff("Number of valid cells = " << 0 << endl);
     }
     if(found_all){
         double ndd=point_cloud_data.size()*1.0;
@@ -19085,12 +19098,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             DebugOn("new tz ub "<<new_tz_max<<endl);
         }
     }
-    
-    //  DebugOn("Number of discarded pairs by inner sphere test = " << new_test << endl);
-    //    valid_cells.print();
-    //        time_end = get_wall_time();
-    //        prep_time = time_end - time_start;
-    //        DebugOn("Voronoi preprocessing time = " << prep_time << endl);
     auto time_end = get_wall_time();
     auto prep_time = time_end - time_start;
     prep_time_total+=prep_time;
