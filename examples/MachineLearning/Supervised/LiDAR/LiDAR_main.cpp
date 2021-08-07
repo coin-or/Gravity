@@ -18773,9 +18773,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         pl[3]=-z_ub[i];
         planes.push_back(pl);
         pl.clear();
-    
-        double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
-        double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
+   
         double dist_cost_max_min=9999, cost_min=9999;
         for (int j = 0; j<nm; j++) {
             auto vertices=model_voronoi_vertices.at(j);
@@ -18877,24 +18875,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                         if(dist_max_v<=dist_cost_max_min){
                             dist_cost_max_min=dist_max_v;
                         }
-                        if(xm<=xm_min){
-                            xm_min=xm;
-                        }
-                        if(xm>=xm_max){
-                            xm_max=xm;
-                        }
-                        if(ym<=ym_min){
-                            ym_min=ym;
-                        }
-                        if(ym>=ym_max){
-                            ym_max=ym;
-                        }
-                        if(zm<=zm_min){
-                            zm_min=zm;
-                        }
-                        if(zm>=zm_max){
-                            zm_max=zm;
-                        }
                     }
                     else{
                         DebugOff("distij "<<dist_min_v<<" upper_bound "<<upper_bound<<endl);
@@ -18911,12 +18891,6 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             DebugOff("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
             break;
         }
-        new_tx_min+=xm_min;
-        new_tx_max+=xm_max;
-        new_ty_min+=ym_min;
-        new_ty_max+=ym_max;
-        new_tz_min+=zm_min;
-        new_tz_max+=zm_max;
         min_cost_sum+=cost_min;
         if(min_cost_sum>=upper_bound+1e-6){
             DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
@@ -19030,6 +19004,8 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             min_i=999;
             found_all=false;
             double sum_other_i=0;
+            double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
+            double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
             for(auto l=0;l<nd;l++){
                 if(l!=i){
                     sum_other_i+=v_min_i[l];
@@ -19045,10 +19021,31 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
             }
             for(auto j=0;j<nm;j++){
                 if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                    auto xm= point_cloud_model.at(j)[0];
+                    auto ym= point_cloud_model.at(j)[1];
+                    auto zm= point_cloud_model.at(j)[2];
                     auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
                     if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i] && dij<=(upper_bound-sum_other_i)){
                         valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
                         dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
+                        if(xm<=xm_min){
+                            xm_min=xm;
+                        }
+                        if(xm>=xm_max){
+                            xm_max=xm;
+                        }
+                        if(ym<=ym_min){
+                            ym_min=ym;
+                        }
+                        if(ym>=ym_max){
+                            ym_max=ym;
+                        }
+                        if(zm<=zm_min){
+                            zm_min=zm;
+                        }
+                        if(zm>=zm_max){
+                            zm_max=zm;
+                        }
                         if(dij<=min_i){
                             min_i=dij;
                         }
@@ -19065,6 +19062,12 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
                 DebugOn("found_all_false");
                 break;
             }
+            new_tx_min+=xm_min;
+            new_tx_max+=xm_max;
+            new_ty_min+=ym_min;
+            new_ty_max+=ym_max;
+            new_tz_min+=zm_min;
+            new_tz_max+=zm_max;
         }
         min_cost_sum=min_cost_sum_new;
     }
@@ -24330,7 +24333,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int depth_r=0, iter=0;
     vector<int> depth_vec, depth_vec_new;
     priority_queue<treenode_p> lb_queue;
-    vector<double> costs_upto_init(3,0.0);
+    vector<double> costs_upto_init(20,0.0);
     auto valid_cells_ro=indices(N1,N2);
     vector<double> solution_lb_ones;
     for(auto i=0;i<nd;i++){
@@ -24705,7 +24708,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                     shift_x_bounds_r={new_shift_x_min[pos], new_shift_x_max[pos]};
                     shift_y_bounds_r={new_shift_y_min[pos], new_shift_y_max[pos]};
                     shift_z_bounds_r={new_shift_z_min[pos], new_shift_z_max[pos]};
-                    costs_upto_vec[pos].back()=lb;
+                    costs_upto_vec[pos].back()=std::max(lb, costs_upto_vec[pos].back());
                     lb_queue.push(treenode_p(roll_bounds[pos], pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, best_ub, ub_, depth_vec[pos], valid_cells[pos], leaf_node, dist_cost_cells[pos], costs_upto_vec[pos]));
                 }
                 else{
@@ -24913,8 +24916,8 @@ void run_preprocess_model(const vector<vector<double>>& point_cloud_data, const 
        preprocess_poltyope_ve_gjk_centroid(ref(point_cloud_data), ref(point_cloud_model), ref(vec_node_i.valid_cells),ref(vec_node_i.dist_cost_cells), vec_node_i.roll.first,vec_node_i.roll.second, vec_node_i.pitch.first,vec_node_i.pitch.second, vec_node_i.yaw.first,vec_node_i.yaw.second, vec_node_i.tx.first,vec_node_i.tx.second,vec_node_i.ty.first,vec_node_i.ty.second,vec_node_i.tz.first,vec_node_i.tz.second, ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(dist_cost_i), upper_bound, lower_bound,  ref(vec_lb_i), ref(valid_cells_i),ref(new_shift_x_min_i), ref(new_shift_x_max_i),  ref(new_shift_y_min_i),  ref(new_shift_y_max_i), ref(new_shift_z_min_i), ref(new_shift_z_max_i), ref(prep_time_i), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes), ref(dii), ref(djj), ref(costs_upto));
 
         DebugOn("v size "<<valid_cells_i.size()<<endl);
-    if(costs_upto.size()<nd && vec_node_i.depth>0 && vec_node_i.depth%5==0){
-        costs_upto.push_back(0.0);
+    if(costs_upto.size()<nd && vec_node_i.depth>0 && vec_node_i.depth%1==0){
+        costs_upto.push_back(costs_upto.back());
     }
  
     bool model_created=false;
