@@ -7087,29 +7087,29 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         }
     }
     
-//    indices dist_cells=indices("dist_cells");
-//    vector<int> dist_matched;
-//    for(auto i=0;i<nd;i++){
-//        double dmaxij=-999.0;
-//        int dpos=0;
-//        auto x1=point_cloud_data.at(i)[0];
-//        auto y1=point_cloud_data.at(i)[1];
-//        auto z1=point_cloud_data.at(i)[2];
-//        if (std::find (dist_matched.begin(), dist_matched.end(), i)==dist_matched.end()){
-//            for(auto j=i+1;j<nd;j++){
-//                auto x2=point_cloud_data.at(j)[0];
-//                auto y2=point_cloud_data.at(j)[1];
-//                auto z2=point_cloud_data.at(j)[2];
-//                auto dij=pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2);
-//                if(dij>=dmaxij){
-//                    dmaxij=dij;
-//                    dpos=j;
-//                }
-//            }
-//            dist_matched.push_back(dpos);
-//            dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
-//        }
-//    }
+    indices dist_cells=indices("dist_cells");
+    vector<int> dist_matched;
+    for(auto i=0;i<nd;i++){
+        double dmaxij=-999.0;
+        int dpos=0;
+        auto x1=point_cloud_data.at(i)[0];
+        auto y1=point_cloud_data.at(i)[1];
+        auto z1=point_cloud_data.at(i)[2];
+        if (std::find (dist_matched.begin(), dist_matched.end(), i)==dist_matched.end()){
+            for(auto j=i+1;j<nd;j++){
+                auto x2=point_cloud_data.at(j)[0];
+                auto y2=point_cloud_data.at(j)[1];
+                auto z2=point_cloud_data.at(j)[2];
+                auto dij=pow(x2-x1,2)+pow(y2-y1,2)+pow(z2-z1,2);
+                if(dij>=dmaxij){
+                    dmaxij=dij;
+                    dpos=j;
+                }
+            }
+            dist_matched.push_back(dpos);
+            dist_cells.insert(to_string(i+1)+","+to_string(dpos+1));
+        }
+    }
 //
 //    indices angle_cells=indices("angle_cells");
 //    vector<int> angle_matched;
@@ -7231,15 +7231,15 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         
     
     
-//    Constraint<> distij_rot("distij_rot");
-//    distij_rot=(rot_x_min.from(dist_cells)-rot_x_max.to(dist_cells))*(rot_x_max.from(dist_cells)-rot_x_min.to(dist_cells));
-//    distij_rot+=(rot_y_min.from(dist_cells)-rot_y_max.to(dist_cells))*(rot_y_max.from(dist_cells)-rot_y_min.to(dist_cells));
-//    distij_rot+=(rot_z_min.from(dist_cells)-rot_z_max.to(dist_cells))*(rot_z_max.from(dist_cells)-rot_z_min.to(dist_cells));
-//    distij_rot+=pow(x1.from(dist_cells)-x1.to(dist_cells),2)+pow(y1.from(dist_cells)-y1.to(dist_cells),2)+pow(z1.from(dist_cells)-z1.to(dist_cells),2);
-//    distij_rot-=(rotx.from(dist_cells)-rotx.to(dist_cells))*(rot_x_min.from(dist_cells)-rot_x_max.to(dist_cells)+rot_x_max.from(dist_cells)-rot_x_min.to(dist_cells));
-//    distij_rot-=(roty.from(dist_cells)-roty.to(dist_cells))*(rot_y_min.from(dist_cells)-rot_y_max.to(dist_cells)+rot_y_max.from(dist_cells)-rot_y_min.to(dist_cells));
-//    distij_rot-=(rotz.from(dist_cells)-rotz.to(dist_cells))*(rot_z_min.from(dist_cells)-rot_z_max.to(dist_cells)+rot_z_max.from(dist_cells)-rot_z_min.to(dist_cells));
-    // Reg->add(distij_rot.in(dist_cells)<=0);
+    Constraint<> distij_rot("distij_rot");
+    distij_rot=(rot_xt_min.from(dist_cells)-rot_xt_max.to(dist_cells))*(rot_xt_max.from(dist_cells)-rot_xt_min.to(dist_cells));
+    distij_rot+=(rot_yt_min.from(dist_cells)-rot_yt_max.to(dist_cells))*(rot_yt_max.from(dist_cells)-rot_yt_min.to(dist_cells));
+    distij_rot+=(rot_zt_min.from(dist_cells)-rot_zt_max.to(dist_cells))*(rot_zt_max.from(dist_cells)-rot_zt_min.to(dist_cells));
+    distij_rot+=pow(x1.from(dist_cells)-x1.to(dist_cells),2)+pow(y1.from(dist_cells)-y1.to(dist_cells),2)+pow(z1.from(dist_cells)-z1.to(dist_cells),2);
+    distij_rot-=(rotxt.from(dist_cells)-rotxt.to(dist_cells))*(rot_xt_min.from(dist_cells)-rot_xt_max.to(dist_cells)+rot_xt_max.from(dist_cells)-rot_xt_min.to(dist_cells));
+    distij_rot-=(rotyt.from(dist_cells)-rotyt.to(dist_cells))*(rot_yt_min.from(dist_cells)-rot_yt_max.to(dist_cells)+rot_yt_max.from(dist_cells)-rot_yt_min.to(dist_cells));
+    distij_rot-=(rotzt.from(dist_cells)-rotzt.to(dist_cells))*(rot_zt_min.from(dist_cells)-rot_zt_max.to(dist_cells)+rot_zt_max.from(dist_cells)-rot_zt_min.to(dist_cells));
+     Reg->add(distij_rot.in(dist_cells)<=0);
     
 //    Constraint<> angleij_rot("angleij_rot");
 //    angleij_rot=(rot_x_min.from(angle_cells)+rot_x_min.to(angle_cells))*(rot_x_max.from(angle_cells)+rot_x_max.to(angle_cells));
@@ -7254,7 +7254,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     
     Constraint<> dist_model("dist_model");
     dist_model=xm_min_i*xm_max_i+ym_min_i*ym_max_i+zm_min_i*zm_max_i+product(dm.in(ids),bin.in_matrix(1, 1))-(new_xm+rotxt)*(xm_min_i+xm_max_i)-(new_ym+rotyt)*(ym_min_i+ym_max_i)-(new_zm+rotzt)*(zm_min_i+zm_max_i);
-    Reg->add(dist_model.in(N1)<=0);
+   // Reg->add(dist_model.in(N1)<=0);
     
     /* Objective function */
     
