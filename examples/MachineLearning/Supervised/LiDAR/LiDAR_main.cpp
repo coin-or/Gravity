@@ -254,7 +254,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 
 shared_ptr<Model<double>> build_linobj_convex_OLD(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits);
 
-shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& status, int nda);
+shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& status, double lb);
 
 
 indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<double>& model_voronoi_out_radius, vector<int>& new_model_pts, indices& new_model_ids, bool norm1);
@@ -6577,7 +6577,7 @@ void run_ICR(vector<vector<double>>& point_cloud_model, vector<vector<double>>& 
     
 }
 
-shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& found_all, int nda)
+shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& found_all, double lb)
 {
     
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -6590,7 +6590,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     double xm_min = numeric_limits<double>::max(), ym_min = numeric_limits<double>::max(), zm_min = numeric_limits<double>::max();
     
     
-    for (auto i = 0; i<nda; i++){
+    for (auto i = 0; i<nd; i++){
         i_str = to_string(i+1);
         x1.add_val(i_str,point_cloud_data.at(i).at(0));
         y1.add_val(i_str,point_cloud_data.at(i).at(1));
@@ -6620,17 +6620,17 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     int idx1 = 0;
     int idx2 = 0;
     indices N1("N1"),N2("N2");
-    DebugOn("nda = " << nda << endl);
+    DebugOff("nd = " << nd << endl);
     Debug("nm = " << nm << endl);
     
-    N1 = range(1,nda);
+    N1 = range(1,nd);
     N2 = range(1,nm);
     // auto cells = indices(N1,N2);
     indices cells("cells");
     string name="TU_MIP";
     
     auto Reg=make_shared<Model<>>(name);
-    for(auto i=0;i<nda;i++){
+    for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
             if(valid_cells.has_key(to_string(i+1)+","+to_string(j)))
                 cells.insert(to_string(i+1)+","+to_string(j));
@@ -6970,7 +6970,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
     vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
     found_all=true;
-    for(auto i=0;i<nda;i++){
+    for(auto i=0;i<nd;i++){
         double siq=0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
         siq=0.0;
@@ -7080,7 +7080,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     indices ids = indices("in_x");
     ids.add_empty_row();
     
-    for(auto i=0;i<nda;i++){
+    for(auto i=0;i<nd;i++){
         for(auto j=1;j<=nm;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j)))
                 ids.add_in_row(i, to_string(j));
@@ -7204,8 +7204,8 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     Reg->add(Def_deltaz.in(N1)<=0);
     
     Constraint<> Def_delta("Def_delta");
-    Def_delta=sum(deltax)+sum(deltay)+sum(deltaz)-0.0978;
-    //Reg->add(Def_delta<=0);
+    Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
+    Reg->add(Def_delta>=lb);
     
     
     
@@ -7239,7 +7239,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     distij_rot-=(rotxt.from(dist_cells)-rotxt.to(dist_cells))*(rot_xt_min.from(dist_cells)-rot_xt_max.to(dist_cells)+rot_xt_max.from(dist_cells)-rot_xt_min.to(dist_cells));
     distij_rot-=(rotyt.from(dist_cells)-rotyt.to(dist_cells))*(rot_yt_min.from(dist_cells)-rot_yt_max.to(dist_cells)+rot_yt_max.from(dist_cells)-rot_yt_min.to(dist_cells));
     distij_rot-=(rotzt.from(dist_cells)-rotzt.to(dist_cells))*(rot_zt_min.from(dist_cells)-rot_zt_max.to(dist_cells)+rot_zt_max.from(dist_cells)-rot_zt_min.to(dist_cells));
-     Reg->add(distij_rot.in(dist_cells)<=0);
+     //Reg->add(distij_rot.in(dist_cells)<=0);
     
 //    Constraint<> angleij_rot("angleij_rot");
 //    angleij_rot=(rot_x_min.from(angle_cells)+rot_x_min.to(angle_cells))*(rot_x_max.from(angle_cells)+rot_x_max.to(angle_cells));
@@ -7878,8 +7878,8 @@ shared_ptr<Model<double>> build_linobj_convex_clean_OBBT(const vector<vector<dou
     Reg->add(Def_deltaz.in(N1)<=0);
     
     Constraint<> Def_delta("Def_delta");
-    Def_delta=sum(deltax)+sum(deltay)+sum(deltaz)-0.0978;
-    //Reg->add(Def_delta<=0);
+    Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
+    Reg->add(Def_delta>=0);
     
     
     
@@ -24299,8 +24299,8 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
     int nd=point_cloud_data.size();
     vector<int> new_matching(N1.size());
     bool convex = false;
-    double max_time = 20;
-    double max_time_init=20;
+    double max_time = 10;
+    double max_time_init=10;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
@@ -24927,7 +24927,7 @@ void run_preprocess_model(const vector<vector<double>>& point_cloud_data, const 
  
     bool model_created=false;
         if(valid_cells_i.size()>=nd){
-            model_i = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first, vec_node_i.yaw.second, new_shift_x_min_i, new_shift_x_max_i, new_shift_y_min_i, new_shift_y_max_i, new_shift_z_min_i, new_shift_z_max_i, dist_cost_i, upper_bound, model_created, nd);
+            model_i = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first, vec_node_i.yaw.second, new_shift_x_min_i, new_shift_x_max_i, new_shift_y_min_i, new_shift_y_max_i, new_shift_z_min_i, new_shift_z_max_i, dist_cost_i, upper_bound, model_created, vec_node_i.lb);
             if(!model_created){
                 indices valid_cells_empty("valid_cells_empty");
                 valid_cells_i=valid_cells_empty;

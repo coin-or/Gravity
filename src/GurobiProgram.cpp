@@ -276,8 +276,8 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_NonConvex,2);
     grb_mod->set(GRB_IntParam_MIPFocus,2);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
-    grb_mod->set(GRB_IntParam_CutPasses, 3);
-    grb_mod->set(GRB_IntParam_PrePasses, 2);
+    grb_mod->set(GRB_IntParam_CutPasses, 5);
+   // grb_mod->set(GRB_IntParam_PrePasses, 2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
     //cut_off=0.0972224207;
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
