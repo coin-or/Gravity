@@ -91,7 +91,7 @@ protected:
                     if(stat==2){
                         DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
                         int nct=getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                        if(nct%20==0){
+                        if(nct%60==0){
                             double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
                             double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
                             DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
