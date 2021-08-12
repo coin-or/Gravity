@@ -411,7 +411,7 @@ int main (int argc, char * argv[])
         int fwdd=1;
         bool downsample=true;
         if(downsample && data_nb_rows>10){
-            fwdm=4;
+            fwdm=2;
             fwdd=2;
             
         }
@@ -25105,12 +25105,6 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                bool branch1=false;
-                bool branch2=false;
-                if(!branch1)
-                if(!branch1 && !branch2){
-                    throw invalid_argument("Error in branching");
-                }
                 double x_shift_increment,  y_shift_increment, z_shift_increment;
                 double roll_increment,  pitch_increment, yaw_increment;
                 if(topnode.depth%2==0){
@@ -25161,6 +25155,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
                         yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
                         vec_node.push_back(treenode_p(roll_bounds[i+k],  pitch_bounds[i+k], yaw_bounds[i+k], shift_x_bounds[i+k], shift_y_bounds[i+k], shift_z_bounds[i+k], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
+                        depth_vec.push_back(topnode.depth+1);
                     }
                 }
                 else{
@@ -25175,7 +25170,6 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                     roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
                     roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
                     roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
-                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
                     pitch_bounds.push_back({topnode.pitch.first+pitch_increment, topnode.pitch.second});
@@ -25197,6 +25191,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
                         shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
                         vec_node.push_back(treenode_p(roll_bounds[i+k],  pitch_bounds[i+k], yaw_bounds[i+k], shift_x_bounds[i+k], shift_y_bounds[i+k], shift_z_bounds[i+k], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
+                        depth_vec.push_back(topnode.depth+1);
                     }
                 }
               
