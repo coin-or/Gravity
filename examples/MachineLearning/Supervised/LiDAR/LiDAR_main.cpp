@@ -25101,12 +25101,15 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
         topnode=lb_queue.top();
         prep_time_total=0;
         ut_total=0;
-        for(auto i=0;i<nb_threads;i+=8){
+        int step=8;
+        for(auto i=0;i<nb_threads;i+=step){
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
                 double x_shift_increment,  y_shift_increment, z_shift_increment;
                 double roll_increment,  pitch_increment, yaw_increment;
+                if(iter<=100){
+                    step=8;
                 if(topnode.depth%2==0){
                     if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
                         x_shift_increment = topnode.tx.first*(-1);
@@ -25193,6 +25196,99 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                         vec_node.push_back(treenode_p(roll_bounds[i+k],  pitch_bounds[i+k], yaw_bounds[i+k], shift_x_bounds[i+k], shift_y_bounds[i+k], shift_z_bounds[i+k], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
                         depth_vec.push_back(topnode.depth+1);
                     }
+                }
+                }
+                else{
+                    step=2;
+                    double x_shift_increment = (topnode.tx.second - topnode.tx.first)/2.0;
+                                     max_incr = x_shift_increment;
+                                     double y_shift_increment = (topnode.ty.second - topnode.ty.first)/2.0;
+                                     if(y_shift_increment>max_incr)
+                                         max_incr = y_shift_increment;
+                                     double z_shift_increment = (topnode.tz.second - topnode.tz.first)/2.0;
+                                     if(z_shift_increment>max_incr)
+                                         max_incr = z_shift_increment;
+                                     double roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
+                                     if(roll_increment>max_incr)
+                                         max_incr = roll_increment;
+                                     double pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
+                                     if(pitch_increment>max_incr)
+                                         max_incr = pitch_increment;
+                                     double yaw_increment = (topnode.yaw.second - topnode.yaw.first)/2.0;
+                                     if(yaw_increment>max_incr)
+                                         max_incr = yaw_increment;
+                                     shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                                     shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                                     shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                                     roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                                     yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                                     depth_vec.push_back(topnode.depth+1);
+                                     shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                                     shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                                     shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                                     roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                                     yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                                     depth_vec.push_back(topnode.depth+1);
+                                     if(max_incr==x_shift_increment){
+                                         if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
+                                             shift_x_bounds[i] = {topnode.tx.first, 0};
+                                             shift_x_bounds[i+1] = {0, topnode.tx.second};
+                                         }
+                                         else{
+                                             shift_x_bounds[i] = {topnode.tx.first, topnode.tx.first+x_shift_increment};
+                                             shift_x_bounds[i+1] = {topnode.tx.first+x_shift_increment, topnode.tx.second};
+                                         }
+                                         
+                                     }
+                                     else if(max_incr==y_shift_increment){
+                                         if(topnode.ty.first<=-0.1 && topnode.ty.second>=0.1){
+                                             shift_y_bounds[i] = {topnode.ty.first, 0};
+                                             shift_y_bounds[i+1] = {0, topnode.ty.second};
+                                         }
+                                         else{
+                                             shift_y_bounds[i] = {topnode.ty.first, topnode.ty.first+y_shift_increment};
+                                             shift_y_bounds[i+1] = {topnode.ty.first+y_shift_increment, topnode.ty.second};
+                                         }
+                                         
+                                     }
+                                     else if(max_incr==z_shift_increment){
+                                         if(topnode.tz.first<=-0.1 && topnode.tz.second>=0.1){
+                                             shift_z_bounds[i] = {topnode.tz.first, 0};
+                                             shift_z_bounds[i+1] = {0, topnode.tz.second};
+                                         }
+                                         else{
+                                             shift_z_bounds[i] = {topnode.tz.first, topnode.tz.first+z_shift_increment};
+                                             shift_z_bounds[i+1] = {topnode.tz.first+z_shift_increment, topnode.tz.second};
+                                         }
+                                        
+                                     }
+                                     else if(max_incr==roll_increment){
+                                         roll_bounds[i] = {topnode.roll.first, topnode.roll.first+roll_increment};
+                                         roll_bounds[i+1] = {topnode.roll.first+roll_increment, topnode.roll.second};
+                                         
+                                     }
+                                     else if(max_incr==pitch_increment){
+                                         pitch_bounds[i] = {topnode.pitch.first, topnode.pitch.first+pitch_increment};
+                                         pitch_bounds[i+1] = {topnode.pitch.first+pitch_increment, topnode.pitch.second};
+                                        
+                                     }
+                                     else if(max_incr==yaw_increment){
+                                         yaw_bounds[i] = {topnode.yaw.first, topnode.yaw.first+yaw_increment};
+                                         yaw_bounds[i+1] = {topnode.yaw.first+yaw_increment, topnode.yaw.second};
+                                        
+                                     }
+                                     if(max_incr==0){
+                                         DebugOn("Warn: Identical child nodes"<<endl);
+                                     }
+                                     else{
+                                         DebugOff("max_incr "<<max_incr<<endl);
+                                     }
+                                 
+                                 
+                                 vec_node.push_back(treenode_p(roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
+                                 vec_node.push_back(treenode_p(roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false, topnode.dist_cost_cells));
                 }
               
                      
@@ -25421,7 +25517,7 @@ void run_preprocess_parallel(const vector<vector<double>>& point_cloud_data, con
 
 void run_preprocess_parallel_new(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_p>& vec_node, vector<int>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<double>& new_shift_x_min, vector<double>& new_shift_x_max, vector<double>& new_shift_y_min, vector<double>& new_shift_y_max, vector<double>& new_shift_z_min, vector<double>& new_shift_z_max, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj, vector<param<double>>& dist_cost_new, int iter, vector<vector<double>>& costs_upto_vec){
     std::vector<thread> threads;
-    
+
     vector<shared_ptr<Model<double>>> temp_models;
     
     int nd=point_cloud_data.size();
