@@ -6983,6 +6983,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
     vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
     found_all=true;
+    map<int, bool> new_model_pts;
     for(auto i=0;i<nd;i++){
         double siq=0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
@@ -7039,6 +7040,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         for(auto j=1;j<=nm;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j))){
                 idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
+                new_model_pts.insert(std::pair<int,bool>(j,true));
                 auto x=point_cloud_model.at(j-1)[0];
                 auto y=point_cloud_model.at(j-1)[1];
                 auto z=point_cloud_model.at(j-1)[2];
@@ -7233,11 +7235,14 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
     //Reg->add(Def_delta>=lb);
     
-        
+        indices N("N");
+        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
+            N.insert(to_string(it->first));
+        }
    
     Constraint<> OneBin2("OneBin2");
     OneBin2 =  bin.in_matrix(0, 1)-maxj;
-    Reg->add(OneBin2.in(N2)<=1);
+    Reg->add(OneBin2.in(N)<=0);
     
     
     
@@ -19744,10 +19749,10 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
     }
     if(found_all){
         
-        for(auto j=0;j<nm;j++){
+        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
+            int j=it->first;
              vector<int> numi(nd,0);
              for(auto i=0;i<nd;i++){
-                 int count_i=0;
                  if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
                      for(auto k=0;k<nd;k++){
                          if(k!=i){
@@ -25169,7 +25174,7 @@ vector<double> BranchBound11(GoICP& goicp, vector<vector<double>>& point_cloud_m
                 lb_queue.pop();
                 double x_shift_increment,  y_shift_increment, z_shift_increment;
                 double roll_increment,  pitch_increment, yaw_increment;
-                if(iter<=100){
+                if(false && iter<=100){
                     step=8;
                 if(topnode.depth%2==0){
                     if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
