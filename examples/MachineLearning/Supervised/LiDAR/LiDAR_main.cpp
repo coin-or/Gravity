@@ -197,7 +197,7 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
 
 /* Update point cloud coordinates */
 void update_xyz(vector<vector<double>>& point_cloud1, vector<double>& x_vec1, vector<double>& y_vec1, vector<double>& z_vec1);
-void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);/* Run the ARMO model for boresight alignment */
+void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj);/* Run the ARMO model for boresight alignment */
 tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
 
 /* Plot two point clouds */
@@ -253,7 +253,7 @@ shared_ptr<Model<double>> build_linobj_convex(vector<vector<double>>& point_clou
 
 shared_ptr<Model<double>> build_linobj_convex_OLD(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, vector<double>& rot_trans, bool separate, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles,  param<>& norm_x,  param<>& norm_y,  param<>& norm_z,  param<>& intercept,const vector<int>& init_matching, const vector<double>& error_per_point, bool relax_inits);
 
-shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& status, double lb, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
+shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& status, double lb, param<double>& maxj);
 
 
 indices get_valid_pairs(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, param<>& norm_x, param<>& norm_y, param<>& norm_z,  param<>& intercept, const vector<double>& model_voronoi_out_radius, vector<int>& new_model_pts, indices& new_model_ids, bool norm1);
@@ -6589,7 +6589,7 @@ void run_ICR(vector<vector<double>>& point_cloud_model, vector<vector<double>>& 
     
 }
 
-shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& found_all, double lb, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles)
+shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const indices& valid_cells, double new_roll_min, double new_roll_max, double new_pitch_min, double new_pitch_max, double new_yaw_min, double new_yaw_max, double new_shift_min_x, double new_shift_max_x, double new_shift_min_y, double new_shift_max_y, double new_shift_min_z, double new_shift_max_z, param<>& dist_cost, double ub, bool& found_all, double lb, param<double>& maxj)
 {
     
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -7233,7 +7233,11 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
     //Reg->add(Def_delta>=lb);
     
-    
+        
+   
+    Constraint<> OneBin2("OneBin2");
+    OneBin2 =  bin.in_matrix(0, 1)-maxj;
+    Reg->add(OneBin2.in(N2)<=1);
     
     
     
@@ -7282,31 +7286,31 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     dist_model=xm_min_i*xm_max_i+ym_min_i*ym_max_i+zm_min_i*zm_max_i+product(dm.in(ids),bin.in_matrix(1, 1))-(new_xm+rotxt)*(xm_min_i+xm_max_i)-(new_ym+rotyt)*(ym_min_i+ym_max_i)-(new_zm+rotzt)*(zm_min_i+zm_max_i);
    // Reg->add(dist_model.in(N1)<=0);
     
-        
-        if(!incompatibles.empty()){
-            indices pairs1("pairs1"), pairs2("pairs2");
-            pairs1 = cells;
-            pairs2 = cells;
-            for (const auto &inc_pair : incompatibles) {
-                string key1 = to_string(inc_pair.first.first)+","+to_string(inc_pair.first.second);
-                string key2 = to_string(inc_pair.second.first)+","+to_string(inc_pair.second.second);
-                if(cells.has_key(key1) && cells.has_key(key2)){
-                    pairs1.add_ref(key1);
-                    pairs2.add_ref(key2);
-                }
-            }
-            
-            if(pairs1.is_indexed()){
-                DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
-                Constraint<> incomp_pairs("incomp_pairs");
-                incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
-                Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
-                incomp_pairs.print();
-                DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
-
-            }
-            //        incomp_pairs.print();
-        }
+//
+//        if(!incompatibles.empty()){
+//            indices pairs1("pairs1"), pairs2("pairs2");
+//            pairs1 = cells;
+//            pairs2 = cells;
+//            for (const auto &inc_pair : incompatibles) {
+//                string key1 = to_string(inc_pair.first.first)+","+to_string(inc_pair.first.second);
+//                string key2 = to_string(inc_pair.second.first)+","+to_string(inc_pair.second.second);
+//                if(cells.has_key(key1) && cells.has_key(key2)){
+//                    pairs1.add_ref(key1);
+//                    pairs2.add_ref(key2);
+//                }
+//            }
+//
+//            if(pairs1.is_indexed()){
+//                DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
+//                Constraint<> incomp_pairs("incomp_pairs");
+//                incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+//                Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
+//                //incomp_pairs.print();
+//                DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
+//
+//            }
+//            //        incomp_pairs.print();
+//        }
     /* Objective function */
     
     func<> obj = 0;
@@ -19197,7 +19201,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_cells=valid_cells_empty;
     }
 }
-void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, vector<pair<pair<int,int>,pair<int,int>>>& incompatibles)
+void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj)
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
@@ -19576,20 +19580,6 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
     }
  
     if(found_all){
-        for(auto i=0;i<nd;i++){
-            for(auto j=i+1;j<nd;j++){
-                auto dij=pow(dii.eval(to_string(i+1)+","+ to_string(j+1)),2);
-                for(auto it=new_model_pts.begin(); it!=new_model_pts.end(); it++){
-                    if(dij>=max_vert_vert_dist_sq[it->first]+1e-6){
-                        pair<int,int> pair1={i+1, it->first+1};
-                        pair<int,int> pair2={j+1, it->first+1};
-                        pair<pair<int,int>,pair<int,int>> pair3={pair1, pair2};
-                        incompatibles.push_back(pair3);
-                    }
-                }
-            }
-        }
-        
         for (auto j = 0; j<nm; j++) {
             if(new_model_pts.find(j)!=new_model_pts.end()){
                 for(auto k=0;k<dist_root_novoro_map_j[j].size();k++){
@@ -19753,6 +19743,25 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
         min_cost_sum=min_cost_sum_new;
     }
     if(found_all){
+        
+        for(auto j=0;j<nm;j++){
+             vector<int> numi(nd,0);
+             for(auto i=0;i<nd;i++){
+                 int count_i=0;
+                 if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
+                     for(auto k=0;k<nd;k++){
+                         if(k!=i){
+                         if(valid_cells_new.has_key(to_string(k+1)+","+to_string(j+1))){
+                             if(pow(dii.eval(to_string(i+1)+","+ to_string(k+1)),2)<=max_vert_vert_dist_sq[j]){
+                                 numi[i]++;
+                             }
+                         }
+                         }
+                     }
+                 }
+             }
+             maxj.add_val(to_string(j+1), *max_element(numi.begin(), numi.end()));
+         }
         double ndd=point_cloud_data.size()*1.0;
         new_tx_min/=ndd;
         new_tx_max/=ndd;
@@ -25624,8 +25633,8 @@ void run_preprocess_parallel_new(const vector<vector<double>>& point_cloud_data,
 
 void run_preprocess_model(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, shared_ptr<Model<double>>& model_i, int& m_vec_i, int& pos_vec_i, double& vec_lb_i, treenode_p vec_node_i, indices& valid_cells_i, param<double>& dist_cost_i, int nb_threads, double upper_bound, double lower_bound, double& new_shift_x_min_i, double& new_shift_x_max_i, double& new_shift_y_min_i, double& new_shift_y_max_i, double& new_shift_z_min_i, double& new_shift_z_max_i, double& prep_time_i, int max_cells, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj, int iter, const vector<double>& max_vert_vert_dist_sq){
     int nd=point_cloud_data.size();
-    vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-       preprocess_poltyope_ve_gjk_in_centroid(ref(point_cloud_data), ref(point_cloud_model), ref(vec_node_i.valid_cells),ref(vec_node_i.dist_cost_cells), vec_node_i.roll.first,vec_node_i.roll.second, vec_node_i.pitch.first,vec_node_i.pitch.second, vec_node_i.yaw.first,vec_node_i.yaw.second, vec_node_i.tx.first,vec_node_i.tx.second,vec_node_i.ty.first,vec_node_i.ty.second,vec_node_i.tz.first,vec_node_i.tz.second, ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(dist_cost_i), upper_bound, lower_bound,  ref(vec_lb_i), ref(valid_cells_i),ref(new_shift_x_min_i), ref(new_shift_x_max_i),  ref(new_shift_y_min_i),  ref(new_shift_y_max_i), ref(new_shift_z_min_i), ref(new_shift_z_max_i), ref(prep_time_i), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes),ref(max_vert_vert_dist_sq), ref(dii), ref(djj), ref(incompatibles));
+    param<double> maxj("maxj");
+       preprocess_poltyope_ve_gjk_in_centroid(ref(point_cloud_data), ref(point_cloud_model), ref(vec_node_i.valid_cells),ref(vec_node_i.dist_cost_cells), vec_node_i.roll.first,vec_node_i.roll.second, vec_node_i.pitch.first,vec_node_i.pitch.second, vec_node_i.yaw.first,vec_node_i.yaw.second, vec_node_i.tx.first,vec_node_i.tx.second,vec_node_i.ty.first,vec_node_i.ty.second,vec_node_i.tz.first,vec_node_i.tz.second, ref(model_voronoi_normals), ref(model_face_intercept), ref(model_voronoi_vertices),   ref(dist_cost_i), upper_bound, lower_bound,  ref(vec_lb_i), ref(valid_cells_i),ref(new_shift_x_min_i), ref(new_shift_x_max_i),  ref(new_shift_y_min_i),  ref(new_shift_y_max_i), ref(new_shift_z_min_i), ref(new_shift_z_max_i), ref(prep_time_i), ref(model_voronoi_min_max), ref(model_voronoi_vertex_edge), ref(model_voronoi_vertex_edge_planes),ref(max_vert_vert_dist_sq), ref(dii), ref(djj), ref(maxj));
 
         DebugOn("v size "<<valid_cells_i.size()<<endl);
 //    if(costs_upto.size()<nd && vec_node_i.depth>0 && vec_node_i.depth%1==0){
@@ -25634,7 +25643,7 @@ void run_preprocess_model(const vector<vector<double>>& point_cloud_data, const 
  
     bool model_created=false;
         if(valid_cells_i.size()>=nd){
-            model_i = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first, vec_node_i.yaw.second, new_shift_x_min_i, new_shift_x_max_i, new_shift_y_min_i, new_shift_y_max_i, new_shift_z_min_i, new_shift_z_max_i, dist_cost_i, upper_bound, model_created, vec_node_i.lb, ref(incompatibles));
+            model_i = build_linobj_convex_clean(point_cloud_model, point_cloud_data, valid_cells_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first, vec_node_i.yaw.second, new_shift_x_min_i, new_shift_x_max_i, new_shift_y_min_i, new_shift_y_max_i, new_shift_z_min_i, new_shift_z_max_i, dist_cost_i, upper_bound, model_created, vec_node_i.lb, ref(maxj));
             if(!model_created){
                 indices valid_cells_empty("valid_cells_empty");
                 valid_cells_i=valid_cells_empty;
