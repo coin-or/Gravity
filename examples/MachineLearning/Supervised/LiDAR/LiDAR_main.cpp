@@ -6983,7 +6983,7 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
     vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
     found_all=true;
-    map<int, bool> new_model_pts;
+    map<int, int> new_model_pts;
     for(auto i=0;i<nd;i++){
         double siq=0;
         auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
@@ -7040,7 +7040,10 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
         for(auto j=1;j<=nm;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j))){
                 idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
-                new_model_pts.insert(std::pair<int,bool>(j,true));
+                if(new_model_pts.find(j)==new_model_pts.end())
+                    new_model_pts.insert(std::pair<int,int>(j,1));
+                else
+                    new_model_pts[j]++;
                 auto x=point_cloud_model.at(j-1)[0];
                 auto y=point_cloud_model.at(j-1)[1];
                 auto z=point_cloud_model.at(j-1)[2];
@@ -7234,14 +7237,17 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     Constraint<> Def_delta("Def_delta");
     Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
     //Reg->add(Def_delta>=lb);
-    
+        param<double> maxjf("maxjf");
         indices N("N");
         for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
-            N.insert(to_string(it->first));
+            if(maxj.eval(to_string(it->first))<it->second){
+                N.insert(to_string(it->first));
+                maxjf.add_val(to_string(it->first), maxj.eval(to_string(it->first)));
+            }
         }
    
     Constraint<> OneBin2("OneBin2");
-    OneBin2 =  bin.in_matrix(0, 1)-maxj;
+    OneBin2 =  bin.in_matrix(0, 1)-maxjf;
     Reg->add(OneBin2.in(N)<=0);
     
     
@@ -19754,6 +19760,7 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
              vector<int> numi(nd,0);
              for(auto i=0;i<nd;i++){
                  if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
+                     numi[i]++;
                      for(auto k=0;k<nd;k++){
                          if(k!=i){
                          if(valid_cells_new.has_key(to_string(k+1)+","+to_string(j+1))){
