@@ -7237,18 +7237,18 @@ shared_ptr<Model<double>> build_linobj_convex_clean(const vector<vector<double>>
     Constraint<> Def_delta("Def_delta");
     Def_delta=sum(deltax)+sum(deltay)+sum(deltaz);
     //Reg->add(Def_delta>=lb);
-        param<double> maxjf("maxjf");
-        indices N("N");
-        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
-            if(maxj.eval(to_string(it->first))<it->second){
-                N.insert(to_string(it->first));
-                maxjf.add_val(to_string(it->first), maxj.eval(to_string(it->first)));
-            }
-        }
-   
-    Constraint<> OneBin2("OneBin2");
-    OneBin2 =  bin.in_matrix(0, 1)-maxjf;
-    Reg->add(OneBin2.in(N)<=0);
+//        param<double> maxjf("maxjf");
+//        indices N("N");
+//        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
+//            if(maxj.eval(to_string(it->first))<it->second){
+//                N.insert(to_string(it->first));
+//                maxjf.add_val(to_string(it->first), maxj.eval(to_string(it->first)));
+//            }
+//        }
+//   
+//    Constraint<> OneBin2("OneBin2");
+//    OneBin2 =  bin.in_matrix(0, 1)-maxjf;
+//    Reg->add(OneBin2.in(N)<=0);
     
     
     
@@ -19350,6 +19350,10 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
         else{
             siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
         }
+        double b1=d_root-shift_mag_max_root;
+        double b2=shift_mag_min_root-d_root;
+        double c1=std::max(b1,b2);
+        double c=std::max(c1,0.0);
         sphere_inner_sq.push_back(siq);
         sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
         x1_bounds->first = point_cloud_data.at(i)[0];
@@ -19506,6 +19510,12 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
                 DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
             }
             if(!res){
+                double mmag_root=sqrt(pow(xm,2)+pow(ym,2)+pow(zm,2));
+                double ad=mmag_root-d_root-shift_mag_max_root;
+                double bd=c-mmag_root;
+                double cdd=std::max(ad,bd);
+                double cd=pow(std::max(cdd,0.0),2);
+                dist=std::max(dist, cd);
                 dist=std::max(dist,dist_cost_old.eval(to_string(i+1)+","+to_string(j+1)));
                 double dist_min_v=dist;
                 double dist_max_v=dist_max;
@@ -19755,25 +19765,25 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
     }
     if(found_all){
         
-        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
-            int j=it->first;
-             vector<int> numi(nd,0);
-             for(auto i=0;i<nd;i++){
-                 if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
-                     numi[i]++;
-                     for(auto k=0;k<nd;k++){
-                         if(k!=i){
-                         if(valid_cells_new.has_key(to_string(k+1)+","+to_string(j+1))){
-                             if(pow(dii.eval(to_string(i+1)+","+ to_string(k+1)),2)<=max_vert_vert_dist_sq[j]){
-                                 numi[i]++;
-                             }
-                         }
-                         }
-                     }
-                 }
-             }
-             maxj.add_val(to_string(j+1), *max_element(numi.begin(), numi.end()));
-         }
+//        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
+//            int j=it->first;
+//             vector<int> numi(nd,0);
+//             for(auto i=0;i<nd;i++){
+//                 if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
+//                     numi[i]++;
+//                     for(auto k=0;k<nd;k++){
+//                         if(k!=i){
+//                         if(valid_cells_new.has_key(to_string(k+1)+","+to_string(j+1))){
+//                             if(pow(dii.eval(to_string(i+1)+","+ to_string(k+1)),2)<=max_vert_vert_dist_sq[j]){
+//                                 numi[i]++;
+//                             }
+//                         }
+//                         }
+//                     }
+//                 }
+//             }
+//             maxj.add_val(to_string(j+1), *max_element(numi.begin(), numi.end()));
+//         }
         double ndd=point_cloud_data.size()*1.0;
         new_tx_min/=ndd;
         new_tx_max/=ndd;
