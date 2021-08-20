@@ -142,6 +142,8 @@ double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* 
 /* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
 vector<pair<double,double>> get_min_max(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, const vector<double>& p, const vector<double>& ref);
 
+vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, const vector<double>& ref);
+
 double get_GoICP_dist(double radius_r, double radius_t, const vector<double>& p, bool L1norm);
 
 double get_max_dist(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, const vector<double>& p, const vector<double>& ref, bool L1norm = false);
@@ -25778,6 +25780,249 @@ for (int j = 0; j<m_vec.size(); j++) {
                     shift_y_bounds_r={new_shift_y_min[pos], new_shift_y_max[pos]};
                     shift_z_bounds_r={new_shift_z_min[pos], new_shift_z_max[pos]};
                     new_lb_queue.push(treenode_p(vec_node[pos].roll, vec_node[pos].pitch, vec_node[pos].yaw, shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, best_ub, ub_, depth_vec[pos], valid_cells[pos], leaf_node, dist_cost_cells[pos]));
+                }
+                else{
+                    DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
+                    infeasible_count++;
+                }
+            }
+            else{
+                infeasible_count++;
+            }
+        }
+        opt_gap = (best_ub - best_lb)/best_ub;
+        
+        elapsed_time = get_wall_time() - time_start;
+        
+    }
+    DebugOn("new lb queue size "<<new_lb_queue.size()<<endl);
+    while (elapsed_time < total_time_max && new_lb_queue.top().lb<=best_ub && !new_lb_queue.empty() && opt_gap > max_opt_gap && !new_lb_queue.top().leaf) {
+        best_lb = new_lb_queue.top().lb;
+        opt_gap = (best_ub - best_lb)/best_ub;
+        if(opt_gap_old-opt_gap <= eps){
+        }
+        if(opt_gap_old-opt_gap > eps && max_time_increase){
+            max_time=std::max(max_time/2.0, max_time_init);
+            if(max_time==max_time_init){
+                     // max_time_increase=false;
+            }
+        }
+        opt_gap_old=opt_gap;
+        DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);
+        DebugOn("Best LB so far = " << to_string_with_precision(best_lb,9) << endl);
+        DebugOn("Opt gap so far = " << to_string_with_precision(opt_gap*100,6) << "%\n");
+        DebugOn("Queue size = " << new_lb_queue.size() << "\n");
+        DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+        DebugOn("iter "<<iter<<endl);
+        if(elapsed_time >= total_time_max || opt_gap <= max_opt_gap)
+            break;
+        
+        DebugOn("Total infeasible =  " << infeasible_count << endl);
+        DebugOn("Total prep_time =  " << prep_time_total << endl);
+        DebugOn("Total discarded =  " << prep_count << endl);
+        max_incr=0, max_ratio=1;
+        pos_vec.clear();
+        models.clear();
+        shift_x_bounds.clear();
+        shift_y_bounds.clear();
+        shift_z_bounds.clear();
+        roll_bounds.clear();
+        pitch_bounds.clear();
+        yaw_bounds.clear();
+        valid_cells.clear();
+        depth_vec.clear();
+        m_vec.clear();
+        vec_node.clear();
+        vec_lb.clear();
+        new_shift_x_min.clear();
+        new_shift_x_max.clear();
+        new_shift_y_min.clear();
+        new_shift_y_max.clear();
+        new_shift_z_min.clear();
+        new_shift_z_max.clear();
+        dist_cost_cells.clear();
+        costs_upto_vec.clear();
+        iter++;
+        models_count=0;
+        models_new_count=0;
+        topnode=new_lb_queue.top();
+        prep_time_total=0;
+        ut_total=0;
+        for(auto i=0;i<nb_threads*2;i+=2){
+            if(new_lb_queue.top().lb<=best_ub && !new_lb_queue.top().leaf && !new_lb_queue.empty()){
+                    double x_shift_increment = (topnode.tx.second - topnode.tx.first)/2.0;
+                                     max_incr = x_shift_increment;
+                                     double y_shift_increment = (topnode.ty.second - topnode.ty.first)/2.0;
+                                     if(y_shift_increment>max_incr)
+                                         max_incr = y_shift_increment;
+                                     double z_shift_increment = (topnode.tz.second - topnode.tz.first)/2.0;
+                                     if(z_shift_increment>max_incr)
+                                         max_incr = z_shift_increment;
+                                     double roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
+                                     if(roll_increment>max_incr)
+                                         max_incr = roll_increment;
+                                     double pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
+                                     if(pitch_increment>max_incr)
+                                         max_incr = pitch_increment;
+                                     double yaw_increment = (topnode.yaw.second - topnode.yaw.first)/2.0;
+                                     if(yaw_increment>max_incr)
+                                         max_incr = yaw_increment;
+                                     shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                                     shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                                     shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                                     roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                                     yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                                     depth_vec.push_back(topnode.depth+1);
+                                     shift_x_bounds.push_back({topnode.tx.first, topnode.tx.second});
+                                     shift_y_bounds.push_back({topnode.ty.first, topnode.ty.second});
+                                     shift_z_bounds.push_back({topnode.tz.first, topnode.tz.second});
+                                     roll_bounds.push_back({topnode.roll.first, topnode.roll.second});
+                                     pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.second});
+                                     yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.second});
+                                     depth_vec.push_back(topnode.depth+1);
+                                     if(max_incr==x_shift_increment){
+                                         if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
+                                             shift_x_bounds[i] = {topnode.tx.first, 0};
+                                             shift_x_bounds[i+1] = {0, topnode.tx.second};
+                                         }
+                                         else{
+                                             shift_x_bounds[i] = {topnode.tx.first, topnode.tx.first+x_shift_increment};
+                                             shift_x_bounds[i+1] = {topnode.tx.first+x_shift_increment, topnode.tx.second};
+                                         }
+                                         
+                                     }
+                                     else if(max_incr==y_shift_increment){
+                                         if(topnode.ty.first<=-0.1 && topnode.ty.second>=0.1){
+                                             shift_y_bounds[i] = {topnode.ty.first, 0};
+                                             shift_y_bounds[i+1] = {0, topnode.ty.second};
+                                         }
+                                         else{
+                                             shift_y_bounds[i] = {topnode.ty.first, topnode.ty.first+y_shift_increment};
+                                             shift_y_bounds[i+1] = {topnode.ty.first+y_shift_increment, topnode.ty.second};
+                                         }
+                                         
+                                     }
+                                     else if(max_incr==z_shift_increment){
+                                         if(topnode.tz.first<=-0.1 && topnode.tz.second>=0.1){
+                                             shift_z_bounds[i] = {topnode.tz.first, 0};
+                                             shift_z_bounds[i+1] = {0, topnode.tz.second};
+                                         }
+                                         else{
+                                             shift_z_bounds[i] = {topnode.tz.first, topnode.tz.first+z_shift_increment};
+                                             shift_z_bounds[i+1] = {topnode.tz.first+z_shift_increment, topnode.tz.second};
+                                         }
+                                        
+                                     }
+                                     else if(max_incr==roll_increment){
+                                         roll_bounds[i] = {topnode.roll.first, topnode.roll.first+roll_increment};
+                                         roll_bounds[i+1] = {topnode.roll.first+roll_increment, topnode.roll.second};
+                                         
+                                     }
+                                     else if(max_incr==pitch_increment){
+                                         pitch_bounds[i] = {topnode.pitch.first, topnode.pitch.first+pitch_increment};
+                                         pitch_bounds[i+1] = {topnode.pitch.first+pitch_increment, topnode.pitch.second};
+                                        
+                                     }
+                                     else if(max_incr==yaw_increment){
+                                         yaw_bounds[i] = {topnode.yaw.first, topnode.yaw.first+yaw_increment};
+                                         yaw_bounds[i+1] = {topnode.yaw.first+yaw_increment, topnode.yaw.second};
+                                        
+                                     }
+                                     if(max_incr==0){
+                                         DebugOn("Warn: Identical child nodes"<<endl);
+                                     }
+                                     else{
+                                         DebugOff("max_incr "<<max_incr<<endl);
+                                     }
+                                 
+                                 
+                                 vec_node.push_back(treenode_p(roll_bounds[i],  pitch_bounds[i], yaw_bounds[i], shift_x_bounds[i], shift_y_bounds[i], shift_z_bounds[i], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
+                                 vec_node.push_back(treenode_p(roll_bounds[i+1],  pitch_bounds[i+1], yaw_bounds[i+1], shift_x_bounds[i+1], shift_y_bounds[i+1], shift_z_bounds[i+1], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false, topnode.dist_cost_cells));
+                
+              
+            
+      
+                auto ut1=get_wall_time();
+                if (i%test_ub==0){
+                    compute_upper_boundICP(goicp, roll_bounds[i].first, roll_bounds[i].second, pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, shift_x_bounds[i].first, shift_x_bounds[i].second, shift_y_bounds[i].first, shift_y_bounds[i].second, shift_z_bounds[i].first, shift_z_bounds[i].second, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, point_cloud_model, point_cloud_data);
+                    compute_upper_boundICP(goicp, roll_bounds[i+1].first, roll_bounds[i+1].second, pitch_bounds[i+1].first, pitch_bounds[i+1].second, yaw_bounds[i+1].first, yaw_bounds[i+1].second, shift_x_bounds[i+1].first, shift_x_bounds[i+1].second, shift_y_bounds[i+1].first, shift_y_bounds[i+1].second, shift_z_bounds[i+1].first, shift_z_bounds[i+1].second, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, point_cloud_model, point_cloud_data);
+                }
+                auto ut2=get_wall_time();
+                ut_total+=ut2-ut1;
+            }
+            else{
+                break;
+            }
+            if(new_lb_queue.empty()){
+                break;
+            }
+        }
+            topnode = new_lb_queue.top();
+            DebugOff("lb "<<topnode.lb<<" ub "<<topnode.ub<<" size "<< models.size()<<endl);
+            DebugOff("models.s "<<models.size()<<endl);
+            DebugOff("validc.s "<<valid_cells.size()<<endl);
+            DebugOff("shiftx.s "<<shift_x_bounds.size()<<endl);
+            DebugOff("i "<<i<<endl);
+            DebugOff("yaw.s "<<yaw_bounds.size()<<endl);
+    
+        
+        //run_preprocess_parallel(pos_vec, models,vec_node, m_vec, valid_cells, vec_lb);
+        elapsed_time = get_wall_time() - time_start;
+        DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+        if(elapsed_time + max_time > total_time_max){
+            DebugOn("max time "<< max_time);
+            break;
+        }
+        DebugOn("upper bound time "<<ut_total<<endl);
+      
+        run_preprocess_parallel_new(point_cloud_data, point_cloud_model, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, new_shift_x_min, new_shift_x_max, new_shift_y_min, new_shift_y_max, new_shift_z_min, new_shift_z_max, max_cell_size, model_voronoi_min_max, model_voronoi_vertex_edge,  model_voronoi_vertex_edge_planes, dii,  djj, dist_cost_cells, iter, costs_upto_vec, max_vert_vert_dist_sq);
+
+                    for (int j = 0; j<m_vec.size(); j++) {
+                        if(!m_vec[j]){
+                            prep_count++;
+                        }
+                    }
+        DebugOn("models size "<<models.size()<<endl);
+        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+        for (int j = 0; j<models.size(); j++) {
+            int pos=pos_vec[j];
+            if(models[j]->_status==0){
+                ub_ = models[j]->get_obj_val();
+                auto lb_ =  models[j]->get_rel_obj_val();
+                auto leaf_node=false;
+                if(ub_>=0 && (ub_-lb_/ub_)<=1e-6){
+                    if(ub_<=best_ub-1e-4){
+                        //models[j]->print_solution();
+                        //models[j]->print();
+                        //models[j]->print_constraints_stats(1e-4);
+                        vector<double> rot_trans(12);
+                        bool is_rotation  = get_solution(models[j], rot_trans, new_matching);
+                        if(is_rotation){
+                            point_cloud_data_copy=point_cloud_data;
+                            apply_rot_trans(rot_trans, point_cloud_data_copy);
+                            auto L2err=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+                            if(L2err<=best_ub){
+                                best_ub=L2err;
+                                best_rot_trans=rot_trans;
+                                DebugOn("new best ub "<<best_ub<<" ub_ "<<ub_<<" lb_ "<<lb_<<endl);
+                                leaf_node=true;
+                                DebugOn("leaf lb "<<lb_<<" L2 "<<L2err<<" ub_ "<<ub_<<endl);
+                                //leaf_node=true;
+                                //lb=L2err;
+                            }
+                        }
+                    }
+                }
+                if(true){
+                    lb = std::max(models[j]->get_rel_obj_val(), vec_lb[pos]);
+                }
+                if(lb-1e-4<=best_ub)
+                {
+                    shift_x_bounds_r={new_shift_x_min[pos], new_shift_x_max[pos]};
+                    shift_y_bounds_r={new_shift_y_min[pos], new_shift_y_max[pos]};
+                    shift_z_bounds_r={new_shift_z_min[pos], new_shift_z_max[pos]};
+                    new_lb_queue.push(treenode_p(roll_bounds[pos], pitch_bounds[pos], yaw_bounds[pos], shift_x_bounds_r, shift_y_bounds_r, shift_z_bounds_r, lb, best_ub, ub_, depth_vec[pos], valid_cells[pos], leaf_node, dist_cost_cells[pos]));
                 }
                 else{
                     DebugOn("Infeasible lb "<<lb<<" "<<"best_ub "<<best_ub<<endl);
