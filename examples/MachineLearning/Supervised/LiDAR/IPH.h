@@ -8,7 +8,8 @@
 #ifndef IPH_h
 #define IPH_h
 
-
+/* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
+vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, const vector<double>& ref);
 /* Run the iterative projection heuristic on the Boresight Alignement problem */
 tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
 /* Run the iterative projection heuristic on the Registration problem */
@@ -909,4 +910,53 @@ tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string ax
     else
         return {thetay*180/pi, thetax*180/pi, thetaz*180/pi, 0.2163900/2, -0.1497952/2, 0.0745708/2};
 }
+/* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
+    vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, const vector<double>& ref){
+        double x1 = p[0], y1 = p[1], z1 = p[2], shifted_x, shifted_y, shifted_z, alpha, beta, gamma;
+        double x_ref = ref[0], y_ref = ref[1], z_ref = ref[2];
+        double x_rot1, y_rot1, z_rot1, x_min = numeric_limits<double>::max(), x_max = numeric_limits<double>::lowest(), y_min = numeric_limits<double>::max(), y_max = numeric_limits<double>::lowest(), z_min = numeric_limits<double>::max(), z_max = numeric_limits<double>::lowest();
+        double angles[] = {0, angle, -angle};
+        vector<pair<double,double>> min_max;
+        for (int a = 0; a < 3; a++){
+            for (int b = 0; b <3; b++){
+                for (int c = 0; c <3; c++){
+                    shifted_x = x1 - x_ref;
+                    shifted_y = y1 - y_ref;
+                    shifted_z = z1 - z_ref;
+                    alpha = angles[a];
+                    beta = angles[b];
+                    gamma = angles[c];
+                    x_rot1 = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+                    y_rot1 = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+                    z_rot1 = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+                    x_rot1 += x_ref;
+                    y_rot1 += y_ref;
+                    z_rot1 += z_ref;
+                    
+                    if(x_min>x_rot1){
+                        x_min = x_rot1;
+                    }
+                    if(y_min>y_rot1){
+                        y_min = y_rot1;
+                    }
+                    if(z_min>z_rot1){
+                        z_min = z_rot1;
+                    }
+                    if(x_max<x_rot1){
+                        x_max = x_rot1;
+                    }
+                    if(y_max<y_rot1){
+                        y_max = y_rot1;
+                    }
+                    if(z_max<z_rot1){
+                        z_max = z_rot1;
+                    }
+                }
+            }
+        }
+        min_max.push_back({x_min,x_max});
+        min_max.push_back({y_min,y_max});
+        min_max.push_back({z_min,z_max});
+        return min_max;
+    }
 #endif /* IPH_h */
