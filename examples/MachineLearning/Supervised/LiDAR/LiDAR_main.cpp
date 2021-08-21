@@ -25853,6 +25853,8 @@ for (int j = 0; j<m_vec.size(); j++) {
         ut_total=0;
         for(auto i=0;i<nb_threads*2;i+=2){
             if(new_lb_queue.top().lb<=best_ub && !new_lb_queue.top().leaf && !new_lb_queue.empty()){
+                treenode_p topnode=new_lb_queue.top();
+                new_lb_queue.pop();
                     double x_shift_increment = (topnode.tx.second - topnode.tx.first)/2.0;
                                      max_incr = x_shift_increment;
                                      double y_shift_increment = (topnode.ty.second - topnode.ty.first)/2.0;
