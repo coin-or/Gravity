@@ -25728,7 +25728,10 @@ vector<double> BranchBound21_disc(GoICP& goicp, vector<vector<double>>& point_cl
             treenode_p topnode=lb_queue.top();
             lb_queue.pop();
             vec_node.push_back(treenode_p(topnode.roll,  topnode.pitch, topnode.yaw, topnode.tx, topnode.ty, topnode.tz, topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
-                                    depth_vec.push_back(topnode.depth+1);
+                depth_vec.push_back(topnode.depth+1);
+            if(lb_queue.empty()){
+                break;
+            }
         }
         
         run_preprocess_parallel_new(point_cloud_data, point_cloud_model, model_voronoi_normals, model_face_intercept, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, new_shift_x_min, new_shift_x_max, new_shift_y_min, new_shift_y_max, new_shift_z_min, new_shift_z_max, max_cell_size, model_voronoi_min_max, model_voronoi_vertex_edge,  model_voronoi_vertex_edge_planes, dii,  djj, dist_cost_cells, iter, costs_upto_vec, max_vert_vert_dist_sq);
