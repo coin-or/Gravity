@@ -30,6 +30,7 @@
 #include "Lidar_utils.h"
 #include "Branch_Bound.h"
 #include "IPH.h"
+#include "Lower_Bound.h"
 #ifdef USE_EIGEN3
 //#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
 #include <Eigen/Dense>
@@ -96,7 +97,6 @@ using namespace orgQhull;
 #ifdef USE_VORO
 #include "voro++.hh"
 using namespace voro;
-
 #endif
 
 #ifdef USE_CDD
@@ -222,13 +222,57 @@ int main (int argc, char * argv[])
     
 //    read_laz("/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz");
 //    ///Users/smitha/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz
+    vector<vector<double>> down_point_cloud1, down_point_cloud2, down_uav1, down_uav2;
     
-  
+    int xmin=point_cloud1.at(0)[0];
+    int ymin=point_cloud1.at(0)[1];
+    int zmin=point_cloud1.at(0)[2];
+    
+    for(auto i=0;i<point_cloud1.size();i++){
+        if(i%20==0){
+            vector<double> pc1(3);
+            pc1[0]=point_cloud1.at(i)[0]-xmin;
+            pc1[1]=point_cloud1.at(i)[1]-ymin;
+            pc1[2]=point_cloud1.at(i)[2]-zmin;
+            down_point_cloud1.push_back(pc1);
+        }
+        if(i%20==0){
+            vector<double> pc1(3);
+            pc1[0]=uav1.at(i)[0]-xmin;
+            pc1[1]=uav1.at(i)[1]-ymin;
+            pc1[2]=uav1.at(i)[2]-zmin;
+            down_uav1.push_back(pc1);
+        }
+    }
+   
+    
+    for(auto i=0;i<point_cloud2.size();i++){
+        if(i%20==0){
+            vector<double> pc1(3);
+            pc1[0]=point_cloud2.at(i)[0]-xmin;
+            pc1[1]=point_cloud2.at(i)[1]-ymin;
+            pc1[2]=point_cloud2.at(i)[2]-zmin;
+            down_point_cloud2.push_back(pc1);
+        }
+        if(i%20==0){
+            vector<double> pc1(3);
+            pc1[0]=uav2.at(i)[0]-xmin;
+            pc1[1]=uav2.at(i)[1]-ymin;
+            pc1[2]=uav2.at(i)[2]-zmin;
+            down_uav2.push_back(pc1);
+        }
+    }
+    plot(down_point_cloud1,  down_point_cloud2);
+    
+    plot(point_cloud1, point_cloud2);
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
         run_GoICP(point_cloud1, point_cloud2);
     }
+    
+    auto A_M=Align_model(down_point_cloud1, down_point_cloud2, down_uav1, down_uav2);
+    
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
     double total_time =0, time_start = 0, time_end = 0;
     double L2error_init = 0, L1error_init = 0;

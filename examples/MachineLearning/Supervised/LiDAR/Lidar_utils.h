@@ -136,7 +136,10 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     auto theta11 = M->get_var<double>("theta11");auto theta12 = M->get_var<double>("theta12");auto theta13 = M->get_var<double>("theta13");
     auto theta21 = M->get_var<double>("theta21");auto theta22 = M->get_var<double>("theta22");auto theta23 = M->get_var<double>("theta23");
     auto theta31 = M->get_var<double>("theta31");auto theta32 = M->get_var<double>("theta32");auto theta33 = M->get_var<double>("theta33");
-    auto x_shift = M->get_var<double>("x_shift");auto y_shift = M->get_var<double>("y_shift");auto z_shift = M->get_var<double>("z_shift");
+    var<> x_shift, y_shift, z_shift;
+    if(rot_trans.size()>9){
+        x_shift = M->get_var<double>("x_shift");y_shift = M->get_var<double>("y_shift");z_shift = M->get_var<double>("z_shift");
+    }
     auto bin = M->get_var_ptr("bin");
     shared_ptr<vector<int>> bin_vals;
     if(bin->is_integer()){
@@ -193,9 +196,11 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     rot_trans[6]=theta31.eval();
     rot_trans[7]=theta32.eval();
     rot_trans[8]=theta33.eval();
-    rot_trans[9]=x_shift.eval();
-    rot_trans[10]=y_shift.eval();
-    rot_trans[11]=z_shift.eval();
+    if(rot_trans.size()>9){
+        rot_trans[9]=x_shift.eval();
+        rot_trans[10]=y_shift.eval();
+        rot_trans[11]=z_shift.eval();
+    }
     if(rot_trans.size()>12){
         auto scale_x = M->get_var<double>("scale_x");auto scale_y = M->get_var<double>("scale_y");auto scale_z = M->get_var<double>("scale_z");
         rot_trans[12]=scale_x.eval();
