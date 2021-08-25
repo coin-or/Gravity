@@ -6,7 +6,7 @@ unset(MP_HOME)
 set(MP_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/MP CACHE INTERNAL "")
 ExternalProject_Add(mp
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${MP_DOWNLOAD_URL} && rm -fr ./Install/MP && mv mp ./Install/MP && cd ./Install/MP && git submodule init && git submodule update && mkdir build && cd build && cmake -DBUILD=all .. && make -j24
+    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${MP_DOWNLOAD_URL} && rm -fr ./Install/MP && mv mp ./Install/MP && cd ./Install/MP && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Wno-non-pod-varargs" .. && make mp -j
     URL ${MP_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${MP_ROOT_DIR}
     CONFIGURE_COMMAND ""

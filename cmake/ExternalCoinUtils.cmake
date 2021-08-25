@@ -6,7 +6,7 @@ unset(CoinUtils_HOME)
 set(CoinUtils_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build CACHE INTERNAL "")
 ExternalProject_Add(coinutils
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${CoinUtils_DOWNLOAD_URL} && rm -fr ./Install/CoinUtils && mv CoinUtils ./Install/CoinUtils && cd ./Install/CoinUtils && mkdir build && cd build && ../configure --prefix=${CoinUtils_ROOT_DIR} && make -j24 && make install
+    DOWNLOAD_COMMAND export HTTPS_PROXY=$ENV{HTTPS_PROXY} && git clone ${CoinUtils_DOWNLOAD_URL} && rm -fr ./Install/CoinUtils && mv CoinUtils ./Install/CoinUtils && cd ./Install/CoinUtils && mkdir build && cd build && ../configure --prefix=${CoinUtils_ROOT_DIR} && make -j && make install
     URL ${CoinUtils_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CoinUtils_ROOT_DIR}
     CONFIGURE_COMMAND ""

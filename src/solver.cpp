@@ -112,7 +112,7 @@ shared_ptr<Model<type>> Model<type>::buildOA()
     set_solution(xsolution);
     return OA;
 }
-/** /** Returns an interior point model
+/** Returns an interior point model
  @param[in] nonlin: model for which interior point with respect to nonconvex constraints that describe a convex region(SDP,SOC,rotated SOC constraints) is computed
  Assuming model has no nonlinear equality constraints
  Returns a model which has all variables in current model. If current model has SDP, SOC, rotated SOC constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to min (sum eta_i)
