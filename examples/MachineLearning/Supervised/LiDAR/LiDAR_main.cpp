@@ -31,6 +31,7 @@
 #include "Branch_Bound.h"
 #include "IPH.h"
 #include "Lower_Bound.h"
+#include "Lidar_preprocess.h"
 #ifdef USE_EIGEN3
 //#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
 #include <Eigen/Dense>
