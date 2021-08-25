@@ -161,7 +161,7 @@ get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 include(ExternalProject)
 
-if(!WIN32)
+if(NOT WIN32)
 #CoinUtils
 if (CoinUtils)
 message(STATUS "Enable CoinUtils")
@@ -189,7 +189,7 @@ message(STATUS "Enable AMPL MP")
 add_definitions(-DUSE_MP)
 find_package(MP QUIET)
 if (MP_FOUND)
- message("-- Found AMPL MP: ${CoinUtils_INCLUDE_DIRS}")
+ message("-- Found AMPL MP: ${MP_INCLUDE_DIRS}")
  include_directories(${MP_INCLUDE_DIRS}/..)
  set(LIBS ${LIBS} ${MP_LIBRARIES})
 else(MP_FOUND)
@@ -305,7 +305,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fprofile-arcs -lgcov")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-absolute-value")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,'\$ORIGIN/lib'")
 
 

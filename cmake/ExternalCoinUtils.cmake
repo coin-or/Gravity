@@ -7,7 +7,7 @@ set(CoinUtils_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/CoinUtils/build CACHE 
 if(WIN32)
 ExternalProject_Add(coinutils
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND git clone ${CoinUtils_DOWNLOAD_URL} && rmdir -fr ./Install/CoinUtils && move CoinUtils ./Install/CoinUtils && cd ./Install/CoinUtils && mkdir build && cd build && ../configure --prefix=${CoinUtils_ROOT_DIR} && make -j24 && make install
+    DOWNLOAD_COMMAND git clone ${CoinUtils_DOWNLOAD_URL} && rmdir -fr ./Install/CoinUtils && move CoinUtils ./Install/CoinUtils && cd ./Install/CoinUtils && mkdir build && cd build && ../configure --prefix=${CoinUtils_ROOT_DIR} && make -j && make install
     URL ${CoinUtils_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CoinUtils_ROOT_DIR}
     CONFIGURE_COMMAND ""
