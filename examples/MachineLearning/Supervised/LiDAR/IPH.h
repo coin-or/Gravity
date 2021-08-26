@@ -11,14 +11,14 @@
 /* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
 vector<pair<double,double>> get_min_max(double angle, const vector<double>& p, const vector<double>& ref);
 /* Run the iterative projection heuristic on the Boresight Alignement problem */
-tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
+tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max);
 /* Run the iterative projection heuristic on the Registration problem */
 tuple<double,double,double,double,double,double> run_IPH(const vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, vector<vector<double>>& point_cloud_data);
 /* Run the ARMO model for registration */
 tuple<double,double,double,double,double,double> run_ARMO(bool bypass, string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2);
 /* Run the ARMO model for boresight alignment */
-tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2);
-tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
+tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max);
+tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max){
     double roll = 0, pitch = 0, yaw = 1; /* at least one nonzero to enter the while loop */
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
     int nb_iter = 0, max_nb_iter = 100;
@@ -26,10 +26,28 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
         //        auto L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set before = " << L2error << endl);
-        res = run_ARMO("full", ext_model, ext_data, uav1, uav2);
+        res = run_ARMO("full", ext_model, ext_data, uav_model, uav_data, roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
+        if(roll>=0){
+            roll_max=std::max(roll_min, roll_max-roll);
+        }
+        else{
+            roll_min=std::min(roll_max, roll_min-roll);
+        }
+        if(pitch>=0){
+            pitch_max=std::max(pitch_min, pitch_max-pitch);
+        }
+        else{
+            pitch_min=std::min(pitch_max, pitch_min-pitch);
+        }
+        if(yaw>=0){
+            yaw_max=std::max(yaw_min, yaw_max-yaw);
+        }
+        else{
+            yaw_min=std::min(yaw_max, yaw_min-yaw);
+        }
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav1, uav2);
+        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav_model, uav_data);
         //        L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set after full = " << L2error << endl);
         nb_iter++;
@@ -38,24 +56,43 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     //    while(nb_iter < max_nb_iter && std::abs(yaw)>1e-1) {
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
-        res = run_ARMO("z", ext_model, ext_data, uav1, uav2);
+        res = run_ARMO("z", ext_model, ext_data, uav_model, uav_data, roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav1, uav2);
+        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav_model, uav_data);
         //        auto L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set after z = " << L2error << endl);
         nb_iter++;
         DebugOn("Projceting out z axis, ITERATION " << nb_iter << endl);
+
+        if(roll>=0){
+            roll_max=std::max(roll_min, roll_max-roll);
+        }
+        else{
+            roll_min=std::min(roll_max, roll_min-roll);
+        }
+        if(pitch>=0){
+            pitch_max=std::max(pitch_min, pitch_max-pitch);
+        }
+        else{
+            pitch_min=std::min(pitch_max, pitch_min-pitch);
+        }
+        if(yaw>=0){
+            yaw_max=std::max(yaw_min, yaw_max-yaw);
+        }
+        else{
+            yaw_min=std::min(yaw_max, yaw_min-yaw);
+        }
     }
     //    DebugOn("Plotting after z" << endl);
     //
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     //    while(nb_iter < max_nb_iter && std::abs(roll)>1e-1) {
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
-        res = run_ARMO("y", ext_model, ext_data, uav1, uav2);
+        res = run_ARMO("y", ext_model, ext_data, uav_model, uav_data, roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav1, uav2);
+        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav_model, uav_data);
         //        auto L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set after y = " << L2error << endl);
         nb_iter++;
@@ -66,27 +103,65 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     //    while(nb_iter < max_nb_iter && std::abs(pitch)>1e-1) {
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
-        res = run_ARMO("x", ext_model, ext_data, uav1, uav2);
+        res = run_ARMO("x", ext_model, ext_data, uav_model, uav_data,roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav1, uav2);
+        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav_model, uav_data);
         //        auto L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set after x = " << L2error << endl);
         nb_iter++;
         DebugOn("Projceting out x axis, ITERATION " << nb_iter << endl);
+        
+        if(roll>=0){
+            roll_max=std::max(roll_min, roll_max-roll);
+        }
+        else{
+            roll_min=std::min(roll_max, roll_min-roll);
+        }
+        if(pitch>=0){
+            pitch_max=std::max(pitch_min, pitch_max-pitch);
+        }
+        else{
+            pitch_min=std::min(pitch_max, pitch_min-pitch);
+        }
+        if(yaw>=0){
+            yaw_max=std::max(yaw_min, yaw_max-yaw);
+        }
+        else{
+            yaw_min=std::min(yaw_max, yaw_min-yaw);
+        }
     }
     //    DebugOn("Plotting after x" << endl);
     //    plot(ext_model,ext_data,1);
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>1e-1) {
-        res = run_ARMO("full", ext_model, ext_data, uav1, uav2);
+        res = run_ARMO("full", ext_model, ext_data, uav_model, uav_data, roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav1, uav2);
+        apply_rotation(roll, pitch, yaw, ext_model, ext_data, uav_model, uav_data);
         //        auto L2error = computeL1error(ext_model,ext_data);
         //        DebugOn("L2 error with exterme set after full = " << L2error << endl);
         nb_iter++;
         DebugOn("No projection, ITERATION " << nb_iter << endl);
+        
+        if(roll>=0){
+            roll_max=std::max(roll_min, roll_max-roll);
+        }
+        else{
+            roll_min=std::min(roll_max, roll_min-roll);
+        }
+        if(pitch>=0){
+            pitch_max=std::max(pitch_min, pitch_max-pitch);
+        }
+        else{
+            pitch_min=std::min(pitch_max, pitch_min-pitch);
+        }
+        if(yaw>=0){
+            yaw_max=std::max(yaw_min, yaw_max-yaw);
+        }
+        else{
+            yaw_min=std::min(yaw_max, yaw_min-yaw);
+        }
     }
     DebugOn("Final Roll (degrees) = " << final_roll << endl);
     DebugOn("Final Pitch (degrees) = " << final_pitch << endl);
@@ -181,33 +256,33 @@ tuple<double,double,double,double,double,double> run_IPH(const vector<vector<dou
     Debug("Final z shift = " << final_z_shift << endl);
     return {final_roll,final_pitch,final_yaw,final_x_shift,final_y_shift,final_z_shift};
 }
-tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2)
+tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max)
 {
     double angle_max = 0.05;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
     vector<pair<double,double>> min_max1;
-    vector<vector<pair<double,double>>> min_max2(point_cloud2.size());
-    vector<int> nb_neighbors(point_cloud1.size());
+    vector<vector<pair<double,double>>> min_max2(point_cloud_model.size());
+    vector<int> nb_neighbors(point_cloud_data.size());
     vector<vector<int>> neighbors;
     /* Compute cube for all points in point cloud 2 */
-    for (auto i = 0; i<point_cloud2.size(); i++) {
-        min_max2[i] = get_min_max(angle_max, point_cloud2.at(i), uav2.at(i));
+    for (auto i = 0; i<point_cloud_model.size(); i++) {
+        min_max2[i] = get_min_max(angle_max, point_cloud_model.at(i), uav_model.at(i));
     }
     double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
     bool bypass = false;
     if(!bypass){
         /* Check if cubes intersect */
-        neighbors.resize(point_cloud1.size());
-        for (auto i = 0; i<point_cloud1.size(); i++) {
+        neighbors.resize(point_cloud_data.size());
+        for (auto i = 0; i<point_cloud_data.size(); i++) {
             nb_pairs = 0;
-            min_max1 = get_min_max(angle_max, point_cloud1.at(i), uav1.at(i));
-            DebugOff("For point (" << point_cloud1.at(i).at(0) << "," <<  point_cloud1.at(i).at(1) << "," << point_cloud1.at(i).at(2) << "): ");
+            min_max1 = get_min_max(angle_max, point_cloud_data.at(i), uav_data.at(i));
+            DebugOff("For point (" << point_cloud_data.at(i).at(0) << "," <<  point_cloud_data.at(i).at(1) << "," << point_cloud_data.at(i).at(2) << "): ");
             DebugOff("\n neighbors in umbrella : \n");
-            for (size_t j = 0; j < point_cloud2.size(); j++){
+            for (size_t j = 0; j < point_cloud_model.size(); j++){
                 if(intersect(min_max1, min_max2[j])){ /* point is in umbrella */
                     nb_pairs++;
                     neighbors[i].push_back(j);
-                    DebugOff("(" << point_cloud2.at(j).at(0) << "," <<  point_cloud2.at(j).at(1) << "," << point_cloud2.at(j).at(2) << ")\n");
+                    DebugOff("(" << point_cloud_model.at(j).at(0) << "," <<  point_cloud_model.at(j).at(1) << "," << point_cloud_model.at(j).at(2) << ")\n");
                 }
             }
             
@@ -223,7 +298,7 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
                     //            std::cout << "ret_index["<<k<<"]=" << ret_indexes[k] << " out_dist_sqr=" << out_dists_sqr[k] << " point = (" << point_cloud2.at(ret_indexes[k]).at(0) << "," <<  point_cloud2.at(ret_indexes[k]).at(1) << "," << point_cloud2.at(ret_indexes[k]).at(2) << ")" << std::endl;
                     nb_neighbors[i] = nb_pairs;
                     }
-        av_nb_pairs /= point_cloud1.size();
+        av_nb_pairs /= point_cloud_data.size();
         DebugOn("Min nb of Pairs = " << min_nb_pairs << endl);
         DebugOn("Max nb of Pairs = " << max_nb_pairs << endl);
         DebugOn("Average nb of Pairs = " << av_nb_pairs << endl);
@@ -234,9 +309,9 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
         bool solve_lidar_cube = false, solve_lidar_iter = !solve_lidar_cube;
         int m = av_nb_pairs;
         //            int m = 1;
-        vector<double> min_dist(point_cloud1.size(),numeric_limits<double>::max());
-        vector<int> nearest(point_cloud1.size());
-        vector<string> nearest_id(point_cloud1.size());
+        vector<double> min_dist(point_cloud_data.size(),numeric_limits<double>::max());
+        vector<int> nearest(point_cloud_model.size());
+        vector<string> nearest_id(point_cloud_data.size());
         string i_str, j_str;
         indices Pairs("Pairs"), cells("cells");
         map<int,int> n2_map;
@@ -247,19 +322,19 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
         if(solve_lidar_cube)
             nb_max_neigh = m;
         /* Keep points with neighbors >= m */
-        for (auto i = 0; i<point_cloud1.size(); i++) {
+        for (auto i = 0; i<point_cloud_data.size(); i++) {
             if(solve_lidar_iter)
                 nb_max_neigh = 1;
             else
                 nb_max_neigh = m;
             if(nb_neighbors[i]>=nb_max_neigh){
                 i_str = to_string(idx1+1);
-                x_uav1.add_val(i_str,uav1.at(i)[0]);
-                x1.add_val(i_str,point_cloud1.at(i)[0]);
-                y_uav1.add_val(i_str,uav1.at(i)[1]);
-                y1.add_val(i_str,point_cloud1.at(i)[1]);
-                z_uav1.add_val(i_str,uav1.at(i)[2]);
-                z1.add_val(i_str,point_cloud1.at(i)[2]);
+                x_uav1.add_val(i_str,uav_data.at(i)[0]);
+                x1.add_val(i_str,point_cloud_data.at(i)[0]);
+                y_uav1.add_val(i_str,uav_data.at(i)[1]);
+                y1.add_val(i_str,point_cloud_data.at(i)[1]);
+                z_uav1.add_val(i_str,uav_data.at(i)[2]);
+                z1.add_val(i_str,point_cloud_data.at(i)[2]);
                 if(solve_lidar_iter){
                     nb_max_neigh = nb_neighbors[i];
                 }
@@ -269,25 +344,25 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
                     if(res==n2_map.end()){
                         n2_map[k] = idx2;
                         j_str = to_string(idx2+1);
-                        x_uav2.add_val(j_str,uav2.at(k)[0]);
-                        x2.add_val(j_str,point_cloud2.at(k)[0]);
-                        y_uav2.add_val(j_str,uav2.at(k)[1]);
-                        y2.add_val(j_str,point_cloud2.at(k)[1]);
-                        z_uav2.add_val(j_str,uav2.at(k)[2]);
-                        z2.add_val(j_str,point_cloud2.at(k)[2]);
+                        x_uav2.add_val(j_str,uav_model.at(k)[0]);
+                        x2.add_val(j_str,point_cloud_model.at(k)[0]);
+                        y_uav2.add_val(j_str,uav_model.at(k)[1]);
+                        y2.add_val(j_str,point_cloud_model.at(k)[1]);
+                        z_uav2.add_val(j_str,uav_model.at(k)[2]);
+                        z2.add_val(j_str,point_cloud_model.at(k)[2]);
                         idx2++;
                     }
                     else {
                         j_str = to_string(res->second+1);
                     }
                     if(axis=="x")
-                        dist_sq = std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                        dist_sq = std::pow(point_cloud_data.at(i)[1] - point_cloud_model.at(k)[1],2) + std::pow(point_cloud_data.at(i)[2] - point_cloud_model.at(k)[2],2);
                     else if(axis=="y")
-                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                        dist_sq = std::pow(point_cloud_data.at(i)[0] - point_cloud_model.at(k)[0],2) + std::pow(point_cloud_data.at(i)[2] - point_cloud_model.at(k)[2],2);
                     else if(axis=="z")
-                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2);
+                        dist_sq = std::pow(point_cloud_data.at(i)[0] - point_cloud_model.at(k)[0],2) + std::pow(point_cloud_data.at(i)[1] - point_cloud_model.at(k)[1],2);
                     else
-                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                        dist_sq = std::pow(point_cloud_data.at(i)[0] - point_cloud_model.at(k)[0],2) + std::pow(point_cloud_data.at(i)[1] - point_cloud_model.at(k)[1],2) + std::pow(point_cloud_data.at(i)[2] - point_cloud_model.at(k)[2],2);
                     
                     if(min_dist[i]>dist_sq){
                         min_dist[i] = dist_sq;
@@ -304,7 +379,7 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
         idx1 = 0;
         indices N1("N1"),N2("N2");
         if(solve_lidar_iter){
-            for (auto i = 0; i<point_cloud1.size(); i++) {
+            for (auto i = 0; i<point_cloud_data.size(); i++) {
                 if(nb_neighbors[i]>=1){
                     i_str = to_string(idx1+1);
                     j_str = nearest_id[i];
@@ -353,8 +428,8 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
 //            var<> yaw1("yaw1", 0.25*pi/180, 0.25*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", -1.45*pi/180, -1.45*pi/180);
             //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
             //                var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
-            var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
-            var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
+            var<> yaw1("yaw1", yaw_min, yaw_max), pitch1("pitch1", pitch_min, pitch_max), roll1("roll1", roll_min, roll_max);
+            var<> yaw2("yaw2", yaw_max*(-1), yaw_min*(-1)), pitch2("pitch2", pitch_min, pitch_max), roll2("roll2", roll_max*(-1), roll_min*(-1));
             
             Lidar.add(yaw1.in(R(1)),pitch1.in(R(1)),roll1.in(R(1)));
             Lidar.add(yaw2.in(R(1)),pitch2.in(R(1)),roll2.in(R(1)));
@@ -540,13 +615,15 @@ tuple<double,double,double> run_ARMO(string axis, const vector<vector<double>>& 
             //            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
             var<> mu("mu", pos_), mu_k("mu_k", pos_), delta("delta", pos_);
             //                            var<> yaw1("yaw1", -0.5*pi/180, -0.5*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", 1.375*pi/180, 1.375*pi/180);
-            var<> yaw1("yaw1", -0.1, 0.1), pitch1("pitch1", -0.1, 0.1), roll1("roll1", -0.1, 0.1);
+           
+            var<> yaw1("yaw1", yaw_min, yaw_max), pitch1("pitch1", pitch_min, pitch_max), roll1("roll1", roll_min, roll_max);
+            var<> yaw2("yaw2", yaw_max*(-1), yaw_min*(-1)), pitch2("pitch2", pitch_min, pitch_max), roll2("roll2", roll_max*(-1), roll_min*(-1));
             //                var<> yaw1("yaw1", 0.25*pi/180, 0.25*pi/180), pitch1("pitch1", 0.9*pi/180, 0.9*pi/180), roll1("roll1", -1.45*pi/180, -1.45*pi/180);
             //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.5778*pi/180, -0.5778*pi/180), roll1("roll1", -1.44581*pi/180, -1.44581*pi/180);
             //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", -0.573231*pi/180, -0.573231*pi/180), roll1("roll1", -1.45338*pi/180, -1.45338*pi/180);
             //                var<> yaw1("yaw1", 0.0249847*pi/180, 0.0249847*pi/180), pitch1("pitch1", -0.507086*pi/180, -0.507086*pi/180), roll1("roll1", -1.3698*pi/180, -1.3698*pi/180);
             //                var<> yaw1("yaw1", 0, 0), pitch1("pitch1", 0, 0), roll1("roll1", 0, 0);
-            var<> yaw2("yaw2", -0.1, 0.1), pitch2("pitch2", -0.1, 0.1), roll2("roll2", -0.1, 0.1);
+            
             //            yaw1 = -0.5*pi/180;
             //            pitch1 = 0.9*pi/180;
             //            roll1 = 1.375*pi/180;

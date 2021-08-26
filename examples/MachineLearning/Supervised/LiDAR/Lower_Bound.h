@@ -65,7 +65,7 @@ extern "C" {
 #include "voro++.hh"
 using namespace voro;
 #endif
-shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data)
+shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -120,12 +120,14 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
     ids.add_empty_row();
     for(auto i=0;i<n1;i++){
         for(auto j=1;j<=n2;j++){
+            if(cells.has_key(to_string(i+1)+","+to_string(j))){
                 ids.add_in_row(i, to_string(j));
+            }
         }
     }
     N1 = range(1,n1);
     N2 = range(1,n2);
-    auto cells = indices(N1,N2);
+    //auto cells = indices(N1,N2);
     
     vector<int> new_model_pts;
     indices new_model_ids;
@@ -138,7 +140,7 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOff("Added " << cells.size() << " binary variables" << endl);
-    double yaw_min = -5*pi/180., yaw_max = 5*pi/180., pitch_min =-5*pi/180.,pitch_max = 5*pi/180.,roll_min =-5*pi/180.,roll_max = 5*pi/180.;
+    
     var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
