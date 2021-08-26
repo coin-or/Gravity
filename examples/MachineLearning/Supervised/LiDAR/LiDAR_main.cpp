@@ -187,10 +187,10 @@ int main (int argc, char * argv[])
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
     
     /* Boresight Alignment Problem */
-    vector<vector<double>> full_point_cloud1, full_point_cloud2;
-    vector<vector<double>> point_cloud1, point_cloud2;
-    vector<vector<double>> full_uav1, full_uav2;
-    vector<vector<double>> uav1, uav2;
+    vector<vector<double>> full_point_cloud_model, full_point_cloud_data;
+    vector<vector<double>> point_cloud_model, point_cloud_data;
+    vector<vector<double>> full_uav_model, full_uav_data;
+    vector<vector<double>> uav_model, uav_data;
     string Model_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
     string Data_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
     string red_Model_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
@@ -206,90 +206,124 @@ int main (int argc, char * argv[])
     if(argc>4){
         red_Model_file = argv[4];
         rapidcsv::Document  red_Model_doc(red_Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        read_data(red_Model_doc, point_cloud1, uav1);
+        read_data(red_Model_doc, point_cloud_model, uav_model);
     }
     if(argc>5){
         red_Data_file = argv[5];
         rapidcsv::Document  red_Data_doc(red_Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        read_data(red_Data_doc, point_cloud2, uav2);
+        read_data(red_Data_doc, point_cloud_data, uav_data);
         
     }
     rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
     rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
     
     
-    read_data(Model_doc, full_point_cloud1, full_uav1);
-    read_data(Data_doc, full_point_cloud2, full_uav2);
+    read_data(Model_doc, full_point_cloud_model, full_uav_model);
+    read_data(Data_doc, full_point_cloud_data, full_uav_data);
     
 //    read_laz("/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz");
 //    ///Users/smitha/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz
-    vector<vector<double>> down_point_cloud1, down_point_cloud2, down_uav1, down_uav2;
+    vector<vector<double>> down_point_cloud_data, down_point_cloud_model, down_uav_data, down_uav_model;
     
-    int xmin=point_cloud1.at(0)[0];
-    int ymin=point_cloud1.at(0)[1];
-    int zmin=point_cloud1.at(0)[2];
+    int xmin=point_cloud_data.at(0)[0];
+    int ymin=point_cloud_data.at(0)[1];
+    int zmin=point_cloud_data.at(0)[2];
     
-    for(auto i=0;i<point_cloud1.size();i++){
+    for(auto i=0;i<point_cloud_data.size();i++){
         if(i%20==0){
             vector<double> pc1(3);
-            pc1[0]=point_cloud1.at(i)[0]-xmin;
-            pc1[1]=point_cloud1.at(i)[1]-ymin;
-            pc1[2]=point_cloud1.at(i)[2]-zmin;
-            down_point_cloud1.push_back(pc1);
+            pc1[0]=point_cloud_data.at(i)[0]-xmin;
+            pc1[1]=point_cloud_data.at(i)[1]-ymin;
+            pc1[2]=point_cloud_data.at(i)[2]-zmin;
+            down_point_cloud_data.push_back(pc1);
         }
         if(i%20==0){
             vector<double> pc1(3);
-            pc1[0]=uav1.at(i)[0]-xmin;
-            pc1[1]=uav1.at(i)[1]-ymin;
-            pc1[2]=uav1.at(i)[2]-zmin;
-            down_uav1.push_back(pc1);
+            pc1[0]=uav_data.at(i)[0]-xmin;
+            pc1[1]=uav_data.at(i)[1]-ymin;
+            pc1[2]=uav_data.at(i)[2]-zmin;
+            down_uav_data.push_back(pc1);
         }
     }
    
     
-    for(auto i=0;i<point_cloud2.size();i++){
+    for(auto i=0;i<point_cloud_model.size();i++){
         if(i%20==0){
             vector<double> pc1(3);
-            pc1[0]=point_cloud2.at(i)[0]-xmin;
-            pc1[1]=point_cloud2.at(i)[1]-ymin;
-            pc1[2]=point_cloud2.at(i)[2]-zmin;
-            down_point_cloud2.push_back(pc1);
+            pc1[0]=point_cloud_model.at(i)[0]-xmin;
+            pc1[1]=point_cloud_model.at(i)[1]-ymin;
+            pc1[2]=point_cloud_model.at(i)[2]-zmin;
+            down_point_cloud_model.push_back(pc1);
         }
         if(i%20==0){
             vector<double> pc1(3);
-            pc1[0]=uav2.at(i)[0]-xmin;
-            pc1[1]=uav2.at(i)[1]-ymin;
-            pc1[2]=uav2.at(i)[2]-zmin;
-            down_uav2.push_back(pc1);
+            pc1[0]=uav_model.at(i)[0]-xmin;
+            pc1[1]=uav_model.at(i)[1]-ymin;
+            pc1[2]=uav_model.at(i)[2]-zmin;
+            down_uav_model.push_back(pc1);
         }
     }
-    plot(down_point_cloud1,  down_point_cloud2);
+   // plot(down_point_cloud_data,  down_point_cloud_model);
     
-    plot(point_cloud1, point_cloud2);
+   // plot(point_cloud_data, point_cloud_model);
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
-        run_GoICP(point_cloud1, point_cloud2);
+        run_GoICP(point_cloud_data, point_cloud_model);
     }
+    param<double> dist_cells("dist_cells");
     
-    auto A_M=Align_model(down_point_cloud1, down_point_cloud2, down_uav1, down_uav2);
+    int n1=down_point_cloud_data.size();
+    int n2=down_point_cloud_model.size();
+    indices N1("N1"),N2("N2");
+    N1 = range(1,n1);
+    N2 = range(1,n2);
+    auto valid_cells_old = indices(N1,N2);
+    indices new_cells("new_cells");
     
+    double roll_min=-0.5*pi/180;
+    double roll_max=0.5*pi/180;
+    double pitch_min=-0.5*pi/180;
+    double pitch_max=0.5*pi/180;
+    double yaw_min=-0.5*pi/180;
+    double yaw_max=0.5*pi/180;
+    
+    auto down_point_cloud_model_copy= down_point_cloud_model;
+    auto down_point_cloud_data_copy= down_point_cloud_data;
+    auto down_uav_model_copy= down_uav_model;
+    auto down_uav_data_copy= down_uav_data;
+   
+    vector<int> matching(down_point_cloud_data.size());
+    vector<double> err_per_point(down_point_cloud_data.size());
+    
+    auto L2error_init = computeL2error(down_point_cloud_model,down_point_cloud_data,matching,err_per_point);
+    auto L1error_init = computeL1error(down_point_cloud_model,down_point_cloud_data,matching,err_per_point);
+
+
+    auto res = run_IPH(down_point_cloud_model_copy, down_point_cloud_data_copy, down_uav_model_copy, down_uav_data_copy, roll_min, roll_max, pitch_min,  pitch_max, yaw_min, yaw_max);
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
+    final_roll = get<0>(res);final_pitch = get<1>(res); final_yaw = get<2>(res);
+    auto L2error = computeL2error(down_point_cloud_model_copy, down_point_cloud_data_copy, matching,err_per_point);
+    auto L1error = computeL1error(down_point_cloud_model_copy, down_point_cloud_data_copy, matching,err_per_point);
+    
+    
+    preprocess_lid(down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data,valid_cells_old,new_cells,  dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, L2error);
+    
+    auto A_M=Align_model(down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data,roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, new_cells);
+    
+    
     double total_time =0, time_start = 0, time_end = 0;
-    double L2error_init = 0, L1error_init = 0;
-    vector<int> matching(point_cloud2.size());
-    vector<double> err_per_point(point_cloud2.size());
-    L2error_init = computeL2error(point_cloud1,point_cloud2,matching,err_per_point);
-    L1error_init = computeL1error(point_cloud1,point_cloud2,matching,err_per_point);
+    
+   
+
     DebugOn("Initial L2 error = " << L2error_init << endl);
     DebugOn("Initial L1 error = " << L1error_init << endl);
     time_start = get_wall_time();
-    auto res = run_IPH(point_cloud1, point_cloud2, uav1, uav2);
-    final_roll = get<0>(res);final_pitch = get<1>(res); final_yaw = get<2>(res);
-    auto L2error = computeL2error(point_cloud1,point_cloud2,matching,err_per_point);
-    auto L1error = computeL1error(point_cloud1,point_cloud2,matching,err_per_point);
-    DebugOn("n1 = " << point_cloud1.size() << endl);
-    DebugOn("n2 = " << point_cloud2.size() << endl);
+    
+   
+
+    DebugOn("n1 = " << down_point_cloud_model.size() << endl);
+    DebugOn("n2 = " << down_point_cloud_data.size() << endl);
     DebugOn("Initial L2 error = " << L2error_init << endl);
     DebugOn("Final L2 error = " << L2error << endl);
     DebugOn("Relative L2 gap = " << 100*(L2error_init-L2error)/L2error_init << "%" << endl);
@@ -299,16 +333,16 @@ int main (int argc, char * argv[])
     time_end = get_wall_time();
     DebugOn("Total wall clock time = " << time_end - time_start << endl);
     double shifted_x, shifted_y, shifted_z;
-    auto tot_pts = full_point_cloud1.size()+full_point_cloud2.size();
-    apply_rotation(final_roll, final_pitch, final_yaw, full_point_cloud1, full_point_cloud2, full_uav1, full_uav2);
+    auto tot_pts = full_point_cloud_model.size()+full_point_cloud_data.size();
+    apply_rotation(final_roll, final_pitch, final_yaw, full_point_cloud_data, full_point_cloud_model, full_uav_data, full_uav_model);
     
     bool save_file = true;
     if(save_file){
         auto name = Model_file.substr(0,Model_file.find('.'));
         auto fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+".laz";
-        save_laz(fname,full_point_cloud1, full_point_cloud2);
+        save_laz(fname,full_point_cloud_data, full_point_cloud_model);
         fname = name+"_ARMO_RPY_"+to_string(final_roll)+"_"+to_string(final_pitch)+"_"+to_string(final_yaw)+"_sub.laz";
-        save_laz(fname,point_cloud1, point_cloud2);
+        save_laz(fname,down_point_cloud_data, down_point_cloud_model);
     }
     return 0;
 }
