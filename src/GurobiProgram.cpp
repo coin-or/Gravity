@@ -70,7 +70,7 @@ protected:
                         int_x[i] = x[i];
                     }
                     m->set_solution(int_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
+                    auto res=m->cutting_planes_solution(interior, 1e-9, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
                     if(res.size()>=1){
                         for(i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
@@ -102,7 +102,7 @@ protected:
                                 cont_x[i] = x[i];
                             }
                             m->set_solution(cont_x);
-                            auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                            auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
                             if(res.size()>=1){
                                 for(i=0;i<res.size();i++){
                                     GRBLinExpr expr = 0;
@@ -274,14 +274,14 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-    grb_mod->set(GRB_IntParam_MIPFocus,2);
+    //grb_mod->set(GRB_IntParam_MIPFocus,2);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
    // grb_mod->set(GRB_IntParam_PrePasses, 2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
     //cut_off=0.0972224207;
-    grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
-    grb_mod->set(GRB_DoubleParam_Heuristics,0);
+    //grb_mod->set(GRB_DoubleParam_Cutoff,0.891);
+   // grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //grb_mod->set(GRB_IntParam_Cuts,3);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){

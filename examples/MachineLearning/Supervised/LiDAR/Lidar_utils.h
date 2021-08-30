@@ -168,20 +168,20 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     constant<> col1 = pow(theta11.eval(),2)+pow(theta21.eval(),2)+pow(theta31.eval(),2);
     constant<> col2 = pow(theta12.eval(),2)+pow(theta22.eval(),2)+pow(theta32.eval(),2);
     constant<> col3 = pow(theta13.eval(),2)+pow(theta23.eval(),2)+pow(theta33.eval(),2);
-    DebugOff("row 1 " << row1.eval() << endl);
-    DebugOff("row 2 " << row2.eval() << endl);
-    DebugOff("row 3 " << row3.eval() << endl);
-    DebugOff("col 1 " << col1.eval() << endl);
-    DebugOff("col 2 " << col2.eval() << endl);
-    DebugOff("col 3 " << col3.eval() << endl);
+    DebugOn("row 1 " << row1.eval() << endl);
+    DebugOn("row 2 " << row2.eval() << endl);
+    DebugOn("row 3 " << row3.eval() << endl);
+    DebugOn("col 1 " << col1.eval() << endl);
+    DebugOn("col 2 " << col2.eval() << endl);
+    DebugOn("col 3 " << col3.eval() << endl);
     constant<> det=theta11.eval()*(theta22.eval()*theta33.eval()-theta32.eval()*theta23.eval())
     -theta12.eval()*(theta21.eval()*theta33.eval()-theta31.eval()*theta23.eval())+theta13.eval()*(theta21.eval()*theta32.eval()-theta31.eval()*theta22.eval());
     constant<> row12 = (theta11.eval()*theta21.eval())+(theta12.eval()*theta22.eval())+(theta13.eval()*theta23.eval());
     constant<> row13 = (theta11.eval()*theta31.eval())+(theta12.eval()*theta32.eval())+(theta13.eval()*theta33.eval());
     constant<> row23 = (theta21.eval()*theta31.eval())+(theta22.eval()*theta32.eval())+(theta23.eval()*theta33.eval());
-    DebugOff("row 12 " << row12.eval() << endl);
-    DebugOff("row 13 " << row13.eval() << endl);
-    DebugOff("row 23 " << row23.eval() << endl);
+    DebugOn("row 12 " << row12.eval() << endl);
+    DebugOn("row 13 " << row13.eval() << endl);
+    DebugOn("row 23 " << row23.eval() << endl);
     
     DebugOff("Determinant "<<det.eval()<<endl);
     
@@ -225,7 +225,8 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     }
     return is_rotation;
 }
-
+/*Roll Pitch Yaw in degrees
+ Aplly Rotation on a point cloud*/
 void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>>& point_cloud1, vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2){
     double beta = roll*pi/180;// roll in radians
     double gamma = pitch*pi/180; // pitch in radians
@@ -279,7 +280,7 @@ void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>&
         point_cloud[i][2] += theta_matrix[11];
     }
 }
-
+/*Roll Pitch Yaw in degrees*/
 void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, double y_shift, double z_shift, vector<vector<double>>& point_cloud){
     double beta = roll*pi/180;// roll in radians
     double gamma = pitch*pi/180; // pitch in radians
@@ -621,7 +622,7 @@ vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_clo
 }
 
 
-/* Compute the L1 error for model and data sets
+/* Compute the L2 error for model and data sets
  @param[in] point_cloud_model, Model point cloud
  @param[in] point_cloud_data, Data point cloud
  @param[in] matching, vecor used to store the optimal match
