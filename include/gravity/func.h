@@ -368,7 +368,7 @@ namespace gravity {
         /** The function iterates over key references in _ids and keeps only the unique entries */
         void keep_unique_keys();
         
-        void reset_ids();
+        void reset_ids(int& tag);
         
         
         
@@ -811,18 +811,18 @@ namespace gravity {
          Update the function indexing and its variables/parameters using the keep_ids vector of bool, only keep a row if it corresponding entry in keep_id is true.
          @param[in] keep_ids vector of booleans, specifying which rows to keep
          */
-        void update_rows(const vector<bool>& keep_ids, bool update_vars_params = true);
+        void update_rows(const vector<bool>& keep_ids, int& tag, bool update_vars_params = true);
         
         
         /**
          Update the function indexing and term names using index elements.
          */
-        void update_terms();
+        void update_terms(vector<shared_ptr<indices>>& ids);
         
         /**
          Reoder the function rows to match index_set's ids order
          */
-        void reorder_rows(const vector<int>& order, bool update_vars_params = true);
+        void reorder_rows(const vector<int>& order, int& tag, bool update_vars_params = true);
         
         /**
          Update the function terms by removing terms with zero coef
@@ -5107,7 +5107,7 @@ namespace gravity {
         }
         
         template<typename T>
-        func<type> replace(const var<T>& v, const func<T>& f);/**<  Replace v with function f everywhere it appears */
+        func<type> replace(const var<T>& v, const func<T>& f, int& tag_iter);/**<  Replace v with function f everywhere it appears */
         
         template<typename T> bool has_ids(const var<T>& v) const;/**<  Return true if some vars in the function share ids with v */
         

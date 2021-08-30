@@ -224,11 +224,11 @@ namespace gravity {
             return i*_dim[1]+j;
         };
         
-        void reorder_rows(const vector<int>& order) {
+        void reorder_rows(const vector<int>& order, int& tag) {
             if(!_indices){
                 _indices = make_shared<indices>(range(1,_dim[0]));
             }
-            _indices->reorder_rows(order);
+            _indices->reorder_rows(order,tag);
             string name = _name.substr(0, _name.find_last_of("."));
             _name = name+".in"+_indices->get_name();
         }
@@ -242,11 +242,11 @@ namespace gravity {
 //            _name = name+".in"+_indices->get_name();
         }
         
-        void update_rows(const vector<bool>& keep_ids) {
+        void update_rows(const vector<bool>& keep_ids, int& tag) {
             if(!_indices){
                 _indices = make_shared<indices>(range(1,_dim[0]));
             }
-            _indices->filter_rows(keep_ids);
+            _indices->filter_rows(keep_ids,tag);
             _dim[0]=_indices->size();
             reset_range();
             string name = _name.substr(0, _name.find_last_of("."));

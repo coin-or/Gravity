@@ -248,12 +248,12 @@ public:
     }
     
     template<typename T=type>
-    Constraint<type> replace(const var<T>& v, const func<T>& f) {/**<  Replace v with function f everywhere it appears */
+    Constraint<type> replace(const var<T>& v, const func<T>& f, int& tag_iter) {/**<  Replace v with function f everywhere it appears */
         Constraint<type> cpy = *this;
         int nb_inst = get_nb_instances();
-        cpy.func<type>::operator=(this->func<type>::replace(v,f));
+        cpy.func<type>::operator=(this->func<type>::replace(v,f,tag_iter));
         if(cpy._indices && cpy._indices->size()!=nb_inst){
-            cpy._name += "_projected_in"+cpy._indices->get_name();
+            cpy._name += "_projected_in("+cpy._indices->get_name()+")";
         }
         return cpy;
     }
@@ -469,7 +469,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     int get_qterm_hyb_var_id1(int i) const{/* Return the continuous variable index appearing in the ith hybrid quadratic term */
@@ -490,7 +490,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     int get_qterm_hyb_var_id2(int i) const{/* Return the integer variable index appearing in the ith hybrid quadratic term */
@@ -511,7 +511,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     int get_qterm_int_var_id1(int i) const{
@@ -529,7 +529,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     int get_qterm_int_var_id2(int i) const{
@@ -547,6 +547,7 @@ public:
             }
             iter++;
         }
+	return -1;
     }
     
     int get_qterm_cont_var_id2(int i) const{
@@ -564,6 +565,7 @@ public:
             }
             iter++;
         }
+	return -1;
     }
     
     
@@ -586,7 +588,7 @@ public:
             }
             iter++;
         }
-        
+        return -1;
     }
     
     type eval_qterm_cont_coef(int i) const{
@@ -628,6 +630,7 @@ public:
             }
             iter++;
         }
+	return 0;
     }
     
     type eval_lterm_cont_coef(int i) const{
@@ -673,6 +676,7 @@ public:
             }
             iter++;
         }
+	return 0;
     }
     
     type eval_qterm_int_coef(int i) const{
@@ -714,6 +718,7 @@ public:
             }
             iter++;
         }
+	return 0;
     }
     
     type eval_qterm_hyb_coef(int i) const{
@@ -755,6 +760,7 @@ public:
             }
             iter++;
         }
+	return 0;
     }
     
     type eval_lterm_int_coef(int i) const{
@@ -800,6 +806,7 @@ public:
             }
             iter++;
         }
+	return 0;
     }
     
     /*Adds row(or new instance) in a quadratic constraint

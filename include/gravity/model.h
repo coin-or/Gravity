@@ -211,8 +211,12 @@ public:
     shared_ptr<func<type>>                              _obj = nullptr; /**< Pointer to objective function */
     ObjectiveType                                       _objt = minimize; /**< Minimize or maximize */
     int                                                 _status = -1;/**< status when last solved */
+    
+    vector<shared_ptr<indices>>                         _all_ids; /**< all index sets */
     map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
     map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
+    
+    
     template<typename T=type>
     void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
         switch (e->get_type()) {
@@ -1608,11 +1612,12 @@ public:
     }
     
     template<typename T=type>
-    void replace(const var<T>& v, func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list){/**<  Replace v with function f everywhere it appears */
+    void replace(const var<T>& v, func<T>& f, list<shared_ptr<Constraint<type>>>& eq_list, int& tag_iter){/**<  Replace v with function f everywhere it appears */
         if(v.is_bounded_below()){
             Constraint<> v_lb(v.get_name(true,true)+"_in_"+v._indices->get_name()+"_LB");
             v_lb = f - v.get_lb().in(*v._indices);
             v_lb.in(*v._indices);
+            v_lb.update_terms(_all_ids);
             v_lb.clean_terms();
             add(v_lb >= 0);
                 //            v_lb.print();
@@ -1623,22 +1628,29 @@ public:
                 //                new_f.deep_copy(f);
             v_ub = f - v.get_ub().in(*v._indices);
             v_ub.in(*v._indices);
+            v_ub.update_terms(_all_ids);
             v_ub.clean_terms();
             add(v_ub <= 0);
                 //            v_ub.print();
         }
         int nb_it = 0, max_nb_iters = 100;
+        string tag = to_string(tag_iter);
         while(_obj->has_ids(v) && nb_it++ < max_nb_iters){/* Keep replacing until no change */
             DebugOff("After replacing " << v.get_name(false,false) << " in obj: " << endl);
             DebugOff("Old obj: " << endl);
-                //            _obj->print();
-            *_obj = _obj->replace(v, f);
+//            _obj->print();
+            *_obj = _obj->replace(v, f, tag_iter);
+            _obj->update_terms(_all_ids);
+            DebugOff("obj before clean: " << endl);
+//            _obj->print();
             _obj->clean_terms();
             DebugOff("Projected obj: " << endl);
-                //            _obj->print();
+//            _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
+            tag_iter++;
+            tag = to_string(tag_iter);
         }
         
         for (auto &c_p: _cons_name) {
@@ -1649,19 +1661,29 @@ public:
             nb_it = 0;
             while(c->has_ids(v) && nb_it++ < max_nb_iters){/* Keep replacing until no change */
                     //                    c->print();
+//                if(c->get_name()=="quad_ineq_1_projected_inquad_ineq_1_filtered")
+//                    cout << "0\n";
                 DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                 DebugOff("Old constraint: " << endl);
-                    //                c->print();
+//                                    c->print();
                 int nb_inst = c->get_nb_instances();
-                auto new_c = c->replace(v, f);
+                auto new_c = c->replace(v, f, tag_iter);
                 if(new_c.get_dim()>0 && new_c._indices && new_c._indices->size()!=nb_inst){
                     DebugOff("Variable indices :" << v._indices->to_str() << endl);
                     DebugOff("Projected constraint: " << endl);
+//                    new_c.print();
+                    new_c.update_terms(_all_ids);
+                    DebugOff("After update: " << endl);
+//                    new_c.print();
                     new_c.clean_terms();
+                    DebugOff("After clean: " << endl);
+//                    new_c.print();
+
                         //                    new_c.print();
+                    c->update_terms(_all_ids);
                     c->clean_terms();
                     DebugOff("Splitted constraint: " << endl);
-                        //                    c->print();
+//                    c->print();
                     if(c->_ctype==eq){
                         eq_list.push_back(c);
                     }
@@ -1678,8 +1700,13 @@ public:
                     DebugOff("Variable indices :" << v._indices->to_str() << endl);
                     DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
                     DebugOff("Projected constraint: " << endl);
+//                    new_c.print();
+                    new_c.update_terms(_all_ids);
+                    DebugOff("After update: " << endl);
+//                    new_c.print();
                     new_c.clean_terms();
-                        //                    new_c.print();
+                    DebugOff("After clean: " << endl);
+//                    new_c.print();
                     *c = new_c;
                     c->allocate_mem();
                     if(c->_ctype==eq){
@@ -1687,7 +1714,9 @@ public:
                     }
                 }
                 DebugOff("function used for projection: " << endl);
-                    //                f.print();
+//                                    f.print();
+                tag_iter++;
+                tag = to_string(tag_iter);
             }
         }
         
@@ -2226,7 +2255,7 @@ public:
                 for(int i = 0; i<nb_cont_vars;i++){
                     indices coef_eq_ids("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    x_ids[i].set_name("lin_eq_x_ids"+to_string(index)+"_"+to_string(i));
+                    x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_eq_x_ids");
                     x_ids[i] = *x._indices;
                     x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
                     x_coefs[i] = param<>("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2236,7 +2265,7 @@ public:
                 for(int i = 0; i<nb_int_vars;i++){
                     indices coef_eq_ids("coef_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    y_ids[i].set_name("lin_eq_y_ids"+to_string(index)+"_"+to_string(i));
+                    y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_eq_y_ids");
                     y_ids[i] = *y._indices;
                     y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
                     y_coefs[i] = param<>("coef_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2285,7 +2314,7 @@ public:
                 for(int i = 0; i<nb_cont_lin_terms;i++){
                     indices coef_eq_ids("coef_quad_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    x_ids[i].set_name("quad_lin_eq_x_ids"+to_string(index)+"_"+to_string(i));
+                    x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_eq_x_ids");
                     x_ids[i] = *x._indices;
                     x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
                     x_coefs[i] = param<>("coef_quad_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2295,7 +2324,7 @@ public:
                 for(int i = 0; i<nb_int_lin_terms;i++){
                     indices coef_eq_ids("coef_quad_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    y_ids[i].set_name("quad_lin_eq_y_ids"+to_string(index)+"_"+to_string(i));
+                    y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_eq_y_ids");
                     y_ids[i] = *y._indices;
                     y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
                     y_coefs[i] = param<>("coef_quad_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2305,10 +2334,10 @@ public:
                 for(int i = 0; i<nb_cont_quad_terms;i++){
                     indices coef_eq_ids("coef_quad_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    xx_ids[i].first.set_name("quad_eq_x1_ids"+to_string(index)+"_"+to_string(i));
+                    xx_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_x1_ids");
                     xx_ids[i].first = *x._indices;
                     xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i));
-                    xx_ids[i].second.set_name("quad_eq_x2_ids"+to_string(index)+"_"+to_string(i));
+                    xx_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_x2_ids");
                     xx_ids[i].second = *x._indices;
                     xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i));
                     xx_coefs[i] = param<>("coef_quad_eq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2318,10 +2347,10 @@ public:
                 for(int i = 0; i<nb_int_quad_terms;i++){
                     indices coef_eq_ids("coef_quad_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    yy_ids[i].first.set_name("quad_eq_y1_ids"+to_string(index)+"_"+to_string(i));
+                    yy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_y1_ids");
                     yy_ids[i].first = *y._indices;
                     yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i));
-                    yy_ids[i].second.set_name("quad_eq_y2_ids"+to_string(index)+"_"+to_string(i));
+                    yy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_y2_ids");
                     yy_ids[i].second = *y._indices;
                     yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i));
                     yy_coefs[i] = param<>("coef_quad_eq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2331,10 +2360,10 @@ public:
                 for(int i = 0; i<nb_hyb_quad_terms;i++){
                     indices coef_eq_ids("coef_quad_eq_xy_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
-                    xy_ids[i].first.set_name("quad_eq_xy1_ids"+to_string(index)+"_"+to_string(i));
+                    xy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_xy1_ids");
                     xy_ids[i].first = *x._indices;
                     xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i));
-                    xy_ids[i].second.set_name("quad_eq_xy2_ids"+to_string(index)+"_"+to_string(i));
+                    xy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_xy2_ids");
                     xy_ids[i].second = *y._indices;
                     xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i));
                     xy_coefs[i] = param<>("coef_quad_eq_xy_coefs"+to_string(index)+"_"+to_string(i));
@@ -2378,7 +2407,7 @@ public:
                 for(int i = 0; i<nb_cont_vars;i++){
                     indices coef_leq_ids("coef_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    x_ids[i].set_name("lin_ineq_x_ids"+to_string(index)+"_"+to_string(i));
+                    x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_ineq_x_ids");
                     x_ids[i] = *x._indices;
                     x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
                     x_coefs[i] = param<>("coef_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2391,7 +2420,7 @@ public:
                 for(int i = 0; i<nb_int_vars;i++){
                     indices coef_leq_ids("coef_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    y_ids[i].set_name("lin_ineq_y_ids"+to_string(index)+"_"+to_string(i));
+                    y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_ineq_y_ids");
                     y_ids[i] = *y._indices;
                     y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
                     y_coefs[i] = param<>("coef_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2447,7 +2476,7 @@ public:
                 for(int i = 0; i<nb_cont_lin_terms;i++){
                     indices coef_leq_ids("coef_quad_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    x_ids[i].set_name("quad_lin_ineq_x_ids"+to_string(index)+"_"+to_string(i));
+                    x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_ineq_x_ids");
                     x_ids[i] = *x._indices;
                     x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
                     x_coefs[i] = param<>("coef_quad_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2457,7 +2486,7 @@ public:
                 for(int i = 0; i<nb_int_lin_terms;i++){
                     indices coef_leq_ids("coef_quad_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    y_ids[i].set_name("quad_lin_ineq_y_ids"+to_string(index)+"_"+to_string(i));
+                    y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_ineq_y_ids");
                     y_ids[i] = *y._indices;
                     y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
                     y_coefs[i] = param<>("coef_quad_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2467,10 +2496,10 @@ public:
                 for(int i = 0; i<nb_cont_quad_terms;i++){
                     indices coef_leq_ids("coef_quad_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    xx_ids[i].first.set_name("quad_ineq_x1_ids"+to_string(index)+"_"+to_string(i));
+                    xx_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_x1_ids");
                     xx_ids[i].first = *x._indices;
                     xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i));
-                    xx_ids[i].second.set_name("quad_ineq_x2_ids"+to_string(index)+"_"+to_string(i));
+                    xx_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_x2_ids");
                     xx_ids[i].second = *x._indices;
                     xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i));
                     xx_coefs[i] = param<>("coef_quad_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
@@ -2480,10 +2509,10 @@ public:
                 for(int i = 0; i<nb_int_quad_terms;i++){
                     indices coef_leq_ids("coef_quad_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    yy_ids[i].first.set_name("quad_ineq_y1_ids"+to_string(index)+"_"+to_string(i));
+                    yy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_y1_ids");
                     yy_ids[i].first = *y._indices;
                     yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i));
-                    yy_ids[i].second.set_name("quad_ineq_y2_ids"+to_string(index)+"_"+to_string(i));
+                    yy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_y2_ids");
                     yy_ids[i].second = *y._indices;
                     yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i));
                     yy_coefs[i] = param<>("coef_quad_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
@@ -2493,10 +2522,10 @@ public:
                 for(int i = 0; i<nb_hyb_quad_terms;i++){
                     indices coef_leq_ids("coef_quad_ineq_xy_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
-                    xy_ids[i].first.set_name("quad_ineq_xy1_ids"+to_string(index)+"_"+to_string(i));
+                    xy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_xy1_ids");
                     xy_ids[i].first = *x._indices;
                     xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i));
-                    xy_ids[i].second.set_name("quad_ineq_xy2_ids"+to_string(index)+"_"+to_string(i));
+                    xy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_xy2_ids");
                     xy_ids[i].second = *y._indices;
                     xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i));
                     xy_coefs[i] = param<>("coef_quad_ineq_xy_coefs"+to_string(index)+"_"+to_string(i));
@@ -2522,15 +2551,17 @@ public:
         for(const auto cstr_name: delete_cstr){
             remove(cstr_name);
         }
+        print(false);
         for (auto& c_pair:_cons) {
-            c_pair.second->update_terms();
+            c_pair.second->update_terms(_all_ids);
             if(c_pair.second->is_zero())
                 delete_cstr.push_back(c_pair.second->get_name());
         }
+        _obj->update_terms(_all_ids);
         reindex();
         reset();
         DebugOn("Model after restructure: " << endl);
-        print();
+        print(false);
     }
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
@@ -2599,6 +2630,7 @@ public:
                 eq_list.push_back(c_pair.second);
             }
         }
+        int tag_iter = 0;
         while(!eq_list.empty()){
             eq_list.sort(cstr_compare<type>);
             shared_ptr<Constraint<type>> c = eq_list.front();
@@ -2610,7 +2642,7 @@ public:
                 continue;
             }
             DebugOff("Using the following constraints to project: " << endl);
-                //            c->print();
+//                            c->print();
             /* Find a real (continuous) variable that only appears in the linear part of c and has an invertible coefficient */
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
@@ -2632,11 +2664,11 @@ public:
                 auto c_split = *c;
                 c_split._name += "_split";
                 c_split.delete_lterm(*lterm._p);/* Remove coef*v from f */
-                c_split.update_rows(z_nnz_rows.first);// rows where v is zero
+                c_split.update_rows(z_nnz_rows.first,tag_iter);// rows where v is zero
                 if(c_split.get_dim()!=0){
                     eq_list.push_back(add_constraint(c_split));
                         //                            c_split.print();
-                    c->update_rows(z_nnz_rows.second);
+                    c->update_rows(z_nnz_rows.second,tag_iter);
                 }
                 auto column_0 = v->delete_column(0);
                 if(v->_indices->nb_keys()==0){
@@ -2660,7 +2692,7 @@ public:
                     param<> cinv("cinv_"+f._to_str);
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
-                        finv.reset_ids();
+                        finv.reset_ids(tag_iter);
                         finv.eval_all();
                         cinv = finv;
                         f *= cinv;
@@ -2683,7 +2715,7 @@ public:
                     if(coef._indices){
                         func<> finv = (-1./coef).in(*coef._indices);
                         finv.eval_all();
-                        finv.reset_ids();
+                        finv.reset_ids(tag_iter);
                         cinv = finv;
                         f *= cinv;
                     }
@@ -2701,9 +2733,9 @@ public:
             }
             delete_cstr.push_back(c->_name);
             c->_is_constraint = false;
-            
-            replace(vv,f,eq_list);
+            replace(vv,f,eq_list, tag_iter);
             delete_vars.push_back(v);
+            tag_iter++;
         }
         for (auto& c_pair:_cons) {
             if(c_pair.second->is_zero())
@@ -2830,8 +2862,10 @@ public:
             DebugOn("constraint with same name: " << c.get_name() << endl);
             c.update_str();
             if(!_cons_name.at(c.get_name())->equal(c)) {
-                DebugOn("rename constraint as this name has been used by another one: " + c.get_name());
+                DebugOn("Rename constraint as this name has been used by another one: " + c.get_name());
                 return nullptr;
+//                c._name += "_duplicate";
+//                return add_constraint(c, lift_flag, method_type, split, add_McCormick);
             }
             else{
                 DebugOn("Both constraints are identical, ignoring this one." << endl);
@@ -6234,15 +6268,17 @@ public:
     /** Read solution point to file */
     void read_solution(const string& fname);
     
-    void print(int prec = 10){
+    void print(bool include_vars = true, int prec = 10){
         auto size_header = print_properties();
         _obj->print(prec);
         cout << "s.t." << endl;
         for(auto& p: _cons){
             p.second->print(prec);
         }
-        for(auto& v: _vars){
-            v.second->print(prec);
+        if(include_vars){
+            for(auto& v: _vars){
+                v.second->print(prec);
+            }
         }
         string tail;
         tail.insert(0,size_header,'-');

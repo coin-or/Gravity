@@ -605,7 +605,7 @@
             return res;
         }
         
-        void reorder_rows(const vector<int>& order) {
+        void reorder_rows(const vector<int>& order, int& tag) {
             vector<size_t> res;
             if(!is_indexed()){
                 _ids = make_shared<vector<vector<size_t>>>();
@@ -620,7 +620,8 @@
                 }
             }
             _ids->at(0) = res;
-            _name = to_str();
+//            _name = to_str();
+            _name += "_reordered_"+to_string(tag++);
         }
         
         
@@ -760,7 +761,7 @@
         }
         
         /* Delete rows where keep[i] is false. */
-        void filter_rows(const vector<bool>& keep){
+        void filter_rows(const vector<bool>& keep, int& tag){
             bool all_true = true;
             for (auto b: keep) {
                 if(!b){
@@ -801,7 +802,8 @@
                     }
                 }
                 *_ids = new_ids;
-                _name = to_str();
+//                _name = to_str();
+                _name += "_filtered_"+to_string(tag++);
             }
             else {
                 if(keep.size()!=_keys->size()){
@@ -819,7 +821,8 @@
                     }
                 }
                 _ids = new_ids;
-                _name = to_str();
+//                _name = to_str();
+                _name += "_filtered_"+to_string(tag++);
             }
         }
         
@@ -1164,6 +1167,11 @@
             }
         }
         
+        bool same_ids(const indices& cpy) const{
+            if((_keys!=cpy._keys) || (!_ids && !cpy._ids)) return false;
+            if((_ids && !cpy._ids) || (cpy._ids && !_ids) || (*_ids != *cpy._ids)) return false;
+            return true;
+        }
         
         bool operator==(const indices& cpy) const{
             if (_type != cpy._type || _time_extended!=cpy._time_extended || _time_pos != cpy._time_pos || *_dim!=*cpy._dim || _excluded_keys != cpy._excluded_keys || *_keys_map != *cpy._keys_map) return false;
@@ -1618,15 +1626,21 @@
             }
         }
         
-        void clear_ids(bool rename = true) {
+        void clear_ids(int& tag, bool rename = true) {
             if(_ids){
                 indices new_ids;
                 for(int i = 0; i< _ids->at(0).size(); i++){
                     new_ids.insert(get_key(i)+"_"+to_string(i));/* check repeated entries*/
                 }
                 *this = new_ids;
+//                if(rename){
+//                    time_t _tm =time(NULL );
+//                    struct tm * curtime = localtime ( &_tm );
+//                    _name += asctime(curtime);
+//                }
                 if(rename)
-                    _name = to_str();
+                    _name += "_cleared_"+to_string(tag++);
+//                    _name = to_str();
             }
         }
         
