@@ -228,7 +228,7 @@ int main (int argc, char * argv[])
     int xmin=point_cloud_data.at(0)[0];
     int ymin=point_cloud_data.at(0)[1];
     int zmin=point_cloud_data.at(0)[2];
-    bool scale=false;
+    bool scale=true;
     if(!scale){
         xmin=0;
         ymin=0;
@@ -271,7 +271,7 @@ int main (int argc, char * argv[])
     }
     plot(down_point_cloud_data,  down_point_cloud_model);
     
-    plot(point_cloud_data, point_cloud_model);
+   // plot(point_cloud_data, point_cloud_model);
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
@@ -287,12 +287,12 @@ int main (int argc, char * argv[])
     auto valid_cells_old = indices(N1,N2);
     indices new_cells("new_cells");
     
-    double roll_min=1.00;
-    double roll_max=2.00;
-    double pitch_min=0.00;
-    double pitch_max=1.00;
-    double yaw_min=0.00;
-    double yaw_max=1.00;
+    double roll_min=1;
+    double roll_max=2;
+    double pitch_min=0;
+    double pitch_max=1;
+    double yaw_min=0;
+    double yaw_max=1;
     
 
     
@@ -357,7 +357,7 @@ int main (int argc, char * argv[])
     
     plot(down_point_cloud_model,  down_point_cloud_data);
 
-    plot(point_cloud_model, point_cloud_data);
+  //  plot(point_cloud_model, point_cloud_data);
     
     double total_time =0, time_start = 0, time_end = 0;
     
