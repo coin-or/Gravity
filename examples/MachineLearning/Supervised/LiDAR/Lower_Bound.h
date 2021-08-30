@@ -65,7 +65,7 @@ extern "C" {
 #include "voro++.hh"
 using namespace voro;
 #endif
-shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells)
+shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -116,12 +116,15 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
     DebugOn("n2 = " << n2 << endl);
     
     indices ids = indices("in_x");
+    indices idsij = indices("idsij");
+       idsij.add_empty_row();
     ids = N2;
     ids.add_empty_row();
     for(auto i=0;i<n1;i++){
         for(auto j=1;j<=n2;j++){
             if(cells.has_key(to_string(i+1)+","+to_string(j))){
                 ids.add_in_row(i, to_string(j));
+                idsij.add_in_row(i, to_string(i+1)+","+to_string(j));
             }
         }
     }
@@ -205,34 +208,57 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
     
     auto ids1 = theta11.repeat_id(N1.size());
     Constraint<> xd_trans("xd_trans");
-    xd_trans += x_diff - (((x1 - x_uav1)*theta11.in(ids1) + (y1 - y_uav1)*theta12.in(ids1) + (z1 - z_uav1)*theta13.in(ids1) + x_uav1) - new_xm);
+    xd_trans += x_diff - (((x1 - x_uav1)*theta11.in(ids1) + (y1 - y_uav1)*theta12.in(ids1)*(-1) + (z1 - z_uav1)*theta13.in(ids1)*(-1) + x_uav1) - new_xm);
     Reg->add(xd_trans.in(N1)==0);
     
 
     Constraint<> yd_trans("yd_trans");
-    yd_trans += y_diff - (((x1 - x_uav1)*theta21.in(ids1) + (y1 - y_uav1)*theta22.in(ids1) + (z1 - z_uav1)*theta23.in(ids1) + y_uav1) - new_ym);
+    yd_trans += y_diff - (((x1 - x_uav1)*theta21.in(ids1)*(-1) + (y1 - y_uav1)*theta22.in(ids1) + (z1 - z_uav1)*theta23.in(ids1) + y_uav1) - new_ym);
     Reg->add(yd_trans.in(N1)==0);
     
     
     Constraint<> zd_trans("zd_trans");
-    zd_trans += z_diff - (((x1 - x_uav1)*theta31.in(ids1) + (y1 - y_uav1)*theta32.in(ids1) + (z1 - z_uav1)*theta33.in(ids1) + z_uav1) - new_zm);
+    zd_trans += z_diff - (((x1 - x_uav1)*theta31.in(ids1)*(-1) + (y1 - y_uav1)*theta32.in(ids1) + (z1 - z_uav1)*theta33.in(ids1) + z_uav1) - new_zm);
     Reg->add(zd_trans.in(N1)==0);
     
     auto ids2 = theta11.repeat_id(N2.size());
     Constraint<> xm_trans("xm_trans");
-    xm_trans += xm - ((x2 - x_uav2)*theta11.in(ids2) + (y2 - y_uav2)*theta12.in(ids2)*(-1) + (z2 - z_uav2)*theta13.in(ids2)*(-1) + x_uav2);
+    xm_trans += xm - ((x2 - x_uav2)*theta11.in(ids2) + (y2 - y_uav2)*theta12.in(ids2) + (z2 - z_uav2)*theta13.in(ids2) + x_uav2);
     Reg->add(xm_trans.in(N2)==0);
     
 
     Constraint<> ym_trans("ym_trans");
-    ym_trans += ym - ((x2 - x_uav2)*theta21.in(ids2)*(-1) + (y2 - y_uav2)*theta22.in(ids2) + (z2 - z_uav2)*theta23.in(ids2) + y_uav2);
+    ym_trans += ym - ((x2 - x_uav2)*theta21.in(ids2) + (y2 - y_uav2)*theta22.in(ids2) + (z2 - z_uav2)*theta23.in(ids2) + y_uav2);
     Reg->add(ym_trans.in(N2)==0);
     
     
     Constraint<> zm_trans("zm_trans");
-    zm_trans += zm - ((x2 - x_uav2)*theta31.in(ids2)*(-1) + (y2 - y_uav2)*theta32.in(ids2) + (z2 - z_uav2)*theta33.in(ids2) + z_uav2);
+    zm_trans += zm - ((x2 - x_uav2)*theta31.in(ids2) + (y2 - y_uav2)*theta32.in(ids2) + (z2 - z_uav2)*theta33.in(ids2) + z_uav2);
     Reg->add(zm_trans.in(N2)==0);
 
+    var<> deltax("deltax"), deltay("deltay"), deltaz("deltaz");
+    Reg->add(deltax.in(N1));
+    Reg->add(deltay.in(N1));
+    Reg->add(deltaz.in(N1));
+    
+    Constraint<> Def_deltax("Def_deltax");
+    Def_deltax=pow(x_diff, 2)-deltax;
+    Reg->add(Def_deltax.in(N1)<=0);
+    
+    Constraint<> Def_deltay("Def_deltay");
+    Def_deltay=pow(y_diff, 2)-deltay;
+    Reg->add(Def_deltay.in(N1)<=0);
+    
+    Constraint<> Def_deltaz("Def_deltaz");
+    Def_deltaz=pow(z_diff, 2)-deltaz;
+    Reg->add(Def_deltaz.in(N1)<=0);
+    
+    
+    if(dist_cost._indices->_keys->size()!=0){
+        Constraint<> delta_cost("delta_cost");
+        delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+        Reg->add(delta_cost.in(N1)<=0);
+    }
     
     bool relax_sdp = false;
     if(!relax_sdp){
@@ -349,7 +375,9 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
         
     }
  
-    Reg->min(sum(pow(x_diff,2) + pow(y_diff,2) + pow(z_diff,2)));
+  //  Reg->min(sum(pow(x_diff,2) + pow(y_diff,2) + pow(z_diff,2)));
+    
+    Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
     Reg->print();
 
     
@@ -367,6 +395,8 @@ shared_ptr<Model<double>> Align_model(vector<vector<double>>& point_cloud_model,
     DebugOn("roll rad "<< roll_rad<<endl);
     DebugOn("pitch rad "<< pitch_rad<<endl);
     DebugOn("yaw rad "<< yaw_rad<<endl);
+    
+   
     return Reg;
 }
 vector<double> run_MISDP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data)
