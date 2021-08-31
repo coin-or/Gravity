@@ -32,6 +32,7 @@
 #include "IPH.h"
 #include "Lower_Bound.h"
 #include "Lidar_preprocess.h"
+# include "BB.h"
 #ifdef USE_EIGEN3
 //#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
 #include <Eigen/Dense>
@@ -236,14 +237,14 @@ int main (int argc, char * argv[])
     }
     
     for(auto i=0;i<point_cloud_data.size();i++){
-        if(i%20==0){
+        if(i%2==0){
             vector<double> pc1(3);
             pc1[0]=point_cloud_data.at(i)[0]-xmin;
             pc1[1]=point_cloud_data.at(i)[1]-ymin;
             pc1[2]=point_cloud_data.at(i)[2]-zmin;
             down_point_cloud_data.push_back(pc1);
         }
-        if(i%20==0){
+        if(i%2==0){
             vector<double> pc1(3);
             pc1[0]=uav_data.at(i)[0]-xmin;
             pc1[1]=uav_data.at(i)[1]-ymin;
@@ -254,14 +255,14 @@ int main (int argc, char * argv[])
    
     
     for(auto i=0;i<point_cloud_model.size();i++){
-        if(i%20==0){
+        if(i%1==0){
             vector<double> pc1(3);
             pc1[0]=point_cloud_model.at(i)[0]-xmin;
             pc1[1]=point_cloud_model.at(i)[1]-ymin;
             pc1[2]=point_cloud_model.at(i)[2]-zmin;
             down_point_cloud_model.push_back(pc1);
         }
-        if(i%20==0){
+        if(i%1==0){
             vector<double> pc1(3);
             pc1[0]=uav_model.at(i)[0]-xmin;
             pc1[1]=uav_model.at(i)[1]-ymin;
@@ -269,9 +270,13 @@ int main (int argc, char * argv[])
             down_uav_model.push_back(pc1);
         }
     }
-    plot(down_point_cloud_data,  down_point_cloud_model);
+    
+    
+#ifdef USE_MATPLOT
+    //plot(down_point_cloud_data,  down_point_cloud_model);
     
    // plot(point_cloud_data, point_cloud_model);
+#endif
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
@@ -289,10 +294,10 @@ int main (int argc, char * argv[])
     
     double roll_min=1;
     double roll_max=2;
-    double pitch_min=0;
-    double pitch_max=1;
-    double yaw_min=0;
-    double yaw_max=1;
+    double pitch_min=0.0;
+    double pitch_max=1.0;
+    double yaw_min=0.0;
+    double yaw_max=1.0;
     
 
     
@@ -335,9 +340,21 @@ int main (int argc, char * argv[])
     auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
     auto yaw_rad = atan2(rot[3],rot[0]);
     
+
+    
+    DebugOn("Angle in radians roll "<<roll_rad<<endl);
+    DebugOn("Angle in radians pitch "<<pitch_rad<<endl);
+    DebugOn("Angle in radians yaw "<<yaw_rad<<endl);
+    
     auto roll_deg=roll_rad*180/pi;
     auto pitch_deg=pitch_rad*180/pi;
     auto yaw_deg=yaw_rad*180/pi;
+    
+    DebugOn("Angle in deg roll "<<roll_deg<<endl);
+    DebugOn("Angle in deg pitch "<<pitch_deg<<endl);
+    DebugOn("Angle in deg yaw "<<yaw_deg<<endl);
+    
+    
     
     apply_rotation(roll_deg, pitch_deg, yaw_deg, down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data);
     
@@ -354,10 +371,11 @@ int main (int argc, char * argv[])
 
     DebugOn("L2 error final on down model in paper "<<L2error<<endl);
     DebugOn("L1 error final on down model in paper "<<L1error<<endl);
-    
-    plot(down_point_cloud_model,  down_point_cloud_data);
+#ifdef USE_MATPLOT
+    //plot(down_point_cloud_model,  down_point_cloud_data);
 
   //  plot(point_cloud_model, point_cloud_data);
+#endif
     
     double total_time =0, time_start = 0, time_end = 0;
     
