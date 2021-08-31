@@ -785,6 +785,7 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
     DebugOn("Input file has " << model_nb_rows << " rows" << endl);
     point_cloud.resize(model_nb_rows);
     uav.resize(model_nb_rows);
+    double xmin=numeric_limits<double>::max(), xmax=numeric_limits<double>::min(), ymin=numeric_limits<double>::max(), ymax=numeric_limits<double>::min(), zmin=numeric_limits<double>::max(), zmax=numeric_limits<double>::min();
     for (int i = 0; i< model_nb_rows; i++) {
         auto laser_id = Model_doc.GetCell<int>(0, i);
         auto x = Model_doc.GetCell<double>(1, i);
@@ -801,6 +802,24 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
         uav[i][0] = uav_x;
         uav[i][1] = uav_y;
         uav[i][2] = uav_z;
+        if(x<=xmin){
+            xmin=x;
+        }
+        if(y<=ymin){
+            ymin=y;
+        }
+        if(z<=zmin){
+            zmin=z;
+        }
+        if(x>=xmax){
+            xmax=x;
+        }
+        if(y>=ymax){
+            ymax=y;
+        }
+        if(z>=zmax){
+            zmax=z;
+        }
     }
 }
 
@@ -953,8 +972,9 @@ void read_laz(const string& fname){
         DebugOn("Read " << LidarPoints.size() << " points" << endl);
         DebugOn(point_cloud1.size() << " points in flight line 1" << endl);
         DebugOn(point_cloud2.size() << " points in flight line 2" << endl);
+#ifdef USE_MATPLOT
         plot(point_cloud1, point_cloud2, 1);
-        
+#endif
         save_laz("flight3.laz", point_cloud1, point_cloud2);
         //                auto frame_id = CSV_data.GetCell<int>(0, i);
         //                new_uav = (uav_id==0) || (UAVPoints[uav_id-1]->_frame_id != frame_id);
