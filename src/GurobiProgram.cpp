@@ -278,7 +278,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
    // grb_mod->set(GRB_IntParam_PrePasses, 2);
-    grb_mod->set(GRB_DoubleParam_TimeLimit,3600);
+    grb_mod->set(GRB_DoubleParam_TimeLimit,300);
     //cut_off=0.0972224207;
     //grb_mod->set(GRB_DoubleParam_Cutoff,0.891);
    // grb_mod->set(GRB_DoubleParam_Heuristics,0);
