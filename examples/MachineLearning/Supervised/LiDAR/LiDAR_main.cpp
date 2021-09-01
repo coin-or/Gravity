@@ -229,7 +229,7 @@ int main (int argc, char * argv[])
     //    read_laz("/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz");
     //    ///Users/smitha/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz
     vector<vector<double>> down_point_cloud_data, down_point_cloud_model, down_uav_data, down_uav_model;
-    
+    vector<vector<double>> down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1;
     int xmin=point_cloud_data.at(0)[0];
     int ymin=point_cloud_data.at(0)[1];
     int zmin=point_cloud_data.at(0)[2];
@@ -247,13 +247,13 @@ int main (int argc, char * argv[])
              pc1[0]=full_uav_data.at(i)[0]-xmin;
              pc1[1]=full_uav_data.at(i)[1]-ymin;
              pc1[2]=full_uav_data.at(i)[2]-zmin;
-             down_uav_data.push_back(pc1);
+             down_uav_data1.push_back(pc1);
              
              vector<double> pc2(3);
              pc2[0]=full_point_cloud_data.at(i)[0]-xmin;
              pc2[1]=full_point_cloud_data.at(i)[1]-ymin;
              pc2[2]=full_point_cloud_data.at(i)[2]-zmin;
-             down_point_cloud_data.push_back(pc2);
+             down_point_cloud_data1.push_back(pc2);
              
          }
      }
@@ -268,22 +268,51 @@ int main (int argc, char * argv[])
              pc1[0]=full_point_cloud_model.at(i)[0]-xmin;
              pc1[1]=full_point_cloud_model.at(i)[1]-ymin;
              pc1[2]=full_point_cloud_model.at(i)[2]-zmin;
-             down_point_cloud_model.push_back(pc1);
+             down_point_cloud_model1.push_back(pc1);
              
              vector<double> pc2(3);
              pc2[0]=full_uav_model.at(i)[0]-xmin;
              pc2[1]=full_uav_model.at(i)[1]-ymin;
              pc2[2]=full_uav_model.at(i)[2]-zmin;
-             down_uav_model.push_back(pc2);
+             down_uav_model1.push_back(pc2);
          }
      }
      }
     
+    for(auto i=0;i<down_point_cloud_model1.size();i++){
+        if(i%10==0){
+        vector<double> pc1(3);
+        pc1[0]=down_point_cloud_model1.at(i)[0];
+        pc1[1]=down_point_cloud_model1.at(i)[1];
+        pc1[2]=down_point_cloud_model1.at(i)[2];
+        down_point_cloud_model.push_back(pc1);
+        vector<double> pc2(3);
+        pc2[0]=down_uav_model1.at(i)[0];
+        pc2[1]=down_uav_model1.at(i)[1];
+        pc2[2]=down_uav_model1.at(i)[2];
+        down_uav_model.push_back(pc2);
+        }
+    }
+    
+    for(auto i=0;i<down_point_cloud_data1.size();i++){
+        if(i%10==0){
+        vector<double> pc1(3);
+        pc1[0]=down_point_cloud_data1.at(i)[0];
+        pc1[1]=down_point_cloud_data1.at(i)[1];
+        pc1[2]=down_point_cloud_data1.at(i)[2];
+        down_point_cloud_data.push_back(pc1);
+        vector<double> pc2(3);
+        pc2[0]=down_uav_data1.at(i)[0];
+        pc2[1]=down_uav_data1.at(i)[1];
+        pc2[2]=down_uav_data1.at(i)[2];
+        down_uav_data.push_back(pc2);
+        }
+    }
     
 #ifdef USE_MATPLOT
-   // plot(down_point_cloud_data,  down_point_cloud_model);
+    plot(down_point_cloud_data,  down_point_cloud_model);
     
-    // plot(point_cloud_data, point_cloud_model);
+     plot(down_point_cloud_data1, down_point_cloud_model1);
 #endif
     
     bool run_goICP = false;

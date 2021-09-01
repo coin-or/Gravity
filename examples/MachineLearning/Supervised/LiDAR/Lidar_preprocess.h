@@ -619,7 +619,7 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         }
     }
     else{
-        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+            DebugOn("Vertex B no found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
