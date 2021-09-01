@@ -239,40 +239,45 @@ int main (int argc, char * argv[])
         ymin=0;
         zmin=0;
     }
-    for(auto i=0;i<point_cloud_data.size();i++){
-        if(i%20==0){
-            vector<double> pc1(3);
-            pc1[0]=point_cloud_data.at(i)[0]-xmin;
-            pc1[1]=point_cloud_data.at(i)[1]-ymin;
-            pc1[2]=point_cloud_data.at(i)[2]-zmin;
-            down_point_cloud_data.push_back(pc1);
-        }
-        if(i%20==0){
-            vector<double> pc1(3);
-            pc1[0]=uav_data.at(i)[0]-xmin;
-            pc1[1]=uav_data.at(i)[1]-ymin;
-            pc1[2]=uav_data.at(i)[2]-zmin;
-            down_uav_data.push_back(pc1);
-        }
-    }
-   
     
-    for(auto i=0;i<point_cloud_model.size();i++){
-        if(i%20==0){
-            vector<double> pc1(3);
-            pc1[0]=point_cloud_model.at(i)[0]-xmin;
-            pc1[1]=point_cloud_model.at(i)[1]-ymin;
-            pc1[2]=point_cloud_model.at(i)[2]-zmin;
-            down_point_cloud_model.push_back(pc1);
-        }
-        if(i%20==0){
-            vector<double> pc1(3);
-            pc1[0]=uav_model.at(i)[0]-xmin;
-            pc1[1]=uav_model.at(i)[1]-ymin;
-            pc1[2]=uav_model.at(i)[2]-zmin;
-            down_uav_model.push_back(pc1);
-        }
-    }
+     for(auto i=0;i<full_point_cloud_data.size();i++){
+         if((zu-full_point_cloud_data.at(i)[2])<=0.4*(zd_range) && full_point_cloud_data.at(i)[2]<=21.31){
+             if(full_point_cloud_data.at(i)[0]>=3852.5 && full_point_cloud_data.at(i)[0]<=3853.5){
+             vector<double> pc1(3);
+             pc1[0]=full_uav_data.at(i)[0]-xmin;
+             pc1[1]=full_uav_data.at(i)[1]-ymin;
+             pc1[2]=full_uav_data.at(i)[2]-zmin;
+             down_uav_data.push_back(pc1);
+             
+             vector<double> pc2(3);
+             pc2[0]=full_point_cloud_data.at(i)[0]-xmin;
+             pc2[1]=full_point_cloud_data.at(i)[1]-ymin;
+             pc2[2]=full_point_cloud_data.at(i)[2]-zmin;
+             down_point_cloud_data.push_back(pc2);
+             
+         }
+     }
+         
+     }
+     
+     
+     for(auto i=0;i<full_point_cloud_model.size();i++){
+         if((zu-full_point_cloud_model.at(i)[2])<=0.4*(zm_range) && full_point_cloud_model.at(i)[2]<=21.31){
+             if(full_point_cloud_model.at(i)[0]>=3852.5 && full_point_cloud_model.at(i)[0]<=3853.5){
+             vector<double> pc1(3);
+             pc1[0]=full_point_cloud_model.at(i)[0]-xmin;
+             pc1[1]=full_point_cloud_model.at(i)[1]-ymin;
+             pc1[2]=full_point_cloud_model.at(i)[2]-zmin;
+             down_point_cloud_model.push_back(pc1);
+             
+             vector<double> pc2(3);
+             pc2[0]=full_uav_model.at(i)[0]-xmin;
+             pc2[1]=full_uav_model.at(i)[1]-ymin;
+             pc2[2]=full_uav_model.at(i)[2]-zmin;
+             down_uav_model.push_back(pc2);
+         }
+     }
+     }
     
     
 #ifdef USE_MATPLOT
