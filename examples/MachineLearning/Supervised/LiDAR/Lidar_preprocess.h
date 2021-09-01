@@ -349,7 +349,13 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
     if(!plane_eq_found){
         xt=(x_lb+x_ub)*0.5;
         yt=(y_lb+y_ub)*0.5;
-        zt=(z_lb+z_ub)*0.5;
+        auto zttp=sqrt(d_mag-pow(xt,2)-pow(yt,2));
+        if( zttp <=z_ub && zttp>=z_lb){
+            zt=zttp;
+        }
+        else{
+            zt=zttp*(-1);
+        }
         auto dt=-2*(xt*xt+yt*yt+zt*zt);
         plane_eq_found=true;
         if(vertex_found_a){
@@ -382,6 +388,9 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
             infeas_set.push_back(i);
         }
     }
+    else{
+        DebugOn("Vertex A no found "<<endl);
+    }
     if(vertex_found_b){
         for(auto v: new_vert_b){
             extreme.push_back(v);
@@ -389,6 +398,9 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
         for(auto i: infeas_set_b){
             infeas_set.push_back(i);
         }
+    }
+    else{
+        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -556,7 +568,13 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
     if(!plane_eq_found){
         xt=(x_lb+x_ub)*0.5;
         yt=(y_lb+y_ub)*0.5;
-        zt=(z_lb+z_ub)*0.5;
+        auto zttp=sqrt(pow(d_root+b_root,2)-pow(xt,2)-pow(yt,2));
+        if( zttp <=z_ub && zttp>=z_lb){
+            zt=zttp;
+        }
+        else{
+            zt=zttp*(-1);
+        }
         auto dt=-2*(xt*xt+yt*yt+zt*zt);
         plane_eq_found=true;
         if(vertex_found_a){
@@ -579,7 +597,7 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         vertex_found_b=vertices_box_plane(tangent, box_big, new_vert_b, infeas_set_b);
     }
     else{
-        DebugOff("Plane Eq no found in extreme model "<<plane_eq_found<<endl);
+        DebugOn("Plane Eq no found in extreme model "<<plane_eq_found<<endl);
     }
     if(vertex_found_a){
         for(auto v: new_vert_a){
@@ -590,7 +608,7 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         }
     }
     else{
-        DebugOff("Vertex A no found "<<endl);
+        DebugOn("Vertex A no found "<<endl);
     }
     if(vertex_found_b){
         for(auto v: new_vert_b){
@@ -601,7 +619,7 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         }
     }
     else{
-        DebugOff("Vertex B no found "<<plane_eq_found<<endl);
+        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -717,7 +735,8 @@ bool vertices_box_plane(const vector<double>& plane_eq, const vector<vector<doub
                     new_verts.push_back(v);
                 }
                 else{
-                    DebugOff("Failed to find vertex in prep "<<endl);
+                    DebugOn(vertex_found_kl<<endl);
+                    DebugOn("Failed to find vertex in prep "<<endl);
                 }
                 if(vertex_found_kl && vertex_found_k){
                     vertex_found_k=true;

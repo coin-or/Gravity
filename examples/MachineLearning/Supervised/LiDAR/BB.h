@@ -392,8 +392,18 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& point_cloud_mod
 }
 void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,treenode_r vec_node_i, int& m_vec_i, int& pos_vec_i, double& vec_lb_i,  indices& valid_cells_i, param<double>& dist_cost_i, int nb_threads, double upper_bound){
     
-//preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data,valid_cells_old, valid_cells_i,  dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, L2error_init_down);
+//preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data,vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.first, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound);
 //
-//auto A_M=Align_L1_model(down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data,roll_min*pi/180, roll_max*pi/180, pitch_min*pi/180, pitch_max*pi/180, yaw_min*pi/180, yaw_max*pi/180, new_cells, dist_cells);
+    bool model_created=false;
+        if(valid_cells_i.size()>=point_cloud_data.size()){
+//auto A_M=Align_model(point_cloud_model, point_cloud_data, uav_model, uav_data,vec_node_i.roll.first, vec_node_i.roll.first, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
+            model_created=true;
+        }
+    if(model_created){
+        m_vec_i=1;
+    }
+    else{
+        m_vec_i=0;
+    }
 }
 #endif /* BB_h */

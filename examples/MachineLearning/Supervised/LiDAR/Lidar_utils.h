@@ -777,7 +777,8 @@ void plot(const vector<vector<double>>& ext_model, const vector<vector<double>>&
 }
 #endif
 /* Read input files */
-void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav){
+vector<pair<double, double>> read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point_cloud, vector<vector<double>>& uav){
+    vector<pair<double, double>> res(3);
     int model_nb_rows = Model_doc.GetRowCount();
     if(model_nb_rows<3){
         throw invalid_argument("Input file with less than 2 points");
@@ -821,6 +822,10 @@ void read_data(const rapidcsv::Document& Model_doc,vector<vector<double>>& point
             zmax=z;
         }
     }
+    res[0]={xmin, xmax};
+    res[1]={ymin, ymax};
+    res[2]={zmin, zmax};
+    return res;
 }
 
 /* Save LAZ files */
