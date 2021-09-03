@@ -868,7 +868,7 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
     delete laswriter;
 }
 /* Read Laz files */
-void read_laz(const string& fname){
+vector<vector<double>> read_laz(const string& fname){
     LASreadOpener lasreadopener;
     lasreadopener.set_file_name(fname.c_str());
     lasreadopener.set_populate_header(TRUE);
@@ -897,6 +897,7 @@ void read_laz(const string& fname){
         DebugOn("max y axis = " << lasreader->header.max_y << endl);
         DebugOn("min z axis = " << lasreader->header.min_z << endl);
         DebugOn("max z axis = " << lasreader->header.max_z << endl);
+
         
         int nb_dots; /* Number of measurements inside cell */
         int xpos, ypos;
@@ -921,6 +922,7 @@ void read_laz(const string& fname){
         vector<LidarPoint*> LidarPoints;
         map<int,shared_ptr<Frame>> frames;
         map<int,shared_ptr<Frame>> frames1, frames2;
+        vector<vector<double>> uav_cloud;
         vector<double> uav_x, uav_y, uav_z;
         vector<double> uav_x1, uav_y1, uav_z1;
         vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
@@ -955,8 +957,12 @@ void read_laz(const string& fname){
             auto x = lasreader->point.get_x();
             auto y = lasreader->point.get_y();
             auto z = lasreader->point.get_z();
+            auto uav_x = lasreader->point.get_attribute_as_float(1);
+            auto uav_y = lasreader->point.get_attribute_as_float(2);
+            auto uav_z = lasreader->point.get_attribute_as_float(3);
             LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
             point_cloud1.push_back({x,y,z});
+            uav_cloud.push_back({uav_x,uav_y, uav_z});
 //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
 //                            u_turn = true;
 //                            DebugOn("Detected a Uturn at point " << LidarPoints.size() << endl);
@@ -1095,7 +1101,66 @@ void read_laz(const string& fname){
         //        }
     }
 }
-
+/*scale uav_cloud and then call this*/
+vector<vector<double>> uturn_detect(vector<vector<double>> uav_cloud){
+    vector<vector<double>> u_list;
+    vector<double> uturn;
+    const double zero_tol=1e-15;
+    for(auto i=0;i<uav_cloud.size()-2;i++){
+        double p1x=uav_cloud[i][0];
+        double p1y=uav_cloud[i][1];
+        double p2x=uav_cloud[i+1][0];
+        double p2y=uav_cloud[i+1][1];
+        double p3x=uav_cloud[i+2][0];
+        double p3y=uav_cloud[i+2][1];
+        
+        double s1=1, s2=1;
+        bool sy=true;
+        if(abs(p2x-p1x)<=zero_tol){
+            sy=false;
+        }
+        if(!sy){
+            s1=(p2x-p1x)/(p2y-p1y);
+            s2=(p3x-p2x)/(p3y-p2y);
+        }
+        else{
+            s1=(p2y-p1y)/(p2x-p1x);
+            s2=(p3y-p2y)/(p3x-p2x);
+        }
+        if(abs(s2-s1)/abs(s1)>=1e-1){
+            DebugOn("slope changed "<<endl);
+        }
+        u_list.push_back(uav_cloud[i+1]);
+        u_list.push_back(uav_cloud[i+2]);
+    }
+   
+    for(auto it=uav_cloud.rbegin();std::next(it, 2)!=uav_cloud.rend();it++){
+        double p1x=(*it)[0];
+        double p1y=(*it)[1];
+        double p2x=(*std::next(it, 1))[0];
+        double p2y=(*std::next(it, 1))[1];
+        double p3x=(*std::next(it, 2))[0];
+        double p3y=(*std::next(it, 2))[1];
+        double s1=1, s2=1;
+        bool sy=true;
+        if(abs(p2x-p1x)<=zero_tol){
+            sy=false;
+        }
+        if(!sy){
+            s1=(p2x-p1x)/(p2y-p1y);
+            s2=(p3x-p2x)/(p3y-p2y);
+        }
+        else{
+            s1=(p2y-p1y)/(p2x-p1x);
+            s2=(p3y-p2y)/(p3x-p2x);
+        }
+        if(abs(s2-s1)/abs(s1)>=1e-1){
+            DebugOn("slope changed "<<endl);
+        }
+        u_list.push_back((*std::next(it, 1)));
+        u_list.push_back((*std::next(it, 2)));
+    }
+}
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){
     vector<double> res;
     res.resize(3);
