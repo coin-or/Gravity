@@ -310,8 +310,8 @@ const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
 indices preprocess(vector<vector<double>> point_cloud_data, vector<vector<double>> point_cloud_model, double angle_max_deg, double shift_min_x,double shift_max_x,double shift_min_y,double shift_max_y,double shift_min_z,double shift_max_z, vector<vector<vector<double>>> model_voronoi_normals, vector<vector<double>> model_face_intercept);
 int main (int argc, char * argv[])
 {
-        //    read_laz("/Users/l297598/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz");
-        //    return 0;
+            read_laz("/Users/l297598/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz");
+            return 0;
     string prob_type = "Reg";
     if(argc>1){
         prob_type = argv[1];
@@ -12322,6 +12322,10 @@ void read_laz(const string& fname){
             auto x = lasreader->point.get_x();
             auto y = lasreader->point.get_y();
             auto z = lasreader->point.get_z();
+            auto uav_x = lasreader->point.get_attribute_as_float(1);
+            auto uav_y = lasreader->point.get_attribute_as_float(2);
+            auto uav_z = lasreader->point.get_attribute_as_float(3);
+            
             LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
             point_cloud1.push_back({x,y,z});
                 //            if(!xvals.insert(x*100).second){/* A U turn is being detected */
