@@ -558,9 +558,22 @@ template <typename Numeric>
     // Build up the kw args.
     PyObject *kwargs = PyDict_New();
     
+    PyObject *kwargs1 = PyDict_New();
+    
+    std::map<std::string, std::string> keywords1;
+    keywords1["marker"] = "s";
+    keywords1["linestyle"] = "None";
+    keywords1["ms"] = to_string(5.0);
+    
     for (std::map<std::string, std::string>::const_iterator it = keywords.begin();
          it != keywords.end(); ++it) {
         PyDict_SetItemString(kwargs, it->first.c_str(),
+                             PyString_FromString(it->second.c_str()));
+    }
+    
+    for (std::map<std::string, std::string>::const_iterator it = keywords1.begin();
+         it != keywords1.end(); ++it) {
+        PyDict_SetItemString(kwargs1, it->first.c_str(),
                              PyString_FromString(it->second.c_str()));
     }
     
@@ -601,6 +614,7 @@ template <typename Numeric>
     Py_DECREF(args);
     Py_DECREF(args1);
     Py_DECREF(kwargs);
+    Py_DECREF(kwargs1);
     if (res) Py_DECREF(res);
 }
 template <typename Numeric>

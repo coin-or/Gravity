@@ -217,105 +217,160 @@ int main (int argc, char * argv[])
     }
     rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
     rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-    auto resm=read_data(Model_doc, full_point_cloud_model, full_uav_model);
-    auto resd=read_data(Data_doc, full_point_cloud_data, full_uav_data);
+
     
-    double zl=std::min(resm[2].first, resd[2].first);
-    double zu=std::max(resm[2].second, resd[2].second);
-    double zm_range=(resm[2].second-resm[2].first);
-    double zd_range=(resd[2].second-resd[2].first);
-    //    read_laz("/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz");
-    //    ///Users/smitha/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz
-    vector<vector<double>> down_point_cloud_data, down_point_cloud_model, down_uav_data, down_uav_model;
-    vector<vector<double>> down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1
-    ;
-    int xmin=point_cloud_data.at(0)[0];
-    int ymin=point_cloud_data.at(0)[1];
-    int zmin=point_cloud_data.at(0)[2];
-    bool scale=true;
-    if(!scale){
-        xmin=0;
-        ymin=0;
-        zmin=0;
+    
+       string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_2__2020_12_18_combined.laz";
+    //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
+       auto uav_cloud_u=read_laz(file_u);
+       vector<vector<double>> empty_vec, uav_xy;
+
+    double uxmin=numeric_limits<double>::max(), uxmax=numeric_limits<double>::min(), uymin=numeric_limits<double>::max(), uymax=numeric_limits<double>::min(), uzmin=numeric_limits<double>::max(), uzmax=numeric_limits<double>::min();
+    
+    for(auto i=0;i<uav_cloud_u.size();i++){
+        auto x=uav_cloud_u.at(i)[0]-uav_cloud_u.at(0)[0];
+        auto y=uav_cloud_u.at(i)[1]-uav_cloud_u.at(0)[1];
+        auto z=uav_cloud_u.at(i)[2]-uav_cloud_u.at(0)[2];
+        if(x<=uxmin){
+            uxmin=x;
+        }
+        if(y<=uymin){
+            uymin=y;
+        }
+        if(z<=uzmin){
+            uzmin=z;
+        }
+        if(x>=uxmax){
+            uxmax=x;
+        }
+        if(y>=uymax){
+            uymax=y;
+        }
+        if(z>=uzmax){
+            uzmax=z;
+        }
+        uav_xy.push_back({x,y,z});
     }
+    DebugOn("umin max in x "<<uxmin<<" "<<uxmax<<endl);
+    DebugOn("umin max in y "<<uymin<<" "<<uymax<<endl);
+    DebugOn("umin max in z "<<uzmin<<" "<<uzmax<<endl);
     
-    for(auto i=0;i<full_point_cloud_data.size();i++){
-        if((zu-full_point_cloud_data.at(i)[2])<=0.4*(zd_range) && full_point_cloud_data.at(i)[2]<=21.31){
-            if(full_point_cloud_data.at(i)[0]>=3852.5 && full_point_cloud_data.at(i)[0]<=3853.5){
+    //empty_vec.push_back({uxmin, uymin, 0});
+       //plot(uav_xy, empty_vec);
+    auto uav_xyz=filter_z_slope(uav_xy);
+    auto ulist=reg_slope_lines(uav_xyz);
+    plot(ulist, uav_xyz, 3);
+    
+    plot(ulist, empty_vec, 3);
+    
+  //      plot(ulist, empty_vec);
+    //plot(ulist, empty_vec, 10);
+       
+       auto resm=read_data(Model_doc, full_point_cloud_model, full_uav_model);
+       auto resd=read_data(Data_doc, full_point_cloud_data, full_uav_data);
+       
+       double zl=std::min(resm[2].first, resd[2].first);
+       double zu=std::max(resm[2].second, resd[2].second);
+       double zm_range=(resm[2].second-resm[2].first);
+       double zd_range=(resd[2].second-resd[2].first);
+       
+
+       //    read_laz("/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz");
+       //    ///Users/smitha/Downloads/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz
+       vector<vector<double>> down_point_cloud_data, down_point_cloud_model, down_uav_data, down_uav_model;
+       vector<vector<double>> down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1;
+       int xmin=point_cloud_data.at(0)[0];
+       int ymin=point_cloud_data.at(0)[1];
+       int zmin=point_cloud_data.at(0)[2];
+       bool scale=true;
+       if(!scale){
+           xmin=0;
+           ymin=0;
+           zmin=0;
+       }
+       
+       
+       
+        for(auto i=0;i<full_point_cloud_data.size();i++){
                 vector<double> pc1(3);
                 pc1[0]=full_uav_data.at(i)[0]-xmin;
                 pc1[1]=full_uav_data.at(i)[1]-ymin;
                 pc1[2]=full_uav_data.at(i)[2]-zmin;
                 down_uav_data1.push_back(pc1);
-                
+                         
                 vector<double> pc2(3);
                 pc2[0]=full_point_cloud_data.at(i)[0]-xmin;
                 pc2[1]=full_point_cloud_data.at(i)[1]-ymin;
                 pc2[2]=full_point_cloud_data.at(i)[2]-zmin;
                 down_point_cloud_data1.push_back(pc2);
-                
-            }
+        
+           
         }
         
-    }
-    
-    
-    for(auto i=0;i<full_point_cloud_model.size();i++){
-        if((zu-full_point_cloud_model.at(i)[2])<=0.4*(zm_range) && full_point_cloud_model.at(i)[2]<=21.31)
-        {
-            if(full_point_cloud_model.at(i)[0]>=3852.5 && full_point_cloud_model.at(i)[0]<=3853.5){
+       double yl=numeric_limits<double>::max(), yu=numeric_limits<double>::min();
+        
+        for(auto i=0;i<full_point_cloud_model.size();i++){
                 vector<double> pc1(3);
                 pc1[0]=full_point_cloud_model.at(i)[0]-xmin;
                 pc1[1]=full_point_cloud_model.at(i)[1]-ymin;
                 pc1[2]=full_point_cloud_model.at(i)[2]-zmin;
                 down_point_cloud_model1.push_back(pc1);
                 
+            
                 vector<double> pc2(3);
                 pc2[0]=full_uav_model.at(i)[0]-xmin;
                 pc2[1]=full_uav_model.at(i)[1]-ymin;
                 pc2[2]=full_uav_model.at(i)[2]-zmin;
                 down_uav_model1.push_back(pc2);
+            if(pc2[1]>=yu){
+                yu=pc2[1];
             }
-        }
-    }
-    
-    for(auto i=0;i<down_point_cloud_model1.size();i++){
-        if(i%10==0){
-            vector<double> pc1(3);
-            pc1[0]=down_point_cloud_model1.at(i)[0];
-            pc1[1]=down_point_cloud_model1.at(i)[1];
-            pc1[2]=down_point_cloud_model1.at(i)[2];
-            down_point_cloud_model.push_back(pc1);
-            vector<double> pc2(3);
-            pc2[0]=down_uav_model1.at(i)[0];
-            pc2[1]=down_uav_model1.at(i)[1];
-            pc2[2]=down_uav_model1.at(i)[2];
-            down_uav_model.push_back(pc2);
-        }
-    }
-    
-    for(auto i=0;i<down_point_cloud_data1.size();i++){
-        if(i%10==0){
-            vector<double> pc1(3);
-            pc1[0]=down_point_cloud_data1.at(i)[0];
-            pc1[1]=down_point_cloud_data1.at(i)[1];
-            pc1[2]=down_point_cloud_data1.at(i)[2];
-            down_point_cloud_data.push_back(pc1);
-            vector<double> pc2(3);
-            pc2[0]=down_uav_data1.at(i)[0];
-            pc2[1]=down_uav_data1.at(i)[1];
-            pc2[2]=down_uav_data1.at(i)[2];
-            down_uav_data.push_back(pc2);
-        }
-    }
-    
-#ifdef USE_MATPLOT
-    plot(down_point_cloud_data,  down_point_cloud_model);
-    
-    plot(down_point_cloud_data1, down_point_cloud_model1);
-    
-    plot(down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1);
-#endif
+            if(pc2[1]<=yl){
+                yl=pc2[1];
+            }
+            }
+       double yrange=(yu-yl);
+       for(auto i=0;i<down_point_cloud_model1.size();i++){
+           double y=down_uav_model1.at(i)[1];
+           double frac=(y-yl)/(yu-yl);
+           if(frac>=0.5 && frac<=0.51){
+           vector<double> pc1(3);
+           pc1[0]=down_point_cloud_model1.at(i)[0];
+           pc1[1]=down_point_cloud_model1.at(i)[1];
+           pc1[2]=down_point_cloud_model1.at(i)[2];
+           down_point_cloud_model.push_back(pc1);
+           vector<double> pc2(3);
+           pc2[0]=down_uav_model1.at(i)[0];
+           pc2[1]=down_uav_model1.at(i)[1];
+           pc2[2]=down_uav_model1.at(i)[2];
+           down_uav_model.push_back(pc2);
+           }
+       }
+       
+       for(auto i=0;i<down_point_cloud_data1.size();i++){
+           double y=down_uav_data1.at(i)[1];
+           double frac=(y-yl)/(yu-yl);
+           if(frac>=0.5 && frac<=0.51){
+           vector<double> pc1(3);
+           pc1[0]=down_point_cloud_data1.at(i)[0];
+           pc1[1]=down_point_cloud_data1.at(i)[1];
+           pc1[2]=down_point_cloud_data1.at(i)[2];
+           down_point_cloud_data.push_back(pc1);
+           vector<double> pc2(3);
+           pc2[0]=down_uav_data1.at(i)[0];
+           pc2[1]=down_uav_data1.at(i)[1];
+           pc2[2]=down_uav_data1.at(i)[2];
+           down_uav_data.push_back(pc2);
+           }
+       }
+       
+   #ifdef USE_MATPLOT
+//       plot(down_point_cloud_data,  down_point_cloud_model);
+//       
+//       plot(down_point_cloud_data1, down_point_cloud_model1);
+   #endif
+       
+       
     
     bool run_goICP = false;
     if(run_goICP){/* Run GoICP inline */
@@ -325,10 +380,10 @@ int main (int argc, char * argv[])
     
     int n1=down_point_cloud_data1.size();
     int n2=down_point_cloud_model1.size();
-    indices N1("N1"),N2("N2");
-    N1 = range(1,n1);
-    N2 = range(1,n2);
-    auto valid_cells_old = indices(N1,N2);
+//    indices N1("N1"),N2("N2");
+//    N1 = range(1,n1);
+//    N2 = range(1,n2);
+//    auto valid_cells_old = indices(N1,N2);
     indices new_cells("new_cells");
     
     double roll_min=1.77279-0.1;
@@ -348,36 +403,36 @@ int main (int argc, char * argv[])
     vector<int> matching(down_point_cloud_model1.size());
     vector<double> err_per_point(down_point_cloud_model1.size());
     
-    
-    auto L2error_init_down = computeL2error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
-    auto L1error_init_down = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
-    
-    DebugOn("L2 error init on down model (20) "<<L2error_init_down<<endl);
-    DebugOn("L1 error init on down model (20) "<<L1error_init_down<<endl);
-    
-    vector<int> matching1(point_cloud_data.size());
-    vector<double> err_per_point1(point_cloud_data.size());
-    
-    auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
-    auto L1error_init = computeL1error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
-    
-    
-    DebugOn("L2 error init on down model in paper "<<L2error_init<<endl);
-    DebugOn("L1 error init on down model in paper "<<L1error_init<<endl);
+//
+//    auto L2error_init_down = computeL2error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
+//    auto L1error_init_down = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
+//
+//    DebugOn("L2 error init on down model (20) "<<L2error_init_down<<endl);
+//    DebugOn("L1 error init on down model (20) "<<L1error_init_down<<endl);
+//
+//    vector<int> matching1(point_cloud_data.size());
+//    vector<double> err_per_point1(point_cloud_data.size());
+//
+//    auto L2error_init = computeL2error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+//    auto L1error_init = computeL1error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+//
+//
+//    DebugOn("L2 error init on down model in paper "<<L2error_init<<endl);
+//    DebugOn("L1 error init on down model in paper "<<L1error_init<<endl);
     
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
     
     
     
-    preprocess_lid(down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1,valid_cells_old,new_cells,  dist_cells, roll_min*pi/180, roll_max*pi/180, pitch_min*pi/180, pitch_max*pi/180, yaw_min*pi/180, yaw_max*pi/180, L2error_init_down);
+    /*preprocess_lid(down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1,valid_cells_old,new_cells,  dist_cells, roll_min*pi/180, roll_max*pi/180, pitch_min*pi/180, pitch_max*pi/180, yaw_min*pi/180, yaw_max*pi/180, L2error_init_down);
     
-    auto A_M=Align_model(down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1,roll_min*pi/180, roll_max*pi/180, pitch_min*pi/180, pitch_max*pi/180, yaw_min*pi/180, yaw_max*pi/180, new_cells, dist_cells);
+    auto A_M=Align_model(down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1,roll_min*pi/180, roll_max*pi/180, pitch_min*pi/180, pitch_max*pi/180, yaw_min*pi/180, yaw_max*pi/180, new_cells, dist_cells);*/
     
-    vector<double> rot(9);
-    bool is_rotation = get_solution(A_M, rot, matching);
-    auto pitch_rad = atan2(rot[7], rot[8]);
-    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
-    auto yaw_rad = atan2(rot[3],rot[0]);
+//    vector<double> rot(9);
+//    bool is_rotation = get_solution(A_M, rot, matching);
+//    auto pitch_rad = atan2(rot[7], rot[8]);
+//    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+//    auto yaw_rad = atan2(rot[3],rot[0]);
     
     
     
@@ -394,14 +449,14 @@ int main (int argc, char * argv[])
     double roll_deg=get<0>(res);
     double pitch_deg=get<1>(res);
     double yaw_deg=get<2>(res);*/
-    
-    double roll_deg=roll_rad*180/pi;
-    double pitch_deg=pitch_rad*180/pi;
-    double yaw_deg=yaw_rad*180/pi;
+//
+//    double roll_deg=roll_rad*180/pi;
+//    double pitch_deg=pitch_rad*180/pi;
+//    double yaw_deg=yaw_rad*180/pi;
 
-//    double roll_deg=1.67;
-//    double pitch_deg=0.08;
-//    double yaw_deg=0.04;
+    double roll_deg=-0.25;
+    double pitch_deg=0.5;
+    double yaw_deg=-0.7;
 
     DebugOn("Angle in deg roll "<<roll_deg<<endl);
     DebugOn("Angle in deg pitch "<<pitch_deg<<endl);
@@ -409,27 +464,27 @@ int main (int argc, char * argv[])
     
     
     
-    apply_rotation(roll_deg, pitch_deg, yaw_deg, down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data);
-    
-    apply_rotation(roll_deg, pitch_deg, yaw_deg, down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1);
-    
-    auto L2error = computeL2error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
-    auto L1error = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
-
-    DebugOn("L2 error final on down model (20) "<<L2error<<endl);
-    DebugOn("L1 error final on down model (20) "<<L1error<<endl);
+//    apply_rotation(roll_deg, pitch_deg, yaw_deg, down_point_cloud_model, down_point_cloud_data, down_uav_model, down_uav_data);
 //
-    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
+//    apply_rotation(roll_deg, pitch_deg, yaw_deg, down_point_cloud_model1, down_point_cloud_data1, down_uav_model1, down_uav_data1);
     
-    L2error = computeL2error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
-    L1error = computeL1error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+//    auto L2error = computeL2error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
+//    auto L1error = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
 
-    DebugOn("L2 error final on down model in paper "<<L2error<<endl);
-    DebugOn("L1 error final on down model in paper "<<L1error<<endl);
+//    DebugOn("L2 error final on down model (20) "<<L2error<<endl);
+//    DebugOn("L1 error final on down model (20) "<<L1error<<endl);
+////
+   // apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
+    
+//    L2error = computeL2error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+//    L1error = computeL1error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+
+//    DebugOn("L2 error final on down model in paper "<<L2error<<endl);
+//    DebugOn("L1 error final on down model in paper "<<L1error<<endl);
 #ifdef USE_MATPLOT
-    plot(down_point_cloud_data, down_point_cloud_model);
-    plot(down_point_cloud_data1,  down_point_cloud_model1);
-    plot(down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1);
+//    plot(down_point_cloud_data, down_point_cloud_model);
+//    plot(down_point_cloud_data1,  down_point_cloud_model1);
+//    plot(down_point_cloud_data1, down_point_cloud_model1, down_uav_data1, down_uav_model1);
     //  plot(point_cloud_model, point_cloud_data);
 #endif
     
@@ -443,7 +498,9 @@ int main (int argc, char * argv[])
     DebugOff("Initial L1 error = " << L1error_init << endl);
     time_start = get_wall_time();
     
-    
+    final_roll=roll_deg;
+    final_pitch=pitch_deg;
+    final_yaw=yaw_deg;
     
     /*DebugOn("n1 = " << down_point_cloud_model.size() << endl);
      DebugOn("n2 = " << down_point_cloud_data.size() << endl);

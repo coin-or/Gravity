@@ -882,6 +882,7 @@ vector<vector<double>> read_laz(const string& fname){
     vector<double> x_shift,y_shift,z_shift;
     vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
     set<double> timestamps;
+    vector<vector<double>> uav_cloud;
     while (lasreadopener.active())
     {
         LASreader* lasreader = lasreadopener.open();
@@ -922,7 +923,7 @@ vector<vector<double>> read_laz(const string& fname){
         vector<LidarPoint*> LidarPoints;
         map<int,shared_ptr<Frame>> frames;
         map<int,shared_ptr<Frame>> frames1, frames2;
-        vector<vector<double>> uav_cloud;
+        
         vector<double> uav_x, uav_y, uav_z;
         vector<double> uav_x1, uav_y1, uav_z1;
         vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
@@ -941,8 +942,9 @@ vector<vector<double>> read_laz(const string& fname){
         pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
         bool exit = false;
         vector<vector<double>> point_cloud1, point_cloud2;
-        while (lasreader->read_point() && LidarPoints.size()!=10e6)
+        while (lasreader->read_point() && LidarPoints.size()!=200e6)
         {
+            nb_pts++;
             //            if(nb_pts++<1e4)
             //                continue;
             //            if(nb_pts==0){
@@ -950,9 +952,10 @@ vector<vector<double>> read_laz(const string& fname){
             //                    //                return 0;
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
-            //            if(laser_id!=15){/* Only keep points from Nadir laser */
-            //                continue;
-            //            }
+            DebugOff("lid "<<laser_id<<endl);
+                        if(nb_pts%10!=0){/* Only keep points from Nadir laser */
+                            continue;
+                        }
             auto unix_time = lasreader->point.get_gps_time();
             auto x = lasreader->point.get_x();
             auto y = lasreader->point.get_y();
@@ -983,8 +986,9 @@ vector<vector<double>> read_laz(const string& fname){
         DebugOn("Read " << LidarPoints.size() << " points" << endl);
         DebugOn(point_cloud1.size() << " points in flight line 1" << endl);
         DebugOn(point_cloud2.size() << " points in flight line 2" << endl);
+        vector<vector<double>> empty_vec;
 #ifdef USE_MATPLOT
-        plot(point_cloud1, point_cloud2, 1);
+       // plot(uav_cloud,empty_vec, 0.1);
 #endif
         save_laz("flight3.laz", point_cloud1, point_cloud2);
         //                auto frame_id = CSV_data.GetCell<int>(0, i);
@@ -1100,12 +1104,17 @@ vector<vector<double>> read_laz(const string& fname){
         //
         //        }
     }
+    DebugOn("finished read laz"<<endl);
+    return uav_cloud;
 }
 /*scale uav_cloud and then call this*/
-vector<vector<double>> uturn_detect(vector<vector<double>> uav_cloud){
+vector<vector<double>> turn_detect(vector<vector<double>> uav_cloud){
     vector<vector<double>> u_list;
     vector<double> uturn;
-    const double zero_tol=1e-15;
+    const double zero_tol=1e-12;
+    const double tol=1e-2;
+    bool line_found=false;
+    bool turn_found=false;
     for(auto i=0;i<uav_cloud.size()-2;i++){
         double p1x=uav_cloud[i][0];
         double p1y=uav_cloud[i][1];
@@ -1114,53 +1123,267 @@ vector<vector<double>> uturn_detect(vector<vector<double>> uav_cloud){
         double p3x=uav_cloud[i+2][0];
         double p3y=uav_cloud[i+2][1];
         
-        double s1=1, s2=1;
-        bool sy=true;
-        if(abs(p2x-p1x)<=zero_tol){
-            sy=false;
+        double sl1=1000, sl2=2000, sl3=3000;
+        if(abs(p2x-p1x)>=zero_tol){
+            sl1=(p2y-p1y)/(p2x-p1x);
         }
-        if(!sy){
-            s1=(p2x-p1x)/(p2y-p1y);
-            s2=(p3x-p2x)/(p3y-p2y);
+        if(abs(p3x-p2x)>=zero_tol){
+            sl2=(p3y-p2y)/(p3x-p2x);
         }
-        else{
-            s1=(p2y-p1y)/(p2x-p1x);
-            s2=(p3y-p2y)/(p3x-p2x);
+        if(abs(p3x-p1x)>=zero_tol){
+            sl3=(p3y-p1y)/(p3x-p1x);
         }
-        if(abs(s2-s1)/abs(s1)>=1e-1){
-            DebugOn("slope changed "<<endl);
-        }
-        u_list.push_back(uav_cloud[i+1]);
-        u_list.push_back(uav_cloud[i+2]);
-    }
-   
-    for(auto it=uav_cloud.rbegin();std::next(it, 2)!=uav_cloud.rend();it++){
-        double p1x=(*it)[0];
-        double p1y=(*it)[1];
-        double p2x=(*std::next(it, 1))[0];
-        double p2y=(*std::next(it, 1))[1];
-        double p3x=(*std::next(it, 2))[0];
-        double p3y=(*std::next(it, 2))[1];
-        double s1=1, s2=1;
-        bool sy=true;
-        if(abs(p2x-p1x)<=zero_tol){
-            sy=false;
-        }
-        if(!sy){
-            s1=(p2x-p1x)/(p2y-p1y);
-            s2=(p3x-p2x)/(p3y-p2y);
+        if(abs(sl1-sl2)<=tol && abs(sl2-sl3)<=tol && abs(sl1-sl3)<=tol){
+            if(!line_found && u_list.empty()){
+                u_list.push_back(uav_cloud[i+1]);
+            }
+            line_found=true;
         }
         else{
-            s1=(p2y-p1y)/(p2x-p1x);
-            s2=(p3y-p2y)/(p3x-p2x);
+            if(line_found){
+                turn_found=true;
+                DebugOn("Turn found"<<endl);
+                u_list.push_back(uav_cloud[i+1]);
+            }
+            line_found=false;
         }
-        if(abs(s2-s1)/abs(s1)>=1e-1){
-            DebugOn("slope changed "<<endl);
-        }
-        u_list.push_back((*std::next(it, 1)));
-        u_list.push_back((*std::next(it, 2)));
     }
+    return u_list;
 }
+
+/*scale uav_cloud and then call this*/
+vector<vector<double>> turn_detect_slope_map(vector<vector<double>> uav_cloud){
+    vector<vector<double>> u_list;
+    map<double, pair<int, int>> slope_map;
+    vector<double> uturn;
+    const double zero_tol=1e-12;
+    const double tol=1e-2;
+    bool line_found=false;
+    bool turn_found=false;
+    for(auto i=0;i<uav_cloud.size()-10;i++){
+        double p1x=uav_cloud[i][0];
+        double p1y=uav_cloud[i][1];
+        double p2x=uav_cloud[i+10][0];
+        double p2y=uav_cloud[i+10][1];
+        
+        
+        double sl1=1000, sl2=2000, sl3=3000;
+        if(abs(p2x-p1x)>=zero_tol){
+            sl1=(p2y-p1y)/(p2x-p1x);
+        }
+        
+        if(!slope_map.insert(pair<double, pair<int,int>>(sl1, pair<int, int>(i, i+10))).second){
+            auto p1_p2=slope_map[sl1];
+            auto j=p1_p2.first;
+            auto k=p1_p2.second;
+            double p1x_o=uav_cloud[j][0];
+            double p1y_o=uav_cloud[j][1];
+            double p2x_o=uav_cloud[k][0];
+            double p2y_o=uav_cloud[k][1];
+           
+            if(((p2x_o-p1x_o)<=-zero_tol && (p2x-p1x)>=zero_tol) || ((p2x_o-p1x_o)>=zero_tol && (p2x-p1x)<=-zero_tol) || ((p2y_o-p1y_o)<=-zero_tol && (p2y-p1y)>=zero_tol) || ((p2y_o-p1y_o)>=zero_tol && (p2y-p1y)<=-zero_tol)){
+                u_list.push_back(uav_cloud[i]);
+                u_list.push_back(uav_cloud[i+10]);
+                u_list.push_back(uav_cloud[j]);
+                u_list.push_back(uav_cloud[k]);
+                DebugOn("a "<<setprecision(15)<<uav_cloud[i][0]<<" "<<setprecision(15)<<uav_cloud[i][1]<<endl);
+                DebugOn("b "<<setprecision(15)<<uav_cloud[i+10][0]<<" "<<setprecision(15)<<uav_cloud[i+10][1]<<endl);
+                DebugOn("c "<<setprecision(15)<<uav_cloud[j][0]<<" "<<setprecision(15)<<uav_cloud[j][1]<<endl);
+                DebugOn("d "<<setprecision(15)<<uav_cloud[k][0]<<" "<<setprecision(15)<<uav_cloud[k][1]<<endl);
+            }
+            
+        }
+       
+        
+    }
+    return u_list;
+}
+
+/*scale uav_cloud and then call this*/
+vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
+    vector<vector<double>> lines;
+    multimap<double, vector<double>, greater <double>> dist_lines;
+    vector<vector<double>> ulist;
+    vector<double> uturn;
+    const double zero_tol=1e-12;
+    const double tol=1e-2;
+    bool line_found=false;
+    bool turn_found=false;
+    for(auto i=1;i<uav_cloud.size();i++){
+        double p1x=uav_cloud[i-1][0];
+        double p1y=uav_cloud[i-1][1];
+        double p2x=uav_cloud[i][0];
+        double p2y=uav_cloud[i][1];
+        
+        double sl_prev=0;
+        double c_prev=0;
+        double sum_xy_prev,sum_xx_prev,sum_x_prev, sum_y_prev, n_prev;
+        double begp, endp;
+        
+        if(!lines.empty()){
+            sl_prev=lines.back()[0];
+            c_prev=lines.back()[1];
+            sum_y_prev=lines.back()[2];
+            sum_x_prev=lines.back()[3];
+            sum_xx_prev=lines.back()[4];
+            sum_xy_prev=lines.back()[5];
+            n_prev=lines.back()[6];
+            begp=lines.back()[7];
+            endp=lines.back()[8];
+        }
+        
+        if(lines.empty() || abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)>=1e-1){
+            n_prev=2;
+            sum_y_prev=p2y+p1y;
+            sum_x_prev=p2x+p1x;
+            sum_xx_prev=pow(p2x,2)+pow(p1x,2);
+            sum_xy_prev=p2x*p2y+p1x*p1y;
+            begp=i-1;
+            endp=i;
+//            if(!lines.empty() && lines.back()[6]==2){
+//                lines.erase(lines.end()-1, lines.end());
+//            }
+            vector<double> res(9);
+            lines.push_back(res);
+            DebugOn("error "<<abs(p2y-sl_prev*p2x-c_prev)<<endl);
+        }
+        else{
+            sum_y_prev+=p2y;
+            sum_x_prev+=p2x;
+            sum_xx_prev+=pow(p2x,2);
+            sum_xy_prev+=p2x*p2y;
+            n_prev++;
+            endp=i;
+        }
+        if(abs(n_prev*sum_xx_prev-sum_x_prev*sum_x_prev)>=zero_tol){
+            sl_prev=(n_prev*sum_xy_prev-sum_x_prev*sum_y_prev)/(n_prev*sum_xx_prev-sum_x_prev*sum_x_prev);
+            c_prev=(sum_y_prev-sl_prev*sum_x_prev)/n_prev;
+        }
+        else{
+            c_prev=sum_x_prev/n_prev;
+            sl_prev=1e5;
+        }
+        lines.back()[0]=sl_prev;
+        lines.back()[1]=c_prev;
+        lines.back()[2]=sum_y_prev;
+        lines.back()[3]=sum_x_prev;
+        lines.back()[4]=sum_xx_prev;
+        lines.back()[5]=sum_xy_prev;
+        lines.back()[6]=n_prev;
+        lines.back()[7]=begp;
+        lines.back()[8]=endp;
+    }
+    
+    auto s=lines.size();
+        for(auto i=0;i<s;i++){
+            int p1=lines[i][7];
+            int p2=lines[i][8];
+            auto x1=uav_cloud[p1][0];
+            auto y1=uav_cloud[p1][1];
+            auto x2=uav_cloud[p2][0];
+            auto y2=uav_cloud[p2][1];
+            DebugOn("p1 p2 "<<p1 <<" "<<p2<<endl);
+            DebugOn("x1 y1 "<<x1 <<" "<<y1<<endl);
+            DebugOn("x2 y2 "<<x2 <<" "<<y2<<endl);
+            double d=pow(x2-x1,2)+pow(y2-y1,2);
+            dist_lines.insert(pair<double, vector<double>>(d, lines[i]));
+        }
+    
+    auto it=dist_lines.begin();
+    int p1=it->second[7];
+    int p2=it->second[8];
+    it++;
+    int p3=it->second[7];
+    int p4=it->second[8];
+    ulist.push_back(uav_cloud[p1]);
+    ulist.push_back(uav_cloud[p2]);
+    ulist.push_back(uav_cloud[p3]);
+    ulist.push_back(uav_cloud[p4]);
+    it++;
+    int p5=it->second[7];
+    int p6=it->second[8];
+//    ulist.push_back(uav_cloud[p5]);
+//    ulist.push_back(uav_cloud[p6]);
+    
+
+//    auto s=lines.size();
+//    for(auto i=0;i<s-1;i++){
+//        for(auto j=i+1;j<s-1;j++){
+//            if(abs(lines[i][0]-lines[j][0])<=1e-3){
+//                int p1=lines[i][7];
+//                int p2=lines[i][8];
+//                int p3=lines[j][7];
+//                int p4=lines[j][8];
+//                ulist.push_back(uav_cloud[p1]);
+//                ulist.push_back(uav_cloud[p2]);
+//                ulist.push_back(uav_cloud[p3]);
+//                ulist.push_back(uav_cloud[p4]);
+//            }
+//        }
+//    }
+    return ulist;
+}
+
+vector<vector<double>> filter_z_slope(vector<vector<double>> uav_cloud){
+    vector<vector<double>> res;
+    const double angle_max=30;
+    const double tan_angle_max=tan(30*pi/180);
+    
+    for(auto i=1;i<uav_cloud.size();i++){
+        auto x2=uav_cloud.at(i)[0];
+        auto y2=uav_cloud.at(i)[1];
+        auto z2=uav_cloud.at(i)[2];
+        auto x1=uav_cloud.at(i-1)[0];
+        auto y1=uav_cloud.at(i-1)[1];
+        auto z1=uav_cloud.at(i-1)[2];
+        double slx=(z2-z1)/(x2-x1);
+        double sly=(z2-z1)/(y2-y1);
+        if(slx<tan_angle_max && sly <tan_angle_max){
+            res.push_back(uav_cloud.at(i));
+        }
+    }
+    return res;
+}
+//vector<double> projection_parallel()
+//{
+//    vector<vector<double>> u_list;
+//    vector<double> uturn;
+//    const double zero_tol=1e-12;
+//    const double tol=1e-3;
+//    bool line_found=false;
+//    bool turn_found=false;
+//    for(auto i=0;i<uav_cloud.size()-2;i++){
+//        double p1x=uav_cloud[i][0];
+//        double p1y=uav_cloud[i][1];
+//        double p2x=uav_cloud[i+1][0];
+//        double p2y=uav_cloud[i+1][1];
+//        double p3x=uav_cloud[i+2][0];
+//        double p3y=uav_cloud[i+2][1];
+//
+//        double sl1=1000, sl2=2000, sl3=3000;
+//        if(abs(p2x-p1x)>=zero_tol){
+//            sl1=(p2y-p1y)/(p2x-p1x);
+//        }
+//        if(abs(p3x-p2x)>=zero_tol){
+//            sl2=(p3y-p2y)/(p3x-p2x);
+//        }
+//        if(abs(p3x-p2x)>=zero_tol){
+//            sl3=(p3y-p1y)/(p3x-p1x);
+//        }
+//        if(abs(sl1-sl2)<=1e-3 && abs(sl2-sl3)<=1e-3 && abs(sl1-sl3)<=1e-3){
+//            line_found=true;
+//        }
+//        else{
+//            if(line_found){
+//                turn_found=true;
+//                DebugOn("Turn found"<<endl);
+//                u_list.push_back(uav_cloud[i+1]);
+//            }
+//            line_found=false;
+//        }
+//    }
+//    return u_list;
+//}
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){
     vector<double> res;
     res.resize(3);
