@@ -620,7 +620,20 @@ vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_clo
     res.push_back(make_pair(sqrt(dmin), sqrt(dmax)));
     return res;
 }
-
+int get_sign(double y){
+    int res;
+    const double zero_tol=1e-9;
+    if(y>zero_tol){
+        res=1;
+    }
+    else if(y>=-zero_tol && y<=zero_tol){
+        res=0;
+    }
+    else{
+        res=-1;
+    }
+    return res;
+}
 
 /* Compute the L2 error for model and data sets
  @param[in] point_cloud_model, Model point cloud
@@ -953,7 +966,7 @@ vector<vector<double>> read_laz(const string& fname){
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
-                        if(nb_pts%10!=0){/* Only keep points from Nadir laser */
+                        if(nb_pts%100!=0){/* Only keep points from Nadir laser */
                             continue;
                         }
             auto unix_time = lasreader->point.get_gps_time();
@@ -1207,19 +1220,45 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
     vector<double> uturn;
     const double zero_tol=1e-12;
     const double tol=1e-2;
+    bool line1_found=false;
+    bool line2_found=false;
     bool line_found=false;
     bool turn_found=false;
-    for(auto i=1;i<uav_cloud.size();i++){
+    double slope_line=0;
+    int line_num=0;
+    for(auto i=1;i<uav_cloud.size()-1;i++){
         double p1x=uav_cloud[i-1][0];
         double p1y=uav_cloud[i-1][1];
         double p2x=uav_cloud[i][0];
         double p2y=uav_cloud[i][1];
+        double p3x=uav_cloud[i+1][0];
+        double p3y=uav_cloud[i+1][1];
+        
+        
         
         double sl_prev=0;
         double c_prev=0;
         double sum_xy_prev,sum_xx_prev,sum_x_prev, sum_y_prev, n_prev;
         double begp, endp;
         
+        double sl_now=0, c_now=0;
+        if(abs(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x))>=zero_tol){
+            sl_now=(3*(p3x*p3y+p2x*p2y+p1x*p1y)-(p3x+p2x+p1x)*(p3y+p2y+p1y))/(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x));
+            c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+        }
+        else{
+            sl_now=1e5;
+        }
+        
+//        if(abs(p2x-p1x)>=zero_tol && abs(p2x-p3x)>=zero_tol){
+//            sl_now=0.5*((p2y-p1y)/(p2x-p1x)+(p3y-p2y)/(p3x-p2x));
+//            sl_now=(p3y-p1y)/(p3x-p1x);
+//        }
+        
+//        if(turn_found && abs(slope_line-sl_now)<=0.1){
+//            DebugOn("line 2 detected");
+//            line2_found=true;
+//        }
         if(!lines.empty()){
             sl_prev=lines.back()[0];
             c_prev=lines.back()[1];
@@ -1232,7 +1271,7 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             endp=lines.back()[8];
         }
         
-        if(lines.empty() || abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)>=1e-1){
+        if(lines.empty() ||  (abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)>=1e-1)){
             n_prev=2;
             sum_y_prev=p2y+p1y;
             sum_x_prev=p2x+p1x;
@@ -1243,6 +1282,8 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
 //            if(!lines.empty() && lines.back()[6]==2){
 //                lines.erase(lines.end()-1, lines.end());
 //            }
+            line_found=false;
+            
             vector<double> res(9);
             lines.push_back(res);
             DebugOn("error "<<abs(p2y-sl_prev*p2x-c_prev)<<endl);
@@ -1254,6 +1295,8 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             sum_xy_prev+=p2x*p2y;
             n_prev++;
             endp=i;
+            line_found=true;
+            slope_line=sl_prev;
         }
         if(abs(n_prev*sum_xx_prev-sum_x_prev*sum_x_prev)>=zero_tol){
             sl_prev=(n_prev*sum_xy_prev-sum_x_prev*sum_y_prev)/(n_prev*sum_xx_prev-sum_x_prev*sum_x_prev);
@@ -1263,6 +1306,7 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             c_prev=sum_x_prev/n_prev;
             sl_prev=1e5;
         }
+        
         lines.back()[0]=sl_prev;
         lines.back()[1]=c_prev;
         lines.back()[2]=sum_y_prev;
@@ -1288,6 +1332,7 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             double d=pow(x2-x1,2)+pow(y2-y1,2);
             dist_lines.insert(pair<double, vector<double>>(d, lines[i]));
         }
+    
     
     auto it=dist_lines.begin();
     int p1=it->second[7];
@@ -1324,24 +1369,130 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
     return ulist;
 }
 
+
+vector<vector<vector<double>>> extract_slices(vector<vector<double>> uav_cloud){
+    vector<vector<vector<double>>> slice;
+const double slope_zero=0.1;
+    const double zero_tol=1e-2;
+    
+
+    bool sign_change1=false;
+    bool sign_change2=false;
+    double sl_now=0, c_now=0;
+    double sl_prev=0;
+    double c_prev=0;
+    int endp=0;
+    int begp=0;
+int turn1=0, turn2=0;
+    int i=0;
+    begp=1;
+    while((uav_cloud.size()-endp)>=100){
+vector<double> q(0);
+        vector<vector<double>> slice_i(0);
+       // slice_i.push_back(q);
+slice.push_back(slice_i);
+
+        int sign_prev=0, sign_now=0;
+        
+        sign_change1=false;
+        sign_change2=false;
+    for(i=begp;i<uav_cloud.size()-1;i++){
+        double p1x=uav_cloud[i-1][0];
+        double p1y=uav_cloud[i-1][1];
+        double p2x=uav_cloud[i][0];
+        double p2y=uav_cloud[i][1];
+        double p3x=uav_cloud[i+1][0];
+        double p3y=uav_cloud[i+1][1];
+
+        if(abs(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x))>=zero_tol){
+            sl_now=(3*(p3x*p3y+p2x*p2y+p1x*p1y)-(p3x+p2x+p1x)*(p3y+p2y+p1y))/(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x));
+            c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+        }
+        else{
+            sl_now=1e5;
+        }
+        if(abs(p2y-p1y)<=1e-6 && abs(p2x-p1x)<=1e-6){
+            sign_now=sign_prev;
+        }
+        else{
+if(abs(sl_now)>=slope_zero){
+sign_now=get_sign(p2y-p1y);
+}
+else{
+sign_now=get_sign(p2x-p1x);
+}
+        }
+if((sign_now-sign_prev)>=1 && i!=begp){
+    if(!sign_change1){
+    sign_change1=true;
+    turn1=i;
+        begp=turn1+10;
+    }
+    else{
+    sign_change2=true;
+    turn2=i;
+        endp=i;
+    }
+}
+
+sign_prev=sign_now;
+
+if(!sign_change2){
+    slice.back().push_back(uav_cloud[i]);
+}
+else
+{
+break;
+}
+    }
+        if(i>=uav_cloud.size()-2){
+            break;
+        }
+    }
+    return slice;
+}
+
+/*Remove points with either atan(dz/dy) or atan(dz/dx) greater than +- 30*/
 vector<vector<double>> filter_z_slope(vector<vector<double>> uav_cloud){
     vector<vector<double>> res;
     const double angle_max=30;
+    const double zero_tol=1e-12;
     const double tan_angle_max=tan(30*pi/180);
-    
-    for(auto i=1;i<uav_cloud.size();i++){
-        auto x2=uav_cloud.at(i)[0];
-        auto y2=uav_cloud.at(i)[1];
-        auto z2=uav_cloud.at(i)[2];
-        auto x1=uav_cloud.at(i-1)[0];
-        auto y1=uav_cloud.at(i-1)[1];
-        auto z1=uav_cloud.at(i-1)[2];
-        double slx=(z2-z1)/(x2-x1);
-        double sly=(z2-z1)/(y2-y1);
-        if(slx<tan_angle_max && sly <tan_angle_max){
+    double slx, sly;
+    for(auto i=1;i<uav_cloud.size()-1;i++){
+        auto p1x=uav_cloud.at(i-1)[0];
+        auto p1y=uav_cloud.at(i-1)[1];
+        auto p1z=uav_cloud.at(i-1)[2];
+        auto p2x=uav_cloud.at(i)[0];
+        auto p2y=uav_cloud.at(i)[1];
+        auto p2z=uav_cloud.at(i)[2];
+        auto p3x=uav_cloud.at(i+1)[0];
+        auto p3y=uav_cloud.at(i+1)[1];
+        auto p3z=uav_cloud.at(i+1)[2];
+        if(abs(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x))>=zero_tol){
+            slx=(3*(p3x*p3z+p2x*p2z+p1x*p1z)-(p3x+p2x+p1x)*(p3z+p2z+p1z))/(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x));
+            //c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+        }
+        else{
+            slx=1e5;
+        }
+        if(abs(3*(pow(p3y,2)+pow(p2y,2)+pow(p1y,2))-(p3y+p2y+p1y)*(p3y+p2y+p1y))>=zero_tol){
+            sly=(3*(p3y*p3z+p2y*p2z+p1y*p1z)-(p3y+p2y+p1y)*(p3z+p2z+p1z))/(3*(pow(p3y,2)+pow(p2y,2)+pow(p1y,2))-(p3y+p2y+p1y)*(p3y+p2y+p1y));
+            //c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+        }
+        else{
+            sly=1e5;
+        }
+        
+//        double slx=(z3-z1)/(x3-x1);
+//        double sly=(z3-z1)/(y3-y1);
+        if((slx<tan_angle_max) && (slx>-tan_angle_max) && (sly <tan_angle_max) && (sly >-tan_angle_max)){
             res.push_back(uav_cloud.at(i));
         }
     }
+    vector<vector<double>> empty_vec;
+    empty_vec.push_back(res[0]);
+    plot(res, empty_vec,1);
     return res;
 }
 //vector<double> projection_parallel()
