@@ -911,7 +911,7 @@ vector<vector<double>> read_laz(const string& fname){
         DebugOn("max y axis = " << lasreader->header.max_y << endl);
         DebugOn("min z axis = " << lasreader->header.min_z << endl);
         DebugOn("max z axis = " << lasreader->header.max_z << endl);
-
+        
         
         int nb_dots; /* Number of measurements inside cell */
         int xpos, ypos;
@@ -966,9 +966,9 @@ vector<vector<double>> read_laz(const string& fname){
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
-                        if(nb_pts%100!=0){/* Only keep points from Nadir laser */
-                            continue;
-                        }
+            if(nb_pts%100!=0){/* Only keep points from Nadir laser */
+                continue;
+            }
             auto unix_time = lasreader->point.get_gps_time();
             auto x = lasreader->point.get_x();
             auto y = lasreader->point.get_y();
@@ -979,29 +979,29 @@ vector<vector<double>> read_laz(const string& fname){
             LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
             point_cloud1.push_back({x,y,z});
             uav_cloud.push_back({uav_x,uav_y, uav_z});
-//                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
-//                            u_turn = true;
-//                            DebugOn("Detected a Uturn at point " << LidarPoints.size() << endl);
-//                            if(u_turn) {
-//                                DebugOn("This is the second Uturn! " << endl);
-//                                u_turn_2 = true;
-//                            }
-//                            frame1 = false;
-//                        }
-//                        if(frame1){
-//                            point_cloud1.push_back({x,y,z});
-//                        }
-//                        else{
-//                            point_cloud2.push_back({x,y,z});
-//                        }
+            //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
+            //                            u_turn = true;
+            //                            DebugOn("Detected a Uturn at point " << LidarPoints.size() << endl);
+            //                            if(u_turn) {
+            //                                DebugOn("This is the second Uturn! " << endl);
+            //                                u_turn_2 = true;
+            //                            }
+            //                            frame1 = false;
+            //                        }
+            //                        if(frame1){
+            //                            point_cloud1.push_back({x,y,z});
+            //                        }
+            //                        else{
+            //                            point_cloud2.push_back({x,y,z});
+            //                        }
         }
-
+        
         DebugOn("Read " << LidarPoints.size() << " points" << endl);
         DebugOn(point_cloud1.size() << " points in flight line 1" << endl);
         DebugOn(point_cloud2.size() << " points in flight line 2" << endl);
         vector<vector<double>> empty_vec;
 #ifdef USE_MATPLOT
-       // plot(uav_cloud,empty_vec, 0.1);
+        // plot(uav_cloud,empty_vec, 0.1);
 #endif
         save_laz("flight3.laz", point_cloud1, point_cloud2);
         //                auto frame_id = CSV_data.GetCell<int>(0, i);
@@ -1193,7 +1193,7 @@ vector<vector<double>> turn_detect_slope_map(vector<vector<double>> uav_cloud){
             double p1y_o=uav_cloud[j][1];
             double p2x_o=uav_cloud[k][0];
             double p2y_o=uav_cloud[k][1];
-           
+            
             if(((p2x_o-p1x_o)<=-zero_tol && (p2x-p1x)>=zero_tol) || ((p2x_o-p1x_o)>=zero_tol && (p2x-p1x)<=-zero_tol) || ((p2y_o-p1y_o)<=-zero_tol && (p2y-p1y)>=zero_tol) || ((p2y_o-p1y_o)>=zero_tol && (p2y-p1y)<=-zero_tol)){
                 u_list.push_back(uav_cloud[i]);
                 u_list.push_back(uav_cloud[i+10]);
@@ -1206,7 +1206,7 @@ vector<vector<double>> turn_detect_slope_map(vector<vector<double>> uav_cloud){
             }
             
         }
-       
+        
         
     }
     return u_list;
@@ -1250,15 +1250,15 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             sl_now=1e5;
         }
         
-//        if(abs(p2x-p1x)>=zero_tol && abs(p2x-p3x)>=zero_tol){
-//            sl_now=0.5*((p2y-p1y)/(p2x-p1x)+(p3y-p2y)/(p3x-p2x));
-//            sl_now=(p3y-p1y)/(p3x-p1x);
-//        }
+        //        if(abs(p2x-p1x)>=zero_tol && abs(p2x-p3x)>=zero_tol){
+        //            sl_now=0.5*((p2y-p1y)/(p2x-p1x)+(p3y-p2y)/(p3x-p2x));
+        //            sl_now=(p3y-p1y)/(p3x-p1x);
+        //        }
         
-//        if(turn_found && abs(slope_line-sl_now)<=0.1){
-//            DebugOn("line 2 detected");
-//            line2_found=true;
-//        }
+        //        if(turn_found && abs(slope_line-sl_now)<=0.1){
+        //            DebugOn("line 2 detected");
+        //            line2_found=true;
+        //        }
         if(!lines.empty()){
             sl_prev=lines.back()[0];
             c_prev=lines.back()[1];
@@ -1279,9 +1279,9 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
             sum_xy_prev=p2x*p2y+p1x*p1y;
             begp=i-1;
             endp=i;
-//            if(!lines.empty() && lines.back()[6]==2){
-//                lines.erase(lines.end()-1, lines.end());
-//            }
+            //            if(!lines.empty() && lines.back()[6]==2){
+            //                lines.erase(lines.end()-1, lines.end());
+            //            }
             line_found=false;
             
             vector<double> res(9);
@@ -1319,19 +1319,19 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
     }
     
     auto s=lines.size();
-        for(auto i=0;i<s;i++){
-            int p1=lines[i][7];
-            int p2=lines[i][8];
-            auto x1=uav_cloud[p1][0];
-            auto y1=uav_cloud[p1][1];
-            auto x2=uav_cloud[p2][0];
-            auto y2=uav_cloud[p2][1];
-            DebugOn("p1 p2 "<<p1 <<" "<<p2<<endl);
-            DebugOn("x1 y1 "<<x1 <<" "<<y1<<endl);
-            DebugOn("x2 y2 "<<x2 <<" "<<y2<<endl);
-            double d=pow(x2-x1,2)+pow(y2-y1,2);
-            dist_lines.insert(pair<double, vector<double>>(d, lines[i]));
-        }
+    for(auto i=0;i<s;i++){
+        int p1=lines[i][7];
+        int p2=lines[i][8];
+        auto x1=uav_cloud[p1][0];
+        auto y1=uav_cloud[p1][1];
+        auto x2=uav_cloud[p2][0];
+        auto y2=uav_cloud[p2][1];
+        DebugOn("p1 p2 "<<p1 <<" "<<p2<<endl);
+        DebugOn("x1 y1 "<<x1 <<" "<<y1<<endl);
+        DebugOn("x2 y2 "<<x2 <<" "<<y2<<endl);
+        double d=pow(x2-x1,2)+pow(y2-y1,2);
+        dist_lines.insert(pair<double, vector<double>>(d, lines[i]));
+    }
     
     
     auto it=dist_lines.begin();
@@ -1347,35 +1347,35 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud){
     it++;
     int p5=it->second[7];
     int p6=it->second[8];
-//    ulist.push_back(uav_cloud[p5]);
-//    ulist.push_back(uav_cloud[p6]);
+    //    ulist.push_back(uav_cloud[p5]);
+    //    ulist.push_back(uav_cloud[p6]);
     
-
-//    auto s=lines.size();
-//    for(auto i=0;i<s-1;i++){
-//        for(auto j=i+1;j<s-1;j++){
-//            if(abs(lines[i][0]-lines[j][0])<=1e-3){
-//                int p1=lines[i][7];
-//                int p2=lines[i][8];
-//                int p3=lines[j][7];
-//                int p4=lines[j][8];
-//                ulist.push_back(uav_cloud[p1]);
-//                ulist.push_back(uav_cloud[p2]);
-//                ulist.push_back(uav_cloud[p3]);
-//                ulist.push_back(uav_cloud[p4]);
-//            }
-//        }
-//    }
+    
+    //    auto s=lines.size();
+    //    for(auto i=0;i<s-1;i++){
+    //        for(auto j=i+1;j<s-1;j++){
+    //            if(abs(lines[i][0]-lines[j][0])<=1e-3){
+    //                int p1=lines[i][7];
+    //                int p2=lines[i][8];
+    //                int p3=lines[j][7];
+    //                int p4=lines[j][8];
+    //                ulist.push_back(uav_cloud[p1]);
+    //                ulist.push_back(uav_cloud[p2]);
+    //                ulist.push_back(uav_cloud[p3]);
+    //                ulist.push_back(uav_cloud[p4]);
+    //            }
+    //        }
+    //    }
     return ulist;
 }
 
 
 vector<vector<vector<double>>> extract_slices(vector<vector<double>> uav_cloud){
     vector<vector<vector<double>>> slice;
-const double slope_zero=0.1;
-    const double zero_tol=1e-2;
+    const double slope_zero=0.1;
+    const double zero_tol=1e-12;
     
-
+    
     bool sign_change1=false;
     bool sign_change2=false;
     double sl_now=0, c_now=0;
@@ -1383,69 +1383,69 @@ const double slope_zero=0.1;
     double c_prev=0;
     int endp=0;
     int begp=0;
-int turn1=0, turn2=0;
+    int turn1=0, turn2=0;
     int i=0;
-    begp=1;
+    begp=10;
     while((uav_cloud.size()-endp)>=100){
-vector<double> q(0);
+        vector<double> q(0);
         vector<vector<double>> slice_i(0);
-       // slice_i.push_back(q);
-slice.push_back(slice_i);
-
+        // slice_i.push_back(q);
+        slice.push_back(slice_i);
+        
         int sign_prev=0, sign_now=0;
         
         sign_change1=false;
         sign_change2=false;
-    for(i=begp;i<uav_cloud.size()-1;i++){
-        double p1x=uav_cloud[i-1][0];
-        double p1y=uav_cloud[i-1][1];
-        double p2x=uav_cloud[i][0];
-        double p2y=uav_cloud[i][1];
-        double p3x=uav_cloud[i+1][0];
-        double p3y=uav_cloud[i+1][1];
-
-        if(abs(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x))>=zero_tol){
-            sl_now=(3*(p3x*p3y+p2x*p2y+p1x*p1y)-(p3x+p2x+p1x)*(p3y+p2y+p1y))/(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x));
-            c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+        for(i=begp;i<uav_cloud.size()-10;i++){
+            double p1x=uav_cloud[i-10][0];
+            double p1y=uav_cloud[i-10][1];
+            double p2x=uav_cloud[i][0];
+            double p2y=uav_cloud[i][1];
+            double p3x=uav_cloud[i+10][0];
+            double p3y=uav_cloud[i+10][1];
+            
+            if(abs(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x))>=zero_tol){
+                sl_now=(3*(p3x*p3y+p2x*p2y+p1x*p1y)-(p3x+p2x+p1x)*(p3y+p2y+p1y))/(3*(pow(p3x,2)+pow(p2x,2)+pow(p1x,2))-(p3x+p2x+p1x)*(p3x+p2x+p1x));
+                c_now=((p3y+p2y+p1y)-sl_now*(p3x+p2x+p1x))/3;
+            }
+            else{
+                sl_now=1e5;
+            }
+            if((abs(p2y-p1y)<=1e-3 && abs(p2x-p1x)<=1e-3)){
+                sign_now=sign_prev;
+            }
+            else{
+                if(abs(sl_now)>=slope_zero){
+                    sign_now=get_sign(p2y-p1y);
+                }
+                else{
+                    sign_now=get_sign(p2x-p1x);
+                }
+            }
+            if((sign_now-sign_prev)>=1 && i>=begp+10){
+                if(!sign_change1){
+                    sign_change1=true;
+                    turn1=i;
+                    begp=turn1+10;
+                }
+                else{
+                    sign_change2=true;
+                    turn2=i;
+                    endp=i;
+                }
+            }
+            
+            sign_prev=sign_now;
+            
+            if(!sign_change2){
+                slice.back().push_back(uav_cloud[i]);
+            }
+            else
+            {
+                break;
+            }
         }
-        else{
-            sl_now=1e5;
-        }
-        if(abs(p2y-p1y)<=1e-6 && abs(p2x-p1x)<=1e-6){
-            sign_now=sign_prev;
-        }
-        else{
-if(abs(sl_now)>=slope_zero){
-sign_now=get_sign(p2y-p1y);
-}
-else{
-sign_now=get_sign(p2x-p1x);
-}
-        }
-if((sign_now-sign_prev)>=1 && i!=begp){
-    if(!sign_change1){
-    sign_change1=true;
-    turn1=i;
-        begp=turn1+10;
-    }
-    else{
-    sign_change2=true;
-    turn2=i;
-        endp=i;
-    }
-}
-
-sign_prev=sign_now;
-
-if(!sign_change2){
-    slice.back().push_back(uav_cloud[i]);
-}
-else
-{
-break;
-}
-    }
-        if(i>=uav_cloud.size()-2){
+        if(i>=uav_cloud.size()-12){
             break;
         }
     }
@@ -1484,8 +1484,8 @@ vector<vector<double>> filter_z_slope(vector<vector<double>> uav_cloud){
             sly=1e5;
         }
         
-//        double slx=(z3-z1)/(x3-x1);
-//        double sly=(z3-z1)/(y3-y1);
+        //        double slx=(z3-z1)/(x3-x1);
+        //        double sly=(z3-z1)/(y3-y1);
         if((slx<tan_angle_max) && (slx>-tan_angle_max) && (sly <tan_angle_max) && (sly >-tan_angle_max)){
             res.push_back(uav_cloud.at(i));
         }
