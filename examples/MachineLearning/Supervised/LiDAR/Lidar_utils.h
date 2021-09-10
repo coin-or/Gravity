@@ -976,9 +976,11 @@ vector<vector<double>> read_laz(const string& fname){
             auto uav_x = lasreader->point.get_attribute_as_float(1);
             auto uav_y = lasreader->point.get_attribute_as_float(2);
             auto uav_z = lasreader->point.get_attribute_as_float(3);
-            LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
-            point_cloud1.push_back({x,y,z});
-            uav_cloud.push_back({uav_x,uav_y, uav_z});
+            if(!isnan(uav_x) && !isnan(uav_y) && !isnan(uav_z)){
+                LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
+                point_cloud1.push_back({x,y,z});
+                uav_cloud.push_back({uav_x,uav_y, uav_z});
+            }
             //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
             //                            u_turn = true;
             //                            DebugOn("Detected a Uturn at point " << LidarPoints.size() << endl);
