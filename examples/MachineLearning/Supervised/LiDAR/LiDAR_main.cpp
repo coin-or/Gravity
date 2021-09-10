@@ -221,36 +221,46 @@ int main (int argc, char * argv[])
 //
     
        //string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
-    string file_u="/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz";
+    string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
     //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
        auto uav_cloud_u=read_laz(file_u);
        vector<vector<double>> empty_vec, uav_xy;
 
     double uxmin=numeric_limits<double>::max(), uxmax=numeric_limits<double>::min(), uymin=numeric_limits<double>::max(), uymax=numeric_limits<double>::min(), uzmin=numeric_limits<double>::max(), uzmax=numeric_limits<double>::min();
-    
+    vector<vector<double>> uav_coords;
+    vector<int> pos(6);
     for(auto i=0;i<uav_cloud_u.size();i++){
         auto x=uav_cloud_u.at(i)[0]-uav_cloud_u.at(0)[0];
         auto y=uav_cloud_u.at(i)[1]-uav_cloud_u.at(0)[1];
         auto z=uav_cloud_u.at(i)[2]-uav_cloud_u.at(0)[2];
         if(x<=uxmin){
             uxmin=x;
+            pos[0]=i;
         }
         if(y<=uymin){
             uymin=y;
+            pos[1]=i;
         }
         if(z<=uzmin){
             uzmin=z;
+            pos[2]=i;
         }
         if(x>=uxmax){
             uxmax=x;
+            pos[3]=i;
         }
         if(y>=uymax){
             uymax=y;
+            pos[4]=i;
         }
         if(z>=uzmax){
             uzmax=z;
+            pos[5]=i;
         }
         uav_xy.push_back({x,y,z});
+    }
+    for(auto i=0;i<6;i++){
+        uav_coords.push_back(uav_cloud_u.at(pos[i]));
     }
     DebugOn("umin max in x "<<uxmin<<" "<<uxmax<<endl);
     DebugOn("umin max in y "<<uymin<<" "<<uymax<<endl);
@@ -259,13 +269,34 @@ int main (int argc, char * argv[])
     //empty_vec.push_back({uxmin, uymin, 0});
        //plot(uav_xy, empty_vec);
     auto uav_xyz=filter_z_slope(uav_xy);
+    
+//    for(auto i=0;i<uav_xyz.size();i++){
+//        auto x=uav_xyz.at(i)[0];
+//        auto y=uav_xyz.at(i)[1];
+//        auto z=uav_xyz.at(i)[2]+uav_cloud_u.at(0)[2];
+//        uav_xy.push_back({x,y,z});
+//    }
     auto slices=extract_slices(uav_xyz);
     for(auto i=0;i<slices.size();i++){
         if(slices[i].size()>10){
         empty_vec.push_back(slices[i][0]);
-        plot(slices[i], empty_vec, 3);
+        
         auto ulist=reg_slope_lines(slices[i]);
-        plot(ulist, slices[i], 3);
+            vector<vector<double>> slice_plot, u_plot;
+            for(auto j=0;j<slices[i].size();j++){
+                auto x=slices[i].at(j)[0]+uav_cloud_u.at(0)[0];
+                auto y=slices[i].at(j)[1]+uav_cloud_u.at(0)[1];
+                auto z=slices[i].at(j)[2]+uav_cloud_u.at(0)[2];
+                slice_plot.push_back({x,y,z});
+            }
+            plot(slice_plot, uav_coords, 3);
+            for(auto j=0;j<ulist.size();j++){
+                auto x=ulist.at(j)[0]+uav_cloud_u.at(0)[0];
+                auto y=ulist.at(j)[1]+uav_cloud_u.at(0)[1];
+                auto z=ulist.at(j)[2]+uav_cloud_u.at(0)[2];
+                u_plot.push_back({x,y,z});
+            }
+        plot(u_plot, slice_plot, uav_coords,3);
         empty_vec.clear();
         }
     }
