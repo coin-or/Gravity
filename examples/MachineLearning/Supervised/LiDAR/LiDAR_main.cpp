@@ -220,9 +220,9 @@ int main (int argc, char * argv[])
 //
 //
     
-       //string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
-    string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
-    //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
+      string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
+   // string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
+//string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
        auto uav_cloud_u=read_laz(file_u);
        vector<vector<double>> empty_vec, uav_xy;
 
@@ -282,6 +282,7 @@ int main (int argc, char * argv[])
         empty_vec.push_back(slices[i][0]);
         
         auto ulist=reg_slope_lines(slices[i]);
+           
             vector<vector<double>> slice_plot, u_plot;
             for(auto j=0;j<slices[i].size();j++){
                 auto x=slices[i].at(j)[0]+uav_cloud_u.at(0)[0];
@@ -290,20 +291,22 @@ int main (int argc, char * argv[])
                 slice_plot.push_back({x,y,z});
             }
             plot(slice_plot, uav_coords, 3);
+            if(ulist.size()>=4){
+                
+            DebugOn("ulist "<<endl);
             for(auto j=0;j<ulist.size();j++){
                 auto x=ulist.at(j)[0]+uav_cloud_u.at(0)[0];
                 auto y=ulist.at(j)[1]+uav_cloud_u.at(0)[1];
                 auto z=ulist.at(j)[2]+uav_cloud_u.at(0)[2];
                 u_plot.push_back({x,y,z});
+                DebugOn(x<<" "<<y<<" "<<z<<endl);
             }
         plot(u_plot, slice_plot, uav_coords,3);
+            }
         empty_vec.clear();
         }
     }
-    auto ulist=reg_slope_lines(slices[1]);
-    plot(ulist, uav_xyz, 3);
     
-    plot(ulist, empty_vec, 3);
     
   //      plot(ulist, empty_vec);
     //plot(ulist, empty_vec, 10);
