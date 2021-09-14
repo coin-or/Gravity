@@ -221,7 +221,7 @@ int main (int argc, char * argv[])
 //
     
      // string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_2__2020_12_18_combined.laz";
-    string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
+    string file_u="/Users/smitha/Downloads/Ta51_powerlines_2__2020_12_18_combined.laz";
 //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
        auto uav_cloud_u=read_laz(file_u);
        vector<vector<double>> empty_vec, uav_xy;
@@ -278,8 +278,10 @@ int main (int argc, char * argv[])
 //    }
     vector<int> turns;
     auto slices=extract_slices(uav_xyz, turns);
-    vector<vector<vector<double>>> ulist_array;
+    vector<vector<vector<double>>> uplot_array;
     vector<vector<vector<double>>> slice_array;
+    vector<int> turn_array;
+    vector<vector<int>> ulist_array;
     multimap<double, int, greater<double>> rank_map;
     for(auto i=0;i<slices.size();i++){
         if(slices[i].size()>10){
@@ -299,32 +301,34 @@ int main (int argc, char * argv[])
                 
             DebugOn("ulist "<<endl);
             for(auto j=0;j<ulist.size();j++){
-                auto x=ulist.at(j)[0]+uav_cloud_u.at(0)[0];
-                auto y=ulist.at(j)[1]+uav_cloud_u.at(0)[1];
-                auto z=ulist.at(j)[2]+uav_cloud_u.at(0)[2];
+                auto x=slices[i][ulist[j]][0]+uav_cloud_u.at(0)[0];
+                auto y=slices[i][ulist[j]][1]+uav_cloud_u.at(0)[1];
+                auto z=slices[i][ulist[j]][2]+uav_cloud_u.at(0)[2];
                 u_plot.push_back({x,y,z});
                 DebugOn(x<<" "<<y<<" "<<z<<endl);
             }
-                auto x1=ulist.at(0)[0];
-                auto y1=ulist.at(0)[1];
-                auto z1=ulist.at(0)[2];
-                auto x2=ulist.at(1)[0];
-                auto y2=ulist.at(1)[1];
-                auto z2=ulist.at(1)[2];
-                auto x3=ulist.at(2)[0];
-                auto y3=ulist.at(2)[1];
-                auto z3=ulist.at(2)[2];
-                auto x4=ulist.at(3)[0];
-                auto y4=ulist.at(3)[1];
-                auto z4=ulist.at(3)[2];
+                auto x1=slices[i][ulist[0]][0];
+                auto y1=slices[i][ulist[0]][1];
+                auto z1=slices[i][ulist[0]][2];
+                auto x2=slices[i][ulist[1]][0];
+                auto y2=slices[i][ulist[1]][1];
+                auto z2=slices[i][ulist[1]][2];
+                auto x3=slices[i][ulist[2]][0];
+                auto y3=slices[i][ulist[2]][1];
+                auto z3=slices[i][ulist[2]][2];
+                auto x4=slices[i][ulist[3]][0];
+                auto y4=slices[i][ulist[3]][1];
+                auto z4=slices[i][ulist[3]][2];
                 double s1=(y2-y1)/(x2-x1);
                 double s2=(y4-y3)/(x4-x3);
                 double d1=pow(y2-y1,2)+pow(x2-x1,2);
                 double d2=pow(y4-y3,2)+pow(x4-x3,2);
                 DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
                 DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
-                ulist_array.push_back(u_plot);
+                uplot_array.push_back(u_plot);
+                ulist_array.push_back(ulist);
                 slice_array.push_back(slice_plot);
+                turn_array.push_back(turns[i]);
                 double score=(d1+d2)/(1e5)-abs(s1-s2)/(abs(s1+s2));
                 DebugOn("score "<<score<<endl);
                 rank_map.insert(pair<double, int>(score, slice_array.size()-1));
@@ -336,26 +340,26 @@ int main (int argc, char * argv[])
     if(rank_map.size()>=1){
         auto it=rank_map.begin();
         int pos=it->second;
-        plot(ulist_array[pos], slice_array[pos], uav_coords,3);
-        for(auto j=0;j<ulist_array[pos].size();j++){
-            auto x=ulist_array[pos].at(j)[0];
-            auto y=ulist_array[pos].at(j)[1];
-            auto z=ulist_array[pos].at(j)[2];
+        //plot(uplot_array[pos], slice_array[pos], uav_coords,3);
+        for(auto j=0;j<uplot_array[pos].size();j++){
+            auto x=uplot_array[pos].at(j)[0];
+            auto y=uplot_array[pos].at(j)[1];
+            auto z=uplot_array[pos].at(j)[2];
             DebugOn(x<<" "<<y<<" "<<z<<endl);
         }
-        auto ulist=ulist_array[pos];
-        auto x1=ulist.at(0)[0];
-        auto y1=ulist.at(0)[1];
-        auto z1=ulist.at(0)[2];
-        auto x2=ulist.at(1)[0];
-        auto y2=ulist.at(1)[1];
-        auto z2=ulist.at(1)[2];
-        auto x3=ulist.at(2)[0];
-        auto y3=ulist.at(2)[1];
-        auto z3=ulist.at(2)[2];
-        auto x4=ulist.at(3)[0];
-        auto y4=ulist.at(3)[1];
-        auto z4=ulist.at(3)[2];
+        auto uplot=uplot_array[pos];
+        auto x1=uplot.at(0)[0];
+        auto y1=uplot.at(0)[1];
+        auto z1=uplot.at(0)[2];
+        auto x2=uplot.at(1)[0];
+        auto y2=uplot.at(1)[1];
+        auto z2=uplot.at(1)[2];
+        auto x3=uplot.at(2)[0];
+        auto y3=uplot.at(2)[1];
+        auto z3=uplot.at(2)[2];
+        auto x4=uplot.at(3)[0];
+        auto y4=uplot.at(3)[1];
+        auto z4=uplot.at(3)[2];
         double s1=(y2-y1)/(x2-x1);
         double s2=(y4-y3)/(x4-x3);
         double d1=pow(y2-y1,2)+pow(x2-x1,2);
@@ -363,9 +367,9 @@ int main (int argc, char * argv[])
         double score=(d1+d2)/100-abs(s1-s2);
         DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
         DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
+        auto ulist=ulist_array[pos];
+        get_frame(slice_array[pos], ulist[0], ulist[1],ulist[2],ulist[3]);
     }
-    
-    
   //      plot(ulist, empty_vec);
     //plot(ulist, empty_vec, 10);
        
