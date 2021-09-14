@@ -220,8 +220,8 @@ int main (int argc, char * argv[])
 //
 //
     
-      string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_3__2020_12_18_combined.laz";
-   // string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
+     // string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_2__2020_12_18_combined.laz";
+    string file_u="/Users/smitha/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz";
 //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
        auto uav_cloud_u=read_laz(file_u);
        vector<vector<double>> empty_vec, uav_xy;
@@ -276,12 +276,16 @@ int main (int argc, char * argv[])
 //        auto z=uav_xyz.at(i)[2]+uav_cloud_u.at(0)[2];
 //        uav_xy.push_back({x,y,z});
 //    }
-    auto slices=extract_slices(uav_xyz);
+    vector<int> turns;
+    auto slices=extract_slices(uav_xyz, turns);
+    vector<vector<vector<double>>> ulist_array;
+    vector<vector<vector<double>>> slice_array;
+    multimap<double, int, greater<double>> rank_map;
     for(auto i=0;i<slices.size();i++){
         if(slices[i].size()>10){
         empty_vec.push_back(slices[i][0]);
         
-        auto ulist=reg_slope_lines(slices[i]);
+        auto ulist=reg_slope_lines(slices[i], turns[i]);
            
             vector<vector<double>> slice_plot, u_plot;
             for(auto j=0;j<slices[i].size();j++){
@@ -290,7 +294,7 @@ int main (int argc, char * argv[])
                 auto z=slices[i].at(j)[2]+uav_cloud_u.at(0)[2];
                 slice_plot.push_back({x,y,z});
             }
-            plot(slice_plot, uav_coords, 3);
+            //plot(slice_plot, uav_coords, 3);
             if(ulist.size()>=4){
                 
             DebugOn("ulist "<<endl);
@@ -301,10 +305,64 @@ int main (int argc, char * argv[])
                 u_plot.push_back({x,y,z});
                 DebugOn(x<<" "<<y<<" "<<z<<endl);
             }
-        plot(u_plot, slice_plot, uav_coords,3);
+                auto x1=ulist.at(0)[0];
+                auto y1=ulist.at(0)[1];
+                auto z1=ulist.at(0)[2];
+                auto x2=ulist.at(1)[0];
+                auto y2=ulist.at(1)[1];
+                auto z2=ulist.at(1)[2];
+                auto x3=ulist.at(2)[0];
+                auto y3=ulist.at(2)[1];
+                auto z3=ulist.at(2)[2];
+                auto x4=ulist.at(3)[0];
+                auto y4=ulist.at(3)[1];
+                auto z4=ulist.at(3)[2];
+                double s1=(y2-y1)/(x2-x1);
+                double s2=(y4-y3)/(x4-x3);
+                double d1=pow(y2-y1,2)+pow(x2-x1,2);
+                double d2=pow(y4-y3,2)+pow(x4-x3,2);
+                DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
+                DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
+                ulist_array.push_back(u_plot);
+                slice_array.push_back(slice_plot);
+                double score=(d1+d2)/(1e5)-abs(s1-s2)/(abs(s1+s2));
+                DebugOn("score "<<score<<endl);
+                rank_map.insert(pair<double, int>(score, slice_array.size()-1));
+        //plot(u_plot, slice_plot, uav_coords,3);
             }
         empty_vec.clear();
         }
+    }
+    if(rank_map.size()>=1){
+        auto it=rank_map.begin();
+        int pos=it->second;
+        plot(ulist_array[pos], slice_array[pos], uav_coords,3);
+        for(auto j=0;j<ulist_array[pos].size();j++){
+            auto x=ulist_array[pos].at(j)[0];
+            auto y=ulist_array[pos].at(j)[1];
+            auto z=ulist_array[pos].at(j)[2];
+            DebugOn(x<<" "<<y<<" "<<z<<endl);
+        }
+        auto ulist=ulist_array[pos];
+        auto x1=ulist.at(0)[0];
+        auto y1=ulist.at(0)[1];
+        auto z1=ulist.at(0)[2];
+        auto x2=ulist.at(1)[0];
+        auto y2=ulist.at(1)[1];
+        auto z2=ulist.at(1)[2];
+        auto x3=ulist.at(2)[0];
+        auto y3=ulist.at(2)[1];
+        auto z3=ulist.at(2)[2];
+        auto x4=ulist.at(3)[0];
+        auto y4=ulist.at(3)[1];
+        auto z4=ulist.at(3)[2];
+        double s1=(y2-y1)/(x2-x1);
+        double s2=(y4-y3)/(x4-x3);
+        double d1=pow(y2-y1,2)+pow(x2-x1,2);
+        double d2=pow(y4-y3,2)+pow(x4-x3,2);
+        double score=(d1+d2)/100-abs(s1-s2);
+        DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
+        DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
     }
     
     
