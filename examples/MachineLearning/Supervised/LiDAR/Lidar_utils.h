@@ -966,7 +966,7 @@ vector<vector<double>> read_laz(const string& fname){
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
-            if(nb_pts%100!=0){/* Only keep points from Nadir laser */
+            if(nb_pts%10!=0){/* Only keep points from Nadir laser */
                 continue;
             }
             auto unix_time = lasreader->point.get_gps_time();
@@ -1215,11 +1215,11 @@ vector<vector<double>> turn_detect(vector<vector<double>> uav_cloud){
 //}
 
 /*scale uav_cloud and then call this*/
-vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud, int turn){
+vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, int turn){
     vector<vector<double>> lines;
     multimap<double, vector<double>, greater <double>> dist_lines;
     multimap<double, pair<int, int>, greater <double>> rank_map;
-    vector<vector<double>> ulist;
+    vector<int> ulist;
     vector<double> uturn;
     const double zero_tol=1e-12;
     const double tol=1e-2;
@@ -1368,10 +1368,14 @@ vector<vector<double>> reg_slope_lines(vector<vector<double>> uav_cloud, int tur
         int p2=lines[l1][8];
         int p3=lines[l2][7];
         int p4=lines[l2][8];
-        ulist.push_back(uav_cloud[p1]);
-        ulist.push_back(uav_cloud[p2]);
-        ulist.push_back(uav_cloud[p3]);
-        ulist.push_back(uav_cloud[p4]);
+//        ulist.push_back(uav_cloud[p1]);
+//        ulist.push_back(uav_cloud[p2]);
+//        ulist.push_back(uav_cloud[p3]);
+//        ulist.push_back(uav_cloud[p4]);
+        ulist.push_back(p1);
+        ulist.push_back(p2);
+        ulist.push_back(p3);
+        ulist.push_back(p4);
     }
     //    it++;
     //    int p5=it->second[7];
@@ -1603,49 +1607,111 @@ vector<vector<double>> filter_z_slope(vector<vector<double>> uav_cloud){
     }
     vector<vector<double>> empty_vec;
     empty_vec.push_back(res[0]);
-    plot(res, empty_vec,1);
+    //plot(res, empty_vec,1);
     return res;
 }
-//vector<double> projection_parallel()
-//{
-//    vector<vector<double>> u_list;
-//    vector<double> uturn;
-//    const double zero_tol=1e-12;
-//    const double tol=1e-3;
-//    bool line_found=false;
-//    bool turn_found=false;
-//    for(auto i=0;i<uav_cloud.size()-2;i++){
-//        double p1x=uav_cloud[i][0];
-//        double p1y=uav_cloud[i][1];
-//        double p2x=uav_cloud[i+1][0];
-//        double p2y=uav_cloud[i+1][1];
-//        double p3x=uav_cloud[i+2][0];
-//        double p3y=uav_cloud[i+2][1];
-//
-//        double sl1=1000, sl2=2000, sl3=3000;
-//        if(abs(p2x-p1x)>=zero_tol){
-//            sl1=(p2y-p1y)/(p2x-p1x);
-//        }
-//        if(abs(p3x-p2x)>=zero_tol){
-//            sl2=(p3y-p2y)/(p3x-p2x);
-//        }
-//        if(abs(p3x-p2x)>=zero_tol){
-//            sl3=(p3y-p1y)/(p3x-p1x);
-//        }
-//        if(abs(sl1-sl2)<=1e-3 && abs(sl2-sl3)<=1e-3 && abs(sl1-sl3)<=1e-3){
-//            line_found=true;
-//        }
-//        else{
-//            if(line_found){
-//                turn_found=true;
-//                DebugOn("Turn found"<<endl);
-//                u_list.push_back(uav_cloud[i+1]);
-//            }
-//            line_found=false;
-//        }
-//    }
-//    return u_list;
-//}
+void fit_points_line(vector<vector<double>> uav_cloud, int start, int stop, double& sl, double& c){
+    double sum_xx=0, sum_x=0, sum_y=0, sum_xy=0;
+    int n=0;
+    const double zero_tol=1e-12;
+    for(auto i=start;i<stop; i++){
+        auto x=uav_cloud.at(i)[0];
+        auto y=uav_cloud.at(i)[1];
+        auto z=uav_cloud.at(i)[2];
+        n++;
+        sum_xx+=x*x;
+        sum_x+=x;
+        sum_y+=y;
+        sum_xy+=x*y;
+    }
+        if(abs(n*sum_xx-sum_x*sum_x)>=zero_tol){
+            sl=(n*sum_xy-sum_x*sum_y)/(n*sum_xx-sum_x*sum_x);
+            c=(sum_y-sl*sum_x)/n;
+        }
+        else{
+            sl=1e5;
+            c=sum_x/n;
+    }
+}
+
+void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int start2, int stop2){
+    vector<vector<double>> frame1, frame2;
+    double sum_xx=0, sum_x=0, sum_y=0, sum_xy=0;
+    int n=0;
+    const double zero_tol=1e-12;
+    double sl1=0, c1=0, sl2=0, c2=0, rsl1=0, rsl2=0, rc1=0, rc2=0;
+    double px1=uav_cloud.at(start1)[0];
+    double py1=uav_cloud.at(start1)[1];
+    double pz1=uav_cloud.at(start1)[2];
+    double px2=uav_cloud.at(stop1)[0];
+    double py2=uav_cloud.at(stop1)[1];
+    double pz2=uav_cloud.at(stop1)[2];
+    double px3=uav_cloud.at(start2)[0];
+    double py3=uav_cloud.at(start2)[1];
+    double pz3=uav_cloud.at(start2)[2];
+    double px4=uav_cloud.at(stop2)[0];
+    double py4=uav_cloud.at(stop2)[1];
+    double pz4=uav_cloud.at(stop2)[2];
+    if((pow(px2-px1, 2)+pow(py2-py1, 2))>=(pow(px3-px4, 2)+pow(py3-py4, 2))){
+        auto t1=start2;
+        auto t2=stop2;
+        start2=start1;
+        stop2=stop1;
+        start1=t1;
+        stop1=t2;
+    
+    px1=uav_cloud.at(start1)[0];
+    py1=uav_cloud.at(start1)[1];
+    pz1=uav_cloud.at(start1)[2];
+    px2=uav_cloud.at(stop1)[0];
+    py2=uav_cloud.at(stop1)[1];
+    pz2=uav_cloud.at(stop1)[2];
+    px3=uav_cloud.at(start2)[0];
+    py3=uav_cloud.at(start2)[1];
+    pz3=uav_cloud.at(start2)[2];
+    px4=uav_cloud.at(stop2)[0];
+    py4=uav_cloud.at(stop2)[1];
+    pz4=uav_cloud.at(stop2)[2];
+    }
+    double mid_x1=(px1+px2)*0.5;
+    double mid_x2=(px1*0.4+px2*0.6);
+    //double mid_x2=(px3+px4)*0.5;
+   
+    fit_points_line(uav_cloud, start1, stop1, sl1, c1);
+    rsl1=1.0/sl1;
+    double mid_y1=sl1*mid_x1+c1;
+    double mid_y2=sl1*mid_x2+c1;
+    rc1=mid_y1-rsl1*mid_x1;
+    rc2=mid_y2-rsl1*mid_x2;
+    
+    for(auto i=start1;i<stop1;i++){
+        auto x=uav_cloud.at(i)[0];
+        auto y=uav_cloud.at(i)[1];
+        auto z=uav_cloud.at(i)[2];
+        double lamda=(x-px2)/(px1-px2);
+        if(lamda>=0.5 && lamda<=0.6){
+            frame1.push_back(uav_cloud.at(i));
+        }
+    }
+    
+    auto sign_start2_line1=get_sign(py3-rsl1*px3-rc1);
+    auto sign_start2_line2=get_sign(py3-rsl1*px3-rc2);
+    for(auto i=start2;i<stop2;i++){
+        auto x=uav_cloud.at(i)[0];
+        auto y=uav_cloud.at(i)[1];
+        auto z=uav_cloud.at(i)[2];
+        auto sign1=get_sign(y-rsl1*x-rc1);
+        auto sign2=get_sign(y-rsl1*x-rc2);
+        DebugOn("sign1 "<<sign1<<" sign2 "<<sign2<<endl);
+        if((abs(sign1-sign_start2_line1)>=2 && abs(sign2-sign_start2_line2)<=0) || (abs(sign1-sign_start2_line1)<=0 && abs(sign2-sign_start2_line2)>=2)){
+            frame2.push_back(uav_cloud.at(i));
+        }
+    }
+    DebugOn("frame 1 size "<<frame1.size());
+    DebugOn("frame 2 size "<<frame2.size());
+    //plot(frame1, frame2, 1);
+}
+
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){
     vector<double> res;
     res.resize(3);
