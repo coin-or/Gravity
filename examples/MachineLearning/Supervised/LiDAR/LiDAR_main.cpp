@@ -268,7 +268,7 @@ int main (int argc, char * argv[])
     
     //empty_vec.push_back({uxmin, uymin, 0});
        //plot(uav_xy, empty_vec);
-    auto uav_xyz=filter_z_slope(uav_xy);
+    auto index_set=filter_z_slope(uav_xy);
     
 //    for(auto i=0;i<uav_xyz.size();i++){
 //        auto x=uav_xyz.at(i)[0];
@@ -277,23 +277,23 @@ int main (int argc, char * argv[])
 //        uav_xy.push_back({x,y,z});
 //    }
     vector<int> turns;
-    auto slices=extract_slices(uav_xyz, turns);
+    auto slices_indices=extract_slices(uav_xy, index_set, turns);
     vector<vector<vector<double>>> uplot_array;
     vector<vector<vector<double>>> slice_array;
     vector<int> turn_array;
     vector<vector<int>> ulist_array;
     multimap<double, int, greater<double>> rank_map;
-    for(auto i=0;i<slices.size();i++){
-        if(slices[i].size()>10){
-        empty_vec.push_back(slices[i][0]);
+    for(auto i=0;i<slices_indices.size();i++){
+        if(slices_indices[i].second-slices_indices[i].first>10){
+    
         
-        auto ulist=reg_slope_lines(slices[i], turns[i]);
+        auto ulist=reg_slope_lines(uav_xy, slices_indices[i], turns[i]);
            
             vector<vector<double>> slice_plot, u_plot;
-            for(auto j=0;j<slices[i].size();j++){
-                auto x=slices[i].at(j)[0]+uav_cloud_u.at(0)[0];
-                auto y=slices[i].at(j)[1]+uav_cloud_u.at(0)[1];
-                auto z=slices[i].at(j)[2]+uav_cloud_u.at(0)[2];
+            for(auto j=slices_indices[i].first;j<=slices_indices[i].second;j++){
+                auto x=uav_xy.at(j)[0]+uav_cloud_u.at(0)[0];
+                auto y=uav_xy.at(j)[1]+uav_cloud_u.at(0)[1];
+                auto z=uav_xy.at(j)[2]+uav_cloud_u.at(0)[2];
                 slice_plot.push_back({x,y,z});
             }
             //plot(slice_plot, uav_coords, 3);
@@ -301,24 +301,24 @@ int main (int argc, char * argv[])
                 
             DebugOn("ulist "<<endl);
             for(auto j=0;j<ulist.size();j++){
-                auto x=slices[i][ulist[j]][0]+uav_cloud_u.at(0)[0];
-                auto y=slices[i][ulist[j]][1]+uav_cloud_u.at(0)[1];
-                auto z=slices[i][ulist[j]][2]+uav_cloud_u.at(0)[2];
+                auto x=uav_xy[ulist[j]][0]+uav_cloud_u.at(0)[0];
+                auto y=uav_xy[ulist[j]][1]+uav_cloud_u.at(0)[1];
+                auto z=uav_xy[ulist[j]][2]+uav_cloud_u.at(0)[2];
                 u_plot.push_back({x,y,z});
                 DebugOn(x<<" "<<y<<" "<<z<<endl);
             }
-                auto x1=slices[i][ulist[0]][0];
-                auto y1=slices[i][ulist[0]][1];
-                auto z1=slices[i][ulist[0]][2];
-                auto x2=slices[i][ulist[1]][0];
-                auto y2=slices[i][ulist[1]][1];
-                auto z2=slices[i][ulist[1]][2];
-                auto x3=slices[i][ulist[2]][0];
-                auto y3=slices[i][ulist[2]][1];
-                auto z3=slices[i][ulist[2]][2];
-                auto x4=slices[i][ulist[3]][0];
-                auto y4=slices[i][ulist[3]][1];
-                auto z4=slices[i][ulist[3]][2];
+                auto x1=uav_xy[ulist[0]][0];
+                auto y1=uav_xy[ulist[0]][1];
+                auto z1=uav_xy[ulist[0]][2];
+                auto x2=uav_xy[ulist[1]][0];
+                auto y2=uav_xy[ulist[1]][1];
+                auto z2=uav_xy[ulist[1]][2];
+                auto x3=uav_xy[ulist[2]][0];
+                auto y3=uav_xy[ulist[2]][1];
+                auto z3=uav_xy[ulist[2]][2];
+                auto x4=uav_xy[ulist[3]][0];
+                auto y4=uav_xy[ulist[3]][1];
+                auto z4=uav_xy[ulist[3]][2];
                 double s1=(y2-y1)/(x2-x1);
                 double s2=(y4-y3)/(x4-x3);
                 double d1=pow(y2-y1,2)+pow(x2-x1,2);
@@ -368,7 +368,7 @@ int main (int argc, char * argv[])
         DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
         DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
         auto ulist=ulist_array[pos];
-        get_frame(slice_array[pos], ulist[0], ulist[1],ulist[2],ulist[3]);
+        get_frame(uav_xy, ulist[0], ulist[1],ulist[2],ulist[3]);
     }
   //      plot(ulist, empty_vec);
     //plot(ulist, empty_vec, 10);
