@@ -223,7 +223,8 @@ int main (int argc, char * argv[])
       string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
    // string file_u="/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz";
 //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
-       auto uav_cloud_u=read_laz(file_u);
+    vector<vector<double>> lidar_point_cloud;
+       auto uav_cloud_u=read_laz(file_u, lidar_point_cloud);
        vector<vector<double>> empty_vec, uav_xy;
 
     double uxmin=numeric_limits<double>::max(), uxmax=numeric_limits<double>::min(), uymin=numeric_limits<double>::max(), uymax=numeric_limits<double>::min(), uzmin=numeric_limits<double>::max(), uzmax=numeric_limits<double>::min();
@@ -359,7 +360,16 @@ int main (int argc, char * argv[])
         DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
         DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
         auto ulist=ulist_array[pos];
-        get_frame(uav_xy, ulist[0], ulist[1],ulist[2],ulist[3]);
+        vector<int> frame1(0), frame2(0);
+        get_frame(uav_xy, ulist[0], ulist[1],ulist[2],ulist[3], frame1, frame2);
+        vector<vector<double>> point_cloud_model(0), point_cloud_data(0);
+    for(auto i=0;i<frame1.size();i++){
+        point_cloud_model.push_back(lidar_point_cloud.at(frame1[i]));
+    }
+    for(auto i=0;i<frame2.size();i++){
+        point_cloud_data.push_back(lidar_point_cloud.at(frame2[i]));
+    }
+        plot(point_cloud_model, point_cloud_data);
     }
   //      plot(ulist, empty_vec);
     //plot(ulist, empty_vec, 10);
