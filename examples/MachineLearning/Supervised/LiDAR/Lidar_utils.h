@@ -881,7 +881,7 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
     delete laswriter;
 }
 /* Read Laz files */
-vector<vector<double>> read_laz(const string& fname){
+vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lidar_point_cloud){
     LASreadOpener lasreadopener;
     lasreadopener.set_file_name(fname.c_str());
     lasreadopener.set_populate_header(TRUE);
@@ -980,6 +980,7 @@ vector<vector<double>> read_laz(const string& fname){
                 LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
                 point_cloud1.push_back({x,y,z});
                 uav_cloud.push_back({uav_x,uav_y, uav_z});
+                lidar_point_cloud.push_back({x,y,z});
             }
             //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
             //                            u_turn = true;
@@ -1613,9 +1614,8 @@ void fit_points_line(vector<vector<double>> uav_cloud, int start, int stop, doub
     }
 }
 
-void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int start2, int stop2){
+void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int start2, int stop2, vector<int>& frame1_index, vector<int>& frame2_index){
     vector<vector<double>> frame1, frame2;
-    vector<int> frame1_index(0), frame2_index(0);
     double sum_xx=0, sum_x=0, sum_y=0, sum_xy=0;
     int n=0;
     const double zero_tol=1e-12;
