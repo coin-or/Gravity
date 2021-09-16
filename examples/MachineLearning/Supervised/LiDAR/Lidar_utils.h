@@ -966,7 +966,7 @@ vector<vector<double>> read_laz(const string& fname){
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
-            if(nb_pts%10!=0){/* Only keep points from Nadir laser */
+            if(nb_pts%100!=0){/* Only keep points from Nadir laser */
                 continue;
             }
             auto unix_time = lasreader->point.get_gps_time();
@@ -1230,16 +1230,14 @@ vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, pair<int,int> slic
     bool turn_found=false;
     double slope_line=0;
     int line_num=0;
-    for(auto i=slice.first;i<slice.second;i++){
+    for(auto i=slice.first+1;i<=slice.second;i++){
         double p1x=uav_cloud[i-1][0];
         double p1y=uav_cloud[i-1][1];
         double p2x=uav_cloud[i][0];
         double p2y=uav_cloud[i][1];
         double p3x=uav_cloud[i+1][0];
         double p3y=uav_cloud[i+1][1];
-        
-        
-        
+       
         double sl_prev=0;
         double c_prev=0;
         double sum_xy_prev,sum_xx_prev,sum_x_prev, sum_y_prev, n_prev;
@@ -1253,16 +1251,6 @@ vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, pair<int,int> slic
         else{
             sl_now=1e5;
         }
-        
-        //        if(abs(p2x-p1x)>=zero_tol && abs(p2x-p3x)>=zero_tol){
-        //            sl_now=0.5*((p2y-p1y)/(p2x-p1x)+(p3y-p2y)/(p3x-p2x));
-        //            sl_now=(p3y-p1y)/(p3x-p1x);
-        //        }
-        
-        //        if(turn_found && abs(slope_line-sl_now)<=0.1){
-        //            DebugOn("line 2 detected");
-        //            line2_found=true;
-        //        }
         if(!lines.empty()){
             sl_prev=lines.back()[0];
             c_prev=lines.back()[1];
@@ -1426,6 +1414,8 @@ vector<pair<int, int>> extract_slices(vector<vector<double>> uav_cloud, vector<i
         // slice_i.push_back(q);
         slice.push_back(slice_i);
         std::pair<int,int> pair1;
+        pair1.first=index_set[begp];
+        pair1.first=index_set[begp];
         res.push_back(pair1);
         
         int sign_x_prev=0, sign_x_now=0;
@@ -1532,20 +1522,24 @@ vector<pair<int, int>> extract_slices(vector<vector<double>> uav_cloud, vector<i
             sign_y_prev=sign_y_now;
             
             if(!sign_change2){
-                slice.back().push_back(uav_cloud[i]);
+                slice.back().push_back(uav_cloud[index_set[i]]);
             }
             else
             {
-                res.back().first=turn1;
                 res.back().second=turn2;
                 break;
             }
         }
         if(i>=index_set.size()-10){
-            res.back().first=turn1;
             res.back().second=index_set[i];
             break;
         }
+    }
+    for(auto i=0;i<slice.size();i++){
+        vector<vector<double>> empty_vec;
+        empty_vec.push_back(slice[i][0]);
+        
+        //plot(slice[i], empty_vec, 1);
     }
     return res;
 }
@@ -1592,7 +1586,7 @@ vector<int> filter_z_slope(vector<vector<double>> uav_cloud){
     }
     vector<vector<double>> empty_vec;
     empty_vec.push_back(res[0]);
-    //plot(res, empty_vec,1);
+    plot(res, empty_vec,1);
     return index_set;
 }
 void fit_points_line(vector<vector<double>> uav_cloud, int start, int stop, double& sl, double& c){
@@ -1621,6 +1615,7 @@ void fit_points_line(vector<vector<double>> uav_cloud, int start, int stop, doub
 
 void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int start2, int stop2){
     vector<vector<double>> frame1, frame2;
+    vector<int> frame1_index(0), frame2_index(0);
     double sum_xx=0, sum_x=0, sum_y=0, sum_xy=0;
     int n=0;
     const double zero_tol=1e-12;
@@ -1660,41 +1655,147 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
     }
     double mid_x1=(px1+px2)*0.5;
     double mid_x2=(px1*0.4+px2*0.6);
+    double mid=(mid_x1+mid_x2)*0.5;
+   
     //double mid_x2=(px3+px4)*0.5;
    
-    fit_points_line(uav_cloud, start1, stop1, sl1, c1);
-    rsl1=1.0/sl1;
+  
+    
+    double xmin1=1e9, xmax1=-1e9, ymin1=1e9, ymax1=-1e9;
+    int start_line, stop_line;
+    bool con_frame=false;
+    for(auto i=start1;i<stop1;i++){
+        auto x=uav_cloud.at(i)[0];
+        auto y=uav_cloud.at(i)[1];
+        auto z=uav_cloud[start1][2];
+        double lamda=(x-px2)/(px1-px2);
+        if(lamda>=0.4 && lamda<=0.5){
+            if(!con_frame){
+                start_line=i;
+            }
+            frame1.push_back({x,y,z});
+            frame1_index.push_back(i);
+            if(x<=xmin1){
+                xmin1=x;
+            }
+            if(x>=xmax1){
+                xmax1=x;
+            }
+            if(y<=ymin1){
+                ymin1=y;
+            }
+            if(y>=ymax1){
+                ymax1=y;
+            }
+            con_frame=true;
+        }
+        else{
+            if(con_frame){
+                stop_line=i;
+            }
+            con_frame=false;
+        }
+    }
+    DebugOn("mid "<<mid_x1<<" "<<mid_x2<<" "<<mid<<endl);
+    DebugOn("line start "<<uav_cloud[start_line][0]<<" "<<uav_cloud[stop_line][0]<<" "<<mid<<endl);
+    
+    fit_points_line(uav_cloud, start_line, stop_line, sl1, c1);
+    vector<vector<double>> line;
+    for(auto i=start_line;i<stop_line;i++)
+    {
+        auto x=uav_cloud.at(i)[0];
+        auto y=sl1*x+c1;
+        auto z=uav_cloud[start1][2];
+        line.push_back({x,y,z});
+    }
+    double midy=sl1*mid+c1;
+    rsl1=-1.0/sl1;
     double mid_y1=sl1*mid_x1+c1;
     double mid_y2=sl1*mid_x2+c1;
     rc1=mid_y1-rsl1*mid_x1;
     rc2=mid_y2-rsl1*mid_x2;
     
-    for(auto i=start1;i<stop1;i++){
-        auto x=uav_cloud.at(i)[0];
-        auto y=uav_cloud.at(i)[1];
-        auto z=uav_cloud.at(i)[2];
-        double lamda=(x-px2)/(px1-px2);
-        if(lamda>=0.5 && lamda<=0.6){
-            frame1.push_back(uav_cloud.at(i));
-        }
-    }
     
-    auto sign_start2_line1=get_sign(py3-rsl1*px3-rc1);
-    auto sign_start2_line2=get_sign(py3-rsl1*px3-rc2);
+    for(auto i=-10;i<10;i++)
+    {
+        auto x=mid_x1-i;
+        auto y=rsl1*x+rc1;
+        auto z=uav_cloud[start1][2];
+        line.push_back({x,y,z});
+    }
+    for(auto i=-10;i<10;i++)
+    {
+        auto x=mid_x2-i;
+        auto y=rsl1*x+rc2;
+        auto z=uav_cloud[start1][2];
+        line.push_back({x,y,z});
+    }
+    vector<vector<double>> pl1, pl2;
+    
+    pl1.push_back(uav_cloud[start1]);
+    pl1.push_back(uav_cloud[start2]);
+    pl1.push_back(uav_cloud[stop1]);
+    pl1.push_back(uav_cloud[stop2]);
+    
+    vector<double> v(3);
+    v[0]=mid_x1;
+    v[1]=mid_y1;
+    v[2]=uav_cloud[start1][2];
+    pl2.push_back(v);
+    v.clear();
+    v.resize(3);
+    v[0]=mid_x2;
+    v[1]=mid_y2;
+    v[2]=uav_cloud[start1][2];
+    pl2.push_back(v);
+    v.clear();
+    v.resize(3);
+    v[0]=mid;
+    v[1]=midy;
+    v[2]=uav_cloud[start1][2];
+    pl2.push_back(v);
+    
+    
+    
+    plot(pl1, line, 1);
+    
+    auto sign_mid_line1=get_sign(midy-rsl1*mid-rc1);
+    auto sign_mid_line2=get_sign(midy-rsl1*mid-rc2);
+    double xmin2=1e9, xmax2=-1e9, ymin2=1e9, ymax2=-1e9;
+    DebugOn("sign mid "<<sign_mid_line1<<endl);
+    DebugOn("sign mid "<<sign_mid_line2<<endl);
     for(auto i=start2;i<stop2;i++){
         auto x=uav_cloud.at(i)[0];
         auto y=uav_cloud.at(i)[1];
-        auto z=uav_cloud.at(i)[2];
+        auto z=uav_cloud[start1][2];
+      
         auto sign1=get_sign(y-rsl1*x-rc1);
         auto sign2=get_sign(y-rsl1*x-rc2);
         DebugOn("sign1 "<<sign1<<" sign2 "<<sign2<<endl);
-        if((abs(sign1-sign_start2_line1)>=2 && abs(sign2-sign_start2_line2)<=0) || (abs(sign1-sign_start2_line1)<=0 && abs(sign2-sign_start2_line2)>=2)){
-            frame2.push_back(uav_cloud.at(i));
+        if(abs(sign1-sign_mid_line1)==0 && abs(sign2-sign_mid_line2)==0){
+            if(x<=xmin2){
+                xmin2=x;
+            }
+            if(x>=xmax2){
+                xmax2=x;
+            }
+            if(y<=ymin2){
+                ymin2=y;
+            }
+            if(y>=ymax2){
+                ymax2=y;
+            }
+            frame2.push_back({x,y,z});
+            frame2_index.push_back(i);
         }
     }
-    DebugOn("frame 1 size "<<frame1.size());
-    DebugOn("frame 2 size "<<frame2.size());
-    //plot(frame1, frame2, 1);
+    DebugOn("frame 1 size "<<frame1.size()<<endl);
+    DebugOn("xmin "<<xmin1<<" "<<xmax1<<endl);
+    DebugOn("ymin "<<ymin1<<" "<<ymax1<<endl);
+    DebugOn("frame 2 size "<<frame2.size()<<endl);
+    DebugOn("xmin "<<xmin2<<" "<<xmax2<<endl);
+    DebugOn("ymin "<<ymin2<<" "<<ymax2<<endl);
+    plot(frame1, frame2, 1);
 }
 
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){
