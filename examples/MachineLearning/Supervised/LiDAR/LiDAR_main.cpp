@@ -220,8 +220,8 @@ int main (int argc, char * argv[])
 //
 //
     
-     // string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_2__2020_12_18_combined.laz";
-    string file_u="/Users/smitha/Downloads/Ta51_powerlines_2__2020_12_18_combined.laz";
+      string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
+   // string file_u="/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz";
 //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
        auto uav_cloud_u=read_laz(file_u);
        vector<vector<double>> empty_vec, uav_xy;
@@ -270,13 +270,7 @@ int main (int argc, char * argv[])
        //plot(uav_xy, empty_vec);
     auto index_set=filter_z_slope(uav_xy);
     
-//    for(auto i=0;i<uav_xyz.size();i++){
-//        auto x=uav_xyz.at(i)[0];
-//        auto y=uav_xyz.at(i)[1];
-//        auto z=uav_xyz.at(i)[2]+uav_cloud_u.at(0)[2];
-//        uav_xy.push_back({x,y,z});
-//    }
-    vector<int> turns;
+    vector<int> turns(0);
     auto slices_indices=extract_slices(uav_xy, index_set, turns);
     vector<vector<vector<double>>> uplot_array;
     vector<vector<vector<double>>> slice_array;
@@ -285,10 +279,7 @@ int main (int argc, char * argv[])
     multimap<double, int, greater<double>> rank_map;
     for(auto i=0;i<slices_indices.size();i++){
         if(slices_indices[i].second-slices_indices[i].first>10){
-    
-        
         auto ulist=reg_slope_lines(uav_xy, slices_indices[i], turns[i]);
-           
             vector<vector<double>> slice_plot, u_plot;
             for(auto j=slices_indices[i].first;j<=slices_indices[i].second;j++){
                 auto x=uav_xy.at(j)[0]+uav_cloud_u.at(0)[0];
@@ -332,7 +323,7 @@ int main (int argc, char * argv[])
                 double score=(d1+d2)/(1e5)-abs(s1-s2)/(abs(s1+s2));
                 DebugOn("score "<<score<<endl);
                 rank_map.insert(pair<double, int>(score, slice_array.size()-1));
-        //plot(u_plot, slice_plot, uav_coords,3);
+       // plot(u_plot, slice_plot, uav_coords,3);
             }
         empty_vec.clear();
         }
@@ -340,7 +331,7 @@ int main (int argc, char * argv[])
     if(rank_map.size()>=1){
         auto it=rank_map.begin();
         int pos=it->second;
-        //plot(uplot_array[pos], slice_array[pos], uav_coords,3);
+        plot(uplot_array[pos], slice_array[pos], uav_coords,3);
         for(auto j=0;j<uplot_array[pos].size();j++){
             auto x=uplot_array[pos].at(j)[0];
             auto y=uplot_array[pos].at(j)[1];
