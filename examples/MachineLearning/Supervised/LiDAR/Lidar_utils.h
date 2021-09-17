@@ -912,7 +912,14 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         DebugOn("min z axis = " << lasreader->header.min_z << endl);
         DebugOn("max z axis = " << lasreader->header.max_z << endl);
         
-        
+        int total_pts=lasreader->npoints;
+        int skip=1;
+        if(total_pts>=15e6 && total_pts<=1e8){
+            skip=10;
+        }
+        else if(total_pts>1e8){
+            skip=100;
+        }
         int nb_dots; /* Number of measurements inside cell */
         int xpos, ypos;
         double z, min_z, max_z, av_z;
@@ -966,7 +973,7 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
             //            }
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
-            if(nb_pts%100!=0){/* Only keep points from Nadir laser */
+            if(nb_pts%skip!=0){/* Only keep points from Nadir laser */
                 continue;
             }
             auto unix_time = lasreader->point.get_gps_time();
@@ -1264,7 +1271,7 @@ vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, pair<int,int> slic
             endp=lines.back()[8];
         }
         
-        if(lines.empty() ||  (abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)>=1e-1) || (begp<turn && i>=turn)){
+        if(lines.empty() ||  (abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)>=1e-1 && abs(p2y-sl_prev*p2x-c_prev)>=1e-1) || (begp<turn && i>=turn)){
             n_prev=2;
             sum_y_prev=p2y+p1y;
             sum_x_prev=p2x+p1x;
@@ -1274,6 +1281,7 @@ vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, pair<int,int> slic
             endp=i+1;
             if(line_found){
                 i+=10;
+                DebugOn(abs(p2y-sl_prev*p2x-c_prev)/abs(p2y)<<" "<<abs(p2y-sl_prev*p2x-c_prev)<<endl);
             }
             //            if(!lines.empty() && lines.back()[6]==2){
             //                lines.erase(lines.end()-1, lines.end());
@@ -1343,7 +1351,7 @@ vector<int> reg_slope_lines(vector<vector<double>> uav_cloud, pair<int,int> slic
                         DebugOff("x2 y2 "<<x2 <<" "<<y2<<endl);
                         double d1=pow(x2-x1,2)+pow(y2-y1,2);
                         double d2=pow(x3-x4,2)+pow(y3-y4,2);
-                        rank_map.insert(pair<double, pair<int,int>>(d1+d2-abs(s2-s1)/(abs(s1+s2)), pair<int,int>(i,j)));
+                        rank_map.insert(pair<double, pair<int,int>>(d1+d2-abs(s2-s1), pair<int,int>(i,j)));
                     }
                 }
             }
@@ -1653,7 +1661,7 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
     py4=uav_cloud.at(stop2)[1];
     pz4=uav_cloud.at(stop2)[2];
     }
-    double mid_x1=(px1+px2)*0.5;
+    double mid_x1=(px1*0.5+px2*0.5);
     double mid_x2=(px1*0.4+px2*0.6);
     double mid=(mid_x1+mid_x2)*0.5;
    
@@ -1771,7 +1779,7 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
       
         auto sign1=get_sign(y-rsl1*x-rc1);
         auto sign2=get_sign(y-rsl1*x-rc2);
-        DebugOn("sign1 "<<sign1<<" sign2 "<<sign2<<endl);
+        DebugOff("sign1 "<<sign1<<" sign2 "<<sign2<<endl);
         if(abs(sign1-sign_mid_line1)==0 && abs(sign2-sign_mid_line2)==0){
             if(x<=xmin2){
                 xmin2=x;
