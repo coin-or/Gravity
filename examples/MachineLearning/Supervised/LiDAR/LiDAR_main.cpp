@@ -189,9 +189,9 @@ int main (int argc, char * argv[])
     
     /* Boresight Alignment Problem */
     vector<vector<double>> full_point_cloud_model, full_point_cloud_data;
-    vector<vector<double>> point_cloud_model, point_cloud_data;
+    
     vector<vector<double>> full_uav_model, full_uav_data;
-    vector<vector<double>> uav_model, uav_data;
+    
 //    string Model_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
 //    string Data_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
 //    string red_Model_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";
@@ -220,7 +220,7 @@ int main (int argc, char * argv[])
 //
 //
     
-      string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
+      string file_u="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_3__2020_12_18_combined.laz";
    // string file_u="/Users/smitha/Downloads/Ta51_powerlines_1__2020_12_18_combined.laz";
 //string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
     vector<vector<double>> lidar_point_cloud;
@@ -329,10 +329,11 @@ int main (int argc, char * argv[])
         empty_vec.clear();
         }
     }
+    vector<vector<double>> point_cloud_model(0), point_cloud_data(0), uav_model(0), uav_data(0);
     if(rank_map.size()>=1){
         auto it=rank_map.begin();
         int pos=it->second;
-        plot(uplot_array[pos], slice_array[pos], uav_coords,3);
+        plot(uplot_array[pos], uav_coords,3);
         for(auto j=0;j<uplot_array[pos].size();j++){
             auto x=uplot_array[pos].at(j)[0];
             auto y=uplot_array[pos].at(j)[1];
@@ -362,15 +363,47 @@ int main (int argc, char * argv[])
         auto ulist=ulist_array[pos];
         vector<int> frame1(0), frame2(0);
         get_frame(uav_xy, ulist[0], ulist[1],ulist[2],ulist[3], frame1, frame2);
-        vector<vector<double>> point_cloud_model(0), point_cloud_data(0);
-    for(auto i=0;i<frame1.size();i++){
+        int skip=1;
+        if(frame1.size()>=1e5){
+            skip=10;
+        }
+    for(auto i=0;i<frame1.size();i+=skip){
         point_cloud_model.push_back(lidar_point_cloud.at(frame1[i]));
+        uav_model.push_back(uav_cloud_u.at(frame1[i]));
     }
-    for(auto i=0;i<frame2.size();i++){
+    for(auto i=0;i<frame2.size();i+=skip){
         point_cloud_data.push_back(lidar_point_cloud.at(frame2[i]));
+        uav_data.push_back(uav_cloud_u.at(frame2[i]));
     }
         plot(point_cloud_model, point_cloud_data);
+        plot(uav_model, uav_data);
     }
+//    double roll_deg=1.43;
+//    double pitch_deg=-0.11;
+//    double yaw_deg=-0.04;
+//
+//    vector<int> matching(point_cloud_data.size());
+//    vector<double> err_per_point(point_cloud_data.size());
+//
+//    auto L2init=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+//    auto L1init=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
+//
+//    DebugOn("L2 init "<<L2init<<endl);
+//    DebugOn("L1 init "<<L1init<<endl);
+//
+//    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
+//
+//
+//
+//    auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+//    auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
+//
+//    DebugOn("L2  "<<L2<<endl);
+//    DebugOn("L1  "<<L1<<endl);
+//    plot(point_cloud_model, point_cloud_data);
+    ////    auto L1error_init_down = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
+    ////    auto L1error_init_down = computeL1error(down_point_cloud_model1,down_point_cloud_data1,matching,err_per_point);
+    
   //      plot(ulist, empty_vec);
     //plot(ulist, empty_vec, 10);
        
