@@ -258,7 +258,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                 ub_ = models[j]->get_obj_val();
                 auto lb_ =  models[j]->get_rel_obj_val();
                 auto leaf_node=false;
-                if(ub_>=0 && (ub_-lb_/ub_)<=1e-6){
+                if(ub_>=0){
                     if(ub_<=best_ub-1e-4){
                         //models[j]->print_solution();
                         //models[j]->print();
@@ -273,8 +273,10 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                                 best_ub=L2err;
                                 best_rot_trans=rot_trans;
                                 DebugOn("new best ub "<<best_ub<<" ub_ "<<ub_<<" lb_ "<<lb_<<endl);
-                                leaf_node=true;
-                                DebugOn("leaf lb "<<lb_<<" L2 "<<L2err<<" ub_ "<<ub_<<endl);
+                                if((ub_-lb_/ub_)<=1e-6){
+                                    leaf_node=true;
+                                    DebugOn("leaf lb "<<lb_<<" L2 "<<L2err<<" ub_ "<<ub_<<endl);
+                                }
                                 //leaf_node=true;
                                 //lb=L2err;
                             }
