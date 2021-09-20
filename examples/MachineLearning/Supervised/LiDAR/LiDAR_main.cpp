@@ -492,12 +492,12 @@ int main (int argc, char * argv[])
     double upper_bound=3e4;
     double prep_time=0;
     
-    double roll_min=-5*pi/180;
-    double roll_max=5*pi/180;
-    double pitch_min=-5*pi/180;
-    double pitch_max=5*pi/180;
-    double yaw_min=-5*pi/180;
-    double yaw_max=5*pi/180;
+    double roll_min=-2*pi/180;
+    double roll_max=2*pi/180;
+    double pitch_min=-2*pi/180;
+    double pitch_max=2*pi/180;
+    double yaw_min=-2*pi/180;
+    double yaw_max=2*pi/180;
     
     vector<int> matching(point_cloud_data.size());
     vector<double> err_per_point(point_cloud_data.size());
@@ -524,13 +524,25 @@ int main (int argc, char * argv[])
     double best_ub=1e5;
     compute_upper_bound_mid(roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
     
-    auto res= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub);
+    auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub);
+    
+    auto pitch_rad1 = atan2(rot[7], rot[8]);
+    auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+    auto yaw_rad1 = atan2(rot[3],rot[0]);
+    
+    auto roll_deg=roll_rad1*180/pi;
+    auto pitch_deg=pitch_rad1*180/pi;
+    auto yaw_deg=yaw_rad1*180/pi;
     
     
+    
+    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
     
     auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
     auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
     
+    DebugOn("roll pitch yaw in rad "<<roll_rad1<<" "<<pitch_rad1<<" "<<yaw_rad1<<" "<<endl);
+    DebugOn("roll pitch yaw in deg "<<roll_deg<<" "<<pitch_deg<<" "<<yaw_deg<<" "<<endl);
     
     //    Final Roll (degrees) = 1.53145
     //    Final Pitch (degrees) = -0.423905
