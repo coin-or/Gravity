@@ -25,7 +25,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     double total_time_max = 9000;
     double prep_time_total=0;
 
-    double yaw_min = -1.1*pi/180., yaw_max = -1*pi/180., pitch_min =-1.1*pi/180.,pitch_max = -1*pi/180.,roll_min =-1.1*pi/180.,roll_max = -1*pi/180.;
+    double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
     int nd=point_cloud_data.size();
