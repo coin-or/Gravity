@@ -4560,23 +4560,32 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f, int& tag_iter)
     for (auto &term:this->get_pterms()) {
         for (auto &v_p:*term.second._l) {
             auto vv = v_p.first;
-            if(v.get_vec_id()==vv->get_vec_id()){
+            if(v.has_common_ids(vv)){
                 auto f_cpy = f;
+                auto v_cpy = v;
                 /* Get polynomial term excluding v */
                 auto new_term = func<type>(term.second.exclude(vv));
                 if(vv->_indices->is_subset_eq(*v._indices)){/* Case where vv index set is a subset of v, we can safely remove the linear term including vv */
-                    if(vv->is_matrix_indexed() && !v.is_matrix_indexed()){
-                        f_cpy.update_var_indices(*vv->_indices, *v._indices);
+                    if(!updated_ids && f_cpy._indices && !v.is_matrix_indexed()){
+                        f_cpy.update_rows(keep_ids,tag_iter);
+                        v_cpy.update_rows(keep_ids,tag_iter);
+                        tag_iter++;
+    //                    f_cpy.reset_ids();
+                        updated_ids = true;
                     }
-                    else {
-                        keep_ids = v._indices->get_common_refs(*vv->_indices); /* indices to keep */
-                        if(!updated_ids && f_cpy._indices && !v.is_matrix_indexed() && vv->_indices->size() != f_cpy._indices->size()){
-                            f_cpy.update_rows(keep_ids,tag_iter);
-                            f_cpy.reset_ids(tag_iter);
-                            updated_ids = true;
-                        }
+                    if(f_cpy._indices && f_cpy._indices->size()<vv->_indices->size()){
+                        DebugOff("Need to call repeat");
+                        f_cpy.repeat_ids(vv->_indices->size()/f_cpy._indices->size());
                     }
-                    auto vcast = *static_pointer_cast<var<T>>(vv);
+                    if(v_cpy._indices && v_cpy._indices->size()<vv->_indices->size()){
+                        DebugOff("Need to call repeat");
+                        v_cpy.repeat_ids(vv->_indices->size()/v_cpy._indices->size());
+                    }
+                    if(v_cpy._indices->has_different_order(*vv->_indices)){
+                        DebugOff("Need to call reorder indices\n");
+                        vector<int> new_order = v_cpy._indices->get_ids_order(*vv->_indices);
+                        f_cpy.reorder_rows(new_order,tag_iter);
+                    }
                     new_this.insert(!term.second._sign,*term.second._coef,*term.second._l);/* Remove polynomial term from new_f */
                     if (term.second._coef->is_function()) {
                         auto coef = *static_pointer_cast<func<T>>(term.second._coef);
@@ -4590,6 +4599,54 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f, int& tag_iter)
                         auto coef = *static_pointer_cast<constant<T>>(term.second._coef);
                         new_this += std::pow(-1,1-term.second._sign)*coef*new_term*pow(f_cpy,v_p.second);
                     }
+                    return new_this;
+                }
+                else { /* work with the intersection of the two sets */
+                    auto inter = intersect(*v._indices, *vv->_indices);
+                    if(inter.empty()){
+                        continue;
+                    }
+                    auto keep_ids_v = v._indices->get_common_refs(*vv->_indices); /* indices to keep in v*/
+                    auto keep_ids_vv = vv->_indices->get_common_refs(*v._indices); /* indices to keep in vv*/
+                    diff_ids = vv->_indices->get_diff_refs(*v._indices); /* indices not in v */
+                    f_cpy.update_rows(keep_ids_v,tag_iter);
+                    v_cpy.update_rows(keep_ids_v,tag_iter);
+                    auto diff_set = indices(*vv->_indices);
+                    new_this.deep_copy(*this);
+                    new_this.update_vars();
+                    auto v1 = *static_pointer_cast<var<T>>(vv);
+                    new_this.insert(!term.second._sign,*term.second._coef,*term.second._l);/* Remove polynomial term from new_f */
+                    new_this.update_rows(keep_ids_vv,tag_iter);
+                    new_this.reset_ids(tag_iter);
+                    v1.update_rows(keep_ids_vv,tag_iter);
+                    if(f_cpy._indices && f_cpy._indices->size()<v1._indices->size()){
+                        DebugOff("Need to call repeat");
+                        f_cpy.repeat_ids(v1._indices->size()/f_cpy._indices->size());
+                    }
+                    if(v_cpy._indices && v_cpy._indices->size()<v1._indices->size()){
+                        DebugOff("Need to call repeat");
+                        v_cpy.repeat_ids(v1._indices->size()/v_cpy._indices->size());
+                    }
+                    if(v_cpy._indices->has_different_order(*v1._indices)){
+                        DebugOff("Need to call reorder indices\n");
+                        vector<int> new_order = v_cpy._indices->get_ids_order(*v1._indices);
+                        f_cpy.reorder_rows(new_order,tag_iter);
+                    }
+                    if (term.second._coef->is_function()) {
+                        auto coef = *static_pointer_cast<func<T>>(term.second._coef);
+                        new_this += std::pow(-1,1-term.second._sign)*coef*new_term*pow(f_cpy,v_p.second);
+                    }
+                    else if(term.second._coef->is_param()) {
+                        auto coef = *static_pointer_cast<param<T>>(term.second._coef);
+                        new_this += std::pow(-1,1-term.second._sign)*coef*new_term*pow(f_cpy,v_p.second);
+                    }
+                    else if(term.second._coef->is_number()) {
+                        auto coef = *static_pointer_cast<constant<T>>(term.second._coef);
+                        new_this += std::pow(-1,1-term.second._sign)*coef*new_term*pow(f_cpy,v_p.second);
+                    }
+                    this->update_rows(diff_ids,tag_iter);
+                    this->reset_ids(tag_iter);
+                    return new_this;
                 }
             }
         }
@@ -5823,13 +5880,13 @@ void func<type>::clean_terms(){
             param<type> p(_name+"_lin_coef"+to_string(index++));
             p.in(range(1,c->get_dim()));
             p.copy_vals(*c);
-            if(!p.is_zero()){
+            if(!p.is_all_zero()){
                 new_f.insert(pair.second._sign, p, *pair.second._p);
             }
         }
         else if (pair.second._coef->is_param()){
             auto p = static_pointer_cast<param<type>>(pair.second._coef);
-            if(!p->is_zero()){
+            if(!p->is_all_zero()){
                 new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p);
             }
         }
@@ -5846,13 +5903,13 @@ void func<type>::clean_terms(){
             param<type> p(_name+"_quad_coef"+to_string(index++));
             p.in(range(1,c->get_dim()));
             p.copy_vals(*c);
-            if(!p.is_zero()){
+            if(!p.is_all_zero()){
                 new_f.insert(pair.second._sign, p, *pair.second._p->first, *pair.second._p->second);
             }
         }
         else if (pair.second._coef->is_param()){
             auto p = static_pointer_cast<param<type>>(pair.second._coef);
-            if(!p->is_zero()){
+            if(!p->is_all_zero()){
                 new_f.insert(pair.second._sign, *pair.second._coef, *pair.second._p->first, *pair.second._p->second);
             }
         }
@@ -5869,14 +5926,14 @@ void func<type>::clean_terms(){
             param<type> p(_name+"_poly_coef"+to_string(index++));
             p.in(range(1,c->get_dim()));
             p.copy_vals(*c);
-            if(!p.is_zero()){
+            if(!p.is_all_zero()){
                 pair.second._coef = make_shared<param<>>(p);
                 new_f.insert(pair.second);
             }
         }
         else if (pair.second._coef->is_param()){
             auto p = static_pointer_cast<param<type>>(pair.second._coef);
-            if(!p->is_zero()){
+            if(!p->is_all_zero()){
                 new_f.insert(pair.second);
             }
         }
@@ -6199,6 +6256,15 @@ void func<type>::reorder_rows(const vector<int>& new_order, int& tag, bool updat
  */
 template<typename type>
 void func<type>::update_rows(const vector<bool>& keep_ids, int& tag, bool update_vars_params) {
+    bool all_true = true;
+    for (auto b: keep_ids) {
+        if(!b){
+            all_true = false;
+            break;
+        }
+    }
+    if(all_true)
+        return;
     _nb_vars = 0;
     int nb_inst = 0;
     string key;

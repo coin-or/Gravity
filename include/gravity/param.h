@@ -189,8 +189,8 @@ namespace gravity {
         inline size_t get_id_inst(size_t inst = 0) const {
             if (is_indexed()) {
                 if(_indices->_ids->at(0).size() <= inst){
-                    DebugOn(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
-                    throw invalid_argument("param::get_id_inst(size_t inst) inst is out of range");
+                    DebugOff(_name << ": calling get_id_inst("<< inst <<")" << " but param/var has size " << _indices->_ids->at(0).size() << endl);
+                    return 0;
                 }
                 return _indices->_ids->at(0).at(inst);
             }
@@ -243,11 +243,23 @@ namespace gravity {
         }
         
         void update_rows(const vector<bool>& keep_ids, int& tag) {
+            bool all_true = true;
+            for (auto b: keep_ids) {
+                if(!b){
+                    all_true = false;
+                    break;
+                }
+            }
+            if(all_true)
+                return;
             if(!_indices){
                 _indices = make_shared<indices>(range(1,_dim[0]));
             }
             _indices->filter_rows(keep_ids,tag);
-            _dim[0]=_indices->size();
+            if(_is_transposed)
+                _dim[1]=_indices->size();
+            else
+                _dim[0]=_indices->size();
             reset_range();
             string name = _name.substr(0, _name.find_last_of("."));
             _name = name+".in"+_indices->get_name();
@@ -1400,6 +1412,10 @@ namespace gravity {
             return is_zero_();
         }
         
+        bool is_all_zero() const{
+            return is_all_zero_();
+        }
+        
         bool has_zero() const{
             if(_indices){
                 for (size_t i = 0; i < _indices->size(); i++) {
@@ -1418,11 +1434,21 @@ namespace gravity {
         
         template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_zero_() const { /**< Returns true if all values of this paramter are 0 **/
 //            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
-            return (get_dim()==0 || (std::abs(_range->first) == 0 && std::abs(_range->second) == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
-//            return (get_dim()==0);
+//            return (get_dim()==0 || (std::abs(_range->first) == 0 && std::abs(_range->second) == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+            return (get_dim()==0);
         }
 
         template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_zero_() const{
+            return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
+        }
+        
+        template<class T=type, typename enable_if<is_arithmetic<T>::value>::type* = nullptr> bool is_all_zero_() const { /**< Returns true if all values of this paramter are 0 **/
+            return (get_dim()==0 || (std::abs(_range->first) < 1e-12 && std::abs(_range->second) < 1e-12 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0 || (std::abs(_range->first) == 0 && std::abs(_range->second) == 0 && _name.find("lb") == string::npos && _name.find("ub") == string::npos));
+//            return (get_dim()==0);
+        }
+
+        template<class T=type, class = typename enable_if<is_same<T, Cpx>::value>::type> bool is_all_zero_() const{
             return (get_dim()==0 || (_range->first == Cpx(0,0) && _range->second == Cpx(0,0)));
         }
         

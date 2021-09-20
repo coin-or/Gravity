@@ -304,37 +304,46 @@ namespace gravity {
         
         
         /** Return the number of linear terms involving only continuous vars in this function */
-        int nb_cont_lterms() const{
+        int nb_cont_lterms(int i) const{
             int n = 0;
             for (const auto &lt: *_lterms) {
-                if(!lt.second._p->_is_relaxed)
-                    n++;
+                if(!lt.second._p->_is_relaxed){
+                    if(lt.second._p->is_matrix_indexed())
+                        n += lt.second._p->_indices->_ids->at(i).size();
+                    else
+                        n++;
+                }
             }
             return n;
         }
         
         /** Return the number of linear terms involving only integer vars in this function */
-        int nb_int_lterms() const{
+        int nb_int_lterms(int i) const{
             int n = 0;
             for (const auto &lt: *_lterms) {
-                if(lt.second._p->_is_relaxed)
-                    n++;
+                if(lt.second._p->_is_relaxed){
+                    if(lt.second._p->is_matrix_indexed())
+                        n += lt.second._p->_indices->_ids->at(i).size();
+                    else
+                        n++;
+                }
             }
             return n;
         }
         
         /** Return the number of quadratic terms involving only continuous vars in this function */
-        int nb_cont_quad_terms() const{
+        int nb_cont_quad_terms(int i) const{
             int n = 0;
             for (const auto &qt: *_qterms) {
-                if(!qt.second._p->first->_is_relaxed && !qt.second._p->second->_is_relaxed)
+                if(!qt.second._p->first->_is_relaxed && !qt.second._p->second->_is_relaxed){
                     n++;
+                }
             }
             return n;
         }
         
         /** Return the number of quadratic terms involving only integers vars in this function */
-        int nb_int_quad_terms() const{
+        int nb_int_quad_terms(int i) const{
             int n = 0;
             for (const auto &qt: *_qterms) {
                 if(qt.second._p->first->_is_relaxed && qt.second._p->second->_is_relaxed)
@@ -344,7 +353,7 @@ namespace gravity {
         }
         
         /** Return the number of quadratic terms involving the product of a continuous and an integer var in this function */
-        int nb_hyb_quad_terms() const{
+        int nb_hyb_quad_terms(int i) const{
             int n = 0;
             for (const auto &qt: *_qterms) {
                 if(qt.second._p->first->_is_relaxed != qt.second._p->second->_is_relaxed)
@@ -354,8 +363,17 @@ namespace gravity {
         }
         
         /** Return the number of linear terms in this function */
-        int nb_linear_terms() const{
-            return _lterms->size();
+        int nb_linear_terms(int inst) const{
+            int n = 0;
+            for (auto &pair:*_lterms) {
+                if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
+                    n += pair.second._p->get_dim(inst);
+                }
+                else{
+                    n += 1;
+                }
+            }
+            return n;
         }
         
         /** Return the number of quadratic terms in this function */
@@ -3284,6 +3302,7 @@ namespace gravity {
             return constant_::get_dim(i);
         }
         
+        
         size_t get_nb_inst() const{
             if(is_matrix_indexed())
                 return _indices->_ids->size();
@@ -3291,6 +3310,26 @@ namespace gravity {
                 return _indices->size();
             }            
             return this->_dim[0];
+        }
+        
+        /** Returns a map <key,set> where key is the sparsity degree and set is the set of instances that have that sparsity degree number  */
+        map<int,set<int>> get_sparsity_map() const{
+            map<int,set<int>> degrees;
+            size_t nb_inst = this->get_nb_inst();
+            for (size_t inst = 0; inst<nb_inst; inst++) {
+                int deg = 0;
+                for (auto &pair:*_lterms) {
+                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
+                        deg += pair.second._p->get_dim(inst);
+                    }
+                    else{
+                        deg += 1;
+                    }
+                }
+                deg += _qterms->size();
+                degrees[deg].insert(inst);
+            }            
+            return degrees;
         }
         
         void print(int prec){

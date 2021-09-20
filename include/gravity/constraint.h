@@ -432,59 +432,124 @@ public:
         return fabs(this->_val->at(inst)) < tol;
     }
     
-    int get_lterm_cont_var_id(int i) const{
+    int get_lterm_cont_var_name(int i, int inst) const{
         int idx = 0;
-        int nb_terms = this->nb_linear_terms();
+        int nb_terms = this->nb_linear_terms(inst);
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_lterm_cont_var_name(), out of bounds index");
+        }
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
+        }
+        auto iter =ordered_lterms.begin();
+        while (iter != ordered_lterms.end()) {
+            if(!iter->second._p->_is_relaxed){
+                if(iter->second._p->is_matrix_indexed()){
+                    auto n = iter->second._p->get_dim(inst);
+                    for (int k = 0; k<n; k++) {
+                        if(idx==i)
+                            return iter->second._p->get_vec_id();
+                        idx++;
+                    }
+                }
+                else{
+                    if(idx==i)
+                        return iter->second._p->get_vec_id();
+                    idx++;
+                }
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_lterm_cont_var_name(), out of bounds index");
+    }
+    
+    int get_lterm_cont_var_id(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_linear_terms(inst);
         if(i>=nb_terms){
             throw invalid_argument("in call to get_lterm_cont_var_id(), out of bounds index");
         }
         map<int, lterm> ordered_lterms;
+        
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != ordered_lterms.end()) {
             if(!iter->second._p->_is_relaxed){
-                if(idx==i)
-                    return iter->second._p->get_id_inst();
-                idx++;
+                if(iter->second._p->is_matrix_indexed()){
+                    auto n = iter->second._p->get_dim(inst);
+                    for (int k = 0; k<n; k++) {
+                        if(idx==i)
+                            return iter->second._p->_indices->_ids->at(inst).at(k);
+                        idx++;
+                    }
+                }
+                else{
+                    if(idx==i)
+                        return iter->second._p->get_id_inst(inst);
+                    idx++;
+                }
             }
             iter++;
         }
-        
+        throw invalid_argument("in get_lterm_cont_var_id(i), i out of bounds");
     }
     
-    int get_qterm_cont_var_id1(int i) const{
+    int get_qterm_cont_var_id1(int i, int inst) const{
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_cont_var_id1(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(!iter->second._p->first->_is_relaxed && !iter->second._p->second->_is_relaxed){
                 if(idx==i)
-                    return iter->second._p->first->get_id_inst();
+                    return iter->second._p->first->get_id_inst(inst);
                 idx++;
             }
             iter++;
         }
-        return -1;
+        throw invalid_argument("in get_qterm_cont_var_id1(i), i out of bounds");
     }
     
-    int get_qterm_hyb_var_id1(int i) const{/* Return the continuous variable index appearing in the ith hybrid quadratic term */
+    int get_qterm_cont_var_name1(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_quad_terms();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_qterm_cont_var_name1(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(!iter->second._p->first->_is_relaxed && !iter->second._p->second->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->first->get_vec_id();
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in get_qterm_cont_var_name1(i), i out of bounds");
+    }
+    
+    int get_qterm_hyb_var_id1(int i, int inst) const{/* Return the continuous variable index appearing in the ith hybrid quadratic term */
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_hyb_var_id1(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed != iter->second._p->second->_is_relaxed){
                 if(idx==i){
                     if(!iter->second._p->first->_is_relaxed)
-                        return iter->second._p->first->get_id_inst();
-                    return iter->second._p->second->get_id_inst();
+                        return iter->second._p->first->get_id_inst(inst);
+                    return iter->second._p->second->get_id_inst(inst);
                 }
                 idx++;
             }
@@ -493,19 +558,40 @@ public:
         return -1;
     }
     
-    int get_qterm_hyb_var_id2(int i) const{/* Return the integer variable index appearing in the ith hybrid quadratic term */
+    int get_qterm_hyb_var_name1(int i, int inst) const{/* Return the continuous variable index appearing in the ith hybrid quadratic term */
+        int idx = 0;
+        int nb_terms = this->nb_quad_terms();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_qterm_hyb_var_name1(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(iter->second._p->first->_is_relaxed != iter->second._p->second->_is_relaxed){
+                if(idx==i){
+                    if(!iter->second._p->first->_is_relaxed)
+                        return iter->second._p->first->get_vec_id();
+                    return iter->second._p->second->get_vec_id();
+                }
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_qterm_hyb_var_name1(), out of bounds index");
+    }
+    
+    int get_qterm_hyb_var_id2(int i, int inst) const{/* Return the integer variable index appearing in the ith hybrid quadratic term */
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_hyb_var_id2(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed != iter->second._p->second->_is_relaxed){
                 if(idx==i){
                     if(iter->second._p->first->_is_relaxed)
-                        return iter->second._p->first->get_id_inst();
-                    return iter->second._p->second->get_id_inst();
+                        return iter->second._p->first->get_id_inst(inst);
+                    return iter->second._p->second->get_id_inst(inst);
                 }
                 idx++;
             }
@@ -514,17 +600,38 @@ public:
         return -1;
     }
     
-    int get_qterm_int_var_id1(int i) const{
+    int get_qterm_hyb_var_name2(int i, int inst) const{/* Return the integer variable index appearing in the ith hybrid quadratic term */
+        int idx = 0;
+        int nb_terms = this->nb_quad_terms();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_qterm_hyb_var_name2(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(iter->second._p->first->_is_relaxed != iter->second._p->second->_is_relaxed){
+                if(idx==i){
+                    if(iter->second._p->first->_is_relaxed)
+                        return iter->second._p->first->get_vec_id();
+                    return iter->second._p->second->get_vec_id();
+                }
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_qterm_hyb_var_name2(), out of bounds index");
+    }
+    
+    int get_qterm_int_var_id1(int i, int inst) const{
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_int_var_id1(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed && iter->second._p->second->_is_relaxed){
                 if(idx==i)
-                    return iter->second._p->first->get_id_inst();
+                    return iter->second._p->first->get_id_inst(inst);
                 idx++;
             }
             iter++;
@@ -532,17 +639,35 @@ public:
         return -1;
     }
     
-    int get_qterm_int_var_id2(int i) const{
+    int get_qterm_int_var_name1(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_quad_terms();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_qterm_int_var_name1(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(iter->second._p->first->_is_relaxed && iter->second._p->second->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->first->get_vec_id();
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_qterm_int_var_name1(), out of bounds index");
+    }
+    
+    int get_qterm_int_var_id2(int i, int inst) const{
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_int_var_id2(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed && iter->second._p->second->_is_relaxed){
                 if(idx==i)
-                    return iter->second._p->second->get_id_inst();
+                    return iter->second._p->second->get_id_inst(inst);
                 idx++;
             }
             iter++;
@@ -550,17 +675,35 @@ public:
 	return -1;
     }
     
-    int get_qterm_cont_var_id2(int i) const{
+    int get_qterm_int_var_name2(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_quad_terms();
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_qterm_int_var_name2(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(iter->second._p->first->_is_relaxed && iter->second._p->second->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->second->get_vec_id();
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_qterm_int_var_name2(), out of bounds index");
+    }
+    
+    int get_qterm_cont_var_id2(int i, int inst) const{
         int idx = 0;
         int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
             throw invalid_argument("in call to get_qterm_cont_var_id2(), out of bounds index");
         }
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(!iter->second._p->first->_is_relaxed && !iter->second._p->second->_is_relaxed){
                 if(idx==i)
-                    return iter->second._p->second->get_id_inst();
+                    return iter->second._p->second->get_id_inst(inst);
                 idx++;
             }
             iter++;
@@ -568,22 +711,42 @@ public:
 	return -1;
     }
     
-    
-    int get_lterm_int_var_id(int i) const{
+    int get_qterm_cont_var_name2(int i, int inst) const{
         int idx = 0;
-        int nb_terms = this->nb_linear_terms();
+        int nb_terms = this->nb_quad_terms();
         if(i>=nb_terms){
-            throw invalid_argument("in call to eval_lterm_coef(), out of bounds index");
+            throw invalid_argument("in call to get_qterm_cont_var_name2(), out of bounds index");
+        }
+        auto iter =this->_qterms->begin();
+        while (iter != this->_qterms->end()) {
+            if(!iter->second._p->first->_is_relaxed && !iter->second._p->second->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->second->get_vec_id();
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_qterm_cont_var_name2(), out of bounds index");
+    }
+    
+    
+    int get_lterm_int_var_id(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_linear_terms(inst);
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_lterm_int_var_id(), out of bounds index");
         }
         map<int, lterm> ordered_lterms;
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != ordered_lterms.end()) {
             if(iter->second._p->_is_relaxed){
                 if(idx==i)
-                    return iter->second._p->get_id_inst();
+                    return iter->second._p->get_id_inst(inst);
                 idx++;
             }
             iter++;
@@ -591,29 +754,53 @@ public:
         return -1;
     }
     
-    type eval_qterm_cont_coef(int i) const{
+    int get_lterm_int_var_name(int i, int inst) const{
+        int idx = 0;
+        int nb_terms = this->nb_linear_terms(inst);
+        if(i>=nb_terms){
+            throw invalid_argument("in call to get_lterm_int_var_name(), out of bounds index");
+        }
+        map<int, lterm> ordered_lterms;
+        for(const auto &lt: *this->_lterms){
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
+        }
+        auto iter =ordered_lterms.begin();
+        while (iter != ordered_lterms.end()) {
+            if(iter->second._p->_is_relaxed){
+                if(idx==i)
+                    return iter->second._p->get_vec_id();
+                idx++;
+            }
+            iter++;
+        }
+        throw invalid_argument("in call to get_lterm_int_var_name(), out of bounds index");
+    }
+    
+    type eval_qterm_cont_coef(int i, int inst) const{
         int nb_terms = this->nb_quad_terms();
         int idx = 0;
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(!iter->second._p->first->_is_relaxed && !iter->second._p->second->_is_relaxed){
                 if(idx==i){
                     if(iter->second._coef->is_param()) {
                         auto p_cst = ((param<>*)(iter->second._coef.get()));
                         if (!iter->second._sign) {
-                            return -1*p_cst->eval(0);
+                            return -1*p_cst->eval(inst);
                         }
                         else {
-                            return p_cst->eval(0);
+                            return p_cst->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_function()) {
                         auto f = static_pointer_cast<func<>>(iter->second._coef);
                         if (!iter->second._sign) {
-                            return -1*f->eval(0);
+                            return -1*f->eval(inst);
                         }
                         else {
-                            return f->eval(0);
+                            return f->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_number()) {
@@ -633,63 +820,104 @@ public:
 	return 0;
     }
     
-    type eval_lterm_cont_coef(int i) const{
-        int nb_terms = this->nb_linear_terms();
+    type eval_lterm_cont_coef(int i, int inst) const{
+        int nb_terms = this->nb_linear_terms(inst);
         int idx = 0;
+        
         map<int, lterm> ordered_lterms;
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != ordered_lterms.end()) {
             if(!iter->second._p->_is_relaxed){
-                if(idx==i){
-                    if(iter->second._coef->is_param()) {
-                        auto p_cst = ((param<>*)(iter->second._coef.get()));
-                        if (!iter->second._sign) {
-                            return -1*p_cst->eval(0);
+                if(iter->second._p->is_matrix_indexed()){
+                    auto n = iter->second._p->get_dim(inst);
+                    for (int k = 0; k<n; k++) {
+                        if(idx==i){
+                            if(iter->second._coef->is_param()) {
+                                auto p_cst = ((param<>*)(iter->second._coef.get()));
+                                if (!iter->second._sign) {
+                                    return -1*p_cst->eval(k);
+                                }
+                                else {
+                                    return p_cst->eval(k);
+                                }
+                            }
+                            if(iter->second._coef->is_function()) {
+                                auto f = static_pointer_cast<func<>>(iter->second._coef);
+                                if (!iter->second._sign) {
+                                    return -1*f->eval(k);
+                                }
+                                else {
+                                    return f->eval(k);
+                                }
+                            }
+                            if(iter->second._coef->is_number()) {
+                                auto p_cst = ((constant<>*)(iter->second._coef.get()));
+                                if (!iter->second._sign) {
+                                    return -1*p_cst->eval();
+                                }
+                                else {
+                                    return p_cst->eval();
+                                }
+                            }
                         }
-                        else {
-                            return p_cst->eval(0);
-                        }
-                    }
-                    if(iter->second._coef->is_function()) {
-                        auto f = static_pointer_cast<func<>>(iter->second._coef);
-                        if (!iter->second._sign) {
-                            return -1*f->eval(0);
-                        }
-                        else {
-                            return f->eval(0);
-                        }
-                    }
-                    if(iter->second._coef->is_number()) {
-                        auto p_cst = ((constant<>*)(iter->second._coef.get()));
-                        if (!iter->second._sign) {
-                            return -1*p_cst->eval();
-                        }
-                        else {
-                            return p_cst->eval();
-                        }
+                        idx++;
                     }
                 }
-                idx++;
+                else{
+                    if(idx==i){
+                        if(iter->second._coef->is_param()) {
+                            auto p_cst = ((param<>*)(iter->second._coef.get()));
+                            if (!iter->second._sign) {
+                                return -1*p_cst->eval(inst);
+                            }
+                            else {
+                                return p_cst->eval(inst);
+                            }
+                        }
+                        if(iter->second._coef->is_function()) {
+                            auto f = static_pointer_cast<func<>>(iter->second._coef);
+                            f->eval_all();
+                            if (!iter->second._sign) {
+                                return -1*f->eval(inst);
+                            }
+                            else {
+                                return f->eval(inst);
+                            }
+                        }
+                        if(iter->second._coef->is_number()) {
+                            auto p_cst = ((constant<>*)(iter->second._coef.get()));
+                            if (!iter->second._sign) {
+                                return -1*p_cst->eval();
+                            }
+                            else {
+                                return p_cst->eval();
+                            }
+                        }
+                    }
+                    idx++;
+                }
             }
             iter++;
         }
-	return 0;
+        return 0;
     }
     
-    type eval_qterm_int_coef(int i) const{
+    type eval_qterm_int_coef(int i, int inst) const{
         int nb_terms = this->nb_quad_terms();
         int idx = 0;
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed && iter->second._p->second->_is_relaxed){
                 if(idx==i){
                     if(iter->second._coef->is_param()) {
                         auto p_cst = ((param<>*)(iter->second._coef.get()));
                         if (!iter->second._sign) {
-                            return -1*p_cst->eval(0);
+                            return -1*p_cst->eval(inst);
                         }
                         else {
                             return p_cst->eval(0);
@@ -698,10 +926,10 @@ public:
                     if(iter->second._coef->is_function()) {
                         auto f = static_pointer_cast<func<>>(iter->second._coef);
                         if (!iter->second._sign) {
-                            return -1*f->eval(0);
+                            return -1*f->eval(inst);
                         }
                         else {
-                            return f->eval(0);
+                            return f->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_number()) {
@@ -721,29 +949,29 @@ public:
 	return 0;
     }
     
-    type eval_qterm_hyb_coef(int i) const{
+    type eval_qterm_hyb_coef(int i, int inst) const{
         int nb_terms = this->nb_quad_terms();
         int idx = 0;
         auto iter =this->_qterms->begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != this->_qterms->end()) {
             if(iter->second._p->first->_is_relaxed != iter->second._p->second->_is_relaxed){
                 if(idx==i){
                     if(iter->second._coef->is_param()) {
                         auto p_cst = ((param<>*)(iter->second._coef.get()));
                         if (!iter->second._sign) {
-                            return -1*p_cst->eval(0);
+                            return -1*p_cst->eval(inst);
                         }
                         else {
-                            return p_cst->eval(0);
+                            return p_cst->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_function()) {
                         auto f = static_pointer_cast<func<>>(iter->second._coef);
                         if (!iter->second._sign) {
-                            return -1*f->eval(0);
+                            return -1*f->eval(inst);
                         }
                         else {
-                            return f->eval(0);
+                            return f->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_number()) {
@@ -763,33 +991,35 @@ public:
 	return 0;
     }
     
-    type eval_lterm_int_coef(int i) const{
-        int nb_terms = this->nb_linear_terms();
+    type eval_lterm_int_coef(int i, int inst) const{
+        int nb_terms = this->nb_linear_terms(inst);
         int idx = 0;
         map<int, lterm> ordered_lterms;
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
-        for (int j = 0; j<nb_terms; j++) {
+        while (iter != ordered_lterms.end()) {
             if(iter->second._p->_is_relaxed){
                 if(idx==i){
                     if(iter->second._coef->is_param()) {
                         auto p_cst = ((param<>*)(iter->second._coef.get()));
                         if (!iter->second._sign) {
-                            return -1*p_cst->eval(0);
+                            return -1*p_cst->eval(inst);
                         }
                         else {
-                            return p_cst->eval(0);
+                            return p_cst->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_function()) {
                         auto f = static_pointer_cast<func<>>(iter->second._coef);
                         if (!iter->second._sign) {
-                            return -1*f->eval(0);
+                            return -1*f->eval(inst);
                         }
                         else {
-                            return f->eval(0);
+                            return f->eval(inst);
                         }
                     }
                     if(iter->second._coef->is_number()) {
@@ -813,7 +1043,7 @@ public:
      @param[in] con: quadratic constraint to add in current symbolic constraint
      */
     template<typename T=type>
-    void add_quad_row(const shared_ptr<Constraint<type>>& con){
+    void add_quad_row(const shared_ptr<Constraint<type>>& con, int inst){
         if(!(this->is_quadratic() || this->is_linear() || this->is_constant())){
             throw invalid_argument("calling add_quad_row on a nonlinear constraint that is not quadratic!");
         }
@@ -822,24 +1052,26 @@ public:
         this->_dim[0] = this->_indices->_keys->size();
         this->_violated.push_back(true);
         DebugOff("nb inst "<<nb_inst);
-        int nb_cont_lin_terms = con->nb_cont_lterms();
-        int nb_int_lin_terms = con->nb_int_lterms();
-        int nb_cont_quad_terms = con->nb_cont_quad_terms();
-        int nb_int_quad_terms = con->nb_int_quad_terms();
-        int nb_hyb_quad_terms = con->nb_hyb_quad_terms();
-        if(nb_cont_lin_terms!=this->nb_cont_lterms() || nb_int_lin_terms!=this->nb_int_lterms() || nb_cont_quad_terms!= this->nb_cont_quad_terms() || nb_int_quad_terms != this->nb_int_quad_terms() || nb_hyb_quad_terms != this->nb_hyb_quad_terms()){
+        int nb_cont_lin_terms = con->nb_cont_lterms(inst);
+        int nb_int_lin_terms = con->nb_int_lterms(inst);
+        int nb_cont_quad_terms = con->nb_cont_quad_terms(inst);
+        int nb_int_quad_terms = con->nb_int_quad_terms(inst);
+        int nb_hyb_quad_terms = con->nb_hyb_quad_terms(inst);
+        if(nb_cont_lin_terms!=this->nb_cont_lterms(0) || nb_int_lin_terms!=this->nb_int_lterms(0) || nb_cont_quad_terms!= this->nb_cont_quad_terms(0) || nb_int_quad_terms != this->nb_int_quad_terms(0) || nb_hyb_quad_terms != this->nb_hyb_quad_terms(0)){
             throw invalid_argument("adding row with different sparsity structure");
         }
         map<int, lterm> ordered_lterms;
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
         for(int i = 0;i < nb_cont_lin_terms; i++){/* terms with continuous variables */
             auto l = iter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -848,16 +1080,16 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i,inst));
                 l->second._coef = p;
             }
-            l->second._p->_indices->add_ref(con->get_lterm_cont_var_id(i));
+            l->second._p->_indices->add_ref(con->get_lterm_cont_var_id(i,inst));
         }
         for(int i = 0;i < nb_int_lin_terms; i++){/* terms with integer variables */
             auto l =  iter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -866,17 +1098,17 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i,inst));
                 l->second._coef = p;
             }
-            l->second._p->_indices->add_ref(con->get_lterm_int_var_id(i));
+            l->second._p->_indices->add_ref(con->get_lterm_int_var_id(i,inst));
         }
         auto qiter =this->_qterms->begin();
         for(int i = 0;i < nb_cont_quad_terms; i++){/* terms with continuous variables */
             auto l = qiter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_cont_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_cont_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -885,19 +1117,19 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_cont_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_cont_coef(i,inst));
                 l->second._coef = p;
             }
             if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
-                l->second._p->first->_indices->add_ref(con->get_qterm_cont_var_id1(i));
+                l->second._p->first->_indices->add_ref(con->get_qterm_cont_var_id1(i,inst));
             if(l->second._p->second->_indices->size()<this->_dim[0])
-                l->second._p->second->_indices->add_ref(con->get_qterm_cont_var_id2(i));
+                l->second._p->second->_indices->add_ref(con->get_qterm_cont_var_id2(i,inst));
         }
         for(int i = 0;i < nb_int_quad_terms; i++){/* terms with integer variables */
             auto l =  qiter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -906,19 +1138,19 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i,inst));
                 l->second._coef = p;
             }
             if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
-                l->second._p->first->_indices->add_ref(con->get_qterm_int_var_id1(i));
+                l->second._p->first->_indices->add_ref(con->get_qterm_int_var_id1(i,inst));
             if(l->second._p->second->_indices->size()<this->_dim[0])
-                l->second._p->second->_indices->add_ref(con->get_qterm_int_var_id2(i));
+                l->second._p->second->_indices->add_ref(con->get_qterm_int_var_id2(i,inst));
         }
         for(int i = 0;i < nb_hyb_quad_terms; i++){/* terms with mixed cont*integer variables */
             auto l =  qiter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -927,18 +1159,18 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_qterm_int_coef(i,inst));
                 l->second._coef = p;
             }
             if(l->second._p->first->_indices->size()<this->_dim[0])/* make sure the index set has not been extended already (variable appearing in another quadratic term) */
-                l->second._p->first->_indices->add_ref(con->get_qterm_hyb_var_id1(i));
+                l->second._p->first->_indices->add_ref(con->get_qterm_hyb_var_id1(i,inst));
             if(l->second._p->second->_indices->size()<this->_dim[0])
-                l->second._p->second->_indices->add_ref(con->get_qterm_hyb_var_id2(i));
+                l->second._p->second->_indices->add_ref(con->get_qterm_hyb_var_id2(i,inst));
         }
             //Set value of the constant
         if(this->_cst->is_param()){
             auto co_cst = ((param<>*)(this->_cst.get()));
-            co_cst->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+            co_cst->add_val("inst_"+to_string(nb_inst), con->eval_cst(inst));
         }
         else if(this->_cst->is_function()){
             auto rhs_f = static_pointer_cast<func<>>(this->_cst);
@@ -946,7 +1178,7 @@ public:
                 throw invalid_argument("function should be a param");
             }
             auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-            rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+            rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(inst));
             this->_cst = rhs_p;
         }
     }
@@ -956,7 +1188,7 @@ public:
      @param[in] con: linear constraint to add in current symbolic constraint
      */
     template<typename T=type>
-    void add_linear_row(const shared_ptr<Constraint<type>>& con){
+    void add_linear_row(const shared_ptr<Constraint<type>>& con, int inst){
         if(!(this->is_linear() || this->is_constant())){
             throw invalid_argument("calling add_linear_row on a nonlinear constraint!");
         }
@@ -965,21 +1197,23 @@ public:
         this->_dim[0] = this->_indices->_keys->size();
         this->_violated.push_back(true);
         DebugOff("nb inst "<<nb_inst);
-        int nb_int_vars = con->nb_int_lterms();
-        int nb_cont_vars = con->nb_cont_lterms();
-        if(nb_cont_vars!=this->nb_cont_lterms() || nb_int_vars!=this->nb_int_lterms()){
+        int nb_int_vars = con->nb_int_lterms(inst);
+        int nb_cont_vars = con->nb_cont_lterms(inst);
+        if(nb_cont_vars!=this->nb_cont_lterms(inst) || nb_int_vars!=this->nb_int_lterms(inst)){
             throw invalid_argument("adding row with different sparsity structure");
         }
         map<int, lterm> ordered_lterms;
         for(const auto &lt: *this->_lterms){
-            ordered_lterms[lt.second._p->get_id()+lt.second._p->get_id_inst()] = lterm(lt.second._sign, lt.second._coef,lt.second._p);
+            int unique_id = 0;
+            while(!ordered_lterms.insert({lt.second._p->get_id()+lt.second._p->get_id_inst()+unique_id,lterm(lt.second._sign, lt.second._coef,lt.second._p)}).second)
+                unique_id++;
         }
         auto iter =ordered_lterms.begin();
         for(int i = 0;i < nb_cont_vars; i++){/* terms with continuous variables */
             auto l = iter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -988,16 +1222,16 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_cont_coef(i,inst));
                 l->second._coef = p;
             }
-            l->second._p->_indices->add_ref(con->get_lterm_cont_var_id(i));
+            l->second._p->_indices->add_ref(con->get_lterm_cont_var_id(i,inst));
         }
         for(int i = 0;i < nb_int_vars; i++){/* terms with integer variables */
             auto l =  iter++;
             if(l->second._coef->is_param()) {
                 auto p_cst = ((param<>*)(l->second._coef.get()));
-                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                p_cst->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i,inst));
                 DebugOff("added p"<<endl);
             }
             else {
@@ -1006,15 +1240,15 @@ public:
                     throw invalid_argument("function should be a param");
                 }
                 auto p = static_pointer_cast<param<>>(f->_params->begin()->second.first);
-                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i));
+                p->add_val("inst_"+to_string(nb_inst), con->eval_lterm_int_coef(i,inst));
                 l->second._coef = p;
             }
-            l->second._p->_indices->add_ref(con->get_lterm_int_var_id(i));
+            l->second._p->_indices->add_ref(con->get_lterm_int_var_id(i,inst));
         }
             //Set value of the constant
         if(this->_cst->is_param()){
             auto co_cst = ((param<>*)(this->_cst.get()));
-            co_cst->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+            co_cst->add_val("inst_"+to_string(nb_inst), con->eval_cst(inst));
         }
         else if(this->_cst->is_function()){
             auto rhs_f = static_pointer_cast<func<>>(this->_cst);
@@ -1022,7 +1256,7 @@ public:
                 throw invalid_argument("function should be a param");
             }
             auto rhs_p = static_pointer_cast<param<>>(rhs_f->_params->begin()->second.first);
-            rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(0));
+            rhs_p->add_val("inst_"+to_string(nb_inst), con->eval_cst(inst));
             this->_cst = rhs_p;
         }
     }

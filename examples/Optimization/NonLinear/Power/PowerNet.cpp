@@ -1322,6 +1322,10 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     /** Construct the objective function */
     /**  Objective */
     auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+//    auto obj = sum(c0);
+//    for (auto pg_id: *Pg.get_indices()._keys) {
+//        obj += c1(pg_id)*Pg(pg_id);
+//    }
     ACOPF->min(obj);
     
     /** Define constraints */
@@ -2273,7 +2277,12 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     if(nonlin_obj)
     {
-        auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
+        auto obj = sum(c0);
+        for (auto pg_id: *Pg.get_indices()._keys) {
+            obj += c1(pg_id)*Pg(pg_id);
+            obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
+        }
+//        auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         SDPOPF->min(obj);
 
     }

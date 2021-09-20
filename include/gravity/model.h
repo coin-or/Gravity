@@ -49,14 +49,14 @@ namespace gravity {
 
 template<typename type>
 const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr<Constraint<type>>& c2) {
-        //    if(c1->is_linear() && !c2->is_linear())/* project linear first */
-        //        return true;
-        //    if(c2->is_linear() && !c1->is_linear())
-        //        return false;
+//            if(c1->is_linear() && !c2->is_linear())/* project linear first */
+//                return true;
+//            if(c2->is_linear() && !c1->is_linear())
+//                return false;
     if(c1->get_nb_inst() > c2->get_nb_inst())
         return true;
     return false;
-        //        return c1->nb_linear_terms() > c2->nb_linear_terms();
+//                return c1->nb_linear_terms(0) > c2->nb_linear_terms(0);
 }
 
 const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<string,shared_ptr<param_>>& v2);
@@ -943,6 +943,19 @@ public:
         throw invalid_argument("In function: Model::get_var<T>(const string& vname) const, cannot cast variable, make sure to use the right numerical type T");
     }
     
+    template <typename T>
+    var<T> get_var(int vid) const{
+        auto it = _vars.find(vid);
+        if (it==_vars.end()) {
+            throw invalid_argument("In function: Model::get_var(int vid) const, unable to find variable with given id");
+        }
+        auto v = dynamic_pointer_cast<var<T>>(it->second);
+        if(v){
+            return *v;
+        }
+        throw invalid_argument("In function: Model::get_var<T>(int vid) const, cannot cast variable, make sure to use the right numerical type T");
+    }
+    
     /* Return the number of nonzeros in the lower left part of the hessian */
     
     size_t get_nb_nnz_h(){
@@ -1663,8 +1676,8 @@ public:
                     //                    c->print();
 //                if(c->get_name()=="quad_ineq_1_projected_inquad_ineq_1_filtered")
 //                    cout << "0\n";
-                DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
-                DebugOff("Old constraint: " << endl);
+//                DebugOff("After replacing " << v.get_name(false,false) << " in " << c->get_name() << ": " << endl);
+//                DebugOff("Old constraint: " << endl);
 //                                    c->print();
                 int nb_inst = c->get_nb_instances();
                 auto new_c = c->replace(v, f, tag_iter);
@@ -2186,66 +2199,106 @@ public:
     }
     
     
+    template<typename T=type,
+    typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+    void vectorize() {/*<  transform matrix equations/inequalities into vector constraints based on their sparsity patterns */
+        int sparsity_degree = 0;
+        for (auto& c_pair:_cons) {
+            if(c_pair.second->_vars->begin()->second.first->is_matrix_indexed()){
+                /* start with linear constraints */
+                auto sparsity_map = c_pair.second->get_sparsity_map();
+                sparsity_degree = sparsity_map.size();
+                DebugOn("Constraint " << c_pair.second->_name << " has a sparsity degree of " << sparsity_degree << endl);
+                auto iter = sparsity_map.begin();
+                for(int index = 0; index<sparsity_degree; index++){
+                    Constraint<> eq(c_pair.second->_name+"_"+to_string(index));
+                    param<> c0("c0_"+c_pair.second->_name+"_"+to_string(index));
+                    auto inst_iter = iter->second.begin();
+                    int inst_id = *inst_iter;
+                    c0 = c_pair.second->eval_cst(inst_id);
+                    indices cst_ids("cst_"+c_pair.second->_name+"_"+to_string(index));
+                    cst_ids.insert("inst_1");
+                    eq += c0.in(cst_ids);
+                    int nb_cont_vars = iter->first;
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        indices coef_eq_ids("lin_coefs"+to_string(index)+"_"+to_string(i));
+                        coef_eq_ids.insert("inst_1");
+//                        x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_eq_x_ids");
+//                        x_ids[i] = *x._indices;
+//                        x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+//                        x_coefs[i] = param<>("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
+//                        x_coefs[i] = con0->eval_lterm_cont_coef(i);
+//                        eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
+                    }
+                    iter++;
+                }
+            }
+        }
+    }
     
     
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     void restructure() {/*<  group equations/inequalities that share the sparsity patterns */
         vector<string> delete_cstr;
-        list<shared_ptr<Constraint<type>>> lin_eq_list; /* list of linear equations */
-        list<shared_ptr<Constraint<type>>> lin_ineq_list; /* list of linear inequalities */
-        list<shared_ptr<Constraint<type>>> quad_eq_list; /* list of quadratic equations */
-        list<shared_ptr<Constraint<type>>> quad_ineq_list; /* list of quadratic inequalities */
-        map<pair<int,int>,vector<shared_ptr<Constraint<type>>>> lin_eq_sparsity, lin_ineq_sparsity;
-        map<tuple<int,int,int,int,int>,vector<shared_ptr<Constraint<type>>>> quad_eq_sparsity;
-        map<tuple<int,int,int,int,int,bool>,vector<shared_ptr<Constraint<type>>>> quad_ineq_sparsity;
+        list<pair<int,shared_ptr<Constraint<type>>>> lin_eq_list; /* list of linear equations */
+        list<pair<int,shared_ptr<Constraint<type>>>> lin_ineq_list; /* list of linear inequalities */
+        list<pair<int,shared_ptr<Constraint<type>>>> quad_eq_list; /* list of quadratic equations */
+        list<pair<int,shared_ptr<Constraint<type>>>> quad_ineq_list; /* list of quadratic inequalities */
+        map<pair<pair<int,int>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> lin_eq_sparsity, lin_ineq_sparsity;
+        map<pair<tuple<int,int,int,int,int>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_eq_sparsity;
+        map<pair<tuple<int,int,int,int,int,bool>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
-            /* start with linear constraints */
-            if(c_pair.second->is_linear()){
-                nb_int_vars = c_pair.second->nb_int_lterms();
-                nb_cont_vars = c_pair.second->nb_cont_lterms();
-                if (c_pair.second->is_eq()) {
-                    lin_eq_list.push_back(c_pair.second);
-                    lin_eq_sparsity[{nb_cont_vars,nb_int_vars}].push_back(c_pair.second);
-                }
-                else {
-                    lin_ineq_list.push_back(c_pair.second);
-                    lin_ineq_sparsity[{nb_cont_vars,nb_int_vars}].push_back(c_pair.second);
-                }
+            int nb_inst = c_pair.second->get_nb_inst();
+            set<int> var_ids;
+            for (auto &v_pair:*c_pair.second->_vars) {
+                auto v = v_pair.second;
+                var_ids.insert(v.first->get_id());
             }
-            /* check quadratic constraints */
-            if(c_pair.second->is_quadratic()){
-                nb_int_vars = c_pair.second->nb_int_lterms();
-                nb_cont_vars = c_pair.second->nb_cont_lterms();
-                nb_cont_quad_terms = c_pair.second->nb_cont_quad_terms();/** The number of quadratic terms involving only continuous vars in this function */
-                nb_int_quad_terms = c_pair.second->nb_int_quad_terms();/** The number of quadratic terms involving only integers vars in this function */
-                nb_hyb_quad_terms = c_pair.second->nb_hyb_quad_terms();/** The number of quadratic terms involving the product of a continuous and an integer var in this function */
-                if (c_pair.second->is_eq()) {
-                    quad_eq_list.push_back(c_pair.second);
-                    quad_eq_sparsity[{nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms}].push_back(c_pair.second);
+            for (size_t inst=0; inst<nb_inst; inst++) {
+                /* start with linear constraints */
+                if(c_pair.second->is_linear()){
+                    nb_int_vars = c_pair.second->nb_int_lterms(inst);
+                    nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
+                    if (c_pair.second->is_eq()) {
+                        lin_eq_list.push_back({inst,c_pair.second});
+                        lin_eq_sparsity[{{nb_cont_vars,nb_int_vars},var_ids}].push_back({inst,c_pair.second});/* Make sure they all have the same symbolic vars */
+                    }
+                    else {
+                        lin_ineq_list.push_back({inst,c_pair.second});
+                        lin_ineq_sparsity[{{nb_cont_vars,nb_int_vars},var_ids}].push_back({inst,c_pair.second});
+                    }
                 }
-                else {
-                    quad_ineq_list.push_back(c_pair.second);
-                    quad_ineq_sparsity[{c_pair.second->is_convex(),nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms}].push_back(c_pair.second);
+                /* check quadratic constraints */
+                if(c_pair.second->is_quadratic()){
+                    nb_int_vars = c_pair.second->nb_int_lterms(inst);
+                    nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
+                    nb_cont_quad_terms = c_pair.second->nb_cont_quad_terms(inst);/** The number of quadratic terms involving only continuous vars in this function */
+                    nb_int_quad_terms = c_pair.second->nb_int_quad_terms(inst);/** The number of quadratic terms involving only integers vars in this function */
+                    nb_hyb_quad_terms = c_pair.second->nb_hyb_quad_terms(inst);/** The number of quadratic terms involving the product of a continuous and an integer var in this function */
+                    if (c_pair.second->is_eq()) {
+                        quad_eq_list.push_back({inst,c_pair.second});
+                        quad_eq_sparsity[{{nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms},var_ids}].push_back({inst,c_pair.second});
+                    }
+                    else {
+                        quad_ineq_list.push_back({inst,c_pair.second});
+                        quad_ineq_sparsity[{{nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms,c_pair.second->is_convex()},var_ids}].push_back({inst,c_pair.second});
+                    }
                 }
             }
         }
         int index = 0;
-        var<> x, y;
-        if(has_var("x"))
-            x = get_var<double>("x");
-        if(has_var("y"))
-            y = get_var<double>("y");
         for( const auto & iter: lin_eq_sparsity){
             auto con_vec = iter.second;
             if(con_vec.size()>0){
-                auto con0 = con_vec[0];
+                auto con0 = con_vec[0].second;
+                auto inst0 = con_vec[0].first;
                 Constraint<> eq("lin_eq_"+to_string(index));
                 param<> c0("c0_eq_"+to_string(index));
                 c0 = con0->eval_cst(0);
-                nb_cont_vars = iter.first.first;
-                nb_int_vars = iter.first.second;
+                nb_cont_vars = iter.first.first.first;
+                nb_int_vars = iter.first.first.second;
                 vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
                 vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
                 vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
@@ -2253,23 +2306,26 @@ public:
                 indices eq_ids("lin_eq_"+to_string(index));
                 eq_ids.insert("inst_1");
                 for(int i = 0; i<nb_cont_vars;i++){
+                    auto x = get_var<double>(con0->get_lterm_cont_var_name(i,inst0));
                     indices coef_eq_ids("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_eq_x_ids");
                     x_ids[i] = *x._indices;
-                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i,inst0));
                     x_coefs[i] = param<>("coef_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
-                    x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                    x_coefs[i] = con0->eval_lterm_cont_coef(i,inst0);
                     eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_vars;i++){
+                    var<> y;
+                    y = get_var<double>(con0->get_lterm_int_var_name(i,inst0));
                     indices coef_eq_ids("coef_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_eq_y_ids");
                     y_ids[i] = *y._indices;
-                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i,inst0));
                     y_coefs[i] = param<>("coef_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
-                    y_coefs[i] = con0->eval_lterm_int_coef(i);
+                    y_coefs[i] = con0->eval_lterm_int_coef(i,inst0);
                     eq += y_coefs[i].in(coef_eq_ids)*y.in(y_ids[i]);
                 }
                 indices cst_eq_ids("cst_lin_eq_"+to_string(index));
@@ -2277,8 +2333,9 @@ public:
                 eq += c0.in(cst_eq_ids);
                 eq.in(eq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
-                    auto con = con_vec[i];
-                    eq.add_linear_row(con);
+                    auto con = con_vec[i].second;
+                    auto inst = con_vec[i].first;
+                    eq.add_linear_row(con,inst);
                     delete_cstr.push_back(con->get_name());
                 }
                 add(eq==0);
@@ -2290,15 +2347,16 @@ public:
         for( const auto & iter: quad_eq_sparsity){
             auto con_vec = iter.second;
             if(con_vec.size()>0){
-                auto con0 = con_vec[0];
+                auto con0 = con_vec[0].second;
+                auto inst0 = con_vec[0].first;
                 Constraint<> eq("quad_eq_"+to_string(index));
                 param<> c0("c0_quad_eq_"+to_string(index));
                 c0 = con0->eval_cst(0);
-                int nb_cont_lin_terms = get<0>(iter.first);
-                int nb_int_lin_terms = get<1>(iter.first);
-                int nb_cont_quad_terms = get<2>(iter.first);
-                int nb_int_quad_terms = get<3>(iter.first);
-                int nb_hyb_quad_terms = get<4>(iter.first);
+                int nb_cont_lin_terms = get<0>(iter.first.first);
+                int nb_int_lin_terms = get<1>(iter.first.first);
+                int nb_cont_quad_terms = get<2>(iter.first.first);
+                int nb_int_quad_terms = get<3>(iter.first.first);
+                int nb_hyb_quad_terms = get<4>(iter.first.first);
                 vector<indices> x_ids(nb_cont_lin_terms);/* indices for each symbolic continuous variable */
                 vector<indices> y_ids(nb_int_lin_terms);/* indices for each symbolic integer variable */
                 vector<param<>> x_coefs(nb_cont_lin_terms);/* coefficient multiplying each symbolic continuous variable */
@@ -2312,71 +2370,80 @@ public:
                 indices eq_ids("quad_eq_"+to_string(index));
                 eq_ids.insert("inst_1");
                 for(int i = 0; i<nb_cont_lin_terms;i++){
+                    auto x = get_var<double>(con0->get_lterm_cont_var_name(i,inst0));
                     indices coef_eq_ids("coef_quad_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_eq_x_ids");
                     x_ids[i] = *x._indices;
-                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i,inst0));
                     x_coefs[i] = param<>("coef_quad_lin_eq_x_coefs"+to_string(index)+"_"+to_string(i));
-                    x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                    x_coefs[i] = con0->eval_lterm_cont_coef(i,inst0);
                     eq += x_coefs[i].in(coef_eq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_lin_terms;i++){
+                    auto y = get_var<double>(con0->get_lterm_int_var_name(i,inst0));
                     indices coef_eq_ids("coef_quad_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_eq_y_ids");
                     y_ids[i] = *y._indices;
-                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i,inst0));
                     y_coefs[i] = param<>("coef_quad_lin_eq_y_coefs"+to_string(index)+"_"+to_string(i));
-                    y_coefs[i] = con0->eval_lterm_int_coef(i);
+                    y_coefs[i] = con0->eval_lterm_int_coef(i,inst0);
                     eq += y_coefs[i].in(coef_eq_ids)*y.in(y_ids[i]);
                 }
                 for(int i = 0; i<nb_cont_quad_terms;i++){
+                    auto x1 = get_var<double>(con0->get_qterm_cont_var_name1(i,inst0));
+                    auto x2 = get_var<double>(con0->get_qterm_cont_var_name2(i,inst0));
                     indices coef_eq_ids("coef_quad_eq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     xx_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_x1_ids");
-                    xx_ids[i].first = *x._indices;
-                    xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i));
+                    xx_ids[i].first = *x1._indices;
+                    xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i,inst0));
                     xx_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_x2_ids");
-                    xx_ids[i].second = *x._indices;
-                    xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i));
+                    xx_ids[i].second = *x2._indices;
+                    xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i,inst0));
                     xx_coefs[i] = param<>("coef_quad_eq_x_coefs"+to_string(index)+"_"+to_string(i));
-                    xx_coefs[i] = con0->eval_qterm_cont_coef(i);
-                    eq += xx_coefs[i].in(coef_eq_ids)*x.in(xx_ids[i].first)*x.in(xx_ids[i].second);
+                    xx_coefs[i] = con0->eval_qterm_cont_coef(i,inst0);
+                    eq += xx_coefs[i].in(coef_eq_ids)*x1.in(xx_ids[i].first)*x2.in(xx_ids[i].second);
                 }
                 for(int i = 0; i<nb_int_quad_terms;i++){
+                    auto y1 = get_var<double>(con0->get_qterm_int_var_name1(i,inst0));
+                    auto y2 = get_var<double>(con0->get_qterm_int_var_name2(i,inst0));
                     indices coef_eq_ids("coef_quad_eq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     yy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_y1_ids");
-                    yy_ids[i].first = *y._indices;
-                    yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i));
+                    yy_ids[i].first = *y1._indices;
+                    yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i,inst0));
                     yy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_y2_ids");
-                    yy_ids[i].second = *y._indices;
-                    yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i));
+                    yy_ids[i].second = *y2._indices;
+                    yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i,inst0));
                     yy_coefs[i] = param<>("coef_quad_eq_y_coefs"+to_string(index)+"_"+to_string(i));
-                    yy_coefs[i] = con0->eval_qterm_int_coef(i);
-                    eq += yy_coefs[i].in(coef_eq_ids)*y.in(yy_ids[i].first)*y.in(yy_ids[i].second);
+                    yy_coefs[i] = con0->eval_qterm_int_coef(i,inst0);
+                    eq += yy_coefs[i].in(coef_eq_ids)*y1.in(yy_ids[i].first)*y2.in(yy_ids[i].second);
                 }
                 for(int i = 0; i<nb_hyb_quad_terms;i++){
+                    auto x = get_var<double>(con0->get_qterm_hyb_var_name1(i,inst0));
+                    auto y = get_var<double>(con0->get_qterm_hyb_var_name2(i,inst0));
                     indices coef_eq_ids("coef_quad_eq_xy_coefs"+to_string(index)+"_"+to_string(i));
                     coef_eq_ids.insert("inst_1");
                     xy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_xy1_ids");
                     xy_ids[i].first = *x._indices;
-                    xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i));
+                    xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i,inst0));
                     xy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_eq_xy2_ids");
                     xy_ids[i].second = *y._indices;
-                    xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i));
+                    xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i,inst0));
                     xy_coefs[i] = param<>("coef_quad_eq_xy_coefs"+to_string(index)+"_"+to_string(i));
-                    xy_coefs[i] = con0->eval_qterm_hyb_coef(i);
+                    xy_coefs[i] = con0->eval_qterm_hyb_coef(i,inst0);
                     eq += xy_coefs[i].in(coef_eq_ids)*x.in(xy_ids[i].first)*y.in(xy_ids[i].second);
                 }
-                indices cst_eq_ids("cst_lin_eq_"+to_string(index));
+                indices cst_eq_ids("cst_quad_eq_"+to_string(index));
                 cst_eq_ids.insert("inst_1");
                 eq += c0.in(cst_eq_ids);
                 eq.in(eq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
-                    auto con = con_vec[i];
-                    eq.add_quad_row(con);
+                    auto con = con_vec[i].second;
+                    auto inst = con_vec[i].first;
+                    eq.add_quad_row(con,inst);
                     delete_cstr.push_back(con->get_name());
                 }
                 add(eq==0);
@@ -2388,7 +2455,8 @@ public:
         for( const auto & iter: lin_ineq_sparsity){
             auto con_vec = iter.second;
             if(con_vec.size()>0){
-                auto con0 = con_vec[0];
+                auto con0 = con_vec[0].second;
+                auto inst0 = con_vec[0].first;
                 bool is_geq = con0->is_geq();
                 Constraint<> leq("lin_ineq_"+to_string(index));
                 param<> c0("c0_ineq_"+to_string(index));
@@ -2396,8 +2464,8 @@ public:
                     c0 = -1*con0->eval_cst(0);
                 else
                     c0 = con0->eval_cst(0);
-                nb_cont_vars = iter.first.first;
-                nb_int_vars = iter.first.second;
+                nb_cont_vars = iter.first.first.first;
+                nb_int_vars = iter.first.first.second;
                 vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
                 vector<indices> y_ids(nb_int_vars);/* indices for each symbolic integer variable */
                 vector<param<>> x_coefs(nb_cont_vars);/* coefficient multiplying each symbolic continuous variable */
@@ -2405,29 +2473,31 @@ public:
                 indices leq_ids("lin_ineq_"+to_string(index));
                 leq_ids.insert("inst_1");
                 for(int i = 0; i<nb_cont_vars;i++){
+                    auto x = get_var<double>(con0->get_lterm_cont_var_name(i,inst0));
                     indices coef_leq_ids("coef_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_ineq_x_ids");
                     x_ids[i] = *x._indices;
-                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i,inst0));
                     x_coefs[i] = param<>("coef_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     if(is_geq)/* If >= inequality, reverse sign of coefs */
-                        x_coefs[i] = -1*con0->eval_lterm_cont_coef(i);
+                        x_coefs[i] = -1*con0->eval_lterm_cont_coef(i,inst0);
                     else
-                        x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                        x_coefs[i] = con0->eval_lterm_cont_coef(i, inst0);
                     leq += x_coefs[i].in(coef_leq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_vars;i++){
+                    auto y = get_var<double>(con0->get_lterm_int_var_name(i,inst0));
                     indices coef_leq_ids("coef_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_lin_ineq_y_ids");
                     y_ids[i] = *y._indices;
-                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i,inst0));
                     y_coefs[i] = param<>("coef_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     if(is_geq)/* If >= inequality, reverse sign of coefs */
-                        y_coefs[i] = -1*con0->eval_lterm_int_coef(i);
+                        y_coefs[i] = -1*con0->eval_lterm_int_coef(i,inst0);
                     else
-                        y_coefs[i] = con0->eval_lterm_int_coef(i);
+                        y_coefs[i] = con0->eval_lterm_int_coef(i,inst0);
                     leq += y_coefs[i].in(coef_leq_ids)*y.in(y_ids[i]);
                 }
                 indices cst_leq_ids("cst_lin_leq_"+to_string(index));
@@ -2435,10 +2505,11 @@ public:
                 leq += c0.in(cst_leq_ids);
                 leq.in(leq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
-                    auto con = con_vec[i];
+                    auto con = con_vec[i].second;
+                    auto inst = con_vec[i].first;
                     if(con->is_geq())
                         *con *= -1;
-                    leq.add_linear_row(con);
+                    leq.add_linear_row(con,inst);
                     delete_cstr.push_back(con->get_name());
                 }
                 add(leq<=0);
@@ -2450,17 +2521,18 @@ public:
         for( const auto & iter: quad_ineq_sparsity){
             auto con_vec = iter.second;
             if(con_vec.size()>0){
-                auto con0 = con_vec[0];
+                auto con0 = con_vec[0].second;
+                auto inst0 = con_vec[0].first;
                 if(con0->is_geq())/* If >= inequality, reverse sign of coefs */
                     *con0 *= -1;
                 Constraint<> leq("quad_ineq_"+to_string(index));
                 param<> c0("c0_quad_ineq_"+to_string(index));
                 c0 = con0->eval_cst(0);
-                int nb_cont_lin_terms = get<1>(iter.first);
-                int nb_int_lin_terms = get<2>(iter.first);
-                int nb_cont_quad_terms = get<3>(iter.first);
-                int nb_int_quad_terms = get<4>(iter.first);
-                int nb_hyb_quad_terms = get<5>(iter.first);
+                int nb_cont_lin_terms = get<0>(iter.first.first);
+                int nb_int_lin_terms = get<1>(iter.first.first);
+                int nb_cont_quad_terms = get<2>(iter.first.first);
+                int nb_int_quad_terms = get<3>(iter.first.first);
+                int nb_hyb_quad_terms = get<4>(iter.first.first);
                 vector<indices> x_ids(nb_cont_lin_terms);/* indices for each symbolic continuous variable */
                 vector<indices> y_ids(nb_int_lin_terms);/* indices for each symbolic integer variable */
                 vector<param<>> x_coefs(nb_cont_lin_terms);/* coefficient multiplying each symbolic continuous variable */
@@ -2474,62 +2546,70 @@ public:
                 indices leq_ids("quad_ineq_"+to_string(index));
                 leq_ids.insert("inst_1");
                 for(int i = 0; i<nb_cont_lin_terms;i++){
+                    auto x = get_var<double>(con0->get_lterm_cont_var_name(i,inst0));
                     indices coef_leq_ids("coef_quad_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     x_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_ineq_x_ids");
                     x_ids[i] = *x._indices;
-                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i));
+                    x_ids[i].add_ref(con0->get_lterm_cont_var_id(i,inst0));
                     x_coefs[i] = param<>("coef_quad_lin_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
-                    x_coefs[i] = con0->eval_lterm_cont_coef(i);
+                    x_coefs[i] = con0->eval_lterm_cont_coef(i,inst0);
                     leq += x_coefs[i].in(coef_leq_ids)*x.in(x_ids[i]);
                 }
                 for(int i = 0; i<nb_int_lin_terms;i++){
+                    auto y = get_var<double>(con0->get_lterm_int_var_name(i,inst0));
                     indices coef_leq_ids("coef_quad_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     y_ids[i].set_name(to_string(index)+"_"+to_string(i)+"_quad_lin_ineq_y_ids");
                     y_ids[i] = *y._indices;
-                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i));
+                    y_ids[i].add_ref(con0->get_lterm_int_var_id(i,inst0));
                     y_coefs[i] = param<>("coef_quad_lin_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
-                    y_coefs[i] = con0->eval_lterm_int_coef(i);
+                    y_coefs[i] = con0->eval_lterm_int_coef(i,inst0);
                     leq += y_coefs[i].in(coef_leq_ids)*y.in(y_ids[i]);
                 }
                 for(int i = 0; i<nb_cont_quad_terms;i++){
+                    auto x1 = get_var<double>(con0->get_qterm_cont_var_name1(i,inst0));
+                    auto x2 = get_var<double>(con0->get_qterm_cont_var_name2(i,inst0));
                     indices coef_leq_ids("coef_quad_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     xx_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_x1_ids");
-                    xx_ids[i].first = *x._indices;
-                    xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i));
+                    xx_ids[i].first = *x1._indices;
+                    xx_ids[i].first.add_ref(con0->get_qterm_cont_var_id1(i,inst0));
                     xx_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_x2_ids");
-                    xx_ids[i].second = *x._indices;
-                    xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i));
+                    xx_ids[i].second = *x2._indices;
+                    xx_ids[i].second.add_ref(con0->get_qterm_cont_var_id2(i,inst0));
                     xx_coefs[i] = param<>("coef_quad_ineq_x_coefs"+to_string(index)+"_"+to_string(i));
-                    xx_coefs[i] = con0->eval_qterm_cont_coef(i);
-                    leq += xx_coefs[i].in(coef_leq_ids)*x.in(xx_ids[i].first)*x.in(xx_ids[i].second);
+                    xx_coefs[i] = con0->eval_qterm_cont_coef(i,inst0);
+                    leq += xx_coefs[i].in(coef_leq_ids)*x1.in(xx_ids[i].first)*x2.in(xx_ids[i].second);
                 }
                 for(int i = 0; i<nb_int_quad_terms;i++){
+                    auto y1 = get_var<double>(con0->get_qterm_int_var_name1(i,inst0));
+                    auto y2 = get_var<double>(con0->get_qterm_int_var_name2(i,inst0));
                     indices coef_leq_ids("coef_quad_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     yy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_y1_ids");
-                    yy_ids[i].first = *y._indices;
-                    yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i));
+                    yy_ids[i].first = *y1._indices;
+                    yy_ids[i].first.add_ref(con0->get_qterm_int_var_id1(i,inst0));
                     yy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_y2_ids");
-                    yy_ids[i].second = *y._indices;
-                    yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i));
+                    yy_ids[i].second = *y2._indices;
+                    yy_ids[i].second.add_ref(con0->get_qterm_int_var_id2(i,inst0));
                     yy_coefs[i] = param<>("coef_quad_ineq_y_coefs"+to_string(index)+"_"+to_string(i));
-                    yy_coefs[i] = con0->eval_qterm_int_coef(i);
-                    leq += yy_coefs[i].in(coef_leq_ids)*y.in(yy_ids[i].first)*y.in(yy_ids[i].second);
+                    yy_coefs[i] = con0->eval_qterm_int_coef(i,inst0);
+                    leq += yy_coefs[i].in(coef_leq_ids)*y1.in(yy_ids[i].first)*y2.in(yy_ids[i].second);
                 }
                 for(int i = 0; i<nb_hyb_quad_terms;i++){
+                    auto x = get_var<double>(con0->get_qterm_hyb_var_name1(i,inst0));
+                    auto y = get_var<double>(con0->get_qterm_hyb_var_name2(i,inst0));
                     indices coef_leq_ids("coef_quad_ineq_xy_coefs"+to_string(index)+"_"+to_string(i));
                     coef_leq_ids.insert("inst_1");
                     xy_ids[i].first.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_xy1_ids");
                     xy_ids[i].first = *x._indices;
-                    xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i));
+                    xy_ids[i].first.add_ref(con0->get_qterm_hyb_var_id1(i,inst0));
                     xy_ids[i].second.set_name(to_string(index)+"_"+to_string(i)+"_quad_ineq_xy2_ids");
                     xy_ids[i].second = *y._indices;
-                    xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i));
+                    xy_ids[i].second.add_ref(con0->get_qterm_hyb_var_id2(i,inst0));
                     xy_coefs[i] = param<>("coef_quad_ineq_xy_coefs"+to_string(index)+"_"+to_string(i));
-                    xy_coefs[i] = con0->eval_qterm_hyb_coef(i);
+                    xy_coefs[i] = con0->eval_qterm_hyb_coef(i,inst0);
                     leq += xy_coefs[i].in(coef_leq_ids)*x.in(xy_ids[i].first)*y.in(xy_ids[i].second);
                 }
                 indices cst_leq_ids("cst_lin_leq_"+to_string(index));
@@ -2537,10 +2617,11 @@ public:
                 leq += c0.in(cst_leq_ids);
                 leq.in(leq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
-                    auto con = con_vec[i];
+                    auto con = con_vec[i].second;
+                    auto inst = con_vec[i].first;
                     if(con->is_geq())
                         *con *= -1;
-                    leq.add_quad_row(con);
+                    leq.add_quad_row(con,inst);
                     delete_cstr.push_back(con->get_name());
                 }
                 add(leq<=0);
