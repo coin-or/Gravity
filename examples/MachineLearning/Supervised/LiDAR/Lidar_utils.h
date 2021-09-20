@@ -1595,7 +1595,7 @@ vector<int> filter_z_slope(vector<vector<double>> uav_cloud){
     }
     vector<vector<double>> empty_vec;
     empty_vec.push_back(res[0]);
-    plot(res, empty_vec,1);
+   // plot(res, empty_vec,1);
     return index_set;
 }
 void fit_points_line(vector<vector<double>> uav_cloud, int start, int stop, double& sl, double& c){
@@ -1669,7 +1669,7 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
    
   
     
-    double xmin1=1e9, xmax1=-1e9, ymin1=1e9, ymax1=-1e9;
+    double xmin1=1e9, xmax1=-1e9, ymin1=1e9, ymax1=-1e9, zmin1=1e9, zmax1=-1e9;
     int start_line, stop_line;
     bool con_frame=false;
     for(auto i=start1;i<stop1;i++){
@@ -1765,7 +1765,7 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
     
     
     
-    plot(pl1, line, 1);
+    //plot(pl1, line, 1);
     
     auto sign_mid_line1=get_sign(midy-rsl1*mid-rc1);
     auto sign_mid_line2=get_sign(midy-rsl1*mid-rc2);
@@ -1803,7 +1803,7 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
     DebugOn("frame 2 size "<<frame2.size()<<endl);
     DebugOn("xmin "<<xmin2<<" "<<xmax2<<endl);
     DebugOn("ymin "<<ymin2<<" "<<ymax2<<endl);
-    plot(frame1, frame2, 1);
+    //plot(frame1, frame2, 1);
 }
 
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){

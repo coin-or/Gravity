@@ -40,7 +40,7 @@ option(LASlib "Link to LASlib libraries" ON)
 option(CDD "Link to CDD libraries" OFF)
 
 # Find GJK (REQUIRED)
-option(GJK "Link to GJK libraries" OFF)
+option(GJK "Link to GJK libraries" ON)
 
 # Find QHULL (OPTIONAL)
 option(QHULL "Link to QHULL libraries" OFF)
@@ -49,7 +49,7 @@ option(QHULL "Link to QHULL libraries" OFF)
 option(VORO "Link to VORO libraries" ON)
 
 #Find Eigen3 (REQUIRED)
-option(Eigen3 "Link to Eigen3 libraries" OFF)
+option(Eigen3 "Link to Eigen3 libraries" ON)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
