@@ -136,9 +136,11 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
         get_extreme_point_data(extreme_i, uav_data[i], point_cloud_data[i], T2);
         for (int j = 0; j<nm; j++) {
             string key= to_string(i+1)+","+to_string(j+1);
+            if(valid_cells_old.size()>=point_cloud_data.size()){
             if(!valid_cells_old.has_key(key)){
                 DebugOff("continued");
                 continue;
+            }
             }
             double dist_ij_min, dist_ij_max;
             vector<vector<double>> extreme_j;
@@ -186,10 +188,13 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
         }
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
+        if(vo==0){
+            vo=point_cloud_data.size()*point_cloud_model.size();
+        }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
         DebugOn("valid cells old size "<<vo<<endl);
-        DebugOn("valid cells old size "<<vn<<endl);
+        DebugOn("valid cells new size "<<vn<<endl);
         DebugOn("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }

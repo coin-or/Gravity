@@ -378,23 +378,23 @@ shared_ptr<Model<double>> Align_model(const vector<vector<double>>& point_cloud_
   //  Reg->min(sum(pow(x_diff,2) + pow(y_diff,2) + pow(z_diff,2)));
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
-    Reg->print();
+    //Reg->print();
 
     
-    solver<> S(Reg,gurobi);
-    S.use_callback();
-    S.run(5,1e-6,30000,1000);
+   // solver<> S(Reg,gurobi);
+    //S.use_callback();
+    //S.run(5,1e-6,30000,1000);
     
-    Reg->print_solution();
-    vector<double> rot(9);
-    vector<int> matching(n1);
-    bool is_rotation = get_solution(Reg, rot, matching);
-    auto pitch_rad = atan2(rot[7], rot[8]);
-    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
-    auto yaw_rad = atan2(rot[3],rot[0]);
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
+    //Reg->print_solution();
+//    vector<double> rot(9);
+//    vector<int> matching(n1);
+//    bool is_rotation = get_solution(Reg, rot, matching);
+//    auto pitch_rad = atan2(rot[7], rot[8]);
+//    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+//    auto yaw_rad = atan2(rot[3],rot[0]);
+//    DebugOn("roll rad "<< roll_rad<<endl);
+//    DebugOn("pitch rad "<< pitch_rad<<endl);
+//    DebugOn("yaw rad "<< yaw_rad<<endl);
     
    
     return Reg;
