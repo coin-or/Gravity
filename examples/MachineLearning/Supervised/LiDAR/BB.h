@@ -52,11 +52,6 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     vector<pair<double,double>> roll_bounds, pitch_bounds, yaw_bounds;
     
     vector<indices> valid_cells;
-    vector<vector<double>> rot_trans(nb_threads, vector<double>(12));
-    vector<double> rot_trans_temp(12);
-    vector<double> rot_trans_r(12);
-   
-    vector<double> sol_gur(12);
     vector<int> pos_vec;
     vector<double> vec_lb;
     vector<treenode_r> vec_node;
@@ -263,15 +258,21 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                         //models[j]->print_solution();
                         //models[j]->print();
                         //models[j]->print_constraints_stats(1e-4);
-                        vector<double> rot_trans(12);
-                        bool is_rotation  = get_solution(models[j], rot_trans, new_matching);
+                        vector<double> rot(9);
+                        bool is_rotation  = get_solution(models[j], rot, new_matching);
+                        DebugOn("gurobi found ub rotation "<<is_rotation<<endl);
                         if(is_rotation){
                             point_cloud_data_copy=point_cloud_data;
-                            apply_rot_trans(rot_trans, point_cloud_data_copy);
-                            auto L2err=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
+                            auto point_cloud_model_copy=point_cloud_model;
+                            auto pitch_rad1 = atan2(rot[7], rot[8]);
+                               auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+                               auto yaw_rad1 = atan2(rot[3],rot[0]);
+                            apply_rotation(roll_rad1*180/pi, pitch_rad1*180/pi, yaw_rad1*180/pi, point_cloud_model_copy, point_cloud_data_copy, uav_model, uav_data);
+                            auto L2err=computeL2error(point_cloud_model_copy, point_cloud_data_copy, new_matching, res);
+                            DebugOn("gurobi found ub "<<L2err<<endl);
                             if(L2err<=best_ub){
                                 best_ub=L2err;
-                                best_rot_trans=rot_trans;
+                                best_rot_trans=rot;
                                 DebugOn("new best ub "<<best_ub<<" ub_ "<<ub_<<" lb_ "<<lb_<<endl);
                                 if((ub_-lb_/ub_)<=1e-6){
                                     leaf_node=true;
@@ -317,9 +318,6 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     DebugOn("roll rad "<< roll_rad<<endl);
     DebugOn("pitch rad "<< pitch_rad<<endl);
     DebugOn("yaw rad "<< yaw_rad<<endl);
-    DebugOn("tx "<<best_rot_trans[9]<<endl);
-    DebugOn("ty "<<best_rot_trans[10]<<endl);
-    DebugOn("tz "<<best_rot_trans[11]<<endl);
     while(!lb_queue.empty())
     {
         auto node = lb_queue.top();
