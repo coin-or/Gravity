@@ -335,7 +335,7 @@ int main (int argc, char * argv[])
             get_frame(uav_xy, ulist[0], ulist[1],ulist[2],ulist[3], frame1, frame2);
             int skip=1;
             if(frame1.size()>=1e5){
-                skip=10;
+                skip=50;
             }
         for(auto i=0;i<frame1.size();i+=skip){
             cloud1.push_back(lidar_point_cloud.at(frame1[i]));
@@ -401,12 +401,12 @@ int main (int argc, char * argv[])
      
         double xmin=std::max(xmin1, xmin2);
         double xmax=std::min(xmax1, xmax2);
-        double x_start=xmin*0.7+0.3*xmax;
-        double x_stop=xmin*0.3+0.7*xmax;
+        double x_start=xmin*0.6+0.4*xmax;
+        double x_stop=xmin*0.4+0.6*xmax;
         double ymin=std::max(ymin1, ymin2);
         double ymax=std::min(ymax1, ymax2);
-        double y_start=ymin*0.7+0.3*ymax;
-        double y_stop=ymin*0.3+0.7*ymax;
+        double y_start=ymin*0.6+0.4*ymax;
+        double y_stop=ymin*0.4+0.6*ymax;
         double zmin=std::max(zmin1, zmin2);
         double zmax=std::min(zmax1, zmax2);
         
@@ -478,12 +478,15 @@ int main (int argc, char * argv[])
             }
         }
         
-       // plot(point_cloud_model, point_cloud_data, 1);
+        plot(point_cloud_model, point_cloud_data, 1);
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
-    indices valid_cells_old=indices(N1,N2);;
+    indices valid_cells_old("valid_cells_old");
+    DebugOn("valid cells old size "<<valid_cells_old.size()<<endl);
     indices new_cells("new_cells");
+    indices new_cells1("new_cells1");
     param<double> dist_cells("dist_cells");
+    param<double> dist_cells1("dist_cells1");
     double upper_bound=3e4;
     double prep_time=0;
     
@@ -494,18 +497,39 @@ int main (int argc, char * argv[])
     double yaw_min=-5*pi/180;
     double yaw_max=5*pi/180;
     
+    vector<int> matching(point_cloud_data.size());
+    vector<double> err_per_point(point_cloud_data.size());
+    
+    auto L2init=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+    auto L1init=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
     
     
-    auto min_cost_sum= preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, valid_cells_old, new_cells, dist_cells, roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, upper_bound,  prep_time);
     
-        vector<int> matching(point_cloud_data.size());
-        vector<double> err_per_point(point_cloud_data.size());
+    //auto min_cost_sum= preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, valid_cells_old, new_cells, dist_cells, roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max,L2init,  prep_time);
+    
+  roll_min=-1.1*pi/180;
+ roll_max=-1*pi/180;
+   pitch_min=-1.1*pi/180;
+     pitch_max=-1*pi/180;
+   yaw_min=-1.1*pi/180;
+     yaw_max=-1*pi/180;
+    
+    
+    
+   // auto min_cost_sum2= preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, new_cells, new_cells1, dist_cells1, roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, L2init,  prep_time);
+    
+    vector<double> best_rot_trans(9,0.0);
+    double best_ub=1e5;
+    compute_upper_bound_mid(roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
+    
+    auto res= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub);
+    
+       
 
-        auto L2init=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
-        auto L1init=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
+        auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+        auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
 
-        DebugOn("L2 init "<<L2init<<endl);
-        DebugOn("L1 init "<<L1init<<endl);
+      
     //    Final Roll (degrees) = 1.53145
     //    Final Pitch (degrees) = -0.423905
     //    Final Yaw (degrees) = -0.27095
@@ -518,15 +542,13 @@ int main (int argc, char * argv[])
     //    double yaw_deg=-0.04;
 
 
-    auto res=run_IPH(point_cloud_model, point_cloud_data, uav_model, uav_data);
-
-            double roll_deg=get<0>(res);
-            double pitch_deg=get<1>(res);
-            double yaw_deg=get<2>(res);
+//    auto res=run_IPH(point_cloud_model, point_cloud_data, uav_model, uav_data);
+//
+//            double roll_deg=get<0>(res);
+//            double pitch_deg=get<1>(res);
+//            double yaw_deg=get<2>(res);
        // apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
 
-        auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
-        auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
 
         DebugOn("L2  "<<L2<<endl);
         DebugOn("L1  "<<L1<<endl);

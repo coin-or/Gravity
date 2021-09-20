@@ -25,7 +25,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     double total_time_max = 9000;
     double prep_time_total=0;
 
-    double yaw_min = -5*pi/180., yaw_max = 5*pi/180., pitch_min =-5*pi/180.,pitch_max = 5*pi/180.,roll_min =-5*pi/180.,roll_max = 5*pi/180.;
+    double yaw_min = -1.1*pi/180., yaw_max = -1*pi/180., pitch_min =-1.1*pi/180.,pitch_max = -1*pi/180.,roll_min =-1.1*pi/180.,roll_max = -1*pi/180.;
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
     int nd=point_cloud_data.size();
@@ -95,7 +95,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
    
     lb_queue.push(treenode_r(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
     double max_incr=0, max_ratio=1;
-    int test_ub=10;
+    int test_ub=16;
     treenode_r topnode=lb_queue.top();
 
     int ndisc=0;
@@ -213,13 +213,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                     }
                 
                 
-               
-              
-            
-      
                 auto ut1=get_wall_time();
                 if (i%test_ub==0){
-                    compute_upper_bound_mid(roll_bounds[i].first, roll_bounds[i].second, pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
                     compute_upper_bound_mid(roll_bounds[i].first, roll_bounds[i].second, pitch_bounds[i].first, pitch_bounds[i].second, yaw_bounds[i].first, yaw_bounds[i].second, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
                 }
                 auto ut2=get_wall_time();
@@ -382,8 +377,8 @@ void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min,
     vector<int> matching1(point_cloud_data.size());
     vector<double> err_per_point1(point_cloud_data.size());
     
-    auto L2error = computeL2error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
-    auto L1error = computeL1error(point_cloud_model,point_cloud_data,matching1,err_per_point1);
+    auto L2error = computeL2error(point_cloud_model_copy,point_cloud_data_copy,matching1,err_per_point1);
+
     
     if(L2error<=best_ub){
         best_ub=L2error;
