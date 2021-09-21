@@ -23,31 +23,33 @@
     using namespace gravity;
 
 
-//TEST_CASE("testing restructure") {
-////    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    int output = 0;
-//    double tol = 1e-6;
-//    PowerNet grid;
-//    grid.readgrid(fname);
-//    auto ACOPF = build_SDPOPF(grid);
-//    solver<> UB(ACOPF,ipopt);
-//    auto time_start = get_wall_time();
-//    auto status = UB.run(output=5, tol=1e-6);
-//    auto SDP = build_SDPOPF(grid);
+TEST_CASE("testing restructure") {
+//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    double tol = 1e-6;
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto ACOPF = build_SDPOPF(grid);
+    ACOPF->print();
+    solver<> UB(ACOPF,ipopt);
+    auto time_start = get_wall_time();
+    auto status = UB.run(output=5, tol=1e-6);
+    auto SDP = build_SDPOPF(grid);
+    
+    
+    SDP->restructure();
+    SDP->reset();
 //    SDP->print();
-//    
-//    SDP->restructure();
-////    SDP->print();
-//    DebugOn("Done restructuring\n");
+    DebugOn("Done restructuring\n");
 //    SDP->project();
-//    SDP->print();
+    SDP->print();
 //    DebugOn("Done projecting\n");
-//    solver<> LB(SDP,ipopt);
-//    time_start = get_wall_time();
-//    status = LB.run(output=5, tol=1e-6);
-//    CHECK(std::abs(SDP->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
-//}
+    solver<> LB(SDP,ipopt);
+    time_start = get_wall_time();
+    status = LB.run(output=5, tol=1e-6);
+    CHECK(std::abs(SDP->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
+}
 
     TEST_CASE("testing set intersection unindexed") {
         indices ids1("index_set1");

@@ -60,7 +60,7 @@ int main (int argc, char * argv[])
         fname=argv[1];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname=string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
     }
     if(argc>=3){
         lin_solver=argv[2];
@@ -135,7 +135,12 @@ int main (int argc, char * argv[])
     
 
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+//    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = sum(c0);
+    for (auto pg_id: *Pg.get_indices()._keys) {
+        obj += c1(pg_id)*Pg(pg_id);
+        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
+    }
     SOCP.min(obj);
     
     /** Constraints */
@@ -209,6 +214,9 @@ int main (int argc, char * argv[])
     LNC2 += grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
     SOCP.add(LNC2.in(node_pairs) >= 0);
     
+    SOCP.restructure();
+    SOCP.project();
+    
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
     if (use_cplex) {
@@ -235,7 +243,7 @@ int main (int argc, char * argv[])
     else {
 //        SOCP.print();
         solver<> SOCOPF(SOCP,ipopt);
-        SOCOPF.set_option("linear_solver", lin_solver);
+//        SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
         SOCOPF.run(output=5, tol=1e-6);
         solver_time_end = get_wall_time();
