@@ -67,6 +67,8 @@ extern "C" {
 
 pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, vector<double> center);
 bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point);
+bool vertices_box_plane_reg(const vector<double>& plane_eq, const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
+void get_extreme_rotation_data(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
 
 #ifdef USE_GJK
 double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double>>& vec2);
@@ -1849,6 +1851,16 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
     var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
     var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
     var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
+    vector<var<double>> T1;
+    T1.push_back(theta11);
+    T1.push_back(theta12);
+    T1.push_back(theta13);
+    T1.push_back(theta21);
+    T1.push_back(theta22);
+    T1.push_back(theta23);
+    T1.push_back(theta31);
+    T1.push_back(theta32);
+    T1.push_back(theta33);
     
     
     min_cost_sum=0.0;
@@ -2053,7 +2065,9 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
         pl[3]=-z_ub[i];
         planes.push_back(pl);
         pl.clear();
-   
+        vector<vector<double>> rot_polytope;
+        get_extreme_rotation_data(rot_polytope, point_cloud_data.at(i), T1);
+        
         double dist_cost_max_min=9999, cost_min=9999;
         for (int j = 0; j<nm; j++) {
             auto vertices=model_voronoi_vertices.at(j);
@@ -2092,6 +2106,49 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
             dist_max=resd.second;
             dist=std::max(dist, cost_alt_j-2.0*max_m_box);
             dist_novoro=sqrt(std::max(resd.first, 0.0));
+            vector<vector<double>> box_m_t;
+            vector<double> m_t(3);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            
+            auto resd2=distance_polytopes_gjk(rot_polytope,box_m_t);
+            
+            dist=std::max(resd2, dist);
+//            dist_max=std::min(resd2.second, dist_max);
+           
+            dist_novoro=sqrt(std::max(resd.first, resd2));
+
+         
             if(!dist_calculated){
                 res=test_general<VerticesOnly>(box[i],vertices);
                 DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
@@ -2875,6 +2932,345 @@ pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, 
     std::pair<double,double> res;
     res={min_dist, max_dist};
     return res;
+}
+/* Extreme points of the feasible region in which a rotated data point can lie.
+ @extreme: Vertices of extreme points of the feasible region: [R[d_pt]]
+ @d_pt: Data point coordinate
+ @theta_vec: vector of variables defining rotation with roll, pitch, yaw
+ SECANT underestimator
+ Tangent overestimator
+ */
+void get_extreme_rotation_data(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec){
+    vector<double> d(3);
+    
+    vector<vector<double>> new_vert_a, new_vert_b;
+    vector<int> infeas_set_a, infeas_set_b, infeas_set;
+    bool vertex_found_a=false, vertex_found_b=false;
+    
+    d[0]=d_pt[0];
+    d[1]=d_pt[1];
+    d[2]=d_pt[2];
+    
+    double d_mag=pow(d[0],2)+pow(d[1],2)+pow(d[2],2);
+    double d_root=sqrt(d_mag);
+    
+    auto theta11=theta_vec[0];
+    auto theta12=theta_vec[1];
+    auto theta13=theta_vec[2];
+    auto theta21=theta_vec[3];
+    auto theta22=theta_vec[4];
+    auto theta23=theta_vec[5];
+    auto theta31=theta_vec[6];
+    auto theta32=theta_vec[7];
+    auto theta33=theta_vec[8];
+    
+
+    vector<vector<double>> box_big;
+    vector<double> coord_i;
+    coord_i.resize(3);
+    
+    shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_z1_bounds = make_shared<pair<double,double>>();
+    
+    x1_bounds->first = d[0];
+    x1_bounds->second = d[0];
+    y1_bounds->first = d[1];
+    y1_bounds->second = d[1];
+    z1_bounds->first = d[2];
+    z1_bounds->second = d[2];
+    auto x_range  = get_product_range(x1_bounds, theta11._range);
+    auto y_range  = get_product_range(y1_bounds, theta12._range);
+    auto z_range  = get_product_range(z1_bounds, theta13._range);
+    
+    rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double x_lb=rot_x1_bounds->first;
+    double x_ub=rot_x1_bounds->second;
+    
+    x_range  = get_product_range(x1_bounds, theta21._range);
+    y_range  = get_product_range(y1_bounds, theta22._range);
+    z_range  = get_product_range(z1_bounds, theta23._range);
+    
+    rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double y_lb=rot_y1_bounds->first;
+    double y_ub=rot_y1_bounds->second;
+    
+    
+    x_range  = get_product_range(x1_bounds, theta31._range);
+    y_range  = get_product_range(y1_bounds, theta32._range);
+    z_range  = get_product_range(z1_bounds, theta33._range);
+    
+    rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double z_lb=rot_z1_bounds->first;
+    double z_ub=rot_z1_bounds->second;
+    
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    
+    /*Equation of secan which underestimates feasible region*/
+    vector<double> secant(4,0.0);
+    secant[0]=(x_lb+x_ub)*(-1);
+    secant[1]=(y_lb+y_ub)*(-1);
+    secant[2]=(z_lb+z_ub)*(-1);
+    secant[3]=d_mag+x_lb*x_ub+y_lb*y_ub+z_lb*z_ub;
+    
+    vertex_found_a=vertices_box_plane_reg(secant, box_big, new_vert_a, infeas_set_a);
+    
+    /*Find coordinates of the point to define tangent, Tangent is found parallel to secant, if this fails midpoint is used and checked to ensure does not intersect secant in this range*/
+   
+    double xt, yt, zt;
+    bool plane_eq_found=false;
+    vector<double> tangent(4);
+    double temp_x=sqrt(d_mag/(1+((y_lb+y_ub)*(y_lb+y_ub)+(z_lb+z_ub)*(z_lb+z_ub))/((x_lb+x_ub)*(x_lb+x_ub))));
+
+    double lamda=2.0*temp_x/((x_lb+x_ub)*(-1));
+    
+    double temp_y=lamda*(y_lb+y_ub)*(-1)/2.0;
+    
+    double temp_z=lamda*(z_lb+z_ub)*(-1)/2.0;
+    
+    if(temp_x>=x_lb && temp_x<=x_ub && temp_y>=y_lb && temp_y<=y_ub && temp_z>=z_lb && temp_z<=z_ub){
+        xt=temp_x;
+        yt=temp_y;
+        zt=temp_z;
+        plane_eq_found=true;
+    }
+    else if (temp_x*(-1)>=x_lb && temp_x*(-1)<=x_ub && temp_y*(-1)>=y_lb && temp_y*(-1)<=y_ub && temp_z*(-1)>=z_lb && temp_z*(-1)<=z_ub){
+        xt=temp_x*(-1);
+        yt=temp_y*(-1);
+        zt=temp_z*(-1);
+        plane_eq_found=true;
+    }
+    if(!plane_eq_found){
+        xt=(x_lb+x_ub)*0.5;
+        yt=(y_lb+y_ub)*0.5;
+        auto zttp=sqrt(d_mag-pow(xt,2)-pow(yt,2));
+        if( zttp <=z_ub && zttp>=z_lb){
+            zt=zttp;
+        }
+        else{
+            zt=zttp*(-1);
+        }
+        auto dt=-2*(xt*xt+yt*yt+zt*zt);
+        plane_eq_found=true;
+        if(vertex_found_a){
+            for(auto v: new_vert_a){
+                auto x=v[0];
+                auto y=v[1];
+                auto z=v[2];
+                if(2*xt*x+2*yt*y+2*zt*z+dt>=1e-9){
+                    plane_eq_found=false;
+                }
+            }
+        }
+    }
+    if(plane_eq_found){
+        tangent[0]=2*xt;
+        tangent[1]=2*yt;
+        tangent[2]=2*zt;
+        tangent[3]=-2*(xt*xt+yt*yt+zt*zt);
+        DebugOff("Plane Eq found in extreme data "<<endl);
+        vertex_found_b=vertices_box_plane_reg(tangent, box_big, new_vert_b, infeas_set_b);
+    }
+    else{
+        DebugOn("Plane Eq not found in extreme data "<<endl);
+    }
+    if(vertex_found_a){
+        for(auto v: new_vert_a){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_a){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOn("Vertex A no found "<<endl);
+    }
+    if(vertex_found_b){
+        for(auto v: new_vert_b){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_b){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+    }
+    for(auto i=0;i<box_big.size();i++){
+        if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
+            extreme.push_back(box_big[i]);
+        }
+    }
+
+}
+/* Extreme points of a bounded box (defined x_lb, x_ub, y_lb. y_ub z_lb, z_ub) when intersected with a plane. Returns true when new vertices found
+ @plane_eq: equation of plane intersecting the box
+ @big_box: Vector of coordinates of the original bounded box
+ @new_verts:New vertices created when plane intersects box
+ @infeas_set: Set of indices of old coordinates that are infeasible to plane eq
+ */
+bool vertices_box_plane_reg(const vector<double>& plane_eq, const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set){
+    
+    const double feas_tol=1e-6;
+    
+    double a=plane_eq[0];double b=plane_eq[1];double c=plane_eq[2];double d=plane_eq[3];
+    
+    double x_lb=big_box[0][0];
+    double y_lb=big_box[0][1];
+    double z_lb=big_box[0][2];
+    double x_ub=big_box[6][0];
+    double y_ub=big_box[6][1];
+    double z_ub=big_box[6][2];
+    /*vertex vf[i] and vs[i] are connected by an edge*/
+    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
+    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
+    vector<vector<int>> vert_edge(8);
+    /*for each vertex i,vert_edge[i] has all the edges that are incident upon the vertex*/
+    vert_edge[0]={0, 3, 8};
+    vert_edge[1]={0, 1, 9};
+    vert_edge[2]={1, 2, 10};
+    vert_edge[3]={2, 3, 11};
+    vert_edge[4]={4, 7, 8};
+    vert_edge[5]={4, 5, 9};
+    vert_edge[6]={5, 6, 10};
+    vert_edge[7]={6, 7, 11};
+    /*for each edge i,plane_x[i] shows whether:
+     0: no x plane defines the edge
+     -1: plane x=x_lb defines the edge
+     1: plane x=x_ub defines the edge
+     */
+    vector<int> plane_x={0,1,0,-1,0,1,0,-1,-1,1,1,-1};
+    vector<int> plane_y={-1,0,1,0,-1,0,1,0,-1,-1,1,1};
+    vector<int> plane_z={-1,-1,-1,-1,1,1,1,1,0,0,0,0};
+    vector<int> feas_set;
+    for(auto k=0;k<8;k++){
+        auto xk=big_box[k][0];
+        auto yk=big_box[k][1];
+        auto zk=big_box[k][2];
+        if(a*xk+b*yk+c*zk+d<=feas_tol){
+            feas_set.push_back(k);
+        }
+        else{
+            infeas_set.push_back(k);
+        }
+    }
+    bool vertex_found=true;
+    for(auto k=0;k<infeas_set.size() && vertex_found;k++){
+        bool vertex_found_k=true;
+        auto edge_set_k=vert_edge[infeas_set[k]];
+        for(auto l=0;l<edge_set_k.size();l++){
+            auto el=edge_set_k[l];
+            auto elf=vf[el];
+            auto els=vs[el];
+            /* New vertex must lie on an edge which connects infeasible point inf[k] and some feasible point */
+            if(std::find (infeas_set.begin(), infeas_set.end(), elf)==infeas_set.end()||std::find (infeas_set.begin(), infeas_set.end(), els)==infeas_set.end()){
+                bool vertex_found_kl=false;
+                double xel=100000.0, yel=100000.0, zel=100000.0;
+                if(plane_x[el]==-1){
+                    xel=x_lb;
+                }
+                if(plane_x[el]==1){
+                    xel=x_ub;
+                }
+                if(plane_y[el]==-1){
+                    yel=y_lb;
+                }
+                if(plane_y[el]==1){
+                    yel=y_ub;
+                }
+                if(plane_z[el]==-1){
+                    zel=z_lb;
+                }
+                if(plane_z[el]==1){
+                    zel=z_ub;
+                }
+                if(plane_x[el]==0 && abs(a)>1e-10){
+                    xel=(-d-c*zel-b*yel)/a;
+                    if(xel<=x_ub+1e-9 && xel>=x_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(plane_y[el]==0 && abs(b)>1e-10){
+                    yel=(-d-c*zel-a*xel)/b;
+                    if(yel<=y_ub+1e-9 && yel>=y_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(plane_z[el]==0 && abs(c)>1e-10){
+                    zel=(-d-a*xel-b*yel)/c;
+                    if(zel<=z_ub+1e-9 && zel>=z_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(vertex_found_kl){
+                    vector<double> v(3);
+                    v[0]=xel;
+                    v[1]=yel;
+                    v[2]=zel;
+                    new_verts.push_back(v);
+                }
+                else{
+                    DebugOn(vertex_found_kl<<endl);
+                    DebugOn("Failed to find vertex in prep "<<endl);
+                }
+                if(vertex_found_kl && vertex_found_k){
+                    vertex_found_k=true;
+                }
+                else{
+                    vertex_found_k=false;
+                    break;
+                }
+            }
+        }
+        if(vertex_found_k && vertex_found){
+            vertex_found=true;
+        }
+        else{
+            vertex_found=false;
+            break;
+        }
+    }
+    return vertex_found;
 }
 
 #endif /* Branch_Bound_h */
