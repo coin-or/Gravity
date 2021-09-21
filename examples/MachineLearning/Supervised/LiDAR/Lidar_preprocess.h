@@ -150,6 +150,9 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
             dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
             if(dist_ij_min<=upper_bound && dist_ij_min<=min_dist_ij_max){
                 dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
+                if(error_type=="L1"){
+                    dist_ij_max*=sqrt(3.0);
+                }
                 if(dist_ij_max<=min_dist_ij_max){
                     min_dist_ij_max=dist_ij_max;
                 }
