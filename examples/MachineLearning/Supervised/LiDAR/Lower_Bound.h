@@ -65,7 +65,7 @@ extern "C" {
 #include "voro++.hh"
 using namespace voro;
 #endif
-shared_ptr<Model<double>> Align_model(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
+shared_ptr<Model<double>> Align_L2_model(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -399,7 +399,7 @@ shared_ptr<Model<double>> Align_model(const vector<vector<double>>& point_cloud_
    
     return Reg;
 }
-shared_ptr<Model<double>> Align_L1_model(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
+shared_ptr<Model<double>> Align_L1_model(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,  double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -701,23 +701,23 @@ shared_ptr<Model<double>> Align_L1_model(vector<vector<double>>& point_cloud_mod
   //  Reg->min(sum(pow(x_diff,2) + pow(y_diff,2) + pow(z_diff,2)));
     
     Reg->min(sum(x_diff) + sum(y_diff)+sum(z_diff));
-    Reg->print();
-
-    
-    solver<> S(Reg,gurobi);
-    S.use_callback();
-    S.run(5,1e-6,30000,1000);
-    
-    Reg->print_solution();
-    vector<double> rot(9);
-    vector<int> matching(n1);
-    bool is_rotation = get_solution(Reg, rot, matching);
-    auto pitch_rad = atan2(rot[7], rot[8]);
-    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
-    auto yaw_rad = atan2(rot[3],rot[0]);
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
+//    Reg->print();
+//
+//    
+//    solver<> S(Reg,gurobi);
+//    S.use_callback();
+//    S.run(5,1e-6,30000,1000);
+//    
+//    Reg->print_solution();
+//    vector<double> rot(9);
+//    vector<int> matching(n1);
+//    bool is_rotation = get_solution(Reg, rot, matching);
+//    auto pitch_rad = atan2(rot[7], rot[8]);
+//    auto roll_rad = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+//    auto yaw_rad = atan2(rot[3],rot[0]);
+//    DebugOn("roll rad "<< roll_rad<<endl);
+//    DebugOn("pitch rad "<< pitch_rad<<endl);
+//    DebugOn("yaw rad "<< yaw_rad<<endl);
     
    
     return Reg;
