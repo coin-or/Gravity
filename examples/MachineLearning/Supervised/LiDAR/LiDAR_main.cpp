@@ -505,6 +505,8 @@ int main (int argc, char * argv[])
     auto L2init=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
     auto L1init=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
     
+    DebugOn("L2init  "<<L2init<<endl);
+    DebugOn("L1init  "<<L1init<<endl);
     
     
     //auto min_cost_sum= preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, valid_cells_old, new_cells, dist_cells, roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max,L2init,  prep_time);
@@ -520,29 +522,28 @@ int main (int argc, char * argv[])
     
     // auto min_cost_sum2= preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, new_cells, new_cells1, dist_cells1, roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, L2init,  prep_time);
     
-    vector<double> best_rot_trans(9,0.0);
-    double best_ub=1e5;
-    compute_upper_bound_mid(roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
+//    vector<double> best_rot_trans(9,0.0);
+//    double best_ub=1e5;
+//    compute_upper_bound_mid(roll_min,roll_max,  pitch_min,  pitch_max,  yaw_min, yaw_max, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data);
+//
+//    auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub);
+//
+//    auto pitch_rad1 = atan2(rot[7], rot[8]);
+//    auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+//    auto yaw_rad1 = atan2(rot[3],rot[0]);
     
-    auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub);
-    
-    auto pitch_rad1 = atan2(rot[7], rot[8]);
-    auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
-    auto yaw_rad1 = atan2(rot[3],rot[0]);
-    
-    auto roll_deg=roll_rad1*180/pi;
-    auto pitch_deg=pitch_rad1*180/pi;
-    auto yaw_deg=yaw_rad1*180/pi;
+//    auto roll_deg=roll_rad1*180/pi;
+//    auto pitch_deg=pitch_rad1*180/pi;
+//    auto yaw_deg=yaw_rad1*180/pi;
+//
+//    double roll_deg=-1.19966;
+//    double pitch_deg=-1.41955;
+//    double yaw_deg=1.16567;
     
     
     
-    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
-    
-    auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
-    auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
-    
-    DebugOn("roll pitch yaw in rad "<<roll_rad1<<" "<<pitch_rad1<<" "<<yaw_rad1<<" "<<endl);
-    DebugOn("roll pitch yaw in deg "<<roll_deg<<" "<<pitch_deg<<" "<<yaw_deg<<" "<<endl);
+    //DebugOn("roll pitch yaw in rad "<<roll_rad1<<" "<<pitch_rad1<<" "<<yaw_rad1<<" "<<endl);
+   // DebugOn("roll pitch yaw in deg "<<roll_deg<<" "<<pitch_deg<<" "<<yaw_deg<<" "<<endl);
     
     //    Final Roll (degrees) = 1.53145
     //    Final Pitch (degrees) = -0.423905
@@ -556,13 +557,17 @@ int main (int argc, char * argv[])
     //    double yaw_deg=-0.04;
     
     
-    //    auto res=run_IPH(point_cloud_model, point_cloud_data, uav_model, uav_data);
+       auto res=run_IPH(point_cloud_model, point_cloud_data, uav_model, uav_data);
     //
-    //            double roll_deg=get<0>(res);
-    //            double pitch_deg=get<1>(res);
-    //            double yaw_deg=get<2>(res);
+                double roll_deg=get<0>(res);
+                double pitch_deg=get<1>(res);
+                double yaw_deg=get<2>(res);
     // apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
     
+   // apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
+    
+    auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+    auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
     
     DebugOn("L2  "<<L2<<endl);
     DebugOn("L1  "<<L1<<endl);

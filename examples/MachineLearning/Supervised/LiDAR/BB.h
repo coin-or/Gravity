@@ -433,7 +433,7 @@ vec_lb_i=preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data
 //
     bool model_created=false;
         if(valid_cells_i.size()>=point_cloud_data.size()){
-            model_i=Align_model(point_cloud_model, point_cloud_data, uav_model, uav_data,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
+            model_i=Align_L1_model(point_cloud_model, point_cloud_data, uav_model, uav_data,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
             model_created=true;
         }
     if(model_created){
