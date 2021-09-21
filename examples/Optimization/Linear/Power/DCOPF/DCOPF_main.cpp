@@ -105,98 +105,61 @@ int main (int argc, char * argv[])
     /** Declare model */
     Model<> DCOPF("DCOPF Model");
     
-    if(projected) {/* Project out the power flow variables*/
-        /** Variables */
-        /* Power generation variables */
-        var<> Pg("Pg", pg_min, pg_max);
-        DCOPF.add(Pg.in(gens));
-        
-        
-        /* Phase angle variables */
-        var<> theta("𝛉");
-        DCOPF.add(theta.in(nodes));
-        
-        /**  Objective */
-        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-        DCOPF.min(obj);
-        
-        /** Constraints */
-        
-        /* REF BUS */
-        Constraint<> Ref_Bus("Ref_Bus");
-        Ref_Bus = theta(grid.ref_bus);
-        DCOPF.add(Ref_Bus == 0);
-        
-        /* Flow conservation */
-        Constraint<> KCL_P("KCL_P");
-        KCL_P  = b.tr().in(in_arcs)*(theta.from(in_arcs)-theta.to(in_arcs)) - b.tr().in(out_arcs)*(theta.from(out_arcs)-theta.to(out_arcs)) + pl + gs - sum(Pg, gen_nodes);
-        DCOPF.add(KCL_P.in(nodes) == 0);
-        
-        /* Phase Angle Bounds constraints */
-        Constraint<> PAD_UB("PAD_UB");
-        PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
-        PAD_UB -= th_max;
-        DCOPF.add(PAD_UB.in(node_pairs) <= 0);
-        Constraint<> PAD_LB("PAD_LB");
-        PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
-        PAD_LB -= th_min;
-        DCOPF.add(PAD_LB.in(node_pairs) >= 0);
-        
-        /* Line Limits constraints */
-        Constraint<> Thermal_UB("Thermal_UB");
-        Thermal_UB = b*(theta.to(arcs) - theta.from(arcs));
-        Thermal_UB -= S_max;
-        DCOPF.add(Thermal_UB.in(arcs) <= 0);
-        Constraint<> Thermal_LB("Thermal_LB");
-        Thermal_LB = b*(theta.to(arcs) - theta.from(arcs));
-        Thermal_LB += S_max;
-        DCOPF.add(Thermal_LB.in(arcs) >= 0);
+    /** Variables */
+    /* Power generation variables */
+    var<> Pg("Pg", pg_min, pg_max);
+    DCOPF.add(Pg.in(gens));
+    
+    /* Power flow variables */
+    var<> Pf("Pf", -1*S_max, S_max);
+    DCOPF.add(Pf.in(arcs));
+    
+    /* Phase angle variables */
+    var<> theta("𝛉");
+    DCOPF.add(theta.in(nodes));
+    
+    /**  Objective */
+//        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = sum(c0);
+    for (auto pg_id: *Pg.get_indices()._keys) {
+        obj += c1(pg_id)*Pg(pg_id);
+        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
     }
-    else {
-        /** Variables */
-        /* Power generation variables */
-        var<> Pg("Pg", pg_min, pg_max);
-        DCOPF.add(Pg.in(gens));
-        
-        /* Power flow variables */
-        var<> Pf("Pf", -1*S_max, S_max);
-        DCOPF.add(Pf.in(arcs));
-        
-        /* Phase angle variables */
-        var<> theta("𝛉");
-        DCOPF.add(theta.in(nodes));
-        
-        /**  Objective */
-        auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-        DCOPF.min(obj);
-        
-        /** Constraints */
-        
-        /* REF BUS */
-        Constraint<> Ref_Bus("Ref_Bus");
-        Ref_Bus = theta(grid.ref_bus);
-        DCOPF.add(Ref_Bus == 0);
-        
-        /* Flow conservation */
-        Constraint<> KCL_P("KCL_P");
-        KCL_P  = sum(Pf, out_arcs) - sum(Pf, in_arcs) + pl + gs - sum(Pg, gen_nodes);
-        DCOPF.add(KCL_P.in(nodes) == 0);
-        
-        /* AC Power Flow */
-        Constraint<> Flow_P("Flow_P");
-        Flow_P = Pf + b*(theta.from(arcs) - theta.to(arcs));
-        DCOPF.add(Flow_P.in(arcs) == 0);
-        
-        /* Phase Angle Bounds constraints */
-        Constraint<> PAD_UB("PAD_UB");
-        PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
-        PAD_UB -= th_max;
-        DCOPF.add(PAD_UB.in(node_pairs) <= 0);
-        Constraint<> PAD_LB("PAD_LB");
-        PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
-        PAD_LB -= th_min;
-        DCOPF.add(PAD_LB.in(node_pairs) >= 0);
+    DCOPF.min(obj);
+    
+    /** Constraints */
+    
+    /* REF BUS */
+    Constraint<> Ref_Bus("Ref_Bus");
+    Ref_Bus = theta(grid.ref_bus);
+    DCOPF.add(Ref_Bus == 0);
+    
+    /* Flow conservation */
+    Constraint<> KCL_P("KCL_P");
+    KCL_P  = sum(Pf, out_arcs) - sum(Pf, in_arcs) + pl + gs - sum(Pg, gen_nodes);
+    DCOPF.add(KCL_P.in(nodes) == 0);
+    
+    /* AC Power Flow */
+    Constraint<> Flow_P("Flow_P");
+    Flow_P = Pf + b*(theta.from(arcs) - theta.to(arcs));
+    DCOPF.add(Flow_P.in(arcs) == 0);
+    
+    /* Phase Angle Bounds constraints */
+    Constraint<> PAD_UB("PAD_UB");
+    PAD_UB = theta.from(node_pairs) - theta.to(node_pairs);
+    PAD_UB -= th_max;
+    DCOPF.add(PAD_UB.in(node_pairs) <= 0);
+    Constraint<> PAD_LB("PAD_LB");
+    PAD_LB = theta.from(node_pairs) - theta.to(node_pairs);
+    PAD_LB -= th_min;
+    DCOPF.add(PAD_LB.in(node_pairs) >= 0);
+    
+    if(projected){
+        DCOPF.restructure();/* Get rid of matrix indexed constraints */
+        DCOPF.project();
     }
+
+    
     /* Solver selection */
     if (use_cplex) {
         solver<> DCOPF_CPX(DCOPF, cplex);

@@ -2296,7 +2296,7 @@ public:
                 auto inst0 = con_vec[0].first;
                 Constraint<> eq("lin_eq_"+to_string(index));
                 param<> c0("c0_eq_"+to_string(index));
-                c0 = con0->eval_cst(0);
+                c0 = con0->eval_cst(inst0);
                 nb_cont_vars = iter.first.first.first;
                 nb_int_vars = iter.first.first.second;
                 vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
@@ -2351,7 +2351,7 @@ public:
                 auto inst0 = con_vec[0].first;
                 Constraint<> eq("quad_eq_"+to_string(index));
                 param<> c0("c0_quad_eq_"+to_string(index));
-                c0 = con0->eval_cst(0);
+                c0 = con0->eval_cst(inst0);
                 int nb_cont_lin_terms = get<0>(iter.first.first);
                 int nb_int_lin_terms = get<1>(iter.first.first);
                 int nb_cont_quad_terms = get<2>(iter.first.first);
@@ -2461,9 +2461,9 @@ public:
                 Constraint<> leq("lin_ineq_"+to_string(index));
                 param<> c0("c0_ineq_"+to_string(index));
                 if(is_geq)/* If >= inequality, reverse sign of coefs */
-                    c0 = -1*con0->eval_cst(0);
+                    c0 = -1*con0->eval_cst(inst0);
                 else
-                    c0 = con0->eval_cst(0);
+                    c0 = con0->eval_cst(inst0);
                 nb_cont_vars = iter.first.first.first;
                 nb_int_vars = iter.first.first.second;
                 vector<indices> x_ids(nb_cont_vars);/* indices for each symbolic continuous variable */
@@ -2510,6 +2510,8 @@ public:
                     if(con->is_geq())
                         *con *= -1;
                     leq.add_linear_row(con,inst);
+                    if(con->is_geq())
+                        *con *= -1;
                     delete_cstr.push_back(con->get_name());
                 }
                 add(leq<=0);
@@ -2527,7 +2529,7 @@ public:
                     *con0 *= -1;
                 Constraint<> leq("quad_ineq_"+to_string(index));
                 param<> c0("c0_quad_ineq_"+to_string(index));
-                c0 = con0->eval_cst(0);
+                c0 = con0->eval_cst(inst0);
                 int nb_cont_lin_terms = get<0>(iter.first.first);
                 int nb_int_lin_terms = get<1>(iter.first.first);
                 int nb_cont_quad_terms = get<2>(iter.first.first);
@@ -2622,6 +2624,8 @@ public:
                     if(con->is_geq())
                         *con *= -1;
                     leq.add_quad_row(con,inst);
+                    if(con->is_geq())
+                        *con *= -1;
                     delete_cstr.push_back(con->get_name());
                 }
                 add(leq<=0);
