@@ -69,6 +69,7 @@ pair<double,double> min_max_euclidean_distsq_box(vector<vector<double>> coords, 
 bool compute_vertices(vector<vector<double>> vertex_set_a, vector<vector<double>> facets_a, vector<vector<double>> facets_b, vector<vector<int>> vertex_edge_a, vector<vector<pair<int, int>>> vertex_edge_plane_a,   vector<int> feas_set_a, vector<int> infeas_set_a, vector<vector<int>> infeas_facet_set_a, std::vector<std::vector<double>>& new_vert, const std::vector<double>& model_point);
 bool vertices_box_plane_reg(const vector<double>& plane_eq, const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
 void get_extreme_rotation_data(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
+double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2);
 
 #ifdef USE_GJK
 double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double>>& vec2);
@@ -2144,9 +2145,10 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
             auto resd2=distance_polytopes_gjk(rot_polytope,box_m_t);
             
             dist=std::max(resd2, dist);
-//            dist_max=std::min(resd2.second, dist_max);
+            
+           dist_max=std::min(max_distance_polytopes(rot_polytope,box_m_t), dist_max);
            
-            dist_novoro=sqrt(std::max(resd.first, resd2));
+           dist_novoro=sqrt(std::max(resd.first, resd2));
 
          
             if(!dist_calculated){
@@ -3272,5 +3274,20 @@ bool vertices_box_plane_reg(const vector<double>& plane_eq, const vector<vector<
     }
     return vertex_found;
 }
-
+/* Distance between two polytopes
+ @poly1: Vertices of polytope1
+ @poly2: Vertices of polytope2
+ */
+double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2){
+    double dmax=0;
+    for(auto v1: poly1){
+        for(auto v2: poly2){
+            auto d=pow(v1[0]-v2[0],2)+pow(v1[1]-v2[1],2)+pow(v1[2]-v2[2],2);
+            if(d>=dmax){
+                dmax=d;
+            }
+        }
+    }
+    return dmax;
+}
 #endif /* Branch_Bound_h */

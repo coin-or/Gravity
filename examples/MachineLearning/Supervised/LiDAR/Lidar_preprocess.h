@@ -766,21 +766,5 @@ bool vertices_box_plane(const vector<double>& plane_eq, const vector<vector<doub
     }
     return vertex_found;
 }
-/* Distance between two polytopes
- @poly1: Vertices of polytope1
- @poly2: Vertices of polytope2
- */
-double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2){
-    double dmax=0;
-    for(auto v1: poly1){
-        for(auto v2: poly2){
-            auto d=pow(v1[0]-v2[0],2)+pow(v1[1]-v2[1],2)+pow(v1[2]-v2[2],2);
-            if(d>=dmax){
-                dmax=d;
-            }
-        }
-    }
-    return dmax;
-}
 #endif /* Lidar_preprocess_h */
 

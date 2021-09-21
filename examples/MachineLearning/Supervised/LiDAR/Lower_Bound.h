@@ -583,6 +583,12 @@ shared_ptr<Model<double>> Align_L1_model(const vector<vector<double>>& point_clo
     zm_trans += zm - ((x2 - x_uav2)*theta31.in(ids2) + (y2 - y_uav2)*theta32.in(ids2) + (z2 - z_uav2)*theta33.in(ids2) + z_uav2);
     Reg->add(zm_trans.in(N2)==0);
     
+    if(dist_cost._indices->_keys->size()!=0){
+        Constraint<> delta_cost("delta_cost");
+        delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+        Reg->add(delta_cost.in(N1)<=0);
+    }
+    
     bool relax_sdp = false;
     if(!relax_sdp){
         Constraint<> diag_1("diag_1");
@@ -703,11 +709,11 @@ shared_ptr<Model<double>> Align_L1_model(const vector<vector<double>>& point_clo
     Reg->min(sum(x_diff) + sum(y_diff)+sum(z_diff));
 //    Reg->print();
 //
-//    
+//
 //    solver<> S(Reg,gurobi);
 //    S.use_callback();
 //    S.run(5,1e-6,30000,1000);
-//    
+//
 //    Reg->print_solution();
 //    vector<double> rot(9);
 //    vector<int> matching(n1);
