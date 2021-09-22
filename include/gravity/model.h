@@ -703,6 +703,17 @@ public:
         return _convexity==concave_;
     }
     
+    bool is_nonlinear(const param_& v) const{
+        for (auto &cp:_cons) {
+            auto c = cp.second;
+            if(c->is_polynomial() || c->is_nonlinear()){
+                if(c->has_sym_var(v))/* TODO: check if v appears in linear part only */
+                    return true;
+            }
+        }
+        return false;
+    };
+    
     bool has_var(const string& name) const{
         return (_vars_name.count(name)!=0);
     };
@@ -2245,13 +2256,15 @@ public:
         list<pair<int,shared_ptr<Constraint<type>>>> lin_ineq_list; /* list of linear inequalities */
         list<pair<int,shared_ptr<Constraint<type>>>> quad_eq_list; /* list of quadratic equations */
         list<pair<int,shared_ptr<Constraint<type>>>> quad_ineq_list; /* list of quadratic inequalities */
-        map<pair<pair<int,int>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> lin_eq_sparsity, lin_ineq_sparsity;
-        map<pair<tuple<int,int,int,int,int>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_eq_sparsity;
-        map<pair<tuple<int,int,int,int,int,bool>,set<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
+        map<pair<pair<int,int>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> lin_eq_sparsity, lin_ineq_sparsity;
+        map<pair<tuple<int,int,int,int,int>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_eq_sparsity;
+        map<pair<tuple<int,int,int,int,int,bool>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
-            if(c_pair.second->is_geq())/* If >= inequality, reverse sign */
+            if(c_pair.second->is_geq()){/* If >= inequality, reverse sign */
                 *c_pair.second *= -1;
+                c_pair.second->_ctype = leq;
+            }
 
             int nb_inst = c_pair.second->get_nb_inst();
             
@@ -2260,9 +2273,9 @@ public:
                 if(c_pair.second->is_linear()){
                     nb_int_vars = c_pair.second->nb_int_lterms(inst);
                     nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
-                    set<int> var_ids;
+                    vector<int> var_ids;
                     for(int i = 0; i<nb_cont_vars;i++){
-                        var_ids.insert(c_pair.second->get_lterm_cont_var_name(i,inst));/* include integer part too */
+                        var_ids.push_back(c_pair.second->get_lterm_cont_var_name(i,inst));/* include integer part too */
                     }
 
                     if (c_pair.second->is_eq()) {
@@ -2276,10 +2289,10 @@ public:
                 }
                 /* check quadratic constraints */
                 if(c_pair.second->is_quadratic()){
-                    set<int> var_ids;
+                    vector<int> var_ids;
                     for (auto &v_pair:*c_pair.second->_vars) {
                         auto v = v_pair.second;
-                        var_ids.insert(v.first->get_id());
+                        var_ids.push_back(v.first->get_id());
                     }
                     nb_int_vars = c_pair.second->nb_int_lterms(inst);
                     nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
@@ -2722,7 +2735,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v)/* v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -2829,7 +2842,7 @@ public:
         reindex();
         reset();
         int nb_proj = nb_eqs - get_nb_eq();
-        DebugOn("Number of projeted variables = " << nb_proj << endl);
+        DebugOn("Number of projected variables = " << nb_proj << endl);
         DebugOn("Model after projetion: " << endl);
         print();
     }

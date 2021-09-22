@@ -1321,11 +1321,12 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     /** Construct the objective function */
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-//    auto obj = sum(c0);
-//    for (auto pg_id: *Pg.get_indices()._keys) {
-//        obj += c1(pg_id)*Pg(pg_id);
-//    }
+//    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = sum(c0);
+    for (auto pg_id: *Pg.get_indices()._keys) {
+        obj += c1(pg_id)*Pg(pg_id);
+        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
+    }
     ACOPF->min(obj);
     
     /** Define constraints */
@@ -2072,7 +2073,7 @@ shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss, double upper_boun
 
 shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, bool sdp_kim, double upper_bound)
 {
-    bool relax, sdp_cuts = false,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
+    bool relax, sdp_cuts = true,  llnc=false, lazy_bool = false, add_original=false, convexify=true;
     size_t num_bags = 0;
     string num_bags_s = "100";
     num_bags = atoi(num_bags_s.c_str());

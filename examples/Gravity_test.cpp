@@ -23,32 +23,49 @@
     using namespace gravity;
 
 
-TEST_CASE("testing restructure") {
-//    string fname = string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+//TEST_CASE("testing restructure and projection with ACOPF") {
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//    int output = 0;
+//    double tol = 1e-6;
+//    PowerNet grid;
+//    grid.readgrid(fname);
+//    auto ACOPF = build_ACOPF(grid,ACRECT);
+//    ACOPF->print();
+//    solver<> s1(ACOPF,ipopt);
+//    auto time_start = get_wall_time();
+//    auto status = s1.run(output=5, tol=1e-6);
+//    auto ACOPF_proj = build_ACOPF(grid,ACRECT);
+//    ACOPF_proj->restructure();
+//    DebugOn("Done restructuring\n");
+//    ACOPF_proj->project();
+//    DebugOn("Done projecting\n");
+//    solver<> s2(ACOPF_proj,ipopt);
+//    time_start = get_wall_time();
+//    status = s2.run(output=5, tol=1e-6);
+//    CHECK(std::abs(ACOPF_proj->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
+//}
+
+
+TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     int output = 0;
     double tol = 1e-6;
     PowerNet grid;
     grid.readgrid(fname);
-    auto ACOPF = build_SDPOPF(grid);
-    ACOPF->print();
-    solver<> UB(ACOPF,ipopt);
-    auto time_start = get_wall_time();
-    auto status = UB.run(output=5, tol=1e-6);
     auto SDP = build_SDPOPF(grid);
-    
-    
-    SDP->restructure();
-    SDP->reset();
-//    SDP->print();
-    DebugOn("Done restructuring\n");
-//    SDP->project();
     SDP->print();
-//    DebugOn("Done projecting\n");
-    solver<> LB(SDP,ipopt);
+    solver<> s1(SDP,ipopt);
+    auto time_start = get_wall_time();
+    auto status = s1.run(output=5, tol=1e-6);
+    auto SDP_proj = build_SDPOPF(grid);
+    SDP_proj->restructure();
+    DebugOn("Done restructuring\n");
+    SDP_proj->project();
+    DebugOn("Done projecting\n");
+    solver<> s2(SDP_proj,ipopt);
     time_start = get_wall_time();
-    status = LB.run(output=5, tol=1e-6);
-    CHECK(std::abs(SDP->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
+    status = s2.run(output=5, tol=1e-6);
+    CHECK(std::abs(SDP_proj->get_obj_val()- SDP->get_obj_val())/SDP->get_obj_val() < 0.001);
 }
 
     TEST_CASE("testing set intersection unindexed") {
@@ -2521,6 +2538,8 @@ TEST_CASE("testing camshape100.nl") {
         SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
         auto nonlin_obj=true, current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj);
+//        SDP->restructure();
+//        SDP->project();
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=1, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
         auto lower_bound = SDP->get_obj_val();
         auto lower_bound_init = get<3>(res);
