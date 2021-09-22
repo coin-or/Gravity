@@ -18611,7 +18611,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
 //    new_tz_min=shift_min_z;
 //    new_tz_max=shift_max_z;
 }
-void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj)
+void apreprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj)
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
@@ -19218,7 +19218,7 @@ void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_clo
         new_cells=valid_cells_empty;
     }
 }
-void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj)
+void apreprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj)
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
@@ -19790,6 +19790,1045 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
 //             }
 //             maxj.add_val(to_string(j+1), *max_element(numi.begin(), numi.end()));
 //         }
+        double ndd=point_cloud_data.size()*1.0;
+        new_tx_min/=ndd;
+        new_tx_max/=ndd;
+        new_ty_min/=ndd;
+        new_ty_max/=ndd;
+        new_tz_min/=ndd;
+        new_tz_max/=ndd;
+        new_tx_min=std::max(new_tx_min-1e-6, shift_min_x);
+        new_tx_max=std::min(new_tx_max+1e-6, shift_max_x);
+        new_ty_min=std::max(new_ty_min-1e-6, shift_min_y);
+        new_ty_max=std::min(new_ty_max+1e-6, shift_max_y);
+        new_tz_min=std::max(new_tz_min-1e-6, shift_min_z);
+        new_tz_max=std::min(new_tz_max+1e-6, shift_max_z);
+        if(new_tx_min>=new_tx_max+1e-10 || new_tx_max<=new_tx_min-1e-10){
+            found_all=false;
+            DebugOn("new tx lb ub bounds cross "<<new_tx_min<<" "<<new_tx_max<<endl);
+        }
+        if(new_ty_min>=new_ty_max+1e-10 || new_ty_max<=new_ty_min-1e-10){
+            found_all=false;
+            DebugOn("new ty lb ub bounds cross "<<new_ty_min<<" "<<new_ty_max<<endl);
+        }
+        if(new_tz_min>=new_tz_max+1e-10 || new_tz_max<=new_tz_min-1e-10){
+            found_all=false;
+            DebugOn("new tz lb ub bounds cross "<<new_tz_min<<" "<<new_tz_max<<endl);
+        }
+        if(new_tx_min>shift_min_x+1e-3){
+            DebugOn("new tx lb "<<new_tx_min<<endl);
+        }
+        if(new_ty_min>shift_min_y+1e-3){
+            DebugOn("new ty lb "<<new_ty_min<<endl);
+        }
+        if(new_tz_min>shift_min_z+1e-3){
+            DebugOn("new tz lb "<<new_tz_min<<endl);
+        }
+        if(new_tx_max<shift_max_x-1e-3){
+            DebugOn("new tx ub "<<new_tx_max<<endl);
+        }
+        if(new_ty_max<shift_max_y-1e-3){
+            DebugOn("new ty ub "<<new_ty_max<<endl);
+        }
+        if(new_tz_max<shift_max_z-1e-3){
+            DebugOn("new tz ub "<<new_tz_max<<endl);
+        }
+    }
+    auto time_end = get_wall_time();
+    auto prep_time = time_end - time_start;
+    prep_time_total+=prep_time;
+    DebugOn("Voronoi preprocessing time = " << prep_time << endl);
+    if(found_all){
+        double cr=((old_cells.size()-valid_cells_new.size())*1.0)/(old_cells.size()*1.0)*100.0;
+        DebugOn("cells removed "<<cr<<endl);
+    }
+    else{
+        DebugOn("cells removed "<<100<<endl);
+    }
+    
+    if(found_all){
+        min_cost_sum=std::max(min_cost_sum,0.0);
+        DebugOn("min_cost_sum "<<min_cost_sum<<endl);
+        new_cells=valid_cells_new;
+        dist_cost=dist_cost_second;
+    }
+    else{
+        new_cells=valid_cells_empty;
+    }
+}
+/* Extreme points of a bounded box (defined x_lb, x_ub, y_lb. y_ub z_lb, z_ub) when intersected with a plane. Returns true when new vertices found
+ @plane_eq: equation of plane intersecting the box
+ @big_box: Vector of coordinates of the original bounded box
+ @new_verts:New vertices created when plane intersects box
+ @infeas_set: Set of indices of old coordinates that are infeasible to plane eq
+ */
+bool vertices_box_plane_reg(const vector<double>& plane_eq, const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set){
+    
+    const double feas_tol=1e-6;
+    
+    double a=plane_eq[0];double b=plane_eq[1];double c=plane_eq[2];double d=plane_eq[3];
+    
+    double x_lb=big_box[0][0];
+    double y_lb=big_box[0][1];
+    double z_lb=big_box[0][2];
+    double x_ub=big_box[6][0];
+    double y_ub=big_box[6][1];
+    double z_ub=big_box[6][2];
+    /*vertex vf[i] and vs[i] are connected by an edge*/
+    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
+    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
+    vector<vector<int>> vert_edge(8);
+    /*for each vertex i,vert_edge[i] has all the edges that are incident upon the vertex*/
+    vert_edge[0]={0, 3, 8};
+    vert_edge[1]={0, 1, 9};
+    vert_edge[2]={1, 2, 10};
+    vert_edge[3]={2, 3, 11};
+    vert_edge[4]={4, 7, 8};
+    vert_edge[5]={4, 5, 9};
+    vert_edge[6]={5, 6, 10};
+    vert_edge[7]={6, 7, 11};
+    /*for each edge i,plane_x[i] shows whether:
+     0: no x plane defines the edge
+     -1: plane x=x_lb defines the edge
+     1: plane x=x_ub defines the edge
+     */
+    vector<int> plane_x={0,1,0,-1,0,1,0,-1,-1,1,1,-1};
+    vector<int> plane_y={-1,0,1,0,-1,0,1,0,-1,-1,1,1};
+    vector<int> plane_z={-1,-1,-1,-1,1,1,1,1,0,0,0,0};
+    vector<int> feas_set;
+    for(auto k=0;k<8;k++){
+        auto xk=big_box[k][0];
+        auto yk=big_box[k][1];
+        auto zk=big_box[k][2];
+        if(a*xk+b*yk+c*zk+d<=feas_tol){
+            feas_set.push_back(k);
+        }
+        else{
+            infeas_set.push_back(k);
+        }
+    }
+    bool vertex_found=true;
+    for(auto k=0;k<infeas_set.size() && vertex_found;k++){
+        bool vertex_found_k=true;
+        auto edge_set_k=vert_edge[infeas_set[k]];
+        for(auto l=0;l<edge_set_k.size();l++){
+            auto el=edge_set_k[l];
+            auto elf=vf[el];
+            auto els=vs[el];
+            /* New vertex must lie on an edge which connects infeasible point inf[k] and some feasible point */
+            if(std::find (infeas_set.begin(), infeas_set.end(), elf)==infeas_set.end()||std::find (infeas_set.begin(), infeas_set.end(), els)==infeas_set.end()){
+                bool vertex_found_kl=false;
+                double xel=100000.0, yel=100000.0, zel=100000.0;
+                if(plane_x[el]==-1){
+                    xel=x_lb;
+                }
+                if(plane_x[el]==1){
+                    xel=x_ub;
+                }
+                if(plane_y[el]==-1){
+                    yel=y_lb;
+                }
+                if(plane_y[el]==1){
+                    yel=y_ub;
+                }
+                if(plane_z[el]==-1){
+                    zel=z_lb;
+                }
+                if(plane_z[el]==1){
+                    zel=z_ub;
+                }
+                if(plane_x[el]==0 && abs(a)>1e-10){
+                    xel=(-d-c*zel-b*yel)/a;
+                    if(xel<=x_ub+1e-9 && xel>=x_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(plane_y[el]==0 && abs(b)>1e-10){
+                    yel=(-d-c*zel-a*xel)/b;
+                    if(yel<=y_ub+1e-9 && yel>=y_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(plane_z[el]==0 && abs(c)>1e-10){
+                    zel=(-d-a*xel-b*yel)/c;
+                    if(zel<=z_ub+1e-9 && zel>=z_lb-1e-9){
+                        vertex_found_kl=true;
+                    }
+                }
+                if(vertex_found_kl){
+                    vector<double> v(3);
+                    v[0]=xel;
+                    v[1]=yel;
+                    v[2]=zel;
+                    new_verts.push_back(v);
+                }
+                else{
+                    DebugOn(vertex_found_kl<<endl);
+                    DebugOn("Failed to find vertex in prep "<<endl);
+                }
+                if(vertex_found_kl && vertex_found_k){
+                    vertex_found_k=true;
+                }
+                else{
+                    vertex_found_k=false;
+                    break;
+                }
+            }
+        }
+        if(vertex_found_k && vertex_found){
+            vertex_found=true;
+        }
+        else{
+            vertex_found=false;
+            break;
+        }
+    }
+    return vertex_found;
+}
+/* Extreme points of the feasible region in which a rotated data point can lie.
+ @extreme: Vertices of extreme points of the feasible region: [R[d_pt]]
+ @d_pt: Data point coordinate
+ @theta_vec: vector of variables defining rotation with roll, pitch, yaw
+ SECANT underestimator
+ Tangent overestimator
+ */
+void get_extreme_rotation_data(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec){
+    vector<double> d(3);
+    
+    vector<vector<double>> new_vert_a, new_vert_b;
+    vector<int> infeas_set_a, infeas_set_b, infeas_set;
+    bool vertex_found_a=false, vertex_found_b=false;
+    
+    d[0]=d_pt[0];
+    d[1]=d_pt[1];
+    d[2]=d_pt[2];
+    
+    double d_mag=pow(d[0],2)+pow(d[1],2)+pow(d[2],2);
+    double d_root=sqrt(d_mag);
+    
+    auto theta11=theta_vec[0];
+    auto theta12=theta_vec[1];
+    auto theta13=theta_vec[2];
+    auto theta21=theta_vec[3];
+    auto theta22=theta_vec[4];
+    auto theta23=theta_vec[5];
+    auto theta31=theta_vec[6];
+    auto theta32=theta_vec[7];
+    auto theta33=theta_vec[8];
+    
+
+    vector<vector<double>> box_big;
+    vector<double> coord_i;
+    coord_i.resize(3);
+    
+    shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_z1_bounds = make_shared<pair<double,double>>();
+    
+    x1_bounds->first = d[0];
+    x1_bounds->second = d[0];
+    y1_bounds->first = d[1];
+    y1_bounds->second = d[1];
+    z1_bounds->first = d[2];
+    z1_bounds->second = d[2];
+    auto x_range  = get_product_range(x1_bounds, theta11._range);
+    auto y_range  = get_product_range(y1_bounds, theta12._range);
+    auto z_range  = get_product_range(z1_bounds, theta13._range);
+    
+    rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double x_lb=rot_x1_bounds->first;
+    double x_ub=rot_x1_bounds->second;
+    
+    x_range  = get_product_range(x1_bounds, theta21._range);
+    y_range  = get_product_range(y1_bounds, theta22._range);
+    z_range  = get_product_range(z1_bounds, theta23._range);
+    
+    rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double y_lb=rot_y1_bounds->first;
+    double y_ub=rot_y1_bounds->second;
+    
+    
+    x_range  = get_product_range(x1_bounds, theta31._range);
+    y_range  = get_product_range(y1_bounds, theta32._range);
+    z_range  = get_product_range(z1_bounds, theta33._range);
+    
+    rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+    rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+    
+    double z_lb=rot_z1_bounds->first;
+    double z_ub=rot_z1_bounds->second;
+    
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    
+    /*Equation of secan which underestimates feasible region*/
+    vector<double> secant(4,0.0);
+    secant[0]=(x_lb+x_ub)*(-1);
+    secant[1]=(y_lb+y_ub)*(-1);
+    secant[2]=(z_lb+z_ub)*(-1);
+    secant[3]=d_mag+x_lb*x_ub+y_lb*y_ub+z_lb*z_ub;
+    
+    vertex_found_a=vertices_box_plane_reg(secant, box_big, new_vert_a, infeas_set_a);
+    
+    /*Find coordinates of the point to define tangent, Tangent is found parallel to secant, if this fails midpoint is used and checked to ensure does not intersect secant in this range*/
+   
+    double xt, yt, zt;
+    bool plane_eq_found=false;
+    vector<double> tangent(4);
+    double temp_x=sqrt(d_mag/(1+((y_lb+y_ub)*(y_lb+y_ub)+(z_lb+z_ub)*(z_lb+z_ub))/((x_lb+x_ub)*(x_lb+x_ub))));
+
+    double lamda=2.0*temp_x/((x_lb+x_ub)*(-1));
+    
+    double temp_y=lamda*(y_lb+y_ub)*(-1)/2.0;
+    
+    double temp_z=lamda*(z_lb+z_ub)*(-1)/2.0;
+    
+    if(temp_x>=x_lb && temp_x<=x_ub && temp_y>=y_lb && temp_y<=y_ub && temp_z>=z_lb && temp_z<=z_ub){
+        xt=temp_x;
+        yt=temp_y;
+        zt=temp_z;
+        plane_eq_found=true;
+    }
+    else if (temp_x*(-1)>=x_lb && temp_x*(-1)<=x_ub && temp_y*(-1)>=y_lb && temp_y*(-1)<=y_ub && temp_z*(-1)>=z_lb && temp_z*(-1)<=z_ub){
+        xt=temp_x*(-1);
+        yt=temp_y*(-1);
+        zt=temp_z*(-1);
+        plane_eq_found=true;
+    }
+    if(!plane_eq_found){
+        xt=(x_lb+x_ub)*0.5;
+        yt=(y_lb+y_ub)*0.5;
+        auto zttp=sqrt(d_mag-pow(xt,2)-pow(yt,2));
+        if( zttp <=z_ub && zttp>=z_lb){
+            zt=zttp;
+        }
+        else{
+            zt=zttp*(-1);
+        }
+        auto dt=-2*(xt*xt+yt*yt+zt*zt);
+        plane_eq_found=true;
+        if(vertex_found_a){
+            for(auto v: new_vert_a){
+                auto x=v[0];
+                auto y=v[1];
+                auto z=v[2];
+                if(2*xt*x+2*yt*y+2*zt*z+dt>=1e-9){
+                    plane_eq_found=false;
+                }
+            }
+        }
+    }
+    if(plane_eq_found){
+        tangent[0]=2*xt;
+        tangent[1]=2*yt;
+        tangent[2]=2*zt;
+        tangent[3]=-2*(xt*xt+yt*yt+zt*zt);
+        DebugOff("Plane Eq found in extreme data "<<endl);
+        vertex_found_b=vertices_box_plane_reg(tangent, box_big, new_vert_b, infeas_set_b);
+    }
+    else{
+        DebugOn("Plane Eq not found in extreme data "<<endl);
+    }
+    if(vertex_found_a){
+        for(auto v: new_vert_a){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_a){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOn("Vertex A no found "<<endl);
+    }
+    if(vertex_found_b){
+        for(auto v: new_vert_b){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_b){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+    }
+    for(auto i=0;i<box_big.size();i++){
+        if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
+            extreme.push_back(box_big[i]);
+        }
+    }
+
+}
+/* Distance between two polytopes
+ @poly1: Vertices of polytope1
+ @poly2: Vertices of polytope2
+ */
+double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2){
+    double dmax=0;
+    for(auto v1: poly1){
+        for(auto v2: poly2){
+            auto d=pow(v1[0]-v2[0],2)+pow(v1[1]-v2[1],2)+pow(v1[2]-v2[2],2);
+            if(d>=dmax){
+                dmax=d;
+            }
+        }
+    }
+    return dmax;
+}
+void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj)
+{
+    bool option_cost_new=true;
+    indices valid_cells("valid_cells");
+    indices valid_cells_new("valid_cells_new");
+    param<double> dist_cost_first("dist_cost_first");
+    param<double> dist_cost_max("dist_cost_max");
+    param<double> dist_cost_second("dist_cost_second");
+    indices valid_cells_empty("valid_cells_empty");
+    double time_start = get_wall_time();
+    int new_test=0;
+    planeStatPerPair = 0;
+    shared_ptr<pair<double,double>> new_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> new_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> new_z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> tx_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> ty_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> tz_bounds = make_shared<pair<double,double>>();
+    tx_bounds->first=shift_min_x;
+    tx_bounds->second=shift_max_x;
+    ty_bounds->first=shift_min_y;
+    ty_bounds->second=shift_max_y;
+    tz_bounds->first=shift_min_z;
+    tz_bounds->second=shift_max_z;
+    var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
+    yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
+    func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
+    func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);r12.eval_all();
+    func<> r13 = cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);r13.eval_all();
+    func<> r21 = sin(yaw)*cos(roll);r21.eval_all();
+    func<> r22 = sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);r22.eval_all();
+    func<> r23 = sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);r23.eval_all();
+    func<> r31 = sin(-1*roll);r31.eval_all();
+    func<> r32 = cos(roll)*sin(pitch);r32.eval_all();
+    func<> r33 = cos(roll)*cos(pitch);r33.eval_all();
+    
+    
+    var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
+    var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
+    var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
+    vector<var<double>> T1;
+    T1.push_back(theta11);
+    T1.push_back(theta12);
+    T1.push_back(theta13);
+    T1.push_back(theta21);
+    T1.push_back(theta22);
+    T1.push_back(theta23);
+    T1.push_back(theta31);
+    T1.push_back(theta32);
+    T1.push_back(theta33);
+    
+    
+    min_cost_sum=0.0;
+    
+    
+    bool found_all=true;
+    new_tx_min=0;
+    new_tx_max=0;
+    new_ty_min=0;
+    new_ty_max=0;
+    new_tz_min=0;
+    new_tz_max=0;
+    
+    var<> x_shift("x_shift", shift_min_x, shift_max_x), y_shift("y_shift", shift_min_y, shift_max_y), z_shift("z_shift", shift_min_z, shift_max_z);
+    
+    map<int, map<double, int, std::greater<double>>> valid_cells_map;
+    vector<double> dist_cost_max_min_i;
+    map<int, map<double, int, std::greater<double>>> dist_root_novoro_map_j;
+    map<int, bool> new_model_pts;
+    double dist_alt_cost_sum=0;
+    int nd=point_cloud_data.size();
+    int nm=point_cloud_model.size();
+    vector<double> dist_i;
+    vector<double> sphere_inner_sq, sphere_outer_sq;
+    vector<double> zeros = {0,0,0};
+    vector<shared_ptr<Model<double>>> batch_models;
+    int missed=0;
+    vector<double> x_lb, x_ub, y_lb, y_ub, z_lb, z_ub;
+    vector<vector<vector<double>>> box;
+    vector<vector<vector<double>>> vertex_new;
+    vector<vector<double>> box_i;
+    vector<vector<double>> box_new_i;
+    vector<double> coord_i;
+    coord_i.resize(3);
+    set<int> unique_model_pts;
+    min_cost_sum=0.0;
+    double ub_root=sqrt(upper_bound);
+    vector<vector<int>> vertex_edge(8);
+    vector<vector<std::pair<int, int>>> vertex_edge_plane(8);
+    vector<vector<double>> planes;
+    planes.reserve(6);
+    vector<int> vf={0,1,2,3,4,5,6,7,0,1,2,3};
+    vector<int> vs={1,2,3,0,5,6,7,4,4,5,6,7};
+    vertex_edge[0]={1, 3, 4};
+    vertex_edge[1]={0, 2, 5};
+    vertex_edge[2]={1, 3, 6};
+    vertex_edge[3]={0, 2, 7};
+    vertex_edge[4]={5, 7, 0};
+    vertex_edge[5]={4, 6, 1};
+    vertex_edge[6]={5, 7, 2};
+    vertex_edge[7]={4, 6, 3};
+    vertex_edge_plane[0]={std::make_pair(1,2), std::make_pair(0,2), std::make_pair(0,1)};
+    vertex_edge_plane[1]={std::make_pair(1,2), std::make_pair(2,3), std::make_pair(1,3)};
+    vertex_edge_plane[2]={std::make_pair(2,3), std::make_pair(2,4), std::make_pair(3,4)};
+    vertex_edge_plane[3]={std::make_pair(0,2), std::make_pair(2,4), std::make_pair(0,4)};
+    vertex_edge_plane[4]={std::make_pair(1,5), std::make_pair(0,5), std::make_pair(0,1)};
+    vertex_edge_plane[5]={std::make_pair(1,5), std::make_pair(3,5), std::make_pair(1,3)};
+    vertex_edge_plane[6]={std::make_pair(3,5), std::make_pair(4,5), std::make_pair(3,4)};
+    vertex_edge_plane[7]={std::make_pair(0,5), std::make_pair(4,5), std::make_pair(0,4)};
+    double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
+    double shift_mag_max_root=sqrt(shift_mag_max);
+    double shift_mag_min=0.0;
+    if(shift_min_x<=0 && shift_max_x>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_x,2),pow(shift_max_x,2));
+    }
+    if(shift_min_y<=0 && shift_max_y>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_y,2),pow(shift_max_y,2));
+    }
+    if(shift_min_z<=0 && shift_max_z>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(shift_min_z,2),pow(shift_max_z,2));
+    }
+    double shift_mag_min_root=sqrt(shift_mag_min);
+    double siq=0;
+    double min_sum_di_sq=0;
+    for(auto i=0;i<nd;i++){
+        siq=0.0;
+        auto d_root=sqrt(pow(point_cloud_data.at(i)[0],2)+pow(point_cloud_data.at(i)[1],2)+pow(point_cloud_data.at(i)[2],2));
+        if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+            siq=0.0;
+        }
+        else{
+            siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+        }
+        sphere_inner_sq.push_back(siq);
+        sphere_outer_sq.push_back(pow((d_root+shift_mag_max_root),2));
+        x1_bounds->first = point_cloud_data.at(i)[0];
+        x1_bounds->second = point_cloud_data.at(i)[0];
+        y1_bounds->first = point_cloud_data.at(i)[1];
+        y1_bounds->second = point_cloud_data.at(i)[1];
+        z1_bounds->first = point_cloud_data.at(i)[2];
+        z1_bounds->second = point_cloud_data.at(i)[2];
+        auto x_range  = get_product_range(x1_bounds, theta11._range);
+        auto y_range  = get_product_range(y1_bounds, theta12._range);
+        auto z_range  = get_product_range(z1_bounds, theta13._range);
+        *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_x, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_x};
+        rot_x1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_x1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+        if(new_x1_bounds->first>=new_x1_bounds->second-1e-8){
+            found_all=false;
+            break;
+        }
+        x_lb.push_back(new_x1_bounds->first);
+        x_ub.push_back(new_x1_bounds->second);
+        x_range  = get_product_range(x1_bounds, theta21._range);
+        y_range  = get_product_range(y1_bounds, theta22._range);
+        z_range  = get_product_range(z1_bounds, theta23._range);
+        *new_y1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_y, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_y};
+        rot_y1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_y1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+        if(new_y1_bounds->first>=new_y1_bounds->second-1e-8){
+            found_all=false;
+            break;
+        }
+        y_lb.push_back(new_y1_bounds->first);
+        y_ub.push_back(new_y1_bounds->second);
+        x_range  = get_product_range(x1_bounds, theta31._range);
+        y_range  = get_product_range(y1_bounds, theta32._range);
+        z_range  = get_product_range(z1_bounds, theta33._range);
+        *new_z1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)) + shift_min_z, std::min(x_range->second + y_range->second + z_range->second, d_root)+ shift_max_z};
+        rot_z1_bounds->first=std::max(x_range->first + y_range->first + z_range->first, d_root*(-1));
+        rot_z1_bounds->second=std::min(x_range->second + y_range->second + z_range->second, d_root);
+        if(new_z1_bounds->first>=new_z1_bounds->second-1e-8){
+            found_all=false;
+            break;
+        }
+        z_lb.push_back(new_z1_bounds->first);
+        z_ub.push_back(new_z1_bounds->second);
+        x_range  = get_product_range(rot_x1_bounds, tx_bounds);
+        y_range  = get_product_range(rot_y1_bounds, ty_bounds);
+        z_range  = get_product_range(rot_z1_bounds, tz_bounds);
+        double dist_cost_alt_i=pow(point_cloud_data[i][0],2)+pow(point_cloud_data[i][1],2)+pow(point_cloud_data[i][2],2)+shift_mag_min;
+        double cost_alt=dist_cost_alt_i+2*(x_range->first+y_range->first+z_range->first);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_lb[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_lb[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_lb[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_lb[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_ub[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_lb[i];
+        coord_i[2]=z_ub[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_ub[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_ub[i];
+        box_i.push_back(coord_i);
+        coord_i[0]=x_lb[i];
+        coord_i[1]=y_ub[i];
+        coord_i[2]=z_ub[i];
+        box_i.push_back(coord_i);
+        box.push_back(box_i);
+        vector<double> pl(4,0);
+        pl[0]=-1;
+        pl[3]=x_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[1]=-1;
+        pl[3]=y_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[2]=-1;
+        pl[3]=z_lb[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[0]=1;
+        pl[3]=-x_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[1]=1;
+        pl[3]=-y_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+        pl.resize(4,0);
+        pl[2]=1;
+        pl[3]=-z_ub[i];
+        planes.push_back(pl);
+        pl.clear();
+        vector<vector<double>> rot_polytope;
+        get_extreme_rotation_data(rot_polytope, point_cloud_data.at(i), T1);
+        
+        double dist_cost_max_min=9999, cost_min=9999;
+        for (int j = 0; j<nm; j++) {
+            auto vertices=model_voronoi_vertices.at(j);
+            if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                DebugOff("continued");
+                continue;
+            }
+            bool dist_calculated=false;
+            bool res=true;
+            double dist=0;
+            double dist_max=0;
+            auto xm= point_cloud_model.at(j)[0];
+            auto ym= point_cloud_model.at(j)[1];
+            auto zm= point_cloud_model.at(j)[2];
+            auto min_max_voro_j=model_voronoi_min_max[j];
+            double cost_alt_j=cost_alt;
+            double dc_ij=pow(xm,2)+pow(ym,2)+pow(zm,2);
+            cost_alt_j+=dc_ij;
+            double max_m_box=-999, max_m_ve=-999;
+            for(auto k=0;k<box[i].size();k++){
+                auto xb=box[i][k][0];
+                auto yb=box[i][k][1];
+                auto zb=box[i][k][2];
+                auto ip=xb*xm+yb*ym+zb*zm;
+                if(ip>=max_m_box){
+                    max_m_box=ip;
+                }
+            }
+            double dist_novoro=0;
+            if(xm>=x_lb[i]-1e-6 && ym>=y_lb[i]-1e-6 && zm>=z_lb[i]-1e-6 && xm<=x_ub[i]-1e-6 && ym<=y_ub[i]-1e-6 && zm<=z_ub[i]-1e-6){
+                res=false;
+                dist_calculated=true;
+            }
+            auto resd=min_max_euclidean_distsq_box(box_i,point_cloud_model.at(j));
+            dist=resd.first;
+            dist_max=resd.second;
+            dist=std::max(dist, cost_alt_j-2.0*max_m_box);
+            dist_novoro=sqrt(std::max(resd.first, 0.0));
+            vector<vector<double>> box_m_t;
+            vector<double> m_t(3);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_max_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_max_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_max_z;
+            box_m_t.push_back(m_t);
+            m_t[0]=xm-shift_min_x;
+            m_t[1]=ym-shift_min_y;
+            m_t[2]=zm-shift_min_z;
+            box_m_t.push_back(m_t);
+            
+            auto resd2=distance_polytopes_gjk(rot_polytope,box_m_t);
+            
+            dist=std::max(resd2, dist);
+            
+           dist_max=std::min(max_distance_polytopes(rot_polytope,box_m_t), dist_max);
+           
+           dist_novoro=sqrt(std::max(resd.first, resd2));
+
+         
+            if(!dist_calculated){
+                res=test_general<VerticesOnly>(box[i],vertices);
+                DebugOff("i "<<i <<" j "<<j<<" "<<res<<endl);
+            }
+            if(!res){
+                dist=std::max(dist,dist_cost_old.eval(to_string(i+1)+","+to_string(j+1)));
+                double dist_min_v=dist;
+                double dist_max_v=dist_max;
+                if(dist<=upper_bound*(nd-1)/nd && dist<=dist_cost_max_min){
+                    vector<double> vec1;
+                    vector<vector<double>> model_halfspaces;
+                    for(auto k=0;k<model_voronoi_normals[j].size();k++){
+                        vec1.clear();
+                        vec1.resize(4);
+                        vec1[0]=model_voronoi_normals[j][k][0];
+                        vec1[1]=model_voronoi_normals[j][k][1];
+                        vec1[2]=model_voronoi_normals[j][k][2];
+                        vec1[3]=model_face_intercept[j][k];
+                        model_halfspaces.push_back(vec1);
+                    }
+                    
+                    bool status1=true;
+                    vector<vector<double>> vec_vertex1;
+                    status1=vert_enum(box_i, planes, vertex_edge, vertex_edge_plane,  model_voronoi_vertices[j], model_halfspaces,  model_voronoi_vertex_edge[j], model_voronoi_vertex_edge_planes[j], vec_vertex1, point_cloud_model.at(j));
+                    if(status1){
+                        vector<vector<double>> mpoint;
+                        mpoint.push_back(point_cloud_model.at(j));
+                        auto dist1=distance_polytopes_gjk(vec_vertex1, mpoint);
+                        double max_m_ve=-999;
+                        double dist_mv=-999;
+                        for(auto k=0;k<vec_vertex1.size();k++){
+                            auto xbv=vec_vertex1[k][0];
+                            auto ybv=vec_vertex1[k][1];
+                            auto zbv=vec_vertex1[k][2];
+                            auto ip=xbv*xm+ybv*ym+zbv*zm;
+                            if(ip>=max_m_ve){
+                                max_m_ve=ip;
+                            }
+                            auto ipm=xbv*xbv+ybv*ybv+zbv*zbv;
+                            if(ipm>=dist_mv){
+                                dist_mv=ipm;
+                            }
+                            
+                        }
+                        dist1=std::max(dist1-1e-5, cost_alt_j-2.0*max_m_ve-1e-6);
+                        dist_min_v=std::max(dist,dist1);
+                        dist_max_v=dist_mv;
+                    }
+                    if(dist_min_v<=upper_bound*(nd-1)/nd && dist_min_v<=dist_cost_max_min){
+                        new_model_pts.insert ( std::pair<int,bool>(j,true) );
+                        auto c=std::max(dist_min_v,0.0);
+                        if(c<=cost_min){
+                            cost_min=c;
+                        }
+                        valid_cells_map[i].insert(pair<double, int>(dist_novoro, j));
+                        dist_root_novoro_map_j[j].insert(pair<double, int>(dist_novoro, i));
+                        auto key=to_string(i+1)+","+to_string(j+1);
+                        dist_cost_first.add_val(key, c);
+                        dist_cost_max.add_val(key, dist_max);
+                        valid_cells.insert(key);
+                        if(dist_max_v<=dist_cost_max_min){
+                            dist_cost_max_min=dist_max_v;
+                        }
+                    }
+                    else{
+                        DebugOff("distij "<<dist_min_v<<" upper_bound "<<upper_bound<<endl);
+                    }
+                }
+                else{
+                    DebugOff("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
+                }
+            }
+        }
+        dist_cost_max_min_i.push_back(dist_cost_max_min);
+        if(valid_cells_map[i].size()==0){
+            found_all=false;
+            DebugOff("i "<<i<<" vmap size "<<valid_cells_map[i].size()<<endl);
+            break;
+        }
+        min_cost_sum+=cost_min;
+        if(min_cost_sum>=upper_bound+1e-6){
+            DebugOn("min cost_sum "<<min_cost_sum<<" upper bound "<<upper_bound<<endl);
+            found_all=false;
+            break;
+        }
+        box_i.clear();
+        planes.clear();
+    }
+ 
+    if(found_all){
+        for (auto j = 0; j<nm; j++) {
+            if(new_model_pts.find(j)!=new_model_pts.end()){
+                for(auto k=0;k<dist_root_novoro_map_j[j].size();k++){
+                    auto it=std::next(dist_root_novoro_map_j[j].begin(),k);
+                    auto dkj=it->first;
+                    auto max_i=it->second;
+                    auto dkj_u=sqrt(dist_cost_max.eval(to_string(max_i+1)+","+ to_string(j+1)));
+                    if(dkj>=1e-6){
+                        for(auto l=0;l<dist_root_novoro_map_j[j].size();l++){
+                            if(l==k){
+                                DebugOff("continued");
+                                continue;
+                            }
+                            auto itl=std::next(dist_root_novoro_map_j[j].begin(),l);
+                            auto dij=itl->first;
+                            auto i=itl->second;
+                            auto dik=dii.eval(to_string(i+1)+","+ to_string(max_i+1));
+                            if(dkj>=dik){
+                                auto dij_root=dkj-dik;
+                                if(dij_root>=dij){
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                }
+                            }
+                            else if(dik>=dkj_u){
+                                auto dij_root=dik-dkj_u;
+                                if(dij_root>=dij){
+                                   // DebugOn("dij_root*dij_root "<<dij_root*dij_root<<"dij "<<dij*dij<<endl);
+                                    dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                    DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for (auto i = 0; i<nd; i++) {
+            for(auto k=0;k<valid_cells_map[i].size();k++){
+                auto it=std::next(valid_cells_map[i].begin(),k);
+                auto dik=it->first;
+                auto max_j=it->second;
+                auto dik_u=sqrt(dist_cost_max.eval(to_string(i+1)+","+ to_string(max_j+1)));
+                if(dik>=1e-6){
+                    for(auto l=0;l<valid_cells_map[i].size();l++){
+                        if(l!=k){
+                            auto itl=std::next(valid_cells_map[i].begin(),l);
+                            auto dij=itl->first;
+                            auto j=itl->second;
+                            {
+                                auto djk=djj.eval(to_string(j+1)+","+ to_string(max_j+1));
+                                if(dik>=djk){
+                                    auto dij_root=dik-djk;
+                                    if(dij_root>=dij){
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                        DebugOff("better cost "<<dij<<" "<< dij_root*dij_root<<endl);
+                                        
+                                    }
+                                }
+                                else if(djk>=dik_u){
+                                    auto dij_root=djk-dik_u;
+                                    if(dij_root>=dij){
+                                        dist_cost_first.set_val(to_string(i+1)+","+ to_string(j+1), dij_root*dij_root);
+                                       // DebugOn("djk "<<djk<<"dik_u "<<dik_u<<endl);
+                                        DebugOff("better cost "<<dij*dij<<" "<< dij_root*dij_root<<endl);
+                                        
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        double min_i=0;
+        double min_cost_sum_new=0;
+        vector<double> v_min_i;
+        for(auto i=0;i<nd;i++)
+        {
+            min_i=999;
+            found_all=false;
+            for(auto j=0;j<nm;j++){
+                if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i]){
+                        if(dij<=min_i){
+                            min_i=dij;
+                        }
+                        found_all=true;
+                    }
+                }
+            }
+            v_min_i.push_back(min_i);
+            if(!found_all){
+                DebugOn("found_all_false");
+                break;
+            }
+        }
+       
+        for(auto i=0;i<nd && found_all;i++){
+            min_i=999;
+            found_all=false;
+            double sum_other_i=0;
+            double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
+            double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
+            for(auto l=0;l<nd;l++){
+                if(l!=i){
+                    sum_other_i+=v_min_i[l];
+                }
+            }
+            for(auto j=0;j<nm;j++){
+                if(valid_cells.has_key(to_string(i+1)+","+to_string(j+1))){
+                    auto xm= point_cloud_model.at(j)[0];
+                    auto ym= point_cloud_model.at(j)[1];
+                    auto zm= point_cloud_model.at(j)[2];
+                    auto dij=dist_cost_first.eval(to_string(i+1)+","+ to_string(j+1));
+                    if(dij<=upper_bound*(nd-1)/nd && dij<=dist_cost_max_min_i[i] && dij<=(upper_bound-sum_other_i)){
+                        valid_cells_new.insert(to_string(i+1)+","+to_string(j+1));
+                        dist_cost_second.add_val(to_string(i+1)+","+to_string(j+1), dij);
+                        if(xm<=xm_min){
+                            xm_min=xm;
+                        }
+                        if(xm>=xm_max){
+                            xm_max=xm;
+                        }
+                        if(ym<=ym_min){
+                            ym_min=ym;
+                        }
+                        if(ym>=ym_max){
+                            ym_max=ym;
+                        }
+                        if(zm<=zm_min){
+                            zm_min=zm;
+                        }
+                        if(zm>=zm_max){
+                            zm_max=zm;
+                        }
+                        if(dij<=min_i){
+                            min_i=dij;
+                        }
+                        found_all=true;
+                    }
+                }
+            }
+            min_cost_sum_new+=min_i;
+            if(min_cost_sum_new>=upper_bound+1e-6){
+                DebugOn("min cost sum exceeds ub");
+                found_all=false;
+            }
+            if(!found_all){
+                DebugOn("found_all_false");
+                break;
+            }
+            new_tx_min+=xm_min;
+            new_tx_max+=xm_max;
+            new_ty_min+=ym_min;
+            new_ty_max+=ym_max;
+            new_tz_min+=zm_min;
+            new_tz_max+=zm_max;
+        }
+        min_cost_sum=min_cost_sum_new;
+    }
+    if(found_all){
+        
+        for(auto it=new_model_pts.begin();it!=new_model_pts.end();it++){
+            int j=it->first;
+             vector<int> numi(nd,0);
+             for(auto i=0;i<nd;i++){
+                 if(valid_cells_new.has_key(to_string(i+1)+","+to_string(j+1))){
+                     numi[i]++;
+                     for(auto k=0;k<nd;k++){
+                         if(k!=i){
+                         if(valid_cells_new.has_key(to_string(k+1)+","+to_string(j+1))){
+                             if(pow(dii.eval(to_string(i+1)+","+ to_string(k+1)),2)<=max_vert_vert_dist_sq[j]){
+                                 numi[i]++;
+                             }
+                         }
+                         }
+                     }
+                 }
+             }
+             maxj.add_val(to_string(j+1), *max_element(numi.begin(), numi.end()));
+         }
         double ndd=point_cloud_data.size()*1.0;
         new_tx_min/=ndd;
         new_tx_max/=ndd;
@@ -25626,7 +26665,7 @@ vector<double> BranchBound21_disc(GoICP& goicp, vector<vector<double>>& point_cl
     int test_ub=10;
     treenode_p topnode=lb_queue.top();
 
-    int ndisc=4;
+    int ndisc=0;
     if(ndisc>1){
         lb_queue.pop();
     double sx=(shift_max_x_new-shift_min_x_new)/ndisc;
@@ -25672,7 +26711,7 @@ vector<double> BranchBound21_disc(GoICP& goicp, vector<vector<double>>& point_cl
     double eps=0.001;
     int prep_count=0;
     double ut_total=0;
-    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
+    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf && (ndisc>0)) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         if(opt_gap_old-opt_gap <= eps){
@@ -25801,6 +26840,8 @@ for (int j = 0; j<m_vec.size(); j++) {
         elapsed_time = get_wall_time() - time_start;
         
     }
+topnode=lb_queue.top();
+new_lb_queue.push(topnode);
     DebugOn("new lb queue size "<<new_lb_queue.size()<<endl);
     while (elapsed_time < total_time_max && new_lb_queue.top().lb<=best_ub && !new_lb_queue.empty() && opt_gap > max_opt_gap && !new_lb_queue.top().leaf) {
         best_lb = new_lb_queue.top().lb;
@@ -25861,7 +26902,7 @@ for (int j = 0; j<m_vec.size(); j++) {
                 new_lb_queue.pop();
                 double x_shift_increment,  y_shift_increment, z_shift_increment;
                 double roll_increment,  pitch_increment, yaw_increment;
-                if(topnode.lb<=0.75*best_ub){
+                if(topnode.lb<=0.3*best_ub){
                     step=8;
                 if(topnode.depth%2==0){
                     if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
@@ -26062,13 +27103,13 @@ for (int j = 0; j<m_vec.size(); j++) {
                 break;
             }
         }
-            topnode = new_lb_queue.top();
+            /*topnode = new_lb_queue.top();
             DebugOff("lb "<<topnode.lb<<" ub "<<topnode.ub<<" size "<< models.size()<<endl);
             DebugOff("models.s "<<models.size()<<endl);
             DebugOff("validc.s "<<valid_cells.size()<<endl);
             DebugOff("shiftx.s "<<shift_x_bounds.size()<<endl);
             DebugOff("i "<<i<<endl);
-            DebugOff("yaw.s "<<yaw_bounds.size()<<endl);
+            DebugOff("yaw.s "<<yaw_bounds.size()<<endl);*/
     
         
         //run_preprocess_parallel(pos_vec, models,vec_node, m_vec, valid_cells, vec_lb);
