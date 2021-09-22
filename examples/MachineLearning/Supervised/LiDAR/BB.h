@@ -59,15 +59,15 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         }
         if(errori<=best_ub){
             best_ub=errori;
-            best_rot_trans[0]=cos(yaw_deg_i)*cos(roll_deg_i);
-            best_rot_trans[1] = cos(yaw_deg_i)*sin(roll_deg_i)*sin(pitch_deg_i) - sin(yaw_deg_i)*cos(pitch_deg_i);
-            best_rot_trans[2] = cos(yaw_deg_i)*sin(roll_deg_i)*cos(pitch_deg_i) + sin(yaw_deg_i)*sin(pitch_deg_i);
-            best_rot_trans[3] = sin(yaw_deg_i)*cos(roll_deg_i);
-            best_rot_trans[4] = sin(yaw_deg_i)*sin(roll_deg_i)*sin(pitch_deg_i) + cos(yaw_deg_i)*cos(pitch_deg_i);
-            best_rot_trans[5] = sin(yaw_deg_i)*sin(roll_deg_i)*cos(pitch_deg_i) - cos(yaw_deg_i)*sin(pitch_deg_i);
-            best_rot_trans[6] = sin(-1*roll_deg_i);
-            best_rot_trans[7] = cos(roll_deg_i)*sin(pitch_deg_i);
-            best_rot_trans[8] = cos(roll_deg_i)*cos(pitch_deg_i);
+            best_rot_trans[0]=cos(yaw_rad_i)*cos(roll_rad_i);
+            best_rot_trans[1] = cos(yaw_rad_i)*sin(roll_rad_i)*sin(pitch_rad_i) - sin(yaw_rad_i)*cos(pitch_rad_i);
+            best_rot_trans[2] = cos(yaw_rad_i)*sin(roll_rad_i)*cos(pitch_rad_i) + sin(yaw_rad_i)*sin(pitch_rad_i);
+            best_rot_trans[3] = sin(yaw_rad_i)*cos(roll_rad_i);
+            best_rot_trans[4] = sin(yaw_rad_i)*sin(roll_rad_i)*sin(pitch_rad_i) + cos(yaw_rad_i)*cos(pitch_rad_i);
+            best_rot_trans[5] = sin(yaw_rad_i)*sin(roll_rad_i)*cos(pitch_rad_i) - cos(yaw_rad_i)*sin(pitch_rad_i);
+            best_rot_trans[6] = sin(-1*roll_rad_i);
+            best_rot_trans[7] = cos(roll_rad_i)*sin(pitch_rad_i);
+            best_rot_trans[8] = cos(roll_rad_i)*cos(pitch_rad_i);
         }
     }
     

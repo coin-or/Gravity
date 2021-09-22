@@ -34,9 +34,9 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     double time_start = get_wall_time();
     int new_test=0;
     planeStatPerPair = 0;
-   
+    
     /*variables to define rotation on the positive side (model side)*/
-
+    
     var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     func<> r11 = cos(yaw)*cos(roll);r11.eval_all();
@@ -87,9 +87,9 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     func<> r32r = cos(roll*(-1))*sin(pitch);r32r.eval_all();
     func<> r33r = cos(roll*(-1))*cos(pitch);r33r.eval_all();
     
-   
     
-
+    
+    
     var<> theta11r("theta11r",  std::max(-1.,r11r._range->first), std::min(1.,r11r._range->second)), theta12r("theta12r", std::max(-1.,r12r._range->first), std::min(1.,r12r._range->second)), theta13r("theta13r", std::max(-1.,r13r._range->first), std::min(1.,r13r._range->second));
     var<> theta21r("theta21r", std::max(-1.,r21r._range->first), std::min(1.,r21r._range->second)), theta22r("theta22r", std::max(-1.,r22r._range->first), std::min(1.,r22r._range->second)), theta23r("theta23r", std::max(-1.,r23r._range->first), std::min(1.,r23r._range->second));
     var<> theta31r("theta31r", std::max(-1.,r31r._range->first), std::min(1.,r31r._range->second)), theta32r("theta32r", std::max(-1.,r32r._range->first), std::min(1.,r32r._range->second)), theta33r("theta33r", std::max(-1.,r33r._range->first), std::min(1.,r33r._range->second));
@@ -119,15 +119,15 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     
     
     bool found_all=true;
-
+    
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
-
+    
     vector<map<double, int>> valid_cells_map(nd);
     
     map<int, bool> new_model_pts;
-
-   
+    
+    
     for(auto i=0;i<nd;i++){
         double min_dist_ij_max=numeric_limits<double>::max();
         double min_dist_ij_min=numeric_limits<double>::max();
@@ -137,21 +137,28 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
         for (int j = 0; j<nm; j++) {
             string key= to_string(i+1)+","+to_string(j+1);
             if(valid_cells_old.size()>=point_cloud_data.size()){
-            if(!valid_cells_old.has_key(key)){
-                DebugOff("continued");
-                continue;
-            }
+                if(!valid_cells_old.has_key(key)){
+                    DebugOff("continued");
+                    continue;
+                }
             }
             double dist_ij_min, dist_ij_max;
             vector<vector<double>> extreme_j;
             /*Feasible region R(model-uav_model)+(uav_model-uav_data)*/
             get_extreme_point_model(extreme_j, uav_data[i], uav_model[j], point_cloud_model[j], T1);
             /*Calling GJK*/
-            dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
+            if(error_type=="L2"){
+                dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
+            }
+            else{
+                dist_ij_min=sqrt(std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0));
+            }
             if(dist_ij_min<=upper_bound && dist_ij_min<=min_dist_ij_max){
-                dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
-                if(error_type=="L1"){
-                    dist_ij_max*=sqrt(3.0);
+                if(error_type=="L2"){
+                    dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
+                }
+                else{
+                    dist_ij_max=sqrt(max_distance_polytopes(extreme_i, extreme_j))*sqrt(3.0);
                 }
                 if(dist_ij_max<=min_dist_ij_max){
                     min_dist_ij_max=dist_ij_max;
@@ -170,7 +177,7 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
             break;
         }
     }
-            
+    
     /*Looping again to ensure all valid cells have min_dist less than min_dist_ij_max*/
     if(found_all){
         for(auto i=0;i<nd;i++){
