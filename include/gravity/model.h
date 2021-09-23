@@ -1667,12 +1667,13 @@ public:
             _obj->update_terms(_all_ids);
             DebugOff("obj before clean: " << endl);
 //            _obj->print();
-            _obj->clean_terms();
             DebugOff("Projected obj: " << endl);
 //            _obj->print();
             _obj->_dim[0] = 1;
             _obj->_indices = nullptr;
             _obj->_is_constraint = false;
+            _obj->clean_terms();
+
             tag_iter++;
             tag = to_string(tag_iter);
         }
@@ -2274,10 +2275,12 @@ public:
                     nb_int_vars = c_pair.second->nb_int_lterms(inst);
                     nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
                     vector<int> var_ids;
-                    for(int i = 0; i<nb_cont_vars;i++){
-                        var_ids.push_back(c_pair.second->get_lterm_cont_var_name(i,inst));/* include integer part too */
+                    for(int i = 0; i<nb_int_vars;i++){
+                        var_ids.push_back(c_pair.second->get_lterm_int_var_name(i,inst));
                     }
-
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        var_ids.push_back(c_pair.second->get_lterm_cont_var_name(i,inst));
+                    }
                     if (c_pair.second->is_eq()) {
                         lin_eq_list.push_back({inst,c_pair.second});
                         lin_eq_sparsity[{{nb_cont_vars,nb_int_vars},var_ids}].push_back({inst,c_pair.second});/* Make sure they all have the same symbolic vars */
@@ -2290,15 +2293,30 @@ public:
                 /* check quadratic constraints */
                 if(c_pair.second->is_quadratic()){
                     vector<int> var_ids;
-                    for (auto &v_pair:*c_pair.second->_vars) {
-                        auto v = v_pair.second;
-                        var_ids.push_back(v.first->get_id());
-                    }
                     nb_int_vars = c_pair.second->nb_int_lterms(inst);
                     nb_cont_vars = c_pair.second->nb_cont_lterms(inst);
                     nb_cont_quad_terms = c_pair.second->nb_cont_quad_terms(inst);/** The number of quadratic terms involving only continuous vars in this function */
                     nb_int_quad_terms = c_pair.second->nb_int_quad_terms(inst);/** The number of quadratic terms involving only integers vars in this function */
                     nb_hyb_quad_terms = c_pair.second->nb_hyb_quad_terms(inst);/** The number of quadratic terms involving the product of a continuous and an integer var in this function */
+                    for(int i = 0; i<nb_int_vars;i++){
+                        var_ids.push_back(c_pair.second->get_lterm_int_var_name(i,inst));
+                    }
+                    for(int i = 0; i<nb_cont_vars;i++){
+                        var_ids.push_back(c_pair.second->get_lterm_cont_var_name(i,inst));
+                    }
+                    for(int i = 0; i<nb_cont_quad_terms;i++){
+                        var_ids.push_back(c_pair.second->get_qterm_cont_var_name1(i,inst));
+                        var_ids.push_back(c_pair.second->get_qterm_cont_var_name2(i,inst));
+                    }
+                    for(int i = 0; i<nb_int_quad_terms;i++){
+                        var_ids.push_back(c_pair.second->get_qterm_int_var_name1(i,inst));
+                        var_ids.push_back(c_pair.second->get_qterm_int_var_name2(i,inst));
+                    }
+
+                    for(int i = 0; i<nb_hyb_quad_terms;i++){
+                        var_ids.push_back(c_pair.second->get_qterm_hyb_var_name1(i,inst));
+                        var_ids.push_back(c_pair.second->get_qterm_hyb_var_name2(i,inst));
+                    }
                     if (c_pair.second->is_eq()) {
                         quad_eq_list.push_back({inst,c_pair.second});
                         quad_eq_sparsity[{{nb_cont_vars,nb_int_vars,nb_cont_quad_terms,nb_int_quad_terms,nb_hyb_quad_terms},var_ids}].push_back({inst,c_pair.second});
@@ -2735,7 +2753,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v)/* v does not appear in polynomial or nonlinear constraints */){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v)/* && !_obj->has_sym_var(*v) v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }

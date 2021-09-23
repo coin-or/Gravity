@@ -23,27 +23,25 @@
     using namespace gravity;
 
 
-//TEST_CASE("testing restructure and projection with ACOPF") {
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
-//    int output = 0;
-//    double tol = 1e-6;
-//    PowerNet grid;
-//    grid.readgrid(fname);
-//    auto ACOPF = build_ACOPF(grid,ACRECT);
-//    ACOPF->print();
-//    solver<> s1(ACOPF,ipopt);
-//    auto time_start = get_wall_time();
-//    auto status = s1.run(output=5, tol=1e-6);
-//    auto ACOPF_proj = build_ACOPF(grid,ACRECT);
-//    ACOPF_proj->restructure();
-//    DebugOn("Done restructuring\n");
-//    ACOPF_proj->project();
-//    DebugOn("Done projecting\n");
-//    solver<> s2(ACOPF_proj,ipopt);
-//    time_start = get_wall_time();
-//    status = s2.run(output=5, tol=1e-6);
-//    CHECK(std::abs(ACOPF_proj->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
-//}
+TEST_CASE("testing restructure with ACOPF") {
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    int output = 0;
+    double tol = 1e-6;
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto ACOPF = build_ACOPF(grid,ACRECT);
+    ACOPF->print();
+    solver<> s1(ACOPF,ipopt);
+    auto time_start = get_wall_time();
+    auto status = s1.run(output=5, tol=1e-6);
+    auto ACOPF_proj = build_ACOPF(grid,ACRECT);
+    ACOPF_proj->restructure();
+    DebugOn("Done restructuring\n");
+    solver<> s2(ACOPF_proj,ipopt);
+    time_start = get_wall_time();
+    status = s2.run(output=5, tol=1e-6);
+    CHECK(std::abs(ACOPF_proj->get_obj_val()- ACOPF->get_obj_val())/ACOPF->get_obj_val() < 0.001);
+}
 
 
 TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {

@@ -1348,12 +1348,16 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes);
     /* Shunts */
     if (polar) {
-        KCL_P +=  gs*pow(v,2);
-        KCL_Q -=  bs*pow(v,2);
+        if(!gs.is_all_zero())
+            KCL_P +=  gs*pow(v,2);
+        if(!bs.is_all_zero())
+            KCL_Q -=  bs*pow(v,2);
     }
     else {
-        KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
-        KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
+        if(!gs.is_all_zero())
+            KCL_P +=  gs*(pow(vr,2)+pow(vi,2));
+        if(!bs.is_all_zero())
+            KCL_Q -=  bs*(pow(vr,2)+pow(vi,2));
     }
     ACOPF->add(KCL_P.in(nodes) == 0);
     ACOPF->add(KCL_Q.in(nodes) == 0);
