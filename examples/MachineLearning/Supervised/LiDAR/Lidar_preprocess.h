@@ -11,6 +11,7 @@
 bool vertices_box_plane(const vector<double>& plane_eq,  const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
 void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec);
+void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec);
 double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2);
 /* New valid cells and minimum distance each cell
  @point_cloud_model: model lidar point cloud
@@ -434,7 +435,7 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
  SECANT reverse trainge inequality
  Tangent Traingle inequality
  */
-void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec)
+void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec)
 {
     vector<double> d(3), b(3);
     
@@ -643,6 +644,21 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         }
     }
 
+}
+void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec)
+{
+    vector<double> b(3);
+    get_extreme_point_data(extreme, uav_m, m_pt, theta_vec);
+    
+    b[0]=uav_m[0]-uav_d[0];
+    b[1]=uav_m[1]-uav_d[1];
+    b[2]=uav_m[2]-uav_d[2];
+    
+    for(auto i=0;i<extreme.size();i++){
+        extreme.at(i)[0]+=b[0];
+        extreme.at(i)[1]+=b[1];
+        extreme.at(i)[2]+=b[2];
+    }
 }
 /* Extreme points of a bounded box (defined x_lb, x_ub, y_lb. y_ub z_lb, z_ub) when intersected with a plane. Returns true when new vertices found
  @plane_eq: equation of plane intersecting the box
