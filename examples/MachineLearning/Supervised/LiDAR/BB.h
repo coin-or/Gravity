@@ -229,7 +229,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                 
                 
                 auto ut1=get_wall_time();
-                if (i%test_ub==0){
+                if (true){
                     for(auto k=0;k<8;k++){
                         compute_upper_bound_mid(roll_bounds[i+k].first, roll_bounds[i+k].second, pitch_bounds[i+k].first, pitch_bounds[i+k].second, yaw_bounds[i+k].first, yaw_bounds[i+k].second, best_rot_trans, best_ub, point_cloud_model, point_cloud_data, uav_model, uav_data, error_type);
                     }
