@@ -18611,7 +18611,7 @@ void preprocess_poltyope_cdd_gjk_centroid(const vector<vector<double>>& point_cl
 //    new_tz_min=shift_min_z;
 //    new_tz_max=shift_max_z;
 }
-void apreprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj)
+void preprocess_poltyope_ve_gjk_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const param<double>& dii, const param<double>& djj)
 {
     bool option_cost_new=true;
     indices valid_cells("valid_cells");
@@ -20326,6 +20326,41 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
     vertex_edge_plane[5]={std::make_pair(1,5), std::make_pair(3,5), std::make_pair(1,3)};
     vertex_edge_plane[6]={std::make_pair(3,5), std::make_pair(4,5), std::make_pair(3,4)};
     vertex_edge_plane[7]={std::make_pair(0,5), std::make_pair(4,5), std::make_pair(0,4)};
+    
+    vector<vector<double>> box_t;
+    coord_i[0]=shift_min_x;
+    coord_i[1]=shift_min_y;
+    coord_i[2]=shift_min_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_max_x;
+    coord_i[1]=shift_min_y;
+    coord_i[2]=shift_min_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_max_x;
+    coord_i[1]=shift_max_y;
+    coord_i[2]=shift_min_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_min_x;
+    coord_i[1]=shift_max_y;
+    coord_i[2]=shift_min_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_min_x;
+    coord_i[1]=shift_min_y;
+    coord_i[2]=shift_max_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_max_x;
+    coord_i[1]=shift_min_y;
+    coord_i[2]=shift_max_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_max_x;
+    coord_i[1]=shift_max_y;
+    coord_i[2]=shift_max_z;
+    box_t.push_back(coord_i);
+    coord_i[0]=shift_min_x;
+    coord_i[1]=shift_max_y;
+    coord_i[2]=shift_max_z;
+    box_t.push_back(coord_i);
+    
     double shift_mag_max=std::max(pow(shift_min_x,2),pow(shift_max_x,2))+std::max(pow(shift_min_y,2),pow(shift_max_y,2))+std::max(pow(shift_min_z,2),pow(shift_max_z,2));
     double shift_mag_max_root=sqrt(shift_mag_max);
     double shift_mag_min=0.0;
@@ -20473,14 +20508,31 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
         pl.clear();
         vector<vector<double>> rot_polytope;
         get_extreme_rotation_data(rot_polytope, point_cloud_data.at(i), T1);
+        vector<vector<double>> rdt;
+        for(auto i=0;i<rot_polytope.size();i++){
+            auto rd=rot_polytope.at(i);
+            for(auto j=0;j<box_t.size();j++){
+                vector<double> rdtj(3);
+                rdtj[0]=rd[0]+box_t[j][0];
+                rdtj[1]=rd[1]+box_t[j][1];
+                rdtj[2]=rd[2]+box_t[j][2];
+                rdt.push_back(rdtj);
+            }
+        }
+        
         
         double dist_cost_max_min=9999, cost_min=9999;
         for (int j = 0; j<nm; j++) {
-            auto vertices=model_voronoi_vertices.at(j);
+           
+          
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                 DebugOff("continued");
                 continue;
             }
+            auto vertices=model_voronoi_vertices.at(j);
+            auto dist_inter=distance_polytopes_gjk(rdt,vertices);
+            DebugOff("dist_inter "<<dist_inter<<endl);
+            if(dist_inter<=1e-9){
             bool dist_calculated=false;
             bool res=true;
             double dist=0;
@@ -20546,8 +20598,11 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
             m_t[1]=ym-shift_min_y;
             m_t[2]=zm-shift_min_z;
             box_m_t.push_back(m_t);
-            
+                vector<vector<double>> mk;
+                mk.push_back(point_cloud_model.at(j));
             auto resd2=distance_polytopes_gjk(rot_polytope,box_m_t);
+//                auto dist_rd2=distance_polytopes_gjk(rdt, mk);
+//                DebugOn("resd2 "<<resd2<<" dist_rd2 "<<dist_rd2<<endl);
             
             dist=std::max(resd2, dist);
             
@@ -20602,7 +20657,7 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
                         }
                         dist1=std::max(dist1-1e-5, cost_alt_j-2.0*max_m_ve-1e-6);
                         dist_min_v=std::max(dist,dist1);
-                        dist_max_v=dist_mv;
+                        dist_max_v=std::min(dist_mv, dist_max);
                     }
                     if(dist_min_v<=upper_bound*(nd-1)/nd && dist_min_v<=dist_cost_max_min){
                         new_model_pts.insert ( std::pair<int,bool>(j,true) );
@@ -20628,6 +20683,7 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
                     DebugOff("distij "<<dist<<" upper_bound "<<upper_bound<<endl);
                 }
             }
+        }
         }
         dist_cost_max_min_i.push_back(dist_cost_max_min);
         if(valid_cells_map[i].size()==0){
@@ -26652,8 +26708,8 @@ vector<double> BranchBound21_disc(GoICP& goicp, vector<vector<double>>& point_cl
     for(auto key:*valid_cells_ro._keys){
         dist_cost_old.add_val(key, 0.0);
     }
-    
-    preprocess_poltyope_ve_gjk_centroid(point_cloud_data, point_cloud_model, valid_cells_ro, dist_cost_old, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices,    dist_cost_r, best_ub,best_lb, min_cost_sum, valid_cells_r,  shift_min_x_new, shift_max_x_new, shift_min_y_new, shift_max_y_new, shift_min_z_new, shift_max_z_new, prep_time, model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes, dii, djj);
+    param<double> maxj("maxj");
+    preprocess_poltyope_ve_gjk_in_centroid(point_cloud_data, point_cloud_model, valid_cells_ro, dist_cost_old, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, model_voronoi_normals, model_face_intercept, model_voronoi_vertices,    dist_cost_r, best_ub,best_lb, min_cost_sum, valid_cells_r,  shift_min_x_new, shift_max_x_new, shift_min_y_new, shift_max_y_new, shift_min_z_new, shift_max_z_new, prep_time, model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes,max_vert_vert_dist_sq, dii, djj, maxj);
     
     shift_x_bounds_r={shift_min_x_new, shift_max_x_new};
     shift_y_bounds_r={shift_min_y_new, shift_max_y_new};
