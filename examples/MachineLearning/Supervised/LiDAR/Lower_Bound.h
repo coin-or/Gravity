@@ -585,7 +585,7 @@ shared_ptr<Model<double>> Align_L1_model(const vector<vector<double>>& point_clo
     
     if(dist_cost._indices->_keys->size()!=0){
         Constraint<> delta_cost("delta_cost");
-        delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
+        delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-x_diff-y_diff-z_diff;
         Reg->add(delta_cost.in(N1)<=0);
     }
     

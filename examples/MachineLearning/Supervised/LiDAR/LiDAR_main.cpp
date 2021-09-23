@@ -539,8 +539,10 @@ int main (int argc, char * argv[])
 //    double roll_deg=-1.19966;
 //    double pitch_deg=-1.41955;
 //    double yaw_deg=1.16567;
-    
-    
+//
+//    double roll_deg=-1.57152;
+//    double pitch_deg=-0.687482;
+//    double yaw_deg=1.12497;
     
     //DebugOn("roll pitch yaw in rad "<<roll_rad1<<" "<<pitch_rad1<<" "<<yaw_rad1<<" "<<endl);
    // DebugOn("roll pitch yaw in deg "<<roll_deg<<" "<<pitch_deg<<" "<<yaw_deg<<" "<<endl);
