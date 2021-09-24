@@ -1156,7 +1156,7 @@ int main (int argc, char * argv[])
                     posmaxz=max_j[j];
                 }
             }
-            auto result=BranchBound22_disc(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes, max_vert_vert_dist_sq, dii, djj);
+            auto result=BranchBound21_disc(goicp, point_cloud_model, point_cloud_data, model_voronoi_normals,  model_face_intercept,  model_voronoi_vertices,  model_inner_prod_min, model_inner_prod_max,  min_max_model,   best_rot_trans,  best_ub,  model_voronoi_min_max, model_voronoi_vertex_edge, model_voronoi_vertex_edge_planes, max_vert_vert_dist_sq, dii, djj);
             //            GoICP go= initialize_ICP_only(point_cloud_model, point_cloud_data);
             //            vector<double> rt(12);
             //            auto err=run_ICP_only(go, new_roll_min, new_roll_max, new_pitch_min, new_pitch_max, new_yaw_min, new_yaw_max, new_shift_min_x, new_shift_max_x, new_shift_min_y, new_shift_max_y, new_shift_min_z, new_shift_max_z, rt);
@@ -20523,8 +20523,6 @@ void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_
         
         double dist_cost_max_min=9999, cost_min=9999;
         for (int j = 0; j<nm; j++) {
-           
-          
             if(!old_cells.has_key(to_string(i+1)+","+to_string(j+1))){
                 DebugOff("continued");
                 continue;
@@ -26958,7 +26956,7 @@ new_lb_queue.push(topnode);
                 new_lb_queue.pop();
                 double x_shift_increment,  y_shift_increment, z_shift_increment;
                 double roll_increment,  pitch_increment, yaw_increment;
-                if(topnode.lb<=0.3*best_ub){
+                if(true){
                     step=8;
                 if(topnode.depth%2==0){
                     if(topnode.tx.first<=-0.1 && topnode.tx.second>=0.1){
