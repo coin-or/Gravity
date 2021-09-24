@@ -579,6 +579,7 @@
                 throw invalid_argument("Function has_different_order(ids) cannot be called on a matrix-indexed set");
             }
             if(!is_indexed() || !ids.is_indexed()){
+                return false;
                 throw invalid_argument("In has_different_order(ids), both index sets need to be indexed!");
             }
             return size()!=ids.size() || ids._ids->at(0)!=_ids->at(0);

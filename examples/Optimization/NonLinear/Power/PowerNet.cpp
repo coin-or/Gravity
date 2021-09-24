@@ -2303,6 +2303,18 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
 
     }
     
+    /* Flow conservation */
+    Constraint<> KCL_P("KCL_P");
+    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
+    SDPOPF->add(KCL_P.in(nodes) == 0);
+    
+    
+    Constraint<> KCL_Q("KCL_Q");
+    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
+    SDPOPF->add(KCL_Q.in(nodes) == 0);
+    
+    SDPOPF->restructure();
+    
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
@@ -2468,15 +2480,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     //SDPOPF->add(SOC.in(node_pairs_chord) == 0,true,"on/off", false);
     
     
-    /* Flow conservation */
-    Constraint<> KCL_P("KCL_P");
-    KCL_P  = sum(Pf_from, out_arcs) + sum(Pf_to, in_arcs) + pl - sum(Pg, gen_nodes) + gs*Wii;
-    SDPOPF->add(KCL_P.in(nodes) == 0);
     
-    
-    Constraint<> KCL_Q("KCL_Q");
-    KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
-    SDPOPF->add(KCL_Q.in(nodes) == 0);
     
     
     /* AC Power Flow */

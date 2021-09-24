@@ -743,7 +743,18 @@ int Model<type>::readNL(const string& fname){
     
     return 0;
 }
-    
+
+template <typename type>
+template<typename T>
+void Model<type>::copy_aux_vars_status(shared_ptr<Model<type>>& M){/*<< Copy the auxiliary variable status from M */
+    for(auto &it:M->_vars) {
+        auto v = get_var_ptr(it.second->get_name(true,true));
+        if(v){
+            v->_off = it.second->_off;
+        }
+    }
+}
+
 template <typename type>
 template<typename T>
 void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol){
@@ -796,7 +807,7 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
                 fixed_point[key_lb]=true;
                 fixed_point[key_ub]=true;
                 count_skip+=2;
-                DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
+                DebugOn("Off var: "<<vname<<"\t"<<key<<endl);
             }
             count_var++;
             interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
@@ -1241,7 +1252,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     ub_sol.resize(this->_nb_vars);
     bool close=false, terminate=false, xb_true=true, alg_batch_reset=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
-    int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine,oacuts, oacuts_init;
+    int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine,oacuts, oacuts_init = 0;
     double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
     map<string,int> old_map;
@@ -1381,6 +1392,7 @@ template int gravity::Model<double>::readNL<double, (void*)0>(const string&);
 template void gravity::Model<double>::read_solution(const string& fname);
 template Constraint<Cpx> Model<Cpx>::lift(Constraint<Cpx>& c, string model_type, bool);
 template Constraint<> Model<>::lift(Constraint<>& c, string model_type, bool);
+template void Model<double>::copy_aux_vars_status(shared_ptr<Model<double>>& obbt_model);
 template void Model<double>::populate_original_interval(shared_ptr<Model<double>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol);
 //template void Model<double>::populate_original_interval(map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var);
 template double Model<double>::populate_final_interval_gap(const shared_ptr<Model<double>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);

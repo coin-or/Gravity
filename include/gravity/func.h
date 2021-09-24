@@ -1188,6 +1188,38 @@ namespace gravity {
         }
         
         
+        /**
+         Recompute range based on stored values.
+         */
+        void reset_all_range(){
+            auto dim = get_nb_inst();
+            _all_range = make_shared<vector<pair<type,type>>>(make_pair<>(zero<type>().eval(), zero<type>().eval())[dim]);
+            auto nb_inst = get_nb_inst();
+            double res_min = 0, res_max = 0;
+            for (size_t i = 0; i<nb_inst; i++) {
+                res_min = 0;
+                res_max = 0;
+                for (auto &pair:*_lterms) {
+                    if (pair.second._coef->_is_transposed || pair.second._coef->is_matrix() || pair.second._p->is_matrix_indexed()) {
+                        
+                    }
+                    else {
+                        if (pair.second._sign) {
+                            res_min += eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i);
+                            res_max += eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i);
+                        }
+                        else {
+                            res_min -= eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i);
+                            res_max -= eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i);
+                        }
+                    }
+                }
+                _all_range[i].first = res_min;
+                _all_range[i].second = res_max;
+            }
+        }
+        
+        
         /** Return a vector of the current model variables in instance inst_i of func
          @param[in] inst_i: function instance
          @param[in] var_name: ignore var with var_name

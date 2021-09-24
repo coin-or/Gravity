@@ -215,6 +215,7 @@ public:
     vector<shared_ptr<indices>>                         _all_ids; /**< all index sets */
     map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
     map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
+    vector<pair<shared_ptr<var<double>>,func<>>>         _aux_eqs; /**< Auxiliary variables' equations */
     
     
     template<typename T=type>
@@ -1748,6 +1749,7 @@ public:
         DebugOff("Variable indices :");
             //        v._indices->print();
         DebugOn(" Variable " << v._name << " successfully projected" << endl);
+        
             //            auto vid = *v._vec_id;
             //            _vars.erase(vid);
             //            reindex_vars();
@@ -2654,7 +2656,7 @@ public:
             }
             index++;
         }
-        for(const auto cstr_name: delete_cstr){
+        for(const string& cstr_name: delete_cstr){
             remove(cstr_name);
         }
         print(false);
@@ -2726,8 +2728,9 @@ public:
     
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-    void project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
-        int nb_eqs = get_nb_eq();
+    vector<pair<shared_ptr<var<double>>,func<>>> project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
+        vector<pair<shared_ptr<var<double>>,func<>>> res;
+        auto nb_eqs = get_nb_eq();
         vector<string> delete_cstr;
         vector<shared_ptr<param_>> delete_vars;
         list<shared_ptr<Constraint<type>>> eq_list; /* sorted list of equations */
@@ -2840,6 +2843,18 @@ public:
             delete_cstr.push_back(c->_name);
             c->_is_constraint = false;
             replace(vv,f,eq_list, tag_iter);
+            auto v_ptr = get_var_ptr(vv.get_vec_id());
+            if(vv.is_indexed()){
+                for(size_t idx: vv._indices->_ids->at(0)){
+                    v_ptr->_off[idx] = true;
+                }
+            }
+            else{
+                for(size_t idx = 0; idx<v_ptr->get_dim(); idx++){
+                    v_ptr->_off[idx] = true;
+                }
+            }
+            res.push_back({static_pointer_cast<var<double>>(v),f});
             delete_vars.push_back(v);
             tag_iter++;
         }
@@ -2847,11 +2862,11 @@ public:
             if(c_pair.second->is_zero())
                 delete_cstr.push_back(c_pair.second->get_name());
         }
-        for(const auto cstr_name: delete_cstr){
+        for(const string& cstr_name: delete_cstr){
             remove(cstr_name);
         }
         
-        for(const auto v: delete_vars){
+        for(const shared_ptr<gravity::param_> & v: delete_vars){
             for(int i = 0; i<v->_indices->size();i++){
                 auto model_v = get_var_ptr(v->get_name(true,true));
                 model_v->_off[v->get_id_inst(i)]=true;
@@ -2859,10 +2874,11 @@ public:
         }
         reindex();
         reset();
-        int nb_proj = nb_eqs - get_nb_eq();
+        auto nb_proj = nb_eqs - get_nb_eq();
         DebugOn("Number of projected variables = " << nb_proj << endl);
         DebugOn("Model after projetion: " << endl);
         print();
+        return res;
     }
     
     
@@ -7246,6 +7262,10 @@ public:
     bool obbt_update_bounds(bool bound_converge,double objk, std::string msname,std::string vkname, std::string keyk, std::string dirk, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point, const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter);
     template<typename T=type>
     void populate_original_interval(shared_ptr<Model<type>>& obbt_model, map<string, bool>& fixed_point, map<string, double>& ub_original,map<string, double>& lb_original,map<string, double>& interval_original,map<string, double>& interval_new, int& count_skip, int& count_var, double range_tol);
+    
+    template<typename T=type>
+    void copy_aux_vars_status(shared_ptr<Model<type>>& M);/*<< Copy the auxiliary variable status from M */
+    
     template<typename T=type>
     double populate_final_interval_gap(const shared_ptr<Model<type>>& obbt_model, const map<string, double>& interval_original, map<string, double>& interval_new, double& sum, bool& xb_true, const double zero_tol, int count_var);
     template<typename T=type>
