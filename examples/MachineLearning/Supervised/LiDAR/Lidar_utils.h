@@ -683,8 +683,8 @@ double computeL1error(const vector<vector<double>>& point_cloud_model, const vec
                 matching[i] = j;
             }
         }
-        DebugOn("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
-        DebugOn("matching(" << i+1 << ") = " << matching[i]+1 << endl);
+        DebugOff("error(" << i+1 << ") = " << to_string_with_precision(min_dist,12) << endl);
+        DebugOff("matching(" << i+1 << ") = " << matching[i]+1 << endl);
         err_per_point[i] = min_dist;
         err += min_dist;
     }
@@ -882,6 +882,8 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
 }
 /* Read Laz files */
 vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lidar_point_cloud){
+    string namef= fname.substr(0,fname.find('.'));
+    string name=namef+"_original.laz";
     LASreadOpener lasreadopener;
     lasreadopener.set_file_name(fname.c_str());
     lasreadopener.set_populate_header(TRUE);
@@ -1013,7 +1015,7 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
 #ifdef USE_MATPLOT
         // plot(uav_cloud,empty_vec, 0.1);
 #endif
-        save_laz("flight3.laz", point_cloud1, point_cloud2);
+        save_laz(name, point_cloud1, point_cloud2);
         //                auto frame_id = CSV_data.GetCell<int>(0, i);
         //                new_uav = (uav_id==0) || (UAVPoints[uav_id-1]->_frame_id != frame_id);
         //                if(new_uav){
@@ -1805,6 +1807,8 @@ void get_frame(vector<vector<double>> uav_cloud, int start1, int stop1, int star
     DebugOn("ymin "<<ymin2<<" "<<ymax2<<endl);
     //plot(frame1, frame2, 1);
 }
+
+
 
 vector<double> projection(vector<double> normal, double intercept, vector<double> point){
     vector<double> res;
