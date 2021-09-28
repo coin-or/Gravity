@@ -409,11 +409,11 @@ int main (int argc, char * argv[])
         
         for(auto i=ulist[0];i<ulist[1];i++){
             cloud1.push_back(lidar_point_cloud.at(i));
-            uav1.push_back(uav_xy.at(i));
+            uav1.push_back(uav_cloud_u.at(i));
         }
         for(auto i=ulist[2];i<ulist[3];i++){
             cloud2.push_back(lidar_point_cloud.at(i));
-            uav2.push_back(uav_xy.at(i));
+            uav2.push_back(uav_cloud_u.at(i));
         }
         auto name_u=file_u.substr(0,Model_file.find('.'))+"_split.laz";
         save_laz(name_u,cloud1, cloud2);
@@ -577,9 +577,7 @@ int main (int argc, char * argv[])
     }
     
     DebugOn("pause "<<endl);
-#ifdef USE_MATPLOT
-    plot(u1, u2, 1);
-#endif
+
     
 //    if(pc1.size()>=pc2.size()){
 //        point_cloud_model=pc1;
@@ -597,32 +595,33 @@ int main (int argc, char * argv[])
     double xmin=point_cloud_model.at(0)[0], ymin=point_cloud_model.at(0)[1], zmin=point_cloud_model.at(0)[2];
     bool scale=true;
     if(scale){
-        x_scale=xmin;
-        y_scale=ymin;
-        z_scale=zmin;
+        x_scale=uxmin;
+        y_scale=uymin;
+        z_scale=uzmin;
         for(auto i=0;i<point_cloud_model.size();i++){
-            point_cloud_model.at(i)[0]-=xmin;
-            point_cloud_model.at(i)[1]-=ymin;
-            point_cloud_model.at(i)[2]-=zmin;
+            point_cloud_model.at(i)[0]-=uav_cloud_u.at(0)[0];
+            point_cloud_model.at(i)[1]-=uav_cloud_u.at(0)[1];
+            point_cloud_model.at(i)[2]-=uav_cloud_u.at(0)[2];
         }
         for(auto i=0;i<point_cloud_data.size();i++){
-            point_cloud_data.at(i)[0]-=xmin;
-            point_cloud_data.at(i)[1]-=ymin;
-            point_cloud_data.at(i)[2]-=zmin;
+            point_cloud_data.at(i)[0]-=uav_cloud_u.at(0)[0];
+            point_cloud_data.at(i)[1]-=uav_cloud_u.at(0)[1];
+            point_cloud_data.at(i)[2]-=uav_cloud_u.at(0)[2];
         }
         for(auto i=0;i<uav_model.size();i++){
-            uav_model.at(i)[0]-=xmin;
-            uav_model.at(i)[1]-=ymin;
-            uav_model.at(i)[2]-=zmin;
+            uav_model.at(i)[0]-=uav_cloud_u.at(0)[0];
+            uav_model.at(i)[1]-=uav_cloud_u.at(0)[1];
+            uav_model.at(i)[2]-=uav_cloud_u.at(0)[2];
         }
         for(auto i=0;i<uav_data.size();i++){
-            uav_data.at(i)[0]-=xmin;
-            uav_data.at(i)[1]-=ymin;
-            uav_data.at(i)[2]-=zmin;
+            uav_data.at(i)[0]-=uav_cloud_u.at(0)[0];
+            uav_data.at(i)[1]-=uav_cloud_u.at(0)[1];
+            uav_data.at(i)[2]-=uav_cloud_u.at(0)[2];
         }
     }
 #ifdef USE_MATPLOT
     plot(point_cloud_model, point_cloud_data, 1);
+    plot(uav_model, uav_data, 1);
 #endif
     indices N1 = range(1,point_cloud_data.size());
     indices N2 = range(1,point_cloud_model.size());
