@@ -214,9 +214,9 @@ bool get_solution(const shared_ptr<Model<double>>& M, vector<double>& rot_trans,
     auto pitch_val = std::atan2(theta32.eval(), theta33.eval())*180/pi;
     auto roll_val = std::atan2(-1*theta31.eval(), std::sqrt(theta32.eval()*theta32.eval()+theta33.eval()*theta33.eval()))*180/pi;
     auto yaw_val = std::atan2(theta21.eval(),theta11.eval())*180/pi;
-    DebugOff("Roll (degrees) = " << to_string_with_precision(roll_val,12) << endl);
-    DebugOff("Pitch (degrees) = " << to_string_with_precision(pitch_val,12) << endl);
-    DebugOff("Yaw (degrees) = " << to_string_with_precision(yaw_val,12) << endl);
+    DebugOn("Roll (degrees) = " << to_string_with_precision(roll_val,12) << endl);
+    DebugOn("Pitch (degrees) = " << to_string_with_precision(pitch_val,12) << endl);
+    DebugOn("Yaw (degrees) = " << to_string_with_precision(yaw_val,12) << endl);
     DebugOff("x shift = " << x_shift.eval() << endl);
     DebugOff("y shift = " << y_shift.eval() << endl);
     DebugOff("z shift = " << z_shift.eval() << endl);
@@ -258,6 +258,37 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
         point_cloud2[i][2] += uav2[i][2];
     }
 }
+
+void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav){
+    double beta = roll*pi/180;// roll in radians
+    double gamma = pitch*pi/180; // pitch in radians
+    double alpha = yaw*pi/180; // yaw in radians
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        shifted_x = full_point_cloud[i][0] - full_uav[i][0];
+        shifted_y = full_point_cloud[i][1] - full_uav[i][1];
+        shifted_z = full_point_cloud[i][2] - full_uav[i][2];
+        full_point_cloud[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        full_point_cloud[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+        full_point_cloud[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+        auto ru=roll_pitch_yaw_uav[i][0];
+        auto pu=roll_pitch_yaw_uav[i][0];
+        auto yu=roll_pitch_yaw_uav[i][0];
+        auto betau=ru;
+        auto gammau=pu;
+        auto alphau=yu;
+        full_point_cloud[i][0] = full_point_cloud[i][0]*cos(alphau)*cos(betau) + full_point_cloud[i][1]*(cos(alphau)*sin(betau)*sin(gammau) - sin(alphau)*cos(gammau)) + full_point_cloud[i][2]*(cos(alphau)*sin(betau)*cos(gammau) + sin(alphau)*sin(gammau));
+        full_point_cloud[i][1] = full_point_cloud[i][0]*sin(alphau)*cos(betau) + full_point_cloud[i][1]*(sin(alphau)*sin(betau)*sin(gammau) + cos(alphau)*cos(gammau)) + full_point_cloud[i][2]*(sin(alphau)*sin(betau)*cos(gammau) - cos(alphau)*sin(gammau));
+        full_point_cloud[i][2] = full_point_cloud[i][0]*(-sin(betau)) + full_point_cloud[i][1]*(cos(betau)*sin(gammau)) + full_point_cloud[i][2]*(cos(betau)*cos(gammau));
+        full_point_cloud[i][0] += full_uav[i][0];
+        full_point_cloud[i][1] += full_uav[i][1];
+        full_point_cloud[i][2] += full_uav[i][2];
+    }
+    
+}
+
+
 
 void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>& point_cloud){
     double shifted_x, shifted_y, shifted_z;
@@ -881,7 +912,7 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
     delete laswriter;
 }
 /* Read Laz files */
-vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lidar_point_cloud){
+vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lidar_point_cloud, vector<vector<double>>& roll_pitch_yaw){
     string namef= fname.substr(0,fname.find('.'));
     string name=namef+"_original.laz";
     LASreadOpener lasreadopener;
@@ -985,11 +1016,20 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
             auto uav_x = lasreader->point.get_attribute_as_float(1);
             auto uav_y = lasreader->point.get_attribute_as_float(2);
             auto uav_z = lasreader->point.get_attribute_as_float(3);
+            auto roll = lasreader->point.get_attribute_as_float(4);
+            auto pitch = lasreader->point.get_attribute_as_float(5);
+            auto yaw = lasreader->point.get_attribute_as_float(6);
+            for(int i = 0; i < 11; i++){
+                DebugOff("attribute "<< i << " = " << lasreader->point.get_attribute_name(i) << endl);
+                DebugOff("attribute "<< i << " value = " << lasreader->point.get_attribute_as_float(i) << endl);
+            }
+            DebugOff("uav "<<to_string_with_precision(uav_x,9)<<" "<<to_string_with_precision(uav_y,9)<<" "<<to_string_with_precision(uav_z,9)<<endl);
             if(!isnan(uav_x) && !isnan(uav_y) && !isnan(uav_z)){
                 LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
                 point_cloud1.push_back({x,y,z});
                 uav_cloud.push_back({uav_x,uav_y, uav_z});
                 lidar_point_cloud.push_back({x,y,z});
+                roll_pitch_yaw.push_back({roll,pitch,yaw});
             }
             //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
             //                            u_turn = true;
