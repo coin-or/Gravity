@@ -275,14 +275,31 @@ int main (int argc, char * argv[])
     pitch_avg/=n;
     yaw_avg/=n;
     
-    auto roll_deg = 1.45;
-    auto pitch_deg = 0.9;
-    auto yaw_deg = -0.25;
+    vector<vector<double>> rough_pc;
+    for(auto i=0;i<lidar_point_cloud.size();i++){
+        auto x=lidar_point_cloud[i][0]-uav_cloud_u[i][0];
+        auto y=lidar_point_cloud[i][1]-uav_cloud_u[i][1];
+        auto z=lidar_point_cloud[i][2]-uav_cloud_u[i][2];
+        auto ro=roll_pitch_yaw[i][0];
+        auto pi=roll_pitch_yaw[i][1];
+        auto ya=roll_pitch_yaw[i][2];
+        auto res=apply_rotation_transpose(ro, pi, ya, x,y,z);
+        rough_pc.push_back(res);
+    }
     
-    apply_rotation_new(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw);
     
+    auto roll_deg =1.45*pi/180;
+    auto pitch_deg = 0.9*pi/180;
+    auto yaw_deg = -0.25*pi/180;
+    
+    
+  
     vector<vector<double>> em3;
-    save_laz(file_u.substr(0,Model_file.find('.'))+"_full.laz", lidar_point_cloud, em3);
+    
+    apply_rotation_new(roll_deg, pitch_deg, yaw_deg, rough_pc, uav_cloud_u, roll_pitch_yaw);
+    
+    
+    save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_full.laz", rough_pc, em3);
     
     vector<vector<double>> empty_vec, uav_xy;
     
