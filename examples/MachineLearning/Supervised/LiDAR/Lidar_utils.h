@@ -237,15 +237,13 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
         shifted_x = point_cloud1[i][0] - uav1[i][0];
         shifted_y = point_cloud1[i][1] - uav1[i][1];
         shifted_z = point_cloud1[i][2] - uav1[i][2];
-        point_cloud1[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        point_cloud1[i][0] = shifted_x*cos(pitch)*cos(yaw) + shifted_y*(-cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
         point_cloud1[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
         point_cloud1[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
         point_cloud1[i][0] += uav1[i][0];
         point_cloud1[i][1] += uav1[i][1];
         point_cloud1[i][2] += uav1[i][2];
     }
-    beta *= -1;
-    alpha *= -1;
     for (auto i = 0; i< point_cloud2.size(); i++) {
         shifted_x = point_cloud2[i][0] - uav2[i][0];
         shifted_y = point_cloud2[i][1] - uav2[i][1];
@@ -260,35 +258,42 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
 }
 
 void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav){
-    double beta = roll*pi/180;// roll in radians
-    double gamma = pitch*pi/180; // pitch in radians
-    double alpha = yaw*pi/180; // yaw in radians
     double shifted_x, shifted_y, shifted_z;
     /* Apply rotation */
     for (auto i = 0; i< full_point_cloud.size(); i++) {
-        shifted_x = full_point_cloud[i][0] - full_uav[i][0];
-        shifted_y = full_point_cloud[i][1] - full_uav[i][1];
-        shifted_z = full_point_cloud[i][2] - full_uav[i][2];
-        full_point_cloud[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
-        full_point_cloud[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
-        full_point_cloud[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
-        auto ru=roll_pitch_yaw_uav[i][0];
-        auto pu=roll_pitch_yaw_uav[i][0];
-        auto yu=roll_pitch_yaw_uav[i][0];
-        auto betau=ru;
-        auto gammau=pu;
-        auto alphau=yu;
-        full_point_cloud[i][0] = full_point_cloud[i][0]*cos(alphau)*cos(betau) + full_point_cloud[i][1]*(cos(alphau)*sin(betau)*sin(gammau) - sin(alphau)*cos(gammau)) + full_point_cloud[i][2]*(cos(alphau)*sin(betau)*cos(gammau) + sin(alphau)*sin(gammau));
-        full_point_cloud[i][1] = full_point_cloud[i][0]*sin(alphau)*cos(betau) + full_point_cloud[i][1]*(sin(alphau)*sin(betau)*sin(gammau) + cos(alphau)*cos(gammau)) + full_point_cloud[i][2]*(sin(alphau)*sin(betau)*cos(gammau) - cos(alphau)*sin(gammau));
-        full_point_cloud[i][2] = full_point_cloud[i][0]*(-sin(betau)) + full_point_cloud[i][1]*(cos(betau)*sin(gammau)) + full_point_cloud[i][2]*(cos(betau)*cos(gammau));
-        full_point_cloud[i][0] += full_uav[i][0];
-        full_point_cloud[i][1] += full_uav[i][1];
-        full_point_cloud[i][2] += full_uav[i][2];
+        shifted_x = full_point_cloud[i][0] ;
+        shifted_y = full_point_cloud[i][1] ;
+        shifted_z = full_point_cloud[i][2];
+        auto rollu=roll_pitch_yaw_uav[i][0];
+               auto pitchu=roll_pitch_yaw_uav[i][1];
+               auto yawu=roll_pitch_yaw_uav[i][2];
+
+        full_point_cloud[i][0] = shifted_x*cos(pitch)*cos(yaw) - shifted_y*cos(pitch)*sin(yaw) + shifted_z*sin(pitch);
+        full_point_cloud[i][1] = shifted_x*(cos(roll)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+ shifted_y*(cos(roll)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))  + shifted_z*(-cos(pitch)*sin(roll));
+        full_point_cloud[i][2] = shifted_x*(sin(roll)*sin(yaw)-cos(roll)*cos(yaw)*sin(pitch)) + shifted_y*(cos(yaw)*sin(roll)+cos(roll)*sin(pitch)*sin(yaw)) + shifted_z*(cos(roll)*cos(pitch));
+
+        auto fx = full_point_cloud[i][0]*cos(pitchu)*cos(yawu) - full_point_cloud[i][1]*cos(pitchu)*sin(yawu) + full_point_cloud[i][2]*sin(pitchu);
+        auto fy = full_point_cloud[i][0]*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+ full_point_cloud[i][1]*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))  + full_point_cloud[i][2]*(-cos(pitchu)*sin(rollu));
+        auto fz = full_point_cloud[i][0]*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu)) + full_point_cloud[i][1]*(cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)) + full_point_cloud[i][2]*(cos(rollu)*cos(pitchu));
+        
+        
+
+        full_point_cloud[i][0] = fx+full_uav[i][0];
+        full_point_cloud[i][1] = fy+full_uav[i][1];
+        full_point_cloud[i][2] = fz+full_uav[i][2];
     }
     
 }
 
+vector<double> apply_rotation_transpose(double roll, double pitch, double yaw, double x, double y, double z){
+    vector<double> pnew(3);
+    
+    pnew[0]=x*cos(pitch)*cos(yaw)+y*(cos(roll)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+z*(sin(roll)*sin(yaw)-cos(roll)*cos(yaw)*sin(pitch));
+    pnew[1]=-x*cos(pitch)*sin(yaw)+y*(cos(roll)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))+z*((cos(yaw)*sin(roll)+cos(roll)*sin(pitch)*sin(yaw)));
+    pnew[2]=x*sin(pitch)+y*(-cos(pitch)*sin(roll))+z*(cos(roll)*cos(pitch));
+    return pnew;
 
+}
 
 void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>& point_cloud){
     double shifted_x, shifted_y, shifted_z;
