@@ -237,13 +237,15 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
         shifted_x = point_cloud1[i][0] - uav1[i][0];
         shifted_y = point_cloud1[i][1] - uav1[i][1];
         shifted_z = point_cloud1[i][2] - uav1[i][2];
-        point_cloud1[i][0] = shifted_x*cos(pitch)*cos(yaw) + shifted_y*(-cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+        point_cloud1[i][0] = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
         point_cloud1[i][1] = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
         point_cloud1[i][2] = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
         point_cloud1[i][0] += uav1[i][0];
         point_cloud1[i][1] += uav1[i][1];
         point_cloud1[i][2] += uav1[i][2];
     }
+    beta *= -1;
+    alpha *= -1;
     for (auto i = 0; i< point_cloud2.size(); i++) {
         shifted_x = point_cloud2[i][0] - uav2[i][0];
         shifted_y = point_cloud2[i][1] - uav2[i][1];
@@ -285,7 +287,7 @@ void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<dou
     
 }
 
-vector<double> apply_rotation_transpose(double roll, double pitch, double yaw, double x, double y, double z){
+vector<double> apply_rotation_transpose_new(double roll, double pitch, double yaw, double x, double y, double z){
     vector<double> pnew(3);
     
     pnew[0]=x*cos(pitch)*cos(yaw)+y*(cos(roll)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+z*(sin(roll)*sin(yaw)-cos(roll)*cos(yaw)*sin(pitch));
@@ -294,6 +296,58 @@ vector<double> apply_rotation_transpose(double roll, double pitch, double yaw, d
     return pnew;
 
 }
+
+void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav){
+    double shifted_x, shifted_y, shifted_z;
+    double beta = roll;// roll in radians
+    double gamma = pitch; // pitch in radians
+    double alpha = yaw; // yaw in radians
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        shifted_x = full_point_cloud[i][0];
+        shifted_y = full_point_cloud[i][1];
+        shifted_z = full_point_cloud[i][2] ;
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=roll_pitch_yaw_uav[i][1];
+        auto yawu=roll_pitch_yaw_uav[i][2];
+        
+        auto px = shifted_x*cos(alpha)*cos(beta) + shifted_y*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma)) + shifted_z*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma));
+       auto py = shifted_x*sin(alpha)*cos(beta) + shifted_y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma)) + shifted_z*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma));
+       auto pz = shifted_x*(-sin(beta)) + shifted_y*(cos(beta)*sin(gamma)) + shifted_z*(cos(beta)*cos(gamma));
+   
+        double betau = rollu;// roll in radians
+        double gammau = pitchu; // pitch in radians
+        double alphau = yawu; // yaw in radians
+
+        auto fx = px*cos(alphau)*cos(betau) + py*(cos(alphau)*sin(betau)*sin(gammau) - sin(alphau)*cos(gammau)) + pz*(cos(alphau)*sin(betau)*cos(gammau) + sin(alphau)*sin(gammau));
+       auto fy = px*sin(alphau)*cos(betau) + py*(sin(alphau)*sin(betau)*sin(gammau) + cos(alphau)*cos(gammau)) + pz*(sin(alphau)*sin(betau)*cos(gammau) - cos(alphau)*sin(gammau));
+       auto fz = px*(-sin(betau)) + py*(cos(betau)*sin(gammau)) + pz*(cos(betau)*cos(gammau));
+        
+        
+
+        full_point_cloud[i][0] = fx+full_uav[i][0];
+        full_point_cloud[i][1] = fy+full_uav[i][1];
+        full_point_cloud[i][2] = fz+full_uav[i][2];
+    }
+    
+}
+
+vector<double> apply_rotation_transpose(double roll, double pitch, double yaw, double x, double y, double z){
+    
+    double beta = roll;// roll in radians
+    double gamma = pitch; // pitch in radians
+    double alpha = yaw; // yaw in radians
+    
+    vector<double> pnew(3);
+    
+    
+    pnew[0]=x*cos(alpha)*cos(beta)+y*sin(alpha)*cos(beta) +z*(-sin(beta));
+    pnew[1]=x*(cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma))+y*(sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma))+z*(cos(beta)*sin(gamma));
+    pnew[2]=x*(cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma))+y*(sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma))+z*(cos(beta)*cos(gamma));
+    return pnew;
+
+}
+
 
 void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>& point_cloud){
     double shifted_x, shifted_y, shifted_z;
