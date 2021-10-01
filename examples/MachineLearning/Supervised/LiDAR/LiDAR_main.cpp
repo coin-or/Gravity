@@ -299,7 +299,7 @@ int main (int argc, char * argv[])
     apply_rotation_new(roll_deg, pitch_deg, yaw_deg, rough_pc, uav_cloud_u, roll_pitch_yaw);
     
     
-    save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_full.laz", rough_pc, em3);
+    save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_full_new_order.laz", rough_pc, em3);
     
     vector<vector<double>> empty_vec, uav_xy;
     
