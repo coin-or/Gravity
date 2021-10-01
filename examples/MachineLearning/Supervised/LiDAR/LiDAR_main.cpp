@@ -283,7 +283,7 @@ int main (int argc, char * argv[])
         auto ro=roll_pitch_yaw[i][0];
         auto pi=roll_pitch_yaw[i][1];
         auto ya=roll_pitch_yaw[i][2];
-        auto res=apply_rotation_transpose(ro, pi, ya, x,y,z);
+        auto res=apply_rotation_transpose_new(ro, pi, ya, x,y,z);
         rough_pc.push_back(res);
     }
     
