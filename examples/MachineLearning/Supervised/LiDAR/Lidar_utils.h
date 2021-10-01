@@ -261,22 +261,29 @@ void apply_rotation(double roll, double pitch, double yaw, vector<vector<double>
 
 void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav){
     double shifted_x, shifted_y, shifted_z;
+    double beta = roll;// roll in radians
+    double gamma = pitch; // pitch in radians
+    double alpha = yaw; // yaw in radians
     /* Apply rotation */
     for (auto i = 0; i< full_point_cloud.size(); i++) {
         shifted_x = full_point_cloud[i][0] ;
         shifted_y = full_point_cloud[i][1] ;
         shifted_z = full_point_cloud[i][2];
         auto rollu=roll_pitch_yaw_uav[i][0];
-               auto pitchu=roll_pitch_yaw_uav[i][1];
-               auto yawu=roll_pitch_yaw_uav[i][2];
+        auto pitchu=roll_pitch_yaw_uav[i][1];
+        auto yawu=roll_pitch_yaw_uav[i][2];
+        
+        double betau = rollu;// roll in radians
+        double gammau = pitchu; // pitch in radians
+        double alphau = yawu; // yaw in radians
 
-        full_point_cloud[i][0] = shifted_x*cos(pitch)*cos(yaw) - shifted_y*cos(pitch)*sin(yaw) + shifted_z*sin(pitch);
-        full_point_cloud[i][1] = shifted_x*(cos(roll)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+ shifted_y*(cos(roll)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))  + shifted_z*(-cos(pitch)*sin(roll));
-        full_point_cloud[i][2] = shifted_x*(sin(roll)*sin(yaw)-cos(roll)*cos(yaw)*sin(pitch)) + shifted_y*(cos(yaw)*sin(roll)+cos(roll)*sin(pitch)*sin(yaw)) + shifted_z*(cos(roll)*cos(pitch));
+        full_point_cloud[i][0] = shifted_x*cos(beta)*cos(gamma) - shifted_y*cos(beta)*sin(gamma) + shifted_z*sin(beta);
+             full_point_cloud[i][1] = shifted_x*(cos(alpha)*sin(gamma) +cos(gamma)*sin(alpha)*sin(beta))+ shifted_y*(cos(alpha)*cos(gamma)-sin(alpha)*sin(beta)*sin(gamma))  + shifted_z*(-cos(beta)*sin(alpha));
+             full_point_cloud[i][2] = shifted_x*(sin(alpha)*sin(gamma)-cos(alpha)*cos(gamma)*sin(beta)) + shifted_y*(cos(gamma)*sin(alpha)+cos(alpha)*sin(beta)*sin(gamma)) + shifted_z*(cos(alpha)*cos(beta));
 
-        auto fx = full_point_cloud[i][0]*cos(pitchu)*cos(yawu) - full_point_cloud[i][1]*cos(pitchu)*sin(yawu) + full_point_cloud[i][2]*sin(pitchu);
-        auto fy = full_point_cloud[i][0]*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+ full_point_cloud[i][1]*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))  + full_point_cloud[i][2]*(-cos(pitchu)*sin(rollu));
-        auto fz = full_point_cloud[i][0]*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu)) + full_point_cloud[i][1]*(cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)) + full_point_cloud[i][2]*(cos(rollu)*cos(pitchu));
+        auto fx = full_point_cloud[i][0]*cos(betau)*cos(gammau) - full_point_cloud[i][1]*cos(betau)*sin(gammau) + full_point_cloud[i][2]*sin(betau);
+                auto fy = full_point_cloud[i][0]*(cos(alphau)*sin(gammau) +cos(gammau)*sin(alphau)*sin(betau))+ full_point_cloud[i][1]*(cos(alphau)*cos(gammau)-sin(alphau)*sin(betau)*sin(gammau))  + full_point_cloud[i][2]*(-cos(betau)*sin(alphau));
+                auto fz = full_point_cloud[i][0]*(sin(alphau)*sin(gammau)-cos(alphau)*cos(gammau)*sin(betau)) + full_point_cloud[i][1]*(cos(gammau)*sin(alphau)+cos(alphau)*sin(betau)*sin(gammau)) + full_point_cloud[i][2]*(cos(alphau)*cos(betau));
         
         
 
@@ -289,10 +296,13 @@ void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<dou
 
 vector<double> apply_rotation_transpose_new(double roll, double pitch, double yaw, double x, double y, double z){
     vector<double> pnew(3);
+    double beta = roll;// roll in radians
+    double gamma = pitch; // pitch in radians
+    double alpha = yaw; // yaw in radians
     
-    pnew[0]=x*cos(pitch)*cos(yaw)+y*(cos(roll)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+z*(sin(roll)*sin(yaw)-cos(roll)*cos(yaw)*sin(pitch));
-    pnew[1]=-x*cos(pitch)*sin(yaw)+y*(cos(roll)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))+z*((cos(yaw)*sin(roll)+cos(roll)*sin(pitch)*sin(yaw)));
-    pnew[2]=x*sin(pitch)+y*(-cos(pitch)*sin(roll))+z*(cos(roll)*cos(pitch));
+    pnew[0]=x*cos(beta)*cos(gamma)+y*(cos(alpha)*sin(gamma) +cos(gamma)*sin(alpha)*sin(beta))+z*(sin(alpha)*sin(gamma)-cos(alpha)*cos(gamma)*sin(beta));
+       pnew[1]=-x*cos(beta)*sin(gamma)+y*(cos(alpha)*cos(gamma)-sin(alpha)*sin(beta)*sin(gamma))+z*((cos(gamma)*sin(alpha)+cos(alpha)*sin(beta)*sin(gamma)));
+       pnew[2]=x*sin(beta)+y*(-cos(beta)*sin(alpha))+z*(cos(alpha)*cos(beta));
     return pnew;
 
 }
