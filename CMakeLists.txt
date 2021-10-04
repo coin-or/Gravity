@@ -51,6 +51,9 @@ option(VORO "Link to VORO libraries" ON)
 #Find Eigen3 (REQUIRED)
 option(Eigen3 "Link to Eigen3 libraries" ON)
 
+#Find CGAL (REQUIRED)
+option(CGAL "Link to CGAL libraries" ON)
+
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
 
@@ -132,6 +135,17 @@ if (Eigen3)
         include_directories(${EIGEN3_INCLUDE_DIRS})
 endif()
 
+# Find CGAL.
+if (CGAL)
+        message(STATUS "Enable CGAL")
+        add_definitions(-DUSE_CGAL)
+        find_package(CGAL REQUIRED)
+        message("including ${CGAL_INCLUDE_DIRS}")
+        message("including ${Boost_INCLUDE_DIR}")
+        set(ADD_CGAL TRUE)
+        include_directories(${CGAL_INCLUDE_DIRS})
+        include_directories(${Boost_INCLUDE_DIR})
+endif()
 
 
 # Find Ipopt.

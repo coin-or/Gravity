@@ -33,14 +33,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif
-//#include <tclap/CmdLine.h>
-//#include <sqlite3.h>
-
-//#define WITH_CGAL
-#ifdef WITH_CGAL
-#include "CGALStuff.h"
-#endif
-
 #include "convexes.h"
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>

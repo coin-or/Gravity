@@ -32,19 +32,20 @@
 #include "IPH.h"
 #include "Lower_Bound.h"
 #include "Lidar_preprocess.h"
-# include "BB.h"
+#include "BB.h"
+#ifdef USE_CGAL
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/convex_hull_3.h>
+#endif
+#ifndef CGAL_HAS_THREADS
+#define CGAL_HAS_THREADS
+#endif
+
 #ifdef USE_EIGEN3
 //#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
 #include <Eigen/Dense>
 #endif
-//#include <tclap/CmdLine.h>
-//#include <sqlite3.h>
-
-//#define WITH_CGAL
-#ifdef WITH_CGAL
-#include "CGALStuff.h"
-#endif
-
 #include "convexes.h"
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
@@ -94,6 +95,7 @@ using orgQhull::RboxPoints;
 double largest_inscribed_sphere_centre(double x0, double y0, double z0, const vector<double>& point_cloud_data, double& limax, Qhull& qt);
 void compute_voronoi(Qhull& qhull, vector<vector<double>>& voronoiVertices, vector<vector<int>>& voronoiRegions);
 using namespace orgQhull;
+
 #endif
 
 #ifdef USE_VORO
@@ -113,6 +115,8 @@ extern "C" {
 #include "openGJK.h"
 }
 #endif
+#include <iostream>
+#include <algorithm>
 
 #define DEFAULT_OUTPUT_FNAME "output.txt"
 #define DEFAULT_CONFIG_FNAME "config.txt"
@@ -167,7 +171,21 @@ const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
 
 
 
+typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
+typedef CGAL::Polyhedron_3<K>                     Polyhedron_3;
+typedef K::Point_3                                     Point_3;
+typedef K::Plane_3                                     Plane_3;
 
+struct Plane_equation {
+    template <class Facet>
+    typename Facet::Plane_3 operator()( Facet& f) {
+        typename Facet::Halfedge_handle h = f.halfedge();
+        typedef typename Facet::Plane_3  Plane;
+        return Plane( h->vertex()->point(),
+                      h->next()->vertex()->point(),
+                      h->next()->next()->vertex()->point());
+    }
+};
 
 int main (int argc, char * argv[])
 {
@@ -213,7 +231,46 @@ int main (int argc, char * argv[])
     vector<vector<double>> full_uav_model, full_uav_data;
     vector<vector<double>> uav_model, uav_data;
     vector<vector<double>> uav_model1, uav_data1;
-    
+#ifdef USE_CGAL
+    std::vector<vector<double>> p_list;
+    std::vector<double> p(3);
+    p[0]=0;
+    p[1]=0;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=0;
+    p[1]=0;
+    p[2]=1;
+    p_list.push_back(p);
+    p[0]=0;
+    p[1]=1;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=1;
+    p[1]=0;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=0.5;
+    p[1]=0.5;
+    p[2]=0;
+    p_list.push_back(p);
+    std::vector<Point_3> points;
+    for(auto i=0;i<p_list.size();i++){
+       Point_3 pointa(p_list[i][0],p_list[i][1],p_list[i][2]);
+        points.push_back(pointa);
+    }
+      
+      // define polyhedron to hold convex hull
+      Polyhedron_3 poly;
+      // compute convex hull of non-collinear points
+      CGAL::convex_hull_3(points.begin(), points.end(), poly);
+      std::cout << "The convex hull contains " << poly.size_of_vertices() << " vertices" <<" "<<poly.size_of_facets()<< std::endl;
+    std::transform( poly.facets_begin(), poly.facets_end(), poly.planes_begin(),
+                        Plane_equation());
+        CGAL::IO::set_pretty_mode( std::cout);
+        std::copy( poly.planes_begin(), poly.planes_end(),
+                   std::ostream_iterator<Plane_3>( std::cout, "\n"));
+#endif
     
     if(if_plot){
         rapidcsv::Document  red_Model_doc(red_Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
