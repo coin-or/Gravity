@@ -8,6 +8,14 @@
 #ifndef Lidar_preprocess_h
 #define Lidar_preprocess_h
 #include "Branch_Bound.h"
+#ifdef USE_CGAL
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/convex_hull_3.h>
+#endif
+#ifndef CGAL_HAS_THREADS
+#define CGAL_HAS_THREADS
+#endif
 bool vertices_box_plane(const vector<double>& plane_eq,  const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
 void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec);
@@ -25,6 +33,22 @@ double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector
  
  ALL DISTANCES ARE SQUARED UNLESS _ROOT
  */
+typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
+typedef CGAL::Polyhedron_3<K>                     Polyhedron_3;
+typedef K::Point_3                                     Point_3;
+typedef K::Plane_3                                     Plane_3;
+
+struct Plane_equation {
+    template <class Facet>
+    typename Facet::Plane_3 operator()( Facet& f) {
+        typename Facet::Halfedge_handle h = f.halfedge();
+        typedef typename Facet::Plane_3  Plane;
+        return Plane( h->vertex()->point(),
+                      h->next()->vertex()->point(),
+                      h->next()->next()->vertex()->point());
+    }
+};
+
 double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type)
 {
     prep_time=0;
@@ -35,6 +59,64 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     double time_start = get_wall_time();
     int new_test=0;
     planeStatPerPair = 0;
+    
+#ifdef USE_CGAL
+    std::vector<vector<double>> p_list;
+    std::vector<double> p(3);
+    p[0]=0;
+    p[1]=0;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=0;
+    p[1]=0;
+    p[2]=1;
+    p_list.push_back(p);
+    p[0]=0;
+    p[1]=1;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=1;
+    p[1]=0;
+    p[2]=0;
+    p_list.push_back(p);
+    p[0]=0.5;
+    p[1]=0.5;
+    p[2]=0;
+    p_list.push_back(p);
+    std::vector<Point_3> points;
+    for(auto i=0;i<p_list.size();i++){
+       Point_3 pointa(p_list[i][0],p_list[i][1],p_list[i][2]);
+        points.push_back(pointa);
+    }
+      
+      // define polyhedron to hold convex hull
+      Polyhedron_3 poly;
+      // compute convex hull of non-collinear points
+      CGAL::convex_hull_3(points.begin(), points.end(), poly);
+      std::cout << "The convex hull contains " << poly.size_of_vertices() << " vertices" <<" "<<poly.size_of_facets()<< std::endl;
+    std::transform( poly.facets_begin(), poly.facets_end(), poly.planes_begin(),
+                        Plane_equation());
+        CGAL::IO::set_pretty_mode( std::cout);
+        std::copy( poly.planes_begin(), poly.planes_end(),
+                   std::ostream_iterator<Plane_3>( std::cout, "\n"));
+    for(auto it=poly.planes_begin();it!=poly.planes_end();it++){
+        DebugOn(it->a()<<" "<<it->b()<<" "<<it->c()<<" "<<it->d()<<endl);
+    }
+    for (auto v = poly.vertices_begin(); v != poly.vertices_end(); ++v){
+            std::cout << v->point() << std::endl;
+        DebugOn(v->point().x()<<" "<<v->point().y()<<" "<<v->point().z()<<endl);
+    }
+    int count=0;
+    for(auto f=poly.facets_begin();f!= poly.facets_end();f++){
+        DebugOn("Facet "<<count++<<endl);
+        auto j =f->facet_begin();
+        do{
+            DebugOn(j->vertex()->point()<<" ");
+            j++;
+        }while(j!=f->facet_begin());
+        
+    }
+#endif
     
     /*variables to define rotation on the positive side (model side)*/
     

@@ -171,21 +171,6 @@ const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
 
 
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
-typedef CGAL::Polyhedron_3<K>                     Polyhedron_3;
-typedef K::Point_3                                     Point_3;
-typedef K::Plane_3                                     Plane_3;
-
-struct Plane_equation {
-    template <class Facet>
-    typename Facet::Plane_3 operator()( Facet& f) {
-        typename Facet::Halfedge_handle h = f.halfedge();
-        typedef typename Facet::Plane_3  Plane;
-        return Plane( h->vertex()->point(),
-                      h->next()->vertex()->point(),
-                      h->next()->next()->vertex()->point());
-    }
-};
 
 int main (int argc, char * argv[])
 {
@@ -232,44 +217,69 @@ int main (int argc, char * argv[])
     vector<vector<double>> uav_model, uav_data;
     vector<vector<double>> uav_model1, uav_data1;
 #ifdef USE_CGAL
-    std::vector<vector<double>> p_list;
-    std::vector<double> p(3);
-    p[0]=0;
-    p[1]=0;
-    p[2]=0;
-    p_list.push_back(p);
-    p[0]=0;
-    p[1]=0;
-    p[2]=1;
-    p_list.push_back(p);
-    p[0]=0;
-    p[1]=1;
-    p[2]=0;
-    p_list.push_back(p);
-    p[0]=1;
-    p[1]=0;
-    p[2]=0;
-    p_list.push_back(p);
-    p[0]=0.5;
-    p[1]=0.5;
-    p[2]=0;
-    p_list.push_back(p);
-    std::vector<Point_3> points;
-    for(auto i=0;i<p_list.size();i++){
-       Point_3 pointa(p_list[i][0],p_list[i][1],p_list[i][2]);
-        points.push_back(pointa);
-    }
-      
-      // define polyhedron to hold convex hull
-      Polyhedron_3 poly;
-      // compute convex hull of non-collinear points
-      CGAL::convex_hull_3(points.begin(), points.end(), poly);
-      std::cout << "The convex hull contains " << poly.size_of_vertices() << " vertices" <<" "<<poly.size_of_facets()<< std::endl;
-    std::transform( poly.facets_begin(), poly.facets_end(), poly.planes_begin(),
-                        Plane_equation());
-        CGAL::IO::set_pretty_mode( std::cout);
-        std::copy( poly.planes_begin(), poly.planes_end(),
-                   std::ostream_iterator<Plane_3>( std::cout, "\n"));
+//    std::vector<vector<double>> p_list;
+//    std::vector<double> p(3);
+//    p[0]=0;
+//    p[1]=0;
+//    p[2]=0;
+//    p_list.push_back(p);
+//    p[0]=0;
+//    p[1]=0;
+//    p[2]=1;
+//    p_list.push_back(p);
+//    p[0]=0;
+//    p[1]=1;
+//    p[2]=0;
+//    p_list.push_back(p);
+//    p[0]=1;
+//    p[1]=0;
+//    p[2]=0;
+//    p_list.push_back(p);
+//    p[0]=0.5;
+//    p[1]=0.5;
+//    p[2]=0;
+//    p_list.push_back(p);
+//    std::vector<Point_3> points;
+//    for(auto i=0;i<p_list.size();i++){
+//       Point_3 pointa(p_list[i][0],p_list[i][1],p_list[i][2]);
+//        points.push_back(pointa);
+//    }
+//
+//      // define polyhedron to hold convex hull
+//      Polyhedron_3 poly;
+//      // compute convex hull of non-collinear points
+//      CGAL::convex_hull_3(points.begin(), points.end(), poly);
+//      std::cout << "The convex hull contains " << poly.size_of_vertices() << " vertices" <<" "<<poly.size_of_facets()<< std::endl;
+//    std::transform( poly.facets_begin(), poly.facets_end(), poly.planes_begin(),
+//                        Plane_equation());
+//        CGAL::IO::set_pretty_mode( std::cout);
+//        std::copy( poly.planes_begin(), poly.planes_end(),
+//                   std::ostream_iterator<Plane_3>( std::cout, "\n"));
+//    for(auto it=poly.planes_begin();it!=poly.planes_end();it++){
+//        DebugOn(it->a()<<" "<<it->b()<<" "<<it->c()<<" "<<it->d()<<endl);
+//    }
+//    vector<vector<double>> vertices;
+//    for (auto v = poly.vertices_begin(); v != poly.vertices_end(); ++v){
+//            std::cout << v->point() << std::endl;
+//        DebugOn(v->point().x()<<" "<<v->point().y()<<" "<<v->point().z()<<endl);
+//        vertices.push_back({v->point().x(), v->point().y(), v->point().z()});
+//    }
+//    int count1=0;
+//    for(auto f=poly.facets_begin();f!= poly.facets_end();f++){
+//        DebugOn("Facet "<<count1++<<endl);
+//        auto j =f->facet_begin();
+//        do{
+//            DebugOn(j->vertex()->point()<<" ");
+//            int count_v=0;
+//            for (auto v = poly.vertices_begin(); v != poly.vertices_end(); ++v){
+//                    std::cout << v->point() << std::endl;
+//                DebugOn(v->point().x()<<" "<<v->point().y()<<" "<<v->point().z()<<endl);
+//                count_v++;
+//            }
+//            j++;
+//        }while(j!=f->facet_begin());
+//
+//    }
 #endif
     
     if(if_plot){
@@ -316,11 +326,30 @@ int main (int argc, char * argv[])
     
     /* Boresight Alignment Problem */
     
-//    string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
-    string file_u="/Users/smitha/Desktop/LiDAR_data/Truck_only.laz";
+    string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_RPY_000_frames_701-763_1181-1276.laz";
+   // string file_u="/Users/smitha/Desktop/LiDAR_data/Truck_only.laz";
+//string file_u="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_3line_1.45_0.9_-0.25.las";
+//string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_701_763_1.45_0.9_-0.25.las";
+    //string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_1181_1276_1.45_0.9_-0.25.las";
+    //string file_u2="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_701_763_1.45_0.9_-0.25.las";
+    
+    vector<vector<double>> read_laz(const string& fname1, const string& fname2);
+    
+    
     vector<vector<double>> lidar_point_cloud;
     vector<vector<double>> roll_pitch_yaw;
-    auto uav_cloud_u=read_laz(file_u, lidar_point_cloud, roll_pitch_yaw);
+    //read_laz_new(file_u1, file_u2);
+  
+    auto uav_cloud_u=::read_laz(file_u, lidar_point_cloud, roll_pitch_yaw);
+//    for(auto i=0;i<uav_cloud_u.size();i++){
+//        uav_cloud_u[i][2]*=-1;
+//    }
+    vector<vector<double>> em4;
+    em4.push_back(lidar_point_cloud[0]);
+   // plot(lidar_point_cloud, em4);
+    em4.clear();
+    em4.push_back(uav_cloud_u[0]);
+    //plot(uav_cloud_u, em4);
     int n=roll_pitch_yaw.size();
     double roll_avg=0, pitch_avg=0, yaw_avg=0;
     for(auto i=0;i<roll_pitch_yaw.size();i++){
@@ -333,30 +362,66 @@ int main (int argc, char * argv[])
     yaw_avg/=n;
     
     vector<vector<double>> rough_pc;
+    double scanner_x=0.161, scanner_y=0.016, scanner_z=0.0;
     for(auto i=0;i<lidar_point_cloud.size();i++){
         auto x=lidar_point_cloud[i][0]-uav_cloud_u[i][0];
         auto y=lidar_point_cloud[i][1]-uav_cloud_u[i][1];
         auto z=lidar_point_cloud[i][2]-uav_cloud_u[i][2];
-        auto ro=roll_pitch_yaw[i][0];
-        auto pi=roll_pitch_yaw[i][1];
-        auto ya=roll_pitch_yaw[i][2];
-        auto res=apply_rotation_transpose_new(ro, pi, ya, x,y,z);
-        rough_pc.push_back(res);
+        auto rol_i=roll_pitch_yaw[i][0];
+        auto pit_i=roll_pitch_yaw[i][1];
+        auto yaw_i=roll_pitch_yaw[i][2];
+        
+    
+      //  auto res=apply_rotation_transpose_new(-(pi*(-1)+pit_i), rol_i, -(-pi/2.0+yaw_i), x, y, z);
+//        vector<double> res1(3);
+//        res1[0]=(res[0]-scanner_x);
+//        res1[1]=(res[1]-scanner_y);
+//        res1[2]=(res[2]-scanner_z);
+        rough_pc.push_back({x,y,z});
     }
     
     
-    auto roll_deg =1.45*pi/180;
-    auto pitch_deg = 0.9*pi/180;
+    auto roll_deg =0.9*pi/180;
+    auto pitch_deg = -1.45*pi/180;
     auto yaw_deg = -0.25*pi/180;
+    
+//    double roll_new=-(pi*(-1)+pitch_deg);
+//    double pitch_new=roll_deg;
+//    double yaw_new=-(-pi/2.0+yaw_deg);
+    
+//    double roll_new=-(pitch_deg);
+//    double pitch_new=roll_deg;
+//    double yaw_new=(yaw_deg);
+//
+    double roll_new=(roll_deg);
+    double pitch_new=pitch_deg;
+    double yaw_new=(yaw_deg);
+
     
     
   
     vector<vector<double>> em3;
     
-    apply_rotation_new(roll_deg, pitch_deg, yaw_deg, rough_pc, uav_cloud_u, roll_pitch_yaw);
+    apply_rotation_new(roll_new, pitch_new, yaw_new, rough_pc, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z);
     
     
-    save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_full_new_order.laz", rough_pc, em3);
+    save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_new)+"_"+to_string(pitch_new)+"_"+to_string(yaw_new)+"_abs_new_scanz_pos.laz", rough_pc, em3);
+    
+    for(auto i=0;i<rough_pc.size();i++){
+        auto x=rough_pc[i][0];
+        auto y=rough_pc[i][1];
+        auto z=rough_pc[i][2];
+        
+        auto x1=lidar_point_cloud[i][0];
+        auto y1=lidar_point_cloud[i][1];
+        auto z1=lidar_point_cloud[i][2];
+        
+        if(abs(x-x1)>=1e-9 || abs(y-y1)>=1e-9 || abs(z-z1)>=1e-9){
+            DebugOn("x "<<x<<" x1 "<<x1<<"y "<<y<<" y1 "<<y1<<"z "<<z<<" z1 "<<z1<<endl);
+        }
+        
+        
+    }
     
     vector<vector<double>> empty_vec, uav_xy;
     
@@ -364,9 +429,9 @@ int main (int argc, char * argv[])
     vector<vector<double>> uav_coords;
     vector<int> pos(6);
     for(auto i=0;i<uav_cloud_u.size();i++){
-        auto x=uav_cloud_u.at(i)[0]-uav_cloud_u.at(0)[0];
-        auto y=uav_cloud_u.at(i)[1]-uav_cloud_u.at(0)[1];
-        auto z=uav_cloud_u.at(i)[2]-uav_cloud_u.at(0)[2];
+        auto x=uav_cloud_u.at(i)[0];
+        auto y=uav_cloud_u.at(i)[1];
+        auto z=uav_cloud_u.at(i)[2];
         if(x<=uxmin){
             uxmin=x;
             pos[0]=i;
@@ -557,6 +622,8 @@ int main (int argc, char * argv[])
     }
     vector<vector<double>> em;
     save_laz(file_u.substr(0,Model_file.find('.'))+"_model.laz", point_cloud_model1, em);
+    save_laz(file_u.substr(0,Model_file.find('.'))+"_model_full.laz", cloud1, em);
+    save_laz(file_u.substr(0,Model_file.find('.'))+"_data_full.laz", cloud2, em);
     count=0;
     for(auto it=z_map_data.begin();it!=z_map_data.end();it++){
         auto ind=it->second;
@@ -655,14 +722,14 @@ int main (int argc, char * argv[])
 //    DebugOn("pc_2 size "<<pc2.size()<<endl);
     
     for(auto i=0;i!=point_cloud_model1.size();i++){
-        if(i%20==0){
+        if(i%200==0){
             point_cloud_model.push_back(point_cloud_model1.at(i));
             uav_model.push_back(uav_model1.at(i));
         }
     }
     
     for(auto i=0;i!=point_cloud_data1.size();i++){
-        if(i%20==0){
+        if(i%200==0){
             point_cloud_data.push_back(point_cloud_data1.at(i));
             uav_data.push_back(uav_data1.at(i));
         }
@@ -752,7 +819,7 @@ int main (int argc, char * argv[])
     else{
         best_ub=L1init;
     }
-//    auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub, error_type);
+    auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data,best_rot_trans, best_ub, error_type);
 //
 //    auto pitch_rad1 = atan2(rot[7], rot[8]);
 //    auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
