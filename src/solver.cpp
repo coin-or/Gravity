@@ -874,6 +874,32 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
             }
         }
     }
+//    bool has_change = true;
+//    while(has_change){
+//        has_change = false;
+//        for(auto const aux_eq_pair: obbt_model->_aux_eqs){
+//            obbt_model->merge_vars(aux_eq_pair.second,true);
+//            aux_eq_pair.second->allocate_mem();
+//            aux_eq_pair.second->reset_all_range();
+//            auto vkmod_ptr=obbt_model->get_var_ptr(aux_eq_pair.first->get_name(true,true));
+//            if(vkmod_ptr){
+//                auto vkmod = static_pointer_cast<var<double>>(vkmod_ptr);
+//                for(auto i = 0; i<aux_eq_pair.first->get_dim(); i++){
+//                    string key = aux_eq_pair.first->_indices->get_key(i);
+//                    double new_lb = aux_eq_pair.second->_all_range->at(i).first;
+//                    double new_ub = aux_eq_pair.second->_all_range->at(i).second;
+//                    if(vkmod->get_lb(key)<new_lb){
+//                        has_change = true;
+//                        vkmod->set_lb(key, new_lb);
+//                    }
+//                    if(vkmod->get_ub(key)>new_ub){
+//                        has_change = true;
+//                        vkmod->set_ub(key, new_ub);
+//                    }
+//                }
+//            }
+//        }
+//    }
     return true;
 }
 template<typename type>

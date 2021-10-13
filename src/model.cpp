@@ -753,6 +753,9 @@ void Model<type>::copy_aux_vars_status(shared_ptr<Model<type>>& M){/*<< Copy the
             v->_off = it.second->_off;
         }
     }
+    for(auto const aux_eq_pair: _aux_eqs){
+        merge_vars(aux_eq_pair.second,true);
+    }
 }
 
 template <typename type>
@@ -1116,6 +1119,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
     }
     shared_ptr<Model<>> obbt_model=relaxed_model->copy();
+    obbt_model->_aux_eqs = relaxed_model->_aux_eqs;
     obbt_model->_status=relaxed_model->_status;
     Model<> interior_model;
     if(linearize){

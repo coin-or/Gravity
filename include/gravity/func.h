@@ -1193,7 +1193,8 @@ namespace gravity {
          */
         void reset_all_range(){
             auto dim = get_nb_inst();
-            _all_range = make_shared<vector<pair<type,type>>>(make_pair<>(zero<type>().eval(), zero<type>().eval())[dim]);
+            _all_range = make_shared<vector<pair<type,type>>>();
+            _all_range->resize(dim,{zero<type>().eval(), zero<type>().eval()});
             auto nb_inst = get_nb_inst();
             double res_min = 0, res_max = 0;
             for (size_t i = 0; i<nb_inst; i++) {
@@ -1205,17 +1206,17 @@ namespace gravity {
                     }
                     else {
                         if (pair.second._sign) {
-                            res_min += eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i);
-                            res_max += eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i);
+                            res_min += std::min(eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i),eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i));
+                            res_max += std::max(eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i),eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i));
                         }
                         else {
-                            res_min -= eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i);
-                            res_max -= eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i);
+                            res_min -= std::max(eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i),eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i));
+                            res_max -= std::min(eval_coef(pair.second._coef,i) * pair.second._p->get_double_lb(i),eval_coef(pair.second._coef,i) * pair.second._p->get_double_ub(i));
                         }
                     }
                 }
-                _all_range[i].first = res_min;
-                _all_range[i].second = res_max;
+                _all_range->at(i).first = res_min;
+                _all_range->at(i).second = res_max;
             }
         }
         

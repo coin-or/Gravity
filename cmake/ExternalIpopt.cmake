@@ -3,6 +3,52 @@ set(IPOPT_HOME https://www.coin-or.org/Tarballs/Ipopt)
 set(IPOPT_DOWNLOAD_URL ${IPOPT_HOME}/Ipopt-3.12.13.tgz)
 unset(IPOPT_HOME)
 
+
+if(WIN32)
+set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
+ExternalProject_Add(ipopt
+    DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
+    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-windows-64.tar.gz -o idaes-solvers-windows-64.tar.gz && tar -xvzf idaes-solvers-windows-64.tar.gz -C ${IPOPT_ROOT_DIR}
+    URL ${IPOPT_DOWNLOAD_URL}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+add_custom_command(
+  TARGET ipopt POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy 
+  ${IPOPT_ROOT_DIR}/libipopt-3.dll ${PROJECT_SOURCE_DIR}/bin/Release/libipopt-3.dll)
+
+add_custom_command(
+TARGET ipopt POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy 
+${IPOPT_ROOT_DIR}/libblas.dll ${PROJECT_SOURCE_DIR}/bin/Release/libblas.dll)
+
+add_custom_command(
+TARGET ipopt POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy 
+${IPOPT_ROOT_DIR}/liblapack.dll ${PROJECT_SOURCE_DIR}/bin/Release/liblapack.dll)
+
+add_custom_command(
+TARGET ipopt POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy 
+${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortran-5.dll)
+
+elseif(UNIX)
+set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
+ExternalProject_Add(ipopt
+    DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
+    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz -o idaes-solvers-ubuntu2004-64.tar.gz && tar -xvzf idaes-solvers-ubuntu2004-64.tar.gz -C ${IPOPT_ROOT_DIR}
+    URL ${IPOPT_DOWNLOAD_URL}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+
+else()
+
 # Download and build the IPOPT library and add its properties to the third party arguments.
 set(IPOPT_ROOT_DIR ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build CACHE INTERNAL "")
 ExternalProject_Add(ipopt
@@ -14,7 +60,7 @@ ExternalProject_Add(ipopt
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-
+endif()
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DIPOPT_ROOT_DIR:PATH=${IPOPT_ROOT_DIR}")
 set(IPOPT_INCLUDE_DIRS ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/include/coin)
 include_directories(${IPOPT_INCLUDE_DIRS})

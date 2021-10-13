@@ -214,8 +214,8 @@ public:
     
     vector<shared_ptr<indices>>                         _all_ids; /**< all index sets */
     map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
-    map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
-    vector<pair<shared_ptr<var<double>>,func<>>>         _aux_eqs; /**< Auxiliary variables' equations */
+    map<size_t, set<vector<int>>>                                                                     _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
+    vector<pair<shared_ptr<var<double>>,shared_ptr<func<>>>>                                          _aux_eqs; /**< Auxiliary variables' equations */
     
     
     template<typename T=type>
@@ -635,6 +635,10 @@ public:
             obj_cpy.deep_copy(*m._obj);
             set_objective(obj_cpy, _objt);
         }
+//        _aux_eqs = m._aux_eqs;
+//        for(auto const aux_eq_pair: _aux_eqs){
+//            merge_vars(aux_eq_pair.second,true);
+//        }
         return *this;
     }
     
@@ -2728,8 +2732,8 @@ public:
     
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
-    vector<pair<shared_ptr<var<double>>,func<>>> project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
-        vector<pair<shared_ptr<var<double>>,func<>>> res;
+    vector<pair<shared_ptr<var<double>>,shared_ptr<func<>>>> project() {/*<  Use the equations where at least one variable appears linearly to express it as a function of other variables in the problem */
+        vector<pair<shared_ptr<var<double>>,shared_ptr<func<>>>> res;
         auto nb_eqs = get_nb_eq();
         vector<string> delete_cstr;
         vector<shared_ptr<param_>> delete_vars;
@@ -2756,7 +2760,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v)/* && !_obj->has_sym_var(*v) v does not appear in polynomial or nonlinear constraints */){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v) && !_obj->has_sym_var(*v) /* v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -2854,7 +2858,7 @@ public:
                     v_ptr->_off[idx] = true;
                 }
             }
-            res.push_back({static_pointer_cast<var<double>>(v),f});
+            res.push_back({static_pointer_cast<var<double>>(v),make_shared<func<>>(f)});
             delete_vars.push_back(v);
             tag_iter++;
         }
