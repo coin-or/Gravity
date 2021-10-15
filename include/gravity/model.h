@@ -37,7 +37,7 @@
 #endif
 #include "mp/nl.h"
 #include "mp/problem.h"
-#ifdef USE_COINUTILS
+#ifdef USE_CoinUtils
 #include "CoinMpsIO.hpp"
 #include "CoinFileIO.hpp"
 #include "CoinModel.hpp"
@@ -2762,7 +2762,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v) && !_obj->has_sym_var(*v) /* v does not appear in polynomial or nonlinear constraints */){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids()  /* && !is_nonlinear(*v) && !_obj->has_sym_var(*v) v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }
