@@ -1,0 +1,111 @@
+This file contains the license information for the third-party libraries and
+solvers included in the IDAES binary distribution: idaes-lib-<platform>.tar.gz
+and idaes-solvers-<platform>.tar.gz.  In general the idaes-lib-<platform>.tar.gz
+contains compiled IDAES code, while idaes-solvers-<platform>.tar.gz contains
+complied third-party libraries and solvers.
+
+idaes-lib-<platform>.tar.gz
+===========================
+
+  cubic_root.so, functions.so, iapws95_external.so, and swco2_external.so
+  -----------------------------------------------------------------------
+  License: IDAES BSD 3-clause,
+           https://github.com/IDAES/idaes-pse/blob/master/LICENSE.md
+  Source: https://github.com/IDAES/idaes-ext/tree/main/src
+
+idaes-solvers-<platform>.tar.gz
+===============================
+
+  Ipopt
+  -----
+  License: Eclipse Public License 2.0,
+           https://github.com/coin-or/Ipopt/blob/master/LICENSE,
+  Source: https://github.com/coin-or/Ipopt
+
+
+  liblapack.dll, libblas.dll (windows only)
+  -----------------------------------------
+  License: Lesser General Public License LGPL,
+  Source: https://www.netlib.org/lapack
+
+
+  Clp
+  ---
+  License: Eclipse Public License 2.0,
+          https://github.com/coin-or/Clp/blob/master/LICENSE
+  Source: https://github.com/coin-or/Clp
+
+
+  Cbc
+  ---
+  License: Eclipse Public License 2.0,
+           https://github.com/coin-or/Cbc/blob/master/LICENSE
+  Source: https://github.com/coin-or/Cbc
+
+
+  Cgl
+  ---
+  License: Eclipse Public License 2.0,
+           https://github.com/coin-or/Cgl/blob/master/LICENSE
+  Source: https://github.com/coin-or/Cgl
+
+
+  Couenne
+  -------
+  License: Eclipse Public License 1.0,
+           https://github.com/coin-or/Couenne/blob/master/LICENSE
+  Source: https://github.com/coin-or/Couenne
+
+
+  Bonmin
+  ------
+  License: Eclipse Public License 1.0,
+           https://github.com/coin-or/Bonmin/blob/master/LICENSE
+  Source: https://github.com/coin-or/Bonmin
+
+
+  HSL
+  ---
+  All technical papers, sales and publicity material resulting from use of
+  the HSL codes within IPOPT must contain the following acknowledgement: HSL, a
+  collection of Fortran codes for large-scale scientific computation. See
+  http://www.hsl.rl.ac.uk.
+
+
+  MUMPS
+  -----
+  Licence: CeCILL-C,  https://cecill.info/licences/Licence_CeCILL-C_V1-en.html
+  Source: http://mumps.enseeiht.fr/index.php?page=dwnld.
+
+
+  METIS
+  -----
+  METIS v4 is included with permission.
+
+
+  MinGW
+  -----
+  For Windows, MinGW runtime libraries are included.
+  License: http://www.mingw.org/license.
+
+
+  AMPL Solver Library (ASL)
+  -------------------------
+  Source: https://ampl.com/netlib/ampl/solvers/index.html
+  License:
+
+  Copyright (C) 2016 AMPL Optimization, Inc.; written by David M. Gay.
+
+  Permission to use, copy, modify, and distribute this software and its
+  documentation for any purpose and without fee is hereby granted,
+  provided that the above copyright notice appear in all copies and that
+  both that the copyright notice and this permission notice and warranty
+  disclaimer appear in supporting documentation.
+
+  The author and AMPL Optimization, Inc. disclaim all warranties with
+  regard to this software, including all implied warranties of
+  merchantability and fitness.  In no event shall the author be liable
+  for any special, indirect or consequential damages or any damages
+  whatsoever resulting from loss of use, data or profits, whether in an
+  action of contract, negligence or other tortious action, arising out
+  of or in connection with the use or performance of this software.
