@@ -37,9 +37,11 @@
 #endif
 #include "mp/nl.h"
 #include "mp/problem.h"
+#ifdef USE_COINUTILS
 #include "CoinMpsIO.hpp"
 #include "CoinFileIO.hpp"
 #include "CoinModel.hpp"
+#endif
 #include "mp/expr-visitor.h"
 
 using namespace std;
@@ -8404,7 +8406,7 @@ public:
     inline type eval(const shared_ptr<constant_>& c, size_t i, size_t j){
         return _obj->eval(c,i,j);
     }
-    
+#ifdef USE_CoinUtils 
     int readMPS(const string& fname){
             //string mps_file = "/Users/l297598/Downloads/fhnw-binpack4-58.mps", gms_file="/Users/l297598/Downloads/nvs24.gms";
         CoinMpsIO m;
@@ -8456,7 +8458,7 @@ public:
         delete handler_;
         return status;
     }
-    
+#endif
     template<typename T=type,typename std::enable_if<is_arithmetic<T>::value>::type* = nullptr>
     int readNL(const string& fname);
 };

@@ -60,7 +60,7 @@ class IPOPTLIB_EXPORT DebugJournalistWrapper
 {
 public:
    /** @name Constructors/Destructors. */
-   //@{
+   ///@{
    DebugJournalistWrapper(
       std::string func_name,
       Index       verbose_level
@@ -72,10 +72,10 @@ public:
       const void* const method_owner
    );
    ~DebugJournalistWrapper();
-   //@}
+   ///@}
 
    /** @name accessor methods */
-   //@{
+   ///@{
    Index Verbosity()
    {
       return verbose_level_;
@@ -88,7 +88,7 @@ public:
    {
       return indentation_level_;
    }
-   //@}
+   ///@}
 
    /** Printing */
    void DebugPrintf(
@@ -97,16 +97,18 @@ public:
       ...
    );
 
+private:
+   friend class IpoptApplication;
    /* Method for initialization of the static GLOBAL journalist,
     * through with all debug printout is to be written.
     *
     * This needs to be set before any debug printout can be done.
+    * It is expected that this is only called by the IpoptApplication constructor.
     */
    static void SetJournalist(
       Journalist* jrnl
    );
 
-private:
    /**@name Default Compiler Generated Methods
     * (Hidden to avoid implicit creation/calling).
     *
@@ -116,7 +118,7 @@ private:
     * and do not define them. This ensures that
     * they will not be implicitly created/called.
     */
-   //@{
+   ///@{
    /** default constructor */
    DebugJournalistWrapper();
 
@@ -129,7 +131,7 @@ private:
    DebugJournalistWrapper& operator=(
       const DebugJournalistWrapper&
    );
-   //@}
+   ///@}
 
    static Index indentation_level_;
    std::string func_name_;

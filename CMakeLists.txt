@@ -20,7 +20,7 @@ option(Ipopt "Link to IPOPT libraries" ON)
 
 option(MP "Link to AMPL MP libraries" ON)
 
-option(CoinUtils "Link to CoinUtils libraries" ON)
+option(CoinUtils "Link to CoinUtils libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
@@ -217,6 +217,7 @@ if(APPLE)
 elseif(UNIX)
 # set(IPOPT_LIBRARIES ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/lib/libipopt.so)
 set(IPOPT_LIBRARIES ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/libipopt.so)
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or")
 endif(APPLE) 
  include(ExternalIpopt)
 endif (IPOPT_FOUND)

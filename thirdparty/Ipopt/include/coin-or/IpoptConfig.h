@@ -1,39 +1,83 @@
-/* src/Common/config_ipopt.h.  Generated from config_ipopt.h.in by configure.  */
-/* src/Common/config_ipopt.h.in. */
+/* Copyright (C) 2011
+ * All Rights Reserved.
+ * This code is published under the Eclipse Public License.
+ */
 
-#ifndef __CONFIG_IPOPT_H__
-#define __CONFIG_IPOPT_H__
+/** Include file for the configuration of Ipopt.
+ *
+ * On systems where the code is configured with the configure script
+ * (i.e., compilation is always done with HAVE_CONFIG_H defined), this
+ * header file includes the automatically generated header file.
+ *
+ * On systems that are compiled in other ways (e.g., with the
+ * Developer Studio), a header file is included to define those
+ * macros that depend on the operating system and the compiler.  The
+ * macros that define the configuration of the particular user setting
+ * (e.g., presence of other COIN-OR packages or third party code) are set
+ * by the files config_*default.h. The project maintainer needs to remember
+ * to update these files and choose reasonable defines.
+ * A user can modify the default setting by editing the config_*default.h files.
+ */
 
-/* Version number of project */
-#define IPOPT_VERSION "3.13.2"
+#ifndef __IPOPTCONFIG_H__
+#define __IPOPTCONFIG_H__
 
-/* Major Version number of project */
-#define IPOPT_VERSION_MAJOR 3
+#ifdef HAVE_CONFIG_H
 
-/* Minor Version number of project */
-#define IPOPT_VERSION_MINOR 13
-
-/* Release Version number of project */
-#define IPOPT_VERSION_RELEASE 2
-
-/* Define to the debug sanity check level (0 is no test) */
-#define IPOPT_CHECKLEVEL 0
-
-/* Define to the debug verbosity level (0 is no output) */
-#define IPOPT_VERBOSITY 0
-
-/* Define to the C type corresponding to Fortran INTEGER */
-#define IPOPT_FORTRAN_INTEGER_TYPE int
-
-/* Library Visibility Attribute */
-#define IPOPTAMPLINTERFACELIB_EXPORT __declspec(dllimport)
-
-/* Library Visibility Attribute */
-#define IPOPTLIB_EXPORT __declspec(dllimport)
-
-/* for backward compatibility: will be removed in Ipopt 3.14 */
-#define FORTRAN_INTEGER_TYPE  IPOPT_FORTRAN_INTEGER_TYPE
-#define COIN_IPOPT_CHECKLEVEL IPOPT_CHECKLEVEL
-#define COIN_IPOPT_VERBOSITY  IPOPT_VERBOSITY
-
+#ifdef IPOPTLIB_BUILD
+#include "config.h"
+#else
+#include "config_ipopt.h"
 #endif
+
+#else /* HAVE_CONFIG_H */
+
+#ifdef IPOPTLIB_BUILD
+#include "config_default.h"
+#else
+#include "config_ipopt_default.h"
+#endif
+
+#endif /* HAVE_CONFIG_H */
+
+
+/* overwrite XYZ_EXPORT from config.h when building XYZ
+ * we want it to be __declspec(dllexport) when building a DLL on Windows
+ * we want it to be __attribute__((__visibility__("default"))) when building with GCC,
+ *   so user can compile with -fvisibility=hidden
+ */
+#ifdef IPOPTLIB_BUILD
+#ifdef DLL_EXPORT
+#undef IPOPTLIB_EXPORT
+#define IPOPTLIB_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#undef IPOPTLIB_EXPORT
+#define IPOPTLIB_EXPORT __attribute__((__visibility__("default")))
+#endif
+#endif
+
+#ifdef IPOPTAMPLINTERFACELIB_BUILD
+#ifdef DLL_EXPORT
+#undef IPOPTAMPLINTERFACELIB_EXPORT
+#define IPOPTAMPLINTERFACELIB_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#undef IPOPTAMPLINTERFACELIB_EXPORT
+#define IPOPTAMPLINTERFACELIB_EXPORT __attribute__((__visibility__("default")))
+#endif
+#endif
+
+#ifdef SIPOPTLIB_BUILD
+# ifdef DLL_EXPORT
+#  define SIPOPTLIB_EXPORT __declspec(dllexport)
+# elif defined(__GNUC__) && __GNUC__ >= 4
+#  define SIPOPTLIB_EXPORT __attribute__((__visibility__("default")))
+# endif
+#else
+# ifdef DLL_EXPORT
+#  define SIPOPTLIB_EXPORT __declspec(dllimport)
+# else
+#  define SIPOPTLIB_EXPORT
+# endif
+#endif
+
+#endif /*__IPOPTCONFIG_H__*/

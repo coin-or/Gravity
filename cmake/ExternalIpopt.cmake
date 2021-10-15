@@ -36,10 +36,23 @@ COMMAND ${CMAKE_COMMAND} -E copy
 ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortran-5.dll)
 
 elseif(UNIX)
+file(READ "/etc/os-release" ETC_ISSUE)
+string(REGEX MATCH "Ubuntu|centos" DIST ${ETC_ISSUE})
+
+if(DIST STREQUAL "Ubuntu")
+    message(STATUS ">>>> Found Ubuntu <<<<")
+set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz)
+elseif(DIST STREQUAL "centos")
+    message(STATUS ">>>> Found Centos <<<<")
+set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-centos7-64.tar.gz)
+else()
+    message(STATUS ">>>> Found unknown distribution <<<<")
+endif()
+
 set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
 ExternalProject_Add(ipopt
     DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
-    DOWNLOAD_COMMAND curl -k -L https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz -o idaes-solvers-ubuntu2004-64.tar.gz && tar -xvzf idaes-solvers-ubuntu2004-64.tar.gz -C ${IPOPT_ROOT_DIR}
+    DOWNLOAD_COMMAND curl -k -L ${IADES_DOWNLOAD_URL} -o idaes-solvers.tar.gz && tar -xvzf idaes-solvers.tar.gz -C ${IPOPT_ROOT_DIR}
     URL ${IPOPT_DOWNLOAD_URL}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
     CONFIGURE_COMMAND ""
@@ -71,13 +84,13 @@ find_library(IPOPT_LIBRARIES
         HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
         HINTS ${IPOPT_ROOT_DIR}/lib
 )
-elseif(UNIX)
-find_library(IPOPT_LIBRARIES
-        libipopt.so
-        HINTS /usr/local/lib
-        HINTS ${IPOPT_ROOT_DIR}/lib
-        HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
-)
+#elseif(UNIX)
+#find_library(IPOPT_LIBRARIES
+#        libipopt.so
+#        HINTS /usr/local/lib
+#        HINTS ${IPOPT_ROOT_DIR}/lib
+#        HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
+#)
 endif()
 set(LIBS ${LIBS} ${IPOPT_LIBRARIES})
 unset(IPOPT_DOWNLOAD_URL)

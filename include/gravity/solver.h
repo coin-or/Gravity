@@ -155,13 +155,13 @@ public:
         if (_stype==ipopt) {
 #ifdef USE_IPOPT
             _model->replace_integers();
-            SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
-            iapp->RethrowNonIpoptException(true);
-            ApplicationReturnStatus status = iapp->Initialize();
+            //SmartPtr<IpoptApplication> iapp = IpoptApplicationFactory();
+            //iapp->RethrowNonIpoptException(true);
+            //ApplicationReturnStatus status = iapp->Initialize();
             
-            if (status != Solve_Succeeded) {
-                throw invalid_argument("*** Error during initialization!\n");
-            }
+            //if (status != Solve_Succeeded) {
+            //    throw invalid_argument("*** Error during initialization!\n");
+            //}
             
             if(_model->_objt==maximize){
                 *_model->_obj *= -1;
