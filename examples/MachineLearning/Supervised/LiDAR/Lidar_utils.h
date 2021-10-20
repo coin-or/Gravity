@@ -272,9 +272,9 @@ void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<dou
         auto ty=-scanner_x*cos(pitchu)*sin(yawu)+scanner_y*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))+scanner_z*((cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)));
         auto tz=scanner_x*sin(pitchu)+scanner_y*(-cos(pitchu)*sin(rollu))+scanner_z*(cos(rollu)*cos(pitchu));
         
-        shifted_x = full_point_cloud[i][0] -tx;
-        shifted_y = full_point_cloud[i][1] -ty;
-        shifted_z = full_point_cloud[i][2] -tz;
+        shifted_x = full_point_cloud[i][0];// -tx;
+        shifted_y = full_point_cloud[i][1];// -ty;
+        shifted_z = full_point_cloud[i][2];// -tz;
        
         
         full_point_cloud[i][0] = shifted_x*cos(pitchu)*cos(yawu) - shifted_y*cos(pitchu)*sin(yawu) + shifted_z*sin(pitchu);
@@ -292,7 +292,7 @@ void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<dou
         
         pnew[0]=fx*cos(pitchu)*cos(yawu)+fy*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+fz*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu));
         pnew[1]=-fx*cos(pitchu)*sin(yawu)+fy*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))+fz*((cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)));
-        pnew[2]=fx*sin(pitchu)+fy*(-cos(pitchu)*sin(rollu))+fz*(cos(rollu)*cos(pitchu));
+      
         
         
 //        auto tx=scanner_x*cos(pitchu)*cos(yawu) - scanner_y*cos(pitchu)*sin(yawu) + scanner_z*sin(pitchu);
@@ -304,9 +304,126 @@ void apply_rotation_new(double roll, double pitch, double yaw, vector<vector<dou
         
         
 
-        full_point_cloud[i][0] = pnew[0]+full_uav[i][0]+tx;
-        full_point_cloud[i][1] = pnew[1]+full_uav[i][1]+ty;
-        full_point_cloud[i][2] = pnew[2]+full_uav[i][2]+tz;
+        full_point_cloud[i][0] = pnew[0]+full_uav[i][0];//+tx;
+        full_point_cloud[i][1] = pnew[1]+full_uav[i][1];//+ty;
+        full_point_cloud[i][2] = pnew[2]+full_uav[i][2];//+tz;
+    }
+    
+}
+vector<double> apply_rotation_new_order(double roll, double pitch, double yaw, double x, double y, double z){
+    vector<double> res(3);
+    res[0] = x*cos(roll)*cos(yaw) - y*cos(roll)*sin(yaw) + z*sin(roll);
+    res[1] = x*(cos(pitch)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch))+ y*(cos(pitch)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))  + z*(-cos(roll)*sin(pitch));
+    res[2] =x*(sin(pitch)*sin(yaw)-cos(pitch)*cos(yaw)*sin(roll)) + y*(cos(yaw)*sin(pitch)+cos(pitch)*sin(roll)*sin(yaw)) + z*(cos(roll)*cos(pitch));
+    return res;
+}
+
+vector<double> apply_rotation_inverse_new_order(double roll, double pitch, double yaw, double x, double y, double z){
+    vector<double> res(3);
+    res[0] = x*cos(roll)*cos(yaw) + y*(cos(pitch)*sin(yaw) +cos(yaw)*sin(roll)*sin(pitch)) + z*(sin(pitch)*sin(yaw)-cos(pitch)*cos(yaw)*sin(roll));
+    res[1]=x*cos(roll)*sin(yaw)*(-1)+y*(cos(pitch)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw))+z*(cos(yaw)*sin(pitch)+cos(pitch)*sin(roll)*sin(yaw));
+    res[2]=x*sin(roll)+y*(-cos(roll)*sin(pitch))+z*(cos(roll)*cos(pitch));
+    return res;
+}
+void apply_transform_new_order(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        
+        shifted_x = full_point_cloud[i][0]-full_uav[i][0];// -tx;
+        shifted_y = full_point_cloud[i][1]-full_uav[i][1];// -ty;
+        shifted_z = full_point_cloud[i][2]-full_uav[i][2];// -tz;
+        
+        auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+        
+        auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
+        
+        auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+
+        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0];//+tx;
+        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1];//+ty;
+        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2];//+tz;
+    }
+}
+
+void apply_rotation_bore_ins_new_order(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        
+        auto res_bore=apply_rotation_new_order(roll, pitch, yaw, full_point_cloud[i][0], full_point_cloud[i][1], full_point_cloud[i][2]);
+        
+        auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+
+        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0];//+tx;
+        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1];//+ty;
+        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2];//+tz;
+    }
+}
+
+
+void apply_rotation_lidarviewer(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto pitchu=roll_pitch_yaw_uav[i][0];
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        auto tx=scanner_x*cos(pitchu)*cos(yawu)+scanner_y*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+scanner_z*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu));
+        auto ty=-scanner_x*cos(pitchu)*sin(yawu)+scanner_y*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))+scanner_z*((cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)));
+        auto tz=scanner_x*sin(pitchu)+scanner_y*(-cos(pitchu)*sin(rollu))+scanner_z*(cos(rollu)*cos(pitchu));
+        
+        shifted_x = full_point_cloud[i][0];// -tx;
+        shifted_y = full_point_cloud[i][1];// -ty;
+        shifted_z = full_point_cloud[i][2];// -tz;
+        
+        full_point_cloud[i][1]*=-1;
+        full_point_cloud[i][2]*=-1;
+        
+
+
+        full_point_cloud[i][0] = shifted_x*cos(pitchu)*cos(yawu) - shifted_y*cos(pitchu)*sin(yawu) + shifted_z*sin(pitchu);
+        full_point_cloud[i][1] = (shifted_x*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+ shifted_y*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))  + shifted_z*(-cos(pitchu)*sin(rollu)));
+        full_point_cloud[i][2] =(shifted_x*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu)) + shifted_y*(cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)) + shifted_z*(cos(rollu)*cos(pitchu)));
+//
+        auto rolla=rollu-roll;
+        auto pitcha=(pitchu-pitch)*(-1);
+        auto yawa=(yawu-yaw)*(-1);
+       
+      
+
+
+        auto fx = full_point_cloud[i][0]*cos(pitcha)*cos(yawa) + full_point_cloud[i][1]*(cos(rolla)*sin(yawa) +cos(yawa)*sin(rolla)*sin(pitcha)) + full_point_cloud[i][2]*(sin(rolla)*sin(yawa)-cos(rolla)*cos(yawa)*sin(pitcha));
+        auto fy = -full_point_cloud[i][0]*cos(pitcha)*sin(yawa)+ full_point_cloud[i][1]*(cos(rolla)*cos(yawa)-sin(rolla)*sin(pitcha)*sin(yawa))  + full_point_cloud[i][2]*((cos(yawa)*sin(rolla)+cos(rolla)*sin(pitcha)*sin(yawa)));
+        auto fz = full_point_cloud[i][0]*sin(pitcha) + full_point_cloud[i][1]*(-cos(pitcha)*sin(rolla)) + full_point_cloud[i][2]*(cos(rolla)*cos(pitcha));
+        
+      
+        
+        
+//        auto tx=scanner_x*cos(pitchu)*cos(yawu) - scanner_y*cos(pitchu)*sin(yawu) + scanner_z*sin(pitchu);
+//        auto ty = scanner_x*(cos(rollu)*sin(yawu) +cos(yawu)*sin(rollu)*sin(pitchu))+ scanner_y*(cos(rollu)*cos(yawu)-sin(rollu)*sin(pitchu)*sin(yawu))  + scanner_z*(-cos(pitchu)*sin(rollu));
+//        auto tz = scanner_x*(sin(rollu)*sin(yawu)-cos(rollu)*cos(yawu)*sin(pitchu)) + scanner_y*(cos(yawu)*sin(rollu)+cos(rollu)*sin(pitchu)*sin(yawu)) + scanner_z*(cos(rollu)*cos(pitchu));
+        
+     
+        
+        
+        
+
+        full_point_cloud[i][0] = fx+full_uav[i][0];//+tx;
+        full_point_cloud[i][1] = fy+full_uav[i][1];//+ty;
+        full_point_cloud[i][2] = fz+full_uav[i][2];//+tz;
     }
     
 }
@@ -963,7 +1080,7 @@ void save_laz(const string& fname, const vector<vector<double>>& point_cloud1, c
     lasheader.x_scale_factor = 0.01;
     lasheader.y_scale_factor = 0.01;
     lasheader.z_scale_factor = 0.01;
-    lasheader.x_offset =  500000.0;
+    lasheader.x_offset = 500000.0;
     lasheader.y_offset = 4100000.0;
     lasheader.z_offset = 0.0;
     lasheader.point_data_format = 1;
@@ -1027,6 +1144,13 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         DebugOn("max y axis = " << lasreader->header.max_y << endl);
         DebugOn("min z axis = " << lasreader->header.min_z << endl);
         DebugOn("max z axis = " << lasreader->header.max_z << endl);
+        DebugOn("xscale = "<<lasreader->header.x_scale_factor<<endl);
+        DebugOn("yscale = "<<lasreader->header.y_scale_factor<<endl);
+        DebugOn("zscale = "<<lasreader->header.z_scale_factor<<endl);
+        DebugOn("xoffset = "<<lasreader->header.x_offset<<endl);
+        DebugOn("yoffset = "<<lasreader->header.y_offset<<endl);
+        DebugOn("zoffset = "<<lasreader->header.z_offset<<endl);
+       
         
         int total_pts=lasreader->npoints;
         int skip=1;
@@ -1042,16 +1166,7 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         pair<int,int> pos;
         size_t nb_pts = 0;
         tuple<double,double,double,double,UAVPoint*> cell; /* <min_z,max_z,av_z> */
-        /* Now get rid of the first points
-         lasreader->read_point();
-         auto gps_time = lasreader->point.get_gps_time();
-         while (lasreader->point.get_gps_time()==gps_time)
-         {
-         lasreader->read_point();
-         }
-         */
-        
-        //        /* Values below are used to identify u-turns in drone flight */
+       
         bool neg_x = false;/* x is decreasing */
         bool neg_y = false;/* y is decreasing */
         //
@@ -1081,23 +1196,21 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         while (lasreader->read_point() && LidarPoints.size()!=200e6)
         {
             nb_pts++;
-            //            if(nb_pts++<1e4)
-            //                continue;
-            //            if(nb_pts==0){
-            //                DebugOn(to_string_with_precision(10.*(lasreader->point.get_gps_time()+315964800. - 18.),24) << ": (" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
-            //                    //                return 0;
-            //            }
+           
             auto laser_id = lasreader->point.get_point_source_ID();
             DebugOff("lid "<<laser_id<<endl);
             if(nb_pts%skip!=0){/* Only keep points from Nadir laser */
                 continue;
             }
             auto unix_time = lasreader->point.get_gps_time();
-            auto x = lasreader->point.get_x();
-            auto y = lasreader->point.get_y();
-            auto z = lasreader->point.get_z();
-            auto uav_x = lasreader->point.get_attribute_as_float(1);
-            auto uav_y = lasreader->point.get_attribute_as_float(2);
+            auto X = (lasreader->point.get_X());
+            auto Y = (lasreader->point.get_Y());
+            auto Z = (lasreader->point.get_Z());
+            auto x = (lasreader->point.get_x());
+            auto y = (lasreader->point.get_y());
+            auto z = (lasreader->point.get_z());
+            auto uav_x = (lasreader->point.get_attribute_as_float(1));
+            auto uav_y = (lasreader->point.get_attribute_as_float(2));
             auto uav_z = lasreader->point.get_attribute_as_float(3);
             auto roll = lasreader->point.get_attribute_as_float(4);
             auto pitch = lasreader->point.get_attribute_as_float(5);
@@ -1114,21 +1227,6 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
                 lidar_point_cloud.push_back({x,y,z});
                 roll_pitch_yaw.push_back({roll,pitch,yaw});
             }
-            //                        if(!xvals.insert(x*100).second){/* A U turn is being detected */
-            //                            u_turn = true;
-            //                            DebugOn("Detected a Uturn at point " << LidarPoints.size() << endl);
-            //                            if(u_turn) {
-            //                                DebugOn("This is the second Uturn! " << endl);
-            //                                u_turn_2 = true;
-            //                            }
-            //                            frame1 = false;
-            //                        }
-            //                        if(frame1){
-            //                            point_cloud1.push_back({x,y,z});
-            //                        }
-            //                        else{
-            //                            point_cloud2.push_back({x,y,z});
-            //                        }
         }
         
         DebugOn("Read " << LidarPoints.size() << " points" << endl);
@@ -1139,118 +1237,8 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         // plot(uav_cloud,empty_vec, 0.1);
 #endif
         save_laz(name, point_cloud1, point_cloud2);
-        //                auto frame_id = CSV_data.GetCell<int>(0, i);
-        //                new_uav = (uav_id==0) || (UAVPoints[uav_id-1]->_frame_id != frame_id);
-        //                if(new_uav){
-        //                    auto uav_x1 = CSV_data.GetCell<double>("Track_UTM_E", i);
-        //                    auto uav_y1 = CSV_data.GetCell<double>("Track_UTM_N", i);
-        //                    if(UAVPoints.size()==2){
-        //                        auto uav_x0 = UAVPoints.back()->_x;
-        //                        auto uav_y0 = UAVPoints.back()->_y;
-        //                        neg_x = (uav_x1 - uav_x0) < 0;/* x is decreasing */
-        //                        neg_y = (uav_y1 - uav_y0) < 0;/* y is decreasing */
-        //                    }
-        //                    else if(UAVPoints.size()>2){
-        //                        auto uav_x0 = UAVPoints.back()->_x;
-        //                        auto uav_y0 = UAVPoints.back()->_y;
-        //                        bool neg_x_new = (uav_x1 - uav_x0) < 0;/* x is decreasing */
-        //                        bool neg_y_new = (uav_y1 - uav_y0) < 0;/* y is decreasing */
-        //                        if(neg_x_new!=neg_x || neg_y_new!=neg_y){/* A U turn is being detected */
-        //                            u_turn = true;
-        //                            frame1 = false;
-        //                            neg_x = neg_x_new;
-        //                            neg_y = neg_y_new;
-        //                        }
-        //                        else {
-        //                            u_turn = false;
-        //                        }
-        //                    }
-        //                    UAVPoints.push_back(new UAVPoint());
-        //                    UAVPoints[uav_id]->_frame_id = frame_id;
-        //                    UAVPoints[uav_id]->_x = uav_x1;
-        //                    UAVPoints[uav_id]->_y = uav_y1;
-        //                    UAVPoints[uav_id]->_height = CSV_data.GetCell<double>("Track_UTM_Height", i);
-        //                    unix_time = CSV_data.GetCell<double>("Time", i);
-        //                    UAVPoints[uav_id]->set_unix_time(unix_time);
-        //                    uav_x.push_back(UAVPoints[uav_id]->_x);
-        //                    uav_y.push_back(UAVPoints[uav_id]->_y);
-        //                    uav_z.push_back(UAVPoints[uav_id]->_height);
-        //                    frame_ptr = frames.insert(make_pair(UAVPoints[uav_id]->_frame_id, make_shared<Frame>(UAVPoints[uav_id]->_frame_id, UAVPoints[uav_id]->_unix_time)));
-        //                    frame_ptr.first->second->add_UAV_point(UAVPoints[uav_id]);
-        //                    if(frame1){/* Has not performed a u-turn yet, keep adding to frames1 */
-        //                        frames1.insert(make_pair(frame_ptr.first->second->_id, frame_ptr.first->second));
-        //                    }
-        //                    else{/* Already turned, keep adding to frames2 */
-        //                        frames2.insert(make_pair(frame_ptr.first->second->_id, frame_ptr.first->second));
-        //                    }
-        //                    if(u_turn){
-        //                        DebugOn("Detected a Uturn at frame " << frame_ptr.first->first << endl);
-        //                    }
-        //                    uav_id++;
-        //                }
-        //
-        //                auto xpos = CSV_data.GetCell<double>("UTM_E", i);
-        //                auto ypos = CSV_data.GetCell<double>("UTM_N", i);
-        //                auto zpos = CSV_data.GetCell<double>("UTM_Height", i);
-        //                LidarPoints.push_back(new LidarPoint(laser_id,unix_time,xpos,ypos,zpos));
-        //                frame_ptr.first->second->add_lidar_point(LidarPoints.back());
-        //                LidarPoints.back()->_uav_pt = frame_ptr.first->second->_uav_point;
-        //
-        //                //                uav_x1.push_back((frame_ptr.first->second._uav_points.front()->_longitude+582690.8242)*1e-5);
-        //                //                uav_y1.push_back((frame_ptr.first->second._uav_points.front()->_latitude+4107963.58)*1e-5);
-        //                //                uav_z1.push_back(frame_ptr.first->second._uav_points.front()->_height*100);
-        //            }
-        //            DebugOn("Read " << uav_id << " frames" << endl);
-        //            DebugOn(frames1.size() << " frames in flight line 1" << endl);
-        //            DebugOn(frames2.size() << " frames in flight line 2" << endl);
-        //            DebugOn(LidarPoints.size() << " lidar points read" << endl);
-        //            int nb_pts_per_frame1 = 0, nb_pts_per_frame2 = 0;
-        //            for (const auto &frame: frames1) {
-        //                nb_pts_per_frame1 += frame.second->_lidar_points->size();
-        //                int i = 0;
-        //                for (const auto &p: *frame.second->_lidar_points) {
-        //                    if(i%10==0){
-        //                        x_vec1.push_back(p->_x);
-        //                        x_shift1.push_back(frame.second->_uav_point->_x);
-        //                        y_vec1.push_back(p->_y);
-        //                        y_shift1.push_back(frame.second->_uav_point->_y);
-        //                        z_vec1.push_back(p->_z);
-        //                        z_shift1.push_back(frame.second->_uav_point->_height);
-        //                    }
-        //                    i++;
-        //                }
-        //
-        //            }
-        //            for (const auto &frame: frames2) {
-        //                nb_pts_per_frame2 += frame.second->_lidar_points->size();
-        //                int i = 0;
-        //                for (auto const &p: *frame.second->_lidar_points) {
-        //                    if(i%10==0){
-        //                        x_vec2.push_back(p->_x);
-        //                        x_shift2.push_back(frame.second->_uav_point->_x);
-        //                        y_vec2.push_back(p->_y);
-        //                        y_shift2.push_back(frame.second->_uav_point->_y);
-        //                        z_vec2.push_back(p->_z);
-        //                        z_shift2.push_back(frame.second->_uav_point->_height);
-        //                    }
-        //                    i++;
-        //                }
-        //            }
-        //            if(frames1.size()!=0)
-        //                DebugOn("Average number of points per frame in flight line 1 = " << nb_pts_per_frame1/frames1.size() << endl);
-        //            if(frames2.size()!=0)
-        //                DebugOn("Average number of points per frame in flight line 2 = " << nb_pts_per_frame2/frames2.size() << endl);
-        //            bool plot_data = false;
-        //            if(plot_data){
-        //            }
-        //        while (lasreader->read_point())
-        //        {
-        //            if(nb_pts==0){
-        //                DebugOn(to_string_with_precision(10.*(lasreader->point.get_gps_time()+315964800. - 18.),24) << ": (" << to_string_with_precision(lasreader->point.get_x(),10) <<"," << to_string_with_precision(lasreader->point.get_y(),10) << ","<< to_string_with_precision(lasreader->point.get_z(),10) <<")"<<endl);
-        ////                return 0;
-        //            }
-        //
-        //        }
+
+
     }
     DebugOn("finished read laz"<<endl);
     return uav_cloud;
@@ -1301,14 +1289,7 @@ void read_laz_new(const string& fname1, const string& fname2)
        pair<int,int> pos;
        size_t nb_pts = 0;
        tuple<double,double,double,double,UAVPoint*> cell; /* <min_z,max_z,av_z> */
-       /* Now get rid of the first points
-        lasreader->read_point();
-        auto gps_time = lasreader->point.get_gps_time();
-        while (lasreader->point.get_gps_time()==gps_time)
-        {
-        lasreader->read_point();
-        }
-        */
+       
 
        //        /* Values below are used to identify u-turns in drone flight */
        bool neg_x = false;/* x is decreasing */
@@ -1784,7 +1765,7 @@ vector<pair<int, int>> extract_slices(vector<vector<double>> uav_cloud, vector<i
         slice.push_back(slice_i);
         std::pair<int,int> pair1;
         pair1.first=index_set[begp];
-        pair1.first=index_set[begp];
+        pair1.second=index_set[begp];
         res.push_back(pair1);
         
         int sign_x_prev=0, sign_x_now=0;
