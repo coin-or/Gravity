@@ -1218,7 +1218,7 @@ shared_ptr<Model<>> PowerNet::build_SCOPF(PowerModelType pmt, int output, double
 
 
 
-shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, double tol){
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, double tol, bool add_thermal){
     if(grid.nodes.empty()){
         throw invalid_argument("empty grid! Make sure to call grid.readgrid(fname);");
     }
@@ -1362,6 +1362,8 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     ACOPF->add(KCL_P.in(nodes) == 0);
     ACOPF->add(KCL_Q.in(nodes) == 0);
     
+    if(!add_thermal)
+        ACOPF->restructure();
     /** AC Power Flows */
     /** TODO write the constraints in Complex form */
     Constraint<> Flow_P_From("Flow_P_From");
@@ -1454,17 +1456,18 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     ACOPF->add(PAD_UB.in(node_pairs) <= 0);
     ACOPF->add(PAD_LB.in(node_pairs) >= 0);
     
-    
-    /*  Thermal Limit Constraints */
-    Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
-    Thermal_Limit_from -= pow(S_max, 2);
-    ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
-    
-    Constraint<> Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
-    Thermal_Limit_to -= pow(S_max,2);
-    ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
+    if(add_thermal){
+        /*  Thermal Limit Constraints */
+        Constraint<> Thermal_Limit_from("Thermal_Limit_from");
+        Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
+        Thermal_Limit_from -= pow(S_max, 2);
+        ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
+        
+        Constraint<> Thermal_Limit_to("Thermal_Limit_to");
+        Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
+        Thermal_Limit_to -= pow(S_max,2);
+        ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
+    }
     return ACOPF;
 }
 

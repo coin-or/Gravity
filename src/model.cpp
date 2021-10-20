@@ -810,7 +810,7 @@ void Model<type>::populate_original_interval(shared_ptr<Model<type>>& obbt_model
                 fixed_point[key_lb]=true;
                 fixed_point[key_ub]=true;
                 count_skip+=2;
-                DebugOn("Off var: "<<vname<<"\t"<<key<<endl);
+                DebugOff("Off var: "<<vname<<"\t"<<key<<endl);
             }
             count_var++;
             interval_original[var_key]=v.get_ub(key)-v.get_lb(key);
