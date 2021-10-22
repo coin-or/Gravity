@@ -52,7 +52,7 @@ option(VORO "Link to VORO libraries" ON)
 option(Eigen3 "Link to Eigen3 libraries" ON)
 
 #Find CGAL (REQUIRED)
-option(CGAL "Link to CGAL libraries" ON)
+option(CGAL "Link to CGAL libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)

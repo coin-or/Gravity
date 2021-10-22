@@ -480,7 +480,9 @@ tuple<double,double,double> run_NLP(string axis, const vector<vector<double>>& p
             var<> xb_m("xb_m"), yb_m("yb_m"), zb_m("zb_m");
             var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
     
-            var<> yaw("yaw", -0.00872, 0.00872), pitch("pitch",  -0.00872, 0.00872), roll("roll",  -0.00872, 0.00872);
+            //var<> yaw("yaw", -0.00872, 0.00872), pitch("pitch",  -0.00872, 0.00872), roll("roll",  -0.00872, 0.00872);
+            
+            var<> yaw("yaw", -0.1, 0.1), pitch("pitch", -0.1, 0.1), roll("roll", -0.1, 0.1);
             
             Lidar.add(yaw.in(range(0,0)),pitch.in(range(0,0)),roll.in(range(0,0)));
             Lidar.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
@@ -954,9 +956,11 @@ Lidar.add(x_rot2.in(N2)==0);
 tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, const vector<vector<double>>& rollpitchyawins1, const vector<vector<double>>& rollpitchyawins2){
     double roll = 0, pitch = 0, yaw = 1; /* at least one nonzero to enter the while loop */
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
-    int nb_iter = 0, max_nb_iter = 20;
+    int nb_iter = 0, max_nb_iter = 100;
     tuple<double,double,double> res;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.5) {
+    max_nb_iter = 100;//20
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
+    {
         res = run_NLP("full", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
@@ -966,7 +970,8 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
         DebugOn("No projection, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.5) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
+    {
         res = run_NLP("z", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
@@ -976,7 +981,8 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
         DebugOn("Projceting out z axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.5) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
+    {
         res = run_NLP("y", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
@@ -986,7 +992,8 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
         DebugOn("Projceting out y axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.5) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
+    {
         res = run_NLP("x", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
@@ -996,7 +1003,8 @@ tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<ve
         DebugOn("Projceting out x axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
-    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.5) {
+    while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
+    {
         res = run_NLP("full", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
