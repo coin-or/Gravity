@@ -355,7 +355,7 @@ shared_ptr<Model<double>> Align_L2_model(const vector<vector<double>>& point_clo
    
     return Reg;
 }
-shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rollpitchyawins_model, vector<vector<double>>& rollpitchyawins_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
+shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -363,6 +363,7 @@ shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>
     param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
+    param<> x1i("x1i"), x2i("x2i"), y1i("y1i"), y2i("y2i"), z1i("z1i"), z2i("z2i");
     param<> roll_ins1("roll_ins1"),pitch_ins1("pitch_ins1"), yaw_ins1("yaw_ins1");
     param<> roll_ins2("roll_ins2"), pitch_ins2("pitch_ins2"), yaw_ins2("yaw_ins2");
     string j_str, i_str;
@@ -391,6 +392,10 @@ shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>
         roll_ins2.add_val(j_str, rollpitchyawins_model.at(j)[0]);
         pitch_ins2.add_val(j_str, (-pi+rollpitchyawins_model.at(j)[1])*(-1));
         yaw_ins2.add_val(j_str, (-pi/2+rollpitchyawins_model.at(j)[2])*(-1));
+        auto res_m=apply_rotation_new_order(rollpitchyawins_model.at(j)[0], (-pi+rollpitchyawins_model.at(j)[1])*(-1), (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), point_cloud_model.at(j)[0]-uav_model.at(j)[0], point_cloud_model.at(j)[1]-uav_model.at(j)[1], point_cloud_model.at(j)[2]-uav_model.at(j)[2]);
+        x2i.add_val(j_str,res_m[0]);
+        y2i.add_val(j_str,res_m[1]);
+        z2i.add_val(j_str,res_m[2]);
     }
     
     for (auto i = 0; i<point_cloud_data.size(); i++) {
@@ -404,6 +409,10 @@ shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>
         roll_ins1.add_val(i_str, rollpitchyawins_data.at(i)[0]);
         pitch_ins1.add_val(i_str, (-pi+rollpitchyawins_data.at(i)[1])*(-1));
         yaw_ins1.add_val(i_str, (-pi/2+rollpitchyawins_data.at(i)[2])*(-1));
+        auto res_d=apply_rotation_new_order(rollpitchyawins_data.at(i)[0], (-pi+rollpitchyawins_data.at(i)[1])*(-1), (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), point_cloud_data.at(i)[0]-uav_data.at(i)[0], point_cloud_data.at(i)[1]-uav_data.at(i)[1], point_cloud_data.at(i)[2]-uav_data.at(i)[2]);
+        x1i.add_val(i_str,res_d[0]);
+        y1i.add_val(i_str,res_d[1]);
+        z1i.add_val(i_str,res_d[2]);
     }
     
 
@@ -514,19 +523,19 @@ shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>
     auto ids1 = theta11.repeat_id(N1.size());
     
     Constraint<> xd_bore("xd_bore");
-    xd_bore=x1*theta11.in(ids1)+y1*theta12.in(ids1)+z1*theta13.in(ids1)-xb_d;
+    xd_bore=x1i*theta11.in(ids1)+y1i*theta12.in(ids1)+z1i*theta13.in(ids1)-xb_d;
     Reg->add(xd_bore.in(N1)==0);
     
     Constraint<> yd_bore("yd_bore");
-    yd_bore=x1*theta21.in(ids1)+y1*theta22.in(ids1)+z1*theta23.in(ids1)-yb_d;
+    yd_bore=x1i*theta21.in(ids1)+y1i*theta22.in(ids1)+z1i*theta23.in(ids1)-yb_d;
     Reg->add(yd_bore.in(N1)==0);
 
     
     Constraint<> zd_bore("zd_bore");
-    zd_bore=x1*theta31.in(ids1)+y1*theta32.in(ids1)+z1*theta33.in(ids1)-zb_d;
+    zd_bore=x1i*theta31.in(ids1)+y1i*theta32.in(ids1)+z1i*theta33.in(ids1)-zb_d;
     Reg->add(zd_bore.in(N1)==0);
-  
     
+   
     
     Constraint<> xd_ins_inv("xd_ins_inv");
     xd_ins_inv=xb_d*cos(roll_ins1)*cos(yaw_ins1)+yb_d*(cos(pitch_ins1)*sin(yaw_ins1) +cos(yaw_ins1)*sin(roll_ins1)*sin(pitch_ins1))+zb_d*(sin(pitch_ins1)*sin(yaw_ins1)-cos(pitch_ins1)*cos(yaw_ins1)*sin(roll_ins1))+x_uav1-new_xm-x_diff;
@@ -543,17 +552,17 @@ shared_ptr<Model<double>> Align_L2_model_rotationlv(const vector<vector<double>>
     auto ids2 = theta11.repeat_id(N2.size());
     
     Constraint<> xm_bore("xm_bore");
-    xm_bore=x2*theta11.in(ids2)+y2*theta12.in(ids2)+z2*theta13.in(ids2)-xb_m;
+    xm_bore=x2i*theta11.in(ids2)+y2i*theta12.in(ids2)+z2i*theta13.in(ids2)-xb_m;
     Reg->add(xm_bore.in(N2)==0);
     
     Constraint<> ym_bore("ym_bore");
-    ym_bore=x2*theta21.in(ids2)+y2*theta22.in(ids2)+z2*theta23.in(ids2)-yb_m;
+    ym_bore=x2i*theta21.in(ids2)+y2i*theta22.in(ids2)+z2i*theta23.in(ids2)-yb_m;
     Reg->add(ym_bore.in(N2)==0);
 
     
     Constraint<> zm_bore("zm_bore");
-    zm_bore=x2*theta31.in(ids2)+y2*theta32.in(ids2)+z2*theta33.in(ids2)-zb_m;
-    Reg->add(zd_bore.in(N2)==0);
+    zm_bore=x2i*theta31.in(ids2)+y2i*theta32.in(ids2)+z2i*theta33.in(ids2)-zb_m;
+    Reg->add(zm_bore.in(N2)==0);
     
     
     
