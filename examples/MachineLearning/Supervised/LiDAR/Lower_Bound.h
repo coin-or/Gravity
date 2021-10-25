@@ -604,7 +604,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     if(dist_cost._indices->_keys->size()!=0){
         Constraint<> delta_cost("delta_cost");
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
-       // Reg->add(delta_cost.in(N1)<=0);
+        Reg->add(delta_cost.in(N1)<=0);
     }
     
     bool relax_sdp = false;
