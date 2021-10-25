@@ -19,6 +19,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
 
 vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type)
 {
+    vector<double> rpy;
     /* INPUT BOUNDS */
     
     /* INPUT BOUNDS */
@@ -292,10 +293,15 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                         if(is_rotation){
                             point_cloud_data_copy=point_cloud_data;
                             auto point_cloud_model_copy=point_cloud_model;
-                            auto pitch_rad1 = atan2(rot[7], rot[8]);
-                            auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
-                            auto yaw_rad1 = atan2(rot[3],rot[0]);
-                            apply_rotation(roll_rad1*180/pi, pitch_rad1*180/pi, yaw_rad1*180/pi, point_cloud_model_copy, point_cloud_data_copy, uav_model, uav_data);
+//                            auto pitch_rad1 = atan2(rot[7], rot[8]);
+//                            auto roll_rad1 = atan2(-rot[6], std::sqrt(rot[7]*rot[7]+rot[8]*rot[8]));
+//                            auto yaw_rad1 = atan2(rot[3],rot[0]);
+//
+                            auto yaw_rad1 = atan2(-rot[1],rot[0]);
+                            auto roll_rad1=asin(rot[2]);
+                            auto pitch_rad1=acos(rot[8]/cos(roll_rad1));
+                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_model_copy, uav_model, rpy_model, 0.0,0.0,0.0);
+                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_data_copy, uav_data, rpy_data, 0.0,0.0,0.0);
                             double err=0;
                             if(error_type=="L2"){
                                 err=computeL2error(point_cloud_model_copy, point_cloud_data_copy, new_matching, res);
@@ -344,9 +350,12 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     DebugOn("Total iter "<<iter<<endl);
     DebugOn("Queue size = " << lb_queue.size() << "\n");
     DebugOn("lb que top = " << lb_queue.top().lb << "\n");
-    auto pitch_rad = atan2(best_rot_trans[7], best_rot_trans[8]);
-    auto roll_rad = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
-    auto yaw_rad = atan2(best_rot_trans[3],best_rot_trans[0]);
+//    auto pitch_rad = atan2(best_rot_trans[7], best_rot_trans[8]);
+//    auto roll_rad = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
+//    auto yaw_rad = atan2(best_rot_trans[3],best_rot_trans[0]);
+    auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
+    auto roll_rad=asin(best_rot_trans[2]);
+    auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
     DebugOn("roll rad "<< roll_rad<<endl);
     DebugOn("pitch rad "<< pitch_rad<<endl);
     DebugOn("yaw rad "<< yaw_rad<<endl);
@@ -367,23 +376,24 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         //        if(node.lb-1e-6 > best_ub)
         //            break;
     }
-    pitch_rad = atan2(best_rot_trans[7], best_rot_trans[8]);
-    roll_rad = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]));
-    yaw_rad = atan2(best_rot_trans[3],best_rot_trans[0]);
+
     DebugOn("roll rad "<< roll_rad<<endl);
     DebugOn("pitch rad "<< pitch_rad<<endl);
     DebugOn("yaw rad "<< yaw_rad<<endl);
     
     
-    auto pitch = atan2(best_rot_trans[7], best_rot_trans[8])*180/pi;
-    auto roll = atan2(-best_rot_trans[6], std::sqrt(best_rot_trans[7]*best_rot_trans[7]+best_rot_trans[8]*best_rot_trans[8]))*180/pi;
-    auto yaw = atan2(best_rot_trans[3],best_rot_trans[0])*180/pi;
+    auto roll=roll_rad*180/pi;
+    auto pitch=pitch_rad*180/pi;
+    auto yaw=yaw_rad*180/pi;
     
     DebugOn("roll deg"<< roll<<endl);
     DebugOn("pitch deg"<< pitch<<endl);
     DebugOn("yaw deg"<< yaw<<endl);
     
-    return best_rot_trans;
+    rpy.push_back(roll);
+    rpy.push_back(pitch);
+    rpy.push_back(yaw);
+    return rpy;
     
 }
 void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, string error_type){

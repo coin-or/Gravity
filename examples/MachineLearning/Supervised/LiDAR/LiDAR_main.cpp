@@ -890,6 +890,9 @@ int main (int argc, char * argv[])
         
     
 //    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model, point_cloud_data, uav_model, uav_data);
+    
+        apply_transform_new_order(roll_deg_iph*pi/180, pitch_deg_iph*pi/180, yaw_deg_iph*pi/180, point_cloud_model, uav_model, rpy_model, 0.0,0.0,0.0);
+        apply_transform_new_order(roll_deg_iph*pi/180, pitch_deg_iph*pi/180, yaw_deg_iph*pi/180, point_cloud_data, uav_data, rpy_data, 0.0,0.0,0.0);
     save_laz(file_u.substr(0,Model_file.find('.'))+"_"+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_opt_set.laz", point_cloud_model, point_cloud_data);
     apply_transform_new_order(roll_deg_iph*pi/180, pitch_deg_iph*pi/180, yaw_deg_iph*pi/180, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, 0.0,0.0,0.0);
         
@@ -898,7 +901,7 @@ int main (int argc, char * argv[])
        // apply_transform_new_order(roll_deg_iph*pi/180, pitch_deg_iph*pi/180, yaw_deg_iph*pi/180, point_cloud_data, uav_data, rpy_data, 0.0,0.0,0.0);
 //    apply_rotation(roll_deg, pitch_deg, yaw_deg, point_cloud_model1, point_cloud_data1, uav_model1, uav_data1);
 //    
-   save_laz(file_u.substr(0,Model_file.find('.'))+"_"+to_string(roll_deg_iph)+"_"+to_string(pitch_deg_iph)+"_"+to_string(yaw_deg_iph)+"_red_set.laz", point_cloud_model_copy, point_cloud_data_copy);
+  // save_laz(file_u.substr(0,Model_file.find('.'))+"_"+to_string(roll_deg_iph)+"_"+to_string(pitch_deg_iph)+"_"+to_string(yaw_deg_iph)+"_red_set.laz", point_cloud_model_copy, point_cloud_data_copy);
 //    
 //    apply_rotation(roll_deg, pitch_deg, yaw_deg, full_point_cloud_model, full_point_cloud_data, full_uav_model, full_uav_data);
 //    
