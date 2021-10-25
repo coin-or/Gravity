@@ -39,6 +39,11 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     auto uavm=uav_model;
     auto uavd=uav_data;
     
+    auto pcm1=point_cloud_model;
+    auto pcd1=point_cloud_data;
+    auto uavm1=uav_model;
+    auto uavd1=uav_data;
+    
    
     auto resi=run_IPH(pcm, pcd, uavm, uavd, rpy_model, rpy_data);
     //
@@ -52,12 +57,15 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     vector<int> new_matching(nd);
     vector<double> res(nd);
     if(roll_rad_i>=roll_min && roll_rad_i<=roll_max && pitch_rad_i>=pitch_min && pitch_rad_i<=pitch_max && yaw_rad_i>=yaw_min && yaw_rad_i<=yaw_max){
+        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcm1, uavm1, rpy_model, 0.0,0.0,0.0);
+        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcd1, uavd1, rpy_data, 0.0,0.0,0.0);
         if(error_type=="L2"){
-            errori= computeL2error(pcm,pcd,new_matching,res);
+            errori= computeL2error(pcm1,pcd1,new_matching,res);
         }
         else{
-            errori= computeL1error(pcm,pcd,new_matching,res);
+            errori= computeL1error(pcm1,pcd1,new_matching,res);
         }
+        DebugOn("errori "<<errori<<endl);
         if(errori<=best_ub){
             best_ub=errori;
             best_rot_trans[0] = cos(roll_rad_i)*cos(yaw_rad_i);

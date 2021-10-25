@@ -423,6 +423,9 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     DebugOn("n1 = " << n1 << endl);
     DebugOn("n2 = " << n2 << endl);
     
+    N1 = range(1,n1);
+    N2 = range(1,n2);
+    
     indices ids = indices("in_x");
     indices idsij = indices("idsij");
        idsij.add_empty_row();
@@ -436,8 +439,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
             }
         }
     }
-    N1 = range(1,n1);
-    N2 = range(1,n2);
+  
     //auto cells = indices(N1,N2);
     
     vector<int> new_model_pts;
@@ -453,14 +455,13 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     DebugOff("Added " << cells.size() << " binary variables" << endl);
     
     
-    var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", roll_min, roll_max), roll("roll", pitch_min, pitch_max);
+    var<> yaw("yaw", yaw_min, yaw_max), pitch("pitch", pitch_min, pitch_max), roll("roll", roll_min, roll_max);
     yaw.in(R(1)); pitch.in(R(1));roll.in(R(1));
     
 
 
   
-    
-   
+
     func<> r11 = cos(roll)*cos(yaw);r11.eval_all();
     func<> r12 = (-1)*cos(roll)*sin(yaw);r12.eval_all();
     func<> r13 =sin(roll);r13.eval_all();
@@ -535,6 +536,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     zd_bore=x1i*theta31.in(ids1)+y1i*theta32.in(ids1)+z1i*theta33.in(ids1)-zb_d;
     Reg->add(zd_bore.in(N1)==0);
     
+  
    
     
     Constraint<> xd_ins_inv("xd_ins_inv");
@@ -564,11 +566,12 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     zm_bore=x2i*theta31.in(ids2)+y2i*theta32.in(ids2)+z2i*theta33.in(ids2)-zb_m;
     Reg->add(zm_bore.in(N2)==0);
     
-    
+
     
     Constraint<> xm_ins_inv("xm_ins_inv");
     xm_ins_inv=xb_m*cos(roll_ins2)*cos(yaw_ins2)+yb_m*(cos(pitch_ins2)*sin(yaw_ins2) +cos(yaw_ins2)*sin(roll_ins2)*sin(pitch_ins2))+zb_m*(sin(pitch_ins2)*sin(yaw_ins2)-cos(pitch_ins2)*cos(yaw_ins2)*sin(roll_ins2))+x_uav2-xm;
     Reg->add(xm_ins_inv.in(N2)==0);
+    
     
     Constraint<> ym_ins_inv("ym_ins_inv");
     ym_ins_inv=xb_m*(-1)*cos(roll_ins2)*sin(yaw_ins2)+yb_m*(cos(pitch_ins2)*cos(yaw_ins2) -sin(roll_ins2)*sin(pitch_ins2)*sin(yaw_ins2))+zb_m*(cos(yaw_ins2)*sin(pitch_ins2)+cos(pitch_ins2)*sin(roll_ins2)*sin(yaw_ins2))+y_uav2-ym;
@@ -601,7 +604,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<d
     if(dist_cost._indices->_keys->size()!=0){
         Constraint<> delta_cost("delta_cost");
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
-        Reg->add(delta_cost.in(N1)<=0);
+       // Reg->add(delta_cost.in(N1)<=0);
     }
     
     bool relax_sdp = false;
