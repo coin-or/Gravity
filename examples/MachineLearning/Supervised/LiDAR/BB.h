@@ -490,7 +490,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
             model_i=Align_L2_model_rotation_neworder(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
         }
         else{
-            model_i=Align_L2_model_rotation_neworder(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
+            model_i=Align_L1_model_rotation_neworder(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
         }
         model_created=true;
     }
