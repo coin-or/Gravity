@@ -812,7 +812,7 @@ int main (int argc, char * argv[])
     DebugOn("L2init  "<<L2init<<endl);
     DebugOn("L1init  "<<L1init<<endl);
     
-    string error_type="L2";
+    string error_type="L1";
         
         //preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, valid_cells_old,new_cells, dist_cells, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, 20.6798, prep_time, error_type);
     
