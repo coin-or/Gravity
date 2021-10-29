@@ -351,6 +351,38 @@ void apply_transform_new_order(double roll, double pitch, double yaw, vector<vec
     }
 }
 
+void apply_transform_new_order_scanner(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        shifted_x = full_point_cloud[i][0]-full_uav[i][0];//-scanner_x;
+        shifted_y = full_point_cloud[i][1]-full_uav[i][1];//-scanner_y;
+        shifted_z = full_point_cloud[i][2]-full_uav[i][2];//-scanner_z;
+        
+        auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+        
+        auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0]-scanner_x, res_inv_ins[1]-scanner_y, res_inv_ins[2]-scanner_z);
+        
+        //auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
+        
+        auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+        
+        auto res_ins_scanner=apply_rotation_inverse_new_order(rollu, pitchu, yawu, scanner_x, scanner_y, scanner_z);
+        
+        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0]+res_ins_scanner[0];
+        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1]+res_ins_scanner[1];
+        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2]+res_ins_scanner[2];
+//        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0]+scanner_x;
+//        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1]+scanner_y;
+//        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2]+scanner_z;
+    }
+}
+
 void apply_rotation_bore_ins_new_order(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, vector<vector<double>>& full_uav, vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
     double shifted_x, shifted_y, shifted_z;
     /* Apply rotation */
