@@ -350,13 +350,15 @@ int main (int argc, char * argv[])
 
     vector<vector<double>> em4;
     int n=roll_pitch_yaw.size();
-    double scanner_x=0.161, scanner_y=0.016, scanner_z=0.0;
+    double scanner_x=0.161, scanner_y=0, scanner_z=-0.016;
     
     auto roll_deg =-1.45*pi/180;
     auto pitch_deg = 0.9*pi/180;
     auto yaw_deg = -0.25*pi/180;
-
-
+  //  apply_transform_new_order_scanner(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z);
+    
+   // save_laz(file_u.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_manual_lv_scan.laz", lidar_point_cloud, em4);
+    //exit(0);
 //apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z);
 //
 //    vector<vector<double>> diff;
@@ -721,7 +723,7 @@ int main (int argc, char * argv[])
                     }
                     count++;
                 }
-        for(auto i=0;i<point_cloud_model_temp.size();i+=100){
+        for(auto i=0;i<point_cloud_model_temp.size();i+=10){
             point_cloud_model.push_back(point_cloud_model_temp.at(i));
             uav_model.push_back(uav_model_temp.at(i));
             rpy_model.push_back(rpy_model_temp.at(i));
@@ -742,7 +744,7 @@ int main (int argc, char * argv[])
                     }
                     count++;
                 }
-        for(auto i=0;i<point_cloud_data_temp.size();i+=200){
+        for(auto i=0;i<point_cloud_data_temp.size();i+=20){
             point_cloud_data.push_back(point_cloud_data_temp.at(i));
             uav_data.push_back(uav_data_temp.at(i));
             rpy_data.push_back(rpy_data_temp.at(i));
@@ -793,13 +795,13 @@ int main (int argc, char * argv[])
     param<double> dist_cells1("dist_cells1");
     double upper_bound=3e4;
     double prep_time=0;
-    
-    double roll_min=-2*pi/180;
-    double roll_max=2*pi/180;
-    double pitch_min=-2*pi/180;
-    double pitch_max=2*pi/180;
-    double yaw_min=-2*pi/180;
-    double yaw_max=2*pi/180;
+
+    double roll_min=-1.47*pi/180;
+    double roll_max=-1.44*pi/180;
+    double pitch_min=0.55*pi/180;
+    double pitch_max=0.56*pi/180;
+    double yaw_min=-0.043*pi/180;
+    double yaw_max=-0.042*pi/180;
         auto point_cloud_model_copy=point_cloud_model;
         auto point_cloud_data_copy=point_cloud_data;
     
@@ -812,7 +814,7 @@ int main (int argc, char * argv[])
     DebugOn("L2init  "<<L2init<<endl);
     DebugOn("L1init  "<<L1init<<endl);
     
-    string error_type="L1";
+    string error_type="L2";
         
         //preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, valid_cells_old,new_cells, dist_cells, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, 20.6798, prep_time, error_type);
     
@@ -858,21 +860,20 @@ int main (int argc, char * argv[])
 //            }
 //        DebugOn("errori "<<errori<<endl);
 //
-//       preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, valid_cells_old,new_cells, dist_cells, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, errori, prep_time, error_type);
-//        for(auto i=0;i<matching.size();i++){
-//            DebugOn(matching[i]+1<<endl);
-//        }
-//        for(auto i=0;i<err_per_point.size();i++){
-//            DebugOn(err_per_point[i]<<endl);
-//        }
-//
-//        auto Reg= Align_L2_model_rotation_neworder(point_cloud_model, point_cloud_data,  uav_model,  uav_data, rpy_model,  rpy_data, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, new_cells, dist_cells);
-//
-//        Reg->print();
-//
-//        solver<> S(Reg,gurobi);
-//        S.run();
-//        exit(0);
+       preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, valid_cells_old,new_cells, dist_cells, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, 17.5, prep_time, error_type);
+        for(auto i=0;i<matching.size();i++){
+            DebugOff(matching[i]+1<<endl);
+        }
+        for(auto i=0;i<err_per_point.size();i++){
+            DebugOff(err_per_point[i]<<endl);
+        }
+        auto Reg= Align_L2_model_rotation_neworder_scanner(point_cloud_model, point_cloud_data,  uav_model,  uav_data, rpy_model,  rpy_data, roll_min,roll_max, pitch_min, pitch_max,  yaw_min, yaw_max, new_cells, dist_cells);
+
+        Reg->print();
+
+        solver<> S(Reg,gurobi);
+        S.run();
+        exit(0);
     auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type);
    // auto rot=run_IPH(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data);
 //
