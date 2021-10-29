@@ -1390,7 +1390,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     else {
         Flow_P_To -= g_tt*(pow(vr_to, 2) + pow(vi_to, 2));
         Flow_P_To -= g_tf*(vr_from*vr_to + vi_from*vi_to);
-        Flow_P_To -= b_tf*(vi_to*vr_from - vr_to*vi_from);
+        Flow_P_To -= b_tf*(vr_from*vi_to - vi_from*vr_to);
     }
     ACOPF->add(Flow_P_To.in(arcs)==0);
     
@@ -1418,7 +1418,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     else {
         Flow_Q_To += b_tt*(pow(vr_to, 2) + pow(vi_to, 2));
         Flow_Q_To += b_tf*(vr_from*vr_to + vi_from*vi_to);
-        Flow_Q_To -= g_tf*(vi_to*vr_from - vr_to*vi_from);
+        Flow_Q_To -= g_tf*(vr_from*vi_to - vi_from*vr_to);
     }
     ACOPF->add(Flow_Q_To.in(arcs)==0);
     
@@ -1455,6 +1455,27 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     }
     ACOPF->add(PAD_UB.in(node_pairs) <= 0);
     ACOPF->add(PAD_LB.in(node_pairs) >= 0);
+    
+    
+    /* WR Bounds constraints */
+    Constraint<> WR_UB("WR_UB");
+    Constraint<> WR_LB("WR_LB");
+    WR_UB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_max;
+    WR_LB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_min;
+    
+    ACOPF->add(WR_UB.in(node_pairs) <= 0);
+    ACOPF->add(WR_LB.in(node_pairs) >= 0);
+    
+    /* WI Bounds constraints */
+    Constraint<> WI_UB("WI_UB");
+    Constraint<> WI_LB("WI_LB");
+    WI_UB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_max;
+    WI_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_min;
+    
+    ACOPF->add(WI_UB.in(node_pairs) <= 0);
+    ACOPF->add(WI_LB.in(node_pairs) >= 0);
+    
+    
     
     if(add_thermal){
         /*  Thermal Limit Constraints */

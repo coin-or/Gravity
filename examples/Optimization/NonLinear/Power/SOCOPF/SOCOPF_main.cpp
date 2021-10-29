@@ -60,7 +60,7 @@ int main (int argc, char * argv[])
         fname=argv[1];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/pglib_opf_case3_lmbd.m";
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     }
     if(argc>=3){
         lin_solver=argv[2];
@@ -180,24 +180,24 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-    SOCP.add(PAD_UB.in(node_pairs));
+//    SOCP.add(PAD_UB.in(node_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-    SOCP.add(PAD_LB.in(node_pairs));
+//    SOCP.add(PAD_LB.in(node_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-    SOCP.add(Thermal_Limit_from.in(arcs));
+//    SOCP.add(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-   // SOCP.add(Thermal_Limit_to.in(arcs));
+//    SOCP.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");
@@ -205,17 +205,17 @@ int main (int argc, char * argv[])
     LNC1 -= grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
     LNC1 -= grid.v_max.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
     LNC1 -= grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
-    SOCP.add(LNC1.in(node_pairs) >= 0);
+//    SOCP.add(LNC1.in(node_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
     LNC2 -= grid.v_min.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
     LNC2 += grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
-    SOCP.add(LNC2.in(node_pairs) >= 0);
+//    SOCP.add(LNC2.in(node_pairs) >= 0);
     
-    SOCP.restructure();
-    SOCP.project();
+//    SOCP.restructure();
+//    SOCP.project();
     
     /* Solver selection */
     /* TODO: declare only one solver and one set of time measurment functions for all solvers. */
@@ -245,7 +245,7 @@ int main (int argc, char * argv[])
         solver<> SOCOPF(SOCP,ipopt);
 //        SOCOPF.set_option("linear_solver", lin_solver);
         auto solver_time_start = get_wall_time();
-        SOCOPF.run(output=5, tol=1e-6);
+        SOCOPF.run(output=5, tol=1e-9);
         solver_time_end = get_wall_time();
         total_time_end = get_wall_time();
         solve_time = solver_time_end - solver_time_start;

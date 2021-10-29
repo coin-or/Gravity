@@ -45,7 +45,7 @@ TEST_CASE("testing restructure with ACOPF") {
 
 
 TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     int output = 0;
     double tol = 1e-6;
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
@@ -59,6 +59,9 @@ TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
     solver<> s1(OPF,ipopt);
     auto time_start = get_wall_time();
     auto status = s1.run(output=5, tol=1e-6);
+    
+    auto SDP=build_SDPOPF(grid);
+    SDP->print();
     auto OPF_proj = build_ACOPF(grid, ACRECT, 5, 1e-6, false);
 //    SDP_proj->restructure();
 //    DebugOn("Done restructuring\n");
@@ -69,6 +72,8 @@ TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
 
     auto Rel = OPF_proj->relax(3,false,true);
     Rel->print();
+    solver<> srel(Rel,ipopt);
+    status = srel.run(output=5, tol=1e-9);
 //    SDP->_aux_eqs = proj_pairs;
 //    SDP->copy_aux_vars_status(SDP_proj);
 
