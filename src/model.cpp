@@ -1064,6 +1064,87 @@ void Model<type>::compute_iter_gap(double& gap, double& active_tol, bool& termin
 template <typename type>
 template<typename T,
 typename std::enable_if<is_same<T,double>::value>::type*>
+std::tuple<double, double, double, double> Model<type>::compute_root_gap(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, bool scale_objective){
+#ifdef USE_MPI
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
+    std::tuple<double, double, double, double> res;
+    int total_iter=0, global_iter=1,fail=0;
+    int output, oacuts_init=0, oacuts=0;
+    double total_time =0, time_start = get_wall_time(), time_end = 0, lower_bound_nonlin_init = numeric_limits<double>::min();
+    double upper_bound, upper_bound_orig, upper_bound_best;
+    vector<double> ub_sol;
+    ub_sol.resize(this->_nb_vars);
+#ifdef USE_MPI
+    if(worker_id==0){
+        time_start = get_wall_time();
+    }
+#else
+    time_start = get_wall_time();
+#endif
+    double gap_new=-999, gap=0, lb_scale_value;
+  
+    /*To deal with maximize problems*/
+    auto objt_orig=this->_objt;
+    if(this->_objt==maximize){
+        DebugOn("Transforming maximize problem into standard minimize form"<<endl);
+        this->_objt=minimize;
+        auto obj_m=*this->_obj*(-1);
+        this->min(obj_m);
+    }
+    solver<> UB_solver(*this,ub_solver_type);
+    UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
+    upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
+    if(this->_status!=0){
+        upper_bound=this->_obj->_range->second;
+    }
+    lb_scale_value=1.0;
+    solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
+    if(scale_objective){
+        auto obj = *relaxed_model->_obj/1e5;
+        relaxed_model->min(obj);
+        relaxed_model->reset();
+        lb_scale_value=1;
+    }
+    LBnonlin_solver.run(output = 5 , 1e-6, 1e6, "ma57", 2000);
+    if(relaxed_model->_status==0)
+    {
+        lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
+        DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+    }
+#ifdef USE_MPI
+    if(worker_id==0){
+        time_end = get_wall_time();
+    }
+#else
+    time_end = get_wall_time();
+#endif
+    total_time = time_end - time_start;
+    //obbt_model->print_constraints_stats(1e-8);
+  
+    /*To deal with maximize problems*/
+    if(objt_orig==maximize){
+        DebugOn("Transforming from minimize problem into original maximize form"<<endl);
+        this->_objt=maximize;
+        auto obj_m=*this->_obj*(-1);
+        this->max(obj_m);
+    }
+    DebugOff("Total wall-clock time spent in OBBT = " << total_time << endl);
+    DebugOff("Total number of OBBT iterations = " << total_iter << endl);
+    DebugOff("Number of global iterations = " << global_iter << endl);
+    auto gapnl=(upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+1e-6)*100;
+    DebugOn("Initial gap = "<<gapnl<<"%"<<endl);
+    get<0>(res)=relaxed_model->_status;
+    get<1>(res)=lower_bound_nonlin_init;
+    get<2>(res)=upper_bound;
+    get<3>(res)=total_time;
+    return res;
+}
+template <typename type>
+template<typename T,
+typename std::enable_if<is_same<T,double>::value>::type*>
 std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> Model<type>::run_obbt(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, double rel_tol, double abs_tol, unsigned nb_threads, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, double range_tol, bool linearize, bool scale_objective, bool lag, int nb_refine,  int nb_root_refine, int nb_root_ref_init, double viol_obbt_init, double viol_root_init, bool initialize_primal, double upper_bound_prev) {
 #ifdef USE_MPI
     int worker_id, nb_workers;
@@ -1112,7 +1193,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
         relaxed_model->reset();
         lb_scale_value=1;
     }
-    LBnonlin_solver.run(output = 5 , 1e-6, 2000, 2000);
+    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 2000);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
@@ -1404,7 +1485,7 @@ template void Model<double>::create_batch_models(shared_ptr<Model<double>>& obbt
 template void Model<double>::compute_iter_gap(double& gap, double& active_tol, bool& terminate, bool linearize, int iter, shared_ptr<Model<double>>& obbt_model, const Model<double>& interior_model, SolverType lb_solver_type, int nb_root_refine, const double upper_bound, double& lower_bound, const double ub_scale_value, double lb_solver_tol, double& active_root_tol, int& oacuts, const double abs_tol, const double rel_tol, const double zero_tol, string lin_solver, int max_iter, int max_time, vector<double>& vrbasis, std::map<string,double>& crbasis, bool initialize_primal);
 template void Model<double>::batch_models_obj_lb_constr(vector<shared_ptr<Model<double>>>& batch_models, int nb_threads, double lower_bound_lin, double lower_bound_old, double lower_bound_nonlin_init, double upper_bound, double ub_scale_value);
 template void Model<double>::update_upper_bound(shared_ptr<Model<double>>& obbt_model, vector<shared_ptr<Model<double>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
-
+template std::tuple<double, double, double, double> Model<double>::compute_root_gap(shared_ptr<Model<double>> relaxed_model, double max_time, unsigned max_iter, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, bool scale_objective);
 
 
 }

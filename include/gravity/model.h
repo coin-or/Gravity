@@ -8355,6 +8355,9 @@ public:
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double> run_obbt(shared_ptr<Model<T>> relaxed_model= nullptr, double max_time = 1000, unsigned max_iter=1e3, double rel_tol=1e-2, double abs_tol=1e6, unsigned nb_threads = 1, SolverType ub_solver_type = ipopt, SolverType lb_solver_type = ipopt, double ub_solver_tol=1e-6, double lb_solver_tol=1e-6, double range_tol=1e-3, bool linearize=false, bool scale_objective=false, bool lag=false, int nb_refine=1, int nb_root_refine=1, int nb_root_ref_init=1, double viol_obbt_init=0.1, double viol_root_init=0.1, bool initialize_primal=false, double upper_bound_prev=1e10);
+    template<typename T=type,
+    typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
+    std::tuple<double, double, double, double> compute_root_gap(shared_ptr<Model<T>> relaxed_model, double max_time, unsigned max_iter, SolverType ub_solver_type, SolverType lb_solver_type, double ub_solver_tol, double lb_solver_tol, bool scale_objective);
     
   
     

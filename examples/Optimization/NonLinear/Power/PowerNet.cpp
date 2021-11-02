@@ -2525,17 +2525,26 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
-    Thermal_Limit_from <= pow(S_max,2);
+    Thermal_Limit_from = (pow(Pf_from, 2) + pow(Qf_from, 2))*1e-3;
+    Thermal_Limit_from <= (pow(S_max,2))*1e-3;
     // SDPOPF->add(Thermal_Limit_from.in(arcs));
+    if(current){
     SDPOPF->add(Thermal_Limit_from.in(arcs), true);
-    
+    }
+    else{
+        SDPOPF->add(Thermal_Limit_from.in(arcs));
+    }
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
-    Thermal_Limit_to <= pow(S_max,2);
+    Thermal_Limit_to = (pow(Pf_to, 2) + pow(Qf_to, 2))*1e-3;
+    Thermal_Limit_to <= pow(S_max,2)*1e-3;
     //SDPOPF->add(Thermal_Limit_to.in(arcs));
+    if(current){
     SDPOPF->add(Thermal_Limit_to.in(arcs), true);
+    }
+    else{
+        SDPOPF->add(Thermal_Limit_to.in(arcs));
+    }
     
     if(llnc)
     {
