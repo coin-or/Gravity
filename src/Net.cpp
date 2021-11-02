@@ -855,7 +855,7 @@ indices Net::get_node_pairs(){
         return node_pairs;
     }
     for (auto a: arcs) {
-        if (!a->_parallel) {
+        if (a->_active && !a->_parallel) {
             node_pairs.add(a->_src->_name+","+a->_dest->_name);
         }
     }

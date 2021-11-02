@@ -1095,7 +1095,7 @@ std::tuple<double, double, double, double> Model<type>::compute_root_gap(shared_
         this->min(obj_m);
     }
     solver<> UB_solver(*this,ub_solver_type);
-    UB_solver.run(output = 0, ub_solver_tol, 2000, 600);
+    UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
     upper_bound=upper_bound_integral(ub_solver_type, ub_solver_tol, ub_sol);
     if(this->_status!=0){
         upper_bound=this->_obj->_range->second;

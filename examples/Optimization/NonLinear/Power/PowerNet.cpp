@@ -1326,12 +1326,12 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     /** Construct the objective function */
     /**  Objective */
-//    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
-    auto obj = sum(c0)*1e-5;
-    for (auto pg_id: *Pg.get_indices()._keys) {
-        obj += c1(pg_id)*Pg(pg_id)*1e-5;
-        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id)*1e-5;
-    }
+    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+//    auto obj = sum(c0)*1e-5;
+//    for (auto pg_id: *Pg.get_indices()._keys) {
+//        obj += c1(pg_id)*Pg(pg_id)*1e-5;
+//        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id)*1e-5;
+//    }
     ACOPF->min(obj);
     
     /** Define constraints */
@@ -1462,13 +1462,13 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     /*  Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
-    Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
-    Thermal_Limit_from -= pow(S_max, 2);
+    Thermal_Limit_from += (pow(Pf_from, 2) + pow(Qf_from, 2))*1e-3;
+    Thermal_Limit_from -= (pow(S_max, 2))*1e-3;
     ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
-    Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
-    Thermal_Limit_to -= pow(S_max,2);
+    Thermal_Limit_to += (pow(Pf_to, 2) + pow(Qf_to, 2))*1e-3;
+    Thermal_Limit_to -= (pow(S_max,2))*1e-3;
     ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
     return ACOPF;
 }
@@ -2483,7 +2483,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs_chord)*Wii.to(node_pairs_chord);
-    SDPOPF->add(SOC.in(node_pairs_chord) == 0,true);
+    SDPOPF->add(SOC.in(node_pairs_chord) <= 0);
     //SDPOPF->add(SOC.in(node_pairs_chord) == 0,true,"on/off", false);
     
     

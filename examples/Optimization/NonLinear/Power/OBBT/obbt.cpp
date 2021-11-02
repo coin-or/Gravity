@@ -210,7 +210,7 @@ int main (int argc, char * argv[]) {
 #endif
     double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     
-    auto OPF=build_ACOPF(grid, ACRECT);
+    auto OPF=build_ACOPF(grid, ACPOL);
     //OPF->print();
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
@@ -223,7 +223,7 @@ int main (int argc, char * argv[]) {
     //linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
-        scale_objective=true;
+        scale_objective=false;
         current=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         //        SDP->print();
@@ -239,14 +239,8 @@ int main (int argc, char * argv[]) {
     result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 #ifdef USE_MPI
     if(worker_id==0){
-        ofstream foutp(param_file_name.c_str());
-        foutp<<"$nref^{U}_{batch}$= "<<nb_refine<<", $nref^{U}_{root}$= "<<nb_root_refine<<", $viol^{I}_{batc
-        h}$= "<< viol_obbt_init<<", $viol^{I}_{root}$= "<<viol_root_init<<", linearize= "<<linearize<<", $f$= "<<2<<e
-    ndl;
-    foutp.close();
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upp
-    er_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+    fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
     <<std::setprecision(5)<<total_time<<" & "
     <<status<<endl;
     if(lower_bound==numeric_limits<double>::min()){
