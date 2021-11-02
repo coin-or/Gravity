@@ -1107,12 +1107,12 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int,double
     lb_scale_value=1.0;
     solver<> LBnonlin_solver(relaxed_model,ub_solver_type);
     if(scale_objective){
-        auto obj = *relaxed_model->_obj/upper_bound;
+        auto obj = *relaxed_model->_obj/1e5;
         relaxed_model->min(obj);
         relaxed_model->reset();
-        lb_scale_value=upper_bound;
+        lb_scale_value=1;
     }
-    LBnonlin_solver.run(output = 0 , lb_solver_tol, 2000, 600);
+    LBnonlin_solver.run(output = 5 , 1e-6, 2000, 2000);
     if(relaxed_model->_status==0)
     {
         lower_bound_nonlin_init = relaxed_model->get_obj_val()*lb_scale_value;
@@ -1265,7 +1265,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
         lower_bound_nonlin_init=relaxed_model->get_obj_val()*lb_scale_value;
     }
     else if(obbt_model->_status==0 && run_obbt_iter>1){
-        lower_bound_nonlin_init=relaxed_model->get_obj_val()*lb_scale_value;
+        lower_bound_nonlin_init=obbt_model->get_obj_val()*lb_scale_value;
     }
     else{
         lower_bound_nonlin_init=relaxed_model->_obj->_range->first*lb_scale_value;

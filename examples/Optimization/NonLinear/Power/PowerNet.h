@@ -206,6 +206,8 @@ public:
     indices Et_opt, Gt_opt, Bt_opt, Bt1_opt, Wt_opt, PVt_opt;
     indices gensc2_pos=indices("gensc2_pos");
     
+    indices arcs_curr=indices("arcs_curr");
+    
     
     /** Investment Binary Variables */
     var<bool> w_g, w_b, w_e, w_pv;
