@@ -1050,7 +1050,18 @@ public:
     shared_ptr<Constraint<type>> get_constraint(const string& cname) const{
         return _cons_name.at(cname);
     }
-    
+    template <typename T>
+    shared_ptr<var<T>> get_ptr_var(const string& vname) const{
+        auto it = _vars_name.find(vname);
+        if (it==_vars_name.end()) {
+            throw invalid_argument("In function: Model::get_var(const string& vname) const, unable to find variable with given name");
+        }
+        auto v = static_pointer_cast<var<T>>(it->second);
+        if(v){
+            return v;
+        }
+        throw invalid_argument("In function: Model::get_var<T>(const string& vname) const, cannot cast variable, make sure to use the right numerical type T");
+    }
     
     shared_ptr<param_> get_var_ptr(const string& vname) const{
         auto it = _vars_name.find(vname);

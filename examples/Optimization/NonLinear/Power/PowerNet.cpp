@@ -1326,7 +1326,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     
     /** Construct the objective function */
     /**  Objective */
-    auto obj = product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0);
+    auto obj = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))*1e-5;
 //    auto obj = sum(c0)*1e-5;
 //    for (auto pg_id: *Pg.get_indices()._keys) {
 //        obj += c1(pg_id)*Pg(pg_id)*1e-5;
@@ -1470,6 +1470,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     Thermal_Limit_to += (pow(Pf_to, 2) + pow(Qf_to, 2))*1e-3;
     Thermal_Limit_to -= (pow(S_max,2))*1e-3;
     ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
+    //ACOPF->scale_coefs(1e3);
     return ACOPF;
 }
 
@@ -2331,7 +2332,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
         auto Wii_ = Wii.in_bags(bags_3d, 3);
-        
+//var<> aux_a("aux_a"),  aux_b("aux_b"), aux_c("aux_c"), aux_d("aux_d"), aux_e("aux_e");
         if(sdp_kim){
             
             
@@ -2342,6 +2343,35 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
             SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
             SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
             SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+            
+            
+//            Constraint<> SDP3a("SDP_3a");
+//            SDP3a=Wii_[1] * Wii_[2]-(pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2))-aux_a;
+//            SDPOPF->add(SDP3a.in(range(0,bag_size-1)) == 0);
+//
+//            Constraint<> SDP3b("SDP_3b");
+//            SDP3b=(R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2])-aux_b;
+//            SDPOPF->add(SDP3b.in(range(0,bag_size-1)) == 0);
+//
+//            Constraint<> SDP3c("SDP_3c");
+//            SDP3c=(R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1])-aux_c;
+//            SDPOPF->add(SDP3c.in(range(0,bag_size-1)) == 0);
+//
+//            Constraint<> SDP3d("SDP_3d");
+//            SDP3d=(pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2))-aux_d;
+//            SDPOPF->add(SDP3d.in(range(0,bag_size-1)) == 0);
+//
+//            Constraint<> SDP3e("SDP_3e");
+//            SDP3e=(pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2))-aux_e;
+//            SDPOPF->add(SDP3d.in(range(0,bag_size-1)) == 0);
+//
+//            SDP3 = 2 * R_Wij_[0] * (R_Wij_[1] * R_Wij_[2] + Im_Wij_[1] * Im_Wij_[2]);
+//            SDP3 -= 2 * Im_Wij_[0] * (R_Wij_[2] * Im_Wij_[1] - Im_Wij_[2] * R_Wij_[1]);
+//            SDP3 -= (pow(R_Wij_[0], 2) + pow(Im_Wij_[0], 2)) * Wii_[2];
+//            SDP3 -= (pow(R_Wij_[1], 2) + pow(Im_Wij_[1], 2)) * Wii_[0];
+//            SDP3 -= (pow(R_Wij_[2], 2) + pow(Im_Wij_[2], 2)) * Wii_[1];
+//            SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+//
             
             if (lazy_bool) {
                 SDPOPF->add_lazy(SDP3.in(range(0,bag_size-1)) >= 0);
@@ -2616,7 +2646,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
-    SDPOPF->scale_coefs(1e3);
+//    SDPOPF->scale_coefs(1e3);
     //SDPOPF->print();
     return SDPOPF;
     

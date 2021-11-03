@@ -16,7 +16,7 @@
 using namespace std;
 using namespace gravity;
 
-
+void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid);
 /* Run the OBBT algorithm */
 int main (int argc, char * argv[]) {
 #ifdef USE_MPI
@@ -210,7 +210,7 @@ int main (int argc, char * argv[]) {
 #endif
     double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     
-    auto OPF=build_ACOPF(grid, ACPOL);
+    auto OPF=build_ACOPF(grid, ACRECT);
     //OPF->print();
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
@@ -223,15 +223,45 @@ int main (int argc, char * argv[]) {
     //linearize=true;
     if(!linearize){
         auto nonlin_obj=true;
-        scale_objective=false;
+        scale_objective=true;
         current=false;
+        double lb_scale_value=1.0;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         //        SDP->print();
-        auto res=OPF->compute_root_gap(SDP, max_time, max_iter, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, scale_objective);
-        status=get<0>(res);
-        lower_bound=get<1>(res);
-        upper_bound=get<2>(res);
-        total_time=get<3>(res);
+        solver<> UB_solver(OPF,ub_solver_type);
+        UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
+        if(OPF->_status!=0){
+            upper_bound=OPF->_obj->_range->second;
+        }
+        else{
+            upper_bound=OPF->get_obj_val();
+        }
+       
+        initialize_relaxation(OPF, SDP, grid);
+        
+//        OPF->print();
+//        SDP->print();
+//        SDP->reset();
+        //SDP->print_solution();
+        //SDP->print_constraints_stats(1e-6);
+        solver<> LBnonlin_solver(SDP,lb_solver_type);
+        if(scale_objective){
+            auto obj = *SDP->_obj/1e5;
+            SDP->min(obj);
+            SDP->reset();
+            lb_scale_value=1;
+        }
+        auto time_start=get_wall_time();
+        LBnonlin_solver.run(output = 5 , 1e-6, 1e6, "ma57", 2000);
+        auto time_end = get_wall_time();
+        if(SDP->_status==0)
+        {
+            lower_bound_nonlin_init = SDP->get_obj_val()*lb_scale_value;
+            DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+        }
+        status=SDP->_status;
+        lower_bound=lower_bound_nonlin_init;
+        total_time=time_end-time_start;
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound+1e-6);
@@ -239,6 +269,23 @@ int main (int argc, char * argv[]) {
     result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 #ifdef USE_MPI
     if(worker_id==0){
+        ofstream fout(result_name.c_str());
+        fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+        <<std::setprecision(5)<<total_time<<" & "
+        <<status<<endl;
+        if(lower_bound==numeric_limits<double>::min()){
+            fout<<"Lower bound not solved to optimality"<<endl;
+        }
+        DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
+        fout.close();
+    }
+    MPI_Finalize();
+#else
+    DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+            <<std::setprecision(5)<<total_time<<" & "
+            <<status<<endl);
+    
+    
     ofstream fout(result_name.c_str());
     fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
     <<std::setprecision(5)<<total_time<<" & "
@@ -246,29 +293,73 @@ int main (int argc, char * argv[]) {
     if(lower_bound==numeric_limits<double>::min()){
         fout<<"Lower bound not solved to optimality"<<endl;
     }
-    DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
     fout.close();
-}
-MPI_Finalize();
-#else
-DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
-        <<std::setprecision(5)<<total_time<<" & "
-        <<status<<endl);
-
-
-ofstream fout(result_name.c_str());
-fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
-<<std::setprecision(5)<<total_time<<" & "
-<<status<<endl;
-if(lower_bound==numeric_limits<double>::min()){
-    fout<<"Lower bound not solved to optimality"<<endl;
-}
-fout.close();
 #endif
-
-
-
-return 0;
+    return 0;
+}
+void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid){
+    OPF->print_constraints_stats(1e-6);
+    auto bags_3d=grid.decompose_bags_3d();
+    auto node_pairs = grid.get_node_pairs();
+    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
+    bool sdp_cuts=true;
+    if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
+        node_pairs_chord = node_pairs;
+    }
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    
+    auto vr = OPF->get_var<double>("vr");
+    auto vi = OPF->get_var<double>("vi");
+    auto pg=  OPF->get_var<double>("Pg");
+    auto qg=  OPF->get_var<double>("Qg");
+    auto p_from=  OPF->get_var<double>("Pf_from");
+    auto q_from=  OPF->get_var<double>("Qf_from");
+    auto p_to=  OPF->get_var<double>("Pf_to");
+    auto q_to=  OPF->get_var<double>("Qf_to");
+   
+    auto R_Wij = relax->get_ptr_var<double>("R_Wij");
+    auto Im_Wij = relax->get_ptr_var<double>("Im_Wij");
+    auto Wii = relax->get_ptr_var<double>("Wii");
+    auto Pg=  relax->get_ptr_var<double>("Pg");
+    auto Qg=  relax->get_ptr_var<double>("Qg");
+    auto Pf_from=  relax->get_ptr_var<double>("Pf_from");
+    auto Qf_from=  relax->get_ptr_var<double>("Qf_from");
+    auto Pf_to=  relax->get_ptr_var<double>("Pf_to");
+    auto Qf_to=  relax->get_ptr_var<double>("Qf_to");
+    int count=0;
+    for(auto key: *nodes._keys){
+        auto value=(pow(vr.eval(key),2)+pow(vi.eval(key),2));
+        Wii->_val->at(count)=value;
+        count++;
+    }
+    count=0;
+    for(auto key: *node_pairs_chord._keys){
+        auto from_key=key.substr(0, key.find_first_of(","));
+        auto to_key=key.substr(key.find_first_of(",")+1);
+        auto vr_i=vr.eval(from_key);
+        auto vi_i=vi.eval(from_key);
+        auto vr_j=vr.eval(to_key);
+        auto vi_j=vi.eval(to_key);
+        R_Wij->_val->at(count)=vr_i*vr_j+vi_i*vi_j;
+        Im_Wij->_val->at(count)=vi_i*vr_j-vi_j*vr_i;
+        count++;
+    }
+    count=0;
+    for(auto key: *gens._keys){
+        Pg->_val->at(count)=pg.eval(key);
+        Qg->_val->at(count)=qg.eval(key);
+        count++;
+    }
+    count=0;
+    for(auto key: *arcs._keys){
+        Pf_from->_val->at(count)=p_from.eval(key);
+        Qf_from->_val->at(count)=q_from.eval(key);
+        Pf_to->_val->at(count)=p_to.eval(key);
+        Qf_to->_val->at(count)=q_to.eval(key);
+        count++;
+    }
 }
 
 
