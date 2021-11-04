@@ -191,17 +191,11 @@ int main (int argc, char * argv[]) {
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
     
-    auto nodes = indices(grid.nodes);
-    auto arcs = indices(grid.arcs);
-    auto v_max = grid.v_max.in(nodes);
-    auto bags_3d=grid.decompose_bags_3d();
-    auto node_pairs = grid.get_node_pairs();
-    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
+   
+//    auto bags_3d=grid.decompose_bags_3d();
     
-    auto c1 = grid.c1.in(grid.gens);
-    auto c2 = grid.c2.in(grid.gens);
-    auto c0 = grid.c0.in(grid.gens);
     
+
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
     int nb_total_threads = nb_threads; /** Used when MPI is ON to multipply with the number of workers */
@@ -251,6 +245,7 @@ int main (int argc, char * argv[]) {
             SDP->reset();
             lb_scale_value=1;
         }
+        SDP->print();
         auto time_start=get_wall_time();
         LBnonlin_solver.run(output = 5 , 1e-6, 1e6, "ma57", 2000);
         auto time_end = get_wall_time();
@@ -299,7 +294,8 @@ int main (int argc, char * argv[]) {
 }
 void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid){
     OPF->print_constraints_stats(1e-6);
-    auto bags_3d=grid.decompose_bags_3d();
+    bool print_bags = false, only_3d_bags = false;
+    auto bags_3d=grid.decompose_bags_3d(print_bags, only_3d_bags);
     auto node_pairs = grid.get_node_pairs();
     auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     bool sdp_cuts=true;

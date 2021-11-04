@@ -1470,7 +1470,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     Thermal_Limit_to += (pow(Pf_to, 2) + pow(Qf_to, 2))*1e-3;
     Thermal_Limit_to -= (pow(S_max,2))*1e-3;
     ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
-    //ACOPF->scale_coefs(1e3);
+   // ACOPF->scale_coefs(1e3);
     return ACOPF;
 }
 
@@ -2105,7 +2105,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     DebugOff("nb active buses = " << nb_buses << endl);
     
     /** Sets */
-    auto bags_3d=grid.decompose_bags_3d();
+    bool print_bags = false, only_3d_bags = false;
+    auto bags_3d=grid.decompose_bags_3d(print_bags, only_3d_bags);
     auto node_pairs = grid.get_node_pairs();
     auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
@@ -2327,7 +2328,8 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
         
         auto bag_size = bags_3d.size();
-        DebugOff("\nNum of bags = " << bag_size << endl);
+        DebugOn("\nNum of bags = " << bag_size << endl);
+        DebugOn("arcs "<<(*arcs._keys).size()<<endl);
         DebugOff("Adding 3d determinant polynomial cuts\n");
         auto R_Wij_ = R_Wij.pairs_in_bags(bags_3d, 3);
         auto Im_Wij_ = Im_Wij.pairs_in_bags(bags_3d, 3);
@@ -2646,7 +2648,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         
         
     }
-//    SDPOPF->scale_coefs(1e3);
+   //SDPOPF->scale_coefs(1e3);
     //SDPOPF->print();
     return SDPOPF;
     
