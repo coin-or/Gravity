@@ -1457,23 +1457,23 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     ACOPF->add(PAD_LB.in(node_pairs) >= 0);
     
     
-    /* WR Bounds constraints */
-    Constraint<> WR_UB("WR_UB");
-    Constraint<> WR_LB("WR_LB");
-    WR_UB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_max;
-    WR_LB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_min;
-    
-    ACOPF->add(WR_UB.in(node_pairs) <= 0);
-    ACOPF->add(WR_LB.in(node_pairs) >= 0);
+//    /* WR Bounds constraints */
+//    Constraint<> WR_UB("WR_UB");
+//    Constraint<> WR_LB("WR_LB");
+//    WR_UB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_max;
+//    WR_LB = vr.from(node_pairs)*vr.to(node_pairs) + vi.from(node_pairs)*vi.to(node_pairs) - grid.wr_min;
+//
+//    ACOPF->add(WR_UB.in(node_pairs) <= 0);
+//    ACOPF->add(WR_LB.in(node_pairs) >= 0);
     
     /* WI Bounds constraints */
-    Constraint<> WI_UB("WI_UB");
-    Constraint<> WI_LB("WI_LB");
-    WI_UB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_max;
-    WI_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_min;
-    
-    ACOPF->add(WI_UB.in(node_pairs) <= 0);
-    ACOPF->add(WI_LB.in(node_pairs) >= 0);
+//    Constraint<> WI_UB("WI_UB");
+//    Constraint<> WI_LB("WI_LB");
+//    WI_UB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_max;
+//    WI_LB = vi.from(node_pairs)*vr.to(node_pairs) - vr.from(node_pairs)*vi.to(node_pairs) - grid.wi_min;
+//    
+//    ACOPF->add(WI_UB.in(node_pairs) <= 0);
+//    ACOPF->add(WI_LB.in(node_pairs) >= 0);
     
     
     

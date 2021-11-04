@@ -1914,7 +1914,7 @@ public:
                 auto Wii_2 = relax->template get_var<double>(diag3)(id3);
                 auto offdiag1 = "Lift("+name_v1+";"+name_v2+")";
                 auto offdiag2 = "Lift("+name_v1+";"+name_v3+")";
-                auto offdiag3 = "Lift("+name_v2+";"+name_v3+")";
+                auto offdiag3 = "Lift("+name_v3+";"+name_v2+")";
                 auto offdiag_id1 = id1+","+id2;
                 auto offdiag_id2 = id1+","+id3;
                 auto offdiag_id3 = id2+","+id3;
@@ -2591,7 +2591,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() && !is_nonlinear(*v) && !_obj->has_sym_var(*v) /* v does not appear in polynomial or nonlinear constraints */){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() /*  && !is_nonlinear(*v) && !_obj->has_sym_var(*v)v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -2819,10 +2819,10 @@ public:
             DebugOn("constraint with same name: " << c.get_name() << endl);
             c.update_str();
             if(!_cons_name.at(c.get_name())->equal(c)) {
-                DebugOn("Rename constraint as this name has been used by another one: " + c.get_name());
-                return nullptr;
-                //                c._name += "_duplicate";
-                //                return add_constraint(c, lift_flag, method_type, split, add_McCormick);
+                DebugOn("Renaming constraint as this name has been used by another one: " << c.get_name() << endl);
+//                return nullptr;
+                c._name += "_" + to_string(_cons_name.size());
+                return add_constraint(c, lift_flag, method_type, split, add_McCormick);
             }
             else{
                 DebugOn("Both constraints are identical, ignoring this one." << endl);

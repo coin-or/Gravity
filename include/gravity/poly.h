@@ -283,6 +283,7 @@
             /* Return a new polynomial term excluding p */
             pterm exclude(const shared_ptr<param_>& p) const;
             
+            int get_degree() const;/*< Return the monomial's degree, e.g. x^2y^3 has deg 5, xy^2z has deg 4, etc. Used for lifting */
             bool operator==(const pterm& l) const;
             bool operator!=(const pterm& l) const;
             

@@ -75,7 +75,14 @@
             _sign = p._sign;
             return *this;
         }
-
+    
+    int pterm::get_degree() const{/*< Return the monomial's degree, e.g. x^2y^3 has deg 5, xy^2z has deg 4, etc. Used for lifting */
+        int n = 0;
+        for (auto &pair: *_l) {
+            n += pair.second;
+        }
+        return n;
+    }
         
     //    double lterm::eval(size_t i) const{
     //        double res = 0;

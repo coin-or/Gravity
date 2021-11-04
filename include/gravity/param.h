@@ -2016,10 +2016,10 @@ namespace gravity {
                 res._name += "\{" + excluded + "}";
             }
             if(ids._type!=matrix_ && _indices->_type==to_){
-                res._indices->_type = to_;
+                res._indices->_type = in_;
             }
             else if(ids._type!=matrix_ && _indices->_type==from_){
-                res._indices->_type = from_;
+                res._indices->_type = in_;
             }
             res.reset_range();
             return res;
