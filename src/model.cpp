@@ -571,7 +571,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             }
             prod *= pow(orig_var,it->second);
 //            if(next(it) != list->end()){/* add McCormick constraints for variable products or squares */
-            if(i%2==0 || next(it)==list->end()){/* add McCormick constraints for variable products or squares */
+            if(i%2==0 || (i>1 && next(it)==list->end())){/* add McCormick constraints for variable products or squares */
                 if(i==0 && it->second>1){
                     string lifted_name = "Lift("+orig_var.get_name(true,true)+"^"+to_string(it->second)+")";
                     auto x1_unindexed = this->get_var<type>(orig_var.get_name(true,true));

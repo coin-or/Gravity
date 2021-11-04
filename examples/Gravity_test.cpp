@@ -37,16 +37,18 @@ TEST_CASE("testing polynomial lifting") {
     Mtest.add(x.in(node_pairs), y.in(node_pairs), z.in(buses), w.in(buses));
     Constraint<> Poly1("Poly1");
     Poly1 = 2*x*y*pow(z.from(node_pairs),2) - w.to(node_pairs);
-    Mtest.add(Poly1.in(node_pairs) <= 0);
+    Mtest.add(Poly1.in(node_pairs) == 0);
     Constraint<> Poly2("Poly2");
 //    Poly2 = 2*x*pow(y, 2)*pow(z.from(node_pairs),2) - x*y*w.from(node_pairs)*z.to(node_pairs);
     Poly2 -= x*y*w.from(node_pairs)*z.to(node_pairs) - pow(w.from(node_pairs),2)*pow(z.to(node_pairs),2);
+//    Poly2 -= x*y*w.from(node_pairs)*z.to(node_pairs);
+//    Poly2 -= pow(w.from(node_pairs),2)*pow(z.to(node_pairs),2);
     Mtest.add(Poly2.in(node_pairs) == 0);
     Mtest.print();
     auto Rel = Mtest.relax();
     Rel->print();
     CHECK(Rel->is_convex());
-    CHECK(Rel->get_nb_ineq() == 108);
+    CHECK(Rel->get_nb_ineq() == 88);
 }
 
 
