@@ -2106,7 +2106,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     
     /** Sets */
     bool print_bags = false, only_3d_bags = false;
-    auto bags_3d=grid.decompose_bags_3d(print_bags, only_3d_bags);
+    auto bags_3d=grid.decompose_bags_3d_linear(print_bags, only_3d_bags);
     auto node_pairs = grid.get_node_pairs();
     auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {

@@ -660,38 +660,81 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags, 
 std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d_linear(bool print_bags, bool only_3d){
     map<string,vector<Node*>> unique_bags;
     vector<pair<string,vector<Node*>>> res;
+    
     for (auto &bag_copy:_bags) {
-        if(bag_copy.second.size()==3 || (!only_3d && bag_copy.second.size()>3)){
+        int N=bag_copy.second.size();
+        if((!only_3d && bag_copy.second.size()>20)){
             DebugOff("Decomposing bigger bag into 3d bags\n");
-            
-            for (auto i = 0; i<bag_copy.second.size()-2; i+=3) {
-                auto j=i+1;
-                auto k=j+1;
-                pair<string,vector<Node*>> new_bag;
-                map<size_t, Node*> ordered_names;
-                ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
-                ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
-                ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
-                string key;
-                for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
-                    new_bag.second.push_back(node_it->second);
-                    key += node_it->second->_name;
-                    if (next(node_it)!=ordered_names.end()) {
-                        key += ",";
+            for(auto l=0;l<3;l++){
+                for (auto i = l; i<bag_copy.second.size(); i+=3) {
+                    auto j=i+1;
+                    auto k=j+1;
+                    if(j>=N){
+                        j-=N;
                     }
-                }
-                new_bag.first = key;
-                if(unique_bags.insert(new_bag).second){
-                    res.push_back(new_bag);
-                    if(print_bags){
-                        DebugOff("new bag = { ");
-                        for (int i=0; i<new_bag.second.size();     i++) {
-                            DebugOff(new_bag.second.at(i)->_name << " ");
+                    if(k>=N){
+                        k-=N;
+                    }
+                    pair<string,vector<Node*>> new_bag;
+                    map<size_t, Node*> ordered_names;
+                    ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                    ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                    ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
+                    string key;
+                    for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                        new_bag.second.push_back(node_it->second);
+                        key += node_it->second->_name;
+                        if (next(node_it)!=ordered_names.end()) {
+                            key += ",";
                         }
-                        DebugOff("}" << endl);
+                    }
+                    new_bag.first = key;
+                    if(unique_bags.insert(new_bag).second){
+                        res.push_back(new_bag);
+                        if(print_bags){
+                            DebugOff("new bag = { ");
+                            for (int i=0; i<new_bag.second.size();     i++) {
+                                DebugOff(new_bag.second.at(i)->_name << " ");
+                            }
+                            DebugOff("}" << endl);
+                        }
                     }
                 }
             }
+        }
+        else{
+            for (auto i = 0; i<bag_copy.second.size()-2; i++)
+            {
+                for (auto j = i+1; j<bag_copy.second.size()-1; j++) {
+                    for (auto k = j+1; k<bag_copy.second.size(); k++) {
+                        pair<string,vector<Node*>> new_bag;
+                        map<size_t, Node*> ordered_names;
+                        ordered_names[bag_copy.second[i]->_id] = bag_copy.second[i];
+                        ordered_names[bag_copy.second[j]->_id] = bag_copy.second[j];
+                        ordered_names[bag_copy.second[k]->_id] = bag_copy.second[k];
+                        string key;
+                        for (auto node_it = ordered_names.begin(); node_it != ordered_names.end(); node_it++) {
+                            new_bag.second.push_back(node_it->second);
+                            key += node_it->second->_name;
+                            if (next(node_it)!=ordered_names.end()) {
+                                key += ",";
+                            }
+                        }
+                        new_bag.first = key;
+                        if(unique_bags.insert(new_bag).second){
+                            res.push_back(new_bag);
+                            if(print_bags){
+                                DebugOff("new bag = { ");
+                                for (int i=0; i<new_bag.second.size();     i++) {
+                                    DebugOff(new_bag.second.at(i)->_name << " ");
+                                }
+                                DebugOff("}" << endl);
+                            }
+                        }
+                    }
+                }
+            }
+            
         }
     }
     DebugOn("Total number of 3D bags after decompsition = " << res.size() << endl);

@@ -293,9 +293,10 @@ int main (int argc, char * argv[]) {
     return 0;
 }
 void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid){
+    bool current=false;
     OPF->print_constraints_stats(1e-6);
     bool print_bags = false, only_3d_bags = false;
-    auto bags_3d=grid.decompose_bags_3d(print_bags, only_3d_bags);
+    auto bags_3d=grid.decompose_bags_3d_linear(print_bags, only_3d_bags);
     auto node_pairs = grid.get_node_pairs();
     auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     bool sdp_cuts=true;
@@ -305,6 +306,8 @@ void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<doubl
     auto nodes = indices(grid.nodes);
     auto arcs = indices(grid.arcs);
     auto gens = indices(grid.gens);
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
     
     auto vr = OPF->get_var<double>("vr");
     auto vi = OPF->get_var<double>("vi");
@@ -324,6 +327,12 @@ void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<doubl
     auto Qf_from=  relax->get_ptr_var<double>("Qf_from");
     auto Pf_to=  relax->get_ptr_var<double>("Pf_to");
     auto Qf_to=  relax->get_ptr_var<double>("Qf_to");
+    shared_ptr<var<double>> lij, lji;
+    if(current){
+        lij=relax->get_ptr_var<double>("lij");
+        lji=relax->get_ptr_var<double>("lji");
+    }
+    
     int count=0;
     for(auto key: *nodes._keys){
         auto value=(pow(vr.eval(key),2)+pow(vi.eval(key),2));
@@ -355,6 +364,23 @@ void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<doubl
         Pf_to->_val->at(count)=p_to.eval(key);
         Qf_to->_val->at(count)=q_to.eval(key);
         count++;
+    }
+    if(current){
+    count=0;
+    for(auto key: *arcs._keys){
+        auto a_key=key.substr(key.find_first_of(",")+1);
+        auto from_key=a_key.substr(0, a_key.find_first_of(",")+1);
+        auto to_key=a_key.substr(a_key.find_first_of(",")+1);
+        auto vr_i=vr.eval(from_key);
+        auto vi_i=vi.eval(from_key);
+        auto vr_j=vr.eval(to_key);
+        auto vi_j=vi.eval(to_key);
+        auto rwij=vr_i*vr_j+vi_i*vi_j;
+        auto l=(pow(g.eval(key),2)+pow(b.eval(key),2))*(vi_i*vi_i+vr_i*vr_i+vi_j*vi_j+vr_j*vr_j-2*rwij);
+        lij->_val->at(count)=l;
+        lji->_val->at(count)=l;
+        count++;
+    }
     }
 }
 
