@@ -1860,8 +1860,8 @@ TEST_CASE("testing camshape100.nl") {
     //    OPF1.run(0,tol);
     //    OPF2.run(0,tol);
         run_parallel(models, ipopt, tol = 1e-6, nb_threads=2);
-        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092)<1e-2);
-        CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977)<1e-2);
+        CHECK(std::abs(ACOPF1->get_obj_val()-17551.89092*1e-3)<1e-2);
+        CHECK(std::abs(ACOPF2->get_obj_val()-3087.83977*1e-3)<1e-2);
         CHECK(ACOPF1->is_feasible(tol));
         ACOPF1->print_solution();
         auto Mc = ACOPF1->build_McCormick();

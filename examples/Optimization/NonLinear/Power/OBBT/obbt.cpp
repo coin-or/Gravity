@@ -35,7 +35,7 @@ int main (int argc, char * argv[]) {
     string current_s = "yes";
     string time_s = "1000";
     string sdp_kim_s="yes";
-    string threads_s="6";
+    string threads_s="1";
     string nb_refine_s="10";
     string nb_root_refine_s="10";
     string init_prim_s="no";
@@ -52,8 +52,8 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
     bool linearize=false;
     bool initialize_primal=false;
-//    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
-   string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
+   //fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     
 #ifdef USE_OPT_PARSER
     
