@@ -137,7 +137,8 @@ public:
     void pool_get_tree_decomp_bags();
     
     std::vector<std::vector<Node*>> decompose_bags_4d(bool print_bags=false);
-    std::vector<pair<string,vector<Node*>>> decompose_bags_3d(bool print_bags=false);
+    std::vector<pair<string,vector<Node*>>> decompose_bags_3d(bool print_bags=false, bool only_3d = false);
+    std::vector<pair<string,vector<Node*>>> decompose_bags_3d_linear(bool print_bags=false, bool only_3d=false);
     std::vector<pair<string,vector<Node*>>> pool_decompose_bags_3d(bool print_bags=false);
 
     void print() const;
@@ -209,3 +210,4 @@ public:
     vector<gravity::index_pair *> get_node_pairs_all();
 };
 #endif
+

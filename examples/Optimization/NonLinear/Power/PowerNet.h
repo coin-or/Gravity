@@ -206,6 +206,8 @@ public:
     indices Et_opt, Gt_opt, Bt_opt, Bt1_opt, Wt_opt, PVt_opt;
     indices gensc2_pos=indices("gensc2_pos");
     
+    indices arcs_curr=indices("arcs_curr");
+    
     
     /** Investment Binary Variables */
     var<bool> w_g, w_b, w_e, w_pv;
@@ -317,9 +319,10 @@ public:
     void fill_wbnds();
 };
 
-shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6, bool add_thermal=true);
-shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, bool nonlin_obj=true, bool sdp_kim=true, double upper_bound=1E8);
+shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType Model=ACPOL, int output=0, double tol=1e-6);
+shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool loss_from=false, bool nonlin_obj=true, bool sdp_kim=true, double upper_bound=1E8, bool sdp_cuts=true);
 shared_ptr<Model<>> build_SDPOPF_QC(PowerNet& grid, bool loss_from=false, double upper_bound=1E8, double lower_bound=0);
 shared_ptr<Model<>> build_SDPOPF_linear(PowerNet& grid, double upper_bound=1E8);
 
 #endif
+

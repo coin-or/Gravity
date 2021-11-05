@@ -16,7 +16,7 @@
 using namespace std;
 using namespace gravity;
 
-
+void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid, bool current);
 /* Run the OBBT algorithm */
 int main (int argc, char * argv[]) {
 #ifdef USE_MPI
@@ -35,7 +35,7 @@ int main (int argc, char * argv[]) {
     string current_s = "yes";
     string time_s = "1000";
     string sdp_kim_s="yes";
-    string threads_s="6";
+    string threads_s="1";
     string nb_refine_s="10";
     string nb_root_refine_s="10";
     string init_prim_s="no";
@@ -52,8 +52,7 @@ int main (int argc, char * argv[]) {
     string mehrotra = "no";
     bool linearize=false;
     bool initialize_primal=false;
-//    string fname = string(prj_dir)+"/data_sets/Power/WB5.m";
-   string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     
 #ifdef USE_OPT_PARSER
     
@@ -140,28 +139,28 @@ int main (int argc, char * argv[]) {
         solver_str=argv[6];
     }
     if(argc>7){
-          nb_refine_s=argv[7];
-      }
+        nb_refine_s=argv[7];
+    }
     if(argc>8){
-          nb_root_refine_s=argv[8];
-      }
+        nb_root_refine_s=argv[8];
+    }
     if(argc>9){
-          viol_obbt_init_s=argv[9];
-      }
+        viol_obbt_init_s=argv[9];
+    }
     if(argc>10){
-          viol_root_init_s=argv[10];
-      }
+        viol_root_init_s=argv[10];
+    }
     if(argc>11){
-          init_prim_s=argv[11];
-      }
+        init_prim_s=argv[11];
+    }
     
-   
+    
     if (linearize_s.compare("yes")==0) {
         linearize = true;
     }
     if (init_prim_s.compare("yes")==0) {
-           initialize_primal = true;
-       }
+        initialize_primal = true;
+    }
     current=true;
     
     auto max_time=std::atoi(time_s.c_str());
@@ -192,16 +191,10 @@ int main (int argc, char * argv[]) {
     grid.readgrid(fname);
     grid.get_tree_decomp_bags();
     
-    auto nodes = indices(grid.nodes);
-    auto arcs = indices(grid.arcs);
-    auto v_max = grid.v_max.in(nodes);
-    auto bags_3d=grid.decompose_bags_3d();
-    auto node_pairs = grid.get_node_pairs();
-    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
     
-    auto c1 = grid.c1.in(grid.gens);
-    auto c2 = grid.c2.in(grid.gens);
-    auto c0 = grid.c0.in(grid.gens);
+    //    auto bags_3d=grid.decompose_bags_3d();
+    
+    
     
     DebugOn("Machine has " << thread::hardware_concurrency() << " threads." << endl);
     
@@ -209,77 +202,53 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     nb_total_threads *= nb_workers;
 #endif
-    double lower_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
-    
+    double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     auto OPF=build_ACOPF(grid, ACRECT);
-    //OPF->print();
-    double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
     SolverType ub_solver_type = ipopt, lb_solver_type = solv_type;
     bool scale_objective;
     bool termination=true;
-    //linearize=true;
+    int status=0;
     if(!linearize){
         auto nonlin_obj=true;
-        scale_objective=false;
         current=true;
-        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        SDP->print();
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
-        lower_bound = get<6>(res);
-        lower_bound_nonlin_init = get<3>(res);
-#ifdef USE_MPI
-        if(worker_id==0){
-            total_iter=get<1>(res);
-            total_time=get<2>(res);
-            fail=get<10>(res);
-            termination=get<0>(res);
+        solver<> UB_solver(OPF,ub_solver_type);
+        UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
+        if(OPF->_status!=0){
+            upper_bound=OPF->_obj->_range->second;
         }
-#else
-        total_iter=get<1>(res);
-        total_time=get<2>(res);
-        fail=get<10>(res);
-        termination=get<0>(res);
-#endif
-    }
-    else{
-        current=true;
-        auto nonlin_obj=false;
-        scale_objective=false;
-        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective, nb_refine, nb_root_refine, viol_obbt_init, viol_root_init, initialize_primal);
-        lower_bound = get<6>(res);
-        lower_bound_nonlin_init = get<3>(res);
-#ifdef USE_MPI
-        if(worker_id==0){
-            total_iter=get<1>(res);
-            total_time=get<2>(res);
-            oacuts=get<8>(res);
-            oacuts_init=get<9>(res);
-            fail=get<10>(res);
-            termination=get<0>(res);
+        else{
+            upper_bound=OPF->get_obj_val();
         }
-#else
-        total_iter=get<1>(res);
-        total_time=get<2>(res);
-        oacuts=get<8>(res);
-        oacuts_init=get<9>(res);
-        fail=get<10>(res);
-        termination=get<0>(res);
-#endif
-        
+        auto time_start=get_wall_time();
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        initialize_relaxation(OPF, SDP, grid, current);
+        solver<> LBnonlin_solver(SDP,lb_solver_type);
+        LBnonlin_solver.run(output = 5 , 1e-6, 1e6, "ma57", 2000);
+        auto time_end = get_wall_time();
+        SDP->print_constraints_stats(1e-6);
+        if(SDP->_status==0)
+        {
+            lower_bound_nonlin_init = SDP->get_obj_val();
+            DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+        }
+        status=SDP->_status;
+        lower_bound=lower_bound_nonlin_init;
+        total_time=time_end-time_start;
     }
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
-    
-    auto upper_bound = OPF->get_obj_val();
-    auto gap_init = 100*(upper_bound - lower_bound_nonlin_init)/std::abs(upper_bound);
-    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound+1e-6);
+    auto gap_init=final_gap;
+    result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
 #ifdef USE_MPI
     if(worker_id==0){
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<"\t"<<termination<<endl;
+        fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+        <<std::setprecision(5)<<total_time<<" & "
+        <<status<<endl;
         if(lower_bound==numeric_limits<double>::min()){
             fout<<"Lower bound not solved to optimality"<<endl;
         }
@@ -288,18 +257,127 @@ int main (int argc, char * argv[]) {
     }
     MPI_Finalize();
 #else
-    DebugOn(grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<"\t"<<termination<<endl);
+    DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+            <<std::setprecision(5)<<total_time<<" & "
+            <<status<<endl);
     
     
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<"\t"<<std::fixed<<std::setprecision(5)<<gap_init<<"\t"<<std::setprecision(5)<<upper_bound<<"\t"<<std::setprecision(5)<<lower_bound<<"\t"<<std::setprecision(5)<<final_gap<<"\t"<<total_iter<<"\t"<<std::setprecision(5)<<total_time<<"\t"<<oacuts<<"\t"<<oacuts_init<<"\t"<<fail<<"\t"<<termination<<endl;
+    fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+    <<std::setprecision(5)<<total_time<<" & "
+    <<status<<endl;
     if(lower_bound==numeric_limits<double>::min()){
         fout<<"Lower bound not solved to optimality"<<endl;
     }
     fout.close();
 #endif
-    
     return 0;
 }
+void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid, bool current){
+    bool print_bags = false, only_3d_bags = false;
+    auto bags_3d=grid.decompose_bags_3d_linear(print_bags, only_3d_bags);
+    auto node_pairs = grid.get_node_pairs();
+    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
+    bool sdp_cuts=true;
+    if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
+        node_pairs_chord = node_pairs;
+    }
+    auto nodes = indices(grid.nodes);
+    auto arcs = indices(grid.arcs);
+    auto gens = indices(grid.gens);
+    auto arcs_curr=grid.arcs_curr;
+    auto b = grid.b.in(arcs);
+    auto g = grid.g.in(arcs);
+    auto tr = grid.tr.in(arcs);
+    
+    auto vr = OPF->get_var<double>("vr");
+    auto vi = OPF->get_var<double>("vi");
+    auto pg=  OPF->get_var<double>("Pg");
+    auto qg=  OPF->get_var<double>("Qg");
+    auto p_from=  OPF->get_var<double>("Pf_from");
+    auto q_from=  OPF->get_var<double>("Qf_from");
+    auto p_to=  OPF->get_var<double>("Pf_to");
+    auto q_to=  OPF->get_var<double>("Qf_to");
+    
+    auto R_Wij = relax->get_ptr_var<double>("R_Wij");
+    auto Im_Wij = relax->get_ptr_var<double>("Im_Wij");
+    auto Wii = relax->get_ptr_var<double>("Wii");
+    auto Pg=  relax->get_ptr_var<double>("Pg");
+    auto Qg=  relax->get_ptr_var<double>("Qg");
+    auto Pf_from=  relax->get_ptr_var<double>("Pf_from");
+    auto Qf_from=  relax->get_ptr_var<double>("Qf_from");
+    auto Pf_to=  relax->get_ptr_var<double>("Pf_to");
+    auto Qf_to=  relax->get_ptr_var<double>("Qf_to");
+    shared_ptr<var<double>> lij, lji, Lpf, Lqf,Lpt, Lqt, LWlij, LWlji;
+    if(current){
+        lij=relax->get_ptr_var<double>("lij");
+        lji=relax->get_ptr_var<double>("lji");
+        Lpf=relax->get_ptr_var<double>("Lift(Pf_from^2)");
+        Lqf=relax->get_ptr_var<double>("Lift(Qf_from^2)");
+        Lpt=relax->get_ptr_var<double>("Lift(Pf_to^2)");
+        Lqt=relax->get_ptr_var<double>("Lift(Qf_to^2)");
+        LWlij=relax->get_ptr_var<double>("Lift(Wii;lij)");
+        LWlji=relax->get_ptr_var<double>("Lift(Wii;lji)");
+    }
+    
+    int count=0;
+    for(auto key: *nodes._keys){
+        auto value=(pow(vr.eval(key),2)+pow(vi.eval(key),2));
+        Wii->_val->at(count)=value;
+        count++;
+    }
+    count=0;
+    for(auto key: *node_pairs_chord._keys){
+        auto from_key=key.substr(0, key.find_first_of(","));
+        auto to_key=key.substr(key.find_first_of(",")+1);
+        auto vr_i=vr.eval(from_key);
+        auto vi_i=vi.eval(from_key);
+        auto vr_j=vr.eval(to_key);
+        auto vi_j=vi.eval(to_key);
+        R_Wij->_val->at(count)=vr_i*vr_j+vi_i*vi_j;
+        Im_Wij->_val->at(count)=vi_i*vr_j-vi_j*vr_i;
+        count++;
+    }
+    count=0;
+    for(auto key: *gens._keys){
+        Pg->_val->at(count)=pg.eval(key);
+        Qg->_val->at(count)=qg.eval(key);
+        count++;
+    }
+    count=0;
+    for(auto key: *arcs._keys){
+        Pf_from->_val->at(count)=p_from.eval(key);
+        Qf_from->_val->at(count)=q_from.eval(key);
+        Pf_to->_val->at(count)=p_to.eval(key);
+        Qf_to->_val->at(count)=q_to.eval(key);
+        if(current){
+            Lpf->_val->at(count)=pow(p_from.eval(key),2);
+            Lqf->_val->at(count)=pow(q_from.eval(key),2);
+            Lpt->_val->at(count)=pow(p_to.eval(key),2);
+            Lqt->_val->at(count)=pow(q_to.eval(key),2);
+        }
+        count++;
+    }
+    if(current){
+        count=0;
+        for(auto key: *arcs_curr._keys){
+            auto a_key=key.substr(key.find_first_of(",")+1);
+            auto from_key=a_key.substr(0, a_key.find_first_of(","));
+            auto to_key=a_key.substr(a_key.find_first_of(",")+1);
+            auto vr_i=vr.eval(from_key);
+            auto vi_i=vi.eval(from_key);
+            auto vr_j=vr.eval(to_key);
+            auto vi_j=vi.eval(to_key);
+            auto l1=pow(tr.eval(key),2)*(pow(p_from.eval(key),2)+pow(q_from.eval(key),2))/((pow(vr_i,2)+pow(vi_i,2))*sqrt(pow(g.eval(key),2)+pow(b.eval(key),2)));
+            auto l2=(pow(p_to.eval(key),2)+pow(q_to.eval(key),2))/((pow(vr_j,2)+pow(vi_j,2))*sqrt(pow(g.eval(key),2)+pow(b.eval(key),2)));
+            LWlij->_val->at(count)=pow(tr.eval(key),2)*(pow(p_from.eval(key),2)+pow(q_from.eval(key),2))/sqrt(pow(g.eval(key),2)+pow(b.eval(key),2));
+            LWlji->_val->at(count)=(pow(p_to.eval(key),2)+pow(q_to.eval(key),2))/sqrt(pow(g.eval(key),2)+pow(b.eval(key),2));
+            lij->_val->at(count)=l1;
+            lji->_val->at(count)=l2;
+            count++;
+        }
+    }
+}
+
 
 

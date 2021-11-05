@@ -353,9 +353,19 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
         lt._sign = qterm._sign;
         auto x1_ptr = static_pointer_cast<var<type>>(qterm._p->first);
         auto x2_ptr = static_pointer_cast<var<type>>(qterm._p->second);
+        auto v1_name = x1_ptr->get_name(true,true);
+        auto v2_name = x2_ptr->get_name(true,true);
         /* Use the same order for lifting */
-//        if(x1_ptr->_name+x1_ptr->_indices->_keys->at(0) > x2_ptr->_name+x2_ptr->_indices->_keys->at(0)){
-        if(x1_ptr->_indices->_keys->at(0) > x2_ptr->_indices->_keys->at(0)){
+        if(v1_name==v2_name){
+            if(x1_ptr->_indices->_keys->at(0) > x2_ptr->_indices->_keys->at(0)){
+                x2_ptr = static_pointer_cast<var<type>>(qterm._p->first);
+                x1_ptr = static_pointer_cast<var<type>>(qterm._p->second);
+                DebugOff("x1 name "<< x1._name << endl);
+                DebugOff("x2 name "<< x2._name << endl);
+            }
+        }
+        else if(v1_name > v2_name){
+//        if(x1_ptr->_indices->_keys->at(0) > x2_ptr->_indices->_keys->at(0)){
             x2_ptr = static_pointer_cast<var<type>>(qterm._p->first);
             x1_ptr = static_pointer_cast<var<type>>(qterm._p->second);
             DebugOff("x1 name "<< x1._name << endl);
