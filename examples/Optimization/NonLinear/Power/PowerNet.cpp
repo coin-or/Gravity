@@ -1327,6 +1327,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
         obj += c1(pg_id)*Pg(pg_id);
         obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
     }
+    obj *= 1e-3;
     ACOPF->min(obj);
     
     /** Define constraints */
@@ -1339,7 +1340,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     else {
         Ref_Bus = vi(grid.ref_bus);
     }
-    ACOPF->add(Ref_Bus == 0);
+//    ACOPF->add(Ref_Bus == 0);
     
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");
@@ -1482,11 +1483,13 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
         Constraint<> Thermal_Limit_from("Thermal_Limit_from");
         Thermal_Limit_from += pow(Pf_from, 2) + pow(Qf_from, 2);
         Thermal_Limit_from -= pow(S_max, 2);
+        Thermal_Limit_from *= 1e-3;
         ACOPF->add(Thermal_Limit_from.in(arcs) <= 0);
         
         Constraint<> Thermal_Limit_to("Thermal_Limit_to");
         Thermal_Limit_to += pow(Pf_to, 2) + pow(Qf_to, 2);
         Thermal_Limit_to -= pow(S_max,2);
+        Thermal_Limit_to *= 1e-3;
         ACOPF->add(Thermal_Limit_to.in(arcs) <= 0);
     }
     return ACOPF;
@@ -2311,6 +2314,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
             obj += c1(pg_id)*Pg(pg_id);
             obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
         }
+        obj *= 1e-3;
 //        auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0));
         SDPOPF->min(obj);
 
@@ -2337,7 +2341,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     KCL_Q  = sum(Qf_from, out_arcs) + sum(Qf_to, in_arcs) + ql - sum(Qg, gen_nodes) - bs*Wii;
     SDPOPF->add(KCL_Q.in(nodes) == 0);
     
-    SDPOPF->restructure();
+//    SDPOPF->restructure();
     
     /** Constraints */
     if(!grid._tree && grid.add_3d_nlin && sdp_cuts) {
@@ -2366,7 +2370,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
             }
             else {
                 SDPOPF->add(SDP3.in(range(0,bag_size-1)) >= 0);
-                DebugOff("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
+                DebugOn("Number of 3d determinant cuts = " << SDP3.get_nb_instances() << endl);
             }
         }
         else{
@@ -2500,7 +2504,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     /* Second-order cone constraints */
     Constraint<> SOC("SOC");
     SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs_chord)*Wii.to(node_pairs_chord);
-    SDPOPF->add(SOC.in(node_pairs_chord) == 0,true);
+    SDPOPF->add(SOC.in(node_pairs_chord) <= 0);
     //SDPOPF->add(SOC.in(node_pairs_chord) == 0,true,"on/off", false);
     
     
@@ -2544,14 +2548,16 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(S_max,2);
-    // SDPOPF->add(Thermal_Limit_from.in(arcs));
+    Thermal_Limit_from *= 1e-3;
+//     SDPOPF->add(Thermal_Limit_from.in(arcs));
     SDPOPF->add(Thermal_Limit_from.in(arcs), true);
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(S_max,2);
-    //SDPOPF->add(Thermal_Limit_to.in(arcs));
+    Thermal_Limit_from *= 1e-3;
+//    SDPOPF->add(Thermal_Limit_to.in(arcs));
     SDPOPF->add(Thermal_Limit_to.in(arcs), true);
     
     if(llnc)

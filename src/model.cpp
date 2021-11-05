@@ -608,7 +608,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                     }
                     else{
                         auto vlift = static_pointer_cast<var<type>>(v_it->second);
-                        auto new_ids = x1_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
+                        auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
                         unique_ids.filter_refs(new_ids);/* Only keep new indices */
                         vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
                         auto x_lb = vlift->get_square_lb();
@@ -1571,8 +1571,8 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     ub_sol.resize(this->_nb_vars);
     bool close=false, terminate=false, xb_true=true, alg_batch_reset=true;
     const double fixed_tol_abs=1e-3, fixed_tol_rel=1e-3, zero_tol=1e-6, obbt_subproblem_tol=1e-6;
-    int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine,oacuts, oacuts_init = 0;
-    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6;
+    int iter=0, fail=0, count_var=0, count_skip=0, nb_init_refine=nb_refine,oacuts, oacuts_init = 0, gap_iter=0;
+    double solver_time =0, gapnl,gap, gaplin=-999, sum=0, avg=0, active_root_tol=lb_solver_tol, active_tol=1e-6, old_gap;
     double lower_bound_nonlin_init = numeric_limits<double>::min(), lower_bound_init = numeric_limits<double>::min(), upper_bound = 0, lower_bound = numeric_limits<double>::min(), lower_bound_old;
     map<string,int> old_map;
     upper_bound=upper_bound_best;
@@ -1588,6 +1588,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
     lower_bound_init = lower_bound_nonlin_init;
     lower_bound = lower_bound_nonlin_init;
     gapnl=(upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)*100;
+    old_gap = gapnl;
     /* Check if gap is already not zero at root node */
     if ((upper_bound-lower_bound_nonlin_init)>=abs_tol || (upper_bound-lower_bound_nonlin_init)/(std::abs(upper_bound)+zero_tol)>=rel_tol){
         if(linearize){
@@ -1599,6 +1600,7 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             close=relaxed_model->root_refine(interior_model, obbt_model, lb_solver_type, nb_init_refine, upper_bound, lower_bound_init, lb_scale_value, lb_solver_tol, active_root_tol, oacuts,  abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
             oacuts_init=oacuts;
             gaplin=(upper_bound-lower_bound_init)/(std::abs(upper_bound)+zero_tol)*100;
+            old_gap = gaplin;
             lower_bound_old=lower_bound_init;
         }
         //if(obbt_model->_status==0){
@@ -1669,12 +1671,20 @@ std::tuple<bool,int,double,double,double,double,double,double,int,int,int> Model
             }
             /*Compute gap at the end of iter, adjusts active tol and root refine if linearize*/
             relaxed_model->compute_iter_gap(gap, active_tol, terminate, linearize,iter, obbt_model, interior_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts, abs_tol, rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+            if(std::abs(gap - old_gap) < rel_tol)
+                gap_iter++;
+            else
+                gap_iter = 0;
+            old_gap = gap;
             solver_time= get_wall_time()-solver_time_start;
             bool update=false;
             //obbt_model->print();
             if(!terminate){
                 this->update_upper_bound(obbt_model, batch_models, ub_sol,  ub_solver_type,  ub_solver_tol,  terminate,  linearize,  upper_bound, lb_scale_value, lower_bound,   gap,   abs_tol,  rel_tol, zero_tol);
             }
+            if(gap_iter==3)
+                terminate = true;
+
             if(linearize && !terminate){
                 batch_models.clear();
                 this->create_batch_models(obbt_model, batch_models, nb_threads, upper_bound, lb_scale_value);
