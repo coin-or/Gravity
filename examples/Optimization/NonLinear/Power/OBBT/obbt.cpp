@@ -204,7 +204,7 @@ int main (int argc, char * argv[]) {
 #endif
     double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
@@ -212,7 +212,8 @@ int main (int argc, char * argv[]) {
     bool scale_objective;
     bool termination=true;
     int status=0;
-    if(!linearize){
+    bool run_obbt=true;
+    if(!run_obbt){
         auto nonlin_obj=true;
         current=true;
         solver<> UB_solver(OPF,ub_solver_type);
@@ -227,7 +228,7 @@ int main (int argc, char * argv[]) {
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         initialize_relaxation(OPF, SDP, grid, current);
         solver<> LBnonlin_solver(SDP,lb_solver_type);
-        LBnonlin_solver.run(output = 5 , 1e-6, 1e6, "ma57", 2000);
+        LBnonlin_solver.run(output = 5 , 1e-6, 2000, "ma57", 2000);
         auto time_end = get_wall_time();
         SDP->print_constraints_stats(1e-6);
         if(SDP->_status==0)
@@ -239,6 +240,30 @@ int main (int argc, char * argv[]) {
         lower_bound=lower_bound_nonlin_init;
         total_time=time_end-time_start;
     }
+    else{
+        auto nonlin_obj=true;
+        scale_objective=false;
+        current=true;
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
+        upper_bound=OPF->get_obj_val();
+        lower_bound = get<6>(res);
+        lower_bound_nonlin_init = get<3>(res);
+#ifdef USE_MPI
+        if(worker_id==0){
+            total_iter=get<1>(res);
+            total_time=get<2>(res);
+            fail=get<10>(res);
+            termination=get<0>(res);
+        }
+#else
+        total_iter=get<1>(res);
+        total_time=get<2>(res);
+        fail=get<10>(res);
+        termination=get<0>(res);
+#endif
+    }
+ 
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound+1e-6);
     auto gap_init=final_gap;
@@ -246,9 +271,9 @@ int main (int argc, char * argv[]) {
 #ifdef USE_MPI
     if(worker_id==0){
         ofstream fout(result_name.c_str());
-        fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+        fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
         <<std::setprecision(5)<<total_time<<" & "
-        <<status<<endl;
+        <<total_iter<<endl;
         if(lower_bound==numeric_limits<double>::min()){
             fout<<"Lower bound not solved to optimality"<<endl;
         }
@@ -257,13 +282,13 @@ int main (int argc, char * argv[]) {
     }
     MPI_Finalize();
 #else
-    DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+    DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
             <<std::setprecision(5)<<total_time<<" & "
             <<status<<endl);
     
     
     ofstream fout(result_name.c_str());
-    fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "
+    fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
     <<std::setprecision(5)<<total_time<<" & "
     <<status<<endl;
     if(lower_bound==numeric_limits<double>::min()){

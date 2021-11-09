@@ -636,7 +636,12 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
     int gen_counter = 0;
     for (size_t i = 0; i < gens.size(); ++i) {
         file >> ws >> word >> ws >> word >> ws >> word >> ws >> word >> ws >> word;
-        c2.add_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
+        if(atof(word.c_str())*pow(bMVA,2)>=0){
+            c2.add_val(to_string(i),atof(word.c_str())*pow(bMVA,2));
+        }
+        else{
+            throw invalid_argument("Negative cost coefficient detected!");
+        }
         if(atof(word.c_str())*pow(bMVA,2)!=0){
             auto gname=gens[gen_counter]->_name;
             if(gens[gen_counter]->_active){
@@ -831,7 +836,7 @@ int PowerNet::readgrid(const string& fname, bool reverse_arcs) {
         }
         arc->connect();
         add_arc(arc);
-        if(arc->_active && abs(arc->g)>=1e-3 && abs(arc->g)<=1e3 && abs(arc->b)>=1e-3 && abs(arc->b)<=1e3){
+        if(arc->_active && ((abs(arc->g)>=1e-3 && abs(arc->g)<=1e3 && abs(arc->b)>=1e-3 && abs(arc->b)<=1e3))){
             arcs_curr.add(name);
         }
         /* Switching to node_pairs keys */
@@ -2122,6 +2127,9 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     auto out_arcs = grid.out_arcs_per_node();
     auto in_arcs = grid.in_arcs_per_node();
     auto arcs_curr=grid.arcs_curr;
+    if(nb_buses<=1000){
+        arcs_curr=arcs;
+    }
     
     //grid.update_pij_bounds();
     
@@ -2565,6 +2573,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = (pow(Pf_from, 2) + pow(Qf_from, 2))*1e-3;
     Thermal_Limit_from <= (pow(S_max,2))*1e-3;
+    //Thermal_Limit_from*=1e-3;
     // SDPOPF->add(Thermal_Limit_from.in(arcs));
     if(current){
     SDPOPF->add(Thermal_Limit_from.in(arcs), true);
@@ -2576,6 +2585,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = (pow(Pf_to, 2) + pow(Qf_to, 2))*1e-3;
     Thermal_Limit_to <= pow(S_max,2)*1e-3;
+    //Thermal_Limit_to*=1e-3;
     //SDPOPF->add(Thermal_Limit_to.in(arcs));
     if(current){
     SDPOPF->add(Thermal_Limit_to.in(arcs), true);
