@@ -19,14 +19,14 @@
 #include <deque>
 #include <thread>
 #ifdef USE_IPOPT
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpTNLP.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpTNLP.hpp>
 #endif
 #ifdef USE_GUROBI
 #include <gurobi_c++.h>
 #endif
 #ifdef USE_BONMIN
-#include <coin/BonTMINLP.hpp>
+#include <BonTMINLP.hpp>
 #endif
 
 using namespace std;

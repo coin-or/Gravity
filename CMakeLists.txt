@@ -50,7 +50,7 @@ option(Clp "Link to CLP libraries" OFF)
 option(OpenMPI "Link to OpenMPI libraries" OFF)
 
 # Find OPT_PARSER (optional)
-option(OPT_PARSER "Link to OPT_PARSER libraries" OFF)
+option(OPT_PARSER "Link to OPT_PARSER libraries" ON)
 
 if (OpenMPI)
     SET(CMAKE_CXX_COMPILER mpicxx)
@@ -266,7 +266,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party)
 
 # Include Power dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power)
-include_directories(${PROJECT_SOURCE_DIR}/solvers)
+#include_directories(${PROJECT_SOURCE_DIR}/solvers)
 
 # Include ML dirs
 include_directories(${PROJECT_SOURCE_DIR}/examples/MachineLearning)
@@ -306,7 +306,7 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(examples)
-add_subdirectory(solvers)
+#add_subdirectory(solvers)
 
 #Get user defined configuration including passing project source directory into c++ code
 configure_file(GravityConfig.h.in ${PROJECT_SOURCE_DIR}/include/gravity/GravityConfig.h)

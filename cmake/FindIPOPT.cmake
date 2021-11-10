@@ -41,24 +41,24 @@ find_path(IPOPT_INCLUDE_DIR
 find_library(IPOPT_LIBRARY 
 	libipopt.dylib
 	HINTS /usr/local/lib
-	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
+	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 )
 find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_INCLUDE_DIR)
 elseif(UNIX)
 find_path(IPOPT_INCLUDE_DIR
 	NAMES IpNLP.hpp 
-	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include
+	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt/include/coin-or
 )
 find_library(IPOPT_LIBRARY 
 	libipopt.so
-	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
 	HINTS /usr/local/lib
 	HINTS ${IPOPT_ROOT_DIR}/lib
 	HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
+	HINTS ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt
 )
 find_package_handle_standard_args(IPOPT DEFAULT_MSG IPOPT_LIBRARY IPOPT_INCLUDE_DIR)
 endif(WIN32)
