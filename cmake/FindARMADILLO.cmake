@@ -1,4 +1,4 @@
-file(GLOB dirs ${PROJECT_SOURCE_DIR}/ext_lib/armadillo-*) 
+file(GLOB dirs ${PROJECT_SOURCE_DIR}/third_party/armadillo-*) 
 foreach(d in ${dirs})
    string(REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" ARMADILLO_VERSION "${d}")
    set(ARMADILLO_ROOT_DIR ${d})
