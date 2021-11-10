@@ -268,7 +268,7 @@ ofstream fout(result_name.c_str(),std::ios::app);
     fout<<nb_buses<< " , " << grid._name<<" , "<<std::setprecision(10)<<ACOPF._obj_val*1e3<<" , "<<std::setprecision(4)<<total_time<<" , \\\\"<< endl;
 //fout<<nb_buses<<endl;
     fout.close();
-    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val*1e3) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     
     return 0;
