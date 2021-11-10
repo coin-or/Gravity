@@ -116,6 +116,7 @@ int main (int argc, char * argv[])
 
     /** Construct the objective function */
     func_ obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
+    obj *= 1e-3;    
     ACOPF.min(obj.in(grid.gens));
 
     /** Define constraints */
@@ -244,22 +245,29 @@ int main (int argc, char * argv[])
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from -= power(grid.S_max, 2);
+    Thermal_Limit_from *= 1e-3;
     ACOPF.add(Thermal_Limit_from.in(grid.arcs) <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid.S_max,2);
+    Thermal_Limit_to *= 1e-3;
     ACOPF.add(Thermal_Limit_to.in(grid.arcs) <= 0);
     
     solver OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    OPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    auto status = OPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
     auto total_time = total_time_end - total_time_start;
 
     /** Terminal output */
+    string result_name="out.txt";
+ofstream fout(result_name.c_str(),std::ios::app);
+    fout<<nb_buses<< " , " << grid._name<<" , "<<std::setprecision(10)<<ACOPF._obj_val*1e3<<" , "<<std::setprecision(4)<<total_time<<" , \\\\"<< endl;
+//fout<<nb_buses<<endl;
+    fout.close();
     string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     

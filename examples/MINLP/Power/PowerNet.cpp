@@ -208,11 +208,11 @@ int PowerNet::readgrid(const char* fname) {
         }
     }
     string word;
-    while (word.compare("function")) {
+    while (word.compare("mpc")) {
         file >> word;
     }
 
-    file.ignore(6);
+    file.ignore(3);
     file >> word;
     _name = word;
 
