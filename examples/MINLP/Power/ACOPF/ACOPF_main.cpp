@@ -27,13 +27,15 @@ int main (int argc, char * argv[])
     int output = 0;
     bool relax = false;
     double tol = 1e-6;
-    string mehrotra = "no", log_level="0";
+    string mehrotra = "no", log_level="0", scale_str="1e-3", tol_str="1e-6";
     
     /** create a OptionParser with options */
     op::OptionParser opt;
     opt.add_option("h", "help", "shows option help"); // no default value means boolean options, which default value is false
     opt.add_option("f", "file", "Input file name (def. ../data_sets/Power/nesta_case5_pjm.m)", fname );
     opt.add_option("l", "log", "Log level (def. 0)", log_level );
+    opt.add_option("s", "scale", "Scale objective function and thermal limit constraints (def. 1e-3)", scale_str );
+    opt.add_option("t", "tol", "solver tolerance (def. 1e-6)", tol_str );
     opt.add_option("m", "model", "power flow model: ACPOL/ACRECT (def. ACPOL)", mtype );
     
     /** parse the options and verify that all went well. If not, errors and help will be shown */
@@ -45,6 +47,8 @@ int main (int argc, char * argv[])
     
     fname = opt["f"];
     mtype = opt["m"];
+    scale_str = opt["s"];
+    tol_str = opt["t"];
     output = op::str2int(opt["l"]);
     output = 5;
     bool has_help = op::str2bool(opt["h"]);
@@ -53,7 +57,7 @@ int main (int argc, char * argv[])
         opt.show_help();
         exit(0);
     }
-    
+    double scale = stod(scale_str);
     double total_time_start = get_wall_time();
     PowerNet grid;
     grid.readgrid(fname.c_str());
@@ -116,7 +120,7 @@ int main (int argc, char * argv[])
 
     /** Construct the objective function */
     func_ obj = product(grid.c1, Pg) + product(grid.c2, power(Pg,2)) + sum(grid.c0);
-    obj *= 1e-3;    
+    obj *= scale;    
     ACOPF.min(obj.in(grid.gens));
 
     /** Define constraints */
@@ -245,18 +249,18 @@ int main (int argc, char * argv[])
     Constraint Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from += power(Pf_from, 2) + power(Qf_from, 2);
     Thermal_Limit_from -= power(grid.S_max, 2);
-    Thermal_Limit_from *= 1e-3;
+    Thermal_Limit_from *= scale;
     ACOPF.add(Thermal_Limit_from.in(grid.arcs) <= 0);
 
     Constraint Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to += power(Pf_to, 2) + power(Qf_to, 2);
     Thermal_Limit_to -= power(grid.S_max,2);
-    Thermal_Limit_to *= 1e-3;
+    Thermal_Limit_to *= scale;
     ACOPF.add(Thermal_Limit_to.in(grid.arcs) <= 0);
     
     solver OPF(ACOPF,ipopt);
     double solver_time_start = get_wall_time();
-    auto status = OPF.run(output, relax = false, tol = 1e-6, "ma27", mehrotra = "no");
+    auto status = OPF.run(output, relax = false, tol = stod(tol_str), "ma27", mehrotra = "no");
     double solver_time_end = get_wall_time();
     double total_time_end = get_wall_time();
     auto solve_time = solver_time_end - solver_time_start;
@@ -265,10 +269,10 @@ int main (int argc, char * argv[])
     /** Terminal output */
     string result_name="out.txt";
 ofstream fout(result_name.c_str(),std::ios::app);
-    fout<<nb_buses<< " , " << grid._name<<" , "<<std::setprecision(10)<<ACOPF._obj_val*1e3<<" , "<<std::setprecision(4)<<total_time<<" , \\\\"<< endl;
+    fout<<nb_buses<< " , " << grid._name<<" , "<<std::setprecision(10)<<ACOPF._obj_val*1./scale<<" , "<<std::setprecision(4)<<total_time<<" , \\\\"<< endl;
 //fout<<nb_buses<<endl;
     fout.close();
-    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val*1e3) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
+    string out = "DATA_OPF, " + grid._name + ", " + to_string(nb_buses) + ", " + to_string(nb_lines) +", " + to_string(ACOPF._obj_val*1./scale) + ", " + to_string(-numeric_limits<double>::infinity()) + ", " + to_string(solve_time) + ", LocalOptimal, " + to_string(total_time);
     DebugOn(out <<endl);
     
     return 0;

@@ -383,8 +383,8 @@ int PowerNet::readgrid(const char* fname) {
         reversed = false;
         if(get_node(src)->_id > get_node(dest)->_id) {//Reverse arc direction
 //            if(arcID.find(key)!=arcID.end()) {//Reverse arc direction
-            DebugOn("Adding arc linking " +src+" and "+dest);
-            DebugOn(" with reversed direction, reversing source and destination.\n");
+            DebugOff("Adding arc linking " +src+" and "+dest);
+            DebugOff(" with reversed direction, reversing source and destination.\n");
             reversed = true;
             key = src;
             src = dest;
