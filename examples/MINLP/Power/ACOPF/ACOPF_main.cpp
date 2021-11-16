@@ -172,8 +172,8 @@ int main (int argc, char * argv[])
     Flow_P_To += Pf_to;
     if (polar) {
         Flow_P_To -= grid.g*power(v.to(), 2);
-        Flow_P_To += grid.g/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
-        Flow_P_To += grid.b/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
+        Flow_P_To += grid.g/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
+        Flow_P_To -= grid.b/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
         Flow_P_To -= grid.g_tt*(power(vr.to(), 2) + power(vi.to(), 2));
@@ -199,8 +199,8 @@ int main (int argc, char * argv[])
     Flow_Q_To += Qf_to;
     if (polar) {
         Flow_Q_To += (0.5*grid.ch+grid.b)*power(v.to(),2);
-        Flow_Q_To -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.to() - theta.from() + grid.as));
-        Flow_Q_To += grid.g/grid.tr*(v.from()*v.to()*sin(theta.to() - theta.from() + grid.as));
+        Flow_Q_To -= grid.b/grid.tr*(v.from()*v.to()*cos(theta.from() - theta.to() - grid.as));
+        Flow_Q_To -= grid.g/grid.tr*(v.from()*v.to()*sin(theta.from() - theta.to() - grid.as));
     }
     else {
         Flow_Q_To += grid.b_tt*(power(vr.to(), 2) + power(vi.to(), 2));
