@@ -334,20 +334,53 @@ void apply_transform_new_order(double roll, double pitch, double yaw, vector<vec
         auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
         auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
         
+        auto res_s=apply_rotation_inverse_new_order(roll_pitch_yaw_uav[i][0], (roll_pitch_yaw_uav[i][1]), (-pi/2+roll_pitch_yaw_uav[i][2])*(-1), scanner_x, scanner_y, scanner_z);
         
-        shifted_x = full_point_cloud[i][0]-full_uav[i][0];// -tx;
-        shifted_y = full_point_cloud[i][1]-full_uav[i][1];// -ty;
-        shifted_z = full_point_cloud[i][2]-full_uav[i][2];// -tz;
+        shifted_x = full_point_cloud[i][0]-full_uav[i][0] -res_s[0];// -tx;
+        shifted_y = full_point_cloud[i][1]-full_uav[i][1] -res_s[1];// -ty;
+        shifted_z = full_point_cloud[i][2]-full_uav[i][2] -res_s[2];// -tz;
         
         auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+       // auto res_inv_ins=apply_rotation_inverse_new_order(-0.000180572766112164,-0.000351235183188692, -0.00116005958989263, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
         
         auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
         
         auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+        
+        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0]+res_s[0];//+tx;
+        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1]+res_s[1];//+ty;
+        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2]+res_s[2];//+tz;
+    }
+}
 
-        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0];//+tx;
-        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1];//+ty;
-        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2];//+tz;
+void apply_transform_new_order_Test(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+    scanner_x=0;
+    scanner_y=0;
+    scanner_z=0;
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        auto res_s=apply_rotation_inverse_new_order(roll_pitch_yaw_uav[i][0], (roll_pitch_yaw_uav[i][1]), (-pi/2+roll_pitch_yaw_uav[i][2])*(-1), scanner_x, scanner_y, scanner_z);
+        
+        shifted_x = full_point_cloud[i][0]-full_uav[i][0] -res_s[0];// -tx;
+        shifted_y = full_point_cloud[i][1]-full_uav[i][1] -res_s[1];// -ty;
+        shifted_z = full_point_cloud[i][2]-full_uav[i][2] -res_s[2];// -tz;
+        
+        auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+       // auto res_inv_ins=apply_rotation_inverse_new_order(-0.000180572766112164,-0.000351235183188692, -0.00116005958989263, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
+        
+        auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
+        
+        auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+        
+        full_point_cloud[i][0] = res_ins[0]+full_uav[i][0]+res_s[0];//+tx;
+        full_point_cloud[i][1] = res_ins[1]+full_uav[i][1]+res_s[1];//+ty;
+        full_point_cloud[i][2] = res_ins[2]+full_uav[i][2]+res_s[2];//+tz;
     }
 }
 
@@ -1161,6 +1194,7 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
     vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
     set<double> timestamps;
     vector<vector<double>> uav_cloud;
+    double time_start, time_end;
     while (lasreadopener.active())
     {
         LASreader* lasreader = lasreadopener.open();
@@ -1225,16 +1259,25 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
         bool exit = false;
         vector<vector<double>> point_cloud1, point_cloud2;
+        
+        
+        lasreader->read_point();
+        auto time_start = lasreader->point.get_gps_time();
+        DebugOn("time_start "<<time_start<<endl);
+        DebugOn("po");
         while (lasreader->read_point() && LidarPoints.size()!=200e6)
         {
             nb_pts++;
            
             auto laser_id = lasreader->point.get_point_source_ID();
-            DebugOff("lid "<<laser_id<<endl);
-            if(nb_pts%skip!=0){/* Only keep points from Nadir laser */
-                continue;
-            }
             auto unix_time = lasreader->point.get_gps_time();
+            DebugOff("lid "<<laser_id<<endl);
+//            if(!((unix_time-time_start)>=50 && (unix_time-time_start)<=150)){
+//                continue;
+//            }
+//            if(nb_pts%skip!=0){/* Only keep points from Nadir laser */
+//                continue;
+//            }
             auto X = (lasreader->point.get_X());
             auto Y = (lasreader->point.get_Y());
             auto Z = (lasreader->point.get_Z());
@@ -1265,14 +1308,17 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         DebugOn(point_cloud1.size() << " points in flight line 1" << endl);
         DebugOn(point_cloud2.size() << " points in flight line 2" << endl);
         vector<vector<double>> empty_vec;
+        empty_vec.push_back(uav_cloud[0]);
 #ifdef USE_MATPLOT
-        // plot(uav_cloud,empty_vec, 0.1);
+       //  plot(uav_cloud,empty_vec, 0.1);
 #endif
         save_laz(name, point_cloud1, point_cloud2);
-
+        DebugOn("time_start "<<time_start);
+        DebugOn("time_end "<<time_end-time_start);
 
     }
     DebugOn("finished read laz"<<endl);
+
     return uav_cloud;
 }
 void read_laz_new(const string& fname1, const string& fname2)
