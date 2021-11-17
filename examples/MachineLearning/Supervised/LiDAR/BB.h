@@ -397,6 +397,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     
 }
 void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, string error_type){
+    double scanner_x=0, scanner_y=0.161,scanner_z=0.016;
     double roll=(roll_min+roll_max)*0.5;
     double pitch=(pitch_min+pitch_max)*0.5;
     double yaw=(yaw_min+yaw_max)*0.5;
@@ -417,9 +418,9 @@ void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min,
     auto point_cloud_model_copy=point_cloud_model;
     auto point_cloud_data_copy=point_cloud_data;
     
-    apply_transform_new_order(roll, pitch, yaw, point_cloud_model_copy, uav_model, rpy_model, 0.0, 0.0, 0.0);
+    apply_transform_new_order(roll, pitch, yaw, point_cloud_model_copy, uav_model, rpy_model, scanner_x,scanner_y,scanner_z);
     
-    apply_transform_new_order(roll, pitch, yaw, point_cloud_data_copy, uav_data, rpy_data, 0.0, 0.0, 0.0);
+    apply_transform_new_order(roll, pitch, yaw, point_cloud_data_copy, uav_data, rpy_data, scanner_x,scanner_y,scanner_z);
     
     vector<int> matching1(point_cloud_data.size());
     vector<double> err_per_point1(point_cloud_data.size());
