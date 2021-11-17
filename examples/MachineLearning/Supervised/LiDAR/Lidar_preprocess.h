@@ -51,7 +51,7 @@ struct Plane_equation {
     }
 };*/
 
-double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type)
+double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type, double scanner_x, double scanner_y, double scanner_z)
 {
     prep_time=0;
     indices valid_cells("valid_cells");
@@ -61,64 +61,8 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     double time_start = get_wall_time();
     int new_test=0;
     planeStatPerPair = 0;
-    
-//#ifdef USE_CGAL
-//    std::vector<vector<double>> p_list;
-//    std::vector<double> p(3);
-//    p[0]=0;
-//    p[1]=0;
-//    p[2]=0;
-//    p_list.push_back(p);
-//    p[0]=0;
-//    p[1]=0;
-//    p[2]=1;
-//    p_list.push_back(p);
-//    p[0]=0;
-//    p[1]=1;
-//    p[2]=0;
-//    p_list.push_back(p);
-//    p[0]=1;
-//    p[1]=0;
-//    p[2]=0;
-//    p_list.push_back(p);
-//    p[0]=0.5;
-//    p[1]=0.5;
-//    p[2]=0;
-//    p_list.push_back(p);
-//    std::vector<Point_3> points;
-//    for(auto i=0;i<p_list.size();i++){
-//       Point_3 pointa(p_list[i][0],p_list[i][1],p_list[i][2]);
-//        points.push_back(pointa);
-//    }
-//
-//      // define polyhedron to hold convex hull
-//      Polyhedron_3 poly;
-//      // compute convex hull of non-collinear points
-//      CGAL::convex_hull_3(points.begin(), points.end(), poly);
-//      std::cout << "The convex hull contains " << poly.size_of_vertices() << " vertices" <<" "<<poly.size_of_facets()<< std::endl;
-//    std::transform( poly.facets_begin(), poly.facets_end(), poly.planes_begin(),
-//                        Plane_equation());
-//        CGAL::IO::set_pretty_mode( std::cout);
-//        std::copy( poly.planes_begin(), poly.planes_end(),
-//                   std::ostream_iterator<Plane_3>( std::cout, "\n"));
-//    for(auto it=poly.planes_begin();it!=poly.planes_end();it++){
-//        DebugOn(it->a()<<" "<<it->b()<<" "<<it->c()<<" "<<it->d()<<endl);
-//    }
-//    for (auto v = poly.vertices_begin(); v != poly.vertices_end(); ++v){
-//            std::cout << v->point() << std::endl;
-//        DebugOn(v->point().x()<<" "<<v->point().y()<<" "<<v->point().z()<<endl);
-//    }
-//    int count=0;
-//    for(auto f=poly.facets_begin();f!= poly.facets_end();f++){
-//        DebugOn("Facet "<<count++<<endl);
-//        auto j =f->facet_begin();
-//        do{
-//            DebugOn(j->vertex()->point()<<" ");
-//            j++;
-//        }while(j!=f->facet_begin());
-//
-//    }
-//#endif
+    vector<vector<double>> rot_sc_data, rot_sc_mod, const_data, const_model;
+
     
     /*variables to define rotation on the positive side (model side)*/
     
@@ -156,13 +100,19 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     vector<vector<double>> point_cloud_model_ins, point_cloud_data_ins;
     
     for (auto j = 0; j<point_cloud_model.size(); j++) {
-        auto res_m=apply_rotation_new_order(rollpitchyawins_model.at(j)[0], (-pi+rollpitchyawins_model.at(j)[1])*(-1), (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), point_cloud_model.at(j)[0]-uav_model.at(j)[0], point_cloud_model.at(j)[1]-uav_model.at(j)[1], point_cloud_model.at(j)[2]-uav_model.at(j)[2]);
+        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_model.at(j)[0], rollpitchyawins_model.at(j)[1], (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), scanner_x, scanner_y, scanner_z);
+        auto res_m=apply_rotation_new_order(rollpitchyawins_model.at(j)[0], (-pi+rollpitchyawins_model.at(j)[1])*(-1), (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), point_cloud_model.at(j)[0]-uav_model.at(j)[0]-res_s[0], point_cloud_model.at(j)[1]-uav_model.at(j)[1]-res_s[1], point_cloud_model.at(j)[2]-uav_model.at(j)[2]-res_s[2]);
+        rot_sc_mod.push_back(res_s);
         point_cloud_model_ins.push_back(res_m);
+        const_model.push_back({uav_model.at(j)[0]+res_s[0], uav_model.at(j)[1]+res_s[1], uav_model.at(j)[2]+res_s[2]});
     }
     
     for (auto i = 0; i<point_cloud_data.size(); i++) {
-        auto res_d=apply_rotation_new_order(rollpitchyawins_data.at(i)[0], (-pi+rollpitchyawins_data.at(i)[1])*(-1), (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), point_cloud_data.at(i)[0]-uav_data.at(i)[0], point_cloud_data.at(i)[1]-uav_data.at(i)[1], point_cloud_data.at(i)[2]-uav_data.at(i)[2]);
+        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_model.at(i)[0], rollpitchyawins_model.at(i)[1], (-pi/2+rollpitchyawins_model.at(i)[2])*(-1), scanner_x, scanner_y, scanner_z);
+        auto res_d=apply_rotation_new_order(rollpitchyawins_data.at(i)[0], (-pi+rollpitchyawins_data.at(i)[1])*(-1), (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), point_cloud_data.at(i)[0]-uav_data.at(i)[0]-res_s[0], point_cloud_data.at(i)[1]-uav_data.at(i)[1]-res_s[1], point_cloud_data.at(i)[2]-uav_data.at(i)[2]-res_s[2]);
+        rot_sc_data.push_back(res_s);
         point_cloud_data_ins.push_back(res_d);
+        const_data.push_back({uav_data.at(i)[0]+res_s[0], uav_data.at(i)[1]+res_s[1], uav_data.at(i)[2]+res_s[2]});
     }
     
     
@@ -198,7 +148,7 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
             double dist_ij_min, dist_ij_max;
             vector<vector<double>> extreme_j;
             /*Feasible region R'_insR(model_ins)+(uav_model-uav_data)*/
-            get_extreme_point_model(extreme_j, uav_data[i], uav_model[j], point_cloud_model_ins[j], T1, rollpitchyawins_model.at(j));
+            get_extreme_point_model(extreme_j, const_data[i], const_model[j], point_cloud_model_ins[j], T1, rollpitchyawins_model.at(j));
             /*Calling GJK*/
             if(error_type=="L2"){
                 dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);

@@ -481,16 +481,16 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& point_cloud_mod
 }
 void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, treenode_r vec_node_i, int& m_vec_i,  double& vec_lb_i,  indices& valid_cells_i, param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, string error_type){
     
-    
-    vec_lb_i=preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound, prep_time_i, error_type);
+    double scanner_x=0, scanner_y=0.161,scanner_z=0.016;
+    vec_lb_i=preprocess_lid(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound, prep_time_i, error_type, scanner_x, scanner_y,scanner_z);
     //
     bool model_created=false;
     if(valid_cells_i.size()>=point_cloud_data.size()){
         if(error_type=="L2"){
-            model_i=Align_L2_model_rotation_neworder(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
+            model_i=Align_L2_model_rotation_trigonometric_scanner(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i, scanner_x, scanner_y,scanner_z);
         }
         else{
-            model_i=Align_L1_model_rotation_neworder(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
+            model_i=Align_L2_model_rotation_trigonometric_scanner(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i, scanner_x, scanner_y,scanner_z);
         }
         model_created=true;
     }
