@@ -27,6 +27,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     double total_time_max = 90000;
     double prep_time_total=0;
     
+    double scanner_x=0, scanner_y=0.161,scanner_z=0.016;
+    
     double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
     
     
@@ -58,8 +60,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     vector<int> new_matching(nd);
     vector<double> res(nd);
     if(roll_rad_i>=roll_min && roll_rad_i<=roll_max && pitch_rad_i>=pitch_min && pitch_rad_i<=pitch_max && yaw_rad_i>=yaw_min && yaw_rad_i<=yaw_max){
-        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcm1, uavm1, rpy_model, 0.0,0.0,0.0);
-        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcd1, uavd1, rpy_data, 0.0,0.0,0.0);
+        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcm1, uavm1, rpy_model, scanner_x, scanner_y,scanner_z);
+        apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcd1, uavd1, rpy_data, scanner_x, scanner_y,scanner_z);
         if(error_type=="L2"){
             errori= computeL2error(pcm1,pcd1,new_matching,res);
         }
@@ -300,8 +302,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                             auto yaw_rad1 = atan2(-rot[1],rot[0]);
                             auto roll_rad1=asin(rot[2]);
                             auto pitch_rad1=acos(rot[8]/cos(roll_rad1));
-                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_model_copy, uav_model, rpy_model, 0.0,0.0,0.0);
-                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_data_copy, uav_data, rpy_data, 0.0,0.0,0.0);
+                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_model_copy, uav_model, rpy_model, scanner_x, scanner_y,scanner_z);
+                            apply_transform_new_order(roll_rad1, pitch_rad1, yaw_rad1, point_cloud_data_copy, uav_data, rpy_data, scanner_x, scanner_y,scanner_z);
                             double err=0;
                             if(error_type=="L2"){
                                 err=computeL2error(point_cloud_model_copy, point_cloud_data_copy, new_matching, res);
