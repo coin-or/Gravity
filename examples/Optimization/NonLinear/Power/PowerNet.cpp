@@ -1329,7 +1329,12 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
             obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
     }
     obj *= 1e-3;
-    ACOPF->min(obj);
+    var<> v_obj("v_obj",pos_);
+    ACOPF->add(v_obj.in(R(1)));
+    Constraint<> C_obj("C_obj");
+    C_obj += v_obj - obj;
+    ACOPF->add(C_obj >= 0);
+    ACOPF->min(v_obj);
     
     /** Define constraints */
     
