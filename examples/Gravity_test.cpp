@@ -22,47 +22,61 @@
     using namespace std;
     using namespace gravity;
 
-//TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    int output = 0;
-//    double tol = 1e-6;
-//    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
-//    unsigned max_iter=1e3, nb_threads=thread::hardware_concurrency();
-//    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
-//    auto nonlin_obj=true, current=true;
-//
-//    PowerNet grid;
-//    grid.readgrid(fname);
-//    auto OPF=build_ACOPF(grid, ACRECT);
-//    solver<> s1(OPF,ipopt);
-//    auto time_start = get_wall_time();
-//    auto status = s1.run(output=5, tol=1e-6);
-//
+TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    int output = 0;
+    double tol = 1e-6;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    unsigned max_iter=1e3, nb_threads=thread::hardware_concurrency();
+    SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;
+    auto nonlin_obj=true, current=true;
+
+    PowerNet grid;
+    grid.readgrid(fname);
+    auto OPF=build_ACOPF(grid, ACRECT);
+    OPF->print();
+    solver<> s1(OPF,ipopt);
+    auto time_start = get_wall_time();
+    auto status = s1.run(output=5, tol=1e-6);
+//    OPF->print_solution();
 //    auto SDP=build_SDPOPF(grid);
 //    SDP->print();
-//    auto OPF_proj = build_ACOPF(grid, ACRECT);
-////    SDP_proj->restructure();
-////    DebugOn("Done restructuring\n");
-//    auto proj_pairs = OPF_proj->project();
-//    DebugOn("Done projecting\n");
-//    solver<> s2(OPF_proj,ipopt);
-//    status = s2.run(output=5, tol=1e-6);
-//
+    auto OPF_proj = build_ACOPF(grid, ACRECT);
+//    SDP_proj->restructure();
+//    DebugOn("Done restructuring\n");
+    auto proj_pairs = OPF_proj->project();
+    DebugOn("Done projecting\n");
+    solver<> s2(OPF_proj,ipopt);
+    status = s2.run(output=5, tol=1e-6);
+//    OPF_proj->is_feasible(tol);
+//    OPF_proj->print_solution();
+    for (const auto &p: proj_pairs) {
+        auto v = p.first;
+        auto f = p.second;
+        OPF_proj->merge_vars(f);
+        f->eval_all();
+        v->copy_vals(*f);
+    }
+    OPF_proj->print_solution();
+    OPF->copy_solution(OPF_proj);
+    OPF->reset_constrs();
+    OPF->print_constraints_stats(tol);
+    
 //    auto Rel = OPF_proj->relax(3,false,true);
 //    Rel->print();
 //    solver<> srel(Rel,ipopt);
 //    status = srel.run(output=5, tol=1e-9);
-////    SDP->_aux_eqs = proj_pairs;
-////    SDP->copy_aux_vars_status(SDP_proj);
-//
-//
-//
+//    SDP->_aux_eqs = proj_pairs;
+//    SDP->copy_aux_vars_status(SDP_proj);
+
+
+
 //    auto res=OPF_proj->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
 //    exit(1);
-////    solver<> s2(SDP_proj,ipopt);
-////    auto status = s2.run(output=5, tol=1e-6);
-////    CHECK(std::abs(SDP_proj->get_obj_val()- SDP->get_obj_val())/SDP->get_obj_val() < 0.001);
-//}
+//    solver<> s2(SDP_proj,ipopt);
+//    auto status = s2.run(output=5, tol=1e-6);
+//    CHECK(std::abs(SDP_proj->get_obj_val()- SDP->get_obj_val())/SDP->get_obj_val() < 0.001);
+}
 
 TEST_CASE("testing polynomial lifting") {
     indices buses("buses");
@@ -78,7 +92,7 @@ TEST_CASE("testing polynomial lifting") {
     var<>  w("w", 1.5, 2);
     Mtest.add(x.in(node_pairs), y.in(node_pairs), z.in(buses), w.in(buses));
     Constraint<> Poly1("Poly1");
-    Poly1 = 2*x*y*pow(z.from(node_pairs),2) - w.to(node_pairs);
+    Poly1 = 2*x*y*pow(z.from(node_pairs),3) - w.to(node_pairs);
     Mtest.add(Poly1.in(node_pairs) == 0);
     Constraint<> Poly2("Poly2");
 //    Poly2 = 2*x*pow(y, 2)*pow(z.from(node_pairs),2) - x*y*w.from(node_pairs)*z.to(node_pairs);
@@ -90,7 +104,7 @@ TEST_CASE("testing polynomial lifting") {
     auto Rel = Mtest.relax();
     Rel->print();
     CHECK(Rel->is_convex());
-    CHECK(Rel->get_nb_ineq() == 88);
+    CHECK(Rel->get_nb_ineq() == 94);
 }
 
 

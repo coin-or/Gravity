@@ -1325,7 +1325,8 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     auto obj = sum(c0);
     for (auto pg_id: *Pg.get_indices()._keys) {
         obj += c1(pg_id)*Pg(pg_id);
-        obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
+        if(!c2.is_all_zero())
+            obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
     }
     obj *= 1e-3;
     ACOPF->min(obj);
@@ -1363,7 +1364,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     ACOPF->add(KCL_P.in(nodes) == 0);
     ACOPF->add(KCL_Q.in(nodes) == 0);
     
-    if(!add_thermal)
+//    if(!add_thermal)
         ACOPF->restructure();
     /** AC Power Flows */
     /** TODO write the constraints in Complex form */

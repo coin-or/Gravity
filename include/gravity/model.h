@@ -2503,8 +2503,8 @@ public:
         _obj->update_terms(_all_ids);
         reindex();
         reset();
-        DebugOn("Model after restructure: " << endl);
-        print(false);
+        DebugOff("Model after restructure: " << endl);
+//        print(false);
     }
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
@@ -2591,7 +2591,7 @@ public:
             list<pair<string,shared_ptr<param_>>> var_list; /* sorted list of <lterm name,variable> appearing linearly in c (sort in decreasing number of rows of variables). */
             for (auto& lterm: c->get_lterms()) {
                 auto v = lterm.second._p;
-                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() /*  && !is_nonlinear(*v) && !_obj->has_sym_var(*v)v does not appear in polynomial or nonlinear constraints */){
+                if(v->get_intype()==double_ && !c->in_quad_part(v) /* only appears in linear part of c*/ && c->appear_once_linear(v) /* only appears once in linear part of c*/&& !lterm.second._coef->has_zero() /* (does not include zero, i.e., is invertible */ && v->_indices->has_unique_ids() /* && !_obj->has_sym_var(*v)  && !is_nonlinear(*v) && !_obj->has_sym_var(*v)v does not appear in polynomial or nonlinear constraints */){
                     var_list.push_back({lterm.first,v});
                 }
             }
@@ -2677,6 +2677,7 @@ public:
             }
             delete_cstr.push_back(c->_name);
             c->_is_constraint = false;
+//            merge_vars(f);
             replace(vv,f,eq_list, tag_iter);
             auto v_ptr = get_var_ptr(vv.get_vec_id());
             //            if(vv.is_indexed()){
@@ -2729,9 +2730,9 @@ public:
         }
         if (_cons_name.count(c.get_name())==0) {
             auto newc = make_shared<Constraint<type>>(c);
-            for (auto &vp: *newc->_vars) {
-                _v_in_cons[vp.second.first->_name].insert(newc);
-            }
+//            for (auto &vp: *newc->_vars) {
+//                _v_in_cons[vp.second.first->_name].insert(newc);
+//            }
             newc->_val = c._val;
             newc->check_soc();
             newc->check_rotated_soc();
@@ -3266,9 +3267,9 @@ public:
                         c->_violated[inst] = false;
                         diff = std::abs(c->eval(inst));
                         if(diff > tol) {
-                            DebugOff("Violated equation: ");
-                            //                        c->print(inst);
-                            DebugOff(", violation = "<< diff << endl);
+                            DebugOn("Violated equation: ");
+                                                    c->print(inst);
+                            DebugOn(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3294,9 +3295,9 @@ public:
                         c->_violated[inst] = false;
                         diff = c->eval(inst);
                         if(diff > tol) {
-                            DebugOff("Violated inequality: ");
-                            //                                c->print(inst);
-                            DebugOff(", violation = "<< diff << endl);
+                            DebugOn("Violated inequality: ");
+                                                            c->print(inst);
+                            DebugOn(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3328,9 +3329,9 @@ public:
                         c->_violated[inst] = false;
                         diff = c->eval(inst);
                         if(diff < -tol) {
-                            DebugOff("Violated inequality: ");
-                            //                        c->print(inst);
-                            DebugOff(", violation = "<< diff << endl);
+                            DebugOn("Violated inequality: ");
+                                                    c->print(inst);
+                            DebugOn(", violation = "<< diff << endl);
                             nb_viol++;
                             //                        violated = true;
                             if (*c->_all_lazy) {
@@ -3365,7 +3366,7 @@ public:
             nb_viol_all += nb_viol;
             nb_active_all += nb_active;
             if (nb_viol>0 && c->get_ctype()!=eq) {
-                DebugOff("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
+                DebugOn("Percentage of violated constraints for " << c->get_name() << " = (" << nb_viol << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_viol/nb_inst,3) << "%\n");
             }
             if (c->get_ctype()!=eq) {
                 DebugOff("Percentage of active constraints for " << c->get_name() << " = (" << nb_active << "/" << nb_inst << ") " << to_string_with_precision(100.*nb_active/nb_inst,3) << "%\n");

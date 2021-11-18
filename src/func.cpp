@@ -4433,7 +4433,10 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f, int& tag_iter)
                     if(vv->is_matrix_indexed() && coef._is_transposed){//?
                         coef.transpose();
                     }
-                    if(in_vv1){
+                    if(in_vv1 && in_vv2){
+                        new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*f_cpy);;
+                    }
+                    else if(in_vv1){
                         auto v2 = *static_pointer_cast<var<T>>(vv2);
                         new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*v2);;
                     }
@@ -4447,7 +4450,10 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f, int& tag_iter)
                     if(vv->is_matrix_indexed() && coef._is_transposed){//?
                         coef.transpose();
                     }
-                    if(in_vv1){
+                    if(in_vv1 && in_vv2){
+                        new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*f_cpy);;
+                    }
+                    else if(in_vv1){
                         auto v2 = *static_pointer_cast<var<T>>(vv2);
                         new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*v2);;
                     }
@@ -4461,7 +4467,10 @@ func<type> func<type>::replace(const var<T>& v, const func<T>& f, int& tag_iter)
                     if(vv->is_matrix_indexed() && coef._is_transposed){//?
                         coef.transpose();
                     }
-                    if(in_vv1){
+                    if(in_vv1 && in_vv2){
+                        new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*f_cpy);;
+                    }
+                    else if(in_vv1){
                         auto v2 = *static_pointer_cast<var<T>>(vv2);
                         new_this += std::pow(-1,1-lt.second._sign)*(coef*f_cpy*v2);;
                     }

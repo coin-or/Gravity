@@ -266,7 +266,7 @@ namespace gravity {
         }
 
         string get_name(bool in_func, bool exclude_indexing) const{
-//            return _name;
+            //            return _name;
             string name = _name;
             if(_indices && exclude_indexing){
                 name = name.substr(0, name.find_first_of("."));
@@ -2607,9 +2607,10 @@ namespace gravity {
                 _dim[0] = f._dim[0];
                 _dim[1] = f._dim[1];
                 auto dim = get_dim();
-                _val->resize(dim);
+                _val->resize(std::max(_val->size(),dim));
                 for (size_t i = 0; i < dim; i++) {
-                    _val->at(i) = f.eval(i);
+                    auto index = get_id_inst(i);
+                    _val->at(index) = f.eval(i);
                 }
                 reset_range();
             }

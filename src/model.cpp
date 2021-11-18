@@ -582,13 +582,14 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                         /* Create the lifted variable with correct lower and upper bounds */
                         /* Get the unindexed variables from the model */
                         /* Get the */
-                        auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
-                        func<double> prod_b1 = pow(lb1,2);
-                        func<double> prod_b2 = pow(ub1,2);
-                        func<double> prod_b3 = lb1*ub1;
-                        auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
-                        auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
-                        var<type> vlift(lifted_name, lb, ub);
+//                        auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
+//                        func<double> prod_b1 = pow(lb1,next_it->second);
+//                        func<double> prod_b2 = pow(ub1,next_it->second);
+//                        func<double> prod_b3 = lb1*ub1;
+//                        auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
+//                        auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
+                        auto f = pow(x1_unindexed,next_it->second);
+                        var<type> vlift(lifted_name, f._range->first, f._range->second);
                         vlift._lift = true;
                         vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
                         vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
@@ -598,11 +599,31 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                 add_McCormick(lifted_name, vlift, x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
                             }
                         }
+                        else if(next_it->second==3){/* add relaxation of univariate power function */
+                            Constraint<type> c_UB(lifted_name+"_UB");
+                            auto ub_param = x1_unindexed.get_ub();
+                            auto lb_param = x1_unindexed.get_lb();
+                            c_UB = vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                            if(ub_param._range->second>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
+                                this->add(c_UB.in(unique_ids)>=0);
+                            }
+                            else if(ub_param._range->second<0){
+                                this->add(c_UB.in(unique_ids)<=0);
+                            }
+                            Constraint<type> c_LB(lifted_name+"_LB");
+                            c_LB = vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                            if(lb_param._range->first>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
+                                this->add(c_LB.in(unique_ids)>=0);
+                            }
+                            else if(lb_param._range->first<0){
+                                this->add(c_LB.in(unique_ids)<=0);
+                            }
+                        }
                         else{
                             Constraint<type> c(lifted_name);
                             c = vlift - pow(x1_unindexed.in(unique_ids),it->second);
                             /* add relaxation of univariate power function */
-                            this->add(c.in(unique_ids)==0,true);
+//                            this->add(c.in(unique_ids)==0,true);
                         }
                         orig_var = vlift.in(*orig_var._indices);
                     }
@@ -637,11 +658,31 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                     add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
                                 }
                             }
+                            else if(next_it->second==3){/* add relaxation of univariate power function */
+                                Constraint<type> c_UB(lifted_name+"_UB");
+                                auto ub_param = x1_unindexed.get_ub();
+                                auto lb_param = x1_unindexed.get_lb();
+                                c_UB = *vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                                if(ub_param._range->second>0){
+                                    this->add(c_UB.in(unique_ids)>=0);
+                                }
+                                else if(ub_param._range->second<0){
+                                    this->add(c_UB.in(unique_ids)<=0);
+                                }
+                                Constraint<type> c_LB(lifted_name+"_LB");
+                                c_LB = *vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                                if(lb_param._range->first>0){
+                                    this->add(c_LB.in(unique_ids)>=0);
+                                }
+                                else if(lb_param._range->first<0){
+                                    this->add(c_LB.in(unique_ids)<=0);
+                                }
+                            }
                             else{
                                 Constraint<type> c(lifted_name);
                                 c = vlift->in(unique_ids) - pow(orig_var.in(unique_ids),it->second);
                                 /* add relaxation of univariate power function */
-                                this->add(c.in(unique_ids)==0,true);
+//                                this->add(c.in(unique_ids)==0,true);
                             }
                             orig_var = vlift->in(*orig_var._indices);
                         }
@@ -654,187 +695,219 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                 if(i==0){
                     next_it = next(it);
                 }
-                orig_var2 = *static_pointer_cast<var<type>>(next_it->first);
-                if(next_it->second>1){
-                    /* add relaxation of univariate power function */
-                    string lifted_name = "Lift("+orig_var2.get_name(true,true)+"^"+to_string(next_it->second)+")";
-                    auto x1_unindexed = this->get_var<type>(orig_var2.get_name(true,true));
-                    auto x1_ids = *orig_var2._indices;
-                    auto unique_ids = x1_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+                if(list->size()>1){
+                    orig_var2 = *static_pointer_cast<var<type>>(next_it->first);
+                    if(next_it->second>1){
+                        /* add relaxation of univariate power function */
+                        string lifted_name = "Lift("+orig_var2.get_name(true,true)+"^"+to_string(next_it->second)+")";
+                        auto x1_unindexed = this->get_var<type>(orig_var2.get_name(true,true));
+                        auto x1_ids = *orig_var2._indices;
+                        auto unique_ids = x1_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+                        auto v_it = _vars_name.find(lifted_name);
+                        if(v_it==_vars_name.end()){/* New lifted variable */
+                            /* Create the lifted variable with correct lower and upper bounds */
+                            /* Get the unindexed variables from the model */
+                            /* Get the */
+//                            auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
+//                            func<double> prod_b1 = pow(lb1,next_it->second);
+//                            func<double> prod_b2 = pow(ub1,next_it->second);
+//                            func<double> prod_b3 = lb1*ub1;
+//                            auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
+//                            auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
+//                            var<type> vlift(lifted_name, lb, ub);
+                            auto f = pow(x1_unindexed,next_it->second);
+                            var<type> vlift(lifted_name, f._range->first, f._range->second);
+                            vlift._lift = true;
+                            vlift._lift_ub = true;
+                            vlift._lift_lb = true;
+                            vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
+                            vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
+                            add(vlift.in(unique_ids));
+                            if(next_it->second==2){
+                                if(add_McCormick_Constraints){
+                                    add_McCormick(lifted_name, vlift, x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
+                                }
+                            }
+                            else if(next_it->second==3){/* add relaxation of univariate power function */
+                                Constraint<type> c_UB(lifted_name+"_UB");
+                                auto ub_param = x1_unindexed.get_ub();
+                                auto lb_param = x1_unindexed.get_lb();
+                                c_UB = vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                                if(f._range->second>0){
+                                    this->add(c_UB.in(unique_ids)>=0);
+                                }
+                                else if(f._range->second<0){
+                                    this->add(c_UB.in(unique_ids)<=0);
+                                }
+                                Constraint<type> c_LB(lifted_name+"_LB");
+                                c_LB = vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                                if(f._range->first>0){
+                                    this->add(c_LB.in(unique_ids)>=0);
+                                }
+                                else if(f._range->first<0){
+                                    this->add(c_LB.in(unique_ids)<=0);
+                                }
+                            }
+                            orig_var2 = vlift.in(*orig_var2._indices);
+                        }
+                        else{
+                            auto vlift = static_pointer_cast<var<type>>(v_it->second);
+                            auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
+                            unique_ids.filter_refs(new_ids);/* Only keep new indices */
+                            vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
+                            auto x_lb = vlift->get_square_lb();
+                            auto x_ub = vlift->get_square_ub();
+                            x_lb->_indices->add_refs(unique_ids);
+                            x_ub->_indices->add_refs(unique_ids);
+                            x_lb->update_dim();
+                            x_ub->update_dim();
+                            vlift->_original_vars[0]->_indices->add_refs(unique_ids);
+                            vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
+                            vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
+                            auto added = vlift->_indices->add(unique_ids);
+                            if(!added.empty()){
+                                vlift->get_lb()._indices->add_refs(unique_ids);
+                                vlift->get_ub()._indices->add_refs(unique_ids);
+                                vlift->_lb->index_in(*vlift->_indices);
+                                vlift->_lb->uneval();
+                                vlift->_lb->eval_all();
+                                vlift->_ub->index_in(*vlift->_indices);
+                                vlift->_ub->uneval();
+                                vlift->_ub->eval_all();
+                                vlift->update_dim();
+                                reindex_vars();
+                                if(it->second==2){
+                                    if(add_McCormick_Constraints){
+                                        add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
+                                    }
+                                }
+                                else if(next_it->second==3){/* add relaxation of univariate power function */
+                                    Constraint<type> c_UB(lifted_name+"_UB");
+                                    auto ub_param = x1_unindexed.get_ub();
+                                    auto lb_param = x1_unindexed.get_lb();
+                                    c_UB = *vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                                    if(ub_param._range->second>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
+                                        this->add(c_UB.in(unique_ids)>=0);
+                                    }
+                                    else if(ub_param._range->second<0){
+                                        this->add(c_UB.in(unique_ids)<=0);
+                                    }
+                                    Constraint<type> c_LB(lifted_name+"_LB");
+                                    c_LB = *vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                                    if(lb_param._range->first>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
+                                        this->add(c_LB.in(unique_ids)>=0);
+                                    }
+                                    else if(lb_param._range->first<0){
+                                        this->add(c_LB.in(unique_ids)<=0);
+                                    }
+                                }
+                            }
+                            orig_var2 = vlift->in(*orig_var2._indices);
+                        }
+                    }
+                    /* Use the same order for lifting */
+                    if(orig_var._name+orig_var._indices->_keys->at(0) > orig_var2._name+orig_var2._indices->_keys->at(0)){
+                        swap(orig_var,orig_var2);
+                        DebugOff("x1 name "<< x1._name << endl);
+                        DebugOff("x2 name "<< x2._name << endl);
+                    }
+                    string lifted_name = "Lift("+orig_var.get_name(true,true)+";"+orig_var2.get_name(true,true)+")";
+                    auto x1_ids = *orig_var._indices;
+                    auto x2_ids = *orig_var2._indices;
+                    auto flat_ids = combine(x1_ids,x2_ids);
+                    flat_ids.set_name(orig_var._name+";"+orig_var2._name);
+                    auto unique_ids = flat_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
+                    if(unique_ids.size()!=flat_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
+                        auto keep_refs = flat_ids.get_unique_refs();
+                        x1_ids.filter_refs(keep_refs);
+                        x2_ids.filter_refs(keep_refs);
+                    }
+                    auto name1 = orig_var.get_name(true,true);
+                    auto name2 = orig_var2.get_name(true,true);
+                    func<double> lb, ub;/* lower and upper bounds for lifted variable */
+                    
+                    auto x1_unindexed = this->get_var<type>(name1);
+                    auto x2_unindexed = this->get_var<type>(name2);
+                    
+                    
                     auto v_it = _vars_name.find(lifted_name);
                     if(v_it==_vars_name.end()){/* New lifted variable */
                         /* Create the lifted variable with correct lower and upper bounds */
                         /* Get the unindexed variables from the model */
                         /* Get the */
-                        auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
-                        func<double> prod_b1 = pow(lb1,2);
-                        func<double> prod_b2 = pow(ub1,2);
-                        func<double> prod_b3 = lb1*ub1;
-                        auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
-                        auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
+                        auto lb1 = x1_unindexed.get_lb().in(x1_ids);auto ub1 = x1_unindexed.get_ub().in(x1_ids);
+                        auto lb2 = x2_unindexed.get_lb().in(x2_ids);auto ub2 = x2_unindexed.get_ub().in(x2_ids);
+                        func<double> prod_b1 = lb1*lb2;
+                        func<double> prod_b2 = lb1*ub2;
+                        func<double> prod_b3 = ub1*lb2;
+                        func<double> prod_b4 = ub1*ub2;
+                        lb = gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids),gravity::min(prod_b3,prod_b4).in(unique_ids));
+                        ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),gravity::max(prod_b3,prod_b4).in(unique_ids));
                         var<type> vlift(lifted_name, lb, ub);
                         vlift._lift = true;
                         vlift._lift_ub = true;
                         vlift._lift_lb = true;
-                        vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
-                        vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
+                        vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(x1_ids)));
+                        vlift._original_vars.push_back(make_shared<var<type>>(x2_unindexed.in(x2_ids)));
                         add(vlift.in(unique_ids));
-                        if(next_it->second==2){
-                            if(add_McCormick_Constraints){
-                                add_McCormick(lifted_name, vlift, x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
-                            }
+                        if(add_McCormick_Constraints){
+                            add_McCormick(lifted_name, vlift, x1_unindexed.in(x1_ids), x2_unindexed.in(x2_ids));
                         }
-                        else{
-                            Constraint<type> c(lifted_name);
-                            c = vlift - pow(x1_unindexed.in(unique_ids),next_it->second);
-                            /* add relaxation of univariate power function */
-                            this->add(c.in(unique_ids)==0,true);
-                        }
-                        orig_var2 = vlift.in(*orig_var2._indices);
+                        prev_lifted = vlift.in(flat_ids);
+    //                        Constraint<type> c(lifted_name);
+    //                        c = vlift - x1_unindexed.in(x1_ids)*x2_unindexed.in(x2_ids);
+    //                        /* add relaxation of univariate power function */
+    //                        this->add(c.in(unique_ids)==0,true);
                     }
                     else{
                         auto vlift = static_pointer_cast<var<type>>(v_it->second);
                         auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
                         unique_ids.filter_refs(new_ids);/* Only keep new indices */
-                        vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
-                        auto x_lb = vlift->get_square_lb();
-                        auto x_ub = vlift->get_square_ub();
-                        x_lb->_indices->add_refs(unique_ids);
-                        x_ub->_indices->add_refs(unique_ids);
-                        x_lb->update_dim();
-                        x_ub->update_dim();
-                        vlift->_original_vars[0]->_indices->add_refs(unique_ids);
-                        vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
-                        vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
-                        auto added = vlift->_indices->add(unique_ids);
-                        if(!added.empty()){
-                            vlift->get_lb()._indices->add_refs(unique_ids);
-                            vlift->get_ub()._indices->add_refs(unique_ids);
-                            vlift->_lb->index_in(*vlift->_indices);
-                            vlift->_lb->uneval();
-                            vlift->_lb->eval_all();
-                            vlift->_ub->index_in(*vlift->_indices);
-                            vlift->_ub->uneval();
-                            vlift->_ub->eval_all();
-                            vlift->update_dim();
-                            reindex_vars();
-                            if(it->second==2){
+                        if(!unique_ids.empty()){
+                            vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
+                            x1_ids.filter_refs(new_ids);
+                            x2_ids.filter_refs(new_ids);
+                            auto x1_lb = vlift->get_bilinear_lb1();
+                            auto x1_ub = vlift->get_bilinear_ub1();
+                            x1_lb->_indices->add_refs(x1_ids);
+                            x1_ub->_indices->add_refs(x1_ids);
+                            x1_lb->update_dim();
+                            x1_ub->update_dim();
+                            auto x2_lb = vlift->get_bilinear_lb2();
+                            auto x2_ub = vlift->get_bilinear_ub2();
+                            x2_lb->_indices->add_refs(x2_ids);
+                            x2_ub->_indices->add_refs(x2_ids);
+                            x2_lb->update_dim();
+                            x2_ub->update_dim();
+                            vlift->_original_vars[0]->_indices->add_refs(x1_ids);
+                            vlift->_original_vars[1]->_indices->add_refs(x2_ids);
+                            vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
+                            vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
+                            vlift->_original_vars[1]->_lb->index_in(*vlift->_original_vars[1]->_indices);
+                            vlift->_original_vars[1]->_ub->index_in(*vlift->_original_vars[1]->_indices);
+                            auto added = vlift->_indices->add(unique_ids);
+                            if(!added.empty()){
+                                vlift->get_lb()._indices->add_refs(unique_ids);
+                                vlift->get_ub()._indices->add_refs(unique_ids);
+                                vlift->_lb->index_in(*vlift->_indices);
+                                vlift->_lb->uneval();
+                                vlift->_lb->eval_all();
+                                vlift->_ub->index_in(*vlift->_indices);
+                                vlift->_ub->uneval();
+                                vlift->_ub->eval_all();
+                                vlift->update_dim();
+                                reindex_vars();
                                 if(add_McCormick_Constraints){
-                                    add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
+                                    add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(x1_ids), x2_unindexed.in(x2_ids));
                                 }
-                            }
-                            else{
-                                Constraint<type> c(lifted_name);
-                                c = vlift->in(unique_ids) - pow(x1_unindexed.in(unique_ids),next_it->second);
-                                /* add relaxation of univariate power function */
-                                this->add(c.in(unique_ids)==0,true);
+        //                            Constraint<type> c(lifted_name);
+        //                            c = vlift->in(unique_ids) - orig_var.in(x1_ids)*orig_var2.in(x2_ids);
+        //                            /* add relaxation of univariate power function */
+        //                            this->add(c.in(unique_ids)==0,true);
                             }
                         }
-                        orig_var2 = vlift->in(*orig_var2._indices);
+                        prev_lifted = vlift->in(flat_ids);
                     }
-                }
-                /* Use the same order for lifting */
-                if(orig_var._name+orig_var._indices->_keys->at(0) > orig_var2._name+orig_var2._indices->_keys->at(0)){
-                    swap(orig_var,orig_var2);
-                    DebugOff("x1 name "<< x1._name << endl);
-                    DebugOff("x2 name "<< x2._name << endl);
-                }
-                string lifted_name = "Lift("+orig_var.get_name(true,true)+";"+orig_var2.get_name(true,true)+")";
-                auto x1_ids = *orig_var._indices;
-                auto x2_ids = *orig_var2._indices;
-                auto flat_ids = combine(x1_ids,x2_ids);
-                flat_ids.set_name(orig_var._name+";"+orig_var2._name);
-                auto unique_ids = flat_ids.get_unique_keys(); /* In case of an indexed variable, keep the unique keys only */
-                if(unique_ids.size()!=flat_ids.size()){/* If some keys are repeated, remove them from the refs of o1 and o2 */
-                    auto keep_refs = flat_ids.get_unique_refs();
-                    x1_ids.filter_refs(keep_refs);
-                    x2_ids.filter_refs(keep_refs);
-                }
-                auto name1 = orig_var.get_name(true,true);
-                auto name2 = orig_var2.get_name(true,true);
-                func<double> lb, ub;/* lower and upper bounds for lifted variable */
-                
-                auto x1_unindexed = this->get_var<type>(name1);
-                auto x2_unindexed = this->get_var<type>(name2);
-                
-                
-                auto v_it = _vars_name.find(lifted_name);
-                if(v_it==_vars_name.end()){/* New lifted variable */
-                    /* Create the lifted variable with correct lower and upper bounds */
-                    /* Get the unindexed variables from the model */
-                    /* Get the */
-                    auto lb1 = x1_unindexed.get_lb().in(x1_ids);auto ub1 = x1_unindexed.get_ub().in(x1_ids);
-                    auto lb2 = x2_unindexed.get_lb().in(x2_ids);auto ub2 = x2_unindexed.get_ub().in(x2_ids);
-                    func<double> prod_b1 = lb1*lb2;
-                    func<double> prod_b2 = lb1*ub2;
-                    func<double> prod_b3 = ub1*lb2;
-                    func<double> prod_b4 = ub1*ub2;
-                    lb = gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids),gravity::min(prod_b3,prod_b4).in(unique_ids));
-                    ub = gravity::max(gravity::max(prod_b1,prod_b2).in(unique_ids),gravity::max(prod_b3,prod_b4).in(unique_ids));
-                    var<type> vlift(lifted_name, lb, ub);
-                    vlift._lift = true;
-                    vlift._lift_ub = true;
-                    vlift._lift_lb = true;
-                    vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(x1_ids)));
-                    vlift._original_vars.push_back(make_shared<var<type>>(x2_unindexed.in(x2_ids)));
-                    add(vlift.in(unique_ids));
-                    if(add_McCormick_Constraints){
-                        add_McCormick(lifted_name, vlift, x1_unindexed.in(x1_ids), x2_unindexed.in(x2_ids));
-                    }
-                    prev_lifted = vlift.in(flat_ids);
-//                        Constraint<type> c(lifted_name);
-//                        c = vlift - x1_unindexed.in(x1_ids)*x2_unindexed.in(x2_ids);
-//                        /* add relaxation of univariate power function */
-//                        this->add(c.in(unique_ids)==0,true);
-                }
-                else{
-                    auto vlift = static_pointer_cast<var<type>>(v_it->second);
-                    auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
-                    unique_ids.filter_refs(new_ids);/* Only keep new indices */
-                    if(!unique_ids.empty()){
-                        vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
-                        x1_ids.filter_refs(new_ids);
-                        x2_ids.filter_refs(new_ids);
-                        auto x1_lb = vlift->get_bilinear_lb1();
-                        auto x1_ub = vlift->get_bilinear_ub1();
-                        x1_lb->_indices->add_refs(x1_ids);
-                        x1_ub->_indices->add_refs(x1_ids);
-                        x1_lb->update_dim();
-                        x1_ub->update_dim();
-                        auto x2_lb = vlift->get_bilinear_lb2();
-                        auto x2_ub = vlift->get_bilinear_ub2();
-                        x2_lb->_indices->add_refs(x2_ids);
-                        x2_ub->_indices->add_refs(x2_ids);
-                        x2_lb->update_dim();
-                        x2_ub->update_dim();
-                        vlift->_original_vars[0]->_indices->add_refs(x1_ids);
-                        vlift->_original_vars[1]->_indices->add_refs(x2_ids);
-                        vlift->_original_vars[0]->_lb->index_in(*vlift->_original_vars[0]->_indices);
-                        vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
-                        vlift->_original_vars[1]->_lb->index_in(*vlift->_original_vars[1]->_indices);
-                        vlift->_original_vars[1]->_ub->index_in(*vlift->_original_vars[1]->_indices);
-                        auto added = vlift->_indices->add(unique_ids);
-                        if(!added.empty()){
-                            vlift->get_lb()._indices->add_refs(unique_ids);
-                            vlift->get_ub()._indices->add_refs(unique_ids);
-                            vlift->_lb->index_in(*vlift->_indices);
-                            vlift->_lb->uneval();
-                            vlift->_lb->eval_all();
-                            vlift->_ub->index_in(*vlift->_indices);
-                            vlift->_ub->uneval();
-                            vlift->_ub->eval_all();
-                            vlift->update_dim();
-                            reindex_vars();
-                            if(add_McCormick_Constraints){
-                                add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(x1_ids), x2_unindexed.in(x2_ids));
-                            }
-    //                            Constraint<type> c(lifted_name);
-    //                            c = vlift->in(unique_ids) - orig_var.in(x1_ids)*orig_var2.in(x2_ids);
-    //                            /* add relaxation of univariate power function */
-    //                            this->add(c.in(unique_ids)==0,true);
-                        }
-                    }
-                    prev_lifted = vlift->in(flat_ids);
                 }
             }
             else {

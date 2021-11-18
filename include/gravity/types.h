@@ -258,10 +258,10 @@
         
         string get_name() const{
             string name = _name;
-            if(_type==from_){
+            if(_type==from_ && name.find("from") == std::string::npos){
                 name = "from("+name+")";
             }
-            else if(_type==to_){
+            else if(_type==to_ && name.find("to") == std::string::npos){
                 name = "to("+name+")";
             }
 //            if(size()==1){
