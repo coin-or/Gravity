@@ -60,7 +60,8 @@ int main (int argc, char * argv[])
         fname=argv[1];
     }
     else{
-        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+        fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }
     if(argc>=3){
         lin_solver=argv[2];
@@ -180,24 +181,24 @@ int main (int argc, char * argv[])
     Constraint<> PAD_UB("PAD_UB");
     PAD_UB = Im_Wij;
     PAD_UB <= grid.tan_th_max*R_Wij;
-//    SOCP.add(PAD_UB.in(node_pairs));
+    SOCP.add(PAD_UB.in(node_pairs));
     
     Constraint<> PAD_LB("PAD_LB");
     PAD_LB =  Im_Wij;
     PAD_LB >= grid.tan_th_min*R_Wij;
-//    SOCP.add(PAD_LB.in(node_pairs));
+    SOCP.add(PAD_LB.in(node_pairs));
     
     /* Thermal Limit Constraints */
     Constraint<> Thermal_Limit_from("Thermal_Limit_from");
     Thermal_Limit_from = pow(Pf_from, 2) + pow(Qf_from, 2);
     Thermal_Limit_from <= pow(grid.S_max,2);
-//    SOCP.add(Thermal_Limit_from.in(arcs));
+    SOCP.add(Thermal_Limit_from.in(arcs));
     
     
     Constraint<> Thermal_Limit_to("Thermal_Limit_to");
     Thermal_Limit_to = pow(Pf_to, 2) + pow(Qf_to, 2);
     Thermal_Limit_to <= pow(grid.S_max,2);
-//    SOCP.add(Thermal_Limit_to.in(arcs));
+    SOCP.add(Thermal_Limit_to.in(arcs));
     
     /* Lifted Nonlinear Cuts */
     Constraint<> LNC1("LNC1");

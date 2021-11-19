@@ -356,6 +356,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
         /* Use the same order for lifting */
 //        if(x1_ptr->_name+x1_ptr->_indices->_keys->at(0) > x2_ptr->_name+x2_ptr->_indices->_keys->at(0)){
         if(x1_ptr->_indices->_keys->at(0) > x2_ptr->_indices->_keys->at(0)){
+//        if(x1_ptr->_name > x2_ptr->_name){
             x2_ptr = static_pointer_cast<var<type>>(qterm._p->first);
             x1_ptr = static_pointer_cast<var<type>>(qterm._p->second);
             DebugOff("x1 name "<< x1._name << endl);
@@ -409,7 +410,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                 func<double> prod_b2 = pow(ub1,2);
                 func<double> prod_b3 = lb1*ub1;
                 lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
-                ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
+                ub = gravity::max(prod_b1,prod_b2);
             }
             else {
                 auto lb2 = x2_unindexed.get_lb().in(x2_ids);auto ub2 = x2_unindexed.get_ub().in(x2_ids);
@@ -449,8 +450,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
             auto new_ids = unique_ids.get_diff_refs(*vlift->_indices);/* Get the new indices */
             unique_ids.filter_refs(new_ids);/* Only keep new indices */
             vlift->_lb->merge_vars(*vlift->_ub);/* Make sure the parameters are shared among both functions */
+            x1_ids.filter_refs(new_ids);
+            x2_ids.filter_refs(new_ids);
             if(is_square){
-                x1_ids.filter_refs(new_ids);
                 auto x_lb = vlift->get_square_lb();
                 auto x_ub = vlift->get_square_ub();
                 x_lb->_indices->add_refs(x1_ids);
@@ -462,8 +464,6 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                 vlift->_original_vars[0]->_ub->index_in(*vlift->_original_vars[0]->_indices);
             }
             else{
-                x1_ids.filter_refs(new_ids);
-                x2_ids.filter_refs(new_ids);
                 auto x1_lb = vlift->get_bilinear_lb1();
                 auto x1_ub = vlift->get_bilinear_ub1();
                 x1_lb->_indices->add_refs(x1_ids);
@@ -582,14 +582,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                         /* Create the lifted variable with correct lower and upper bounds */
                         /* Get the unindexed variables from the model */
                         /* Get the */
-//                        auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
-//                        func<double> prod_b1 = pow(lb1,next_it->second);
-//                        func<double> prod_b2 = pow(ub1,next_it->second);
-//                        func<double> prod_b3 = lb1*ub1;
-//                        auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
-//                        auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
-                        auto f = pow(x1_unindexed,next_it->second);
-                        var<type> vlift(lifted_name, f._range->first, f._range->second);
+                        auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
+                        func<double> prod_b1 = pow(lb1,next_it->second);
+                        func<double> prod_b2 = pow(ub1,next_it->second);
+                        func<double> prod_b3 = lb1*ub1;
+                        auto lb = prod_b1;
+                        if(it->second%2==0)
+                            lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
+                        auto ub = gravity::max(prod_b1,prod_b2).in(unique_ids);/* max(lb^2,ub^2) */
+                        var<type> vlift(lifted_name, lb, ub);
+//                        auto f = pow(x1_unindexed,next_it->second);
+//                        var<type> vlift(lifted_name, f._range->first, f._range->second);
                         vlift._lift = true;
                         vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
                         vlift._original_vars.push_back(make_shared<var<type>>(x1_unindexed.in(unique_ids)));
@@ -599,7 +602,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                 add_McCormick(lifted_name, vlift, x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
                             }
                         }
-                        else if(next_it->second==3){/* add relaxation of univariate power function */
+                        else if(it->second==3){/* add relaxation of univariate power function */
                             Constraint<type> c_UB(lifted_name+"_UB");
                             auto ub_param = x1_unindexed.get_ub();
                             auto lb_param = x1_unindexed.get_lb();
@@ -619,6 +622,17 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                 this->add(c_LB.in(unique_ids)<=0);
                             }
                         }
+                        else if(it->second==4){/* add relaxation of univariate power function */
+                            Constraint<type> c_UB(lifted_name+"_conv");
+                            c_UB = vlift - pow(x1_unindexed.in(unique_ids),4);
+//                            this->add(c_UB.in(unique_ids)>=0);
+
+                            auto ub_param = x1_unindexed.get_ub().in(unique_ids);
+                            auto lb_param = x1_unindexed.get_lb().in(unique_ids);
+                            Constraint<type> c_LB(lifted_name+"_secant");
+                            c_LB = vlift - pow(ub_param,4) - ((pow(ub_param,4) - pow(lb_param,4))/(ub_param - lb_param))*(x1_unindexed.in(unique_ids) - ub_param);
+                            this->add(c_LB.in(unique_ids)<=0);
+                        }
                         else{
                             Constraint<type> c(lifted_name);
                             c = vlift - pow(x1_unindexed.in(unique_ids),it->second);
@@ -626,6 +640,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
 //                            this->add(c.in(unique_ids)==0,true);
                         }
                         orig_var = vlift.in(*orig_var._indices);
+                        prev_lifted = orig_var;
                     }
                     else{
                         auto vlift = static_pointer_cast<var<type>>(v_it->second);
@@ -658,11 +673,11 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                     add_McCormick(lifted_name, vlift->in(unique_ids), x1_unindexed.in(unique_ids), x1_unindexed.in(unique_ids));
                                 }
                             }
-                            else if(next_it->second==3){/* add relaxation of univariate power function */
+                            else if(it->second==3){/* add relaxation of univariate power function */
                                 Constraint<type> c_UB(lifted_name+"_UB");
                                 auto ub_param = x1_unindexed.get_ub();
                                 auto lb_param = x1_unindexed.get_lb();
-                                c_UB = *vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                                c_UB = vlift->in(unique_ids) - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
                                 if(ub_param._range->second>0){
                                     this->add(c_UB.in(unique_ids)>=0);
                                 }
@@ -670,7 +685,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                     this->add(c_UB.in(unique_ids)<=0);
                                 }
                                 Constraint<type> c_LB(lifted_name+"_LB");
-                                c_LB = *vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                                c_LB = vlift->in(unique_ids) - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
                                 if(lb_param._range->first>0){
                                     this->add(c_LB.in(unique_ids)>=0);
                                 }
@@ -678,14 +693,26 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                     this->add(c_LB.in(unique_ids)<=0);
                                 }
                             }
+                            else if(it->second==4){/* add relaxation of univariate power function */
+                                Constraint<type> c_UB(lifted_name+"_conv");
+                                c_UB = vlift->in(unique_ids) - pow(x1_unindexed.in(unique_ids),4);
+//                                this->add(c_UB.in(unique_ids)>=0);
+
+                                auto ub_param = x1_unindexed.get_ub();
+                                auto lb_param = x1_unindexed.get_lb();
+                                Constraint<type> c_LB(lifted_name+"_secant");
+                                c_LB = vlift->in(unique_ids) - pow(ub_param,4) - ((pow(ub_param,4) - pow(lb_param,4))/(ub_param - lb_param))*(x1_unindexed.in(unique_ids) - ub_param);
+//                                this->add(c_LB.in(unique_ids)<=0);
+                            }
                             else{
                                 Constraint<type> c(lifted_name);
                                 c = vlift->in(unique_ids) - pow(orig_var.in(unique_ids),it->second);
                                 /* add relaxation of univariate power function */
 //                                this->add(c.in(unique_ids)==0,true);
                             }
-                            orig_var = vlift->in(*orig_var._indices);
                         }
+                        orig_var = vlift->in(*orig_var._indices);
+                        prev_lifted = orig_var;
                     }
                 }
                 else if(i>0){
@@ -708,15 +735,15 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                             /* Create the lifted variable with correct lower and upper bounds */
                             /* Get the unindexed variables from the model */
                             /* Get the */
-//                            auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
-//                            func<double> prod_b1 = pow(lb1,next_it->second);
-//                            func<double> prod_b2 = pow(ub1,next_it->second);
-//                            func<double> prod_b3 = lb1*ub1;
-//                            auto lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
-//                            auto ub = gravity::max(prod_b1,prod_b2);/* max(lb^2,ub^2) */
-//                            var<type> vlift(lifted_name, lb, ub);
-                            auto f = pow(x1_unindexed,next_it->second);
-                            var<type> vlift(lifted_name, f._range->first, f._range->second);
+                            auto lb1 = x1_unindexed.get_lb().in(unique_ids);auto ub1 = x1_unindexed.get_ub().in(unique_ids);
+                            func<double> prod_b1 = pow(lb1,next_it->second);
+                            func<double> prod_b2 = pow(ub1,next_it->second);
+                            func<double> prod_b3 = lb1*ub1;
+                            auto lb = prod_b1;
+                            if(next_it->second%2==0)
+                                lb = gravity::max(gravity::min(gravity::min(prod_b1,prod_b2).in(unique_ids), prod_b3).in(unique_ids), func<type>());
+                            auto ub = gravity::max(prod_b1,prod_b2).in(unique_ids);
+                            var<type> vlift(lifted_name, lb, ub);
                             vlift._lift = true;
                             vlift._lift_ub = true;
                             vlift._lift_lb = true;
@@ -733,20 +760,31 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                 auto ub_param = x1_unindexed.get_ub();
                                 auto lb_param = x1_unindexed.get_lb();
                                 c_UB = vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
-                                if(f._range->second>0){
+                                if(vlift._range->second>0){
                                     this->add(c_UB.in(unique_ids)>=0);
                                 }
-                                else if(f._range->second<0){
+                                else if(vlift._range->second<0){
                                     this->add(c_UB.in(unique_ids)<=0);
                                 }
                                 Constraint<type> c_LB(lifted_name+"_LB");
                                 c_LB = vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
-                                if(f._range->first>0){
+                                if(vlift._range->first>0){
                                     this->add(c_LB.in(unique_ids)>=0);
                                 }
-                                else if(f._range->first<0){
+                                else if(vlift._range->first<0){
                                     this->add(c_LB.in(unique_ids)<=0);
                                 }
+                            }
+                            else if(next_it->second==4){/* add relaxation of univariate power function */
+                                Constraint<type> c_UB(lifted_name+"_conv");
+                                c_UB = vlift - pow(x1_unindexed.in(unique_ids),4);
+                                this->add(c_UB.in(unique_ids)>=0);
+
+                                auto ub_param = x1_unindexed.get_ub();
+                                auto lb_param = x1_unindexed.get_lb();
+                                Constraint<type> c_LB(lifted_name+"_secant");
+                                c_LB = vlift - pow(ub_param,4) - ((pow(ub_param,4) - pow(lb_param,4))/(ub_param - lb_param))*(x1_unindexed.in(unique_ids) - ub_param);
+                                this->add(c_LB.in(unique_ids)<=0);
                             }
                             orig_var2 = vlift.in(*orig_var2._indices);
                         }
@@ -785,7 +823,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                     Constraint<type> c_UB(lifted_name+"_UB");
                                     auto ub_param = x1_unindexed.get_ub();
                                     auto lb_param = x1_unindexed.get_lb();
-                                    c_UB = *vlift - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
+                                    c_UB = vlift->in(unique_ids) - 3*pow(ub_param,2)*x1_unindexed.in(unique_ids) + 2*pow(ub_param,3);
                                     if(ub_param._range->second>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
                                         this->add(c_UB.in(unique_ids)>=0);
                                     }
@@ -793,7 +831,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                         this->add(c_UB.in(unique_ids)<=0);
                                     }
                                     Constraint<type> c_LB(lifted_name+"_LB");
-                                    c_LB = *vlift - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
+                                    c_LB = vlift->in(unique_ids) - 3*pow(lb_param,2)*x1_unindexed.in(unique_ids) + 2*pow(lb_param,3);
                                     if(lb_param._range->first>0){/* TODO: this assumes all instances have the same UB! Need to split the constraint depending on UB sign of each instance */
                                         this->add(c_LB.in(unique_ids)>=0);
                                     }
@@ -801,12 +839,24 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                                         this->add(c_LB.in(unique_ids)<=0);
                                     }
                                 }
+                                else if(next_it->second==4){/* add relaxation of univariate power function */
+                                    Constraint<type> c_UB(lifted_name+"_conv");
+                                    c_UB = vlift->in(unique_ids) - pow(x1_unindexed.in(unique_ids),4);
+                                    this->add(c_UB.in(unique_ids)>=0);
+
+                                    auto ub_param = x1_unindexed.get_ub().in(unique_ids);
+                                    auto lb_param = x1_unindexed.get_lb().in(unique_ids);
+                                    Constraint<type> c_LB(lifted_name+"_secant");
+                                    c_LB = vlift->in(unique_ids) - pow(ub_param,4) - ((pow(ub_param,4) - pow(lb_param,4))/(ub_param - lb_param))*(x1_unindexed.in(unique_ids) - ub_param);
+                                    this->add(c_LB.in(unique_ids)<=0);
+                                }
                             }
                             orig_var2 = vlift->in(*orig_var2._indices);
                         }
                     }
                     /* Use the same order for lifting */
                     if(orig_var._name+orig_var._indices->_keys->at(0) > orig_var2._name+orig_var2._indices->_keys->at(0)){
+//                    if(false && orig_var._name > orig_var2._name){
                         swap(orig_var,orig_var2);
                         DebugOff("x1 name "<< x1._name << endl);
                         DebugOff("x2 name "<< x2._name << endl);
@@ -852,6 +902,7 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                         add(vlift.in(unique_ids));
                         if(add_McCormick_Constraints){
                             add_McCormick(lifted_name, vlift, x1_unindexed.in(x1_ids), x2_unindexed.in(x2_ids));
+//                            print();
                         }
                         prev_lifted = vlift.in(flat_ids);
     //                        Constraint<type> c(lifted_name);

@@ -24,7 +24,7 @@ int main (int argc, char * argv[]) {
     int output = 0;
     bool sdp_cuts = true;
     
-    bool current_from = true, llnc=true, current_to=true, loss=true, loss_bounds=true, current;
+    bool current_from = true, llnc=true, current_to=true, loss=true, loss_bounds=true, current = false;
     
     size_t num_bags = 0;
     string num_bags_s = "100";
@@ -255,7 +255,7 @@ int main (int argc, char * argv[]) {
     R_Wij.initialize_all(1.0);
     Wii.initialize_all(1.00);
     
-    current = true;
+    current = false;
     var<> lij("lij", lij_min,lij_max);
     var<> lji("lji", lji_min,lji_max);
     
@@ -407,14 +407,14 @@ int main (int argc, char * argv[]) {
     LNC1 -= grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
     LNC1 -= grid.v_max.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
     LNC1 -= grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
-    SDP.add(LNC1.in(node_pairs) >= 0);
+//    SDP.add(LNC1.in(node_pairs) >= 0);
     
     Constraint<> LNC2("LNC2");
     LNC2 += (grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*(grid.sphi*Im_Wij + grid.cphi*R_Wij);
     LNC2 -= grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.to(node_pairs)+grid.v_max.to(node_pairs))*Wii.from(node_pairs);
     LNC2 -= grid.v_min.from(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)+grid.v_max.from(node_pairs))*Wii.to(node_pairs);
     LNC2 += grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs)*grid.cos_d*(grid.v_min.from(node_pairs)*grid.v_min.to(node_pairs) - grid.v_max.from(node_pairs)*grid.v_max.to(node_pairs));
-    SDP.add(LNC2.in(node_pairs) >= 0);
+//    SDP.add(LNC2.in(node_pairs) >= 0);
     
     
     if(current){

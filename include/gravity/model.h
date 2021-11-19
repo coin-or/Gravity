@@ -1909,57 +1909,59 @@ public:
                 auto diag1 = "Lift("+name_v1+"^2)";
                 auto diag2 = "Lift("+name_v2+"^2)";
                 auto diag3 = "Lift("+name_v3+"^2)";
-                auto Wii_0 = relax->template get_var<double>(diag1)(id1);
-                auto Wii_1 = relax->template get_var<double>(diag2)(id2);
-                auto Wii_2 = relax->template get_var<double>(diag3)(id3);
                 auto offdiag1 = "Lift("+name_v1+";"+name_v2+")";
                 auto offdiag2 = "Lift("+name_v1+";"+name_v3+")";
                 auto offdiag3 = "Lift("+name_v3+";"+name_v2+")";
-                auto offdiag_id1 = id1+","+id2;
-                auto offdiag_id2 = id1+","+id3;
-                auto offdiag_id3 = id2+","+id3;
-                
-                auto Wij_0 = relax->template get_var<double>(offdiag1);
-                auto Wij_1 = relax->template get_var<double>(offdiag2);
-                auto Wij_2 = relax->template get_var<double>(offdiag3);
-                
-                auto x1 = relax->template get_var<double>(name_v1)(id1);
-                auto x2 = relax->template get_var<double>(name_v2)(id2);
-                auto x3 = relax->template get_var<double>(name_v3)(id3);
-                
-                bool add_cycle = true;
-                if(add_cycle){
-                    Constraint<> NCSOC1("1NC-SOC"+to_string(bag_id++));
-                    NCSOC1 = x1*x1 + x2*x2 - 2*x1*x2;
-                    relax->add(NCSOC1.in(range(1,1)) >= 0, true);
-                    NCSOC1.print();
+                if(relax->has_var(diag1) && relax->has_var(diag2) && relax->has_var(diag3) && relax->has_var(offdiag1) && relax->has_var(offdiag2) && relax->has_var(offdiag3)){
+                    auto Wii_0 = relax->template get_var<double>(diag1)(id1);
+                    auto Wii_1 = relax->template get_var<double>(diag2)(id2);
+                    auto Wii_2 = relax->template get_var<double>(diag3)(id3);
+                    auto offdiag_id1 = id1+","+id2;
+                    auto offdiag_id2 = id1+","+id3;
+                    auto offdiag_id3 = id2+","+id3;
                     
-                    Constraint<> NCSOC2("2NC-SOC"+to_string(bag_id++));
-                    NCSOC2 = x2*x2 + x3*x3 - 2*x2*x3;
-                    relax->add(NCSOC2.in(range(1,1)) >= 0, true);
+                    auto Wij_0 = relax->template get_var<double>(offdiag1);
+                    auto Wij_1 = relax->template get_var<double>(offdiag2);
+                    auto Wij_2 = relax->template get_var<double>(offdiag3);
                     
-                    Constraint<> NCSOC3("3NC-SOC"+to_string(bag_id++));
-                    NCSOC3 = x1*x1 + x3*x3 - 2*x1*x3;
-                    relax->add(NCSOC3.in(range(1,1)) >= 0, true);
+                    auto x1 = relax->template get_var<double>(name_v1)(id1);
+                    auto x2 = relax->template get_var<double>(name_v2)(id2);
+                    auto x3 = relax->template get_var<double>(name_v3)(id3);
                     
-                    //                                Constraint<> Cycle2("Cycle2");
-                    //                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
-                    //                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                    bool add_cycle = true;
+                    if(add_cycle){
+                        Constraint<> NCSOC1("1NC-SOC"+to_string(bag_id++));
+                        NCSOC1 = x1*x1 + x2*x2 - 2*x1*x2;
+                        relax->add(NCSOC1.in(range(1,1)) >= 0, true);
+                        NCSOC1.print();
+                        
+                        Constraint<> NCSOC2("2NC-SOC"+to_string(bag_id++));
+                        NCSOC2 = x2*x2 + x3*x3 - 2*x2*x3;
+                        relax->add(NCSOC2.in(range(1,1)) >= 0, true);
+                        
+                        Constraint<> NCSOC3("3NC-SOC"+to_string(bag_id++));
+                        NCSOC3 = x1*x1 + x3*x3 - 2*x1*x3;
+                        relax->add(NCSOC3.in(range(1,1)) >= 0, true);
+                        
+                        //                                Constraint<> Cycle2("Cycle2");
+                        //                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
+                        //                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                        
+                        //                    Constraint<> Cycle3("Cycle3");
+                        //                    Cycle3 = Wij_1*Wij_2 - Wii_2*Wij_0;
+                        //                    relax->add(Cycle3.in(range(1,1)) == 0, true);
+                    }
                     
-                    //                    Constraint<> Cycle3("Cycle3");
-                    //                    Cycle3 = Wij_1*Wij_2 - Wii_2*Wij_0;
-                    //                    relax->add(Cycle3.in(range(1,1)) == 0, true);
-                }
-                
-                if(Wij_0._indices->has_key(offdiag_id1) && Wij_1._indices->has_key(offdiag_id2) && Wij_2._indices->has_key(offdiag_id3)){
-                    Constraint<> SDP3("SDP_3D_bag"+to_string(bag_id++));
-                    SDP3 = 2 * Wij_0(offdiag_id1) * Wij_1(offdiag_id2) * Wij_2(offdiag_id3);
-                    SDP3 -= pow(Wij_0(offdiag_id1), 2) * Wii_2;
-                    SDP3 -= pow(Wij_1(offdiag_id2), 2) * Wii_1;
-                    SDP3 -= pow(Wij_2(offdiag_id3), 2) * Wii_0;
-                    SDP3 += Wii_0 * Wii_1 * Wii_2;
-                    relax->add(SDP3.in(range(1, 1)) >= 0);
-                    SDP3.print();
+                    if(Wij_0._indices->has_key(offdiag_id1) && Wij_1._indices->has_key(offdiag_id2) && Wij_2._indices->has_key(offdiag_id3)){
+                        Constraint<> SDP3("SDP_3D_bag"+to_string(bag_id++));
+                        SDP3 = 2 * Wij_0(offdiag_id1) * Wij_1(offdiag_id2) * Wij_2(offdiag_id3);
+                        SDP3 -= pow(Wij_0(offdiag_id1), 2) * Wii_2;
+                        SDP3 -= pow(Wij_1(offdiag_id2), 2) * Wii_1;
+                        SDP3 -= pow(Wij_2(offdiag_id3), 2) * Wii_0;
+                        SDP3 += Wii_0 * Wii_1 * Wii_2;
+                        relax->add(SDP3.in(range(1, 1)) >= 0);
+                        SDP3.print();
+                    }
                 }
             }
             
@@ -1996,11 +1998,13 @@ public:
                         //                            }
                         //                            relax->add(diag.in(*v2._indices)<=0,true);
                         //                        }
-                        auto vdiag1 = relax->template get_var<double>(name1);
-                        auto vdiag2 = relax->template get_var<double>(name2);
-                        Constraint<> SOC(vv->_name+"_SOC_diag");
-                        SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                        relax->add(SOC.in(*vv->_indices) <= 0);
+                        if(relax->has_var(name1) && relax->has_var(name2)){
+                            auto vdiag1 = relax->template get_var<double>(name1);
+                            auto vdiag2 = relax->template get_var<double>(name2);
+                            Constraint<> SOC(vv->_name+"_SOC_diag");
+                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+                            relax->add(SOC.in(*vv->_indices) <= 0);
+                        }
                         //                        SOC.print();
                     }
                 }
@@ -4229,31 +4233,35 @@ public:
             Constraint<type> MC1(name+"_McCormick1");
             MC1 += vlift;
             MC1 -= lb1_*v2 + lb2_*v1 - lb1_*lb2_;
-            MC1 >= 0;
+//            MC1 >= 0;
             //                MC1._relaxed = true; /* MC1 is a relaxation of a non-convex constraint */
-            add(MC1.in(*vlift._indices));
+            add(MC1.in(*vlift._indices) >=0);
             //    MC1.print();
             Constraint<type> MC2(name+"_McCormick2");
             MC2 += vlift;
             MC2 -= ub1_*v2 + ub2_*v1 - ub1_*ub2_;
-            MC2 >= 0;
+//            MC2 >= 0;
             //                MC2._relaxed = true; /* MC2 is a relaxation of a non-convex constraint */
-            add(MC2.in(*vlift._indices));
-            
-            //    //    MC2.print();
+            if(!MC2.is_constant()){
+                add(MC2.in(*vlift._indices)>=0);
+//                MC2.print();
+//                print(false);
+            }
+
+
             Constraint<type> MC3(name+"_McCormick3");
             MC3 += vlift;
             MC3 -= lb1_*v2 + ub2_*v1 - lb1_*ub2_;
-            MC3 <= 0;
+//            MC3 <= 0;
             //                MC3._relaxed = true; /* MC3 is a relaxation of a non-convex constraint */
-            add(MC3.in(*vlift._indices));
+            add(MC3.in(*vlift._indices)<=0);
             //    //    MC3.print();
             Constraint<type> MC4(name+"_McCormick4");
             MC4 += vlift;
             MC4 -= ub1_*v2 + lb2_*v1 - ub1_*lb2_;
-            MC4 <= 0;
+//            MC4 <= 0;
             //                MC4._relaxed = true; /* MC4 is a relaxation of a non-convex constraint */
-            add(MC4.in(*vlift._indices));
+            add(MC4.in(*vlift._indices)<=0);
         }
         else {
             if (vlift._lift_ub){
