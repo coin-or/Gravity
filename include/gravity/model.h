@@ -55,8 +55,14 @@ const bool cstr_compare(const shared_ptr<Constraint<type>>& c1, const shared_ptr
     //                return true;
     //            if(c2->is_linear() && !c1->is_linear())
     //                return false;
-    if(c1->get_nb_inst() > c2->get_nb_inst())
+    if(c1->get_nb_vars() < c2->get_nb_vars())
         return true;
+//    if(c1->get_nb_vars()==1)
+//        return true;
+//    if(c2->get_nb_vars()==1)
+//        return false;
+//    if(c1->get_nb_inst() > c2->get_nb_inst())
+//        return true;
     return false;
     //                return c1->nb_linear_terms(0) > c2->nb_linear_terms(0);
 }
@@ -1822,9 +1828,13 @@ public:
                 if(cp.second->is_convex()){
                     relax->add(*c_cpy);
                 }
-                else {
-                    relax->add(*c_cpy,true);
+//                else {
+                if(!c_cpy->is_linear()){
+                    auto lifted_c = *c_cpy;
+                    lifted_c._name += "_lift";
+                    relax->add(lifted_c,true);
                 }
+//                }
             }
         }
         if(_obj->is_convex()){
@@ -1960,7 +1970,7 @@ public:
                         SDP3 -= pow(Wij_2(offdiag_id3), 2) * Wii_0;
                         SDP3 += Wii_0 * Wii_1 * Wii_2;
                         relax->add(SDP3.in(range(1, 1)) >= 0);
-                        SDP3.print();
+//                        SDP3.print();
                     }
                 }
             }
@@ -2003,7 +2013,8 @@ public:
                             auto vdiag2 = relax->template get_var<double>(name2);
                             Constraint<> SOC(vv->_name+"_SOC_diag");
                             SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                            relax->add(SOC.in(*vv->_indices) <= 0);
+                            if(SOC.get_nb_vars()==3)
+                                relax->add(SOC.in(*vv->_indices) <= 0);
                         }
                         //                        SOC.print();
                     }
@@ -2219,7 +2230,24 @@ public:
                     eq.add_linear_row(con,inst);
                     delete_cstr.push_back(con->get_name());
                 }
-                add(eq==0);
+                if(eq.get_nb_vars()==1){
+                    if(nb_cont_vars==1){
+                        auto x = get_var<double>(con0->get_lterm_cont_var_name(0,inst0));
+                        auto c_lb = con0->eval_cst(inst0);
+                        auto coef = con0->eval_lterm_cont_coef(0,inst0);
+                        x._lb->_val->at(con0->get_lterm_cont_var_id(0,inst0)) = c_lb/coef;
+                        x._ub->_val->at(con0->get_lterm_cont_var_id(0,inst0)) = c_lb/coef;
+                    }
+                    else{
+                        auto x = get_var<double>(con0->get_lterm_int_var_name(0,inst0));
+                        auto c_lb = con0->eval_cst(inst0);
+                        auto coef = con0->eval_lterm_int_coef(0,inst0);
+                        x._lb->_val->at(con0->get_lterm_int_var_id(0,inst0)) = c_lb/coef;
+                        x._ub->_val->at(con0->get_lterm_int_var_id(0,inst0)) = c_lb/coef;
+                    }
+                }
+//                else
+                    add(eq==0);
                 delete_cstr.push_back(con0->get_name());
             }
             index++;
@@ -2392,6 +2420,7 @@ public:
             auto con_vec = iter.second;
             if(con_vec.size()>0){
                 auto con0 = con_vec[0].second;
+                con0->allocate_mem();
                 auto inst0 = con_vec[0].first;
                 Constraint<> leq("quad_ineq_"+to_string(index));
                 param<> c0("c0_quad_ineq_"+to_string(index));
@@ -2486,6 +2515,7 @@ public:
                 leq.in(leq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
                     auto con = con_vec[i].second;
+                    con->allocate_mem();
                     auto inst = con_vec[i].first;
                     leq.add_quad_row(con,inst);
                     delete_cstr.push_back(con->get_name());

@@ -1929,7 +1929,8 @@ namespace gravity {
                 }
                 _off.resize(dim,false);
                 param res(*this);
-                res._name += ".in("+ids.get_name()+")";
+//                if(res._name.find(".in")==std::string::npos)
+                    res._name += ".in("+ids.get_name()+")";
                 return res;
             }
             string key, excluded;
@@ -2009,7 +2010,8 @@ namespace gravity {
                     res._dim[0]=res._indices->_ids->at(0).size();
                 }
             }
-            res._name += ".in("+ids.get_name()+")";
+//            if(res._name.find(".in")==std::string::npos)
+                res._name += ".in("+ids.get_name()+")";
             res._indices->set_name(ids.get_name());
             if(!excluded.empty()){
                 excluded = excluded.substr(0,excluded.size()-1); /* remove last comma */

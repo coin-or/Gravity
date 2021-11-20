@@ -49,32 +49,33 @@ TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
     DebugOn("Done projecting\n");
     solver<> s2(OPF_proj,ipopt);
     status = s2.run(output=5, tol=1e-6);
-//    OPF_proj->is_feasible(tol);
+////    OPF_proj->is_feasible(tol);
+////    OPF_proj->print_solution();
+//    for (const auto &p: proj_pairs) {
+//        auto v = p.first;
+//        auto f = p.second;
+//        OPF_proj->merge_vars(f);
+//        f->eval_all();
+//        v->copy_vals(*f);
+//    }
 //    OPF_proj->print_solution();
-    for (const auto &p: proj_pairs) {
-        auto v = p.first;
-        auto f = p.second;
-        OPF_proj->merge_vars(f);
-        f->eval_all();
-        v->copy_vals(*f);
-    }
-    OPF_proj->print_solution();
-    OPF->copy_solution(OPF_proj);
-    OPF->reset_constrs();
-    OPF->print_constraints_stats(tol);
-    
-    auto Rel = OPF_proj->relax(3,false,true);
+//    OPF->copy_solution(OPF_proj);
+//    OPF->reset_constrs();
+//    OPF->print_constraints_stats(tol);
+//    OPF_proj->restructure();
+    auto Rel = OPF_proj->relax(3,false,false);
     Rel->print();
     solver<> srel(Rel,ipopt);
     status = srel.run(output=5, tol=1e-6);
+    Rel->print_constraints_stats(tol);
 //    Rel->print_constraints_stats(tol);
 //    SDP->_aux_eqs = proj_pairs;
 //    SDP->copy_aux_vars_status(SDP_proj);
 
 
 
-//    auto res=OPF_proj->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-//    exit(1);
+    auto res=OPF->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+    exit(1);
 //    solver<> s2(SDP_proj,ipopt);
 //    auto status = s2.run(output=5, tol=1e-6);
 //    CHECK(std::abs(SDP_proj->get_obj_val()- SDP->get_obj_val())/SDP->get_obj_val() < 0.001);

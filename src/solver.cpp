@@ -729,7 +729,7 @@ bool Model<type>::obbt_batch_update_bounds(const std::vector<std::string> object
             objk=sol_obj.at(s);
             
             this->obbt_update_bounds(bound_converge,objk, msname,vkname, keyk, dirk,  models,  obbt_model,   fixed_point,  interval_original,  ub_original,  lb_original, terminate, fail, range_tol, fixed_tol_abs, fixed_tol_rel,  zero_tol, run_obbt_iter);
-            
+            models[s]->reset_lifted_vars_bounds();
             
             
 #ifdef USE_MPI

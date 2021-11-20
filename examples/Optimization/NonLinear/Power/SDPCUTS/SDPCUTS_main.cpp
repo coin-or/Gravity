@@ -122,6 +122,7 @@ int main (int argc, char * argv[]) {
     }
     else{
         fname=string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     }
     
     
@@ -270,7 +271,7 @@ int main (int argc, char * argv[]) {
     //    Constraint<> obj_UB("obj_UB");
     //    obj_UB  = (product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))-eta(0)*upper_bound;
     //    SDP.add(obj_UB.in(range(0,0)) <= 0);
-    auto obj=(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
+    auto obj=1e-3*(product(c1,Pg) + product(c2,pow(Pg,2)) + sum(c0))/upper_bound;
     SDP.min(obj);
     
     
@@ -458,7 +459,7 @@ int main (int argc, char * argv[]) {
     
     
     double solver_time_start;
-    
+    SDP.print();
     solver<> SDPOPF(SDP,solv_type);
     solver_time_start = get_wall_time();
     
@@ -484,7 +485,7 @@ int main (int argc, char * argv[]) {
     DebugOn("Final Gap = " << to_string(gap) << "%."<<endl);
     DebugOn("Upper bound = " << to_string(upper_bound) << "."<<endl);
     DebugOn("Lower bound = " << to_string(lower_bound) << "."<<endl);
-    SDP.print();
+//    SDP.print();
     string result_name=string(prj_dir)+"/results_SDP/"+grid._name+".txt";
     
     ofstream fout(result_name.c_str());

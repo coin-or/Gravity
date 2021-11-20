@@ -855,8 +855,9 @@ Constraint<type> Model<type>::lift(Constraint<type>& c, string model_type, bool 
                         }
                     }
                     /* Use the same order for lifting */
-                    if(orig_var._name+orig_var._indices->_keys->at(0) > orig_var2._name+orig_var2._indices->_keys->at(0)){
-//                    if(false && orig_var._name > orig_var2._name){
+//                    if(orig_var._name+orig_var._indices->_keys->at(0) > orig_var2._name+orig_var2._indices->_keys->at(0)){
+                    if(orig_var._indices->_keys->at(0) > orig_var2._indices->_keys->at(0)){
+//                    if(orig_var._name > orig_var2._name){
                         swap(orig_var,orig_var2);
                         DebugOff("x1 name "<< x1._name << endl);
                         DebugOff("x2 name "<< x2._name << endl);

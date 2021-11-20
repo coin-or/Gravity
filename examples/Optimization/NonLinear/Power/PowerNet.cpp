@@ -1346,7 +1346,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     else {
         Ref_Bus = vi(grid.ref_bus);
     }
-//    ACOPF->add(Ref_Bus == 0);
+    ACOPF->add(Ref_Bus == 0);
     
     /** KCL Flow conservation */
     Constraint<> KCL_P("KCL_P");

@@ -60,8 +60,8 @@ int main (int argc, char * argv[])
         fname=argv[1];
     }
     else{
-//        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
-        fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+        fname=string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//        fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
     }
     if(argc>=3){
         lin_solver=argv[2];
@@ -142,6 +142,7 @@ int main (int argc, char * argv[])
         obj += c1(pg_id)*Pg(pg_id);
         obj += c2(pg_id)*Pg(pg_id)*Pg(pg_id);
     }
+    obj *= 1e-3;
     SOCP.min(obj);
     
     /** Constraints */
