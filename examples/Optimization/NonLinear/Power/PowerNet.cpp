@@ -1278,6 +1278,7 @@ shared_ptr<Model<>> build_ACOPF(PowerNet& grid, PowerModelType pmt, int output, 
     /** Variables */
     /* Power generation variables */
     var<> Pg("Pg", pg_min, pg_max);
+    *Pg._in = false;
     var<> Qg ("Qg", qg_min, qg_max);
     ACOPF->add(Pg.in(gens),Qg.in(gens));
     //    Pg.copy_vals(grid.pg_s);

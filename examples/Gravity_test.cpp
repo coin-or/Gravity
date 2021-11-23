@@ -23,8 +23,8 @@
     using namespace gravity;
 
 TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
-    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
-//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
+//    string fname = string(prj_dir)+"/data_sets/Power/nesta_case5_pjm.m";
+    string fname = string(prj_dir)+"/data_sets/Power/nesta_case9_bgm__nco.m";
     int output = 0;
     double tol = 1e-6;
     double ub_solver_tol=1e-6, lb_solver_tol=1e-8, range_tol=1e-3, max_time = 200, opt_rel_tol=1e-2, opt_abs_tol=1e6;
@@ -74,11 +74,15 @@ TEST_CASE("testing restructure and projection with SDP relaxation of ACOPF") {
 
 
 
-    auto res=OPF->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
-    exit(1);
+//    auto res=OPF->run_obbt(Rel, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads=6, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol);
+//    exit(1);
 //    solver<> s2(SDP_proj,ipopt);
 //    auto status = s2.run(output=5, tol=1e-6);
-//    CHECK(std::abs(SDP_proj->get_obj_val()- SDP->get_obj_val())/SDP->get_obj_val() < 0.001);
+    CHECK(std::abs(OPF_proj->get_obj_val()- OPF->get_obj_val())/OPF->get_obj_val() < 0.001);
+    double upper_bound = OPF->get_obj_val(), lower_bound = Rel->get_obj_val();
+    auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound);
+    DebugOn("Root node gap = " << final_gap << endl);
+    CHECK(final_gap<11);
 }
 
 TEST_CASE("testing polynomial lifting") {
@@ -107,7 +111,7 @@ TEST_CASE("testing polynomial lifting") {
     auto Rel = Mtest.relax();
     Rel->print();
     CHECK(Rel->is_convex());
-    CHECK(Rel->get_nb_ineq() == 94);
+    CHECK(Rel->get_nb_ineq() == 110);
 }
 
 
