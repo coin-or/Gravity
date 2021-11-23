@@ -1314,6 +1314,7 @@ void Model<type>::create_batch_models(shared_ptr<Model<type>>& obbt_model, vecto
             }
         batch_models.push_back(modelk);
         batch_models.at(i)->set_name(to_string(i));
+//        batch_models.at(i)->initialize_midpoint();
     }
 }
 template <typename type>

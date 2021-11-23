@@ -1357,6 +1357,27 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
      q.initialize_all(0.5);
   
     
+    Constraint<> simplex("simplex");//TODO debug transpose version
+    simplex=q.in(pool_q_matrix)-1;
+    SPP->add(simplex.in(L)==0);
+    
+    if(solv_type==gurobi){
+        Constraint<> mass_balance_le("mass_balance_le");
+        mass_balance_le=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance_le.in(inputs_pools_outputs)<=0);
+        Constraint<> mass_balance_ge("mass_balance_ge");
+        mass_balance_ge=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance_ge.in(inputs_pools_outputs)>=0);
+    }
+    else{
+        Constraint<> mass_balance("mass_balance");
+        mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
+        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
+        
+    }
+    
+    SPP->restructure();
+    
     Constraint<> feed_availability("feed_availability");
         feed_availability=sum(x, input_x_matrix)+sum(z, out_arcs_to_output_per_input)-A_U;
     SPP->add(feed_availability.in(I)<=0);
@@ -1374,10 +1395,6 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     product_quality=(C.in(outattr_pin_matrix)-P_U.in(outattr_pout_matrix)).in(outattr_x_matrix)*x.in(outattr_x_matrix)+(C.in(outattrz_pin_matrix)-P_U.in(outattrz_pout_matrix)).in(in_arcs_from_input_per_output_attr)*z.in(in_arcs_from_input_per_output_attr);
     SPP->add(product_quality.in(J_K)<=0);
     
-    Constraint<> simplex("simplex");//TODO debug transpose version
-    simplex=q.in(pool_q_matrix)-1;
-    SPP->add(simplex.in(L)==0);
-    
     
 //    Constraint<> PQ("PQ");//TODO debug transpose version
 //    PQ=x.in(pooloutput_x_matrix)-y;
@@ -1390,20 +1407,7 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
     
     
 
-    if(solv_type==gurobi){
-        Constraint<> mass_balance_le("mass_balance_le");
-        mass_balance_le=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance_le.in(inputs_pools_outputs)<=0);
-        Constraint<> mass_balance_ge("mass_balance_ge");
-        mass_balance_ge=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance_ge.in(inputs_pools_outputs)>=0);
-    }
-    else{
-        Constraint<> mass_balance("mass_balance");
-        mass_balance=x.in(inputs_pools_outputs)-q.in(inpoolout_q_matrix)*y.in(inpoolout_y_matrix);
-        SPP->add(mass_balance.in(inputs_pools_outputs)==0);
-        
-    }
+   
     
     
 //    Constraint<> sumy_con("sumy_con");
@@ -1414,10 +1418,10 @@ shared_ptr<Model<>> build_pool_pqform(PoolNet& poolnet,  SolverType solv_type)
 
     
     Constraint<> obj_eq("obj_eq");
-   
-    obj_eq=objvar-(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
+    obj_eq = objvar + 9*x("1,6,8") + 18*x("1,6,9") + 8*x("1,6,10") + 3*x("1,6,11") + 13*x("2,6,8") + 22*x("2,6,9") + 12*x("2,6,10") + 7*x("2,6,11") + 14*x("3,7,8") + 23*x("3,7,9") + 13*x("3,7,10") + 8*x("3,7,11") + 6*x("4,7,8") + 15*x("4,7,9") + 5*x("4,7,10") + 11*x("5,7,8") + 20*x("5,7,9") + 10*x("5,7,10") + 5*x("5,7,11");
+//    obj_eq=objvar-(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).tr()*x.in(inpoolout_x_matrix).in(inpoolout_x_matrix)-product(c_tz, z);
 //    obj_eq=objvar-x.in(inpoolout_x_matrix)*(c_tx.in(inpoolout_cip_matrix)+c_ty.in(inpoolout_cpo_matrix)).in(inpoolout_x_matrix)+product(c_tz, z);
-    SPP->add(obj_eq.in(range(0,0))==0);
+    SPP->add(obj_eq.in(range(0,0))>=0);
     
     
     SPP->min(objvar("0"));

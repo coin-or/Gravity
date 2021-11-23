@@ -1095,6 +1095,11 @@
             return ids.is_subset(*this);
         }
         
+        /* Returns true if current index set is a superset of ids */
+        bool is_superset_eq(const indices & ids) const{
+            return ids.is_subset_eq(*this);
+        }
+        
         /* Transform the current index set into a matrix indexed set. If transformed (it was not a matrix already), the resulting set will have unidimentional columns. */
         void to_matrix(){
             if(_type!=matrix_){

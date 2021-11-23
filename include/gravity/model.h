@@ -1923,54 +1923,57 @@ public:
                 auto offdiag2 = "Lift("+name_v1+";"+name_v3+")";
                 auto offdiag3 = "Lift("+name_v3+";"+name_v2+")";
                 if(relax->has_var(diag1) && relax->has_var(diag2) && relax->has_var(diag3) && relax->has_var(offdiag1) && relax->has_var(offdiag2) && relax->has_var(offdiag3)){
-                    auto Wii_0 = relax->template get_var<double>(diag1)(id1);
-                    auto Wii_1 = relax->template get_var<double>(diag2)(id2);
-                    auto Wii_2 = relax->template get_var<double>(diag3)(id3);
                     auto offdiag_id1 = id1+","+id2;
                     auto offdiag_id2 = id1+","+id3;
                     auto offdiag_id3 = id2+","+id3;
-                    
-                    auto Wij_0 = relax->template get_var<double>(offdiag1);
-                    auto Wij_1 = relax->template get_var<double>(offdiag2);
-                    auto Wij_2 = relax->template get_var<double>(offdiag3);
-                    
-                    auto x1 = relax->template get_var<double>(name_v1)(id1);
-                    auto x2 = relax->template get_var<double>(name_v2)(id2);
-                    auto x3 = relax->template get_var<double>(name_v3)(id3);
-                    
-                    bool add_cycle = true;
-                    if(add_cycle){
-                        Constraint<> NCSOC1("1NC-SOC"+to_string(bag_id++));
-                        NCSOC1 = x1*x1 + x2*x2 - 2*x1*x2;
-                        relax->add(NCSOC1.in(range(1,1)) >= 0, true);
-                        NCSOC1.print();
+
+                    if(relax->get_var_ptr(diag1)->_indices->has_key(id1) && relax->get_var_ptr(diag2)->_indices->has_key(id2) && relax->get_var_ptr(diag3)->_indices->has_key(id3) && relax->get_var_ptr(offdiag1)->_indices->has_key(offdiag_id1) && relax->get_var_ptr(offdiag2)->_indices->has_key(offdiag_id2) && relax->get_var_ptr(offdiag3)->_indices->has_key(offdiag_id3)){
+                        auto Wii_0 = relax->template get_var<double>(diag1)(id1);
+                        auto Wii_1 = relax->template get_var<double>(diag2)(id2);
+                        auto Wii_2 = relax->template get_var<double>(diag3)(id3);
                         
-                        Constraint<> NCSOC2("2NC-SOC"+to_string(bag_id++));
-                        NCSOC2 = x2*x2 + x3*x3 - 2*x2*x3;
-                        relax->add(NCSOC2.in(range(1,1)) >= 0, true);
+                        auto Wij_0 = relax->template get_var<double>(offdiag1);
+                        auto Wij_1 = relax->template get_var<double>(offdiag2);
+                        auto Wij_2 = relax->template get_var<double>(offdiag3);
                         
-                        Constraint<> NCSOC3("3NC-SOC"+to_string(bag_id++));
-                        NCSOC3 = x1*x1 + x3*x3 - 2*x1*x3;
-                        relax->add(NCSOC3.in(range(1,1)) >= 0, true);
+                        auto x1 = relax->template get_var<double>(name_v1)(id1);
+                        auto x2 = relax->template get_var<double>(name_v2)(id2);
+                        auto x3 = relax->template get_var<double>(name_v3)(id3);
                         
-                        //                                Constraint<> Cycle2("Cycle2");
-                        //                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
-                        //                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                        bool add_cycle = true;
+                        if(add_cycle){
+                            Constraint<> NCSOC1("1NC-SOC"+to_string(bag_id++));
+                            NCSOC1 = x1*x1 + x2*x2 - 2*x1*x2;
+                            relax->add(NCSOC1.in(range(1,1)) >= 0, true);
+    //                        NCSOC1.print();
+                            
+                            Constraint<> NCSOC2("2NC-SOC"+to_string(bag_id++));
+                            NCSOC2 = x2*x2 + x3*x3 - 2*x2*x3;
+                            relax->add(NCSOC2.in(range(1,1)) >= 0, true);
+                            
+                            Constraint<> NCSOC3("3NC-SOC"+to_string(bag_id++));
+                            NCSOC3 = x1*x1 + x3*x3 - 2*x1*x3;
+                            relax->add(NCSOC3.in(range(1,1)) >= 0, true);
+                            
+                            //                                Constraint<> Cycle2("Cycle2");
+                            //                                Cycle2 = Wij_[1]*Wij_[0] - Wii_[1]*Wij_[0];
+                            //                                relax->add(Cycle2.in(range(0,bag_size-1)) == 0, true);
+                            
+                            //                    Constraint<> Cycle3("Cycle3");
+                            //                    Cycle3 = Wij_1*Wij_2 - Wii_2*Wij_0;
+                            //                    relax->add(Cycle3.in(range(1,1)) == 0, true);
+                        }
                         
-                        //                    Constraint<> Cycle3("Cycle3");
-                        //                    Cycle3 = Wij_1*Wij_2 - Wii_2*Wij_0;
-                        //                    relax->add(Cycle3.in(range(1,1)) == 0, true);
-                    }
-                    
-                    if(Wij_0._indices->has_key(offdiag_id1) && Wij_1._indices->has_key(offdiag_id2) && Wij_2._indices->has_key(offdiag_id3)){
-                        Constraint<> SDP3("SDP_3D_bag"+to_string(bag_id++));
-                        SDP3 = 2 * Wij_0(offdiag_id1) * Wij_1(offdiag_id2) * Wij_2(offdiag_id3);
-                        SDP3 -= pow(Wij_0(offdiag_id1), 2) * Wii_2;
-                        SDP3 -= pow(Wij_1(offdiag_id2), 2) * Wii_1;
-                        SDP3 -= pow(Wij_2(offdiag_id3), 2) * Wii_0;
-                        SDP3 += Wii_0 * Wii_1 * Wii_2;
-                        relax->add(SDP3.in(range(1, 1)) >= 0);
-//                        SDP3.print();
+                        if(Wij_0._indices->has_key(offdiag_id1) && Wij_1._indices->has_key(offdiag_id2) && Wij_2._indices->has_key(offdiag_id3)){
+                            Constraint<> SDP3("SDP_3D_bag"+to_string(bag_id++));
+                            SDP3 = 2 * Wij_0(offdiag_id1) * Wij_1(offdiag_id2) * Wij_2(offdiag_id3);
+                            SDP3 -= pow(Wij_0(offdiag_id1), 2) * Wii_2;
+                            SDP3 -= pow(Wij_1(offdiag_id2), 2) * Wii_1;
+                            SDP3 -= pow(Wij_2(offdiag_id3), 2) * Wii_0;
+                            SDP3 += Wii_0 * Wii_1 * Wii_2;
+                            relax->add(SDP3.in(range(1, 1)) >= 0);
+    //                        SDP3.print();
+                        }
                     }
                 }
             }
@@ -2011,10 +2014,12 @@ public:
                         if(relax->has_var(name1) && relax->has_var(name2)){
                             auto vdiag1 = relax->template get_var<double>(name1);
                             auto vdiag2 = relax->template get_var<double>(name2);
-                            Constraint<> SOC(vv->_name+"_SOC_diag");
-                            SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
-                            if(SOC.get_nb_vars()==3)
-                                relax->add(SOC.in(*vv->_indices) <= 0);
+                            if(vdiag1._indices->is_superset_eq(*vv->_original_vars[0]->_indices) && vdiag2._indices->is_superset_eq(*vv->_original_vars[1]->_indices)){
+                                Constraint<> SOC(vv->_name+"_SOC_diag");
+                                SOC = pow(*vv, 2) - vdiag1.in(*vv->_original_vars[0]->_indices)*vdiag2.in(*vv->_original_vars[1]->_indices);
+                                if(SOC.get_nb_vars()==3)
+                                    relax->add(SOC.in(*vv->_indices) <= 0);
+                            }
                         }
                         //                        SOC.print();
                     }
@@ -2543,35 +2548,45 @@ public:
     template<typename T=type,
     typename std::enable_if<is_same<T,double>::value>::type* = nullptr>
     void add_bound_RLTs(bool LB = true, bool UB = false, int nb = 1) {
+        vector<Constraint<type>> RLTs;
         for (auto& c_pair:_cons) {
-            Constraint<type> c = *c_pair.second;
-            if (c.is_linear()) {
+            if (!c_pair.second->_lterms->empty()) {
                 int idx = 0;
-                for (auto& lterm: c.get_lterms()) {
+                for (auto& lterm: c_pair.second->get_lterms()) {
                     if(idx>=nb)
                         break;
                     auto v = lterm.second._p;
+                    func<type> c = *c_pair.second;
+//                    c.deep_copy(*c_pair.second);
                     if(v->get_intype()==double_) {
                         auto vv = *static_pointer_cast<var<double>>(v);
                         if(LB){
-                            Constraint<type> c_RLT_LB(c.get_name()+"_RLT_LB_"+to_string(idx++));
+                            Constraint<type> c_RLT_LB(c_pair.second->get_name()+"_RLT_LB_"+to_string(idx++));
                             c_RLT_LB += c * (vv - vv.get_lb().in(*vv._indices));
-                            if(c.is_geq())
-                                add(c_RLT_LB.in(*c._indices) >= 0);
-                            else if (c.is_leq())
-                                add(c_RLT_LB.in(*c._indices) <= 0);
+                            if(c_pair.second->is_geq())
+                                RLTs.push_back(c_RLT_LB.in(*c._indices) >= 0);
+                            else if (c_pair.second->is_leq())
+                                RLTs.push_back(c_RLT_LB.in(*c._indices) <= 0);
+                            else
+                                RLTs.push_back(c_RLT_LB.in(*c._indices) == 0);
                         }
                         if(UB){
-                            Constraint<type> c_RLT_UB(c.get_name()+"_RLT_UB_"+to_string(idx++));
+                            Constraint<type> c_RLT_UB(c_pair.second->get_name()+"_RLT_UB_"+to_string(idx++));
                             c_RLT_UB += c * (vv.get_ub().in(*vv._indices) - vv);
-                            if(c.is_geq())
-                                add(c_RLT_UB.in(*c._indices) >= 0);
-                            else if (c.is_leq())
-                                add(c_RLT_UB.in(*c._indices) <= 0);
+                            if(c_pair.second->is_geq())
+                                RLTs.push_back(c_RLT_UB.in(*c._indices) >= 0);
+                            else if (c_pair.second->is_leq())
+                                RLTs.push_back(c_RLT_UB.in(*c._indices) <= 0);
+                            else
+                                RLTs.push_back(c_RLT_UB.in(*c._indices) == 0);
                         }
                     }
                 }
             }
+        }
+        for (auto& c_pair:RLTs) {
+            c_pair.clean_terms();
+            add(c_pair);
         }
     }
     
