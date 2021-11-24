@@ -45,8 +45,8 @@ int main (int argc, char * argv[]) {
 //    SPP.print();
     Model<> SPP;
     
-    string NL_file = string(prj_dir)+"/data_sets/NL/pooling_adhya1pq.nl";
-//    string NL_file = string(prj_dir)+"/data_sets/NL/pooling_digabel16.nl";
+//    string NL_file = string(prj_dir)+"/data_sets/NL/pooling_adhya1pq.nl";
+    string NL_file = string(prj_dir)+"/data_sets/NL/pooling_digabel16.nl";
     int status = SPP.readNL(NL_file);
     
 //    auto g = SPP.get_interaction_graph();
@@ -62,7 +62,7 @@ int main (int argc, char * argv[]) {
     bool LB = true, UB = true;
     int nb = 1e4;
     SPP.add_bound_RLTs(LB,UB,nb);
-    SPP.print();
+//    SPP.print();
     auto start=get_wall_time();
     solver<> SPP_solv(SPP,solv_type);
     SPP_solv.run(5, 1e-6);
@@ -70,7 +70,7 @@ int main (int argc, char * argv[]) {
     auto comp_time=end-start;
 //    SPP.print();
     auto Rel = SPP.relax(3);
-    Rel->print();
+//    Rel->print();
     solver<> Rel_solv(Rel,solv_type);
     Rel_solv.run(5, 1e-6);
     Rel->print_constraints_stats(1e-6);
@@ -80,7 +80,7 @@ int main (int argc, char * argv[]) {
     DebugOn("LB = " << lower_bound << endl);
     DebugOn("Root node gap = " << gap << "%" << endl);
     
-    exit(1);
+//    exit(1);
     double max_time = 7200,ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-5, opt_rel_tol=1e-3, opt_abs_tol=1e6;
     unsigned max_iter=3000, nb_threads = thread::hardware_concurrency();
     SolverType ub_solver_type = ipopt, lb_solver_type = ipopt;

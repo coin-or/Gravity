@@ -2564,21 +2564,21 @@ public:
                             Constraint<type> c_RLT_LB(c_pair.second->get_name()+"_RLT_LB_"+to_string(idx++));
                             c_RLT_LB += c * (vv - vv.get_lb().in(*vv._indices));
                             if(c_pair.second->is_geq())
-                                RLTs.push_back(c_RLT_LB.in(*c._indices) >= 0);
+                                RLTs.push_back(c_RLT_LB.in(range(1,c_pair.second->get_nb_instances())) >= 0);
                             else if (c_pair.second->is_leq())
-                                RLTs.push_back(c_RLT_LB.in(*c._indices) <= 0);
+                                RLTs.push_back(c_RLT_LB.in(range(1,c_pair.second->get_nb_instances())) <= 0);
                             else
-                                RLTs.push_back(c_RLT_LB.in(*c._indices) == 0);
+                                RLTs.push_back(c_RLT_LB.in(range(1,c_pair.second->get_nb_instances())) == 0);
                         }
                         if(UB){
                             Constraint<type> c_RLT_UB(c_pair.second->get_name()+"_RLT_UB_"+to_string(idx++));
                             c_RLT_UB += c * (vv.get_ub().in(*vv._indices) - vv);
                             if(c_pair.second->is_geq())
-                                RLTs.push_back(c_RLT_UB.in(*c._indices) >= 0);
+                                RLTs.push_back(c_RLT_UB.in(range(1,c_pair.second->get_nb_instances())) >= 0);
                             else if (c_pair.second->is_leq())
-                                RLTs.push_back(c_RLT_UB.in(*c._indices) <= 0);
+                                RLTs.push_back(c_RLT_UB.in(range(1,c_pair.second->get_nb_instances())) <= 0);
                             else
-                                RLTs.push_back(c_RLT_UB.in(*c._indices) == 0);
+                                RLTs.push_back(c_RLT_UB.in(range(1,c_pair.second->get_nb_instances())) == 0);
                         }
                     }
                 }
