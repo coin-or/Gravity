@@ -1057,12 +1057,11 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric(const vector<vec
    
     return Reg;
 }
-shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost, double scanner_x, double scanner_y, double scanner_z)
+shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
 
-    param<> x1("x1"), x2("x2"), y1("y1"), y2("y2"), z1("z1"), z2("z2");
     param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
     param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
     param<> x1i("x1i"), x2i("x2i"), y1i("y1i"), y2i("y2i"), z1i("z1i"), z2i("z2i");
@@ -1071,67 +1070,43 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const ve
     param<> rot_sc_mod_x("rot_sc_mod_x"), rot_sc_mod_y("rot_sc_mod_y"),rot_sc_mod_z("rot_sc_mod_z");
     param<> rot_sc_data_x("rot_sc_data_x"), rot_sc_data_y("rot_sc_data_y"),rot_sc_data_z("rot_sc_data_z");
     string j_str, i_str;
-    double xm_max = numeric_limits<double>::lowest(), ym_max = numeric_limits<double>::lowest(), zm_max = numeric_limits<double>::lowest();
-    double xm_min = numeric_limits<double>::max(), ym_min = numeric_limits<double>::max(), zm_min = numeric_limits<double>::max();
-    for (auto j = 0; j<point_cloud_model.size(); j++) {
-        j_str = to_string(j+1);
-        x2.add_val(j_str,point_cloud_model.at(j).at(0));
-        if(point_cloud_model.at(j).at(0) > xm_max)
-            xm_max = point_cloud_model.at(j).at(0);
-        if(point_cloud_model.at(j).at(0) < xm_min)
-            xm_min = point_cloud_model.at(j).at(0);
-        y2.add_val(j_str,point_cloud_model.at(j).at(1));
-        if(point_cloud_model.at(j).at(1) > ym_max)
-            ym_max = point_cloud_model.at(j).at(1);
-        if(point_cloud_model.at(j).at(1) < ym_min)
-            ym_min = point_cloud_model.at(j).at(1);
-        z2.add_val(j_str,point_cloud_model.at(j).at(2));
-        if(point_cloud_model.at(j).at(2) > zm_max)
-            zm_max = point_cloud_model.at(j).at(2);
-        if(point_cloud_model.at(j).at(2) < zm_min)
-            zm_min = point_cloud_model.at(j).at(2);
+ 
+    for (auto j = 0; j<input_model_cloud.size(); j++) {
         x_uav2.add_val(j_str,uav_model.at(j)[0]);
         y_uav2.add_val(j_str,uav_model.at(j)[1]);
         z_uav2.add_val(j_str,uav_model.at(j)[2]);
         roll_ins2.add_val(j_str, rollpitchyawins_model.at(j)[0]);
         pitch_ins2.add_val(j_str, (-pi+rollpitchyawins_model.at(j)[1])*(-1));
         yaw_ins2.add_val(j_str, (-pi/2+rollpitchyawins_model.at(j)[2])*(-1));
-        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_model.at(j)[0], rollpitchyawins_model.at(j)[1], (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), scanner_x, scanner_y, scanner_z);
-        auto res_m=apply_rotation_new_order(rollpitchyawins_model.at(j)[0], (-pi+rollpitchyawins_model.at(j)[1])*(-1), (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), point_cloud_model.at(j)[0]-uav_model.at(j)[0]-res_s[0], point_cloud_model.at(j)[1]-uav_model.at(j)[1]-res_s[1], point_cloud_model.at(j)[2]-uav_model.at(j)[2]-res_s[2]);
-        x2i.add_val(j_str,res_m[0]);
-        y2i.add_val(j_str,res_m[1]);
-        z2i.add_val(j_str,res_m[2]);
-        rot_sc_mod_x.add_val(j_str, res_s[0]);
-        rot_sc_mod_y.add_val(j_str, res_s[1]);
-        rot_sc_mod_z.add_val(j_str, res_s[2]);
+        x2i.add_val(j_str,input_model_cloud.at(j)[0]);
+        y2i.add_val(j_str,input_model_cloud.at(j)[1]);
+        z2i.add_val(j_str,input_model_cloud.at(j)[2]);
+        rot_sc_mod_x.add_val(j_str, input_model_offset.at(j)[0]);
+        rot_sc_mod_y.add_val(j_str, input_model_offset.at(j)[1]);
+        rot_sc_mod_z.add_val(j_str, input_model_offset.at(j)[2]);
     }
     
-    for (auto i = 0; i<point_cloud_data.size(); i++) {
+    for (auto i = 0; i<input_data_cloud.size(); i++) {
         i_str = to_string(i+1);
         x_uav1.add_val(i_str,uav_data.at(i)[0]);
-        x1.add_val(i_str,point_cloud_data.at(i)[0]);
         y_uav1.add_val(i_str,uav_data.at(i)[1]);
-        y1.add_val(i_str,point_cloud_data.at(i)[1]);
         z_uav1.add_val(i_str,uav_data.at(i)[2]);
-        z1.add_val(i_str,point_cloud_data.at(i)[2]);
         roll_ins1.add_val(i_str, rollpitchyawins_data.at(i)[0]);
         pitch_ins1.add_val(i_str, (-pi+rollpitchyawins_data.at(i)[1])*(-1));
         yaw_ins1.add_val(i_str, (-pi/2+rollpitchyawins_data.at(i)[2])*(-1));
-        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_data.at(i)[0], rollpitchyawins_data.at(i)[1], (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), scanner_x, scanner_y, scanner_z);
-        auto res_d=apply_rotation_new_order(rollpitchyawins_data.at(i)[0], (-pi+rollpitchyawins_data.at(i)[1])*(-1), (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), point_cloud_data.at(i)[0]-uav_data.at(i)[0]-res_s[0], point_cloud_data.at(i)[1]-uav_data.at(i)[1]-res_s[1], point_cloud_data.at(i)[2]-uav_data.at(i)[2]-res_s[2]);
-        x1i.add_val(i_str,res_d[0]);
-        y1i.add_val(i_str,res_d[1]);
-        z1i.add_val(i_str,res_d[2]);
-        rot_sc_data_x.add_val(i_str, res_s[0]);
-        rot_sc_data_y.add_val(i_str, res_s[1]);
-        rot_sc_data_z.add_val(i_str, res_s[2]);
+        x1i.add_val(i_str,input_data_cloud.at(i)[0]);
+        y1i.add_val(i_str,input_data_cloud.at(i)[1]);
+        z1i.add_val(i_str,input_data_cloud.at(i)[2]);
+        rot_sc_data_x.add_val(i_str, input_data_offset.at(i)[0]);
+        rot_sc_data_y.add_val(i_str, input_data_offset.at(i)[1]);
+        rot_sc_data_z.add_val(i_str, input_data_offset.at(i)[2]);
     }
     
 
     indices N1("N1"),N2("N2");
     
-    int n1 = x1.get_dim();
-    int n2 = x2.get_dim();
+    int n1 = x1i.get_dim();
+    int n2 = x2i.get_dim();
     DebugOn("n1 = " << n1 << endl);
     DebugOn("n2 = " << n2 << endl);
     
@@ -1160,8 +1135,8 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const ve
     
     auto Reg=make_shared<Model<>>(name);
     
-    Reg->add_param(x1);Reg->add_param(y1);Reg->add_param(z1);
-    Reg->add_param(x2);Reg->add_param(y2);Reg->add_param(z2);
+    Reg->add_param(x1i);Reg->add_param(y1i);Reg->add_param(z1i);
+    Reg->add_param(x2i);Reg->add_param(y2i);Reg->add_param(z2i);
     var<int> bin("bin",0,1);
     Reg->add(bin.in(cells));
     DebugOff("Added " << cells.size() << " binary variables" << endl);

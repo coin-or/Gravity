@@ -1621,6 +1621,520 @@ Lidar.add(x_rot2.in(N2)==0);
     }
     return {roll_1, pitch_1, yaw_1};
 }
+tuple<double,double,double> run_NLP_scanner(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, const vector<vector<double>>& rollpitchyawins1, const vector<vector<double>>& rollpitchyawins2, const vector<vector<double>>& input_point_cloud1, const vector<vector<double>>& input_point_cloud2, const vector<vector<double>>& input_offset1, const vector<vector<double>>& input_offset2)
+{
+    double angle_max = 0.05;
+    int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
+    vector<pair<double,double>> min_max1;
+    vector<vector<pair<double,double>>> min_max2(point_cloud2.size());
+    vector<int> nb_neighbors(point_cloud1.size());
+    vector<vector<int>> neighbors;
+    /* Compute cube for all points in point cloud 2 */
+    for (auto i = 0; i<point_cloud2.size(); i++) {
+        min_max2[i] = get_min_max(angle_max, point_cloud2.at(i), uav2.at(i));
+    }
+    double roll_1 = 0, yaw_1 = 0, pitch_1 = 0;
+    bool bypass = false;
+    if(!bypass){
+        /* Check if cubes intersect */
+        neighbors.resize(point_cloud1.size());
+        for (auto i = 0; i<point_cloud1.size(); i++) {
+            nb_pairs = 0;
+            min_max1 = get_min_max(angle_max, point_cloud1.at(i), uav1.at(i));
+            DebugOff("For point (" << point_cloud1.at(i).at(0) << "," <<  point_cloud1.at(i).at(1) << "," << point_cloud1.at(i).at(2) << "): ");
+            DebugOff("\n neighbors in umbrella : \n");
+            for (size_t j = 0; j < point_cloud2.size(); j++){
+                if(intersect(min_max1, min_max2[j])){ /* point is in umbrella */
+                    nb_pairs++;
+                    neighbors[i].push_back(j);
+                    DebugOff("(" << point_cloud2.at(j).at(0) << "," <<  point_cloud2.at(j).at(1) << "," << point_cloud2.at(j).at(2) << ")\n");
+                }
+            }
+            
+            DebugOff("nb points in umbrella = " << nb_pairs << endl);
+            if(nb_pairs>max_nb_pairs)
+                max_nb_pairs = nb_pairs;
+            if(nb_pairs<min_nb_pairs)
+                min_nb_pairs = nb_pairs;
+            av_nb_pairs += nb_pairs;
+            
+            //        std::cout << "For point (" << point_cloud1.at(i).at(0) << "," <<  point_cloud1.at(i).at(1) << "," << point_cloud1.at(i).at(2) << ")"<< " knnSearch(n="<<m<<"): \n";
+            //        for (size_t k = 0; k < m; k++)
+            //            std::cout << "ret_index["<<k<<"]=" << ret_indexes[k] << " out_dist_sqr=" << out_dists_sqr[k] << " point = (" << point_cloud2.at(ret_indexes[k]).at(0) << "," <<  point_cloud2.at(ret_indexes[k]).at(1) << "," << point_cloud2.at(ret_indexes[k]).at(2) << ")" << std::endl;
+            nb_neighbors[i] = nb_pairs;
+        }
+        av_nb_pairs /= point_cloud1.size();
+        DebugOn("Min nb of Pairs = " << min_nb_pairs << endl);
+        DebugOn("Max nb of Pairs = " << max_nb_pairs << endl);
+        DebugOn("Average nb of Pairs = " << av_nb_pairs << endl);
+
+        param<> x1i("x1i"), x2i("x2i"), y1i("y1i"), y2i("y2i"), z1i("z1i"), z2i("z2i");
+        param<> x_uav1("x_uav1"), y_uav1("y_uav1"), z_uav1("z_uav1");
+        param<> x_uav2("x_uav2"), y_uav2("y_uav2"), z_uav2("z_uav2");
+        param<> roll_ins1("roll_ins1"),pitch_ins1("pitch_ins1"), yaw_ins1("yaw_ins1");
+        param<> roll_ins2("roll_ins2"), pitch_ins2("pitch_ins2"), yaw_ins2("yaw_ins2");
+        param<> rot_sc_mod_x("rot_sc_mod_x"), rot_sc_mod_y("rot_sc_mod_y"),rot_sc_mod_z("rot_sc_mod_z");
+        param<> rot_sc_data_x("rot_sc_data_x"), rot_sc_data_y("rot_sc_data_y"),rot_sc_data_z("rot_sc_data_z");
+        //        return 0;
+        bool solve_lidar_cube = false, solve_lidar_iter = !solve_lidar_cube;
+        int m = av_nb_pairs;
+        //            int m = 1;
+        vector<double> min_dist(point_cloud1.size(),numeric_limits<double>::max());
+        vector<int> nearest(point_cloud1.size());
+        vector<string> nearest_id(point_cloud1.size());
+        string i_str, j_str;
+        indices Pairs("Pairs"), cells("cells");
+        map<int,int> n2_map;
+        int idx1 = 0;
+        int idx2 = 0;
+        int nb_max_neigh = 1;
+        double dist_sq = 0;
+        if(solve_lidar_cube)
+            nb_max_neigh = m;
+        /* Keep points with neighbors >= m */
+        for (auto i = 0; i<point_cloud1.size(); i++) {
+            if(solve_lidar_iter)
+                nb_max_neigh = 1;
+            else
+                nb_max_neigh = m;
+            if(nb_neighbors[i]>=nb_max_neigh){
+                i_str = to_string(idx1+1);
+                x_uav1.add_val(i_str,uav1.at(i)[0]);
+                y_uav1.add_val(i_str,uav1.at(i)[1]);
+                z_uav1.add_val(i_str,uav1.at(i)[2]);
+                roll_ins1.add_val(i_str, rollpitchyawins1.at(i)[0]);
+                pitch_ins1.add_val(i_str, (-pi+rollpitchyawins1.at(i)[1])*(-1));
+                yaw_ins1.add_val(i_str, (-pi/2+rollpitchyawins1.at(i)[2])*(-1));
+                x1i.add_val(i_str,input_point_cloud1.at(i)[0]);
+                y1i.add_val(i_str,input_point_cloud1.at(i)[1]);
+                z1i.add_val(i_str,input_point_cloud1.at(i)[2]);
+                rot_sc_data_x.add_val(i_str, input_offset1.at(i)[0]);
+                rot_sc_data_y.add_val(i_str, input_offset1.at(i)[1]);
+                rot_sc_data_z.add_val(i_str, input_offset1.at(i)[2]);
+                if(solve_lidar_iter){
+                    nb_max_neigh = nb_neighbors[i];
+                }
+                for (auto j = 0; j<nb_max_neigh; j++) {
+                    auto k = neighbors[i].at(j);
+                    auto res = n2_map.find(k);
+                    if(res==n2_map.end()){
+                        n2_map[k] = idx2;
+                        j_str = to_string(idx2+1);
+                        x_uav2.add_val(j_str,uav2.at(k)[0]);
+                        y_uav2.add_val(j_str,uav2.at(k)[1]);
+                        z_uav2.add_val(j_str,uav2.at(k)[2]);
+                        roll_ins2.add_val(j_str, rollpitchyawins2.at(k)[0]);
+                        pitch_ins2.add_val(j_str, (-pi+rollpitchyawins2.at(k)[1])*(-1));
+                        yaw_ins2.add_val(j_str, (-pi/2+rollpitchyawins2.at(k)[2])*(-1));
+                        x2i.add_val(j_str,input_point_cloud2.at(k)[0]);
+                        y2i.add_val(j_str,input_point_cloud2.at(k)[1]);
+                        z2i.add_val(j_str,input_point_cloud2.at(k)[2]);
+                        rot_sc_mod_x.add_val(j_str, input_offset2.at(k)[0]);
+                        rot_sc_mod_y.add_val(j_str, input_offset2.at(k)[1]);
+                        rot_sc_mod_z.add_val(j_str, input_offset2.at(k)[2]);
+                        idx2++;
+                    }
+                    else {
+                        j_str = to_string(res->second+1);
+                    }
+                    if(axis=="x")
+                        dist_sq = std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                    else if(axis=="y")
+                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                    else if(axis=="z")
+                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2);
+                    else
+                        dist_sq = std::pow(point_cloud1.at(i)[0] - point_cloud2.at(k)[0],2) + std::pow(point_cloud1.at(i)[1] - point_cloud2.at(k)[1],2) + std::pow(point_cloud1.at(i)[2] - point_cloud2.at(k)[2],2);
+                    
+                    if(min_dist[i]>dist_sq){
+                        min_dist[i] = dist_sq;
+                        nearest[i] = k;
+                        nearest_id[i] = j_str;
+                    }
+                    
+                    if(solve_lidar_cube)
+                        Pairs.add(i_str+","+j_str);
+                }
+                idx1++;
+            }
+        }
+        idx1 = 0;
+        indices N1("N1"),N2("N2");
+        if(solve_lidar_iter){
+            for (auto i = 0; i<point_cloud1.size(); i++) {
+                if(nb_neighbors[i]>=1){
+                    i_str = to_string(idx1+1);
+                    j_str = nearest_id[i];
+                    cells.add(i_str+","+j_str);
+                    if(!N2.has_key(j_str))
+                        N2.add(j_str);
+                    idx1++;
+                }
+            }
+        }
+        
+        
+        int n1 = x1i.get_dim();
+        int n2 = x2i.get_dim();
+        DebugOn("n1 = " << n1 << endl);
+        DebugOn("n2 = " << n2 << endl);
+        
+        N1 = range(1,n1);
+        if(solve_lidar_cube)
+            N2 = range(1,n2);
+        indices M("M");
+        M = range(1,m);
+        
+        DebugOn("Total size of Pairs = " << Pairs.size() << endl);
+        
+        
+        indices NM("NM");
+        NM = indices(N1,M);
+        indices S1("S1"), S2("S2"), Sm1("Sm1"), S2m2("S2m2"), S3m1("S3m1"), Sm("Sm"), K("K");
+        S1 = indices(N1, range(1,1));
+        S2 = indices(N1, range(2,2));
+        Sm = indices(N1, range(m,m));
+
+        
+        
+        
+        if (solve_lidar_iter) {
+            Model<> Lidar("Lidar");
+            var<> new_x1("new_x1"), new_y1("new_y1"), new_z1("new_z1");
+            var<> new_x2("new_x2"), new_y2("new_y2"), new_z2("new_z2");
+            var<> xb_d("xb_d"), yb_d("yb_d"), zb_d("zb_d");
+            var<> xb_m("xb_m"), yb_m("yb_m"), zb_m("zb_m");
+            var<> x_diff("x_diff", pos_), y_diff("y_diff", pos_), z_diff("z_diff", pos_);
+    
+            //var<> yaw("yaw", -0.00872, 0.00872), pitch("pitch",  -0.00872, 0.00872), roll("roll",  -0.00872, 0.00872);
+            
+            var<> yaw("yaw", -0.1, 0.1), pitch("pitch", -0.1, 0.1), roll("roll", -0.1, 0.1);
+            
+            Lidar.add(yaw.in(range(0,0)),pitch.in(range(0,0)),roll.in(range(0,0)));
+            Lidar.add(new_x1.in(N1), new_y1.in(N1), new_z1.in(N1));
+            Lidar.add(new_x2.in(N2), new_y2.in(N2), new_z2.in(N2));
+            Lidar.add(xb_d.in(N1), yb_d.in(N1), zb_d.in(N1));
+            Lidar.add(xb_m.in(N2), yb_m.in(N2), zb_m.in(N2));
+            Lidar.add(x_diff.in(cells), y_diff.in(cells), z_diff.in(cells));
+            //                Lidar.add(z_diff.in(cells));
+            
+            
+            bool L2Norm = false;
+            bool L1Norm = !L2Norm;
+            
+            if(L2Norm){
+                Constraint<> XNorm2("XNorm2");
+                XNorm2 += x_diff - pow(new_x1.from(cells) - new_x2.to(cells),2);
+                Lidar.add(XNorm2.in(cells)>=0);
+                
+                Constraint<> YNorm2("YNorm2");
+                YNorm2 += y_diff - pow(new_y1.from(cells) - new_y2.to(cells),2);
+                Lidar.add(YNorm2.in(cells)>=0);
+                
+                Constraint<> ZNorm2("ZNorm2");
+                ZNorm2 += z_diff - pow(new_z1.from(cells) - new_z2.to(cells),2);
+                Lidar.add(ZNorm2.in(cells)>=0);
+            }
+            if(L1Norm){
+                Constraint<> x_abs1("x_abs1");
+                x_abs1 += x_diff - (new_x1.from(cells) - new_x2.to(cells));
+                Lidar.add(x_abs1.in(cells)>=0);
+                
+                Constraint<> x_abs2("x_abs2");
+                x_abs2 += x_diff - (new_x2.to(cells) - new_x1.from(cells));
+                Lidar.add(x_abs2.in(cells)>=0);
+                
+                Constraint<> y_abs1("y_abs1");
+                y_abs1 += y_diff - (new_y1.from(cells) - new_y2.to(cells));
+                Lidar.add(y_abs1.in(cells)>=0);
+                
+                Constraint<> y_abs2("y_abs2");
+                y_abs2 += y_diff - (new_y2.to(cells) - new_y1.from(cells));
+                Lidar.add(y_abs2.in(cells)>=0);
+                
+                Constraint<> z_abs1("z_abs1");
+                z_abs1 += z_diff - (new_z1.from(cells) - new_z2.to(cells));
+                Lidar.add(z_abs1.in(cells)>=0);
+                
+                Constraint<> z_abs2("z_abs2");
+                z_abs2 += z_diff - (new_z2.to(cells) - new_z1.from(cells));
+                Lidar.add(z_abs2.in(cells)>=0);
+            }
+            
+            
+           
+            
+            func<> r11 = cos(roll)*cos(yaw);r11.eval_all();
+            func<> r12 = (-1)*cos(roll)*sin(yaw);r12.eval_all();
+            func<> r13 =sin(roll);r13.eval_all();
+            
+            func<> r21 =cos(pitch)*sin(yaw)+cos(yaw)*sin(roll)*sin(pitch) ;r21.eval_all();
+            func<> r22 = cos(pitch)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw) ;r22.eval_all();
+            func<> r23 = (-1)*cos(roll)*sin(pitch);r23.eval_all();
+            
+            func<> r31 = sin(pitch)*sin(yaw)-cos(pitch)*cos(yaw)*sin(roll);r31.eval_all();
+            func<> r32 = cos(yaw)*sin(pitch)+cos(pitch)*sin(roll)*sin(yaw);r32.eval_all();
+            func<> r33 = cos(roll)*cos(pitch);r33.eval_all();
+            
+            var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
+            var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
+            var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
+            
+            
+            Lidar.add(theta11.in(range(0,0)),theta12.in(range(0,0)),theta13.in(range(0,0)));
+            Lidar.add(theta21.in(range(0,0)),theta22.in(range(0,0)),theta23.in(range(0,0)));
+            Lidar.add(theta31.in(range(0,0)),theta32.in(range(0,0)),theta33.in(range(0,0)));
+            
+            
+            
+            
+            Constraint<> T11("T11");
+            T11=theta11.in(range(0,0));
+            T11-=cos(roll.in(range(0,0)))*cos(yaw.in(range(0,0)));
+            Lidar.add(T11.in(range(0,0))==0);
+            
+            Constraint<> T12("T12");
+            T12=theta12.in(range(0,0));
+            T12-=(-1)*cos(roll.in(range(0,0)))*sin(yaw.in(range(0,0)));
+            Lidar.add(T12.in(range(0,0))==0);
+            
+            Constraint<> T13("T13");
+            T13=theta13.in(range(0,0));
+            T13-=sin(roll.in(range(0,0)));
+            Lidar.add(T13.in(range(0,0))==0);
+            
+            Constraint<> T21("T21");
+            T21+=theta21.in(range(0,0));
+            T21-=cos(pitch.in(range(0,0)))*sin(yaw.in(range(0,0)));
+            T21-=cos(yaw.in(range(0,0)))*sin(roll.in(range(0,0)))*sin(pitch.in(range(0,0)));
+            Lidar.add(T21.in(range(0,0))==0);
+            
+            Constraint<> T22("T22");
+            T22+=theta22.in(range(0,0));
+            T22-=cos(pitch.in(range(0,0)))*cos(yaw.in(range(0,0)));
+            T22-=(-1)*sin(roll.in(range(0,0)))*sin(pitch.in(range(0,0)))*sin(yaw.in(range(0,0)));
+            Lidar.add(T22.in(range(0,0))==0);
+            
+            Constraint<> T23("T23");
+            T23+=theta23.in(range(0,0));
+            T23-=(-1)*cos(roll.in(range(0,0)))*sin(pitch.in(range(0,0)));
+            Lidar.add(T23.in(range(0,0))==0);
+        
+            
+            Constraint<> T31("T31");
+            T31+=theta31.in(range(0,0));
+            T31-=sin(pitch.in(range(0,0)))*sin(yaw.in(range(0,0)));
+            T31-=(-1)*cos(pitch.in(range(0,0)))*cos(yaw.in(range(0,0)))*sin(roll.in(range(0,0)));
+            Lidar.add(T31.in(range(0,0))==0);
+            
+            Constraint<> T32("T32");
+            T32+=theta32.in(range(0,0));
+            T32-=cos(yaw.in(range(0,0)))*sin(pitch.in(range(0,0)));
+            T32-=cos(pitch.in(range(0,0)))*sin(roll.in(range(0,0)))*sin(yaw.in(range(0,0)));
+            Lidar.add(T32.in(range(0,0))==0);
+            
+            Constraint<> T33("T33");
+            T33+=theta33.in(range(0,0));
+            T33-=cos(roll.in(range(0,0)))*cos(pitch.in(range(0,0)));
+            Lidar.add(T33.in(range(0,0))==0);
+            
+            auto ids1 = theta11.repeat_id(N1.size());
+            auto ids2 = theta11.repeat_id(N2.size());
+            
+            
+            Constraint<> xd_bore("xd_bore");
+            xd_bore=x1i.in(N1)*theta11.in(ids1)+y1i.in(N1)*theta12.in(ids1)+z1i.in(N1)*theta13.in(ids1)-xb_d.in(N1);
+            Lidar.add(xd_bore.in(N1)==0);
+            
+            Constraint<> xm_bore("xm_bore");
+            xm_bore=x2i.in(N2)*theta11.in(ids2)+y2i.in(N2)*theta12.in(ids2)+z2i.in(N2)*theta13.in(ids2)-xb_m.in(N2);
+            Lidar.add(xm_bore.in(N2)==0);
+            
+            Constraint<> yd_bore("yd_bore");
+            yd_bore=x1i.in(N1)*theta21.in(ids1)+y1i.in(N1)*theta22.in(ids1)+z1i.in(N1)*theta23.in(ids1)-yb_d.in(N1);
+            Lidar.add(yd_bore.in(N1)==0);
+            
+            Constraint<> ym_bore("ym_bore");
+            ym_bore=x2i.in(N2)*theta21.in(ids2)+y2i.in(N2)*theta22.in(ids2)+z2i.in(N2)*theta23.in(ids2)-yb_m.in(N2);
+            Lidar.add(ym_bore.in(N2)==0);
+            
+            Constraint<> zd_bore("zd_bore");
+            zd_bore=x1i.in(N1)*theta31.in(ids1)+y1i.in(N1)*theta32.in(ids1)+z1i.in(N1)*theta33.in(ids1)-zb_d.in(N1);
+            Lidar.add(zd_bore.in(N1)==0);
+            
+            Constraint<> zm_bore("zm_bore");
+            zm_bore=x2i.in(N2)*theta31.in(ids2)+y2i.in(N2)*theta32.in(ids2)+z2i.in(N2)*theta33.in(ids2)-zb_m.in(N2);
+            Lidar.add(zm_bore.in(N2)==0);
+            
+            
+            
+//            Constraint<> xm_bore("xm_bore");
+//            xm_bore=x2*cos(roll.in(ids2))*cos(yaw.in(ids2))-y2*cos(roll.in(ids2))*sin(yaw.in(ids2))+z2*sin(roll.in(ids2))-xb_m;
+//            Lidar.add(xm_bore.in(N2)==0);
+//
+//            Constraint<> yd_bore("yd_bore");
+//            yd_bore=x1*(cos(pitch.in(ids1))*sin(yaw.in(ids1)) +cos(yaw.in(ids1))*sin(roll.in(ids1))*sin(pitch.in(ids1)))+y1*(cos(pitch.in(ids1))*cos(yaw.in(ids1))-sin(roll.in(ids1))*sin(pitch.in(ids1))*sin(yaw.in(ids1)))+z1*((-1)*cos(roll.in(ids1))*sin(pitch.in(ids1)))-yb_d;
+//            Lidar.add(yd_bore.in(N1)==0);
+//
+//
+//            Constraint<> ym_bore("ym_bore");
+//            ym_bore=x2*(cos(pitch.in(ids2))*sin(yaw.in(ids2)) +cos(yaw.in(ids2))*sin(roll.in(ids2))*sin(pitch.in(ids2)))+y2*(cos(pitch.in(ids2))*cos(yaw.in(ids2))-sin(roll.in(ids2))*sin(pitch.in(ids2))*sin(yaw.in(ids2)))+z2*((-1)*cos(roll.in(ids2))*sin(pitch.in(ids2)))-yb_m;
+//            Lidar.add(ym_bore.in(N2)==0);
+//
+//            Constraint<> zd_bore("zd_bore");
+//            zd_bore=x1.in(N1)*(sin(pitch.in(ids1))*sin(yaw.in(ids1))-cos(pitch.in(ids1))*cos(yaw.in(ids1))*sin(roll).in(ids1))+y1.in(N1)*(cos(yaw.in(ids1))*sin(pitch.in(ids1))+cos(pitch.in(ids1))*sin(roll.in(ids1))*sin(yaw.in(ids1)))+z1.in(N1)*cos(roll.in(ids1))*cos(pitch.in(ids1))-zb_d;
+//            Lidar.add(zd_bore.in(N1)==0);
+//
+//            Constraint<> zm_bore("zm_bore");
+//            zm_bore=x2*(sin(pitch.in(ids2))*sin(yaw.in(ids2))-cos(pitch.in(ids2))*cos(yaw.in(ids2))*sin(roll).in(ids2))+y2*(cos(yaw.in(ids2))*sin(pitch.in(ids2))+cos(pitch.in(ids2))*sin(roll.in(ids2))*sin(yaw.in(ids2)))+z2*(cos(roll.in(ids2))*cos(pitch.in(ids2)))-zb_m;
+//            Lidar.add(zm_bore.in(N2)==0);
+            
+            
+            
+           
+            /* alpha = yaw_, beta = pitch_ and gamma = roll_ */
+            if(axis!="x"){
+                
+Constraint<> x_rot1("x_rot1");
+x_rot1 += new_x1 - x_uav1.in(N1)-rot_sc_data_x.in(N1);
+x_rot1 -= xb_d*cos(roll_ins1)*cos(yaw_ins1)+yb_d*(cos(pitch_ins1)*sin(yaw_ins1) +cos(yaw_ins1)*sin(roll_ins1)*sin(pitch_ins1))+zb_d*(sin(pitch_ins1)*sin(yaw_ins1)-cos(pitch_ins1)*cos(yaw_ins1)*sin(roll_ins1));
+Lidar.add(x_rot1.in(N1)==0);
+                
+Constraint<> x_rot2("x_rot2");
+x_rot2 += new_x2 - x_uav2.in(N2)-rot_sc_mod_x.in(N2);
+x_rot2 -= xb_m*cos(roll_ins2)*cos(yaw_ins2)+yb_m*(cos(pitch_ins2)*sin(yaw_ins2) +cos(yaw_ins2)*sin(roll_ins2)*sin(pitch_ins2))+zb_m*(sin(pitch_ins2)*sin(yaw_ins2)-cos(pitch_ins2)*cos(yaw_ins2)*sin(roll_ins2));
+Lidar.add(x_rot2.in(N2)==0);
+            }
+            
+            if(axis!="y"){
+                
+                Constraint<> y_rot1("y_rot1");
+                y_rot1 += new_y1 - y_uav1.in(N1)-rot_sc_data_y.in(N1);
+                y_rot1 -= xb_d*(-1)*cos(roll_ins1)*sin(yaw_ins1)+yb_d*(cos(pitch_ins1)*cos(yaw_ins1) -sin(roll_ins1)*sin(pitch_ins1)*sin(yaw_ins1))+zb_d*(cos(yaw_ins1)*sin(pitch_ins1)+cos(pitch_ins1)*sin(roll_ins1)*sin(yaw_ins1));
+                Lidar.add(y_rot1.in(N1)==0);
+
+                
+                Constraint<> y_rot2("y_rot2");
+                y_rot2 += new_y2 - y_uav2.in(N2)-rot_sc_mod_y.in(N2);
+                y_rot2 -= xb_m*(-1)*cos(roll_ins2)*sin(yaw_ins2)+yb_m*(cos(pitch_ins2)*cos(yaw_ins2) -sin(roll_ins2)*sin(pitch_ins2)*sin(yaw_ins2))+zb_m*(cos(yaw_ins2)*sin(pitch_ins2)+cos(pitch_ins2)*sin(roll_ins2)*sin(yaw_ins2));
+                Lidar.add(y_rot2.in(N2)==0);
+            }
+            
+            if(axis!="z"){
+                
+                Constraint<> z_rot1("z_rot1");
+                z_rot1 += new_z1 - z_uav1.in(N1)-rot_sc_data_z.in(N1);
+                z_rot1 -= xb_d*sin(roll_ins1)+yb_d*(-1)*cos(roll_ins1)*sin(pitch_ins1)+zb_d*(cos(roll_ins1)*cos(pitch_ins1));
+                Lidar.add(z_rot1.in(N1)==0);
+                
+                Constraint<> z_rot2("z_rot2");
+                z_rot2 += new_z2 - z_uav2.in(N2)-rot_sc_mod_z.in(N2);
+                z_rot2 -= xb_m*sin(roll_ins2)+yb_m*(-1)*cos(roll_ins2)*sin(pitch_ins2)+zb_m*(cos(roll_ins2)*cos(pitch_ins2));
+                Lidar.add(z_rot2.in(N2)==0);
+            }
+            
+            //    M.min(sum(z_diff)/nb_overlap);
+            
+            //        M.min(sum(z_diff));
+            if(axis == "full")
+                Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
+            else if(axis == "x"){
+                Lidar.min(sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
+                roll.set_lb(0);
+                roll.set_ub(0);
+                yaw.set_lb(0);
+                yaw.set_ub(0);
+                //                x1.set_val(0);
+                //                x2.set_val(0);
+            }
+            else if (axis == "y") {
+                Lidar.min(sum(x_diff)/cells.size() + sum(z_diff)/cells.size());
+                yaw.set_lb(0);
+                yaw.set_ub(0);
+                pitch.set_lb(0);
+                pitch.set_ub(0);
+                //                y1.set_val(0);
+                //                y2.set_val(0);
+            }
+            else if (axis == "z") {
+                Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size());
+                pitch.set_lb(0);
+                pitch.set_ub(0);
+                roll.set_lb(0);
+                roll.set_ub(0);
+                //                z1.set_val(0);
+                //                z2.set_val(0);
+            }
+            else if (axis == "only_x")
+                Lidar.min(sum(x_diff)/cells.size());
+            else if (axis == "only_y")
+                Lidar.min(sum(y_diff)/cells.size());
+            else if (axis == "only_z")
+                Lidar.min(sum(z_diff)/cells.size());
+            
+            //                Lidar.min(sum(x_diff)/cells.size() + sum(y_diff)/cells.size() + sum(z_diff)/cells.size());
+            
+            //    M.print();
+            //Lidar.print();
+            solver<> S(Lidar,ipopt);
+            S.run();
+           // Lidar.print_solution();
+            
+            
+            
+            DebugOn("Pitch = " << pitch.eval()*180/pi << endl);
+            DebugOn("Roll = " << roll.eval()*180/pi << endl);
+            DebugOn("Yaw = " << yaw.eval()*180/pi << endl);
+            //            DebugOn("Pitch2 = " << pitch2.eval()*180/pi << endl);
+            //            DebugOn("Roll2 = " << roll2.eval()*180/pi << endl);
+            //            DebugOn("Yaw2 = " << yaw2.eval()*180/pi << endl);
+            roll_1 = roll.eval()*180/pi;
+            pitch_1 = pitch.eval()*180/pi;
+            yaw_1 = yaw.eval()*180/pi;
+            
+            if(abs(theta11.eval()-cos(roll.eval())*cos(yaw.eval()))>=1e-6){
+                  DebugOn("T11.eval()"<<endl);
+            }
+            
+            
+           if(abs(theta12.eval()-(-1)*cos(roll.eval())*sin(yaw.eval()))>=1e-6){
+             DebugOn("T12.eval()"<<endl);
+           }
+            
+            if(abs(theta13.eval()-sin(roll.eval()))>=1e-6){
+             DebugOn("T13.eval()"<<endl);
+            }
+           if(abs(theta21.eval()-cos(pitch.eval())*sin(yaw.eval())-cos(yaw.eval())*sin(roll.eval())*sin(pitch.eval()))>=1e-6){
+           DebugOn("T21.eval()"<<endl);
+           }
+            
+            
+           if(abs(theta22.eval()-cos(pitch.eval())*cos(yaw.eval())-(-1)*sin(roll.eval())*sin(pitch.eval())*sin(yaw.eval()))>=1e-6){
+           DebugOn("T22.eval()"<<endl);
+           }
+               
+           if(abs(theta23.eval()-(-1)*cos(roll.eval())*sin(pitch.eval()))>=1e-6){
+            DebugOn("T23.eval()"<<endl);
+           }
+          
+            
+            
+            if(abs(theta31.eval()-sin(pitch.eval())*sin(yaw.eval())-(-1)*cos(pitch.eval())*cos(yaw.eval())*sin(roll.eval()))>=1e-6){
+                  DebugOn("T31.eval()"<<endl);
+            }
+            
+            
+            if(abs(theta32.eval()-cos(yaw.eval())*sin(pitch.eval())-cos(pitch.eval())*sin(roll.eval())*sin(yaw.eval()))>=1e-6){
+             DebugOn("T32.eval()"<<endl);
+            }
+            
+            if(abs(theta33.eval()-cos(roll.eval())*cos(pitch.eval()))>=1e-6){
+                  DebugOn("T33.eval()"<<endl);
+            }
+        }
+    }
+    return {roll_1, pitch_1, yaw_1};
+}
 tuple<double,double,double> run_NLP_scanner_old(string axis, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, const vector<vector<double>>& rollpitchyawins1, const vector<vector<double>>& rollpitchyawins2)
 {
     double angle_max = 0.05;
@@ -2146,64 +2660,94 @@ Lidar.add(x_rot2.in(N2)==0);
     }
     return {roll_1, pitch_1, yaw_1};
 }
-tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, const vector<vector<double>>& rollpitchyawins1, const vector<vector<double>>& rollpitchyawins2){
+tuple<double,double,double> run_IPH(vector<vector<double>>& ext_model, vector<vector<double>>& ext_data, const vector<vector<double>>& uav1, const vector<vector<double>>& uav2, const vector<vector<double>>& rollpitchyawins1, const vector<vector<double>>& rollpitchyawins2, double scanner_x,double scanner_y,double scanner_z, const double hr,const double hp,const double hy){
     double roll = 0, pitch = 0, yaw = 1; /* at least one nonzero to enter the while loop */
     double final_roll = 0, final_pitch = 0, final_yaw = 0;
     int nb_iter = 0, max_nb_iter = 100;
-    double scanner_x=0, scanner_y=0.161, scanner_z=0.016;
     tuple<double,double,double> res;
     max_nb_iter = 100;//20
+    vector<vector<double>> input_point_cloud1, input_point_cloud2, input_offset1, input_offset2;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
     {
-        res = run_NLP_scanner("full", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        input_point_cloud1.clear();
+        input_offset1.clear();
+        input_point_cloud2.clear();
+        input_offset2.clear();
+        generate_inputs(ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud1, input_offset1);
+        generate_inputs(ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud2, input_offset2);
+        res = run_NLP_scanner("full", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2, input_point_cloud1, input_point_cloud2, input_offset1, input_offset2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z);
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy);
         nb_iter++;
         DebugOn("No projection, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
     {
-        res = run_NLP_scanner("z", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2,scanner_x, scanner_y, scanner_z);
+        input_point_cloud1.clear();
+        input_offset1.clear();
+        input_point_cloud2.clear();
+        input_offset2.clear();
+        generate_inputs(ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud1, input_offset1);
+        generate_inputs(ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud2, input_offset2);
+        res = run_NLP_scanner("z", ext_model, ext_data, uav1, uav2, rollpitchyawins1, rollpitchyawins2,input_point_cloud1, input_point_cloud2, input_offset1, input_offset2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z);
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy);
         nb_iter++;
         DebugOn("Projceting out z axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
     {
-        res = run_NLP_scanner("y", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,scanner_x, scanner_y, scanner_z);
+        input_point_cloud1.clear();
+        input_offset1.clear();
+        input_point_cloud2.clear();
+        input_offset2.clear();
+        generate_inputs(ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud1, input_offset1);
+        generate_inputs(ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud2, input_offset2);
+        res = run_NLP_scanner("y", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,input_point_cloud1, input_point_cloud2, input_offset1, input_offset2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z);
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy);
         nb_iter++;
         DebugOn("Projceting out y axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
     {
-        res = run_NLP_scanner("x", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,scanner_x, scanner_y, scanner_z);
+        input_point_cloud1.clear();
+        input_offset1.clear();
+        input_point_cloud2.clear();
+        input_offset2.clear();
+        generate_inputs(ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud1, input_offset1);
+        generate_inputs(ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud2, input_offset2);
+        res = run_NLP_scanner("x", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,input_point_cloud1, input_point_cloud2, input_offset1, input_offset2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1,scanner_x, scanner_y, scanner_z);
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1,scanner_x, scanner_y, scanner_z,hr,hp,hy);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy);
         nb_iter++;
         DebugOn("Projceting out x axis, ITERATION " << nb_iter << endl);
     }
     nb_iter = 0;yaw=1;max_nb_iter = 100;
     while(nb_iter < max_nb_iter && std::abs(roll)+std::abs(pitch)+std::abs(yaw)>0.1)//0.5
     {
-        res = run_NLP_scanner("full", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,scanner_x, scanner_y, scanner_z);
+        input_point_cloud1.clear();
+        input_offset1.clear();
+        input_point_cloud2.clear();
+        input_offset2.clear();
+        generate_inputs(ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud1, input_offset1);
+        generate_inputs(ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_point_cloud2, input_offset2);
+        res = run_NLP_scanner("full", ext_model, ext_data, uav1, uav2,  rollpitchyawins1, rollpitchyawins2,input_point_cloud1, input_point_cloud2, input_offset1, input_offset2);
         roll = get<0>(res);pitch = get<1>(res);yaw = get<2>(res);
         final_roll += roll;final_pitch += pitch;final_yaw += yaw;
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z);
-        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_model, uav1, rollpitchyawins1, scanner_x, scanner_y, scanner_z,hr,hp,hy);
+        apply_transform_new_order(roll*pi/180, pitch*pi/180, yaw*pi/180, ext_data, uav2, rollpitchyawins2, scanner_x, scanner_y, scanner_z,hr,hp,hy);
         nb_iter++;
         DebugOn("No projection, ITERATION " << nb_iter << endl);
     }
