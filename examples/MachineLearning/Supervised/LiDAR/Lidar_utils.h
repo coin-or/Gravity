@@ -325,7 +325,7 @@ vector<double> apply_rotation_inverse_new_order(double roll, double pitch, doubl
     res[2]=x*sin(roll)+y*(-cos(roll)*sin(pitch))+z*(cos(roll)*cos(pitch));
     return res;
 }
-void apply_transform_new_order(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
+void apply_transform_new_order(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, const double scanner_x, const double scanner_y, const double scanner_z, const double hr, const double hp, const double hy){
     double shifted_x, shifted_y, shifted_z;
     /* Apply rotation */
     for (auto i = 0; i< full_point_cloud.size(); i++) {
@@ -340,8 +340,8 @@ void apply_transform_new_order(double roll, double pitch, double yaw, vector<vec
         shifted_y = full_point_cloud[i][1]-full_uav[i][1] -res_s[1];// -ty;
         shifted_z = full_point_cloud[i][2]-full_uav[i][2] -res_s[2];// -tz;
         
-        auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
-       // auto res_inv_ins=apply_rotation_inverse_new_order(-0.000180572766112164,-0.000351235183188692, -0.00116005958989263, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
+        auto res_inv_ins1=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+        auto res_inv_ins=apply_rotation_inverse_new_order(hr, hp, hy, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
         
         auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
         
@@ -353,6 +353,48 @@ void apply_transform_new_order(double roll, double pitch, double yaw, vector<vec
     }
 }
 
+void generate_inputs(vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, const double scanner_x, const double scanner_y, const double scanner_z, const double hr, const double hp, const double hy, vector<vector<double>>& input_point_cloud, vector<vector<double>>& input_rot_offset){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< full_point_cloud.size(); i++) {
+        
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        auto res_s=apply_rotation_inverse_new_order(roll_pitch_yaw_uav[i][0], (roll_pitch_yaw_uav[i][1]), (-pi/2+roll_pitch_yaw_uav[i][2])*(-1), scanner_x, scanner_y, scanner_z);
+        
+        shifted_x = full_point_cloud[i][0]-full_uav[i][0] -res_s[0];// -tx;
+        shifted_y = full_point_cloud[i][1]-full_uav[i][1] -res_s[1];// -ty;
+        shifted_z = full_point_cloud[i][2]-full_uav[i][2] -res_s[2];// -tz;
+        
+        auto res_inv_ins1=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
+       auto res_inv_ins=apply_rotation_inverse_new_order(hr,hp, hy, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
+        input_point_cloud.push_back(res_inv_ins);
+        input_rot_offset.push_back(res_s);
+    }
+}
+void generate_outputs_from_inputs(double roll, double pitch, double yaw, vector<vector<double>>& input_point_cloud, const vector<vector<double>>& uav, const vector<vector<double>>& roll_pitch_yaw_uav, const vector<vector<double>>& input_offset, vector<vector<double>>& output_point_cloud){
+    double shifted_x, shifted_y, shifted_z;
+    /* Apply rotation */
+    for (auto i = 0; i< input_point_cloud.size(); i++) {
+        vector<double> res(3);
+        auto rollu=roll_pitch_yaw_uav[i][0];
+        auto pitchu=(-pi+roll_pitch_yaw_uav[i][1])*(-1);
+        auto yawu=(-pi/2+roll_pitch_yaw_uav[i][2])*(-1);
+        
+        
+        auto res_bore=apply_rotation_new_order(roll, pitch, yaw, input_point_cloud[i][0], input_point_cloud[i][1], input_point_cloud[i][2]);
+        
+        auto res_ins=apply_rotation_inverse_new_order(rollu, pitchu, yawu, res_bore[0], res_bore[1], res_bore[2]);
+        
+        res[0] = res_ins[0]+uav[i][0]+input_offset[i][0];
+        res[1] = res_ins[1]+uav[i][1]+input_offset[i][1];
+        res[2] = res_ins[2]+uav[i][2]+input_offset[i][2];
+        
+        output_point_cloud.push_back(res);
+    }
+}
 void apply_transform_new_order_Test(double roll, double pitch, double yaw, vector<vector<double>>& full_point_cloud, const vector<vector<double>>& full_uav, const vector<vector<double>>& roll_pitch_yaw_uav, double scanner_x, double scanner_y, double scanner_z){
     scanner_x=0;
     scanner_y=0;
@@ -1224,7 +1266,7 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
             skip=10;
         }
         else if(total_pts>1e8){
-            skip=100;
+            skip=1000;
         }
         int nb_dots; /* Number of measurements inside cell */
         int xpos, ypos;
@@ -1264,7 +1306,6 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         lasreader->read_point();
         auto time_start = lasreader->point.get_gps_time();
         DebugOn("time_start "<<time_start<<endl);
-        DebugOn("po");
         while (lasreader->read_point() && LidarPoints.size()!=200e6)
         {
             nb_pts++;
@@ -1294,7 +1335,9 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
                 DebugOff("attribute "<< i << " = " << lasreader->point.get_attribute_name(i) << endl);
                 DebugOff("attribute "<< i << " value = " << lasreader->point.get_attribute_as_float(i) << endl);
             }
+            DebugOff("rpy "<<to_string_with_precision(roll,9)<<" "<<to_string_with_precision(pitch,9)<<" "<<to_string_with_precision(yaw,9)<<endl);
             DebugOff("uav "<<to_string_with_precision(uav_x,9)<<" "<<to_string_with_precision(uav_y,9)<<" "<<to_string_with_precision(uav_z,9)<<endl);
+            DebugOff("lidar "<<to_string_with_precision(x,9)<<" "<<to_string_with_precision(y,9)<<" "<<to_string_with_precision(z,9)<<endl);
             if(!isnan(uav_x) && !isnan(uav_y) && !isnan(uav_z)){
                 LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
                 point_cloud1.push_back({x,y,z});

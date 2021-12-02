@@ -51,7 +51,7 @@ struct Plane_equation {
     }
 };*/
 
-double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type, double scanner_x, double scanner_y, double scanner_z)
+double preprocess_lid(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type)
 {
     prep_time=0;
     indices valid_cells("valid_cells");
@@ -97,22 +97,12 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     T1.push_back(theta32);
     T1.push_back(theta33);
     
-    vector<vector<double>> point_cloud_model_ins, point_cloud_data_ins;
-    
-    for (auto j = 0; j<point_cloud_model.size(); j++) {
-        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_model.at(j)[0], rollpitchyawins_model.at(j)[1], (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), scanner_x, scanner_y, scanner_z);
-        auto res_m=apply_rotation_new_order(rollpitchyawins_model.at(j)[0], (-pi+rollpitchyawins_model.at(j)[1])*(-1), (-pi/2+rollpitchyawins_model.at(j)[2])*(-1), point_cloud_model.at(j)[0]-uav_model.at(j)[0]-res_s[0], point_cloud_model.at(j)[1]-uav_model.at(j)[1]-res_s[1], point_cloud_model.at(j)[2]-uav_model.at(j)[2]-res_s[2]);
-        rot_sc_mod.push_back(res_s);
-        point_cloud_model_ins.push_back(res_m);
-        const_model.push_back({uav_model.at(j)[0]+res_s[0], uav_model.at(j)[1]+res_s[1], uav_model.at(j)[2]+res_s[2]});
+    for (auto j = 0; j<input_model_cloud.size(); j++) {
+        const_model.push_back({uav_model.at(j)[0]+input_model_offset.at(j)[0], uav_model.at(j)[1]+input_model_offset.at(j)[1], uav_model.at(j)[2]+input_model_offset.at(j)[2]});
     }
     
-    for (auto i = 0; i<point_cloud_data.size(); i++) {
-        auto res_s=apply_rotation_inverse_new_order(rollpitchyawins_model.at(i)[0], rollpitchyawins_model.at(i)[1], (-pi/2+rollpitchyawins_model.at(i)[2])*(-1), scanner_x, scanner_y, scanner_z);
-        auto res_d=apply_rotation_new_order(rollpitchyawins_data.at(i)[0], (-pi+rollpitchyawins_data.at(i)[1])*(-1), (-pi/2+rollpitchyawins_data.at(i)[2])*(-1), point_cloud_data.at(i)[0]-uav_data.at(i)[0]-res_s[0], point_cloud_data.at(i)[1]-uav_data.at(i)[1]-res_s[1], point_cloud_data.at(i)[2]-uav_data.at(i)[2]-res_s[2]);
-        rot_sc_data.push_back(res_s);
-        point_cloud_data_ins.push_back(res_d);
-        const_data.push_back({uav_data.at(i)[0]+res_s[0], uav_data.at(i)[1]+res_s[1], uav_data.at(i)[2]+res_s[2]});
+    for (auto i = 0; i<input_data_cloud.size(); i++) {
+        const_data.push_back({uav_data.at(i)[0]+input_data_offset.at(i)[0], uav_data.at(i)[1]+input_data_offset.at(i)[1], uav_data.at(i)[2]+input_data_offset.at(i)[2]});
     }
     
     
@@ -123,8 +113,8 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
     
     bool found_all=true;
     
-    int nd=point_cloud_data.size();
-    int nm=point_cloud_model.size();
+    int nd=input_data_cloud.size();
+    int nm=input_model_cloud.size();
     
     vector<map<double, int>> valid_cells_map(nd);
     
@@ -135,11 +125,11 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
         double min_dist_ij_max=numeric_limits<double>::max();
         double min_dist_ij_min=numeric_limits<double>::max();
         vector<vector<double>> extreme_i;
-        /*Feasible region R'_insR(data_ins)*/
-        get_extreme_point(extreme_i, point_cloud_data_ins[i], T1, rollpitchyawins_data.at(i));
+        /*Feasible region R'_insR(input_data_cloud)*/
+        get_extreme_point(extreme_i, input_data_cloud[i], T1, rollpitchyawins_data.at(i));
         for (int j = 0; j<nm; j++) {
             string key= to_string(i+1)+","+to_string(j+1);
-            if(valid_cells_old.size()>=point_cloud_data.size()){
+            if(valid_cells_old.size()>=input_data_cloud.size()){
                 if(!valid_cells_old.has_key(key)){
                     DebugOff("continued");
                     continue;
@@ -147,8 +137,8 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
             }
             double dist_ij_min, dist_ij_max;
             vector<vector<double>> extreme_j;
-            /*Feasible region R'_insR(model_ins)+(uav_model-uav_data)*/
-            get_extreme_point_model(extreme_j, const_data[i], const_model[j], point_cloud_model_ins[j], T1, rollpitchyawins_model.at(j));
+            /*Feasible region R'_insR(input_model_cloud)+(uav_model-uav_data)*/
+            get_extreme_point_model(extreme_j, const_data[i], const_model[j], input_model_cloud[j], T1, rollpitchyawins_model.at(j));
             /*Calling GJK*/
             if(error_type=="L2"){
                 dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
@@ -202,7 +192,7 @@ double preprocess_lid(const vector<vector<double>>& point_cloud_model, const vec
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
-            vo=point_cloud_data.size()*point_cloud_model.size();
+            vo=input_data_cloud.size()*input_model_cloud.size();
         }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
@@ -429,7 +419,7 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
 
 }
 /* Extreme points of the feasible region in which a model point can lie for alignment
- @extreme: Vertices of extreme points of the feasible region: [R'[d_pt-uav_d]]
+ @extreme: Vertices of extreme points of the feasible region: [R_insR_b[d]]
  @uav_d: uav coordinates of data point
  @d_pt: Data point lidar coordinate
  @theta_vec: vector of variables defining rotation with +roll and +yaw
@@ -615,7 +605,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         }
     }
     else{
-        DebugOn("Vertex A no found "<<endl);
+        DebugOn("Vertex A not found "<<endl);
     }
     if(vertex_found_b){
         for(auto v: new_vert_b){
@@ -626,7 +616,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         }
     }
     else{
-        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+        DebugOn("Vertex B not found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -874,14 +864,21 @@ void get_extreme_point_model(vector<vector<double>>& extreme, const vector<doubl
         extreme.at(i)[2]+=b[2];
     }
 }
-void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec,  const vector<double>& rpy)
+/* Extreme points of the feasible region in which a model point can lie for alignment
+ @extreme: Vertices of extreme points of the feasible region: [R[m_pt]+const_m-const_d]
+ @uav_d: uav coordinates of data point
+ @uav_m: uav coordinates of model point
+ @m_pt: Model point lidar coordinate
+ @theta_vec: vector of variables defining rotation with -roll and -yaw
+ */
+void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& const_d, const vector<double>& const_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec,  const vector<double>& rpy)
 {
     get_extreme_point(extreme, m_pt, theta_vec, rpy);
     vector<double> b(3);
     
-    b[0]=uav_m[0]-uav_d[0];
-    b[1]=uav_m[1]-uav_d[1];
-    b[2]=uav_m[2]-uav_d[2];
+    b[0]=const_m[0]-const_d[0];
+    b[1]=const_m[1]-const_d[1];
+    b[2]=const_m[2]-const_d[2];
     
     for(auto i=0;i<extreme.size();i++){
         extreme.at(i)[0]+=b[0];
