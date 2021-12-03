@@ -174,7 +174,12 @@ const bool pts_compare(const pair<double,int>& c1, const pair<double,int>& c2) {
 
 int main (int argc, char * argv[])
 {
-    
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     string prob_type = "Reg";
     if(argc>1){
         prob_type = argv[1];
@@ -297,6 +302,7 @@ int main (int argc, char * argv[])
     vector<vector<double>> em4;
     int n=roll_pitch_yaw1.size();
     double scanner_x=0.0, scanner_y=0.160999998450279, scanner_z=0.016;
+    const double hr=0.000288477458525449, hp=0.000563974492251873, hy=0.00173089664895087;
 //    auto roll_deg=-1.44922*pi/180;
 //    auto pitch_deg=0.542969*pi/180;
 //    auto yaw_deg=0.00390625*pi/180;
@@ -307,14 +313,14 @@ int main (int argc, char * argv[])
     //    auto roll_deg= -0.0254859253764153;
     //    auto pitch_deg =0.0153557369485497;
     //    auto yaw_deg =-0.00552612589672208;
-    auto roll_deg=-0.0255034808069468;
-    auto pitch_deg = 0.0152935786172748;
-    auto yaw_deg =-0.00570988887920976;
-    //        auto roll_deg =-1.46484*pi/180;
-    //        auto pitch_deg = 0.550781*pi/180;
-    //        auto yaw_deg = -0.0429688*pi/180;
+//    auto roll_deg=-0.0255034808069468;
+//    auto pitch_deg = 0.0152935786172748;
+//    auto yaw_deg =-0.00570988887920976;
+            auto roll_deg =-1.42578*pi/180;
+            auto pitch_deg = 0.621094*pi/180;
+            auto yaw_deg = 0.113281*pi/180;
     //apply_transform_new_order_Test(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z);
-    //apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z);
+    //apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z, hr, hp, hy);
     // apply_transform_new_order_Test(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z);
     
     //save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(scanner_x)+"_"+to_string(scanner_y)+"_"+to_string(scanner_z)+"_manual_lv_5_.laz", lidar_point_cloud2, em4);
@@ -524,7 +530,7 @@ int main (int argc, char * argv[])
         save_laz(name_u,cloud1, cloud2);
         auto name_u_uav=file_u.substr(0,Model_file.find('.'))+"_uav.laz";
         save_laz(name_u_uav,cloud1, uav1);
-        plot(cloud1,cloud2);
+        //plot(cloud1,cloud2);
         if(cloud1.size()>=cloud2.size()){
             full_point_cloud_model=cloud1;
             full_point_cloud_data=cloud2;
@@ -572,11 +578,15 @@ int main (int argc, char * argv[])
             auto z=full_point_cloud_model.at(i)[2];
             double lamdax=(x-uxmin)/(uxmax-uxmin);
             double lamday=(y-uymin)/(uymax-uymin);
-            if(lamdax>=0.28 && lamdax<=0.33){//0.3
-                if(lamday>=0.45 && lamday<=0.55){
+            if(lamdax>=0.28 && lamdax<=0.325){//0.3
+                if(lamday>=0.45 && lamday<=0.52){
+                    if(z>=1261){
+                        if((lamdax>0.3 && z>=1261.6) || lamdax<=0.3){
                     point_cloud_model1.push_back(full_point_cloud_model.at(i));
                     uav_model1.push_back(full_uav_model.at(i));
                     rpy_model1.push_back(full_rpy_model.at(i));
+                        }
+                    }
                 }
             }
         }
@@ -611,61 +621,40 @@ int main (int argc, char * argv[])
             double lamdax=(x-uxmin)/(uxmax-uxmin);
             double lamday=(y-uymin)/(uymax-uymin);
             if(lamdax>=0.45 && lamdax<=0.5){//0.5
-                if(lamday>=0.4 && lamday<=0.5){
+                if(lamday>=0.4 && lamday<=0.46){
+                    if(z>=1262.5){
+                        if((lamdax>0.48 && z>=1262.7) || lamdax<=0.48){
                     point_cloud_data1.push_back(full_point_cloud_data.at(i));
                     uav_data1.push_back(full_uav_data.at(i));
                     rpy_data1.push_back(full_rpy_data.at(i));
+                        }
+                    }
                 }
             }
         }
-        //plot(point_cloud_model1, point_cloud_data1);
-        // save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
-        // save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
-        for(auto i=0;i<point_cloud_model1.size();i++){
-            z_map_model.insert(pair<double,int>(point_cloud_model1[i][2],i));
-        }
-        for(auto i=0;i<point_cloud_data1.size();i++){
-            z_map_data.insert(pair<double,int>(point_cloud_data1[i][2],i));
-        }
+        DebugOn(point_cloud_model1.size()<<endl);
+        DebugOn(point_cloud_data1.size()<<endl);
+        plot(point_cloud_model1, point_cloud_data1);
+        
+         save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
+         save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
         int count=0;
         vector<vector<double>> point_cloud_model_temp, uav_model_temp, rpy_model_temp;
-        for(auto it=z_map_model.begin();it!=z_map_model.end();it++){
-            auto ind=it->second;
-            if(count<5000){
-                point_cloud_model_temp.push_back(point_cloud_model1.at(ind));
-                uav_model_temp.push_back(uav_model1.at(ind));
-                rpy_model_temp.push_back(rpy_model1.at(ind));
-            }
-            else{
-                break;
-            }
-            count++;
-        }
-        for(auto i=0;i<point_cloud_model_temp.size();i+=5){
-            point_cloud_model.push_back(point_cloud_model_temp.at(i));
-            uav_model.push_back(uav_model_temp.at(i));
-            rpy_model.push_back(rpy_model_temp.at(i));
+       
+        for(auto i=0;i<point_cloud_model1.size();i+=1){
+            point_cloud_data.push_back(point_cloud_model1.at(i));
+            uav_data.push_back(uav_model1.at(i));
+            rpy_data.push_back(rpy_model1.at(i));
             
         }
         vector<vector<double>> em, point_cloud_data_temp, uav_data_temp, rpy_data_temp;
         // save_laz(file_u.substr(0,Model_file.find('.'))+"_model.laz", point_cloud_model, em);
         count=0;
-        for(auto it=z_map_data.begin();it!=z_map_data.end();it++){
-            auto ind=it->second;
-            if(count<10000){
-                point_cloud_data_temp.push_back(point_cloud_data1.at(ind));
-                uav_data_temp.push_back(uav_data1.at(ind));
-                rpy_data_temp.push_back(rpy_data1.at(ind));
-            }
-            else{
-                break;
-            }
-            count++;
-        }
-        for(auto i=0;i<point_cloud_data_temp.size();i+=10){
-            point_cloud_data.push_back(point_cloud_data_temp.at(i));
-            uav_data.push_back(uav_data_temp.at(i));
-            rpy_data.push_back(rpy_data_temp.at(i));
+     
+        for(auto i=0;i<point_cloud_data1.size();i+=2){
+            point_cloud_model.push_back(point_cloud_data1.at(i));
+            uav_model.push_back(uav_data1.at(i));
+            rpy_model.push_back(rpy_data1.at(i));
             
         }
         
@@ -697,10 +686,13 @@ int main (int argc, char * argv[])
                 uav_data.at(i)[2]-=uav_cloud_u.at(0)[2];
             }
         }
+        DebugOn(point_cloud_model.size()<<endl);
+        DebugOn(point_cloud_data.size()<<endl);
         
         plot(point_cloud_model, point_cloud_data, 1);
-        plot(uav_model, uav_data, 1);
-        plot(rpy_model, rpy_data, 1);
+        
+        /*plot(uav_model, uav_data, 1);
+        plot(rpy_model, rpy_data, 1);*/
         
         indices N1 = range(1,point_cloud_data.size());
         indices N2 = range(1,point_cloud_model.size());
@@ -720,7 +712,7 @@ int main (int argc, char * argv[])
         double pitch_max=2*pi/180;
         double yaw_min=-2*pi/180;
         double yaw_max=2*pi/180;
-        const double hr=0.000288477458525449, hp=0.000563974492251873, hy=0.00173089664895087;
+        
         auto point_cloud_model_copy=point_cloud_model;
         auto point_cloud_data_copy=point_cloud_data;
         
