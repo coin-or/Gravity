@@ -1072,6 +1072,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const ve
     string j_str, i_str;
  
     for (auto j = 0; j<input_model_cloud.size(); j++) {
+        j_str = to_string(j+1);
         x_uav2.add_val(j_str,uav_model.at(j)[0]);
         y_uav2.add_val(j_str,uav_model.at(j)[1]);
         z_uav2.add_val(j_str,uav_model.at(j)[2]);

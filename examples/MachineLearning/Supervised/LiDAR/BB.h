@@ -19,6 +19,12 @@ void run_preprocess_model_Align(const vector<vector<double>>& input_cloud_model,
 
 vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
     vector<double> rpy;
     /* INPUT BOUNDS */
     
