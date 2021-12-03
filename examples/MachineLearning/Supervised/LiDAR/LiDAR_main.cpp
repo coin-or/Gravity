@@ -28,6 +28,7 @@
 #include <future>
 #include <thread>
 #include "Lidar_utils.h"
+#include <gravity/solver.h>
 //#include "Branch_Bound.h"
 #include "IPH.h"
 //#include "Lower_Bound.h"
@@ -634,8 +635,9 @@ int main (int argc, char * argv[])
         }
         DebugOn(point_cloud_model1.size()<<endl);
         DebugOn(point_cloud_data1.size()<<endl);
+#ifdef USE_MATPLOT
         plot(point_cloud_model1, point_cloud_data1);
-        
+#endif
          save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
          save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
         int count=0;
@@ -688,9 +690,9 @@ int main (int argc, char * argv[])
         }
         DebugOn(point_cloud_model.size()<<endl);
         DebugOn(point_cloud_data.size()<<endl);
-        
+#ifdef USE_MATPLOT
         plot(point_cloud_model, point_cloud_data, 1);
-        
+#endif
         /*plot(uav_model, uav_data, 1);
         plot(rpy_model, rpy_data, 1);*/
         
