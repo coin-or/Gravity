@@ -1317,6 +1317,43 @@ int run_MPI_new(std::vector<std::string>& objective_models, std::vector<double>&
         //   MPI_Barrier(MPI_COMM_WORLD);
     return nb_workers_;
 }
+int run_MPI_new_lidar(std::vector<std::string>& objective_models, std::vector<double>& sol_obj, std::vector<int>& sol_status, std::vector<shared_ptr<gravity::Model<double>>>& models, const shared_ptr<gravity::Model<double>>& relaxed_model, const gravity::Model<double>& interior, string cut_type, double active_tol, gravity::SolverType stype, double tol, unsigned nr_threads, const string& lin_solver, int max_iter, int max_batch_time, bool linearize, int nb_refine, std::map<string,int>& old_map, vector<vector<double>>& vbasis, vector<std::map<string,double>>& cbasis, bool initialize_primal){
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+    auto nb_workers_ = std::min((size_t)nb_workers, objective_models.size());
+    std::vector<std::string> objective_models_worker;
+    std::vector<double> sol_obj_worker;
+    std::vector<int> sol_status_worker;
+    std::vector<size_t> limits;
+    if(objective_models.size()!=0){
+            limits=bounds(nb_workers_, objective_models.size());
+        if(nb_workers_!=limits.size()-1){
+            DebugOn("Error4 in computing limits");
+        }
+        sol_status.resize(objective_models.size(),-1);
+        sol_obj.resize(objective_models.size(),-1.0);
+        if(worker_id+1<limits.size()){
+            /* Launch all threads in parallel */
+            if(limits[worker_id] == limits[worker_id+1]){
+                throw invalid_argument("limits[worker_id]==limits[worker_id+1]");
+            }
+            DebugOff("I'm worker ID: " << worker_id << ", I will be running models " << limits[worker_id] << " to " << limits[worker_id+1]-1 << endl);
+            for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+                objective_models_worker.push_back(objective_models[i]);
+            }
+            sol_status_worker.resize(limits[worker_id+1]-limits[worker_id],0);
+            sol_obj_worker.resize(limits[worker_id+1]-limits[worker_id],0);
+            run_parallel_new(objective_models_worker, sol_obj_worker, sol_status_worker, models, relaxed_model, interior, cut_type, active_tol, stype, tol, nr_threads, lin_solver, max_iter, max_batch_time, linearize, nb_refine, vbasis, cbasis, initialize_primal);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        send_status_new(models,limits, sol_status);
+        MPI_Barrier(MPI_COMM_WORLD);
+        send_obj_all_new(models,limits, sol_obj);
+    }
+        //   MPI_Barrier(MPI_COMM_WORLD);
+    return nb_workers_;
+}
 /** Runs models stored in the vector in parallel using MPI
  *      @models vector of models to run in parallel
  *           @stype Solver type

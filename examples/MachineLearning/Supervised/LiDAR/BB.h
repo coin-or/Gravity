@@ -10,6 +10,7 @@
 
 #include "Lidar_preprocess.h"
 #include "Lower_Bound.h"
+#include <gravity/solver.h>
 
 #include <thread>
 
