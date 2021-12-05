@@ -51,7 +51,7 @@ struct Plane_equation {
     }
 };*/
 
-double preprocess_lid(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, string error_type)
+void preprocess_lid(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type)
 {
     prep_time=0;
     indices valid_cells("valid_cells");
@@ -108,7 +108,7 @@ double preprocess_lid(const vector<vector<double>>& input_model_cloud, const vec
     
     
     
-    double min_cost_sum=0.0;
+    min_cost_sum=0.0;
     
     
     bool found_all=true;
