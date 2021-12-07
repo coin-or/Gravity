@@ -148,7 +148,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     lb_queue.push(treenode_r(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
     treenode_r topnode=lb_queue.top();
     
-    while ( lb_queue.top().depth<=2) {
+    while ( lb_queue.top().depth<=4) {
            
             roll_bounds.clear();
             pitch_bounds.clear();
@@ -358,11 +358,15 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         run_preprocess_parallel_Align(input_model_cloud, input_data_cloud,uav_model, uav_data,  rpy_model, rpy_data, input_model_offset, input_data_offset, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type);
         
         for (int j = 0; j<m_vec.size(); j++) {
-            if(!m_vec[j]){
+            if(m_vec[j]==0){
                 prep_count++;
+            }
+            else if(m_vec[j]==10){
+                lb_queue.push(treenode_r(roll_bounds[j], pitch_bounds[j], yaw_bounds[j], vec_lb[j], best_ub, ub_, depth_vec[j], valid_cells[j], false, dist_cost_cells[j]));
             }
         }
         DebugOn("models size "<<models.size()<<endl);
+        
         run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
         for (int j = 0; j<models.size(); j++) {
             int pos=pos_vec[j];
@@ -570,7 +574,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& input_model_cloud,
     preprocess_lid(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset,input_data_offset, vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound, prep_time_i, vec_lb_i, error_type);
     //
     bool model_created=false;
-    if(valid_cells_i.size()>=input_data_cloud.size()){
+    if(valid_cells_i.size()>=input_data_cloud.size() && valid_cells_i.size()<=4e4){
         if(error_type=="L2"){
             model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
         }
@@ -578,13 +582,16 @@ void run_preprocess_model_Align(const vector<vector<double>>& input_model_cloud,
             model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
         }
         model_created=true;
-    }
-    if(model_created){
         m_vec_i=1;
     }
-    else{
+    else if(valid_cells_i.size()> 4e4){
+        m_vec_i=10;
+    }
+    else if(valid_cells_i.size()<input_data_cloud.size()){
         m_vec_i=0;
     }
+        
+   
 }
 void run_preprocess_only_parallel(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, vector<treenode_r>& vec_node, vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, int iter, string error_type){
     //size_t nb_threads = std::thread::hardware_concurrency();
