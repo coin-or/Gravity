@@ -205,7 +205,7 @@ void preprocess_lid(const vector<vector<double>>& input_model_cloud, const vecto
         new_cells=valid_cells_empty;
         DebugOn("No valid cells found "<<endl);
     }
-    return min_cost_sum;
+    //return min_cost_sum;
 }
 /* Extreme points of the feasible region in which a model point can lie for alignment
  @extreme: Vertices of extreme points of the feasible region: [R'[d_pt-uav_d]]
