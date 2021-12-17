@@ -1309,14 +1309,14 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         while (lasreader->read_point() && LidarPoints.size()!=200e6)
         {
             nb_pts++;
-           
+            time_end = lasreader->point.get_gps_time();
             auto laser_id = lasreader->point.get_point_source_ID();
             auto unix_time = lasreader->point.get_gps_time();
             DebugOff("lid "<<laser_id<<endl);
-//            if(!((unix_time-time_start)>=50 && (unix_time-time_start)<=150)){
+//            if(!((unix_time-time_start)>=150 && (unix_time-time_start)<=250)){
 //                continue;
 //            }
-//            if(nb_pts%skip!=0){/* Only keep points from Nadir laser */
+//            if(nb_pts%10!=0){/* Only keep points from Nadir laser */
 //                continue;
 //            }
             auto X = (lasreader->point.get_X());
@@ -1353,7 +1353,12 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         vector<vector<double>> empty_vec;
         empty_vec.push_back(uav_cloud[0]);
 #ifdef USE_MATPLOT
-       //  plot(uav_cloud,empty_vec, 0.1);
+         //plot(uav_cloud,empty_vec, 0.1);
+#endif
+        empty_vec.clear();
+        empty_vec.push_back(lidar_point_cloud[0]);
+#ifdef USE_MATPLOT
+         //plot(lidar_point_cloud,empty_vec, 0.1);
 #endif
         save_laz(name, point_cloud1, point_cloud2);
         DebugOn("time_start "<<time_start);

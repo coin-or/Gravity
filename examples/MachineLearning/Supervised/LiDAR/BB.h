@@ -14,10 +14,286 @@
 
 #include <thread>
 
-void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& input_model_cloud, vector<vector<double>>& input_data_cloud, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, vector<vector<double>>& input_model_offset, vector<vector<double>>& input_data_offset, string error_type);
+bool compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& input_model_cloud, vector<vector<double>>& input_data_cloud, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, vector<vector<double>>& input_model_offset, vector<vector<double>>& input_data_offset, string error_type);
 void run_preprocess_parallel_Align(const vector<vector<double>>& input_cloud_model, const vector<vector<double>>& input_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data,const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_r>& vec_node, vector<int>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<param<double>>& dist_cost_new, int iter, std::string error_type);
 void run_preprocess_model_Align(const vector<vector<double>>& input_cloud_model, const vector<vector<double>>& input_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, treenode_r vec_node_i, int& m_vec_i,  double& vec_lb_i,  indices& valid_cells_i, param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, std::string error_type);
 void run_preprocess_only_parallel(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, vector<treenode_r>& vec_node, vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, int iter, string error_type);
+vector<double> ub_heuristic(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
+{
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
+    vector<double> rpy(3);
+    /* INPUT BOUNDS */
+    
+    /* INPUT BOUNDS */
+    double time_start = get_wall_time();
+    double total_time_max = 90000;
+    double prep_time_total=0;
+    
+    
+    
+    double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
+    
+    vector<vector<double>> input_data_cloud, input_model_cloud, input_data_offset, input_model_offset;
+    
+    generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
+    generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
+    
+    indices N1 = range(1,point_cloud_data.size());
+    indices N2 = range(1,point_cloud_model.size());
+    int nd=point_cloud_data.size();
+    vector<int> new_matching(nd);
+    vector<double> res(nd);
+    
+ 
+    
+    double max_time = 60;
+    double max_time_init=60;
+    bool max_time_increase=false;
+    int max_iter = 1e6;
+    int models_count=0, models_new_count=0;
+    int infeasible_count=0;
+    vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
+    size_t nb_threads = std::thread::hardware_concurrency();
+    //int nb_threads = 1;
+    
+    
+    // nb_threads = 1;
+    pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r;
+    
+    roll_bounds_r={roll_min, roll_max};
+    pitch_bounds_r={pitch_min, pitch_max};
+    yaw_bounds_r={yaw_min, yaw_max};
+    
+    vector<pair<double,double>> roll_bounds, pitch_bounds, yaw_bounds;
+    
+    vector<indices> valid_cells;
+    vector<int> pos_vec;
+    vector<double> vec_lb;
+    vector<treenode_r> vec_node;
+    vector<int> m_vec;
+    vector<vector<double>> costs_upto_vec;
+
+    DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
+    vector<shared_ptr<Model<>>> models, models_new;
+    double lb = 0, ub = 12, ub_=-1, best_lb = 0;
+    int nb_pruned = 0;
+    int depth_r=0, iter=0;
+    vector<int> depth_vec;
+    priority_queue<treenode_r> lb_queue;
+    vector<double> costs_upto_init(nd,0.0);
+
+    
+    double min_cost_sum=0.0;
+    
+    param<double> dist_cost_r("dist_cost_r");
+    indices valid_cells_r;
+    
+    
+    
+    lb_queue.push(treenode_r(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
+    treenode_r topnode=lb_queue.top();
+    auto ts=get_wall_time();
+    while ( lb_queue.top().depth<=6) {
+           
+            roll_bounds.clear();
+            pitch_bounds.clear();
+            yaw_bounds.clear();
+            valid_cells.clear();
+            depth_vec.clear();
+            vec_node.clear();
+            vec_lb.clear();
+
+            costs_upto_vec.clear();
+            iter++;
+            models_count=0;
+            models_new_count=0;
+            topnode=lb_queue.top();
+            prep_time_total=0;
+            int step=8;
+     
+            for(auto i=0;!lb_queue.empty();i+=step){
+                    topnode=lb_queue.top();
+                    lb_queue.pop();
+                    
+                    double roll_increment,  pitch_increment, yaw_increment;
+                    
+                    
+                    
+                    roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
+                    pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
+                    yaw_increment = (topnode.yaw.second - topnode.yaw.first)/2.0;
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.first+roll_increment});
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.first+roll_increment});
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.first+roll_increment});
+                    roll_bounds.push_back({topnode.roll.first, topnode.roll.first+roll_increment});
+                    roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
+                    roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
+                    roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
+                    roll_bounds.push_back({topnode.roll.first+roll_increment, topnode.roll.second});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
+                    pitch_bounds.push_back({topnode.pitch.first+pitch_increment, topnode.pitch.second});
+                    pitch_bounds.push_back({topnode.pitch.first+pitch_increment, topnode.pitch.second});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
+                    pitch_bounds.push_back({topnode.pitch.first, topnode.pitch.first+pitch_increment});
+                    pitch_bounds.push_back({topnode.pitch.first+pitch_increment, topnode.pitch.second});
+                    pitch_bounds.push_back({topnode.pitch.first+pitch_increment, topnode.pitch.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.first+yaw_increment});
+                    yaw_bounds.push_back({topnode.yaw.first+yaw_increment, topnode.yaw.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.first+yaw_increment});
+                    yaw_bounds.push_back({topnode.yaw.first+yaw_increment, topnode.yaw.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.first+yaw_increment});
+                    yaw_bounds.push_back({topnode.yaw.first+yaw_increment, topnode.yaw.second});
+                    yaw_bounds.push_back({topnode.yaw.first, topnode.yaw.first+yaw_increment});
+                    yaw_bounds.push_back({topnode.yaw.first+yaw_increment, topnode.yaw.second});
+                    for(auto k=0;k<8;k++){
+                        vec_node.push_back(treenode_r(roll_bounds[i+k],  pitch_bounds[i+k], yaw_bounds[i+k], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
+                        depth_vec.push_back(topnode.depth+1);
+                    }
+     
+        
+                        for(auto k=0;k<8;k++){
+                            auto a=compute_upper_bound_mid(roll_bounds[i+k].first, roll_bounds[i+k].second, pitch_bounds[i+k].first, pitch_bounds[i+k].second, yaw_bounds[i+k].first, yaw_bounds[i+k].second, best_rot_trans, best_ub, input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, error_type);
+                            if(a){
+                                DebugOn("new ub "<<best_ub<<" "<<(get_wall_time()-ts)<<endl);
+                            }
+                            
+                        }
+
+
+                }
+            //run_preprocess_parallel(pos_vec, models,vec_node, m_vec, valid_cells, vec_lb);
+            
+          
+       
+            for (int j = 0; j<vec_node.size(); j++) {
+               
+        
+                    if(vec_node[j].lb-1e-4<=best_ub)
+                    {
+                        lb_queue.push(vec_node[j]);
+                    }
+                }
+
+            }
+    
+    auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
+    auto roll_rad=asin(best_rot_trans[2]);
+    auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
+    DebugOn("roll rad "<< roll_rad<<endl);
+    DebugOn("pitch rad "<< pitch_rad<<endl);
+    DebugOn("yaw rad "<< yaw_rad<<endl);
+    
+    rpy[0]=roll_rad;
+    rpy[1]=pitch_rad;
+    rpy[2]=yaw_rad;
+    return rpy;
+    
+}
+
+vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
+{
+#ifdef USE_MPI
+    auto err_init = MPI_Init(nullptr,nullptr);
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+#endif
+    vector<double> rpy(3);
+    /* INPUT BOUNDS */
+    
+    /* INPUT BOUNDS */
+    double time_start = get_wall_time();
+    double total_time_max = 90000;
+    double prep_time_total=0;
+    
+    double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
+    
+    vector<vector<double>> input_data_cloud, input_model_cloud, input_data_offset, input_model_offset;
+    
+    generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
+    generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
+    
+    indices N1 = range(1,point_cloud_data.size());
+    indices N2 = range(1,point_cloud_model.size());
+    int nd=point_cloud_data.size();
+    vector<int> new_matching(nd);
+    vector<double> res(nd);
+    
+    // nb_threads = 1;
+    pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r;
+    
+    roll_bounds_r={roll_min, roll_max};
+    pitch_bounds_r={pitch_min, pitch_max};
+    yaw_bounds_r={yaw_min, yaw_max};
+
+
+    double max_time=1000;
+   
+    double ts=get_wall_time();
+    
+    int ndisc=20;
+    bool stop=false;
+    while(!stop){
+    double rb=(roll_bounds_r.second-roll_bounds_r.first)/ndisc;
+    double pb=(pitch_bounds_r.second-pitch_bounds_r.first)/ndisc;
+    double yb=(yaw_bounds_r.second-yaw_bounds_r.first)/ndisc;
+        if(rb<=1e-9 || pb<=1e-9 ||yb<=1e-9){
+            stop=true;
+            break;
+        }
+   
+    for(auto i=0;i<ndisc;i++){
+        for(auto j=0;j<ndisc;j++){
+            for(auto k=0;k<ndisc;k++){
+                auto a=compute_upper_bound_mid(roll_bounds_r.first+i*rb, roll_bounds_r.first+(i+1)*rb, pitch_bounds_r.first+j*pb, pitch_bounds_r.first+(j+1)*pb, yaw_bounds_r.first+k*yb, yaw_bounds_r.first+(k+1)*yb, best_rot_trans, best_ub, input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, error_type);
+                if(a){
+                    DebugOn("new ub "<<best_ub<<" "<<(get_wall_time()-ts)<<endl);
+                }
+                if(get_wall_time()-ts>=max_time){
+                    stop=true;
+                }
+            }
+            if(get_wall_time()-ts>=max_time){
+                stop=true;
+            }
+        }
+        if(get_wall_time()-ts>=max_time){
+            stop=true;
+        }
+    }
+    auto yaw_rad1 = atan2(-best_rot_trans[1],best_rot_trans[0]);
+    auto roll_rad1=asin(best_rot_trans[2]);
+    auto pitch_rad1=acos(best_rot_trans[8]/cos(roll_rad1));
+    roll_bounds_r.first=roll_rad1-std::abs(roll_rad1)*0.1;
+    roll_bounds_r.second=roll_rad1+std::abs(roll_rad1)*0.1;
+    pitch_bounds_r.first=pitch_rad1-std::abs(pitch_rad1)*0.1;
+    pitch_bounds_r.second=pitch_rad1+std::abs(pitch_rad1)*0.1;
+    yaw_bounds_r.first=yaw_rad1-std::abs(yaw_rad1)*0.1;
+    yaw_bounds_r.second=yaw_rad1+std::abs(yaw_rad1)*0.1;
+        if(get_wall_time()-ts>=max_time){
+            stop=true;
+        }
+    }
+    DebugOn("final time "<<(get_wall_time()-ts)<<endl);
+    auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
+    auto roll_rad=asin(best_rot_trans[2]);
+    auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
+    DebugOn("roll rad "<< roll_rad<<endl);
+    DebugOn("pitch rad "<< pitch_rad<<endl);
+    DebugOn("yaw rad "<< yaw_rad<<endl);
+    
+    rpy[0]=roll_rad;
+    rpy[1]=pitch_rad;
+    rpy[2]=yaw_rad;
+    return rpy;
+   
+}
 
 vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
@@ -485,7 +761,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     return rpy;
     
 }
-void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& input_model_cloud, vector<vector<double>>& input_data_cloud, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, vector<vector<double>>& input_model_offset, vector<vector<double>>& input_data_offset, string error_type){
+bool compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& best_rot, double& best_ub, vector<vector<double>>& input_model_cloud, vector<vector<double>>& input_data_cloud, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, vector<vector<double>>& input_model_offset, vector<vector<double>>& input_data_offset, string error_type){
+    bool res=false;
     double roll=(roll_min+roll_max)*0.5;
     double pitch=(pitch_min+pitch_max)*0.5;
     double yaw=(yaw_min+yaw_max)*0.5;
@@ -525,8 +802,10 @@ void compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min,
     if(error<=best_ub){
         best_ub=error;
         best_rot=rot;
-        DebugOn("compute mid new ub "<<best_ub<<endl);
+        DebugOff("compute mid new ub "<<best_ub<<endl);
+        res=true;
     }
+    return res;
 }
 void run_preprocess_parallel_Align(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_r>& vec_node, vector<int>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<param<double>>& dist_cost_new, int iter, string error_type){
     vector<shared_ptr<Model<double>>> temp_models;
