@@ -279,6 +279,8 @@ int main (int argc, char * argv[])
     // string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames701_761_0.0.0.las";
     //string file_u2="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_1191_1281_0.0.0.las";
     string file_u1="/Users/smitha/Desktop/LiDAR_data/5b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
+    //string file_u1="/Users/smitha//Desktop/LiDAR_data/20.ABSOLUTE.Ta51_powerlines_3__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
+    //string file_u1="/Users/smitha/Desktop/LiDAR_data/18.ABSOLUTE.Ta51_powerlines_1__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Downloads/Centennial_USA_2015_02_19_14_00_36_frames_10_to_end_2594.laz";
     //string file_u1="/Users/smitha/Downloads/pound_farm_flight4_all_frames_1_to_5672.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/14b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.1.45.0.9.-0.25.frames.712-761.1189-1267.fCP.LE.adc.laz";
@@ -312,9 +314,12 @@ int main (int argc, char * argv[])
 //        auto roll_deg =-1.45*pi/180;
 //        auto pitch_deg = 0.899999999*pi/180;
 //        auto yaw_deg = -0.25*pi/180;
-        auto roll_deg= -0.0254859253764153;
-        auto pitch_deg =0.0153557369485497;
-        auto yaw_deg =-0.00552612589672208;
+//        auto roll_deg= -0.0254859253764153;
+//        auto pitch_deg=0.0153557369485497;
+//        auto yaw_deg =-0.00552612589672208;
+    auto roll_deg= -1.46777*pi/180;
+    auto pitch_deg=0.856445*pi/180;
+    auto yaw_deg =-0.254883*pi/180;
 //    auto roll_deg=-0.0255034808069468;
 //    auto pitch_deg = 0.0152935786172748;
 //    auto yaw_deg =-0.00570988887920976;
@@ -325,11 +330,9 @@ int main (int argc, char * argv[])
 //    auto pitch_deg = 0.806641*pi/180;
 //    auto yaw_deg = -0.326172*pi/180;
     
-    //apply_transform_new_order_Test(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z);
-    //apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-    // apply_transform_new_order_Test(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z);
-    
-    //save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(scanner_x)+"_"+to_string(scanner_y)+"_"+to_string(scanner_z)+"_manual_lv_5_.laz", lidar_point_cloud2, em4);
+   // apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+   
+   
     save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_pf_scanner.laz", lidar_point_cloud1, em4);
     
     
@@ -379,7 +382,48 @@ int main (int argc, char * argv[])
         double diff_z=uzmax-uzmin;
         
         DebugOn(diff_x<<" "<<diff_y<<" "<<diff_z<<endl);
-    vector<vector<double>> em3;
+    
+    uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
+    for(auto i=0;i<lidar_point_cloud.size();i++)
+    {
+        auto x=lidar_point_cloud.at(i)[0];
+        auto y=lidar_point_cloud.at(i)[1];
+        auto z=lidar_point_cloud.at(i)[2];
+        if(x<=uxmin){
+            uxmin=x;
+            
+        }
+        if(y<=uymin){
+            uymin=y;
+            
+        }
+        if(z<=uzmin){
+            uzmin=z;
+            
+        }
+        if(x>=uxmax){
+            uxmax=x;
+           
+        }
+        if(y>=uymax){
+            uymax=y;
+            
+        }
+        if(z>=uzmax){
+            uzmax=z;
+            
+        }
+        
+    }
+        DebugOn("umin max in x "<<(uxmin)<<" "<<(uxmax)<<endl);
+        diff_x=uxmax-uxmin;
+        DebugOn("umin max in y "<<uymin<<" "<<uymax<<endl);
+        diff_y=uymax-uymin;
+        DebugOn("umin max in z "<<uzmin<<" "<<uzmax<<endl);
+        diff_z=uzmax-uzmin;
+        
+        DebugOn(diff_x<<" "<<diff_y<<" "<<diff_z<<endl);
+        vector<vector<double>> em3;
     
     uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
     vector<vector<double>> empty_vec, uav_xy;
@@ -419,6 +463,7 @@ int main (int argc, char * argv[])
     for(auto i=0;i<6;i++){
         uav_coords.push_back(uav_cloud_u.at(pos[i]));
     }
+   
    
     
     uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
@@ -471,16 +516,22 @@ int main (int argc, char * argv[])
                 double s2=(y4-y3)/(x4-x3);
                 double d1=pow(y2-y1,2)+pow(x2-x1,2);
                 double d2=pow(y4-y3,2)+pow(x4-x3,2);
-                DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
-                DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
+                auto c1=abs(ulist[1]-ulist[0]);
+                auto c2= abs(ulist[3]-ulist[2]);
+                if(c1>=1000 && c2>=1000){
                 uplot_array.push_back(u_plot);
                 ulist_array.push_back(ulist);
                 slice_array.push_back(slice_plot);
                 turn_array.push_back(turns[i]);
-                double score=(d1+d2)/(1e5)-abs(s1-s2)/(abs(s1+s2));
+                DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
+                DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
+                DebugOn("c1 "<<c1<<" c2 "<<c2<<endl);
+               // double score=(d1+d2)/10.0-std::max(d1,d2)/std::min(d1,d2);
+                double score=(c1+c2)/10.0-std::max(c1,c2)/std::min(c1,c2);
                 DebugOn("score "<<score<<endl);
                 rank_map.insert(pair<double, int>(score, slice_array.size()-1));
                 //plot(u_plot, slice_plot, uav_coords,3);
+                }
             }
             empty_vec.clear();
         }
@@ -514,7 +565,7 @@ int main (int argc, char * argv[])
         double s2=(y4-y3)/(x4-x3);
         double d1=pow(y2-y1,2)+pow(x2-x1,2);
         double d2=pow(y4-y3,2)+pow(x4-x3,2);
-        double score=(d1+d2)/100-abs(s1-s2);
+        double score=(d1+d2);
         DebugOff("d1 "<<d1<<" d2 "<<d2<<endl);
         DebugOff("s1 "<<s1<<" s2 "<<s2<<endl);
         auto ulist=ulist_array[pos];
@@ -537,6 +588,8 @@ int main (int argc, char * argv[])
         auto name_u_uav=file_u.substr(0,Model_file.find('.'))+"_uav.laz";
         save_laz(name_u_uav,cloud1, uav1);
         //plot(cloud1,cloud2);
+        //plot(uav1,uav2);
+        //plot(rpy1,rpy2);
         if(cloud1.size()>=cloud2.size()){
             full_point_cloud_model=cloud1;
             full_point_cloud_data=cloud2;
@@ -553,7 +606,11 @@ int main (int argc, char * argv[])
             full_rpy_model=rpy2;
             full_rpy_data=rpy1;
         }
-        
+#ifdef USE_MATPLOT
+        //plot(full_point_cloud_model, full_point_cloud_data);
+#endif
+         save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", full_point_cloud_model, em);
+         save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", full_point_cloud_data, em);
         uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
         for(auto i=0;i<full_point_cloud_model.size();i++){
             auto x=full_point_cloud_model.at(i)[0];
@@ -641,14 +698,14 @@ int main (int argc, char * argv[])
         DebugOn(point_cloud_model1.size()<<endl);
         DebugOn(point_cloud_data1.size()<<endl);
 #ifdef USE_MATPLOT
-        plot(point_cloud_model1, point_cloud_data1);
+        //plot(point_cloud_model1, point_cloud_data1);
 #endif
          save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
          save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
         int count=0;
         vector<vector<double>> point_cloud_model_temp, uav_model_temp, rpy_model_temp;
        
-        for(auto i=0;i<point_cloud_model1.size();i+=1){
+        for(auto i=0;i<point_cloud_model1.size();i+=2){
             point_cloud_data.push_back(point_cloud_model1.at(i));
             uav_data.push_back(uav_model1.at(i));
             rpy_data.push_back(rpy_model1.at(i));
@@ -696,7 +753,7 @@ int main (int argc, char * argv[])
         DebugOn(point_cloud_model.size()<<endl);
         DebugOn(point_cloud_data.size()<<endl);
 #ifdef USE_MATPLOT
-        plot(point_cloud_model, point_cloud_data, 1);
+        //plot(point_cloud_model, point_cloud_data, 1);
 #endif
         /*plot(uav_model, uav_data, 1);
         plot(rpy_model, rpy_data, 1);*/
@@ -726,8 +783,8 @@ int main (int argc, char * argv[])
         vector<int> matching(point_cloud_data.size());
         vector<double> err_per_point(point_cloud_data.size());
         
-       // apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model_copy, uav_model, rpy_model, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-       // apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data_copy, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+//        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model_copy, uav_model, rpy_model, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+//        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data_copy, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr, hp, hy);
         
         auto L2init=computeL2error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
         auto L1init=computeL1error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
@@ -737,6 +794,7 @@ int main (int argc, char * argv[])
         
         string error_type="L2";
         bool algo_IPH=false;
+        bool algo_ub=true;
         
         vector<double> best_rot_trans(9,0.0);
         double best_ub=1e5;
@@ -778,6 +836,14 @@ int main (int argc, char * argv[])
             DebugOn("Percentage improved L1 "<<(L1init-errori)/L1init*100.0<<endl);
             save_laz(file_u.substr(0,Model_file.find('.'))+"_"+to_string(roll_deg_i)+"_"+to_string(pitch_deg_i)+"_"+to_string(yaw_deg_i)+"_full_set.laz", lidar_point_cloud, em);
         }
+        else if(algo_ub){
+            auto rot= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            auto roll_deg_ub = rot[0];
+            auto pitch_deg_ub = rot[1];
+            auto yaw_deg_ub = rot[2];
+            DebugOn(roll_deg_ub<<" "<<pitch_deg_ub<<" "<<yaw_deg_ub<<endl);
+            
+        }
         else{
             auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
     
@@ -802,7 +868,7 @@ int main (int argc, char * argv[])
             DebugOn("Percentage improved L1 "<<(L1init-L1)/L1init*100.0<<endl);
         }
 #ifdef USE_MATPLOT
-        plot(point_cloud_model, point_cloud_data);
+        //plot(point_cloud_model, point_cloud_data);
 #endif
     }
 }
