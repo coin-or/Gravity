@@ -281,7 +281,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
     
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
-   // grb_mod->set(GRB_DoubleParam_Heuristics,0);
+    grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //grb_mod->set(GRB_IntParam_Cuts,3);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){
