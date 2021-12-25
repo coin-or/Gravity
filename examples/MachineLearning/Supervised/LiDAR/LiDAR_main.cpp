@@ -278,7 +278,8 @@ int main (int argc, char * argv[])
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_701_763_1.45_0.9_-0.25.las";
     // string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames701_761_0.0.0.las";
     //string file_u2="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_1191_1281_0.0.0.las";
-    string file_u1="/Users/smitha/Desktop/LiDAR_data/5b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
+   // string file_u1="/Users/smitha/Desktop/LiDAR_data/5b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
+    string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_0000.laz";
     //string file_u1="/Users/smitha//Desktop/LiDAR_data/20.ABSOLUTE.Ta51_powerlines_3__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/18.ABSOLUTE.Ta51_powerlines_1__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Downloads/Centennial_USA_2015_02_19_14_00_36_frames_10_to_end_2594.laz";
@@ -607,118 +608,68 @@ int main (int argc, char * argv[])
             full_rpy_data=rpy1;
         }
 #ifdef USE_MATPLOT
-        //plot(full_point_cloud_model, full_point_cloud_data);
+        plot(full_point_cloud_model, full_point_cloud_data);
 #endif
+        vector<vector<double>> e;
+        e.push_back(full_point_cloud_model[0]);
+#ifdef USE_MATPLOT
+        plot(full_point_cloud_model,e);
+#endif
+        e.clear();
+        e.push_back(full_point_cloud_data[0]);
+#ifdef USE_MATPLOT
+        plot(full_point_cloud_data,e);
+#endif
+
          save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", full_point_cloud_model, em);
          save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", full_point_cloud_data, em);
         uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
+     
         for(auto i=0;i<full_point_cloud_model.size();i++){
             auto x=full_point_cloud_model.at(i)[0];
             auto y=full_point_cloud_model.at(i)[1];
             auto z=full_point_cloud_model.at(i)[2];
-            if(x<=uxmin){
-                uxmin=x;
-            }
-            if(y<=uymin){
-                uymin=y;
-            }
-            if(z<=uzmin){
-                uzmin=z;
-            }
-            if(x>=uxmax){
-                uxmax=x;
-            }
-            if(y>=uymax){
-                uymax=y;
-            }
-            if(z>=uzmax){
-                uzmax=z;
-            }
-        }
-        for(auto i=0;i<full_point_cloud_model.size();i++){
-            auto x=full_point_cloud_model.at(i)[0];
-            auto y=full_point_cloud_model.at(i)[1];
-            auto z=full_point_cloud_model.at(i)[2];
-            double lamdax=(x-uxmin)/(uxmax-uxmin);
-            double lamday=(y-uymin)/(uymax-uymin);
-            if(lamdax>=0.28 && lamdax<=0.325){//0.3
-                if(lamday>=0.45 && lamday<=0.52){
-                    if(z>=1261){
-                        if((lamdax>0.3 && z>=1261.6) || lamdax<=0.3){
+                    if(z>=1262.5){
                     point_cloud_model1.push_back(full_point_cloud_model.at(i));
                     uav_model1.push_back(full_uav_model.at(i));
                     rpy_model1.push_back(full_rpy_model.at(i));
-                        }
                     }
                 }
-            }
-        }
         uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
         for(auto i=0;i<full_point_cloud_data.size();i++){
             auto x=full_point_cloud_data.at(i)[0];
             auto y=full_point_cloud_data.at(i)[1];
             auto z=full_point_cloud_data.at(i)[2];
-            if(x<=uxmin){
-                uxmin=x;
-            }
-            if(y<=uymin){
-                uymin=y;
-            }
-            if(z<=uzmin){
-                uzmin=z;
-            }
-            if(x>=uxmax){
-                uxmax=x;
-            }
-            if(y>=uymax){
-                uymax=y;
-            }
-            if(z>=uzmax){
-                uzmax=z;
-            }
-        }
-        for(auto i=0;i<full_point_cloud_data.size();i++){
-            auto x=full_point_cloud_data.at(i)[0];
-            auto y=full_point_cloud_data.at(i)[1];
-            auto z=full_point_cloud_data.at(i)[2];
-            double lamdax=(x-uxmin)/(uxmax-uxmin);
-            double lamday=(y-uymin)/(uymax-uymin);
-            if(lamdax>=0.45 && lamdax<=0.5){//0.5
-                if(lamday>=0.4 && lamday<=0.46){
-                    if(z>=1262.5){
-                        if((lamdax>0.48 && z>=1262.7) || lamdax<=0.48){
+            if(z>=1261.1){
                     point_cloud_data1.push_back(full_point_cloud_data.at(i));
                     uav_data1.push_back(full_uav_data.at(i));
                     rpy_data1.push_back(full_rpy_data.at(i));
-                        }
-                    }
                 }
             }
-        }
         DebugOn(point_cloud_model1.size()<<endl);
         DebugOn(point_cloud_data1.size()<<endl);
 #ifdef USE_MATPLOT
-        //plot(point_cloud_model1, point_cloud_data1);
+        plot(point_cloud_model1, point_cloud_data1);
 #endif
          save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
          save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
         int count=0;
         vector<vector<double>> point_cloud_model_temp, uav_model_temp, rpy_model_temp;
        
-        for(auto i=0;i<point_cloud_model1.size();i+=2){
-            point_cloud_data.push_back(point_cloud_model1.at(i));
-            uav_data.push_back(uav_model1.at(i));
-            rpy_data.push_back(rpy_model1.at(i));
+        for(auto i=0;i<point_cloud_model1.size();i+=1){
+            point_cloud_model.push_back(point_cloud_model1.at(i));
+            uav_model.push_back(uav_model1.at(i));
+            rpy_model.push_back(rpy_model1.at(i));
             
         }
         vector<vector<double>> em, point_cloud_data_temp, uav_data_temp, rpy_data_temp;
         // save_laz(file_u.substr(0,Model_file.find('.'))+"_model.laz", point_cloud_model, em);
         count=0;
      
-        for(auto i=0;i<point_cloud_data1.size();i+=1){
-            point_cloud_model.push_back(point_cloud_data1.at(i));
-            uav_model.push_back(uav_data1.at(i));
-            rpy_model.push_back(rpy_data1.at(i));
+        for(auto i=0;i<point_cloud_data1.size();i+=2){
+            point_cloud_data.push_back(point_cloud_data1.at(i));
+            uav_data.push_back(uav_data1.at(i));
+            rpy_data.push_back(rpy_data1.at(i));
             
         }
         
@@ -753,7 +704,7 @@ int main (int argc, char * argv[])
         DebugOn(point_cloud_model.size()<<endl);
         DebugOn(point_cloud_data.size()<<endl);
 #ifdef USE_MATPLOT
-        //plot(point_cloud_model, point_cloud_data, 1);
+        plot(point_cloud_model, point_cloud_data, 1);
 #endif
         /*plot(uav_model, uav_data, 1);
         plot(rpy_model, rpy_data, 1);*/
@@ -794,7 +745,7 @@ int main (int argc, char * argv[])
         
         string error_type="L2";
         bool algo_IPH=false;
-        bool algo_ub=true;
+        bool algo_ub=false;
         
         vector<double> best_rot_trans(9,0.0);
         double best_ub=1e5;
@@ -845,6 +796,7 @@ int main (int argc, char * argv[])
             
         }
         else{
+            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             auto rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
     
            
