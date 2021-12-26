@@ -232,11 +232,11 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
     yaw_bounds_r={yaw_min, yaw_max};
     
     
-    double max_time=300;
+    double max_time=500;
     
     double ts=get_wall_time();
     
-    int ndisc=20;
+    int ndisc=30;
     bool stop=false;
     while(!stop){
         double rb=(roll_bounds_r.second-roll_bounds_r.first)/ndisc;
@@ -1042,8 +1042,12 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
                 vec_node.push_back(treenode_r(roll_bounds[i+k],  pitch_bounds[i+k], yaw_bounds[i+k], topnode.lb, best_ub, -1.0, topnode.depth+1, topnode.valid_cells, false,topnode.dist_cost_cells));
                 depth_vec.push_back(topnode.depth+1);
             }
+            for(auto k=0;k<8;k++){
+                compute_upper_bound_mid(roll_bounds[i+k].first, roll_bounds[i+k].second, pitch_bounds[i+k].first, pitch_bounds[i+k].second, yaw_bounds[i+k].first, yaw_bounds[i+k].second, best_rot_trans, best_ub, input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, error_type);
+            }
             
         }
+       
         //run_preprocess_parallel(pos_vec, models,vec_node, m_vec, valid_cells, vec_lb);
         run_preprocess_only_parallel(input_model_cloud, input_data_cloud,uav_model, uav_data,  rpy_model, rpy_data, input_model_offset, input_data_offset,vec_node, vec_lb, valid_cells, nb_threads, best_ub, best_lb, iter, error_type);
         
