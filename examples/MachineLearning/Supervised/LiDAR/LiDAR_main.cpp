@@ -744,6 +744,8 @@ int main (int argc, char * argv[])
         bool algo_ub=false;
         
         vector<double> best_rot_trans(9,0.0);
+        best_rot_trans[0]=1;
+        best_rot_trans[8]=1;
         double best_ub=1e5;
         if(error_type=="L2"){
             best_ub=L2init;
