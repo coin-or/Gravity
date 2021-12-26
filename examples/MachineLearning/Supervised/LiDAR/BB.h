@@ -22,7 +22,6 @@ void send_vector_new(const vector<size_t>& limits, vector<double>& vec_full, vec
 vector<double> ub_heuristic(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
 #ifdef USE_MPI
-    auto err_init = MPI_Init(nullptr,nullptr);
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -197,10 +196,9 @@ vector<double> ub_heuristic(vector<vector<double>>& point_cloud_model, vector<ve
     
 }
 
-vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
+vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double& best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
 #ifdef USE_MPI
-    auto err_init = MPI_Init(nullptr,nullptr);
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -303,7 +301,6 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
 vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
 #ifdef USE_MPI
-    auto err_init = MPI_Init(nullptr,nullptr);
     int worker_id, nb_workers;
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
@@ -926,8 +923,6 @@ void run_preprocess_only_parallel(const vector<vector<double>>& input_model_clou
 vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<vector<double>>& uav_model, vector<vector<double>>& uav_data, vector<vector<double>>& rpy_model, vector<vector<double>>& rpy_data, vector<double>& best_rot_trans, double best_ub, std::string error_type, const double scanner_x, const double scanner_y,const double scanner_z, const double hr, const double hp,const double hy)
 {
     int worker_id, nb_workers;
-
-    auto err_init = MPI_Init(nullptr,nullptr);
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 
@@ -936,7 +931,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     
     /* INPUT BOUNDS */
     double time_start = get_wall_time();
-    double total_time_max = 90000;
+    double total_time_max = 900000;
     double prep_time_total=0;
     
     
@@ -961,7 +956,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     int models_count=0, models_new_count=0;
     int infeasible_count=0;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
-    size_t nb_threads = std::thread::hardware_concurrency()/2;
+    size_t nb_threads = std::thread::hardware_concurrency();
     int threads_total=nb_threads*nb_workers;
     pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r;
     
