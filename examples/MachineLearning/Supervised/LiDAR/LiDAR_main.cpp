@@ -205,12 +205,6 @@ int main (int argc, char * argv[])
         red_Data_file = argv[5];
         
     }
-#ifdef USE_MPI
-    auto err_init = MPI_Init(nullptr,nullptr);
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-#endif
     
     bool Registration = prob_type=="Reg";/* Solve the Registration problem */
     bool skip_first_line = true; /* First line in Go-ICP input files can be ignored */
@@ -279,7 +273,8 @@ int main (int argc, char * argv[])
     // string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames701_761_0.0.0.las";
     //string file_u2="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_1191_1281_0.0.0.las";
    // string file_u1="/Users/smitha/Desktop/LiDAR_data/5b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
-    string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_0000.laz";
+    //string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_0000.laz";
+    string file_u1="/Users/smitha/Desktop/LiDAR_data/30.ABSOLUTE.TA51__2020_09_18_18_45_45.lpd.20211222.RPY.000.frames.1258-1361.1680-1752.fObjectFocus_MLOPT_Cars.adc.laz";
     //string file_u1="/Users/smitha//Desktop/LiDAR_data/20.ABSOLUTE.Ta51_powerlines_3__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/18.ABSOLUTE.Ta51_powerlines_1__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Downloads/Centennial_USA_2015_02_19_14_00_36_frames_10_to_end_2594.laz";
@@ -289,7 +284,7 @@ int main (int argc, char * argv[])
     //string file_u1="/Users/smitha/Downloads/21.SDM21Fig8Cars.ABS.TA51__2020_09_18_18_45_45.20211118.RPY.000.frames.1251-1416.1620-1778.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Downloads/22.SDM21Fig11Tent.ABS.TL_Shrubz_6__2018_07_15_combined.20211118.RPY.000.frames.1643-1689.2616-2662.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/Ta51_powerlines_1__2020_12_18_combined.laz";
-    //string file_u="/Users/smitha/Desktop/LiDAR_data/17.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211107.RPY.1.45.0.9.-0.25.frames.712-761.1189-1267.fCP.LE.adc.laz";
+    //string file_u1="/Users/smitha/Desktop/LiDAR_data/17.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211107.RPY.1.45.0.9.-0.25.frames.712-761.1189-1267.fCP.LE.adc.laz";
     //string file_u2="/Users/smitha/Desktop/LiDAR_data/16.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211107.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
     //string file_u="/Users/smitha/Desktop/LiDAR_data/7.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211008.RPY.000.frames.712-761.1189-1267.fLE.adc.laz";
     //    string file_u1="/Users/smitha/Downloads/14.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211013.RPY.1.45.0.9.-0.25.frames.712-761.1189-1267.fCP.LE.adc.laz";
@@ -306,7 +301,7 @@ int main (int argc, char * argv[])
     vector<vector<double>> em4;
     int n=roll_pitch_yaw1.size();
     double scanner_x=0.0, scanner_y=0.160999998450279, scanner_z=0.016;
-    const double hr=0.000288477458525449, hp=0.000563974492251873, hy=0.00173089664895087;
+    const double hr=0.0, hp=0.0, hy=0.0;
     //const double hr=0.0, hp=0.0, hy=0.0;
 //    auto roll_deg=-1.44922*pi/180;
 //    auto pitch_deg=0.542969*pi/180;
@@ -315,15 +310,16 @@ int main (int argc, char * argv[])
 //        auto roll_deg =-1.45*pi/180;
 //        auto pitch_deg = 0.899999999*pi/180;
 //        auto yaw_deg = -0.25*pi/180;
-//        auto roll_deg= -0.0254859253764153;
-//        auto pitch_deg=0.0153557369485497;
-//        auto yaw_deg =-0.00552612589672208;
-    auto roll_deg= -1.46777*pi/180;
-    auto pitch_deg=0.856445*pi/180;
-    auto yaw_deg =-0.254883*pi/180;
-//    auto roll_deg=-0.0255034808069468;
-//    auto pitch_deg = 0.0152935786172748;
-//    auto yaw_deg =-0.00570988887920976;
+        auto roll_deg= -0.0254859253764153;
+        auto pitch_deg=0.0153557369485497;
+        auto yaw_deg =-0.00552612589672208;
+//    auto roll_deg= -1.46777*pi/180;
+//    auto pitch_deg=0.856445*pi/180;
+//    auto yaw_deg =-0.254883*pi/180;
+//    auto roll_deg= -0.0257538;
+//    auto pitch_deg= 0.0139933;
+//    auto yaw_deg= -0.00305092;
+
 //            auto roll_deg =-1.4707*pi/180;
 //            auto pitch_deg = 0.841797*pi/180;
 //            auto yaw_deg = -0.228516*pi/180;
@@ -331,10 +327,10 @@ int main (int argc, char * argv[])
 //    auto pitch_deg = 0.806641*pi/180;
 //    auto yaw_deg = -0.326172*pi/180;
     
-   // apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+    //apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud1, uav_cloud_u1, roll_pitch_yaw1, scanner_x, scanner_y, scanner_z, hr, hp, hy);
    
    
-    save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_pf_scanner.laz", lidar_point_cloud1, em4);
+   // save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+"_pf_scanner.laz", lidar_point_cloud1, em4);
     
     
     
@@ -629,7 +625,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_model.at(i)[0];
             auto y=full_point_cloud_model.at(i)[1];
             auto z=full_point_cloud_model.at(i)[2];
-                    if(z>=1262.5){
+                    if(z>=2122.0){
                     point_cloud_model1.push_back(full_point_cloud_model.at(i));
                     uav_model1.push_back(full_uav_model.at(i));
                     rpy_model1.push_back(full_rpy_model.at(i));
@@ -640,7 +636,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_data.at(i)[0];
             auto y=full_point_cloud_data.at(i)[1];
             auto z=full_point_cloud_data.at(i)[2];
-            if(z>=1261.1){
+            if(x>=385276 && z>=2121.4){
                     point_cloud_data1.push_back(full_point_cloud_data.at(i));
                     uav_data1.push_back(full_uav_data.at(i));
                     rpy_data1.push_back(full_rpy_data.at(i));
@@ -734,8 +730,8 @@ int main (int argc, char * argv[])
         vector<int> matching(point_cloud_data.size());
         vector<double> err_per_point(point_cloud_data.size());
         
-//        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model_copy, uav_model, rpy_model, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-//        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data_copy, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+       apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model_copy, uav_model, rpy_model, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data_copy, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr, hp, hy);
         
         auto L2init=computeL2error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
         auto L1init=computeL1error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
