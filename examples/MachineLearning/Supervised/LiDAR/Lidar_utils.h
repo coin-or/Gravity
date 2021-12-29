@@ -1353,12 +1353,12 @@ vector<vector<double>> read_laz(const string& fname, vector<vector<double>>& lid
         vector<vector<double>> empty_vec;
         empty_vec.push_back(uav_cloud[0]);
 #ifdef USE_MATPLOT
-         //plot(uav_cloud,empty_vec, 0.1);
+         plot(uav_cloud,empty_vec, 0.1);
 #endif
         empty_vec.clear();
         empty_vec.push_back(lidar_point_cloud[0]);
 #ifdef USE_MATPLOT
-         //plot(lidar_point_cloud,empty_vec, 0.1);
+         plot(lidar_point_cloud,empty_vec, 0.1);
 #endif
         save_laz(name, point_cloud1, point_cloud2);
         DebugOn("time_start "<<time_start);

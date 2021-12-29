@@ -274,7 +274,8 @@ int main (int argc, char * argv[])
     //string file_u2="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_frames_1191_1281_0.0.0.las";
    // string file_u1="/Users/smitha/Desktop/LiDAR_data/5b.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211117.RPY.000.frames.712-761.1189-1267.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/DAG4_L_2__2019_06_20_18_combined_0000.laz";
-    string file_u1="/Users/smitha/Desktop/LiDAR_data/30.ABSOLUTE.TA51__2020_09_18_18_45_45.lpd.20211222.RPY.000.frames.1258-1361.1680-1752.fObjectFocus_MLOPT_Cars.adc.laz";
+    //string file_u1="/Users/smitha/Desktop/LiDAR_data/30.ABSOLUTE.TA51__2020_09_18_18_45_45.lpd.20211222.RPY.000.frames.1258-1361.1680-1752.fObjectFocus_MLOPT_Cars.adc.laz";
+    string file_u1="/Users/smitha/LiDAR_data/29.ABSOLUTE.TL_Shrubz_6__2018_07_15_combined.20211222.RPY.000.frames.1643-1689.2616-2662.fObjectFocus_MLOPT_Tent.adc.laz";
     //string file_u1="/Users/smitha//Desktop/LiDAR_data/20.ABSOLUTE.Ta51_powerlines_3__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Desktop/LiDAR_data/18.ABSOLUTE.Ta51_powerlines_1__2020_12_18_combined.20211117.RPY.000.frames.ALL.fCP.LE.adc.laz";
     //string file_u1="/Users/smitha/Downloads/Centennial_USA_2015_02_19_14_00_36_frames_10_to_end_2594.laz";
@@ -310,15 +311,18 @@ int main (int argc, char * argv[])
 //        auto roll_deg =-1.45*pi/180;
 //        auto pitch_deg = 0.899999999*pi/180;
 //        auto yaw_deg = -0.25*pi/180;
-        auto roll_deg= -0.0254859253764153;
-        auto pitch_deg=0.0153557369485497;
-        auto yaw_deg =-0.00552612589672208;
+        //auto roll_deg= -0.0254859253764153;
+       // auto pitch_deg=0.0153557369485497;
+       // auto yaw_deg =-0.00552612589672208;
 //    auto roll_deg= -1.46777*pi/180;
 //    auto pitch_deg=0.856445*pi/180;
 //    auto yaw_deg =-0.254883*pi/180;
 //    auto roll_deg= -0.0257538;
 //    auto pitch_deg= 0.0139933;
 //    auto yaw_deg= -0.00305092;
+    auto roll_deg= -0.025055;
+    auto pitch_deg= 0.0163966;
+    auto yaw_deg =-0.00494283;
 
 //            auto roll_deg =-1.4707*pi/180;
 //            auto pitch_deg = 0.841797*pi/180;
@@ -340,11 +344,15 @@ int main (int argc, char * argv[])
     auto file_u=file_u1;
     
     double uxmin=numeric_limits<double>::max(), uxmax=-uxmin, uymin=numeric_limits<double>::max(), uymax=-uymin, uzmin=numeric_limits<double>::max(), uzmax=-uzmin;
-    for(auto i=0;i<uav_cloud_u.size();i++)
+    int mid_i=0;
+    for(auto i=1;i<uav_cloud_u.size();i++)
     {
         auto x=uav_cloud_u.at(i)[0];
         auto y=uav_cloud_u.at(i)[1];
         auto z=uav_cloud_u.at(i)[2];
+        auto x_prev=uav_cloud_u.at(i-1)[0];
+        auto y_prev=uav_cloud_u.at(i-1)[1];
+        auto z_prev=uav_cloud_u.at(i-1)[2];
         if(x<=uxmin){
             uxmin=x;
             
@@ -369,7 +377,10 @@ int main (int argc, char * argv[])
             uzmax=z;
             
         }
-        
+        if(abs(x-x_prev)>=1 || abs(y-y_prev)>=1 || abs(z-z_prev)>=1){
+            DebugOn("found i "<<i<<endl);
+            mid_i=i;
+        }
     }
         DebugOn("umin max in x "<<(uxmin)<<" "<<(uxmax)<<endl);
         double diff_x=uxmax-uxmin;
@@ -465,115 +476,16 @@ int main (int argc, char * argv[])
     
     uxmin=numeric_limits<double>::max(); uxmax=-uxmin; uymin=numeric_limits<double>::max(); uymax=-uymin; uzmin=numeric_limits<double>::max(); uzmax=-uzmin;
     vector<vector<double>> rough_pc;
-    auto index_set=filter_z_slope(uav_xy);
-    empty_vec.push_back({uxmin, uymin, 0});
-    //plot(uav_xy, empty_vec);
-    vector<int> turns(0);
-    auto slices_indices=extract_slices(uav_xy, index_set, turns);
-    vector<vector<vector<double>>> uplot_array;
-    vector<vector<vector<double>>> slice_array;
-    vector<int> turn_array;
-    vector<vector<int>> ulist_array;
-    multimap<double, int, greater<double>> rank_map;
-    multimap<double, int, greater<double>> z_map_model;
-    multimap<double, int, greater<double>> z_map_data;
-    for(auto i=0;i<slices_indices.size();i++){
-        if(slices_indices[i].second-slices_indices[i].first>10){
-            auto ulist=reg_slope_lines(uav_xy, slices_indices[i], turns[i]);
-            vector<vector<double>> slice_plot, u_plot;
-            for(auto j=slices_indices[i].first;j<=slices_indices[i].second;j++){
-                auto x=uav_xy.at(j)[0]+uav_cloud_u.at(0)[0];
-                auto y=uav_xy.at(j)[1]+uav_cloud_u.at(0)[1];
-                auto z=uav_xy.at(j)[2]+uav_cloud_u.at(0)[2];
-                slice_plot.push_back({x,y,z});
-            }
-            //plot(slice_plot, uav_coords, 3);
-            if(ulist.size()>=4){
-                DebugOn("ulist "<<endl);
-                for(auto j=0;j<ulist.size();j++){
-                    auto x=uav_xy[ulist[j]][0]+uav_cloud_u.at(0)[0];
-                    auto y=uav_xy[ulist[j]][1]+uav_cloud_u.at(0)[1];
-                    auto z=uav_xy[ulist[j]][2]+uav_cloud_u.at(0)[2];
-                    u_plot.push_back({x,y,z});
-                    DebugOn(x<<" "<<y<<" "<<z<<endl);
-                }
-                auto x1=uav_xy[ulist[0]][0];
-                auto y1=uav_xy[ulist[0]][1];
-                auto z1=uav_xy[ulist[0]][2];
-                auto x2=uav_xy[ulist[1]][0];
-                auto y2=uav_xy[ulist[1]][1];
-                auto z2=uav_xy[ulist[1]][2];
-                auto x3=uav_xy[ulist[2]][0];
-                auto y3=uav_xy[ulist[2]][1];
-                auto z3=uav_xy[ulist[2]][2];
-                auto x4=uav_xy[ulist[3]][0];
-                auto y4=uav_xy[ulist[3]][1];
-                auto z4=uav_xy[ulist[3]][2];
-                double s1=(y2-y1)/(x2-x1);
-                double s2=(y4-y3)/(x4-x3);
-                double d1=pow(y2-y1,2)+pow(x2-x1,2);
-                double d2=pow(y4-y3,2)+pow(x4-x3,2);
-                auto c1=abs(ulist[1]-ulist[0]);
-                auto c2= abs(ulist[3]-ulist[2]);
-                if(c1>=1000 && c2>=1000){
-                uplot_array.push_back(u_plot);
-                ulist_array.push_back(ulist);
-                slice_array.push_back(slice_plot);
-                turn_array.push_back(turns[i]);
-                DebugOn("d1 "<<d1<<" d2 "<<d2<<endl);
-                DebugOn("s1 "<<s1<<" s2 "<<s2<<endl);
-                DebugOn("c1 "<<c1<<" c2 "<<c2<<endl);
-               // double score=(d1+d2)/10.0-std::max(d1,d2)/std::min(d1,d2);
-                double score=(c1+c2)/10.0-std::max(c1,c2)/std::min(c1,c2);
-                DebugOn("score "<<score<<endl);
-                rank_map.insert(pair<double, int>(score, slice_array.size()-1));
-                //plot(u_plot, slice_plot, uav_coords,3);
-                }
-            }
-            empty_vec.clear();
-        }
-    }
+    
     vector<vector<double>> cloud1, cloud2, uav1, uav2, pc1, pc2, u1, u2, rpy1, rpy2;
     vector<vector<double>> em;
-    if(rank_map.size()>=1){
-        auto it=rank_map.begin();
-        int pos=it->second;
-        //plot(uplot_array[pos], uav_coords,3);
-        for(auto j=0;j<uplot_array[pos].size();j++){
-            auto x=uplot_array[pos].at(j)[0];
-            auto y=uplot_array[pos].at(j)[1];
-            auto z=uplot_array[pos].at(j)[2];
-            DebugOff(x<<" "<<y<<" "<<z<<endl);
-        }
-        auto uplot=uplot_array[pos];
-        auto x1=uplot.at(0)[0];
-        auto y1=uplot.at(0)[1];
-        auto z1=uplot.at(0)[2];
-        auto x2=uplot.at(1)[0];
-        auto y2=uplot.at(1)[1];
-        auto z2=uplot.at(1)[2];
-        auto x3=uplot.at(2)[0];
-        auto y3=uplot.at(2)[1];
-        auto z3=uplot.at(2)[2];
-        auto x4=uplot.at(3)[0];
-        auto y4=uplot.at(3)[1];
-        auto z4=uplot.at(3)[2];
-        double s1=(y2-y1)/(x2-x1);
-        double s2=(y4-y3)/(x4-x3);
-        double d1=pow(y2-y1,2)+pow(x2-x1,2);
-        double d2=pow(y4-y3,2)+pow(x4-x3,2);
-        double score=(d1+d2);
-        DebugOff("d1 "<<d1<<" d2 "<<d2<<endl);
-        DebugOff("s1 "<<s1<<" s2 "<<s2<<endl);
-        auto ulist=ulist_array[pos];
-        vector<int> frame1(0), frame2(0);
-        
-        for(auto i=ulist[0];i<ulist[1];i++){
+    if(mid_i>=1){
+        for(auto i=0;i<mid_i;i++){
             cloud1.push_back(lidar_point_cloud.at(i));
             uav1.push_back(uav_cloud_u.at(i));
             rpy1.push_back(roll_pitch_yaw.at(i));
         }
-        for(auto i=ulist[2];i<ulist[3];i++){
+        for(auto i=mid_i;i<lidar_point_cloud.size();i++){
             cloud2.push_back(lidar_point_cloud.at(i));
             uav2.push_back(uav_cloud_u.at(i));
             rpy2.push_back(roll_pitch_yaw.at(i));
@@ -625,7 +537,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_model.at(i)[0];
             auto y=full_point_cloud_model.at(i)[1];
             auto z=full_point_cloud_model.at(i)[2];
-                    if(z>=2122.0){
+                    if(z>=123.5){
                     point_cloud_model1.push_back(full_point_cloud_model.at(i));
                     uav_model1.push_back(full_uav_model.at(i));
                     rpy_model1.push_back(full_rpy_model.at(i));
@@ -636,7 +548,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_data.at(i)[0];
             auto y=full_point_cloud_data.at(i)[1];
             auto z=full_point_cloud_data.at(i)[2];
-            if(x>=385276 && z>=2121.4){
+            if(z>=123.25){
                     point_cloud_data1.push_back(full_point_cloud_data.at(i));
                     uav_data1.push_back(full_uav_data.at(i));
                     rpy_data1.push_back(full_rpy_data.at(i));
@@ -646,6 +558,7 @@ int main (int argc, char * argv[])
         DebugOn(point_cloud_data1.size()<<endl);
 #ifdef USE_MATPLOT
         plot(point_cloud_model1, point_cloud_data1);
+        plot(uav_model1,uav_data1);
 #endif
          save_laz(file_u.substr(0,Model_file.find('.'))+"_model1.laz", point_cloud_model1, em);
          save_laz(file_u.substr(0,Model_file.find('.'))+"_data1.laz", point_cloud_data1, em);
