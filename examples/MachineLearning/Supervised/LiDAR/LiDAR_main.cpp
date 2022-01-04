@@ -537,7 +537,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_model.at(i)[0];
             auto y=full_point_cloud_model.at(i)[1];
             auto z=full_point_cloud_model.at(i)[2];
-            if(z>=123.8){
+            if(z>=124){
                 point_cloud_model1.push_back(full_point_cloud_model.at(i));
                 uav_model1.push_back(full_uav_model.at(i));
                 rpy_model1.push_back(full_rpy_model.at(i));
@@ -548,7 +548,7 @@ int main (int argc, char * argv[])
             auto x=full_point_cloud_data.at(i)[0];
             auto y=full_point_cloud_data.at(i)[1];
             auto z=full_point_cloud_data.at(i)[2];
-            if(z>=124){
+            if(z>=124.2){
                     point_cloud_data1.push_back(full_point_cloud_data.at(i));
                     uav_data1.push_back(full_uav_data.at(i));
                     rpy_data1.push_back(full_rpy_data.at(i));
@@ -575,7 +575,7 @@ int main (int argc, char * argv[])
         // save_laz(file_u.substr(0,Model_file.find('.'))+"_model.laz", point_cloud_model, em);
         count=0;
      
-        for(auto i=0;i<point_cloud_data1.size();i+=4){
+        for(auto i=0;i<point_cloud_data1.size();i+=2){
             point_cloud_data.push_back(point_cloud_data1.at(i));
             uav_data.push_back(uav_data1.at(i));
             rpy_data.push_back(rpy_data1.at(i));
