@@ -1762,29 +1762,7 @@ namespace gravity {
             return res;
         }
         
-        /* Return the prefix including all entries except the last three */
-        string get_prefix(string& key, int nb_entries){
-            string pref="";
-            if(nb_entries>3){
-                pref = key.substr(0, key.find_last_of(","));
-                pref = pref.substr(0, pref.find_last_of(","));
-                pref = pref.substr(0, pref.find_last_of(",")+1);
-            }
-            return pref;
-        }
         
-        /* Gets the one to last entry appended to the prefix (see get_prefix) */
-        void get_from(string& key, int nb_entries){
-            auto pref = get_prefix(key,nb_entries);
-            key = key.substr(0, key.find_last_of(","));
-            key = pref+key.substr(key.find_last_of(",")+1,key.size());
-        }
-        
-        /* Gets the last entry appended to the prefix (see get_prefix) */
-        void get_to(string& key, int nb_entries){
-            auto pref = get_prefix(key,nb_entries);
-            key = pref+key.substr(key.find_last_of(",")+1,key.size());
-        }
         
         /** Index parameter/variable in ids, remove keys starting at the ith position and spanning nb_entries
          @param[in] start_position

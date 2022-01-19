@@ -12,7 +12,7 @@ endif()
 
 message("Gurobi version ${GUROBI_VERSION}")
 if(APPLE)
-string(CONCAT GUROBI_DIR /Library/gurobi;${GUROBI_VERSION};/mac64)
+string(CONCAT GUROBI_DIR /Library/gurobi;${GUROBI_VERSION};/macos_universal2)
 elseif(UNIX)
 string(CONCAT GUROBI_DIR /opt/applications/gurobi/gurobi;${GUROBI_VERSION};/linux64)
 endif()

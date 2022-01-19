@@ -19,6 +19,15 @@
 #include <algorithm>
 #include <complex>      // std::complex
 
+/* Return the prefix including all entries except the last three */
+std::string get_prefix(std::string& key, int nb_entries);
+
+/* Gets the one to last entry appended to the prefix (see get_prefix) */
+void get_from(std::string& key, int nb_entries);
+
+/* Gets the last entry appended to the prefix (see get_prefix) */
+void get_to(std::string& key, int nb_entries);
+
 inline int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
 {
     size_t  pos = 0;
@@ -1519,6 +1528,21 @@ public:
         //            res.reindex();
         res._name += "\\{" + key+"}";
         res.remove_excluded();
+        return res;
+    }
+    
+    
+    
+    indices exclude_from(const indices& ids){
+        auto res = *this;
+        res._name += "_exclude_from";
+        size_t idx = 0;
+        for(string k: *_keys){
+            get_from(k,2);
+            if(!ids.has_key(k))
+                res.add_ref(idx);
+            idx++;
+        }
         return res;
     }
     

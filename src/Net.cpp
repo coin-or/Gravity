@@ -301,6 +301,34 @@ void Net::remove_arc(Arc* a) {
     arcID.erase(a->_src->_name+","+a->_dest->_name);
 }
 
+
+indices Net::arcs_per_node() const{
+    auto ids = indices(arcs);
+    ids._type = matrix_;
+    ids.set_name("arcs_per_node");
+    ids._ids = make_shared<vector<vector<size_t>>>();
+    ids._ids->resize(nodes.size());
+    string key;
+    size_t inst = 0;
+    for (auto n: nodes) {
+        if (n->_active) {
+            for (auto a:n->get_out()) {
+                if (!a->_active) {
+                    continue;
+                }
+                key = a->_name;
+                auto it1 = ids._keys_map->find(key);
+                if (it1 == ids._keys_map->end()){
+                    throw invalid_argument("In function arcs_per_node(), unknown key.");
+                }
+                ids._ids->at(inst).push_back(it1->second);
+            }
+            inst++;
+        }
+    }
+    return ids;
+}
+
 // Reading files
 char* Net::readline(FILE *input)
 {

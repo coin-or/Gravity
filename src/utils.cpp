@@ -2,6 +2,31 @@
 using namespace std;
 using namespace gravity;
 
+
+/* Return the prefix including all entries except the last three */
+std::string get_prefix(std::string& key, int nb_entries){
+    std::string pref="";
+    if(nb_entries>3){
+        pref = key.substr(0, key.find_last_of(","));
+        pref = pref.substr(0, pref.find_last_of(","));
+        pref = pref.substr(0, pref.find_last_of(",")+1);
+    }
+    return pref;
+}
+
+/* Gets the one to last entry appended to the prefix (see get_prefix) */
+void get_from(std::string& key, int nb_entries){
+    auto pref = get_prefix(key,nb_entries);
+    key = key.substr(0, key.find_last_of(","));
+    key = pref+key.substr(key.find_last_of(",")+1,key.size());
+}
+
+/* Gets the last entry appended to the prefix (see get_prefix) */
+void get_to(std::string& key, int nb_entries){
+    auto pref = get_prefix(key,nb_entries);
+    key = pref+key.substr(key.find_last_of(",")+1,key.size());
+}
+
 gravity::indices time(unsigned p1 ,unsigned p2){
     auto res = range(p1,p2);
     res._time_extended = true;

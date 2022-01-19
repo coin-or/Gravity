@@ -152,6 +152,8 @@ public:
     
     void add_horton_branches(Net* net);
     
+    gravity::indices arcs_per_node() const;        
+    
     /* Algorithms */
     
     /** Reset all distances to max value */
