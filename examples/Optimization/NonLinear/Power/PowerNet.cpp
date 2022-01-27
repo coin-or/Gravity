@@ -3059,7 +3059,7 @@ indices PowerNet::get_node_pairs_chord(const vector<pair<string,vector<Node*>>>&
     }
     map<string,pair<Node*,Node*>> unique_pairs;
     for (auto a: arcs) {
-        if (!a->_parallel) {
+        if (a->_active && !a->_parallel) {
             unique_pairs[a->_src->_name+","+a->_dest->_name] = {a->_src,a->_dest};
             node_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
         }

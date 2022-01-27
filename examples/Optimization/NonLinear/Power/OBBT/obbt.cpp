@@ -305,7 +305,8 @@ foutp<<"Lagrange Update "<<lag<<" Nonlinear "<<endl;
 }
         foutp.close();
         ofstream fout(result_name.c_str());
-        fout<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" & "<<oacuts<<" & "<<oacuts_init<<" & "<<fail<<" & "<<termination<<" \\"<<"\\"<<endl;
+fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(10)<<upper_bound<<" & "<<std::setprecision(10)<<lower_bound<<" & "<<std::setprecision(5)<<total_time<<" & "<<total_iter<<endl;        
+//fout<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<upper_bound<<" & "<<std::setprecision(5)<<lower_bound<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" & "<<oacuts<<" & "<<oacuts_init<<" & "<<fail<<" & "<<termination<<" \\"<<"\\"<<endl;
         ofstream fouta;
         fouta.open(summary_file_name.c_str(),std::ios_base::app);
         fouta<<name<<" & "<<std::fixed<<std::setprecision(5)<<gap_init<<" & "<<std::setprecision(5)<<final_gap<<" & "<<total_iter<<" & "<<std::setprecision(5)<<total_time<<" \\"<<"\\"<<endl;
