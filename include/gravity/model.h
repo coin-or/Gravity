@@ -4271,7 +4271,7 @@ public:
                 MC4 += vlift;
                 MC4 -= (ub1_+lb1_)*v1 - ub1_*lb1_;
                 MC4 <= 0;
-                add(MC4.in(*vlift._indices));
+               // add(MC4.in(*vlift._indices));
             }
             
             if (vlift._lift_lb){

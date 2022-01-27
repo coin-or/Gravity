@@ -204,7 +204,7 @@ int main (int argc, char * argv[]) {
 #endif
     double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::min(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
     auto OPF=build_ACOPF(grid, ACRECT);
-    double ub_solver_tol=1e-8, lb_solver_tol=1e-8, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
+    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e6;
     int total_iter;
     unsigned max_iter=1e3;
     int oacuts=0, oacuts_init=0, fail=0;
@@ -212,7 +212,7 @@ int main (int argc, char * argv[]) {
     bool scale_objective;
     bool termination=true;
     int status=0;
-    bool run_obbt=true;
+    bool run_obbt=false;
     if(!run_obbt){
         auto nonlin_obj=true;
         current=true;
@@ -228,7 +228,7 @@ int main (int argc, char * argv[]) {
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         initialize_relaxation(OPF, SDP, grid, current);
         solver<> LBnonlin_solver(SDP,lb_solver_type);
-        LBnonlin_solver.run(output = 5 , 1e-6, 2000, "ma57", 2000);
+        LBnonlin_solver.run(output = 5 , 1e-6, 5400, "ma57", 5000);
         auto time_end = get_wall_time();
         SDP->print_constraints_stats(1e-6);
         if(SDP->_status==0)
@@ -243,7 +243,7 @@ int main (int argc, char * argv[]) {
     else{
         auto nonlin_obj=true;
         scale_objective=false;
-        current=true;
+        current=false;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         upper_bound=OPF->get_obj_val();
