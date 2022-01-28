@@ -243,7 +243,7 @@ int main (int argc, char * argv[]) {
     else{
         auto nonlin_obj=true;
         scale_objective=false;
-        current=false;
+        current=true;
         auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
         auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
         upper_bound=OPF->get_obj_val();
@@ -298,111 +298,5 @@ int main (int argc, char * argv[]) {
 #endif
     return 0;
 }
-void initialize_relaxation(shared_ptr<Model<double>> OPF, shared_ptr<Model<double>> relax, PowerNet& grid, bool current){
-    bool print_bags = false, only_3d_bags = false;
-    auto bags_3d=grid.decompose_bags_3d_linear(print_bags, only_3d_bags);
-    auto node_pairs = grid.get_node_pairs();
-    auto node_pairs_chord = grid.get_node_pairs_chord(bags_3d);
-    bool sdp_cuts=true;
-    if (grid._tree || !grid.add_3d_nlin || !sdp_cuts) {
-        node_pairs_chord = node_pairs;
-    }
-    auto nodes = indices(grid.nodes);
-    auto arcs = indices(grid.arcs);
-    auto gens = indices(grid.gens);
-    auto arcs_curr=grid.arcs_curr;
-    auto b = grid.b.in(arcs);
-    auto g = grid.g.in(arcs);
-    auto tr = grid.tr.in(arcs);
-    
-    auto vr = OPF->get_var<double>("vr");
-    auto vi = OPF->get_var<double>("vi");
-    auto pg=  OPF->get_var<double>("Pg");
-    auto qg=  OPF->get_var<double>("Qg");
-    auto p_from=  OPF->get_var<double>("Pf_from");
-    auto q_from=  OPF->get_var<double>("Qf_from");
-    auto p_to=  OPF->get_var<double>("Pf_to");
-    auto q_to=  OPF->get_var<double>("Qf_to");
-    
-    auto R_Wij = relax->get_ptr_var<double>("R_Wij");
-    auto Im_Wij = relax->get_ptr_var<double>("Im_Wij");
-    auto Wii = relax->get_ptr_var<double>("Wii");
-    auto Pg=  relax->get_ptr_var<double>("Pg");
-    auto Qg=  relax->get_ptr_var<double>("Qg");
-    auto Pf_from=  relax->get_ptr_var<double>("Pf_from");
-    auto Qf_from=  relax->get_ptr_var<double>("Qf_from");
-    auto Pf_to=  relax->get_ptr_var<double>("Pf_to");
-    auto Qf_to=  relax->get_ptr_var<double>("Qf_to");
-    shared_ptr<var<double>> lij, lji, Lpf, Lqf,Lpt, Lqt, LWlij, LWlji;
-    if(current){
-        lij=relax->get_ptr_var<double>("lij");
-        lji=relax->get_ptr_var<double>("lji");
-        Lpf=relax->get_ptr_var<double>("Lift(Pf_from^2)");
-        Lqf=relax->get_ptr_var<double>("Lift(Qf_from^2)");
-        Lpt=relax->get_ptr_var<double>("Lift(Pf_to^2)");
-        Lqt=relax->get_ptr_var<double>("Lift(Qf_to^2)");
-        LWlij=relax->get_ptr_var<double>("Lift(Wii;lij)");
-        LWlji=relax->get_ptr_var<double>("Lift(Wii;lji)");
-    }
-    
-    int count=0;
-    for(auto key: *nodes._keys){
-        auto value=(pow(vr.eval(key),2)+pow(vi.eval(key),2));
-        Wii->_val->at(count)=value;
-        count++;
-    }
-    count=0;
-    for(auto key: *node_pairs_chord._keys){
-        auto from_key=key.substr(0, key.find_first_of(","));
-        auto to_key=key.substr(key.find_first_of(",")+1);
-        auto vr_i=vr.eval(from_key);
-        auto vi_i=vi.eval(from_key);
-        auto vr_j=vr.eval(to_key);
-        auto vi_j=vi.eval(to_key);
-        R_Wij->_val->at(count)=vr_i*vr_j+vi_i*vi_j;
-        Im_Wij->_val->at(count)=vi_i*vr_j-vi_j*vr_i;
-        count++;
-    }
-    count=0;
-    for(auto key: *gens._keys){
-        Pg->_val->at(count)=pg.eval(key);
-        Qg->_val->at(count)=qg.eval(key);
-        count++;
-    }
-    count=0;
-    for(auto key: *arcs._keys){
-        Pf_from->_val->at(count)=p_from.eval(key);
-        Qf_from->_val->at(count)=q_from.eval(key);
-        Pf_to->_val->at(count)=p_to.eval(key);
-        Qf_to->_val->at(count)=q_to.eval(key);
-        if(current){
-            Lpf->_val->at(count)=pow(p_from.eval(key),2);
-            Lqf->_val->at(count)=pow(q_from.eval(key),2);
-            Lpt->_val->at(count)=pow(p_to.eval(key),2);
-            Lqt->_val->at(count)=pow(q_to.eval(key),2);
-        }
-        count++;
-    }
-    if(current){
-        count=0;
-        for(auto key: *arcs_curr._keys){
-            auto a_key=key.substr(key.find_first_of(",")+1);
-            auto from_key=a_key.substr(0, a_key.find_first_of(","));
-            auto to_key=a_key.substr(a_key.find_first_of(",")+1);
-            auto vr_i=vr.eval(from_key);
-            auto vi_i=vi.eval(from_key);
-            auto vr_j=vr.eval(to_key);
-            auto vi_j=vi.eval(to_key);
-            auto l1=pow(tr.eval(key),2)*(pow(p_from.eval(key),2)+pow(q_from.eval(key),2))/((pow(vr_i,2)+pow(vi_i,2))*sqrt(pow(g.eval(key),2)+pow(b.eval(key),2)));
-            auto l2=(pow(p_to.eval(key),2)+pow(q_to.eval(key),2))/((pow(vr_j,2)+pow(vi_j,2))*sqrt(pow(g.eval(key),2)+pow(b.eval(key),2)));
-            LWlij->_val->at(count)=pow(tr.eval(key),2)*(pow(p_from.eval(key),2)+pow(q_from.eval(key),2))/sqrt(pow(g.eval(key),2)+pow(b.eval(key),2));
-            LWlji->_val->at(count)=(pow(p_to.eval(key),2)+pow(q_to.eval(key),2))/sqrt(pow(g.eval(key),2)+pow(b.eval(key),2));
-            lij->_val->at(count)=l1;
-            lji->_val->at(count)=l2;
-            count++;
-        }
-    }
-}
-
 
 
