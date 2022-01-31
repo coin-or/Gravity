@@ -12,7 +12,8 @@ endif()
 
 message("Gurobi version ${GUROBI_VERSION}")
 if(APPLE)
-string(CONCAT GUROBI_DIR /Library/gurobi;${GUROBI_VERSION};/macos_universal2)
+string(CONCAT GUROBI_DIR /Library/gurobi;${GUROBI_VERSION};/mac64)
+string(CONCAT GUROBI_DIR2 /Library/gurobi;${GUROBI_VERSION};/macos_universal2)
 elseif(UNIX)
 string(CONCAT GUROBI_DIR /opt/applications/gurobi/gurobi;${GUROBI_VERSION};/linux64)
 endif()
@@ -22,8 +23,8 @@ string(SUBSTRING ${GUROBI_VERSION} 0 2 GUROBI_VERSION_SHORT)
 
 message("Gurobi version short ${GUROBI_VERSION_SHORT}")
 
-find_path(GUROBI_INCLUDE_DIR gurobi_c++.h HINTS "${GUROBI_DIR}/include")
-find_library(GUROBI_LIBRARY libgurobi${GUROBI_VERSION_SHORT}.dylib HINTS ${GUROBI_DIR}/lib)
+find_path(GUROBI_INCLUDE_DIR gurobi_c++.h HINTS "${GUROBI_DIR}/include" "${GUROBI_DIR2}/include")
+find_library(GUROBI_LIBRARY libgurobi${GUROBI_VERSION_SHORT}.dylib HINTS ${GUROBI_DIR}/lib ${GUROBI_DIR2}/lib)
 find_library(GUROBI_CPP_LIBRARY libgurobi_c++.a HINTS ${GUROBI_DIR}/lib)
 
 include(FindPackageHandleStandardArgs)
