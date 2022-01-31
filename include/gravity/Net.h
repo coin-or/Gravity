@@ -114,6 +114,8 @@ public:
     char* readline(FILE *input);
     void exit_input_error(int line_num);
     void read_adjacency_matrix(const string& fname);
+    /* We have n1 nodes that can be randomly connected to n2 nodes with a max degree of deg for all n1 nodes */
+    void generate_bipartite_random(int n1, int n2, int deg);
     void readrudy(const char* fname);
     void get_complement(const char* fname);//  (i, j): i<j \E
 

@@ -410,6 +410,35 @@ void Net::readrudy(const char* fname) {
 }
 
 
+void Net::generate_bipartite_random(int n1, int n2, int deg){
+    string name;
+    int id = 0;
+    Node* node = NULL;
+    for (int i= 0; i<n1+n2; i++) {
+        name = to_string(i);
+        node = new Node(name,i);
+        add_node(node);
+    }
+    Arc* arc = NULL;
+    string src, dest;
+    int index = 0, rand_d, rand_j;
+    for (int i= 0; i<n1; i++) {
+        src = to_string(i);
+        rand_d = 1+rand()%deg;
+        for (int d= 0; d<rand_d; d++) {
+            rand_j = n1+rand()%n2;
+            dest = to_string(rand_j);
+            if(!get_arc(src, dest)){
+                arc = new Arc(src + "," + dest);
+                arc->_id = index++;
+                arc->_src = get_node(src);
+                arc->_dest= get_node(dest);
+                add_arc(arc);
+                arc->connect();
+            }
+        }
+    }
+}
 
 /** construct a graph by reading an adjacency matrix */
 void Net::read_adjacency_matrix(const string& fname) {

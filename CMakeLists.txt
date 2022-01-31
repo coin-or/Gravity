@@ -20,7 +20,7 @@ option(Ipopt "Link to IPOPT libraries" ON)
 
 option(MP "Link to AMPL MP libraries" OFF)
 
-option(CoinUtils "Link to CoinUtils libraries" ON)
+option(CoinUtils "Link to CoinUtils libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)
