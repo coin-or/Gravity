@@ -665,6 +665,7 @@ save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_strin
         string error_type="L2";
         bool algo_IPH=false;
         bool algo_ub=false;
+        bool algo_gurobi=false;
         
         vector<double> best_rot_trans(9,0.0);
         best_rot_trans[0]=1;
@@ -714,6 +715,20 @@ save_laz(file_u1.substr(0,Model_file.find('.'))+to_string(roll_deg)+"_"+to_strin
             auto pitch_deg_ub = rot[1];
             auto yaw_deg_ub = rot[2];
             DebugOn(roll_deg_ub<<" "<<pitch_deg_ub<<" "<<yaw_deg_ub<<endl);
+            
+        }
+        else if(algo_gurobi){
+            double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
+            
+            vector<vector<double>> input_data_cloud, input_model_cloud, input_data_offset, input_model_offset;
+            generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
+            generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
+            double t=0, vec=0;
+            preprocess_lid(ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(valid_cells_old), ref(new_cells),  ref(dist_cells), roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, L2init, ref(t), ref(vec), "L2");
+            auto model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, new_cells, dist_cells);
+           
+            solver<> S1(model_i,gurobi);
+            S1.run(5,1e-6,"",9000000,10000000, L2init, 72);
             
         }
         else{
