@@ -1,0 +1,238 @@
+{
+   "sourceFileName": "TL_Shrubz_6__2018_07_15_combined.lpd",
+   "sourceDataType": "dtMapixLpd",
+   "offsets": {
+      "timeDelay": 0,
+      "sensorPos": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+      },
+      "scannerOrient": {
+         "roll": 0,
+         "pitch": 1.57079637050629,
+         "yaw": 0
+      },
+      "scannerOffset": {
+         "x": 0.160999998450279,
+         "y": 0,
+         "z": -0.0160000007599592
+      },
+      "hiddenCalibrationOrient": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "iNSOrient": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "calibrationOrientPreINS": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "cameraOffset": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+      },
+      "cameraDelayOffset": 0,
+      "offsetComment": "",
+      "scannerVOffset": 0
+   },
+   "calibration": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+   },
+   "trajectoryData": [
+   ],
+   "frameViewer": {
+      "backgroundColour": 0,
+      "colourBlindSafeColours": true,
+      "referenceHeight": 0,
+      "frameObjects": {
+         "snailtrailVisible": false,
+         "snailTrailFrames": 8,
+         "snailTrailInterval": 1,
+         "gatherPoints": false,
+         "gatherFrequency": 1,
+         "pointCloud": {
+            "pointSize": 2,
+            "pointStyle": "psRound",
+            "motionType": "mtAbs",
+            "follow": false,
+            "gatherDensity": 100,
+            "rulerColour": 16777215,
+            "outOfRangeColour": 5263440,
+            "grayBelowZero": false,
+            "colourBlindSafeColours": true,
+            "dualReturnAvailable": true,
+            "classificationColours": {
+               "classifications": [
+               ],
+               "colourBy": "paLaserID",
+               "defaultColour": 0
+            },
+            "bandingColours": {
+               "bands": [
+                  {
+                     "bandColour": 13434879,
+                     "maxValue": 255,
+                     "minValue": 208.175046554935,
+                     "bandSize": 107
+                  },
+                  {
+                     "bandColour": 10092543,
+                     "maxValue": 208.175046554935,
+                     "minValue": 161.35009310987,
+                     "bandSize": 107
+                  },
+                  {
+                     "bandColour": 6750207,
+                     "maxValue": 161.35009310987,
+                     "minValue": 114.525139664804,
+                     "bandSize": 107
+                  },
+                  {
+                     "bandColour": 3407871,
+                     "maxValue": 114.525139664804,
+                     "minValue": 67.7001862197393,
+                     "bandSize": 107
+                  },
+                  {
+                     "bandColour": 65535,
+                     "maxValue": 67.7001862197393,
+                     "minValue": 20,
+                     "bandSize": 109
+                  }
+               ],
+               "colourBy": "paHeight",
+               "minPointAttribValue": 20,
+               "maxPointAttribValue": 255,
+               "colourPalette": 65535
+            },
+            "firstReturnColours": {
+               "startColour": 65535,
+               "endColour": 16711680,
+               "colourBy": "paDistance",
+               "minRangeAttribValue": 20,
+               "maxRangeAttribValue": 255,
+               "minPointAttribValue": 62.2999992370605,
+               "maxPointAttribValue": 250.300003051758,
+               "highIntensityColour": 16777215,
+               "gradientType": "gtRGB",
+               "gradientReverse": false,
+               "secondReturn": false
+            },
+            "secondReturnColours": {
+               "startColour": 65535,
+               "endColour": 16711680,
+               "colourBy": "paHeightAndIntensity",
+               "minRangeAttribValue": -19.6402759552002,
+               "maxRangeAttribValue": 1.36233234405518,
+               "minPointAttribValue": -17.1199626922607,
+               "maxPointAttribValue": -1.57803201675415,
+               "highIntensityColour": 16777215,
+               "gradientType": "gtRGB",
+               "gradientReverse": false,
+               "secondReturn": true
+            },
+            "colourForSecondReturn": true,
+            "showFirstReturn": false,
+            "showSecondReturn": true,
+            "brightness": 0,
+            "contrast": 100
+         },
+         "geometricObjects": {
+            "showProperties": true,
+            "colour": 16777215
+         },
+         "tracks": {
+            "markerSize": 0.2,
+            "connectorType": "ctStraight",
+            "lineWidth": 1,
+            "trackPastLength": 50,
+            "trackFutureLength": 0,
+            "displayCofGTrack": true,
+            "displayCofOTrack": false,
+            "showFullTrack": true,
+            "colour": 16777215
+         },
+         "scannerTrack": {
+            "visible": false,
+            "settings": {
+               "markerSize": 0.2,
+               "connectorType": "ctStraight",
+               "lineWidth": 1,
+               "trackPastLength": 50,
+               "trackFutureLength": 0,
+               "displayCofGTrack": true,
+               "displayCofOTrack": false,
+               "showFullTrack": true,
+               "colour": 16777215
+            }
+         },
+         "cameraTrack": {
+            "visible": false,
+            "enabled": false,
+            "settings": {
+               "markerSize": 0.2,
+               "connectorType": "ctStraight",
+               "lineWidth": 1,
+               "trackPastLength": 50,
+               "trackFutureLength": 0,
+               "displayCofGTrack": true,
+               "displayCofOTrack": false,
+               "showFullTrack": true,
+               "colour": 0
+            }
+         }
+      },
+      "camera": {
+         "distanceToFocalPoint": 439.230000000002,
+         "latitude": 0.914632031453429,
+         "longitude": 4.71238898604755,
+         "focalX": 17.109848745372,
+         "focalY": -17.5870238474587,
+         "focalZ": 0,
+         "normal": {
+            "x": 0,
+            "y": 0.61008220911026,
+            "z": -0.792338132858276
+         },
+         "stopAtGroundLevel": true,
+         "lockLatitude": false,
+         "lockLongitude": true
+      },
+      "floor": {
+         "height": 0,
+         "gridSize": 10,
+         "visible": true,
+         "showCircles": false,
+         "colour": 8421504
+      },
+      "geodesicDome": {
+         "radius": 5,
+         "colour": 16777215
+      },
+      "framePlayer": {
+         "currentFrameIdx": 2661,
+         "frameSelection": {
+            "sections": [
+               {
+                  "startFrame": 1642,
+                  "endFrame": 1688
+               },
+               {
+                  "startFrame": 2615,
+                  "endFrame": 2661
+               }
+            ]
+         },
+         "lockToSelection": true
+      }
+   }
+}
