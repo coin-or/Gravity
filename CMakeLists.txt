@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(Matplot "Link to Matplotlib libraries" ON)
+option(Matplot "Link to Matplotlib libraries" OFF)
 if (Matplot)
  add_definitions(-DUSE_MATPLOT)
  find_package(Python3 COMPONENTS Development NumPy)
@@ -36,7 +36,7 @@ option(Ipopt "Link to IPOPT libraries" ON)
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
 
-# Find CDD (REQUIRED)
+# Find CDD (optional)
 option(CDD "Link to CDD libraries" OFF)
 
 # Find GJK (REQUIRED)
@@ -45,13 +45,13 @@ option(GJK "Link to GJK libraries" ON)
 # Find QHULL (OPTIONAL)
 option(QHULL "Link to QHULL libraries" OFF)
 
-# Find VORO (REQUIRED)
-option(VORO "Link to VORO libraries" ON)
+# Find VORO (optional)
+option(VORO "Link to VORO libraries" OFF)
 
 #Find Eigen3 (REQUIRED)
 option(Eigen3 "Link to Eigen3 libraries" ON)
 
-#Find CGAL (REQUIRED)
+#Find CGAL (optional)
 option(CGAL "Link to CGAL libraries" OFF)
 
 # Find XLNT (optional)
