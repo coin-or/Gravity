@@ -7,15 +7,84 @@
 
 #ifndef Lidar_preprocess_h
 #define Lidar_preprocess_h
-#include "Branch_Bound.h"
-//#ifdef USE_CGAL
-//#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-//#include <CGAL/Polyhedron_3.h>
-//#include <CGAL/convex_hull_3.h>
-//#endif
-//#ifndef CGAL_HAS_THREADS
-//#define CGAL_HAS_THREADS
-//#endif
+#ifdef USE_GJK
+extern "C" {
+#include "openGJK.h"
+}
+#endif
+using namespace std;
+#ifdef USE_GJK
+double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double>>& vec2){
+    
+    /* Squared distance computed by openGJK.                                 */
+    double dd;
+    /* Structure of simplex used by openGJK.                                 */
+    struct simplex  s;
+    /* Number of vertices defining body 1 and body 2, respectively.          */
+    int    nvrtx1, nvrtx2;
+    
+    double **arr1 = (double **)malloc(vec1.size() * sizeof(double *));
+    for (int i=0; i<vec1.size(); i++){
+        arr1[i] = (double *)malloc(3 * sizeof(double));
+    }
+    
+    /* Read and store vertices' coordinates. */
+    for (auto i = 0; i<vec1.size(); i++)
+    {
+        arr1[i][0]=vec1[i][0];
+        arr1[i][1]=vec1[i][1];
+        arr1[i][2]=vec1[i][2];
+    }
+    
+    double **arr2 = (double **)malloc(vec2.size() * sizeof(double *));
+    for (int i=0; i<vec2.size(); i++){
+        arr2[i] = (double *)malloc(3 * sizeof(double));
+    }
+    
+    /* Read and store vertices' coordinates. */
+    for (auto i = 0; i<vec2.size(); i++)
+    {
+        arr2[i][0]=vec2[i][0];
+        arr2[i][1]=vec2[i][1];
+        arr2[i][2]=vec2[i][2];
+    }
+    
+    nvrtx1=vec1.size();
+    nvrtx2=vec2.size();
+    
+    /* Structures of body 1 and body 2, respectively.                        */
+    struct bd       bd1;
+    struct bd       bd2;
+    
+    bd1.coord = arr1;
+    bd1.numpoints = nvrtx1;
+    
+    /* Import coordinates of object 2. */
+    
+    bd2.coord = arr2;
+    bd2.numpoints = nvrtx2;
+    
+    /* Initialise simplex as empty */
+    s.nvrtx = 0;
+    
+    /* For importing openGJK this is Step 3: invoke the GJK procedure. */
+    /* Compute squared distance using GJK algorithm. */
+    dd = gjk (bd1, bd2, &s);
+    
+    for (int i=0; i<bd1.numpoints; i++){
+        free(bd1.coord[i]);
+    }
+    free(bd1.coord);
+    for (int i=0; i<bd2.numpoints; i++){
+        free(bd2.coord[i]);
+    }
+    free(bd2.coord);
+    
+    dd*=dd;
+    DebugOff("Distance sqrd "<<dd<<endl);
+    return dd;
+}
+#endif
 bool vertices_box_plane(const vector<double>& plane_eq,  const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
 void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec, const vector<double>& rpy);
@@ -35,22 +104,6 @@ double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector
  
  ALL DISTANCES ARE SQUARED UNLESS _ROOT
  */
-/*typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
-typedef CGAL::Polyhedron_3<K>                     Polyhedron_3;
-typedef K::Point_3                                     Point_3;
-typedef K::Plane_3                                     Plane_3;
-
-struct Plane_equation {
-    template <class Facet>
-    typename Facet::Plane_3 operator()( Facet& f) {
-        typename Facet::Halfedge_handle h = f.halfedge();
-        typedef typename Facet::Plane_3  Plane;
-        return Plane( h->vertex()->point(),
-                      h->next()->vertex()->point(),
-                      h->next()->next()->vertex()->point());
-    }
-};*/
-
 void preprocess_lid(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data,const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type)
 {
     prep_time=0;
@@ -60,7 +113,7 @@ void preprocess_lid(const vector<vector<double>>& input_model_cloud, const vecto
     param<double> dist_cells_old ("dist_cells_old");
     double time_start = get_wall_time();
     int new_test=0;
-    planeStatPerPair = 0;
+   
     vector<vector<double>> rot_sc_data, rot_sc_mod, const_data, const_model;
 
     
@@ -189,21 +242,21 @@ void preprocess_lid(const vector<vector<double>>& input_model_cloud, const vecto
                 }
             }
         }
-        DebugOn("min_cost_sum "<<min_cost_sum<<endl);
+        DebugOff("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
             vo=input_data_cloud.size()*input_model_cloud.size();
         }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
-        DebugOn("valid cells old size "<<vo<<endl);
-        DebugOn("valid cells new size "<<vn<<endl);
-        DebugOn("rem percen "<<remo<<endl);
+        DebugOff("valid cells old size "<<vo<<endl);
+        DebugOff("valid cells new size "<<vn<<endl);
+        DebugOff("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }
     else{
         new_cells=valid_cells_empty;
-        DebugOn("No valid cells found "<<endl);
+        DebugOff("No valid cells found "<<endl);
     }
     //return min_cost_sum;
 }
@@ -387,7 +440,7 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
         vertex_found_b=vertices_box_plane(tangent, box_big, new_vert_b, infeas_set_b);
     }
     else{
-        DebugOn("Plane Eq not found in extreme data "<<endl);
+        DebugOff("Plane Eq not found in extreme data "<<endl);
     }
     if(vertex_found_a){
         for(auto v: new_vert_a){
@@ -398,7 +451,7 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
         }
     }
     else{
-        DebugOn("Vertex A no found "<<endl);
+        DebugOff("Vertex A no found "<<endl);
     }
     if(vertex_found_b){
         for(auto v: new_vert_b){
@@ -409,7 +462,7 @@ void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double
         }
     }
     else{
-        DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+        DebugOff("Vertex B no found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -594,7 +647,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         vertex_found_b=vertices_box_plane(tangent, box_big, new_vert_b, infeas_set_b);
     }
     else{
-        DebugOn("Plane Eq not found in extreme data "<<endl);
+        DebugOff("Plane Eq not found in extreme data "<<endl);
     }
     if(vertex_found_a){
         for(auto v: new_vert_a){
@@ -605,7 +658,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         }
     }
     else{
-        DebugOn("Vertex A not found "<<endl);
+        DebugOff("Vertex A not found "<<endl);
     }
     if(vertex_found_b){
         for(auto v: new_vert_b){
@@ -616,7 +669,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         }
     }
     else{
-        DebugOn("Vertex B not found "<<plane_eq_found<<endl);
+        DebugOff("Vertex B not found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -818,7 +871,7 @@ void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<d
         vertex_found_b=vertices_box_plane(tangent, box_big, new_vert_b, infeas_set_b);
     }
     else{
-        DebugOn("Plane Eq no found in extreme model "<<plane_eq_found<<endl);
+        DebugOff("Plane Eq no found in extreme model "<<plane_eq_found<<endl);
     }
     if(vertex_found_a){
         for(auto v: new_vert_a){
@@ -829,7 +882,7 @@ void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<d
         }
     }
     else{
-        DebugOn("Vertex A no found "<<endl);
+        DebugOff("Vertex A no found "<<endl);
     }
     if(vertex_found_b){
         for(auto v: new_vert_b){
@@ -840,7 +893,7 @@ void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<d
         }
     }
     else{
-            DebugOn("Vertex B no found "<<plane_eq_found<<endl);
+            DebugOff("Vertex B no found "<<plane_eq_found<<endl);
     }
     for(auto i=0;i<box_big.size();i++){
         if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
@@ -993,8 +1046,8 @@ bool vertices_box_plane(const vector<double>& plane_eq, const vector<vector<doub
                     new_verts.push_back(v);
                 }
                 else{
-                    DebugOn(vertex_found_kl<<endl);
-                    DebugOn("Failed to find vertex in prep "<<endl);
+                    DebugOff(vertex_found_kl<<endl);
+                    DebugOff("Failed to find vertex in prep "<<endl);
                 }
                 if(vertex_found_kl && vertex_found_k){
                     vertex_found_k=true;

@@ -11,20 +11,7 @@
 #include <stdio.h>
 #include <DataSet.h> 
 using namespace std;
-#include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
-using namespace Go_ICP;
-/* Set the different options for GoICP  */
-void set_GoICP_options(GoICP & goicp);
-
-/* Centralize point cloud around origin */
-void centralize(int n, POINT3D **  p, double avg_x, double avg_y, double avg_z);
-
-/* Scale point clouds to [-1,1] */
-void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2);
-
-/* Scale point cloud using provided max values */
-void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z, double min_x, double min_y, double min_z);
 
 /* Computes the interpolation coefficient based on time elapsed  */
 double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* p2);
@@ -32,7 +19,6 @@ double get_interpolation_coef(const double& lidar_time, UAVPoint* p1, UAVPoint* 
 /* Return the min-max values for x, y and z  for all possible rotations of p with angle +- angle*/
 vector<pair<double,double>> get_min_max(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, const vector<double>& p, const vector<double>& ref);
 
-double get_GoICP_dist(double radius_r, double radius_t, const vector<double>& p, bool L1norm);
 
 double get_max_dist(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, const vector<double>& p, const vector<double>& ref, bool L1norm = false);
 
@@ -831,75 +817,7 @@ vector<double> get_center(const vector<vector<double>>& point_cloud){
     return(res);
 }
 
-/* Scale point clouds to [-1,1] */
-void unit_scale(int n1, POINT3D **  p1, int n2, POINT3D **  p2){
-    double max_x = numeric_limits<double>::lowest(), max_y = numeric_limits<double>::lowest(), max_z = numeric_limits<double>::lowest();
-    double min_x = numeric_limits<double>::max(), min_y = numeric_limits<double>::max(), min_z = numeric_limits<double>::max();
-    for(int i = 0; i < n1; i++)
-    {
-        if(max_x<(*p1)[i].x){
-            max_x = (*p1)[i].x;
-        }
-        if(min_x>(*p1)[i].x){
-            min_x = (*p1)[i].x;
-        }
-        if(max_y<(*p1)[i].y){
-            max_y = (*p1)[i].y;
-        }
-        if(min_y>(*p1)[i].y){
-            min_y = (*p1)[i].y;
-        }
-        if(max_z<(*p1)[i].z){
-            max_z = (*p1)[i].z;
-        }
-        if(min_z>(*p1)[i].z){
-            min_z = (*p1)[i].z;
-        }
-    }
-    for(int i = 0; i < n2; i++)
-    {
-        if(max_x<(*p2)[i].x){
-            max_x = (*p2)[i].x;
-        }
-        if(min_x>(*p2)[i].x){
-            min_x = (*p2)[i].x;
-        }
-        if(max_y<(*p2)[i].y){
-            max_y = (*p2)[i].y;
-        }
-        if(min_y>(*p2)[i].y){
-            min_y = (*p2)[i].y;
-        }
-        if(max_z<(*p2)[i].z){
-            max_z = (*p2)[i].z;
-        }
-        if(min_z>(*p2)[i].z){
-            min_z = (*p2)[i].z;
-        }
-    }
-    scale_all(n1, p1, max_x, max_y, max_z, min_x, min_y, min_z);
-    scale_all(n2, p2, max_x, max_y, max_z, min_x, min_y, min_z);
-}
 
-/* Scale point cloud using privded max values */
-void scale_all(int n1, POINT3D **  p1, double max_x, double max_y, double max_z, double min_x, double min_y, double min_z){
-    for(int i = 0; i < n1; i++)
-    {
-        (*p1)[i].x = 2*(((*p1)[i].x - min_x)/(max_x - min_x)) - 1;
-        (*p1)[i].y = 2*(((*p1)[i].y - min_y)/(max_y - min_y)) - 1;
-        (*p1)[i].z = 2*(((*p1)[i].z - min_z)/(max_z - min_z)) - 1;
-    }
-}
-
-/* Centralize point cloud around origin */
-void centralize(int n, POINT3D **  p, double avg_x, double avg_y, double avg_z){
-    for(int i = 0; i < n; i++)
-    {
-        (*p)[i].x  -= avg_x;
-        (*p)[i].y  -= avg_y;
-        (*p)[i].z -= avg_z;
-    }
-}
 
 vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_cloud){
     double cx=0,cy=0,cz=0;

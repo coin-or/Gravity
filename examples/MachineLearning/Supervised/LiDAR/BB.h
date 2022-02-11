@@ -78,7 +78,6 @@ vector<double> ub_heuristic(vector<vector<double>>& point_cloud_model, vector<ve
     vector<int> m_vec;
     vector<vector<double>> costs_upto_vec;
     
-    DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models, models_new;
     double lb = 0, ub = 12, ub_=-1, best_lb = 0;
     int nb_pruned = 0;
@@ -185,9 +184,15 @@ vector<double> ub_heuristic(vector<vector<double>>& point_cloud_model, vector<ve
     auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
     auto roll_rad=asin(best_rot_trans[2]);
     auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
+#ifdef USE_MPI
+    if(worker_id==0){
+#endif
+        DebugOn("roll rad "<< roll_rad<<endl);
+        DebugOn("pitch rad "<< pitch_rad<<endl);
+        DebugOn("yaw rad "<< yaw_rad<<endl);
+#ifdef USE_MPI
+    }
+#endif
     
     rpy[0]=roll_rad;
     rpy[1]=pitch_rad;
@@ -252,7 +257,11 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
                 for(auto k=0;k<ndisc;k++){
                     auto a=compute_upper_bound_mid(roll_bounds_r.first+i*rb, roll_bounds_r.first+(i+1)*rb, pitch_bounds_r.first+j*pb, pitch_bounds_r.first+(j+1)*pb, yaw_bounds_r.first+k*yb, yaw_bounds_r.first+(k+1)*yb, best_rot_trans, best_ub, input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, error_type);
                     if(a){
-                        DebugOn("new ub "<<best_ub<<" "<<(get_wall_time()-ts)<<endl);
+#ifdef USE_MPI
+                        if(worker_id==0)
+#endif
+                            DebugOn("new ub "<<best_ub<<" "<<(get_wall_time()-ts)<<endl);
+                        
                     }
                     if((get_wall_time()-ts)>=max_time){
                         stop=true;
@@ -283,14 +292,20 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
             break;
         }
     }
-    DebugOn("final time "<<(get_wall_time()-ts)<<endl);
+    
     auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
     auto roll_rad=asin(best_rot_trans[2]);
     auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
-    
+#ifdef USE_MPI
+    if(worker_id==0){
+#endif
+        DebugOn("final time "<<(get_wall_time()-ts)<<endl);
+        DebugOn("roll rad "<< roll_rad<<endl);
+        DebugOn("pitch rad "<< pitch_rad<<endl);
+        DebugOn("yaw rad "<< yaw_rad<<endl);
+#ifdef USE_MPI
+    }
+#endif
     rpy[0]=roll_rad;
     rpy[1]=pitch_rad;
     rpy[2]=yaw_rad;
@@ -327,54 +342,6 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     int nd=point_cloud_data.size();
     vector<int> new_matching(nd);
     vector<double> res(nd);
-    bool calc_IPH=false;
-    if(calc_IPH){
-        auto pcm=point_cloud_model;
-        auto pcd=point_cloud_data;
-        auto uavm=uav_model;
-        auto uavd=uav_data;
-        
-        auto pcm1=point_cloud_model;
-        auto pcd1=point_cloud_data;
-        auto uavm1=uav_model;
-        auto uavd1=uav_data;
-        
-        
-        auto resi=run_IPH(pcm, pcd, uavm, uavd, rpy_model, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy);
-        //
-        double roll_deg_i=get<0>(resi);
-        double pitch_deg_i=get<1>(resi);
-        double yaw_deg_i=get<2>(resi);
-        double roll_rad_i=roll_deg_i*pi/180;
-        double pitch_rad_i=pitch_deg_i*pi/180;
-        double yaw_rad_i=yaw_deg_i*pi/180;
-        double errori;
-        if(roll_rad_i>=roll_min && roll_rad_i<=roll_max && pitch_rad_i>=pitch_min && pitch_rad_i<=pitch_max && yaw_rad_i>=yaw_min && yaw_rad_i<=yaw_max){
-            apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcm1, uavm1, rpy_model, scanner_x, scanner_y,scanner_z, hr, hp, hy);
-            apply_transform_new_order(roll_rad_i, pitch_rad_i, yaw_rad_i, pcd1, uavd1, rpy_data, scanner_x, scanner_y,scanner_z, hr, hp, hy);
-            if(error_type=="L2"){
-                errori= computeL2error(pcm1,pcd1,new_matching,res);
-            }
-            else{
-                errori= computeL1error(pcm1,pcd1,new_matching,res);
-            }
-            DebugOn("errori "<<errori<<endl);
-            if(errori<=best_ub){
-                best_ub=errori;
-                best_rot_trans[0] = cos(roll_rad_i)*cos(yaw_rad_i);
-                best_rot_trans[1] = (-1)*cos(roll_rad_i)*sin(yaw_rad_i);
-                best_rot_trans[2] = sin(roll_rad_i);
-                best_rot_trans[3] = cos(pitch_rad_i)*sin(yaw_rad_i)+cos(yaw_rad_i)*sin(roll_rad_i)*sin(pitch_rad_i);
-                best_rot_trans[4] = cos(pitch_rad_i)*cos(yaw_rad_i)-sin(roll_rad_i)*sin(pitch_rad_i)*sin(yaw_rad_i);
-                best_rot_trans[5] = (-1)*cos(roll_rad_i)*sin(pitch_rad_i);
-                best_rot_trans[6] = sin(pitch_rad_i)*sin(yaw_rad_i)-cos(pitch_rad_i)*cos(yaw_rad_i)*sin(roll_rad_i);
-                best_rot_trans[7] = cos(yaw_rad_i)*sin(pitch_rad_i)+cos(pitch_rad_i)*sin(roll_rad_i)*sin(yaw_rad_i);
-                best_rot_trans[8] = cos(roll_rad_i)*cos(pitch_rad_i);
-            }
-        }
-    }
-    
-    
     double max_time = 60;
     double max_time_init=60;
     bool max_time_increase=false;
@@ -973,7 +940,9 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     vector<int> m_vec;
     vector<vector<double>> costs_upto_vec;
     auto point_cloud_data_copy=point_cloud_data;
-    DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
+    if(worker_id==0){
+        DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
+    }
     vector<shared_ptr<Model<>>> models, models_new;
     double lb = 0, ub = 12, ub_=-1, best_lb = 0;
     int nb_pruned = 0;
@@ -1081,17 +1050,21 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             }
         }
         opt_gap_old=opt_gap;
-        DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);
-        DebugOn("Best LB so far = " << to_string_with_precision(best_lb,9) << endl);
-        DebugOn("Opt gap so far = " << to_string_with_precision(opt_gap*100,6) << "%\n");
-        DebugOn("Queue size = " << lb_queue.size() << "\n");
-        DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
-        DebugOn("iter "<<iter<<endl);
+        if(worker_id==0){
+            DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);
+            DebugOn("Best LB so far = " << to_string_with_precision(best_lb,9) << endl);
+            DebugOn("Opt gap so far = " << to_string_with_precision(opt_gap*100,6) << "%\n");
+            DebugOn("Queue size = " << lb_queue.size() << "\n");
+            DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+            DebugOn("iter "<<iter<<endl);
+        }
         if(elapsed_time >= total_time_max || opt_gap <= max_opt_gap)
             break;
-        DebugOn("worker infeasible =  " << infeasible_count << endl);
-        DebugOn("Total prep_time =  " << prep_time_total << endl);
-        DebugOn("worker discarded =  " << prep_count << endl);
+        if(worker_id==0){
+            DebugOn("worker infeasible =  " << infeasible_count << endl);
+            DebugOn("Total prep_time =  " << prep_time_total << endl);
+            DebugOn("worker discarded =  " << prep_count << endl);
+        }
         double max_incr=0, max_ratio=1;
         roll_bounds.clear();
         pitch_bounds.clear();
@@ -1165,12 +1138,16 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         }
         //run_preprocess_parallel(pos_vec, models,vec_node, m_vec, valid_cells, vec_lb);
         elapsed_time = get_wall_time() - time_start;
-        DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+        if(worker_id==0){
+            DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+        }
         if(elapsed_time + max_time > total_time_max){
             DebugOn("max time "<< max_time);
             break;
         }
-        DebugOn("upper bound time "<<ut_total<<endl);
+        if(worker_id==0){
+            DebugOn("upper bound time "<<ut_total<<endl);
+        }
         auto nb_workers_ = std::min((size_t)nb_workers, vec_node.size());
         auto limits=bounds(nb_workers_, vec_node.size());
         vector<treenode_r> vec_node_worker;
@@ -1228,21 +1205,25 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         opt_gap = (best_ub - best_lb)/best_ub;
         elapsed_time = get_wall_time() - time_start;
     }
-    DebugOn("UB final "<<best_ub<<endl);
-    DebugOn("LB final "<<best_lb<<endl);
-    DebugOn("Gap final "<<(best_ub-best_lb)/best_ub*100.0<<endl);
-    DebugOn("Elapsed time "<<elapsed_time<<endl);
-    DebugOn("Total iter "<<iter<<endl);
-    DebugOn("Queue size = " << lb_queue.size() << "\n");
-    DebugOn("lb que top = " << lb_queue.top().lb << "\n");
+    if(worker_id==0){
+        DebugOn("UB final "<<best_ub<<endl);
+        DebugOn("LB final "<<best_lb<<endl);
+        DebugOn("Gap final "<<(best_ub-best_lb)/best_ub*100.0<<endl);
+        DebugOn("Elapsed time "<<elapsed_time<<endl);
+        DebugOn("Total iter "<<iter<<endl);
+        DebugOn("Queue size = " << lb_queue.size() << "\n");
+        DebugOn("lb que top = " << lb_queue.top().lb << "\n");
+    }
     
     auto yaw_rad = atan2(-best_rot_trans[1],best_rot_trans[0]);
     auto roll_rad=asin(best_rot_trans[2]);
     auto pitch_rad=acos(best_rot_trans[8]/cos(roll_rad));
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
-    while(!lb_queue.empty())
+    if(worker_id==0){
+        DebugOn("roll rad "<< roll_rad<<endl);
+        DebugOn("pitch rad "<< pitch_rad<<endl);
+        DebugOn("yaw rad "<< yaw_rad<<endl);
+    }
+    while(false && !lb_queue.empty())
     {
         auto node = lb_queue.top();
         DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
@@ -1257,19 +1238,21 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         }
         lb_queue.pop();
     }
-    
-    DebugOn("roll rad "<< roll_rad<<endl);
-    DebugOn("pitch rad "<< pitch_rad<<endl);
-    DebugOn("yaw rad "<< yaw_rad<<endl);
+    if(worker_id==0){
+        DebugOn("roll rad "<< roll_rad<<endl);
+        DebugOn("pitch rad "<< pitch_rad<<endl);
+        DebugOn("yaw rad "<< yaw_rad<<endl);
+    }
     
     
     auto roll=roll_rad*180/pi;
     auto pitch=pitch_rad*180/pi;
     auto yaw=yaw_rad*180/pi;
-    
-    DebugOn("roll deg"<< roll<<endl);
-    DebugOn("pitch deg"<< pitch<<endl);
-    DebugOn("yaw deg"<< yaw<<endl);
+    if(worker_id==0){
+        DebugOn("roll deg "<< roll<<endl);
+        DebugOn("pitch deg "<< pitch<<endl);
+        DebugOn("yaw deg "<< yaw<<endl);
+    }
     
     rpy.push_back(roll);
     rpy.push_back(pitch);
