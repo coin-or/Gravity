@@ -91,7 +91,22 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d_
 //void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point_model_old(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point_model(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& uav_m, const vector<double>& m_pt, const vector<var<double>>& theta_vec,  const vector<double>& rpy);
-double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2);
+/* Distance between two polytopes
+ @poly1: Vertices of polytope1
+ @poly2: Vertices of polytope2
+ */
+double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2){
+    double dmax=0;
+    for(auto v1: poly1){
+        for(auto v2: poly2){
+            auto d=pow(v1[0]-v2[0],2)+pow(v1[1]-v2[1],2)+pow(v1[2]-v2[2],2);
+            if(d>=dmax){
+                dmax=d;
+            }
+        }
+    }
+    return dmax;
+}
 /* New valid cells and minimum distance each cell
  @point_cloud_model: model lidar point cloud
  @point_cloud_data: data lidar point cloud
