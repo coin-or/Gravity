@@ -1,0 +1,208 @@
+{
+   "sourceFileName": "TA51__2020_09_18_18_45_45.lpd",
+   "sourceDataType": "dtMapixLpd",
+   "offsets": {
+      "timeDelay": 0,
+      "sensorPos": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+      },
+      "scannerOrient": {
+         "roll": 0,
+         "pitch": 1.57079637050629,
+         "yaw": 0
+      },
+      "scannerOffset": {
+         "x": 0.160999998450279,
+         "y": 0,
+         "z": -0.0160000007599592
+      },
+      "hiddenCalibrationOrient": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "iNSOrient": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "calibrationOrientPreINS": {
+         "roll": 0,
+         "pitch": 0,
+         "yaw": 0
+      },
+      "cameraOffset": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+      },
+      "cameraDelayOffset": 0,
+      "offsetComment": "",
+      "scannerVOffset": 0
+   },
+   "calibration": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+   },
+   "trajectoryData": [
+   ],
+   "frameViewer": {
+      "backgroundColour": 0,
+      "colourBlindSafeColours": false,
+      "referenceHeight": 0,
+      "frameObjects": {
+         "snailtrailVisible": false,
+         "snailTrailFrames": 10,
+         "snailTrailInterval": 1,
+         "gatherPoints": false,
+         "gatherFrequency": 1,
+         "pointCloud": {
+            "pointSize": 4,
+            "pointStyle": "psRound",
+            "motionType": "mtAbs",
+            "follow": false,
+            "gatherDensity": 100,
+            "rulerColour": 16777215,
+            "outOfRangeColour": 5263440,
+            "grayBelowZero": false,
+            "colourBlindSafeColours": false,
+            "dualReturnAvailable": false,
+            "classificationColours": {
+               "classifications": [
+               ],
+               "colourBy": "paHeight",
+               "defaultColour": 0
+            },
+            "bandingColours": {
+               "bands": [
+               ],
+               "colourBy": "paHeight",
+               "minPointAttribValue": 0,
+               "maxPointAttribValue": 0,
+               "colourPalette": 0
+            },
+            "firstReturnColours": {
+               "startColour": 65502,
+               "endColour": 16737792,
+               "colourBy": "paHeightAndIntensity",
+               "minRangeAttribValue": -21.6265716552734,
+               "maxRangeAttribValue": 16.8231258392334,
+               "minPointAttribValue": -21.6265716552734,
+               "maxPointAttribValue": 16.4386310577393,
+               "highIntensityColour": 16777215,
+               "gradientType": "gtHSV",
+               "gradientReverse": false,
+               "secondReturn": false
+            },
+            "secondReturnColours": {
+               "startColour": 255,
+               "endColour": 16711680,
+               "colourBy": "paHeight",
+               "minRangeAttribValue": 0,
+               "maxRangeAttribValue": 255,
+               "minPointAttribValue": 0,
+               "maxPointAttribValue": 255,
+               "highIntensityColour": 16777215,
+               "gradientType": "gtRGB",
+               "gradientReverse": false,
+               "secondReturn": true
+            },
+            "colourForSecondReturn": false,
+            "showFirstReturn": true,
+            "showSecondReturn": false,
+            "brightness": 0,
+            "contrast": 0
+         },
+         "geometricObjects": {
+            "showProperties": true,
+            "colour": 16777215
+         },
+         "tracks": {
+            "markerSize": 0.2,
+            "connectorType": "ctStraight",
+            "lineWidth": 1,
+            "trackPastLength": 50,
+            "trackFutureLength": 0,
+            "displayCofGTrack": true,
+            "displayCofOTrack": false,
+            "showFullTrack": true,
+            "colour": 16777215
+         },
+         "scannerTrack": {
+            "visible": false,
+            "settings": {
+               "markerSize": 0.2,
+               "connectorType": "ctStraight",
+               "lineWidth": 1,
+               "trackPastLength": 50,
+               "trackFutureLength": 0,
+               "displayCofGTrack": true,
+               "displayCofOTrack": false,
+               "showFullTrack": true,
+               "colour": 16777215
+            }
+         },
+         "cameraTrack": {
+            "visible": false,
+            "enabled": false,
+            "settings": {
+               "markerSize": 0.2,
+               "connectorType": "ctStraight",
+               "lineWidth": 1,
+               "trackPastLength": 50,
+               "trackFutureLength": 0,
+               "displayCofGTrack": true,
+               "displayCofOTrack": false,
+               "showFullTrack": true,
+               "colour": 0
+            }
+         }
+      },
+      "camera": {
+         "distanceToFocalPoint": 225.394440270475,
+         "latitude": 1.5697963266403,
+         "longitude": 4.71238898038469,
+         "focalX": -7.42462825775146,
+         "focalY": 3.67934560775757,
+         "focalZ": 0,
+         "normal": {
+            "x": 0,
+            "y": 0.00100004661362618,
+            "z": -0.999999523162842
+         },
+         "stopAtGroundLevel": true,
+         "lockLatitude": false,
+         "lockLongitude": true
+      },
+      "floor": {
+         "height": 0,
+         "gridSize": 10,
+         "visible": true,
+         "showCircles": false,
+         "colour": 8421504
+      },
+      "geodesicDome": {
+         "radius": 5,
+         "colour": 16777215
+      },
+      "framePlayer": {
+         "currentFrameIdx": 1751,
+         "frameSelection": {
+            "sections": [
+               {
+                  "startFrame": 1257,
+                  "endFrame": 1360
+               },
+               {
+                  "startFrame": 1679,
+                  "endFrame": 1751
+               }
+            ]
+         },
+         "lockToSelection": true
+      }
+   }
+}
