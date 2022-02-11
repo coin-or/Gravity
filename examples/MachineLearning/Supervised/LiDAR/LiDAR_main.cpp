@@ -70,7 +70,7 @@ int main (int argc, char * argv[])
     /*For car set*/
     const double xm=0, ym=0,zm=2122.0,xd=385276,yd=0,zd=2121.4;
     /* *Truck set*
-    const double xm=0, ym=0,zm=1262.5.0,xd=0,yd=0,zd=1261.1;
+    const double xm=0, ym=0,zm=1262.5,xd=0,yd=0,zd=1261.1;
         *Tent set*
     const double xm=0, ym=0,zm=124,xd=0,yd=0,zd=124.2;
     */
