@@ -1030,13 +1030,14 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
 
     double elapsed_time = get_wall_time() - time_start;
     double opt_gap = (best_ub - best_lb)/best_ub;
+    double opt_gap_abs=(best_ub - best_lb);
     double max_opt_gap = 0.01;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
     double eps=0.001;
     int prep_count=0;
     double ut_total=0;
     step = 8;
-    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
+    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf && opt_gap_abs>0.1) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         if(opt_gap_old-opt_gap <= eps){
@@ -1202,6 +1203,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
                 }
             }
         }
+        opt_gap_abs=best_ub-best_lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         elapsed_time = get_wall_time() - time_start;
     }
