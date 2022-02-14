@@ -886,7 +886,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& input_model_cloud,
     preprocess_lid(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset,input_data_offset, vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound, prep_time_i, vec_lb_i, error_type);
     //
     bool model_created=false;
-    if(valid_cells_i.size()>=input_data_cloud.size() && valid_cells_i.size()<=4e4){
+    if(valid_cells_i.size()>=input_data_cloud.size() && valid_cells_i.size()<=2e4){
         if(error_type=="L2"){
             model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, valid_cells_i, dist_cost_i);
         }
@@ -896,7 +896,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& input_model_cloud,
         model_created=true;
         m_vec_i=1;
     }
-    else if(valid_cells_i.size()> 4e4){
+    else if(valid_cells_i.size()> 2e4){
         m_vec_i=10;
     }
     else if(valid_cells_i.size()<input_data_cloud.size()){
