@@ -360,7 +360,7 @@ void generate_inputs(vector<vector<double>>& full_point_cloud, const vector<vect
         input_rot_offset.push_back(res_s);
     }
 }
-void generate_outputs_from_inputs(double roll, double pitch, double yaw, vector<vector<double>>& input_point_cloud, const vector<vector<double>>& uav, const vector<vector<double>>& roll_pitch_yaw_uav, const vector<vector<double>>& input_offset, vector<vector<double>>& output_point_cloud){
+void generate_outputs_from_inputs(double roll, double pitch, double yaw, const vector<vector<double>>& input_point_cloud, const vector<vector<double>>& uav, const vector<vector<double>>& roll_pitch_yaw_uav, const vector<vector<double>>& input_offset, vector<vector<double>>& output_point_cloud){
     double shifted_x, shifted_y, shifted_z;
     /* Apply rotation */
     for (auto i = 0; i< input_point_cloud.size(); i++) {
