@@ -60,26 +60,25 @@ int main (int argc, char * argv[])
     double scanner_x=0.0, scanner_y=0.160999998450279, scanner_z=0.016;
     /*"hidden" calibration applied by LiDAR viewer given in .json.lvp file*/
     /*Car set*/
-    const double hr=0, hp=0.0, hy=0.0;
-    /*Truck set
+    //const double hr=0, hp=0.0, hy=0.0;
+    /*Truck set*/
     const double hr=-0.0004815624270122, hp=0.000897555320989341, hy=0.00249693566001952;
-     *Tent set*
+    /*Tent set*
      const double hr=0, hp=0.0, hy=0.0;
-    */
+     */
     /*to select overlapping regions of the object*/
     /*For car set*/
-    const double xm=0, ym=0,zm=2122.0,xd=385276,yd=0,zd=2121.4;
-    /* *Truck set*
+    //const double xm=0, ym=0,zm=2122.0,xd=385276,yd=0,zd=2121.4;
+    /* *Truck set*/
     const double xm=0, ym=0,zm=1262.5,xd=0,yd=0,zd=1261.1;
-        *Tent set*
-    const double xm=0, ym=0,zm=124,xd=0,yd=0,zd=124.2;
-    */
-    /*to downsample points*/
-    int mskip=1,dskip=4;//Car set
-    /* mskip =1, dskip =2, Truck set
-        mskip=2, dskip =3 ,Tent set
+    /*Tent set*
+     const double xm=0, ym=0,zm=124,xd=0,yd=0,zd=124.2;
      */
-    string file_u= string(prj_dir)+"/data_sets/LiDAR/Car.adc.laz";
+    /*to downsample points*/
+    //int mskip=1,dskip=4;//Car set
+    int mskip =1, dskip =2;//Truck set
+    //int mskip=2, dskip =3;// ,Tent set
+    string file_u= string(prj_dir)+"/data_sets/LiDAR/Truck.adc.laz";
     string algo="bb";
     /*Algorithm Choices
      "bb" to run the spatial branch and bound algorithm
@@ -94,32 +93,37 @@ int main (int argc, char * argv[])
         algo = argv[2];
     }
     string error_type="L2";
+    vector<double> best_rot_trans(9,0.0);
+    bool data_subset=true;
     
     vector<vector<double>> full_point_cloud_model, full_point_cloud_data, full_uav_model, full_uav_data;
     vector<vector<double>> point_cloud_model, point_cloud_data,point_cloud_model1, point_cloud_data1;
     vector<vector<double>> uav_model, uav_data,uav_model1, uav_data1,cloud1, cloud2, uav1, uav2, rpy1, rpy2;
     vector<vector<double>> full_rpy_model, full_rpy_data, rpy_model, rpy_data,rpy_model1, rpy_data1;
     vector<vector<double>> lidar_point_cloud, roll_pitch_yaw, em;
-    
+    double L2init, L1init;
     auto uav_cloud_u=::read_laz(file_u, lidar_point_cloud, roll_pitch_yaw);
     
-    int mid_i=0;
-    /*Separating data in parallel flight lines 1 and 2*/
-    for(auto i=1;i<uav_cloud_u.size();i++)
-    {
-        auto x=uav_cloud_u.at(i)[0];
-        auto y=uav_cloud_u.at(i)[1];
-        auto z=uav_cloud_u.at(i)[2];
-        auto x_prev=uav_cloud_u.at(i-1)[0];
-        auto y_prev=uav_cloud_u.at(i-1)[1];
-        auto z_prev=uav_cloud_u.at(i-1)[2];
-        if(abs(x-x_prev)>=1 || abs(y-y_prev)>=1 || abs(z-z_prev)>=1){
-            DebugOn("found i "<<i<<endl);
-            mid_i=i;
+    if(data_subset){/*Working with data sets P*/
+        int mid_i=0;
+        /*Separating data in parallel flight lines 1 and 2*/
+        for(auto i=1;i<uav_cloud_u.size();i++)
+        {
+            auto x=uav_cloud_u.at(i)[0];
+            auto y=uav_cloud_u.at(i)[1];
+            auto z=uav_cloud_u.at(i)[2];
+            auto x_prev=uav_cloud_u.at(i-1)[0];
+            auto y_prev=uav_cloud_u.at(i-1)[1];
+            auto z_prev=uav_cloud_u.at(i-1)[2];
+            if(abs(x-x_prev)>=1 || abs(y-y_prev)>=1 || abs(z-z_prev)>=1){
+                DebugOn("found i "<<i<<endl);
+                mid_i=i;
+            }
         }
-    }
-    /*If two flight lines identified2*/
-    if(mid_i>=1){
+        /*If two flight lines identified2*/
+        if(mid_i==0){
+            invalid_argument("Two flight lines are not detected!");
+        }
         for(auto i=0;i<mid_i;i++){
             cloud1.push_back(lidar_point_cloud.at(i));
             uav1.push_back(uav_cloud_u.at(i));
@@ -161,7 +165,6 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
         plot(full_point_cloud_data,e);
 #endif
-        
         for(auto i=0;i<full_point_cloud_model.size();i+=1){
             auto x=full_point_cloud_model.at(i)[0];
             auto y=full_point_cloud_model.at(i)[1];
@@ -232,8 +235,6 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
         plot(point_cloud_model, point_cloud_data, 1);
 #endif
-        
-        
         indices N1 = range(1,point_cloud_data.size());
         indices N2 = range(1,point_cloud_model.size());
         
@@ -257,23 +258,20 @@ int main (int argc, char * argv[])
         vector<int> matching(point_cloud_data.size());
         vector<double> err_per_point(point_cloud_data.size());
         
-        auto L2init=computeL2error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
-        auto L1init=computeL1error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
+        L2init=computeL2error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
+        L1init=computeL1error(point_cloud_model_copy,point_cloud_data_copy,matching,err_per_point);
 #ifdef USE_MPI
-            if(worker_id==0){
-#endif
-          
-        DebugOn("L2init  "<<L2init<<endl);
-        DebugOn("L1init  "<<L1init<<endl);
+        if(worker_id==0){
+#endif            
+            DebugOn("L2init  "<<L2init<<endl);
+            DebugOn("L1init  "<<L1init<<endl);
 #ifdef USE_MPI
-            }
+        }
 #endif
 #ifdef USE_MATPLOT
         plot(point_cloud_model_copy, point_cloud_data_copy);
 #endif
         
-        
-        vector<double> best_rot_trans(9,0.0);
         best_rot_trans[0]=1;
         best_rot_trans[4]=1;
         best_rot_trans[8]=1;
@@ -327,36 +325,59 @@ int main (int argc, char * argv[])
             
             auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
             auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
+            
 #ifdef USE_MPI
             if(worker_id==0){
 #endif
-           
-            DebugOn("L2  "<<L2<<endl);
-            DebugOn("L1  "<<L1<<endl);
-            
-            DebugOn("Percentage improved L2 "<<(L2init-L2)/L2init*100.0<<endl);
-            DebugOn("Percentage improved L1 "<<(L1init-L1)/L1init*100.0<<endl);
+                
+                DebugOn("L2  "<<L2<<endl);
+                DebugOn("L1  "<<L1<<endl);
+                
+                DebugOn("Percentage improved L2 "<<(L2init-L2)/L2init*100.0<<endl);
+                DebugOn("Percentage improved L1 "<<(L1init-L1)/L1init*100.0<<endl);
 #ifdef USE_MPI
-        }
+            }
 #endif
         }
         else{/*Apply the calibration values*/
             
-            auto roll_deg =-1.52051*pi/180;
-            auto pitch_deg = 0.821289*pi/180;
-            auto yaw_deg =-0.131836*pi/180;
+            auto roll_deg =-1.52783*pi/180;
+            auto pitch_deg = 0.835449*pi/180;
+            auto yaw_deg =-0.141113*pi/180;
             
+            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
+            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
             apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+".laz", lidar_point_cloud, em);
-            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-            save_laz(file_u.substr(0,file_u.find('.'))+"_modelcopy.laz", point_cloud_model_copy, em);
-            save_laz(file_u.substr(0,file_u.find('.'))+"_datacopy.laz", point_cloud_model_copy, em);
+            auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
+            auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
             
-        }
-#ifdef USE_MATPLOT
-        plot(point_cloud_model, point_cloud_data);
+#ifdef USE_MPI
+            if(worker_id==0){
 #endif
+                
+                DebugOn("L2  "<<L2<<endl);
+                DebugOn("L1  "<<L1<<endl);
+                
+                DebugOn("Percentage improved L2 "<<(L2init-L2)/L2init*100.0<<endl);
+                DebugOn("Percentage improved L1 "<<(L1init-L1)/L1init*100.0<<endl);
+#ifdef USE_MPI
+            }
+#endif
+        }
     }
+    else{/*Apply the calibration values on large data set D*/
+        
+        auto roll_deg =-1.52783*pi/180;
+        auto pitch_deg = 0.835449*pi/180;
+        auto yaw_deg =-0.141113*pi/180;
+        
+        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+".laz", lidar_point_cloud, em);
+    }
+#ifdef USE_MATPLOT
+    plot(point_cloud_model, point_cloud_data);
+#endif
+    
 }
 

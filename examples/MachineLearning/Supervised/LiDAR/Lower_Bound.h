@@ -462,8 +462,8 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric(const vector<vec
     
     int n1 = x1.get_dim();
     int n2 = x2.get_dim();
-    DebugOn("n1 = " << n1 << endl);
-    DebugOn("n2 = " << n2 << endl);
+    DebugOff("n1 = " << n1 << endl);
+    DebugOff("n2 = " << n2 << endl);
     
     N1 = range(1,n1);
     N2 = range(1,n2);
@@ -795,8 +795,8 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const ve
     
     int n1 = x1i.get_dim();
     int n2 = x2i.get_dim();
-    DebugOn("n1 = " << n1 << endl);
-    DebugOn("n2 = " << n2 << endl);
+    DebugOff("n1 = " << n1 << endl);
+    DebugOff("n2 = " << n2 << endl);
     
     N1 = range(1,n1);
     N2 = range(1,n2);
