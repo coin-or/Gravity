@@ -361,7 +361,6 @@ void generate_inputs(vector<vector<double>>& full_point_cloud, const vector<vect
     }
 }
 void generate_outputs_from_inputs(double roll, double pitch, double yaw, const vector<vector<double>>& input_point_cloud, const vector<vector<double>>& uav, const vector<vector<double>>& roll_pitch_yaw_uav, const vector<vector<double>>& input_offset, vector<vector<double>>& output_point_cloud){
-    double shifted_x, shifted_y, shifted_z;
     /* Apply rotation */
     for (auto i = 0; i< input_point_cloud.size(); i++) {
         vector<double> res(3);
@@ -400,7 +399,6 @@ void apply_transform_new_order_Test(double roll, double pitch, double yaw, vecto
         shifted_z = full_point_cloud[i][2]-full_uav[i][2] -res_s[2];// -tz;
         
         auto res_inv_ins=apply_rotation_new_order(rollu, pitchu, yawu, shifted_x, shifted_y, shifted_z);
-       // auto res_inv_ins=apply_rotation_inverse_new_order(-0.000180572766112164,-0.000351235183188692, -0.00116005958989263, res_inv_ins1[0], res_inv_ins1[1], res_inv_ins1[2]);
         
         auto res_bore=apply_rotation_new_order(roll, pitch, yaw, res_inv_ins[0], res_inv_ins[1], res_inv_ins[2]);
         

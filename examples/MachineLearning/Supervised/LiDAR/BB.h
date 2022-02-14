@@ -478,16 +478,15 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         }
     }
     
-    
-    
     double elapsed_time = get_wall_time() - time_start;
     double opt_gap = (best_ub - best_lb)/best_ub;
+    double opt_gap_abs = (best_ub - best_lb);
     double max_opt_gap = 0.01;/* 5% opt gap */
     double opt_gap_old=opt_gap+10;
     double eps=0.001;
     int prep_count=0;
     double ut_total=0;
-    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
+    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf && opt_gap_abs>0.1) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         if(opt_gap_old-opt_gap <= eps){
@@ -687,7 +686,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             }
         }
         opt_gap = (best_ub - best_lb)/best_ub;
-        
+        opt_gap_abs=best_ub-best_lb;
         elapsed_time = get_wall_time() - time_start;
         
     }
@@ -835,6 +834,7 @@ bool compute_upper_bound_mid(double roll_min, double roll_max, double pitch_min,
 void run_preprocess_parallel_Align(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, const vector<treenode_r>& vec_node, vector<int>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<param<double>>& dist_cost_new, int iter, string error_type, vector<double>& ub_node){
     vector<shared_ptr<Model<double>>> temp_models;
     std::vector<thread> threads;
+    ub_node.resize(4,1000);
     int nd=input_data_cloud.size();
     int num=vec_node.size();
     if(num==0){
@@ -873,8 +873,11 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& input_model_clo
     }
     ub_node[0]=vec_ub[0][0];
     for(auto i=0;i<num;i++){
-        if(ub_node[0]<=vec_ub[i][0]){
-            ub_node=vec_ub[i];
+        if(vec_ub[i][0]<=ub_node[0]){
+            ub_node[0]=vec_ub[i][0];
+            ub_node[1]=vec_ub[i][1];
+            ub_node[2]=vec_ub[i][2];
+            ub_node[3]=vec_ub[i][3];
         }
     }
     dist_cost_new=vec_dist_cost;
@@ -968,8 +971,6 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     double time_start = get_wall_time();
     double total_time_max = 900000;
     double prep_time_total=0;
-    
-    
     
     double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
     
@@ -1107,18 +1108,6 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     step = 8;
     while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf && opt_gap_abs>0.1) {
         best_lb = lb_queue.top().lb;
-        opt_gap = (best_ub - best_lb)/best_ub;
-        if(opt_gap_old-opt_gap <= eps){
-            //  max_time=std::min(max_time*2, 120.0);
-            //  max_time_increase=true;
-        }
-        if(opt_gap_old-opt_gap > eps && max_time_increase){
-            max_time=std::max(max_time/2.0, max_time_init);
-            if(max_time==max_time_init){
-                // max_time_increase=false;
-            }
-        }
-        opt_gap_old=opt_gap;
         if(worker_id==0){
             DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);
             DebugOn("Best LB so far = " << to_string_with_precision(best_lb,9) << endl);
@@ -1148,11 +1137,8 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                
                 double roll_increment,  pitch_increment, yaw_increment;
-                
-                step=8;
-                
+                step=8
                 roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                 pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
                 yaw_increment = (topnode.yaw.second - topnode.yaw.first)/2.0;
@@ -1279,7 +1265,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             limits_ub[l]=l*4;
         }
         for (auto l = limits_ub[worker_id]; l < limits_ub[worker_id+1]; l++) {
-            ub_all_node[l]=ub_node[l-limits[worker_id]];
+            ub_all_node[l]=ub_node[l-limits_ub[worker_id]];
         }
         std::vector<int> d, counts;
         for(auto l=limits_ub.begin()+1;l!=limits_ub.end();l++){
@@ -1296,7 +1282,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
                 rpy_rad[2]=ub_all_node[l+3];
             }
         }
-        
+        best_lb = lb_queue.top().lb;
         opt_gap_abs=best_ub-best_lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         elapsed_time = get_wall_time() - time_start;
@@ -1319,17 +1305,19 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         DebugOn("pitch rad "<< pitch_rad<<endl);
         DebugOn("yaw rad "<< yaw_rad<<endl);
     }
-    while(false && !lb_queue.empty())
-    {
-        auto node = lb_queue.top();
-        DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
-        
-        DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second<<endl);
+    if(worker_id==0){
+        while(true && !lb_queue.empty())
+        {
+            auto node = lb_queue.top();
+            DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
+            
+            DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second<<endl);
 
-        if(node.roll.first-1e-3<=roll_rad && roll_rad<=node.roll.second+1e-3 && node.pitch.first-1e-3<=pitch_rad && pitch_rad<=node.pitch.second+1e-3 && node.yaw.first-1e-3<=yaw_rad && yaw_rad<=node.yaw.second+1e-3){
-            DebugOn("True interval contained "<<endl);
+            if(node.roll.first-1e-3<=roll_rad && roll_rad<=node.roll.second+1e-3 && node.pitch.first-1e-3<=pitch_rad && pitch_rad<=node.pitch.second+1e-3 && node.yaw.first-1e-3<=yaw_rad && yaw_rad<=node.yaw.second+1e-3){
+                DebugOn("True interval contained "<<endl);
+            }
+            lb_queue.pop();
         }
-        lb_queue.pop();
     }
     if(worker_id==0){
         DebugOn("roll rad "<< roll_rad<<endl);
@@ -1351,7 +1339,6 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     rpy.push_back(pitch);
     rpy.push_back(yaw);
     return rpy;
-    
 }
 #endif
 #ifdef USE_MPI
