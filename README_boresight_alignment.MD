@@ -6,5 +6,6 @@ To run boresight alignment algorithms, build target `lidar` by running `make obb
 Data sets used in the paper may be found [here](https://github.com/coin-or/Gravity/tree/Align/data_sets/LiDAR).
 
 To select the aGS algorithm set `algo="ub"` in your local copy of this file: https://github.com/coin-or/Gravity/blob/Align/examples/MachineLearning/Supervised/LiDAR/LiDAR_main.cpp#L82
+
 To select the nsBB algorithm leave `algo="bb"`.
 
