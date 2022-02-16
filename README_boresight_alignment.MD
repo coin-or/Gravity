@@ -25,8 +25,11 @@ For Mac,
 `export GUROBI_HOME="/Library/gurobi950/macos_universal2"`
 
 For Linux,
+
 `export GUROBI_HOME="$HOME/Dev/gurobi950/linux64"`
-`export PATH=$PATH:"$HOME/Dev/gurobi950/linux64/bin"`                      
+
+`export PATH=$PATH:"$HOME/Dev/gurobi950/linux64/bin"`   
+                   
 `export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/Dev/gurobi950/linux64/lib"`
 
 
