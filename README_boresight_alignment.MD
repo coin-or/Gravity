@@ -1,12 +1,23 @@
 Instructions to reproduce results in "GLOBALLY OPTIMAL BORESIGHT CALIBRATION OF UAV-LIDAR SYSTEMS", submitted to ICIP 2022.
 -------
-Examples of bore-sight alignment
+Before boresight alignment
 
-Car set [before](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_before.png) and [after](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_after.png)
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_before.png" style="max-width:100%;"/>
+
+After boresight alignment
+
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_after.png" style="max-width:100%;"/>
+
+
+More Examples of bore-sight alignment
+
 Tent set [before](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_before.png) and [after](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_after.png)
+
 Truck set [before](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_before.png) and [after](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_after.png)
 
-Tested on Mac and Linux
+Code Tested on Mac and Linux
+
+Install Instructions
 
 External Dependencies:
 
