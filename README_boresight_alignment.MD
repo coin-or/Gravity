@@ -1,19 +1,19 @@
 Instructions to reproduce results in "GLOBALLY OPTIMAL BORESIGHT CALIBRATION OF UAV-LIDAR SYSTEMS", submitted to ICIP 2022.
 -------
-Before boresight alignment
+Boresight alignment of Car data-set
 
 <img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_before.png" style="max-width:100%;"/>
-
-After boresight alignment
-
 <img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Cars_after.png" style="max-width:100%;"/>
 
+Boresight alignment of Tent data-set
 
-More Examples of bore-sight alignment
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_before.png" style="max-width:100%;"/>
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_after.png" style="max-width:100%;"/>
 
-Tent set [before](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_before.png) and [after](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Tent_after.png)
+Boresight alignment of Truck data-set
 
-Truck set [before](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_before.png) and [after](https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_after.png)
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_before.png" style="max-width:100%;"/>
+<img src="https://raw.githubusercontent.com/coin-or/Gravity/Align/data_sets/LiDAR/Truck_after.png" style="max-width:100%;"/>
 
 Code Tested on Mac and Linux
 
