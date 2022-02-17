@@ -363,8 +363,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     int nd=point_cloud_data.size();
     vector<int> new_matching(nd);
     vector<double> res(nd);
-    double max_time = 60;
-    double max_time_init=60;
+    double max_time = 30;
+    double max_time_init=30;
     bool max_time_increase=false;
     int max_iter = 1e6;
     int models_count=0, models_new_count=0;
