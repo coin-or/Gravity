@@ -284,10 +284,11 @@ int main (int argc, char * argv[])
         }
         if(algo=="ub"){
             auto rot= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-            auto roll_deg_ub = rot[0];
-            auto pitch_deg_ub = rot[1];
-            auto yaw_deg_ub = rot[2];
-            DebugOn(roll_deg_ub<<" "<<pitch_deg_ub<<" "<<yaw_deg_ub<<endl);
+            auto roll_rad_ub = rot[0];
+            auto pitch_rad_ub = rot[1];
+            auto yaw_rad_ub = rot[2];
+            DebugOn("Angles radians "<<roll_rad_ub<<" "<<pitch_rad_ub<<" "<<yaw_rad_ub<<endl);
+            DebugOn("Angles degrees "<<roll_rad_ub*180/pi<<" "<<pitch_rad_ub*180/pi<<" "<<yaw_rad_ub*180/pi<<endl);
             
         }
         else if(algo=="gurobi"){
@@ -308,9 +309,9 @@ int main (int argc, char * argv[])
             auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             vector<double> rot;
 #ifdef USE_MPI
-            rot=BranchBound_MPI(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            rot=BranchBound_MPI(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, rot_h, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
 #else
-            rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            rot= BranchBound_Align(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, rot_h, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
 #endif
             
             auto roll_deg_bb = rot[0];
