@@ -297,12 +297,13 @@ int main (int argc, char * argv[])
             vector<vector<double>> input_data_cloud, input_model_cloud, input_data_offset, input_model_offset;
             generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
             generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
+            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             double t=0, vec=0;
-            preprocess_lid(ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(valid_cells_old), ref(new_cells),  ref(dist_cells), roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, L2init, ref(t), ref(vec), "L2");
+            preprocess_lid(ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(valid_cells_old), ref(new_cells),  ref(dist_cells), roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, best_ub, ref(t), ref(vec), "L2");
             auto model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, new_cells, dist_cells);
             
             solver<> S1(model_i,gurobi);
-            S1.run(5,1e-6,"",9000000,10000000, L2init, 72);
+            S1.run(5,1e-6,"",9000000,10000000, best_ub, 72);
             
         }
         else if(algo=="bb"){/*Run the branch and bound algorithm*/
