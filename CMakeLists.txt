@@ -31,7 +31,7 @@ endif()
 option(Gurobi "Link to GUROBI libraries" OFF)
 
 # Find IPOPT (REQUIRED)
-option(Ipopt "Link to IPOPT libraries" ON)
+option(Ipopt "Link to IPOPT libraries" OFF)
 
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)

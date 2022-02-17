@@ -13,7 +13,7 @@ Please install [openGJK](https://github.com/MattiaMontanari/openGJK)
 
 `export GJK_ROOT_DIR="/Users/yourname/Dev/openGJK"`
 
-Please download and extract ('tar -xf archivename') [Eigen3](https://gitlab.com/libeigen/eigen/-/releases/3.3.9) (Install not required)
+Please download and extract (`tar -xf archivename`) [Eigen3](https://gitlab.com/libeigen/eigen/-/releases/3.3.9) (Install not required)
 
 `export EIGEN3_ROOT_DIR ="/Users/yourname/Dev/eigen-3.3.9"`
 
@@ -22,6 +22,7 @@ Please install [Gurobi 9.5](https://www.gurobi.com/) (not required for aGS) For 
 `export GRB_LICENSE_FILE="/Users/yourname/Dev/gurobi.lic"`
 
 For Mac,
+
 `export GUROBI_HOME="/Library/gurobi950/macos_universal2"`
 
 For Linux,
@@ -29,7 +30,7 @@ For Linux,
 `export GUROBI_HOME="$HOME/Dev/gurobi950/linux64"`
 
 `export PATH=$PATH:"$HOME/Dev/gurobi950/linux64/bin"`   
-                   
+
 `export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/Dev/gurobi950/linux64/lib"`
 
 
