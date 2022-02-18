@@ -210,7 +210,7 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
     auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
-    vector<double> rpy(3);
+    vector<double> rpy(3, 0.0);
     /* INPUT BOUNDS */
     
     /* INPUT BOUNDS */

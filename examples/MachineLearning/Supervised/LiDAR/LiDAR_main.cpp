@@ -79,32 +79,38 @@ int main (int argc, char * argv[])
     int mskip =1, dskip =2;//Truck set
     //int mskip=2, dskip =3;// ,Tent set
     string file_u= string(prj_dir)+"/data_sets/LiDAR/Truck.adc.laz";
-    string algo="bb";
-    /*Algorithm Choices
-     "bb" to run the spatial branch and bound algorithm
-     "ub" to run the heuristic upper bound
+    double bore_roll=0, bore_pitch=0, bore_yaw=0;/*Calibration angles in degrees*/
+    string algo="aGS";/*Algorithm Choices
+     "aGS"(default) to run the heuristic upper bound
+     "nsBB" to run the spatial branch and bound algorithm
      "gurobi" to run gurobi on the problem
-     "apply_angles" to apply bore-sight calibration on point-cloud
+     else if 3 angles given, the data-set is calibrated with these
      */
     if(argc>1){
         file_u = argv[1];
     }
-    if(argc>2){
+    if(argc==2){
         algo = argv[2];
     }
+    if(argc==4){
+        bore_roll= std::stod(argv[2]);
+        bore_pitch= std::stod(argv[3]);
+        bore_yaw= std::stod(argv[4]);
+    }
     string error_type="L2";
-    vector<double> best_rot_trans(9,0.0);
-    bool data_subset=true;
+    vector<double> best_rot(9,0.0);
+    bool data_opt=true;/*If true, Working with data set \hat{P} union \bar{P}, else data set \hat{D} union \bar{D}  */
+    double best_ub=1e5,L2init, L1init;
     
     vector<vector<double>> full_point_cloud_model, full_point_cloud_data, full_uav_model, full_uav_data;
     vector<vector<double>> point_cloud_model, point_cloud_data,point_cloud_model1, point_cloud_data1;
     vector<vector<double>> uav_model, uav_data,uav_model1, uav_data1,cloud1, cloud2, uav1, uav2, rpy1, rpy2;
     vector<vector<double>> full_rpy_model, full_rpy_data, rpy_model, rpy_data,rpy_model1, rpy_data1;
     vector<vector<double>> lidar_point_cloud, roll_pitch_yaw, em;
-    double L2init, L1init;
+    /*Reads input laz*/
     auto uav_cloud_u=::read_laz(file_u, lidar_point_cloud, roll_pitch_yaw);
     
-    if(data_subset){/*Working with data sets P*/
+    if(data_opt){/*Working with data sets P*/
         int mid_i=0;
         /*Separating data in parallel flight lines 1 and 2*/
         for(auto i=1;i<uav_cloud_u.size();i++)
@@ -235,16 +241,7 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
         plot(point_cloud_model, point_cloud_data, 1);
 #endif
-        indices N1 = range(1,point_cloud_data.size());
-        indices N2 = range(1,point_cloud_model.size());
-        
-        indices valid_cells_old("valid_cells_old");
-        DebugOff("valid cells old size "<<valid_cells_old.size()<<endl);
-        indices new_cells("new_cells");
-        param<double> dist_cells("dist_cells");
-        double upper_bound=3e4;
-        double prep_time=0;
-        
+       
         double roll_min=-2*pi/180;
         double roll_max=2*pi/180;
         double pitch_min=-2*pi/180;
@@ -271,19 +268,14 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
         plot(point_cloud_model_copy, point_cloud_data_copy);
 #endif
-        
-        best_rot_trans[0]=1;
-        best_rot_trans[4]=1;
-        best_rot_trans[8]=1;
-        double best_ub=1e5;
         if(error_type=="L2"){
             best_ub=L2init;
         }
         else{
             best_ub=L1init;
         }
-        if(algo=="ub"){
-            auto rot= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        if(algo=="aGS"){
+            auto rot= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             auto roll_rad_ub = rot[0];
             auto pitch_rad_ub = rot[1];
             auto yaw_rad_ub = rot[2];
@@ -292,12 +284,13 @@ int main (int argc, char * argv[])
             
         }
         else if(algo=="gurobi"){
-            double yaw_min = -2*pi/180., yaw_max = 2*pi/180., pitch_min =-2*pi/180.,pitch_max = 2*pi/180.,roll_min =-2*pi/180.,roll_max = 2*pi/180.;
-            
             vector<vector<double>> input_data_cloud, input_model_cloud, input_data_offset, input_model_offset;
             generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
             generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
-            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            indices valid_cells_old("valid_cells_old");
+            indices new_cells("new_cells");
+            param<double> dist_cells("dist_cells");
             double t=0, vec=0;
             preprocess_lid(ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(valid_cells_old), ref(new_cells),  ref(dist_cells), roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, best_ub, ref(t), ref(vec), "L2");
             auto model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, new_cells, dist_cells);
@@ -306,8 +299,8 @@ int main (int argc, char * argv[])
             S1.run(5,1e-6,"",9000000,10000000, best_ub, 72);
             
         }
-        else if(algo=="bb"){/*Run the branch and bound algorithm*/
-            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot_trans, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        else if(algo=="nsBB"){/*Run the nsBB algorithm*/
+            auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             vector<double> rot;
 #ifdef USE_MPI
             rot=BranchBound_MPI(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, rot_h, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
@@ -321,9 +314,10 @@ int main (int argc, char * argv[])
             
             apply_transform_new_order(roll_deg_bb*pi/180, pitch_deg_bb*pi/180, yaw_deg_bb*pi/180, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
             apply_transform_new_order(roll_deg_bb*pi/180, pitch_deg_bb*pi/180, yaw_deg_bb*pi/180, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            save_laz(file_u.substr(0,file_u.find('.'))+"_"+to_string(roll_deg_bb)+"_"+to_string(pitch_deg_bb)+"_"+to_string(yaw_deg_bb)+"_opt_set.laz", point_cloud_model, point_cloud_data);
+            save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg_bb)+"_"+to_string(pitch_deg_bb)+"_"+to_string(yaw_deg_bb)+"_hatp.laz", point_cloud_data, em);
+            save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg_bb)+"_"+to_string(pitch_deg_bb)+"_"+to_string(yaw_deg_bb)+"_barp.laz", point_cloud_model, em);
             apply_transform_new_order(roll_deg_bb*pi/180, pitch_deg_bb*pi/180, yaw_deg_bb*pi/180, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            save_laz(file_u.substr(0,file_u.find('.'))+"_"+to_string(roll_deg_bb)+"_"+to_string(pitch_deg_bb)+"_"+to_string(yaw_deg_bb)+"_full_set.laz", lidar_point_cloud, em);
+            save_laz(file_u.substr(0,file_u.find('.'))+"_"+to_string(roll_deg_bb)+"_"+to_string(pitch_deg_bb)+"_"+to_string(yaw_deg_bb)+".laz", lidar_point_cloud, em);
             
             auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
             auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
@@ -341,23 +335,18 @@ int main (int argc, char * argv[])
             }
 #endif
         }
-        else{/*Apply the calibration values*/
-            
-            auto roll_deg =-1.52783*pi/180;
-            auto pitch_deg = 0.835449*pi/180;
-            auto yaw_deg =-0.141113*pi/180;
-            
-            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-            save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+".laz", lidar_point_cloud, em);
+        else{/*Apply the calibration values on sets \hat{P}, \bar{P} and \hat{P} union \bar{P} */
+            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
+            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
+            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+"_hatp.laz", point_cloud_data, em);
+            save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+"_barp.laz", point_cloud_model, em);
+            save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+".laz", lidar_point_cloud, em);
             auto L2=computeL2error(point_cloud_model,point_cloud_data,matching,err_per_point);
             auto L1=computeL1error(point_cloud_model,point_cloud_data,matching,err_per_point);
-            
 #ifdef USE_MPI
             if(worker_id==0){
 #endif
-                
                 DebugOn("L2  "<<L2<<endl);
                 DebugOn("L1  "<<L1<<endl);
                 
@@ -368,14 +357,10 @@ int main (int argc, char * argv[])
 #endif
         }
     }
-    else{/*Apply the calibration values on large data set D*/
+    else{/*Apply the calibration values on large data set D=\hat{D} union \bar{D}*/
         
-        auto roll_deg =-1.52783*pi/180;
-        auto pitch_deg = 0.835449*pi/180;
-        auto yaw_deg =-0.141113*pi/180;
-        
-        apply_transform_new_order(roll_deg, pitch_deg, yaw_deg, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-        save_laz(file_u.substr(0,file_u.find('.'))+to_string(roll_deg)+"_"+to_string(pitch_deg)+"_"+to_string(yaw_deg)+".laz", lidar_point_cloud, em);
+        apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+".laz", lidar_point_cloud, em);
     }
 #ifdef USE_MATPLOT
     plot(point_cloud_model, point_cloud_data);
