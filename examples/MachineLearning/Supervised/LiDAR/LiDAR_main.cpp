@@ -42,6 +42,9 @@ extern "C" {
 #endif
 #include <iostream>
 #include <algorithm>
+using namespace std;
+using namespace gravity;
+
 
 /* Plot two point clouds */
 void plot(const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2, double point_thick = 0.1);
@@ -76,11 +79,11 @@ int main (int argc, char * argv[])
      */
     /*to downsample points*/
     //int mskip=1,dskip=4;//Car set
-    int mskip =1, dskip =2;//Truck set
+    int mskip =100, dskip =200;//Truck set
     //int mskip=2, dskip =3;// ,Tent set
     string file_u= string(prj_dir)+"/data_sets/LiDAR/Truck.adc.laz";
     double bore_roll=0, bore_pitch=0, bore_yaw=0;/*Calibration angles in degrees*/
-    string algo="aGS";/*Algorithm Choices
+    string algo="gurobi";/*Algorithm Choices
      "aGS"(default) to run the heuristic upper bound
      "nsBB" to run the spatial branch and bound algorithm
      "gurobi" to run gurobi on the problem
@@ -238,9 +241,6 @@ int main (int argc, char * argv[])
         }
         DebugOn(point_cloud_model.size()<<endl);
         DebugOn(point_cloud_data.size()<<endl);
-#ifdef USE_MATPLOT
-        plot(point_cloud_model, point_cloud_data, 1);
-#endif
        
         double roll_min=-2*pi/180;
         double roll_max=2*pi/180;
@@ -265,9 +265,7 @@ int main (int argc, char * argv[])
 #ifdef USE_MPI
         }
 #endif
-#ifdef USE_MATPLOT
-        plot(point_cloud_model_copy, point_cloud_data_copy);
-#endif
+
         if(error_type=="L2"){
             best_ub=L2init;
         }
@@ -288,15 +286,15 @@ int main (int argc, char * argv[])
             generate_inputs(point_cloud_model, uav_model, rpy_model, scanner_x, scanner_y, scanner_z,hr,hp,hy, input_model_cloud, input_model_offset);
             generate_inputs(point_cloud_data, uav_data, rpy_data, scanner_x, scanner_y, scanner_z, hr,hp,hy,input_data_cloud, input_data_offset);
             auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
-            indices valid_cells_old("valid_cells_old");
-            indices new_cells("new_cells");
+            indices N1 = range(1,point_cloud_data.size());
+            indices N2 = range(1,point_cloud_model.size());
+            indices new_cells(N1,N2);
             param<double> dist_cells("dist_cells");
-            double t=0, vec=0;
-            preprocess_lid(ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(valid_cells_old), ref(new_cells),  ref(dist_cells), roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, best_ub, ref(t), ref(vec), "L2");
             auto model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, new_cells, dist_cells);
-            
+#ifdef USE_GUROBI
             solver<> S1(model_i,gurobi);
             S1.run(5,1e-6,"",9000000,10000000, best_ub, 72);
+#endif
             
         }
         else if(algo=="nsBB"){/*Run the nsBB algorithm*/
