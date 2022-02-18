@@ -60,9 +60,9 @@ To run boresight alignment algorithms, build target `lidar` by running `make lid
 
 CMAKE OPTIONS
 
-To run the nsBB set `-DGurobi=ON -DGJK=ON -DEigen3=ON` while calling `cmake`. To run the MPI version of nsBB also set `-DOpenMPI=ON` while calling `cmake`. 
+To run nsBB set `-DGurobi=ON -DGJK=ON -DEigen3=ON` while calling `cmake`. To run the MPI version of nsBB also set `-DOpenMPI=ON` while calling `cmake`. 
 
-To run gurobi set `-DGurobi=ON` while calling `cmake`. To run the MPI version of nsBB also set `-DOpenMPI=ON` while calling `cmake`. 
+To run gurobi set `-DGurobi=ON` while calling `cmake`. 
 
 Data sets used in the paper may be found [here](https://github.com/coin-or/Gravity/tree/Align/data_sets/LiDAR).
 
@@ -70,8 +70,6 @@ Arguments
 
 The first argument is the .laz file name
 
-The second argument is the algorithm: `aGS`(default) for aGS algorithm, `nsBB`, for nsBB, `gurobi` to solve the boresight MIQCQP as it is with gurobi
-
-Alternatively, set algorithm set `algo="nsBB"` in your local copy of this [file](https://github.com/coin-or/Gravity/blob/Align/examples/MachineLearning/Supervised/LiDAR/LiDAR_main.cpp#L82/)
+The second argument is the algorithm: `aGS`(default) for aGS algorithm, `nsBB`, for nsBB, `gurobi` to solve the boresight MIQCQP with gurobi
 
 

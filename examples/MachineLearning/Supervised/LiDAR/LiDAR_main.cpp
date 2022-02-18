@@ -293,9 +293,10 @@ int main (int argc, char * argv[])
             indices new_cells(N1,N2);
             param<double> dist_cells("dist_cells");
             auto model_i=Align_L2_model_rotation_trigonometric_scanner(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset, input_data_offset, roll_min, roll_max, pitch_min, pitch_max, yaw_min ,yaw_max, new_cells, dist_cells);
+            int num_thread=thread::hardware_concurrency();
 #ifdef USE_GUROBI
             solver<> S1(model_i,gurobi);
-            S1.run(5,1e-6,"",9000000,10000000, best_ub, 72);
+            S1.run(5,1e-6,"",9000000,10000000, best_ub, num_thread);
 #endif
             
         }
