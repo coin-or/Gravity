@@ -83,7 +83,8 @@ int main (int argc, char * argv[])
     //int mskip=2, dskip =3;// ,Tent set
     string file_u= string(prj_dir)+"/data_sets/LiDAR/Truck.adc.laz";
     double bore_roll=0, bore_pitch=0, bore_yaw=0;/*Calibration angles in degrees*/
-    string algo="gurobi";/*Algorithm Choices
+    string algo="nsBB";
+    /*Algorithm Choices
      "aGS"(default) to run the heuristic upper bound
      "nsBB" to run the spatial branch and bound algorithm
      "gurobi" to run gurobi on the problem

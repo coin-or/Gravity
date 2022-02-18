@@ -14,9 +14,6 @@ using namespace gravity;
 extern "C" {
 #include "openGJK.h"
 }
-#endif
-using namespace std;
-#ifdef USE_GJK
 double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double>>& vec2){
     
     /* Squared distance computed by openGJK.                                 */
