@@ -7,6 +7,9 @@
 
 #ifndef Lidar_preprocess_h
 #define Lidar_preprocess_h
+using namespace std;
+using namespace gravity;
+
 #ifdef USE_GJK
 extern "C" {
 #include "openGJK.h"

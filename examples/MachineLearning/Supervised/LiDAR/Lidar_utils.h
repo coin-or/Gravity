@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <DataSet.h> 
 using namespace std;
+using namespace gravity;
+
 #include <gravity/ConfigMap.hpp>
 
 /* Computes the interpolation coefficient based on time elapsed  */

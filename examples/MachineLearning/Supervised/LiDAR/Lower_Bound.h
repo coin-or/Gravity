@@ -34,6 +34,7 @@
 #endif
 #include <time.h>
 
+using namespace gravity;
 using namespace std;
 #include <stdio.h>
 #include "Lidar_utils.h"
@@ -976,7 +977,7 @@ shared_ptr<Model<double>> Align_L2_model_rotation_trigonometric_scanner(const ve
     Reg->add(Def_deltaz.in(N1)<=0);
     
     
-    if(dist_cost._indices->_keys->size()!=0){
+    if(dist_cost._val->size()!=0){
         Constraint<> delta_cost("delta_cost");
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
         Reg->add(delta_cost.in(N1)<=0);
