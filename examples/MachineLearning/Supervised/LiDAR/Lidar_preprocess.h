@@ -87,7 +87,6 @@ double distance_polytopes_gjk(vector<vector<double>>& vec1, vector<vector<double
     DebugOff("Distance sqrd "<<dd<<endl);
     return dd;
 }
-#endif
 bool vertices_box_plane(const vector<double>& plane_eq,  const vector<vector<double>>& big_box, vector<vector<double>>& new_verts, vector<int>& infeas_set);
 void get_extreme_point_data(vector<vector<double>>& extreme, const vector<double>& uav_d, const vector<double>& d_pt, const vector<var<double>>& theta_vec);
 void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d_pt, const vector<var<double>>& theta_vec, const vector<double>& rpy);
@@ -1086,5 +1085,6 @@ bool vertices_box_plane(const vector<double>& plane_eq, const vector<vector<doub
     }
     return vertex_found;
 }
+#endif
 #endif /* Lidar_preprocess_h */
 

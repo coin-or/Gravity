@@ -29,20 +29,12 @@
 #include <set>
 #include <future>
 #include <thread>
-#ifdef USE_EIGEN3
-#include <Eigen/Dense>
-#endif
 #include <time.h>
-
 using namespace gravity;
 using namespace std;
 #include <stdio.h>
 #include "Lidar_utils.h"
-#ifdef USE_GJK
-extern "C" {
-#include "openGJK.h"
-}
-#endif
+
 shared_ptr<Model<double>> Align_L2_model_rotation_neworder(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rollpitchyawins_model, const vector<vector<double>>& rollpitchyawins_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, indices& cells, param<double> dist_cost)
 {
     double angle_max = 0.1;

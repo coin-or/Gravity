@@ -300,6 +300,7 @@ int main (int argc, char * argv[])
         else if(algo=="nsBB"){/*Run the nsBB algorithm*/
             auto rot_h= ub_heuristic_disc(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, best_rot, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             vector<double> rot;
+#ifdef USE_GJK
 #ifdef USE_MPI
             rot=BranchBound_MPI(point_cloud_model, point_cloud_data, uav_model, uav_data, rpy_model, rpy_data, rot_h, best_ub, error_type, scanner_x, scanner_y, scanner_z, hr, hp, hy);
 #else
@@ -331,6 +332,7 @@ int main (int argc, char * argv[])
                 DebugOn("Percentage improved L1 "<<(L1init-L1)/L1init*100.0<<endl);
 #ifdef USE_MPI
             }
+#endif
 #endif
         }
         else{/*Apply the calibration values on sets \hat{P}, \bar{P} and \hat{P} union \bar{P} */
