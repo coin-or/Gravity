@@ -91,13 +91,13 @@ int main (int argc, char * argv[])
      "gurobi" to run gurobi on the problem
      else if 3 angles given, the data-set is calibrated with these
      */
-    if(argc>1){
+    if(argc>=2){
         file_u = argv[1];
     }
-    if(argc==2){
+    if(argc==3){
         algo = argv[2];
     }
-    if(argc==4){
+    if(argc==5){
         bore_roll= std::stod(argv[2]);
         bore_pitch= std::stod(argv[3]);
         bore_yaw= std::stod(argv[4]);
