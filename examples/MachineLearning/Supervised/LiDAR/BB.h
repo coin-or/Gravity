@@ -7,7 +7,7 @@
 
 #ifndef BB_h
 #define BB_h
-#ifdef USE_GJK
+
 #include "Lidar_preprocess.h"
 #include "Lower_Bound.h"
 #include <gravity/solver.h>
@@ -846,9 +846,9 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& input_model_clo
 void run_preprocess_model_Align(const vector<vector<double>>& input_model_cloud, const vector<vector<double>>& input_data_cloud, const vector<vector<double>>& uav_model, const vector<vector<double>>& uav_data, const vector<vector<double>>& rpy_model, const vector<vector<double>>& rpy_data, const vector<vector<double>>& input_model_offset, const vector<vector<double>>& input_data_offset, treenode_r vec_node_i, int& m_vec_i,  double& vec_lb_i,  indices& valid_cells_i, param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, string error_type, vector<double>& ub_i){
     
     evaluate_upper_bound_mid(vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ub_i, input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset,input_data_offset, error_type);
-    
+#ifdef USE_GJK
     preprocess_lid(input_model_cloud, input_data_cloud, uav_model, uav_data, rpy_model, rpy_data, input_model_offset,input_data_offset, vec_node_i.valid_cells, valid_cells_i,  dist_cost_i, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, upper_bound, prep_time_i, vec_lb_i, error_type);
-    //
+#endif
     bool model_created=false;
     if(valid_cells_i.size()>=input_data_cloud.size() && valid_cells_i.size()<=2e4){
         if(error_type=="L2"){
@@ -893,7 +893,9 @@ void run_preprocess_only_parallel(const vector<vector<double>>& input_model_clou
     for (auto j = 0; j < npass; j++) {
         
         for (auto i = j*nb_threads; i < std::min((j+1)*nb_threads, num); i++) {
+#ifdef USE_GJK
             threads.push_back(thread(&preprocess_lid, ref(input_model_cloud), ref(input_data_cloud), ref(uav_model), ref(uav_data), ref(rpy_model), ref(rpy_data), ref(input_model_offset), ref(input_data_offset), ref(vec_node[i].valid_cells), ref(valid_cells[i]),  ref(vec_dist_cost[i]), vec_node[i].roll.first, vec_node[i].roll.second, vec_node[i].pitch.first, vec_node[i].pitch.second, vec_node[i].yaw.first ,vec_node[i].yaw.second, upper_bound, ref(vec_prep_time[i]), ref(vec_lb[i]), error_type));
+#endif
         }
         
         for(auto &t : threads){
@@ -1331,6 +1333,5 @@ void send_vector_new(const vector<size_t>& limits, vector<double>& vec_full, vec
                    &vec_full[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
     //MPI_Barrier(MPI_COMM_WORLD);
 }
-#endif
 #endif
 #endif /* BB_h */
