@@ -80,11 +80,11 @@ int main (int argc, char * argv[])
      */
     /*to downsample points*/
     //int mskip=1,dskip=4;//Car set
-    int mskip =100, dskip =200;//Truck set
+    int mskip =1, dskip =2;//Truck set
     //int mskip=2, dskip =3;// ,Tent set
     string file_u= string(prj_dir)+"/data_sets/LiDAR/Truck.adc.laz";
     double bore_roll=0, bore_pitch=0, bore_yaw=0;/*Calibration angles in degrees*/
-    string algo="nsBB";
+    string algo="aGS";
     /*Algorithm Choices
      "aGS"(default) to run the heuristic upper bound
      "nsBB" to run the spatial branch and bound algorithm
