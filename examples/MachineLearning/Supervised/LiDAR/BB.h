@@ -7,7 +7,7 @@
 
 #ifndef BB_h
 #define BB_h
-
+#ifdef USE_GJK
 #include "Lidar_preprocess.h"
 #include "Lower_Bound.h"
 #include <gravity/solver.h>
@@ -1331,5 +1331,6 @@ void send_vector_new(const vector<size_t>& limits, vector<double>& vec_full, vec
                    &vec_full[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
     //MPI_Barrier(MPI_COMM_WORLD);
 }
+#endif
 #endif
 #endif /* BB_h */

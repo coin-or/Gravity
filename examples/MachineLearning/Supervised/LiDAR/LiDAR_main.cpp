@@ -29,6 +29,7 @@
 #include "Lidar_utils.h"
 #include <gravity/solver.h>
 #include "BB.h"
+#include "Lower_Bound.h"
 
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
