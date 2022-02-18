@@ -98,6 +98,7 @@ int main (int argc, char * argv[])
         algo = argv[2];
     }
     if(argc==5){
+        algo="apply_angles";
         bore_roll= std::stod(argv[2]);
         bore_pitch= std::stod(argv[3]);
         bore_yaw= std::stod(argv[4]);
@@ -339,9 +340,9 @@ int main (int argc, char * argv[])
 #endif
         }
         else{/*Apply the calibration values on sets \hat{P}, \bar{P} and \hat{P} union \bar{P} */
-            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
-            apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+            apply_transform_new_order(bore_roll*pi/180, bore_pitch*pi/180, bore_yaw*pi/180, point_cloud_model, uav_model, rpy_model, scanner_x,scanner_y,scanner_z,hr,hp,hy);
+            apply_transform_new_order(bore_roll*pi/180, bore_pitch*pi/180, bore_yaw*pi/180, point_cloud_data, uav_data, rpy_data, scanner_x,scanner_y,scanner_z,hr,hp,hy);
+            apply_transform_new_order(bore_roll*pi/180, bore_pitch*pi/180, bore_yaw*pi/180, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
             save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+"_hatp.laz", point_cloud_data, em);
             save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+"_barp.laz", point_cloud_model, em);
             save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+".laz", lidar_point_cloud, em);
@@ -362,7 +363,7 @@ int main (int argc, char * argv[])
     }
     else{/*Apply the calibration values on large data set D=\hat{D} union \bar{D}*/
         
-        apply_transform_new_order(bore_roll, bore_pitch, bore_yaw, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
+        apply_transform_new_order(bore_roll*pi/180, bore_pitch*pi/180, bore_yaw*pi/180, lidar_point_cloud, uav_cloud_u, roll_pitch_yaw, scanner_x, scanner_y, scanner_z, hr, hp, hy);
         save_laz(file_u.substr(0,file_u.find('.'))+to_string(bore_roll)+"_"+to_string(bore_pitch)+"_"+to_string(bore_yaw)+".laz", lidar_point_cloud, em);
     }
 #ifdef USE_MATPLOT
