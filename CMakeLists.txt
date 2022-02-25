@@ -84,6 +84,8 @@ option(OpenMPI "Link to OpenMPI libraries" OFF)
 # Find OPT_PARSER (optional)
 option(OPT_PARSER "Link to OPT_PARSER libraries" OFF)
 
+include(ExternalProject)
+
 if (OpenMPI)
     SET(CMAKE_CXX_COMPILER mpicxx)
     SET(CMAKE_C_COMPILER mpicc)
@@ -249,7 +251,7 @@ get_directory_property(THIRDPARTY_BASE_PATH EP_BASE)
 set(THIRDPARTY_INSTALL_PATH ${THIRDPARTY_BASE_PATH})
 
 
-include(ExternalProject)
+
 # Eigen
 #find_package(Eigen QUIET)
 #if (EIGEN_FOUND)
