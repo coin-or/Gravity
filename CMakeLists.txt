@@ -96,14 +96,8 @@ if (OpenMPI)
 endif()
 
 
-# Find LASlib.
-if (LASlib)
-        message(STATUS "Enable LASlib")
-        add_definitions(-DUSE_LASlib)
-        find_package(LASlib REQUIRED)
-        include_directories(${LASlib_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${LASlib_LIBRARIES})
-endif()
+# Download LASlib.
+include(ExternalLAStools)
 
 # Find cddlib.
 if (CDD)
