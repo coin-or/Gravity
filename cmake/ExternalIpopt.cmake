@@ -35,6 +35,41 @@ TARGET ipopt POST_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy 
 ${IPOPT_ROOT_DIR}/libgfortran-5.dll ${PROJECT_SOURCE_DIR}/bin/Release/libgfortran-5.dll)
 
+
+elseif(UNIX)
+file(READ "/etc/os-release" ETC_ISSUE)
+string(REGEX MATCH "Ubuntu|centos" DIST ${ETC_ISSUE})
+string(REGEX MATCH "CentOS Linux 8|CentOS Linux 7" Version ${ETC_ISSUE})
+
+if(DIST STREQUAL "Ubuntu")
+    message(STATUS ">>>> Found Ubuntu <<<<")
+set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-ubuntu2004-64.tar.gz)
+elseif(DIST STREQUAL "centos")
+    if(Version STREQUAL "CentOS Linux 8")
+    	message(STATUS ">>>> Found Centos 8 <<<<")
+	set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-centos8-64.tar.gz)
+    elseif(Version STREQUAL "CentOS Linux 7")
+	message(STATUS ">>>> Found Centos 7 <<<<")
+	set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-centos7-64.tar.gz)
+    else()
+	message(STATUS ">>>> Unsupported CentOS version, will download libraries for CentOS 8, MIGHT NOT WORK<<<<")
+	set(IADES_DOWNLOAD_URL https://github.com/IDAES/idaes-ext/releases/download/2.4.1/idaes-solvers-centos8-64.tar.gz)
+    endif()
+else()
+    message(STATUS ">>>> Found unknown distribution <<<<")
+endif()
+
+set(IPOPT_ROOT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Ipopt CACHE INTERNAL "")
+ExternalProject_Add(ipopt
+    DOWNLOAD_DIR ${THIRDPARTY_INSTALL_PATH}
+    DOWNLOAD_COMMAND curl -k -L ${IADES_DOWNLOAD_URL} -o idaes-solvers.tar.gz && tar -xvzf idaes-solvers.tar.gz -C ${IPOPT_ROOT_DIR}
+    URL ${IPOPT_DOWNLOAD_URL}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${IPOPT_ROOT_DIR}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+
 else()
 
 # Download and build the IPOPT library and add its properties to the third party arguments.
