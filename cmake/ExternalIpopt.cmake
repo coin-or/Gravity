@@ -50,12 +50,13 @@ ExternalProject_Add(ipopt
 )
 endif()
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DIPOPT_ROOT_DIR:PATH=${IPOPT_ROOT_DIR}")
-set(IPOPT_INCLUDE_DIRS ${THIRDPARTY_INSTALL_PATH}/Install/ipopt/build/include/coin)
+set(IPOPT_INCLUDE_DIRS ${THIRDPARTY_INSTALL_PATH}/Ipopt/build/include/coin)
 include_directories(${IPOPT_INCLUDE_DIRS})
 if(APPLE)
 find_library(IPOPT_LIBRARIES
         libipopt.dylib
         HINTS /usr/local/lib
+        HINTS ${THIRDPARTY_INSTALL_PATH}/Ipopt/build/lib
         HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
         HINTS ${IPOPT_ROOT_DIR}/lib
 )
@@ -63,6 +64,7 @@ elseif(UNIX)
 find_library(IPOPT_LIBRARIES
         libipopt.so
         HINTS /usr/local/lib
+        HINTS ${THIRDPARTY_INSTALL_PATH}/Ipopt/build/lib
         HINTS ${IPOPT_ROOT_DIR}/lib
         HINTS ${PROJECT_SOURCE_DIR}/third_party/CoinIpopt/build/lib
 )
