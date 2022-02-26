@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 #ifdef USE_IPOPT
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpTNLP.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpTNLP.hpp>
 #endif
 #include <gravity/model.h>
 

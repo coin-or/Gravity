@@ -2,9 +2,9 @@
 #define __Gravity____BonminProgram__
 
 #ifdef USE_BONMIN
-#include <coin/BonTMINLP.hpp>
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpTNLP.hpp>
+#include <BonTMINLP.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpTNLP.hpp>
 #endif
 #include <gravity/model.h>
 

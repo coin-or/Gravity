@@ -18,10 +18,10 @@
 #ifdef USE_IPOPT
 #include <gravity/IpoptProgram.h>
 //#include "IpoptInterfaceCommon.h"
-#include <coin/IpRegOptions.hpp>
-#include <coin/IpJournalist.hpp>
-#include <coin/IpIpoptApplication.hpp>
-#include <coin/IpSolveStatistics.hpp>
+#include <IpRegOptions.hpp>
+#include <IpJournalist.hpp>
+#include <IpIpoptApplication.hpp>
+#include <IpSolveStatistics.hpp>
 #include <future>
 #include <thread>
 
