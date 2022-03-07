@@ -3,7 +3,7 @@ name: CMake Build Matrix
 on: [push]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
 
 jobs:
   build-linux:
