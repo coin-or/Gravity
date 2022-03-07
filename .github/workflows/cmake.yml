@@ -2,6 +2,9 @@ name: CMake Build Matrix
 
 on: [push]
 
+env:
+  BUILD_TYPE: Release
+
 jobs:
   build-linux:
     # The CMake configure and build commands are platform agnostic and should work equally
