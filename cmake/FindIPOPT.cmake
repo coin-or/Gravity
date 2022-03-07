@@ -36,6 +36,7 @@ find_path(IPOPT_INCLUDE_DIR
 	NAMES IpNLP.hpp 
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include/coin-or
 	HINTS ${IPOPT_ROOT_DIR}/include
 )
 find_library(IPOPT_LIBRARY 
@@ -50,6 +51,7 @@ find_path(IPOPT_INCLUDE_DIR
 	NAMES IpNLP.hpp 
 	HINTS /usr/local/include/coin
 	HINTS ${IPOPT_ROOT_DIR}/include/coin
+	HINTS ${IPOPT_ROOT_DIR}/include/coin-or
 	HINTS ${IPOPT_ROOT_DIR}/include
 )
 find_library(IPOPT_LIBRARY 

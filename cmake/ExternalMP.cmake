@@ -28,6 +28,7 @@ endif()
 
 list(APPEND GLOBAL_THIRDPARTY_LIB_ARGS "-DMP_ROOT_DIR:PATH=${MP_ROOT_DIR}")
 set(MP_INCLUDE_DIRS ${THIRDPARTY_INSTALL_PATH}/Install/MP/include)
+set(MP_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/thirdparty)
 include_directories(${MP_INCLUDE_DIRS})
 find_library(MP_LIBRARY
         libmp.a
