@@ -46,7 +46,7 @@ jobs:
       
     - name: Gencov
       shell: bash
-      run:  ./bin/Debug/gravity_test && sudo chmod +x ./get_code_cov.sh && sudo ./get_code_cov.sh
+      run:  sudo ./bin/Debug/gravity_test && sudo chmod +x ./get_code_cov.sh && sudo ./get_code_cov.sh
       
     - name: Codecov
       uses: codecov/codecov-action@v2.1.0
