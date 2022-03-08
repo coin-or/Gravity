@@ -29,7 +29,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCov=ON 
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DDebug=ON -DCov=ON 
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -46,7 +46,7 @@ jobs:
       
     - name: Gencov
       shell: bash
-      run:  sudo ./bin/Release/gravity_test && sudo chmod +x ./get_code_cov.sh && sudo ./get_code_cov.sh
+      run:  sudo ./bin/Debug/gravity_test && sudo chmod +x ./get_code_cov.sh && sudo ./get_code_cov.sh
       
     - name: Codecov
       uses: codecov/codecov-action@v2.1.0
