@@ -18,8 +18,12 @@ int main (int argc, const char * argv[])
     int n = 50, m = 10000, degree = 100;
     Net graph;
     bool read_input = false;
-    if(read_input){
-        graph.read_adjacency_matrix(string(prj_dir)+"/data_sets/sensor/toy.txt");
+    string fname = string(prj_dir)+"/data_sets/sensor/toy.txt";
+    if(argc>=2){
+        fname = argv[1];
+        auto dims =graph.read_pairwise_list(fname);
+        n = dims.first;
+        m = dims.second;
     }
     else {
         graph.generate_bipartite_random(n,m,degree);
@@ -35,7 +39,7 @@ int main (int argc, const char * argv[])
     w.in(arcs);
     w.initialize_normal(2, 1);
     
-    Model<> model;
+    Model<> model("Sensor");
     /* Declaring the n-dimensional Real space */
     
     /** Variables **/
@@ -52,9 +56,9 @@ int main (int argc, const char * argv[])
     
 //    Constraint<> Unique_Sensor("Unique_Sensor");
 //    Unique_Sensor = x.in_matrix(0, 1);
-//    model.add(Unique_Sensor.in(objects) <= 1);
+//    model.add(Unique_Sensor.in(objects) >= 1);
     
-    model.print();
+//    model.write();
     /** Solver **/
     solver<> s(model,ipopt);
     s.run();
