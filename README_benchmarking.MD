@@ -8,7 +8,7 @@ To run the DSP and DSP-RLT relaxations, build the target `obbt` by running `make
 
 To run the SDP-BT algorithm, go to this [branch](https://github.com/coin-or/Gravity/tree/PES2022_Largescale).
 
-To run the upper bound, you may use the executables provided under the bin folder.
+To run the upper bound you may use the [OPOMO](https://github.com/hhijazi/OPOMO) solver.
 
 Scripts for benchmarking are available in [here](https://github.com/coin-or/Gravity/tree/PESGM2022/scripts_benchmarking).
 
