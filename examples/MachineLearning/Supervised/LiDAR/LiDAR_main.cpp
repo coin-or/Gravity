@@ -40,6 +40,7 @@
 #endif
 
 #include "convexes.h"
+#include "Lidar_utils.h"
 #include <gravity/KDTreeVectorOfVectorsAdaptor.h>
 #include <time.h>
 #ifdef USE_PCL
@@ -233,6 +234,7 @@ void round_bin(shared_ptr<Model<double>>& M, int nd, int nm);
 
 shared_ptr<Model<double>> build_TU_MIP(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, vector<double>& rot_trans, const vector<pair<pair<int,int>,pair<int,int>>>& incompatibles);
 
+vector<pair<double,double>> prepare_model_cloud(vector<vector<double>>& point_cloud);
 
 shared_ptr<Model<double>> build_SDP(vector<double>& point, vector<double>& rot_mat);
 
@@ -360,6 +362,7 @@ int main (int argc, char * argv[])
     if(argc>1){
         prob_type = argv[1];
     }
+ 
 #ifdef USE_MPI
     auto err_init = MPI_Init(nullptr,nullptr);
     int worker_id, nb_workers;
@@ -414,7 +417,7 @@ int main (int argc, char * argv[])
         //point_cloud_model.resize(model_nb_rows);
         int fwdm=1;
         int fwdd=1;
-        bool downsample=true;
+        bool downsample=false;
         if(downsample && data_nb_rows>10){
             fwdm=2;
             fwdd=2;
@@ -468,9 +471,17 @@ int main (int argc, char * argv[])
         data_nb_rows=point_cloud_data.size();
         model_nb_rows=point_cloud_model.size();
         auto min_max_data=center_point_cloud(point_cloud_data);
-        auto min_max_model=center_point_cloud(point_cloud_model);
+        auto min_max_model=prepare_model_cloud(point_cloud_model);
         auto cx1=get_center(point_cloud_data);
         auto cx2=get_center(point_cloud_model);
+        DebugOn("model"<<endl);
+        for(auto i=0;i<model_nb_rows;i++){
+            DebugOn(point_cloud_model[i][0]<<" "<<point_cloud_model[i][1]<<" "<<point_cloud_model[i][2]<<endl);
+        }
+        DebugOn("data"<<endl);
+        for(auto i=0;i<data_nb_rows;i++){
+            DebugOn(point_cloud_data[i][0]<<" "<<point_cloud_data[i][1]<<" "<<point_cloud_data[i][2]<<endl);
+        }
         vector<double> pcd,pcm;
         for (int i = 0; i< data_nb_rows; i++) { // Input iterator
             pcd.push_back(point_cloud_data[i][0]);
@@ -490,14 +501,17 @@ int main (int argc, char * argv[])
             point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
             point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
         }
+        double best_ub;
+        vector<double> best_rot_trans;
         //input
         double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
         double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
+        ub_heuristic_disc(point_cloud_model, point_cloud_data, best_rot_trans, best_ub, "L2", 100);
+        exit(0);
 //        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
 //        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
         vector<pair<double, double>> min_max_d;
-        double best_ub;
-        vector<double> best_rot_trans;
+
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
         
 #ifdef USE_VORO
@@ -14244,6 +14258,108 @@ vector<double> get_center(const vector<vector<double>>& point_cloud){
     res[1]=cy;
     res[2]=cz;
     return(res);
+}
+/*Assumption all points are in between -1,1*/
+vector<pair<double,double>> prepare_model_cloud(vector<vector<double>>& point_cloud){
+    double cx=0,cy=0,cz=0;
+    int n=point_cloud.size();
+    double min_x=10, max_x=-1, min_y=10, max_y=-1,min_z=10, max_z=-1;
+    vector<pair<double,double>> res;
+    double scale_x=1, scale_y=1, scale_z=1;
+    for(auto i=0;i<n;i++)
+    {
+        if(point_cloud.at(i)[0]<=min_x){
+            min_x=point_cloud.at(i)[0];
+        }
+        if(point_cloud.at(i)[0]>=max_x){
+            max_x=point_cloud.at(i)[0];
+        }
+        if(point_cloud.at(i)[1]<=min_y){
+            min_y=point_cloud.at(i)[1];
+        }
+        if(point_cloud.at(i)[1]>=max_y){
+            max_y=point_cloud.at(i)[1];
+        }
+        if(point_cloud.at(i)[2]<=min_z){
+            min_z=point_cloud.at(i)[2];
+        }
+        if(point_cloud.at(i)[2]>=max_z){
+            max_z=point_cloud.at(i)[2];
+        }
+    }
+    
+    if(max_x-min_x<=1)
+        scale_x=1;
+    else
+        scale_x=max_x-min_x;
+    if(max_y-min_y<=1)
+        scale_y=1;
+    else
+        scale_y=max_x-min_x;
+    if(max_z-min_z<=1)
+        scale_z=1;
+    else
+        scale_z=max_x-min_x;
+    for(auto i=0;i<n;i++)
+    {
+        if(min_x>=0 && scale_x==1){
+           point_cloud.at(i)[0]=(point_cloud.at(i)[0]);
+        }
+        else{
+            point_cloud.at(i)[0]=(point_cloud.at(i)[0]-min_x)/scale_x;
+        }
+        if(min_y>=0 && scale_y==1){
+           point_cloud.at(i)[1]=(point_cloud.at(i)[1]);
+        }
+        else{
+            point_cloud.at(i)[1]=(point_cloud.at(i)[1]-min_y)/scale_y;
+        }
+        if(min_z>=0 && scale_z==1){
+           point_cloud.at(i)[2]=(point_cloud.at(i)[2]);
+        }
+        else{
+            point_cloud.at(i)[2]=(point_cloud.at(i)[2]-min_z)/scale_z;
+        }
+    }
+  
+    min_x=100, max_x=-100, min_y=100, max_y=-100, min_z=100, max_z=-100;
+    double dmin=100, dmax=-1,d;
+    for(auto i=0;i<point_cloud.size();i++)
+    {
+
+        if(point_cloud.at(i)[0]<=min_x){
+            min_x=point_cloud.at(i)[0];
+        }
+        if(point_cloud.at(i)[0]>=max_x){
+            max_x=point_cloud.at(i)[0];
+        }
+        if(point_cloud.at(i)[1]<=min_y){
+            min_y=point_cloud.at(i)[1];
+        }
+        if(point_cloud.at(i)[1]>=max_y){
+            max_y=point_cloud.at(i)[1];
+        }
+        if(point_cloud.at(i)[2]<=min_z){
+            min_z=point_cloud.at(i)[2];
+        }
+        if(point_cloud.at(i)[2]>=max_z){
+            max_z=point_cloud.at(i)[2];
+        }
+        d=pow(point_cloud.at(i)[0],2)+pow(point_cloud.at(i)[1],2)+pow(point_cloud.at(i)[2],2);
+        if(d<=dmin){
+            dmin=d;
+        }
+        if(d>=dmax){
+            dmax=d;
+        }
+        
+    }
+    res.push_back(make_pair(min_x, max_x));
+    res.push_back(make_pair(min_y, max_y));
+    res.push_back(make_pair(min_z, max_z));
+    res.push_back(make_pair(dmin, dmax));
+    res.push_back(make_pair(sqrt(dmin), sqrt(dmax)));
+    return res;
 }
 
 vector<pair<double,double>> center_point_cloud(vector<vector<double>>& point_cloud){
