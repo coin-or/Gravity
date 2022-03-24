@@ -471,7 +471,7 @@ int main (int argc, char * argv[])
         data_nb_rows=point_cloud_data.size();
         model_nb_rows=point_cloud_model.size();
         auto min_max_data=center_point_cloud(point_cloud_data);
-        auto min_max_model=prepare_model_cloud(point_cloud_model);
+        auto min_max_model=center_point_cloud(point_cloud_model);
         auto cx1=get_center(point_cloud_data);
         auto cx2=get_center(point_cloud_model);
         DebugOn("model"<<endl);
