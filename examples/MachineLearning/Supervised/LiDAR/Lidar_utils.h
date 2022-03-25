@@ -31,7 +31,7 @@ void apply_rot_trans_util(const vector<double>& theta_matrix, vector<vector<doub
 void run_ub_parallel_t(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<double>& roll_lb,  const vector<double>& roll_ub,  const vector<double>& pitch_lb,  const vector<double>& pitch_ub,  const vector<double>& yaw_lb, const vector<double>& yaw_ub, string error_type, vector<double>& ub_node);
 void run_ub_parallel(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<double>& roll_lb,  const vector<double>& roll_ub,  const vector<double>& pitch_lb,  const vector<double>& pitch_ub,  const vector<double>& yaw_lb, const vector<double>& yaw_ub, const vector<double>& tx_lb,  const vector<double>& tx_ub,const vector<double>& ty_lb,  const vector<double>& ty_ub,const vector<double>& tz_lb,  const vector<double>& tz_ub, string error_type, vector<double>& ub_node);
 void evaluate_upper_bound_mid(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max,double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, double best_ub);
-void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, double best_ub);
+void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, const vector<double>& ub_node);
 double computeL2error_util(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double best_ub);
 /* Compute the L1 error for model and data sets
  @param[in] point_cloud_model, Model point cloud
@@ -280,7 +280,7 @@ vector<double> ub_heuristic_disc_t(vector<vector<double>>& point_cloud_model, ve
     int nd=point_cloud_data.size();
 
     
-    vector<double> ub_node(7,0);
+    vector<double> ub_node(7,0.0);
    
     size_t nb_threads = std::thread::hardware_concurrency();
     DebugOn("threads "<<nb_threads);
@@ -361,6 +361,7 @@ vector<double> ub_heuristic_disc_t(vector<vector<double>>& point_cloud_model, ve
         pitch_bounds_r.second=pitch_rad1+std::abs(pitch_rad1)*0.1;
         yaw_bounds_r.first=yaw_rad1-std::abs(yaw_rad1)*0.1;
         yaw_bounds_r.second=yaw_rad1+std::abs(yaw_rad1)*0.1;
+        DebugOn("finished round at "<<get_wall_time()-ts<<endl);
         if((get_wall_time()-ts)>=max_time){
             stop=true;
             break;
@@ -472,7 +473,7 @@ void run_ub_parallel_t(const vector<vector<double>>& point_cloud_model, const ve
     vec_ub.resize(num);
     
     for (auto i = 0; i < num; i++) {
-        threads.push_back(thread(&evaluate_upper_bound_mid_t, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], ref(vec_ub[i]), ref(point_cloud_model), ref(point_cloud_data), error_type, ub_node[0]));
+        threads.push_back(thread(&evaluate_upper_bound_mid_t, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], ref(vec_ub[i]), ref(point_cloud_model), ref(point_cloud_data), error_type, ref(ub_node)));
     }
     for(auto &t : threads){
         t.join();
@@ -485,14 +486,14 @@ void run_ub_parallel_t(const vector<vector<double>>& point_cloud_model, const ve
         }
     }
 }
-void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, double best_ub){
+void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, const vector<double>& ub_node){
     res.resize(7);
     double roll=(roll_min+roll_max)*0.5;
     double pitch=(pitch_min+pitch_max)*0.5;
     double yaw=(yaw_min+yaw_max)*0.5;
-    double tx=0;
-    double ty=0;
-    double tz=0;
+    double tx=ub_node[4];
+    double ty=ub_node[5];
+    double tz=ub_node[6];
     
     vector<double> rot(12);
     
@@ -516,7 +517,7 @@ void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_m
     vector<vector<double>> point_cloud_data_copy=point_cloud_data;
     apply_rot_trans_util(rot, point_cloud_data_copy);
         tx=0;ty=0;tz=0;
-    error = computeL2error_util(point_cloud_model,point_cloud_data_copy,best_ub,tx,ty,tz);
+    error = computeL2error_util(point_cloud_model,point_cloud_data_copy,ub_node[0],tx,ty,tz);
         rot[9]=tx;
         rot[10]=ty;
         rot[11]=tz;
