@@ -285,7 +285,7 @@ vector<double> ub_heuristic_disc_t(vector<vector<double>>& point_cloud_model, ve
     size_t nb_threads = std::thread::hardware_concurrency();
     DebugOn("threads "<<nb_threads);
     
-    nb_threads = 1;
+   // nb_threads = 1;
     pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r,tx_bounds_r,ty_bounds_r,tz_bounds_r;
     
     roll_bounds_r={roll_min, roll_max};
@@ -431,13 +431,13 @@ void evaluate_upper_bound_mid(double roll_min, double roll_max, double pitch_min
     vector<double> rot(12);
     
     rot[0]=cos(roll)*cos(yaw);
-    rot[1]=(-1)*cos(roll)*sin(yaw);
-    rot[2]=sin(roll);
-    rot[3]=cos(pitch)*sin(yaw)+cos(yaw)*sin(roll)*sin(pitch);
-    rot[4]=cos(pitch)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw);
-    rot[5]=(-1)*cos(roll)*sin(pitch);
-    rot[6]=sin(pitch)*sin(yaw)-cos(pitch)*cos(yaw)*sin(roll);
-    rot[7]=cos(yaw)*sin(pitch)+cos(pitch)*sin(roll)*sin(yaw);
+    rot[1]=cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
+    rot[2]=cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
+    rot[3]=sin(yaw)*cos(roll);
+    rot[4]=sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
+    rot[5]=sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
+    rot[6]=sin(-1*roll);
+    rot[7]=cos(roll)*sin(pitch);
     rot[8]=cos(roll)*cos(pitch);
     rot[9]=tx;
     rot[10]=ty;
@@ -498,13 +498,13 @@ void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_m
     vector<double> rot(12);
     
     rot[0]=cos(roll)*cos(yaw);
-    rot[1]=(-1)*cos(roll)*sin(yaw);
-    rot[2]=sin(roll);
-    rot[3]=cos(pitch)*sin(yaw)+cos(yaw)*sin(roll)*sin(pitch);
-    rot[4]=cos(pitch)*cos(yaw)-sin(roll)*sin(pitch)*sin(yaw);
-    rot[5]=(-1)*cos(roll)*sin(pitch);
-    rot[6]=sin(pitch)*sin(yaw)-cos(pitch)*cos(yaw)*sin(roll);
-    rot[7]=cos(yaw)*sin(pitch)+cos(pitch)*sin(roll)*sin(yaw);
+    rot[1]=cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
+    rot[2]=cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
+    rot[3]=sin(yaw)*cos(roll);
+    rot[4]=sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
+    rot[5]=sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
+    rot[6]=sin(-1*roll);
+    rot[7]=cos(roll)*sin(pitch);
     rot[8]=cos(roll)*cos(pitch);
     rot[9]=tx;
     rot[10]=ty;

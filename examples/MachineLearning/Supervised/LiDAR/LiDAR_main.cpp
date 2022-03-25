@@ -398,6 +398,9 @@ int main (int argc, char * argv[])
         if(argc>7){
             reform_str = argv[7];
         }
+        bool run_goICP = (algo=="GoICP");
+        bool IPH = (algo=="IPH");
+        bool ARMO = (algo=="ARMO");
         rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
         rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
         int model_nb_rows = Model_doc.GetRowCount();
@@ -431,27 +434,16 @@ int main (int argc, char * argv[])
             xyz.push_back(y);
             xyz.push_back(z);
             initial_point_cloud_model.push_back(xyz);
-            //            if(i%fwdm!=0)
-            //                continue;
             x_vec0.push_back(x);
             y_vec0.push_back(y);
             z_vec0.push_back(z);
-            //            model_con.put(i, x, y, z);
             flat_point_cloud_model.push_back(x);
             flat_point_cloud_model.push_back(y);
             flat_point_cloud_model.push_back(z);
-            //            point_cloud_model[model_nb_rows-i-1].resize(3);
-            //            point_cloud_model[model_nb_rows-i-1][0] = x;
-            //            point_cloud_model[model_nb_rows-i-1][1] = y;
-            //            point_cloud_model[model_nb_rows-i-1][2] = z;
-            
-            
             point_cloud_model.push_back(xyz);
         }
         //point_cloud_data.resize(data_nb_rows);
         for (int i = row0; i< data_nb_rows; i++) { // Input iterator
-            if(i%fwdm!=0)
-                continue;
             auto x = Data_doc.GetCell<double>(0, i);
             auto y = Data_doc.GetCell<double>(1, i);
             auto z = Data_doc.GetCell<double>(2, i);
@@ -492,7 +484,7 @@ int main (int argc, char * argv[])
 #ifdef USE_QHULL
         min_max_t=get_translation_bounds(min_max_model, pcd);
 #endif
-                int reduced_nb_data = 50;
+        int reduced_nb_data = 50;
         int reduced_nb_model = 200;
         bool subsample = false;
         if (subsample) {
@@ -507,7 +499,17 @@ int main (int argc, char * argv[])
         double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
         vector<pair<double, double>> min_max_d;
         double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
-        bool discret=true;
+        if(run_goICP){/* Run GoICP inline */
+            vector<int> matching(point_cloud_data.size());
+            vector<double> err_per_point(point_cloud_data.size());
+            auto res_icp = run_GoICP(point_cloud_model, point_cloud_data);
+            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
+            DebugOn("Go ICP error "<<err<<endl);
+            exit(0);
+        }
+        bool discret=false;
         if(discret){
         ub_heuristic_disc_t(point_cloud_model, point_cloud_data, best_rot_trans, best_ub, "L2", 100);
             exit(0);
@@ -520,7 +522,8 @@ int main (int argc, char * argv[])
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
             auto t_finish=get_wall_time();
             DebugOn("Initialize BB takes "<<t_finish-t<<endl);
-    
+            exit(0);
+
         
 #ifdef USE_VORO
         //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
@@ -758,25 +761,7 @@ int main (int argc, char * argv[])
 #ifdef USE_MATPLOT
         //                  plot(red_point_cloud_model,point_cloud_model,2);
 #endif
-        // Output the particle positions in gnuplot format
-        //        model_con.draw_particles("my_points_p.gnu");
-        // Output the Voronoi cells in gnuplot format
-        //        model_con.draw_cells_gnuplot("my_points_v.gnu");
-        
-        
-        //#ifdef USE_MATPLOT
-        //        bool plot_voronoi = false;
-        //        if(plot_voronoi){
-        //            vector<vector<double>> data_voronoiVertices, test;
-        //            test.push_back(point_cloud_data.back());
-        //            auto voronoi_faces = data_voronoi_normals.back();
-        //            for (int i = 0; i<voronoi_faces.size(); i++) {
-        //                data_voronoiVertices.push_back({voronoi_faces[i][0],voronoi_faces[i][1],voronoi_faces[i][3]});
-        //            }
-        //            plot(test,data_voronoiVertices, 1);
-        //        }
-        //#endif
-        //auto cells=preprocess(point_cloud_data, point_cloud_model, 25, 0.23,0.24,-0.24,-0.23,-0.02,-0.01,  model_voronoi_normals, model_face_intercept);
+    
 #endif
         
         auto old_point_cloud = point_cloud_data;
@@ -823,9 +808,7 @@ int main (int argc, char * argv[])
         vector<vector<int>> model_voronoiRegions;
         compute_voronoi(qt_model, model_voronoiVertices, model_voronoiRegions);
 #endif
-        bool run_goICP = (algo=="GoICP");
-        bool IPH = (algo=="IPH");
-        bool ARMO = (algo=="ARMO");
+        
         
         if(ARMO || IPH || run_goICP){
             if(IPH){/* Run run_IPH */
@@ -15462,6 +15445,7 @@ indices preprocess(vector<vector<double>> point_cloud_data, vector<vector<double
     func<> r32 = cos(roll)*sin(pitch);r32.eval_all();
     func<> r33 = cos(roll)*cos(pitch);r33.eval_all();
     
+
     
     var<> theta11("theta11",  r11._range->first, r11._range->second), theta12("theta12", r12._range->first, r12._range->second), theta13("theta13", r13._range->first, r13._range->second);
     var<> theta21("theta21", r21._range->first, r21._range->second), theta22("theta22", r22._range->first, r22._range->second), theta23("theta23", r23._range->first, r23._range->second);
@@ -28749,9 +28733,12 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                     best_ub=L2erri;
                     best_rot_trans=rot_trans_ub;
                     DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
-                    DebugOn("roll "<<roll_rad2<<endl);
-                    DebugOn("pitch "<<pitch_rad2<<endl);
-                    DebugOn("yaw "<<yaw_rad2<<endl);
+                    DebugOn("roll rad"<<roll_rad2<<endl);
+                    DebugOn("pitch rad"<<pitch_rad2<<endl);
+                    DebugOn("yaw rad"<<yaw_rad2<<endl);
+                    DebugOn("roll deg "<<roll_rad2*180/pi<<endl);
+                    DebugOn("pitch deg "<<pitch_rad2*180/pi<<endl);
+                    DebugOn("yaw deg "<<yaw_rad2*180/pi<<endl);
                     DebugOn("tx "<<rot_trans_ub[9]<<endl);
                     DebugOn("ty "<<rot_trans_ub[10]<<endl);
                     DebugOn("tz "<<rot_trans_ub[11]<<endl);
