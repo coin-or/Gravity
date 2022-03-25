@@ -501,18 +501,26 @@ int main (int argc, char * argv[])
             point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
             point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
         }
-        double best_ub;
+        double best_ub=100;
         vector<double> best_rot_trans;
         //input
-        double shift_min_x =  min_max_model[0].first, shift_max_x = min_max_model[0].second, shift_min_y = min_max_model[1].first,shift_max_y = min_max_model[1].second,shift_min_z = min_max_model[2].first,shift_max_z = min_max_model[2].second;
-        double yaw_min = -50*pi/180., yaw_max = 50*pi/180., pitch_min =-50*pi/180.,pitch_max = 50*pi/180.,roll_min =-50*pi/180.,roll_max = 50*pi/180.;
-        ub_heuristic_disc(point_cloud_model, point_cloud_data, best_rot_trans, best_ub, "L2", 100);
-        exit(0);
+        double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
+        vector<pair<double, double>> min_max_d;
+        double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
+        bool discret=true;
+        if(discret){
+        ub_heuristic_disc_t(point_cloud_model, point_cloud_data, best_rot_trans, best_ub, "L2", 100);
+            exit(0);
+        }
+            
 //        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
 //        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
-        vector<pair<double, double>> min_max_d;
-
+       
+            auto t=get_wall_time();
         auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
+            auto t_finish=get_wall_time();
+            DebugOn("Initialize BB takes "<<t_finish-t<<endl);
+    
         
 #ifdef USE_VORO
         //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
