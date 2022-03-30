@@ -10,10 +10,11 @@
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
 #include "Lidar_utils.h"
+#include <DataSet.h>
 using namespace Go_ICP;
-void set_GoICP_options(GoICP& goicp);
+void set_GoICP_options(GoICP& goicp, double mse=1e-3, int dt=300);
 double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& rot_trans_ub);
-void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data);
+void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
 GoICP Initialize_BB(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model, vector<pair<double, double>>& min_max_d, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& best_ub, vector<double>& best_rot_trans);
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
 /* Run ICP on point clouds */
@@ -87,20 +88,6 @@ double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch
     double pitch=(pitch_min+pitch_max)*0.5;
     double roll=(roll_min+roll_max)*0.5;
     
-    func<> r11 = cos(yaw)*cos(roll);
-    func<> r12 = cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
-    func<> r13 = cos(yaw)*sin(roll)*cos(pitch) + sin(yaw)*sin(pitch);
-    func<> r21 = sin(yaw)*cos(roll);
-    func<> r22 = sin(yaw)*sin(roll)*sin(pitch) + cos(yaw)*cos(pitch);
-    func<> r23 = sin(yaw)*sin(roll)*cos(pitch) - cos(yaw)*sin(pitch);
-    func<> r31 = sin(-1*roll);
-    func<> r32 = cos(roll)*sin(pitch);
-    func<> r33 = cos(roll)*cos(pitch);
-    
-    //
-    //    var<> theta11("theta11",  std::max(-1.,r11._range->first), std::min(1.,r11._range->second)), theta12("theta12", std::max(-1.,r12._range->first), std::min(1.,r12._range->second)), theta13("theta13", std::max(-1.,r13._range->first), std::min(1.,r13._range->second));
-    //    var<> theta21("theta21", std::max(-1.,r21._range->first), std::min(1.,r21._range->second)), theta22("theta22", std::max(-1.,r22._range->first), std::min(1.,r22._range->second)), theta23("theta23", std::max(-1.,r23._range->first), std::min(1.,r23._range->second));
-    //    var<> theta31("theta31", std::max(-1.,r31._range->first), std::min(1.,r31._range->second)), theta32("theta32", std::max(-1.,r32._range->first), std::min(1.,r32._range->second)), theta33("theta33", std::max(-1.,r33._range->first), std::min(1.,r33._range->second));
     
     goicp.R_init.val[0][0]=cos(yaw)*cos(roll);
     goicp.R_init.val[0][1]=cos(yaw)*sin(roll)*sin(pitch) - sin(yaw)*cos(pitch);
@@ -146,7 +133,7 @@ double run_ICP_only(GoICP& goicp, double roll_min, double roll_max, double pitch
     return error;
 }
 
-tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+tuple<double,double,double,double,double,double,double> run_GoICP(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double mse, int dt){
     using namespace Go_ICP;
     
     int Nm = point_cloud_model.size(), Nd = point_cloud_data.size(), NdDownsampled = 0;
@@ -154,7 +141,7 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
     string modelFName, dataFName, configFName, outputFname;
     POINT3D * pModel, * pData, * pFullData;
     GoICP goicp;
-    set_GoICP_options(goicp);
+    set_GoICP_options(goicp, mse, dt);
     // Load model and data point clouds
     pModel = (POINT3D *)malloc(sizeof(POINT3D) * Nm);
     double avg_x = 0, avg_y = 0, avg_z = 0;
@@ -228,7 +215,7 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
     DebugOn("err "<<goicp.optError<<endl);
     return {roll,pitch,yaw,tx,ty,tz,goicp.optError};
 }
-void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data){
+void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     vector<double> rot_trans_ub;
     vector<int> new_matching(point_cloud_data.size());
     vector<double> res(point_cloud_data.size());
@@ -255,9 +242,9 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                 apply_rot_trans(rot_trans_ub, point_cloud_data_copy);
                 auto L2erri=computeL2error(point_cloud_model, point_cloud_data_copy, new_matching, res);
                 if(L2erri<=best_ub){
-                    best_ub=L2erri;
-                    best_rot_trans=rot_trans_ub;
-                    DebugOn("best ub new "<<best_ub<<" ub "<<ub<<endl);
+//                    best_ub=L2erri;
+//                    best_rot_trans=rot_trans_ub;
+                    DebugOn("best ub new "<<L2erri<<" ub "<<ub<<endl);
                     DebugOn("roll rad"<<roll_rad2<<endl);
                     DebugOn("pitch rad"<<pitch_rad2<<endl);
                     DebugOn("yaw rad"<<yaw_rad2<<endl);
@@ -267,6 +254,13 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                     DebugOn("tx "<<rot_trans_ub[9]<<endl);
                     DebugOn("ty "<<rot_trans_ub[10]<<endl);
                     DebugOn("tz "<<rot_trans_ub[11]<<endl);
+                    best_rot_trans[0]=L2erri;
+                    best_rot_trans[1]=roll_rad2;
+                    best_rot_trans[2]=pitch_rad2;
+                    best_rot_trans[3]=yaw_rad2;
+                    best_rot_trans[4]=rot_trans_ub[9];
+                    best_rot_trans[5]=rot_trans_ub[10];
+                    best_rot_trans[6]=rot_trans_ub[11];
                    
                 }
             }
@@ -275,16 +269,16 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
         //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
     }
 }
-void set_GoICP_options(GoICP& goicp){
-    goicp.MSEThresh = 1e-3;
-    goicp.initNodeRot.a = -2;
-    goicp.initNodeRot.b = -2;
-    goicp.initNodeRot.c = -2;
-    goicp.initNodeRot.w = 2;
+void set_GoICP_options(GoICP& goicp, double mse, int dt){
+    goicp.MSEThresh = mse;
+    goicp.initNodeRot.a = -pi/2;
+    goicp.initNodeRot.b = -pi/2;
+    goicp.initNodeRot.c = -pi/2;
+    goicp.initNodeRot.w = pi;
     goicp.initNodeTrans.x = -0.5;
     goicp.initNodeTrans.y = -0.5;
     goicp.initNodeTrans.z = -0.5;
-    goicp.initNodeTrans.w = 2;
+    goicp.initNodeTrans.w = 1.0;
     goicp.trimFraction = 0;
     //    goicp.optError = 11;
     // If < 0.1% trimming specified, do no trimming
@@ -292,7 +286,7 @@ void set_GoICP_options(GoICP& goicp){
     {
         goicp.doTrim = false;
     }
-    goicp.dt.SIZE = 300;
+    goicp.dt.SIZE = dt;
     goicp.dt.expandFactor = 2.0;
 }
 GoICP Initialize_BB(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model, vector<pair<double, double>>& min_max_d, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& best_ub, vector<double>& best_rot_trans)
