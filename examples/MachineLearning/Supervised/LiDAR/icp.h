@@ -13,7 +13,7 @@
 #include <Eigen/SVD>
 #endif
 using namespace Eigen;
-vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data, double& error);
+vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data);
 vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double& error){
     vector<double> rpyt(7,0);
     double det=0;
@@ -131,16 +131,49 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
         rpyt[6]=mu_m[2];
     return rpyt;
 }
-    
-    
-vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data, double& error){
+vector<double> icp(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double& error)
+{
+
+    int nd=point_cloud_data.size();
+    int nm=point_cloud_model.size();
+
     vector<double> rpyt(7,0);
-    Eigen::MatrixXd H(3,3), R(3,3), U(3,3), V(3,3);
+
+    double error_old=nd*12+10;
+    double error_new=nd*12;
+    
+    rpyt[1]=0.5*(roll_min_i+roll_max_i);
+    rpyt[2]=0.5*(pitch_min_i+pitch_max_i);
+    rpyt[3]=0.5*(yaw_min_i+yaw_max_i);
+    rpyt[4]=0.5*(tx_min_i+tx_max_i);
+    rpyt[5]=0.5*(ty_min_i+ty_max_i);
+    rpyt[6]=0.5*(tz_min_i+tz_max_i);
+    int iter=0;
+    while(error_old-error_new>=1e-6 && iter<=1000){
+        iter++;
+        error_old=error_new;
+        vector<vector<double>> point_cloud_data_new=point_cloud_data;
+        apply_rot_trans(rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], rpyt[6], point_cloud_data_new);
+        rpyt=compute_L2_error(point_cloud_model, point_cloud_data_new, point_cloud_data);
+        error_new=rpyt[0];
+}
+    return rpyt;
+}
+    
+    
+vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data){
+    vector<double> rpyt(7,0);
+    Eigen::MatrixXd H(3,3);
+    for(auto i=0;i<3;i++){
+        for(auto j=0;j<3;j++){
+            H(i,j)=0.0;
+        }
+    }
     int nd=point_cloud_data_new.size();
     vector<double> mu_m(3,0);
     vector<int> matching(nd);
     
-    error=0;
+    double error=0;
     Eigen::Vector3d qd,qm;
     for(auto i=0;i<nd;i++){
         double dist_min=12.0; int j_min=0;
@@ -167,10 +200,10 @@ vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model,
         H=H+qd*qm.transpose();
     }
     JacobiSVD<MatrixXd> svd( H, ComputeFullV | ComputeFullU );
-     U=svd.matrixU();
-     V=svd.matrixV();
+     auto U=svd.matrixU();
+     auto V=svd.matrixV();
 
-     R=V*U.transpose();
+     auto R=V*U.transpose();
 
     double det=R(0,0)*(R(1,1)*R(2,2)-R(2,1)*R(1,2))-R(0,1)*(R(1,0)*R(2,2)-R(2,0)*R(1,2))+R(0,2)*(R(1,0)*R(2,1)-R(2,0)*R(1,1));
 
