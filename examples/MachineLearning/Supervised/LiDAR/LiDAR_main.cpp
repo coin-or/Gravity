@@ -502,12 +502,7 @@ int main (int argc, char * argv[])
         }
         bool discret=true;
         if(discret){
-            vector<double> rpyt_min(6,0), rpyt_max(6,0);
-            rpyt_min[0]=roll_min;rpyt_min[1]=pitch_min;rpyt_min[2]=yaw_min;
-            rpyt_min[3]=shift_min_x;rpyt_min[4]=shift_min_y;rpyt_min[5]=shift_min_z;
-            
-            rpyt_max[0]=roll_max;rpyt_max[1]=pitch_max;rpyt_max[2]=yaw_max;
-            rpyt_max[3]=shift_max_x;rpyt_max[4]=shift_max_y;rpyt_max[5]=shift_max_z;
+         
             double error=0;
             auto t=get_wall_time();
       //   auto res=icp(point_cloud_data, point_cloud_model, rpyt_min, rpyt_max, rpyt_min, rpyt_max, error);
