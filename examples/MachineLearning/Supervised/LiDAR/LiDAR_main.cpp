@@ -510,7 +510,7 @@ int main (int argc, char * argv[])
           //  DebugOn(res[0]<<" "<<res[1]<<" "<<res[2]<<endl);
           //  DebugOn(res[3]<<" "<<res[4]<<" "<<res[5]<<endl);
              
-        ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
+        ub_heuristic_icp(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
             exit(0);
         }
             

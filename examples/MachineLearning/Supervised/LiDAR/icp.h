@@ -208,7 +208,7 @@ vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model,
     DebugOff(R(1,0)<<" "<<R(1,1)<<" "<<R(1,2)<<endl);
     DebugOff(R(2,0)<<" "<<R(2,1)<<" "<<R(2,2)<<endl);
     if(det<=0.999 || det>=1.001){
-        DebugOn("failed "<<det<<endl);
+        DebugOff("failed "<<det<<endl);
         error=error+1000;
     }
     
