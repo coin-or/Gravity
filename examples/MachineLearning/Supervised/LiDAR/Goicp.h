@@ -75,8 +75,19 @@ GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const
         goicp.Nd = NdDownsampled; // Only use first NdDownsampled data points (assumes data points are randomly ordered)
     }
     cout << "Model ID: " << modelFName << " (" << goicp.Nm << "), Data ID: " << dataFName << " (" << goicp.Nd << ")" << endl;
-    goicp.R_init=Go_ICP::Matrix::eye(3);
-    goicp.T_init=Go_ICP::Matrix::ones(3,1)*0;
+    for(auto i=0;i<3;i++){
+        goicp.R_init.val[i][i] = 1;
+    }
+    for(auto i=0;i<3;i++){
+        for(auto j=0;j<3;j++){
+            if(i!=j){
+                goicp.R_init.val[i][j] = 0;
+            }
+        }
+    }
+    for(auto i=0;i<3;i++){
+        goicp.T_init.val[i][0] = 0;
+    }
     goicp.Initialize();
     
     return goicp;
@@ -216,6 +227,7 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
     return {roll,pitch,yaw,tx,ty,tz,goicp.optError};
 }
 void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
+    best_rot_trans.resize(7,100);
     vector<double> rot_trans_ub;
     vector<int> new_matching(point_cloud_data.size());
     vector<double> res(point_cloud_data.size());

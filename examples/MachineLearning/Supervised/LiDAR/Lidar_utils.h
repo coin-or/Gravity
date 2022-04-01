@@ -170,14 +170,14 @@ void apply_rot_trans(const vector<double>& theta_matrix, vector<vector<double>>&
 }
 
 void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, double y_shift, double z_shift, vector<vector<double>>& point_cloud){
-    double beta = roll*pi/180;// roll in radians
-    double gamma = pitch*pi/180; // pitch in radians
-    double alpha = yaw*pi/180; // yaw in radians
+    double beta = roll;// roll in radians
+    double gamma = pitch; // pitch in radians
+    double alpha = yaw; // yaw in radians
     double shifted_x, shifted_y, shifted_z;
     size_t n = point_cloud.size();
-    DebugOn(roll<<" "<<pitch<<" "<<yaw<<endl);
-    DebugOn(beta<<" "<<gamma<<" "<<alpha<<endl);
-    DebugOn(cos(beta)<<endl<<sin(beta)<<endl<<cos(gamma)<<endl<<sin(gamma)<<endl<<cos(alpha)<<endl<<sin(alpha)<<endl);
+    DebugOff(roll<<" "<<pitch<<" "<<yaw<<endl);
+    DebugOff(beta<<" "<<gamma<<" "<<alpha<<endl);
+    DebugOff(cos(beta)<<endl<<sin(beta)<<endl<<cos(gamma)<<endl<<sin(gamma)<<endl<<cos(alpha)<<endl<<sin(alpha)<<endl);
     /* Apply rotation */
     for (auto i = 0; i< n; i++) {
         shifted_x = point_cloud[i][0];

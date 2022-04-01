@@ -101,11 +101,11 @@ public:
 	double icpThresh;
 
 	double optError;
-	Go_ICP::Matrix optR;
-	Go_ICP::Matrix optT;
+    Go_ICP::Matrix optR{3,3};
+    Go_ICP::Matrix optT{3,1};
     
-    Go_ICP::Matrix R_init;
-    Go_ICP::Matrix T_init;
+    Go_ICP::Matrix R_init{3,3};
+    Go_ICP::Matrix T_init{3,1};
     
     double run_ICP();
 

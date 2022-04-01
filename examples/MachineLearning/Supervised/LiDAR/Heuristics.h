@@ -8,6 +8,7 @@
 #ifndef Heuristics_h
 #define Heuristics_h
 #include "Goicp.h"
+#include "icp.h"
 using namespace Go_ICP;
 void run_ub_parallel_t(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<double>& roll_lb,  const vector<double>& roll_ub,  const vector<double>& pitch_lb,  const vector<double>& pitch_ub,  const vector<double>& yaw_lb, const vector<double>& yaw_ub, string error_type, vector<double>& ub_node);
 void run_ub_parallel(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& roll_lb,  const vector<vector<double>>& roll_ub,  const vector<vector<double>>& pitch_lb,  const vector<vector<double>>& pitch_ub,  const vector<vector<double>>& yaw_lb, const vector<vector<double>>& yaw_ub, const vector<vector<double>>& tx_lb, const vector<vector<double>>& tx_ub, const vector<vector<double>>& ty_lb, const vector<vector<double>>& ty_ub, const vector<vector<double>>& tz_lb, const vector<vector<double>>& tz_ub, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, string error_type, vector<double>& ub_node, int num_threads);
@@ -28,6 +29,7 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
     double prep_time_total=0;
     
     size_t nb_threads = std::thread::hardware_concurrency();
+    //nb_threads=1;
     DebugOn("threads "<<nb_threads);
     
     vector<vector<double>> roll_lb(nb_threads), roll_ub(nb_threads), pitch_lb(nb_threads), pitch_ub(nb_threads), yaw_lb(nb_threads), yaw_ub(nb_threads), tx_lb(nb_threads), tx_ub(nb_threads), ty_lb(nb_threads), ty_ub(nb_threads), tz_lb(nb_threads), tz_ub(nb_threads);
@@ -39,7 +41,6 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
     vector<double> ub_node(7,0);
     
     
-    // nb_threads = 1;
     pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r,tx_bounds_r,ty_bounds_r,tz_bounds_r;
     
     roll_bounds_r={roll_min, roll_max};
@@ -51,7 +52,7 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
     DebugOn("Running aGS for "<<max_time<<" seconds"<<endl);
     double ts=get_wall_time();
     best_ub=100;
-    int ndisc=10;
+    int ndisc=6;
     auto error_init=computeL2error_util(point_cloud_model,point_cloud_data, best_ub);
     DebugOn("error_init "<<error_init<<endl);
     ub_node[0]=error_init;
@@ -128,10 +129,10 @@ vector<double> ub_heuristic_disc(vector<vector<double>>& point_cloud_model, vect
         ty_bounds_r.second=ty1+std::abs(ty1)*0.1;
         tz_bounds_r.first=tz1-std::abs(tz1)*0.1;
         tz_bounds_r.second=tz1+std::abs(tz1)*0.1;
-        if((get_wall_time()-ts)>=max_time){
+        //if((get_wall_time()-ts)>=max_time){
             stop=true;
             break;
-        }
+        //}
     }
     best_ub=ub_node[0];
     rpy[0]=ub_node[1];
@@ -327,10 +328,13 @@ void run_ub_parallel(const vector<vector<double>>& point_cloud_model, const vect
     }
 }
 void evaluate_ub_icp(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<double>& roll_lb,  const vector<double>& roll_ub,  const vector<double>& pitch_lb,  const vector<double>& pitch_ub,  const vector<double>& yaw_lb, const vector<double>& yaw_ub, const vector<double>& tx_lb, const vector<double>& tx_ub, const vector<double>& ty_lb, const vector<double>& ty_ub, const vector<double>& tz_lb, const vector<double>& tz_ub, vector<vector<double>>& res, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, string error_type, double best_ub){
-    auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
+    //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
     for(auto i=0;i<roll_lb.size();i++){
         res[i].resize(7);
-        compute_upper_boundICP(goicp, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i], ty_lb[i], ty_ub[i], tz_lb[i], tz_ub[i], roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,  tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, res[i], best_ub, point_cloud_model, point_cloud_data);
+        double error=0;
+        res[i]=icp(point_cloud_model, point_cloud_data,roll_lb[i],roll_ub[i], pitch_lb[i],
+                   pitch_ub[i],yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i],  ty_lb[i], ty_ub[i],  tz_lb[i], tz_ub[i], roll_min, roll_max,  pitch_min,  pitch_max,  yaw_min,  yaw_max,tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, error);
+    //    compute_upper_boundICP(goicp, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i], ty_lb[i], ty_ub[i], tz_lb[i], tz_ub[i], roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,  tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, res[i], best_ub, point_cloud_model, point_cloud_data);
     }
     
 }

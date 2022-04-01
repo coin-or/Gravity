@@ -22,6 +22,7 @@
 #include "Lidar_utils.h"
 #include "Heuristics.h"
 #include "Goicp.h"
+#include "icp.h"
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -31,8 +32,8 @@
 #include <future>
 #include <thread>
 #ifdef USE_EIGEN3
-//#include </Users/smitha/Utils/eigen-3.3.9/Eigen/Dense>
 #include <Eigen/Dense>
+#include <Eigen/SVD>
 #endif
 //#include <tclap/CmdLine.h>
 //#include <sqlite3.h>
@@ -501,6 +502,20 @@ int main (int argc, char * argv[])
         }
         bool discret=true;
         if(discret){
+            vector<double> rpyt_min(6,0), rpyt_max(6,0);
+            rpyt_min[0]=roll_min;rpyt_min[1]=pitch_min;rpyt_min[2]=yaw_min;
+            rpyt_min[3]=shift_min_x;rpyt_min[4]=shift_min_y;rpyt_min[5]=shift_min_z;
+            
+            rpyt_max[0]=roll_max;rpyt_max[1]=pitch_max;rpyt_max[2]=yaw_max;
+            rpyt_max[3]=shift_max_x;rpyt_max[4]=shift_max_y;rpyt_max[5]=shift_max_z;
+            double error=0;
+            auto t=get_wall_time();
+      //   auto res=icp(point_cloud_data, point_cloud_model, rpyt_min, rpyt_max, rpyt_min, rpyt_max, error);
+          //  auto t1=get_wall_time();
+           // DebugOn("time "<<t1-t<<endl);
+          //  DebugOn(res[0]<<" "<<res[1]<<" "<<res[2]<<endl);
+          //  DebugOn(res[3]<<" "<<res[4]<<" "<<res[5]<<endl);
+             
         ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
             exit(0);
         }

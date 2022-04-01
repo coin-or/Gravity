@@ -98,7 +98,7 @@ public:
 
 private:
 
-	static int cmp(const void * a, const void * b);
+	int cmp(const void * a, const void * b);
 
 	PointCloud<T> model_;
 
@@ -196,7 +196,7 @@ T ICP3D<T>::Run(T * data, size_t n, Go_ICP::Matrix & R, Go_ICP::Matrix & t, size
 	  num = n;
 	}
 
-	struct POINTREF * points = (struct POINTREF *)malloc(sizeof(struct POINTREF)*n);
+	struct POINTREF * points = (struct POINTREF *)std::malloc(sizeof(struct POINTREF)*n);
 
 	// init matrix for point correspondences
 	Go_ICP::Matrix p_m(num,3); // model
@@ -234,10 +234,10 @@ T ICP3D<T>::Run(T * data, size_t n, Go_ICP::Matrix & R, Go_ICP::Matrix & t, size
 			points[i].id_model = ret_index[0];
 		}
 
-		if(do_trim)
-		{
-		  qsort(points, n, sizeof(struct POINTREF), cmp);
-		}
+//		if(do_trim)
+//		{
+//		  qsort(points, n, sizeof(struct POINTREF), cmp);
+//		}
 
 		for(i = 0; i < num; i++)
 		{
@@ -262,8 +262,14 @@ T ICP3D<T>::Run(T * data, size_t n, Go_ICP::Matrix & R, Go_ICP::Matrix & t, size
 		// subtract mean
 		mu_m = mu_m/(T)n;
 		mu_d = mu_d/(T)n;
-		Go_ICP::Matrix q_m = p_m - Go_ICP::Matrix::ones(num,1)*mu_m;
-		Go_ICP::Matrix q_t = p_d - Go_ICP::Matrix::ones(num,1)*mu_d;
+        Go_ICP::Matrix one_q_m(num,1);
+        Go_ICP::Matrix one_q_t(num,1);
+        for(auto i=0;i<num;i++){
+            one_q_m.val[i][0]=1;
+            one_q_t.val[i][0]=1;
+        }
+		Go_ICP::Matrix q_m = p_m - one_q_m*mu_m;
+		Go_ICP::Matrix q_t = p_d - one_q_t*mu_d;
 
 		// compute relative rotation matrix R and translation vector T
 		Go_ICP::Matrix H = ~q_t*q_m;
@@ -280,7 +286,18 @@ T ICP3D<T>::Run(T * data, size_t n, Go_ICP::Matrix & R, Go_ICP::Matrix & t, size
 		T c = R_.val[0][2]*(R_.val[1][0]* R_.val[2][1] - R_.val[1][1]*R_.val[2][0]);
 		T det = a+b+c;
 
-		Go_ICP::Matrix tmp = Go_ICP::Matrix::eye(3);
+		Go_ICP::Matrix tmp(3,3);
+        for(auto i=0;i<3;i++){
+            tmp.val[i][i] = 1;
+        }
+        for(auto i=0;i<3;i++){
+            for(auto j=0;j<3;j++){
+                if(i!=j){
+                    tmp.val[i][j] = 0;
+                }
+            }
+        }
+        
 		tmp.val[2][2] = det;
 
 		R_ = V*tmp*~U;

@@ -40,7 +40,7 @@
 #include <cstdio>  // for fwrite()
 #include <cmath>   // for fabs(),...
 #include <limits>
-
+#include <cstdlib>
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64))
 # define NOMINMAX
@@ -431,7 +431,7 @@ namespace nanoflann
 	template <typename T>
 	inline T* allocate(size_t count = 1)
 	{
-		T* mem = (T*) ::malloc(sizeof(T)*count);
+		T* mem = (T*) ::std::malloc(sizeof(T)*count);
 		return mem;
 	}
 
@@ -528,7 +528,7 @@ namespace nanoflann
 							size + sizeof(void*) + (WORDSIZE-1) : BLOCKSIZE;
 
 				// use the standard C malloc to allocate memory
-				void* m = ::malloc(blocksize);
+				void* m = std::malloc(blocksize);
 				if (!m) {
 					fprintf(stderr,"Failed to allocate memory.\n");
 					return NULL;

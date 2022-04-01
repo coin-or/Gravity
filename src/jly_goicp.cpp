@@ -48,9 +48,9 @@ GoICP::GoICP()
 // Build Distance Transform
 void GoICP::BuildDT()
 {
-	double* x = (double*)malloc(sizeof(double)*Nm);
-	double* y = (double*)malloc(sizeof(double)*Nm);
-	double* z = (double*)malloc(sizeof(double)*Nm);
+	double* x = (double*)std::malloc(sizeof(double)*Nm);
+	double* y = (double*)std::malloc(sizeof(double)*Nm);
+	double* z = (double*)std::malloc(sizeof(double)*Nm);
 	for(int i = 0; i < Nm; i++)
 	{
 		x[i] = pModel[i].x;
@@ -113,7 +113,7 @@ void GoICP::Initialize()
 	// Precompute the rotation uncertainty distance (maxRotDis) for each point in the data and each level of rotation subcube
 
 	// Calculate L2 norm of each point in data cloud to origin
-	normData = (double*)malloc(sizeof(double)*Nd);
+	normData = (double*)std::malloc(sizeof(double)*Nd);
 	for(i = 0; i < Nd; i++)
 	{
 		normData[i] = sqrt(pData[i].x*pData[i].x + pData[i].y*pData[i].y + pData[i].z*pData[i].z);
@@ -122,7 +122,7 @@ void GoICP::Initialize()
 	maxRotDis = new double*[MAXROTLEVEL];
 	for(i = 0; i < MAXROTLEVEL; i++)
 	{
-		maxRotDis[i] = (double*)malloc(sizeof(double*)*Nd);
+		maxRotDis[i] = (double*)std::malloc(sizeof(double*)*Nd);
 
 		sigma = initNodeRot.w/pow(2.0,i)/2.0; // Half-side length of each level of rotation subcube
 		maxAngle = SQRT3*sigma;
@@ -134,14 +134,14 @@ void GoICP::Initialize()
 	}
 
 	// Temporary Variables
-	minDis = (double*)malloc(sizeof(double)*Nd);
-	pDataTemp = (POINT3D *)malloc(sizeof(POINT3D)*Nd);
-	pDataTempICP = (POINT3D *)malloc(sizeof(POINT3D)*Nd);
+	minDis = (double*)std::malloc(sizeof(double)*Nd);
+	pDataTemp = (POINT3D *)std::malloc(sizeof(POINT3D)*Nd);
+	pDataTempICP = (POINT3D *)std::malloc(sizeof(POINT3D)*Nd);
 
 	// ICP Initialisation
 	// Copy model and data point clouds to variables for ICP
-	M_icp = (double*)calloc(3*Nm,sizeof(double));
-	D_icp = (double*)calloc(3*Nd,sizeof(double));
+	M_icp = (double*)std::calloc(3*Nm,sizeof(double));
+	D_icp = (double*)std::calloc(3*Nd,sizeof(double));
 	for(i = 0, j = 0; i < Nm; i++)
 	{
 		M_icp[j++] = pModel[i].x;
@@ -165,8 +165,20 @@ void GoICP::Initialize()
 	optNodeRot = initNodeRot;
 	optNodeTrans = initNodeTrans;
 	// Initialise so-far-best rotation and translation matrices
-	optR = Matrix::eye(3);
-	optT = Matrix::ones(3,1)*0;
+   
+    for(auto i=0;i<3;i++){
+        optR.val[i][i] = 1;
+    }
+    for(auto i=0;i<3;i++){
+        for(auto j=0;j<3;j++){
+            if(i!=j){
+                optR.val[i][j] = 0;
+            }
+        }
+    }
+    for(auto i=0;i<3;i++){
+        optT.val[i][0] = 0;
+    }
 
 	// For untrimmed ICP, use all points, otherwise only use inlierNum points
 	if(doTrim)
