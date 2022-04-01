@@ -502,7 +502,6 @@ int main (int argc, char * argv[])
         }
         bool discret=true;
         if(discret){
-         
             double error=0;
             auto t=get_wall_time();
       //   auto res=icp(point_cloud_data, point_cloud_model, rpyt_min, rpyt_max, rpyt_min, rpyt_max, error);
