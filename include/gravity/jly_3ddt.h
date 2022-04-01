@@ -1,8 +1,8 @@
 /****************************************************************
 3D Euclidean Distance Transform Class
-Last modified: May 1, 2014 
+Last modified: May 1, 2014
 
-Functions computing DT are derived from "dt.c" written by 
+Functions computing DT are derived from "dt.c" written by
 Alexander Vasilevskiy.
 
 Jiaolong Yang <yangjiaolong@gmail.com>
@@ -35,26 +35,26 @@ struct Array3d {
   void printArrayDE(int x);
   Array3d()
   {
-	  data =  NULL;
-	  data_array = NULL;
+      data =  NULL;
+      data_array = NULL;
   }
   ~Array3d()
   {
    if (data && data[0])
-	   delete(data[0]);
+       delete(data[0]);
    if(data)
-	   delete(data);
+       delete(data);
    if(data_array)
-	   delete(data_array);
+       delete(data_array);
   }
 };
 
 template <class T>
 void Array3d<T>::Init(int x, int y, int z)
 {
-	Xdim = x;
-	Ydim = y;
-	Zdim = z;
+    Xdim = x;
+    Ydim = y;
+    Zdim = z;
   // allocate the memory for the first level pointers.
   int n1 = z, n2 = y, n3 = x;
 
@@ -85,11 +85,11 @@ void Array3d<T>::printArrayDE(int x)
   printf("slice %d",x);
   for (y=0;y<Ydim;y++) {
     printf("\n");
-    for(z=0;z<Zdim;z++) 
-      if (data[z][y][x].distance>=infty) 
-	printf("(*,*,*)"); 
-      else 
-	printf("(%d,%d,%d)",data[z][y][x].v,data[z][y][x].h,data[z][y][x].d,data[z][y][x].distance);
+    for(z=0;z<Zdim;z++)
+      if (data[z][y][x].distance>=infty)
+    printf("(*,*,*)");
+      else
+    printf("(%d,%d,%d)",data[z][y][x].v,data[z][y][x].h,data[z][y][x].d,data[z][y][x].distance);
   }
   printf("\nDONE\n");
 }
@@ -99,15 +99,15 @@ typedef Array3d<double> Array3ddouble;
 
 class DT3D{
 public:
-	DT3D();
-	int SIZE;
-	double scale;
-	double expandFactor;
-	double xMin, xMax, yMin, yMax, zMin, zMax;
-	void Build(double* x, double* y, double* z, int num);
-	double Distance(double x, double y, double z);
+    DT3D();
+    int SIZE;
+    double scale;
+    double expandFactor;
+    double xMin, xMax, yMin, yMax, zMin, zMax;
+    void Build(double* x, double* y, double* z, int num);
+    double Distance(double x, double y, double z);
 private:
-	Array3dDEucl3D A;
+    Array3dDEucl3D A;
 };
 
 #endif

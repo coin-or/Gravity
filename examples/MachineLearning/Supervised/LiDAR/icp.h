@@ -14,7 +14,7 @@
 #endif
 using namespace Eigen;
 vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data);
-vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double& error){
+vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max){
     vector<double> rpyt(7,0);
     double det=0;
     int nd=point_cloud_data.size();
@@ -24,6 +24,7 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
     vector<int> matching(nd);
     double error_old=nd*12+10;
     double error_new=nd*12;
+    double error=0;
     
     double roll=0.5*(roll_min_i+roll_max_i);
     double pitch=0.5*(pitch_min_i+pitch_max_i);

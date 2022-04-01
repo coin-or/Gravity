@@ -328,13 +328,14 @@ void run_ub_parallel(const vector<vector<double>>& point_cloud_model, const vect
     }
 }
 void evaluate_ub_icp(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<double>& roll_lb,  const vector<double>& roll_ub,  const vector<double>& pitch_lb,  const vector<double>& pitch_ub,  const vector<double>& yaw_lb, const vector<double>& yaw_ub, const vector<double>& tx_lb, const vector<double>& tx_ub, const vector<double>& ty_lb, const vector<double>& ty_ub, const vector<double>& tz_lb, const vector<double>& tz_ub, vector<vector<double>>& res, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, string error_type, double best_ub){
-    //auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
+    auto goicp=initialize_ICP_only(point_cloud_model, point_cloud_data);
     for(auto i=0;i<roll_lb.size();i++){
         res[i].resize(7);
         double error=0;
-        res[i]=icp_new(point_cloud_model, point_cloud_data,roll_lb[i],roll_ub[i], pitch_lb[i],
-                   pitch_ub[i],yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i],  ty_lb[i], ty_ub[i],  tz_lb[i], tz_ub[i], roll_min, roll_max,  pitch_min,  pitch_max,  yaw_min,  yaw_max,tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, error);
-    //    compute_upper_boundICP(goicp, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i], ty_lb[i], ty_ub[i], tz_lb[i], tz_ub[i], roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,  tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, res[i], best_ub, point_cloud_model, point_cloud_data);
+//        res[i]=icp_new(point_cloud_model, point_cloud_data,roll_lb[i],roll_ub[i], pitch_lb[i],
+//                   pitch_ub[i],yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i],  ty_lb[i], ty_ub[i],  tz_lb[i], tz_ub[i], roll_min, roll_max,  pitch_min,  pitch_max,  yaw_min,  yaw_max,tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, error);
+        compute_upper_boundICP(goicp, roll_lb[i], roll_ub[i], pitch_lb[i], pitch_ub[i], yaw_lb[i], yaw_ub[i], tx_lb[i], tx_ub[i], ty_lb[i], ty_ub[i], tz_lb[i], tz_ub[i], roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,  tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, res[i], best_ub, point_cloud_model, point_cloud_data);
+        DebugOff("res[i][0] "<<res[i][0]<<endl);
     }
     
 }

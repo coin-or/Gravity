@@ -227,7 +227,9 @@ tuple<double,double,double,double,double,double,double> run_GoICP(const vector<v
     return {roll,pitch,yaw,tx,ty,tz,goicp.optError};
 }
 void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, double pitch_mini, double pitch_maxi, double yaw_mini, double yaw_maxi, double shift_min_xi, double shift_max_xi, double shift_min_yi, double shift_max_yi, double shift_min_zi, double shift_max_zi, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, vector<double>& best_rot_trans, double& best_ub, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
-    best_rot_trans.resize(7,100);
+    best_rot_trans.resize(7);
+    best_rot_trans[0]=100;
+    DebugOff("best_rot_trans[0] b"<< best_rot_trans[0]<<endl);
     vector<double> rot_trans_ub;
     vector<int> new_matching(point_cloud_data.size());
     vector<double> res(point_cloud_data.size());
@@ -256,16 +258,16 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
                 if(L2erri<=best_ub){
 //                    best_ub=L2erri;
 //                    best_rot_trans=rot_trans_ub;
-                    DebugOn("best ub new "<<L2erri<<" ub "<<ub<<endl);
-                    DebugOn("roll rad"<<roll_rad2<<endl);
-                    DebugOn("pitch rad"<<pitch_rad2<<endl);
-                    DebugOn("yaw rad"<<yaw_rad2<<endl);
-                    DebugOn("roll deg "<<roll_rad2*180/pi<<endl);
-                    DebugOn("pitch deg "<<pitch_rad2*180/pi<<endl);
-                    DebugOn("yaw deg "<<yaw_rad2*180/pi<<endl);
-                    DebugOn("tx "<<rot_trans_ub[9]<<endl);
-                    DebugOn("ty "<<rot_trans_ub[10]<<endl);
-                    DebugOn("tz "<<rot_trans_ub[11]<<endl);
+                    DebugOff("best ub new "<<L2erri<<" ub "<<ub<<endl);
+                    DebugOff("roll rad"<<roll_rad2<<endl);
+                    DebugOff("pitch rad"<<pitch_rad2<<endl);
+                    DebugOff("yaw rad"<<yaw_rad2<<endl);
+                    DebugOff("roll deg "<<roll_rad2*180/pi<<endl);
+                    DebugOff("pitch deg "<<pitch_rad2*180/pi<<endl);
+                    DebugOff("yaw deg "<<yaw_rad2*180/pi<<endl);
+                    DebugOff("tx "<<rot_trans_ub[9]<<endl);
+                    DebugOff("ty "<<rot_trans_ub[10]<<endl);
+                    DebugOff("tz "<<rot_trans_ub[11]<<endl);
                     best_rot_trans[0]=L2erri;
                     best_rot_trans[1]=roll_rad2;
                     best_rot_trans[2]=pitch_rad2;
@@ -280,6 +282,7 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
         
         //bool is_rotation  = get_solution(models[pos], sol_gur, new_matching);
     }
+    DebugOff("best_rot_trans[0] "<< best_rot_trans[0]<<endl);
 }
 void set_GoICP_options(GoICP& goicp, double mse, int dt){
     goicp.MSEThresh = mse;

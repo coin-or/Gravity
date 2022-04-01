@@ -15,7 +15,7 @@ PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
 matrix; if not, write to the Free Software Foundation, Inc., 51 Franklin
-Street, Fifth Floor, Boston, MA 02110-1301, USA 
+Street, Fifth Floor, Boston, MA 02110-1301, USA
 */
 
 #ifndef MATRIX_H
@@ -24,7 +24,6 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <cstdlib>
 #include <iostream>
 #include <vector>
 
@@ -81,22 +80,22 @@ public:
   Matrix extractCols (std::vector<int> idx);
 
   // create identity matrix
-  Matrix eye (const int32_t m);
+  static Matrix eye (const int32_t m);
   void          eye ();
 
   // create matrix with ones
-  Matrix ones(const int32_t m,const int32_t n);
+  static Matrix ones(const int32_t m,const int32_t n);
 
   // create diagonal matrix with nx1 or 1xn matrix M as elements
-  Matrix diag(const Matrix &M);
+  static Matrix diag(const Matrix &M);
   
   // returns the m-by-n matrix whose elements are taken column-wise from M
-  Matrix reshape(const Matrix &M,int32_t m,int32_t n);
+  static Matrix reshape(const Matrix &M,int32_t m,int32_t n);
 
   // create 3x3 rotation matrices (convention: http://en.wikipedia.org/wiki/Rotation_matrix)
-  Matrix rotMatX(const FLOAT &angle);
-  Matrix rotMatY(const FLOAT &angle);
-  Matrix rotMatZ(const FLOAT &angle);
+  static Matrix rotMatX(const FLOAT &angle);
+  static Matrix rotMatY(const FLOAT &angle);
+  static Matrix rotMatZ(const FLOAT &angle);
 
   // simple arithmetic operations
   Matrix  operator+ (const Matrix &M); // add matrix
@@ -111,8 +110,8 @@ public:
   FLOAT   mean ();                     // mean of all elements in matrix
 
   // complex arithmetic operations
-  Matrix cross (const Matrix &a, const Matrix &b);    // cross product of two vectors
-  Matrix inv (const Matrix &M);                       // invert matrix M
+  static Matrix cross (const Matrix &a, const Matrix &b);    // cross product of two vectors
+  static Matrix inv (const Matrix &M);                       // invert matrix M
   bool   inv ();                                             // invert this matrix
   FLOAT  det ();                                             // returns determinant of matrix
   bool   solve (const Matrix &M,FLOAT eps=1e-20);            // solve linear system M*x=B, replaces *this and M

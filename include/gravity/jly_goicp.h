@@ -36,37 +36,37 @@ using namespace std;
 
 typedef struct _POINT3D
 {
-	double x, y, z;
+    double x, y, z;
 }POINT3D;
 
 typedef struct _ROTNODE
 {
-	double a, b, c, w;
-	double ub, lb;
-	int l;
-	friend bool operator < (const struct _ROTNODE & n1, const struct _ROTNODE & n2)
-	{
-		if(n1.lb != n2.lb)
-			return n1.lb > n2.lb;
-		else
-			return n1.w < n2.w;
-			//return n1.ub > n2.ub;
-	}
-	
+    double a, b, c, w;
+    double ub, lb;
+    int l;
+    friend bool operator < (const struct _ROTNODE & n1, const struct _ROTNODE & n2)
+    {
+        if(n1.lb != n2.lb)
+            return n1.lb > n2.lb;
+        else
+            return n1.w < n2.w;
+            //return n1.ub > n2.ub;
+    }
+    
 }ROTNODE;
 
 typedef struct _TRANSNODE
 {
-	double x, y, z, w;
-	double ub, lb;
-	friend bool operator < (const struct _TRANSNODE & n1, const struct _TRANSNODE & n2)
-	{
-		if(n1.lb != n2.lb)
-			return n1.lb > n2.lb;
-		else
-			return n1.w < n2.w;
-			//return n1.ub > n2.ub;
-	}
+    double x, y, z, w;
+    double ub, lb;
+    friend bool operator < (const struct _TRANSNODE & n1, const struct _TRANSNODE & n2)
+    {
+        if(n1.lb != n2.lb)
+            return n1.lb > n2.lb;
+        else
+            return n1.w < n2.w;
+            //return n1.ub > n2.ub;
+    }
 }TRANSNODE;
 
 /********************************************************/
@@ -80,60 +80,60 @@ typedef struct _TRANSNODE
 class GoICP
 {
 public:
-	int Nm, Nd;
-	POINT3D * pModel, * pData;
+    int Nm, Nd;
+    POINT3D * pModel, * pData;
 
-	ROTNODE initNodeRot;
-	TRANSNODE initNodeTrans;
+    ROTNODE initNodeRot;
+    TRANSNODE initNodeTrans;
 
-	DT3D dt;
+    DT3D dt;
 
-	ROTNODE optNodeRot;
-	TRANSNODE optNodeTrans;
+    ROTNODE optNodeRot;
+    TRANSNODE optNodeTrans;
 
-	GoICP();
-	double Register();
+    GoICP();
+    double Register();
    
-	void BuildDT();
+    void BuildDT();
 
-	double MSEThresh;
-	double SSEThresh;
-	double icpThresh;
+    double MSEThresh;
+    double SSEThresh;
+    double icpThresh;
 
-	double optError;
-    Go_ICP::Matrix optR{3,3};
-    Go_ICP::Matrix optT{3,1};
+    double optError;
+    Go_ICP::Matrix optR;
+    Go_ICP::Matrix optT;
     
-    Go_ICP::Matrix R_init{3,3};
-    Go_ICP::Matrix T_init{3,1};
+    Go_ICP::Matrix R_init;
+    Go_ICP::Matrix T_init;
     
     double run_ICP();
 
-	clock_t clockBegin;
+    clock_t clockBegin;
 
-	double trimFraction;
-	int inlierNum;
-	bool doTrim;
+    double trimFraction;
+    int inlierNum;
+    bool doTrim;
     void Initialize();
     void Clear();
 
 private:
-	//temp variables
-	double * normData;
-	double * minDis;
-	double** maxRotDis;
-	double * maxRotDisL;
-	POINT3D * pDataTemp;
-	POINT3D * pDataTempICP;
-	
-	ICP3D<double> icp3d;
-	double * M_icp;
-	double * D_icp;
+    //temp variables
+    double * normData;
+    double * minDis;
+    double** maxRotDis;
+    double * maxRotDisL;
+    POINT3D * pDataTemp;
+    POINT3D * pDataTempICP;
+    
+    ICP3D<double> icp3d;
+    double * M_icp;
+    double * D_icp;
 
-	double ICP(Go_ICP::Matrix& R_icp, Go_ICP::Matrix& t_icp);
-	double InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut, int& nb_nodes);
-	double OuterBnB();
-	
+    double ICP(Go_ICP::Matrix& R_icp, Go_ICP::Matrix& t_icp);
+    double InnerBnB(double* maxRotDisL, TRANSNODE* nodeTransOut, int& nb_nodes);
+    double OuterBnB();
+    
 
 };
 
