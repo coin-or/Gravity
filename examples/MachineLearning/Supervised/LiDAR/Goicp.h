@@ -18,6 +18,7 @@ void compute_upper_boundICP(GoICP& goicp, double roll_mini, double roll_maxi, do
 GoICP Initialize_BB(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, const vector<pair<double, double>>& min_max_model, vector<pair<double, double>>& min_max_d, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& best_ub, vector<double>& best_rot_trans);
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data);
 /* Run ICP on point clouds */
+/* Run ICP on point clouds */
 GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data){
     using namespace Go_ICP;
     
@@ -75,19 +76,8 @@ GoICP initialize_ICP_only(const vector<vector<double>>& point_cloud_model, const
         goicp.Nd = NdDownsampled; // Only use first NdDownsampled data points (assumes data points are randomly ordered)
     }
     cout << "Model ID: " << modelFName << " (" << goicp.Nm << "), Data ID: " << dataFName << " (" << goicp.Nd << ")" << endl;
-    for(auto i=0;i<3;i++){
-        goicp.R_init.val[i][i] = 1;
-    }
-    for(auto i=0;i<3;i++){
-        for(auto j=0;j<3;j++){
-            if(i!=j){
-                goicp.R_init.val[i][j] = 0;
-            }
-        }
-    }
-    for(auto i=0;i<3;i++){
-        goicp.T_init.val[i][0] = 0;
-    }
+    goicp.R_init=Go_ICP::Matrix::eye(3);
+    goicp.T_init=Go_ICP::Matrix::ones(3,1)*0;
     goicp.Initialize();
     
     return goicp;
