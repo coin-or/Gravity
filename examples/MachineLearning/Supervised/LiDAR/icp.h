@@ -20,11 +20,6 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
     Eigen::MatrixXd H(3,3), R(3,3), U(3,3), V(3,3);
-    for(auto i=0;i<3;i++){
-        for(auto j=0;j<3;j++){
-            H(i,j)=0.0;
-        }
-    }
     vector<double> mu_m(3,0);
     vector<int> matching(nd);
     double error_old=nd*12+10;
@@ -46,13 +41,17 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
     R(2,1)= cos(roll)*sin(pitch);
     R(2,2)= cos(roll)*cos(pitch);
     
-    vector<double> solution(3);
     
     Eigen::Vector3d qrt,qd,qm, t;
     
     t<<tx,ty,tz;
     int iter=0;
     while(error_old-error_new>=1e-4 && iter<=1000){
+        for(auto i=0;i<3;i++){
+            for(auto j=0;j<3;j++){
+                H(i,j)=0.0;
+            }
+        }
         iter++;
         error_old=error_new;
         error_new=0.0;
@@ -60,12 +59,9 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
         for(auto i=0;i<nd;i++){
             qd<<point_cloud_data[i][0],point_cloud_data[i][1],point_cloud_data[i][2];
             qrt=R*qd+t;
-            solution[0]=qrt[0];
-            solution[1]=qrt[1];
-            solution[2]=qrt[2];
             double dist_min=12.0; int j_min=0;
             for(auto j=0;j<point_cloud_model.size();j++){
-                double dist=std::pow(solution[0] - point_cloud_model.at(j).at(0),2) + std::pow(solution[1] - point_cloud_model.at(j).at(1),2) + std::pow(solution[2] - point_cloud_model.at(j).at(2),2);
+                double dist=std::pow(qrt[0] - point_cloud_model.at(j).at(0),2) + std::pow(qrt[1] - point_cloud_model.at(j).at(1),2) + std::pow(qrt[2] - point_cloud_model.at(j).at(2),2);
                 if(dist<=dist_min){
                     dist_min = dist;
                     j_min=j;
@@ -105,7 +101,7 @@ vector<double> icp_new(const vector<vector<double>>& point_cloud_model, const ve
         
     }
     
-    DebugOn("err "<<error_new<<" "<<iter<<endl);
+    DebugOff("err "<<error_new<<" "<<iter<<endl);
    
     pitch= atan2(R(2,1), R(2,2));
     roll = atan2(-R(2,0), std::sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
@@ -211,8 +207,9 @@ vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model,
     DebugOff(R(0,0)<<" "<<R(0,1)<<" "<<R(0,2)<<endl);
     DebugOff(R(1,0)<<" "<<R(1,1)<<" "<<R(1,2)<<endl);
     DebugOff(R(2,0)<<" "<<R(2,1)<<" "<<R(2,2)<<endl);
-    if(abs(det)<=0.999 || abs(det)>=1.001){
+    if(det<=0.999 || det>=1.001){
         DebugOn("failed "<<det<<endl);
+        error=error+1000;
     }
     
     
