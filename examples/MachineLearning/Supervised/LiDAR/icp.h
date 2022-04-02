@@ -96,7 +96,7 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
     DebugOff(R(1,0)<<" "<<R(1,1)<<" "<<R(1,2)<<endl);
     DebugOff(R(2,0)<<" "<<R(2,1)<<" "<<R(2,2)<<endl);
     if((det)<=0.999 || (det)>=1.001){
-        DebugOn("failed "<<det<<endl);
+        DebugOff("failed "<<det<<endl);
         break;
     }
         
@@ -105,7 +105,7 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
     DebugOff("err "<<error_new<<" "<<iter<<endl);
    
     pitch= atan2(R(2,1), R(2,2));
-    roll = atan2(-R(2,0), std::sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
+    roll = atan2(R(2,0)*(-1), std::sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
     yaw = atan2(R(1,0),R(0,0));
     
  
@@ -117,9 +117,9 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
         error=error_new+100;
     }
         
-    
         
         rpyt[0]=error;
+    DebugOn("rpyt[0] "<<rpyt[0]<<endl);
         rpyt[1]=roll;
         rpyt[2]=pitch;
         rpyt[3]=yaw;

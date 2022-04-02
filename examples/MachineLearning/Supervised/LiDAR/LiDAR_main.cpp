@@ -503,14 +503,7 @@ int main (int argc, char * argv[])
         bool discret=true;
         if(discret){
             double error=0;
-            auto t=get_wall_time();
-      //   auto res=icp(point_cloud_data, point_cloud_model, rpyt_min, rpyt_max, rpyt_min, rpyt_max, error);
-          //  auto t1=get_wall_time();
-           // DebugOn("time "<<t1-t<<endl);
-          //  DebugOn(res[0]<<" "<<res[1]<<" "<<res[2]<<endl);
-          //  DebugOn(res[3]<<" "<<res[4]<<" "<<res[5]<<endl);
-             
-        ub_heuristic_icp(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
+        ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
             exit(0);
         }
             
@@ -22864,7 +22857,7 @@ vector<double> BranchBound4_ICP(vector<vector<double>>& point_cloud_model, vecto
                         deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
                         DebugOn("det "<<deti<<endl);
                         auto pitch_rad2 = atan2(rot_trans_ub[7], rot_trans_ub[8]);
-                        auto roll_rad2 = atan2(rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
+                        auto roll_rad2 = atan2(-rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
                         auto yaw_rad2 = atan2(rot_trans_ub[3],rot_trans_ub[0]);
                         if(pitch_rad2>=pitch_min && pitch_rad2<=pitch_max && roll_rad2>=roll_min && roll_rad2<=roll_max && yaw_rad2>=yaw_min && yaw_rad2<=yaw_max){
                             if(rot_trans_ub[9]>=shift_min_x && rot_trans_ub[9]<=shift_max_x && rot_trans_ub[10]>=shift_min_y && rot_trans_ub[10]<=shift_max_y && rot_trans_ub[11]>=shift_min_z && rot_trans_ub[11]<=shift_max_z ){
@@ -23946,7 +23939,7 @@ vector<double> BranchBound6(vector<vector<double>>& point_cloud_model, vector<ve
                         deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
                         DebugOn("det "<<deti<<endl);
                         auto pitch_rad2 = atan2(rot_trans_ub[7], rot_trans_ub[8]);
-                        auto roll_rad2 = atan2(rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
+                        auto roll_rad2 = atan2(-rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
                         auto yaw_rad2 = atan2(rot_trans_ub[3],rot_trans_ub[0]);
                         if(pitch_rad2>=pitch_min && pitch_rad2<=pitch_max && roll_rad2>=roll_min && roll_rad2<=roll_max && yaw_rad2>=yaw_min && yaw_rad2<=yaw_max){
                             if(rot_trans_ub[9]>=shift_min_x && rot_trans_ub[9]<=shift_max_x && rot_trans_ub[10]>=shift_min_y && rot_trans_ub[10]<=shift_max_y && rot_trans_ub[11]>=shift_min_z && rot_trans_ub[11]<=shift_max_z ){
@@ -24539,7 +24532,7 @@ vector<double> BranchBound7(vector<vector<double>>& point_cloud_model, vector<ve
                         deti+=rot_trans_ub[2]*(rot_trans_ub[3]*rot_trans_ub[7]-rot_trans_ub[6]*rot_trans_ub[4]);
                         DebugOn("det "<<deti<<endl);
                         auto pitch_rad2 = atan2(rot_trans_ub[7], rot_trans_ub[8]);
-                        auto roll_rad2 = atan2(rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
+                        auto roll_rad2 = atan2(-rot_trans_ub[6], std::sqrt(rot_trans_ub[7]*rot_trans_ub[7]+rot_trans_ub[8]*rot_trans_ub[8]));
                         auto yaw_rad2 = atan2(rot_trans_ub[3],rot_trans_ub[0]);
                         if(pitch_rad2>=pitch_min && pitch_rad2<=pitch_max && roll_rad2>=roll_min && roll_rad2<=roll_max && yaw_rad2>=yaw_min && yaw_rad2<=yaw_max){
                             if(rot_trans_ub[9]>=shift_min_x && rot_trans_ub[9]<=shift_max_x && rot_trans_ub[10]>=shift_min_y && rot_trans_ub[10]<=shift_max_y && rot_trans_ub[11]>=shift_min_z && rot_trans_ub[11]<=shift_max_z ){
