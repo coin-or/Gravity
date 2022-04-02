@@ -119,7 +119,7 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
         
         
         rpyt[0]=error;
-    DebugOn("rpyt[0] "<<rpyt[0]<<endl);
+    DebugOff("rpyt[0] "<<rpyt[0]<<endl);
         rpyt[1]=roll;
         rpyt[2]=pitch;
         rpyt[3]=yaw;
