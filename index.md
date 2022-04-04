@@ -36,7 +36,7 @@ See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/co
 
 Getting Started
 -----------
-Follow the instructions presented in [INSTALL.md](INSTALL.md).
+Follow the instructions presented in [INSTALL.md](https://github.com/coin-or/Gravity/blob/master/INSTALL.md).
 
 After building, the Gravity library can be found under `Gravity/lib`, and the executables (from [`Gravity/examples`](https://github.com/coin-or/Gravity/tree/master/examples)) can be found under `Gravity/bin/Release`
 
@@ -64,4 +64,4 @@ Performance Profile on Inverse Ising Model
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
 
 
-Click [here](www.gravityopt.com) for more details.
+Click [here](https://www.gravityopt.com) for more details.
