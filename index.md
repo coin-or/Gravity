@@ -10,18 +10,12 @@
 </p>
 <H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
 
-<p align="center"> Created by Hassan Hijazi - hlh@lanl.gov. </p>
-
-<H2 align="center"> www.gravityopt.com </H2>
-
 
 
 ## License
 
 Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
 
-[<img 
-src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
 
 ## Citing
 The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
@@ -49,6 +43,7 @@ After building, the Gravity library can be found under `Gravity/lib`, and the ex
 
 Some Numerical Results:
 -----------
+
 Performance Profile on ACOPF
 -----------
 
@@ -61,7 +56,7 @@ The figure below compares model build time between Gravity and [JuMP](http://www
 
 ![Model Build Time on ACOPF](https://static.wixstatic.com/media/c6cff5_27ee822625f24072b01110748c6f3923~mv2.jpg)
 
------------
+
 Performance Profile on Inverse Ising Model
 -----------
 
