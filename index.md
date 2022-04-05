@@ -10,14 +10,16 @@
 The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
 
 Bibtex ref:
-`@article{Gravity,
+```
+@article{Gravity,
   title={Gravity: A Mathematical Modeling Language for Optimization and Machine Learning},
   author={Hassan Hijazi and Guanglei Wang and Carleton Coffrin},
   journal={Machine Learning Open Source Software Workshop at NeurIPS 2018},
   year={2018},
   note = {Available at \url{www.gravityopt.com}.},
   publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
-}`
+}
+```
 
 Getting Started
 -----------
