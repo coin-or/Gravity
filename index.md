@@ -5,12 +5,6 @@
 
 <a href="https://goo.gl/f7QLcS"><img alt="Chat on Slack" height="40" width="172" src="https://platform.slack-edge.com/img/sign_in_with_slack.png" srcset="https://platform.slack-edge.com/img/sign_in_with_slack.png 1x, https://platform.slack-edge.com/img/sign_in_with_slack@2x.png 2x" /></a>
 
-<p align="center">
-<img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
-</p>
-<H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
-
-
 
 ## License
 
@@ -31,7 +25,7 @@ Bibtex ref:
 }`
 
 ## Contributors
-See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
+See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors).
 
 
 Getting Started
