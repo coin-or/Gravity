@@ -6,11 +6,6 @@
 <a href="https://goo.gl/f7QLcS"><img alt="Chat on Slack" height="40" width="172" src="https://platform.slack-edge.com/img/sign_in_with_slack.png" srcset="https://platform.slack-edge.com/img/sign_in_with_slack.png 1x, https://platform.slack-edge.com/img/sign_in_with_slack@2x.png 2x" /></a>
 
 
-## License
-
-Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
-
-
 ## Citing
 The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
 
@@ -23,10 +18,6 @@ Bibtex ref:
   note = {Available at \url{www.gravityopt.com}.},
   publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
 }`
-
-## Contributors
-See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors).
-
 
 Getting Started
 -----------
@@ -56,6 +47,14 @@ Performance Profile on Inverse Ising Model
 
 
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
+
+## License
+
+Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
+
+
+## Contributors
+See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors).
 
 
 Click [here](https://www.gravityopt.com) for more details.
