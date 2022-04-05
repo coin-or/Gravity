@@ -1,5 +1,4 @@
 [![License](https://img.shields.io/badge/License-BSD--3-brightgreen.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Travis](https://travis-ci.com/coin-or/Gravity.svg?branch=master)](https://travis-ci.com/coin-or/Gravity)
 [![Github Actions](https://github.com/coin-or/Gravity/actions/workflows/cmake.yml/badge.svg)](https://github.com/coin-or/Gravity/actions/workflows/cmake.yml)
 [![Code Coverage](https://codecov.io/gh/coin-or/gravity/branch/master/graph/badge.svg)](https://codecov.io/gh/coin-or/Gravity)
 [![download](https://img.shields.io/badge/download%20%20-latest-blue.svg)](https://github.com/coin-or/Gravity/releases)
@@ -9,20 +8,9 @@
 <p align="center">
 <img src="https://static.wixstatic.com/media/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png/v1/crop/x_1058,y_575,w_1183,h_1225/fill/w_288,h_298,al_c,usm_0.66_1.00_0.01/c6cff5_dd7659693c6247dc8eb8605d3dca95e8~mv2_d_3300_2550_s_4_2.png" width="250">
 </p>
-<H2 align="center"> Mathematical Modeling for Optimization and Machine Learning </H2>
-
-<p align="center"> Created by Hassan Hijazi - hlh@lanl.gov. </p>
-
+<H2 align="center"> Mathematical Modeling for Optimization and Machine Learning</H2>
+<p align="center"> <img src="media/cpp_logo.png" width="50"></p>
 <H2 align="center"> www.gravityopt.com </H2>
-
-
-
-## License
-
-Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
-
-[<img 
-src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
 
 ## Citing
 The original paper was presentend at the Machine Learning Open Source Software Workshop at NeurIPS 2018, a longer version of the paper can be downloaded [here](https://791a4f37-01ef-43ce-b940-f17c763418b1.filesusr.com/ugd/c6cff5_e4889c3e27b54023a70a8c0496ff90a0.pdf).
@@ -37,18 +25,14 @@ Bibtex ref:
   publisher={The Thirty-second Annual Conference on Neural Information Processing Systems (NeurIPS)}
 }`
 
-## Contributors
-See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
-
 
 Getting Started
 -----------
 First, you will need to install an IDE, I recommend to choose among the following:
 
-[<img src="media/visual_studio.jpg" width="70">](https://www.visualstudio.com/downloads/) ||
-[<img src="media/clion.jpg" width="50">](https://www.jetbrains.com/clion/) || 
-[<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) || 
-[<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
+Visual Studio | Clion | Xcode | Eclipse
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+[<img src="media/visual_studio.jpg" width="70">](https://www.visualstudio.com/downloads/) | [<img src="media/clion.jpg" width="50">](https://www.jetbrains.com/clion/) | [<img src="media/Xcode.png" width="50">](https://developer.apple.com/xcode/downloads/) | [<img src="media/eclipse-800x188.png" width="120">](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
 
 Then, follow the instructions presented in [INSTALL.md](INSTALL.md).
 
@@ -80,5 +64,12 @@ Performance Profile on Inverse Ising Model
 
 ![Performance Profile on Inverse Ising](https://static.wixstatic.com/media/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png/v1/crop/x_0,y_0,w_1058,h_600/fill/w_863,h_489,al_c,usm_0.66_1.00_0.01/c6cff5_e38e7a012b104dc0ba19fec1e32c10ad~mv2.png)
 
+## License
 
-Click [here](www.gravityopt.com) for more details.
+Gravity is licensed under the BSD 3-Clause License. Please see the [LICENSE](https://github.com/coin-or/Gravity/blob/master/LICENSE) file for details.
+
+[<img 
+src="https://static.wixstatic.com/media/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png/v1/fill/w_210,h_137,al_c,usm_0.66_1.00_0.01/c6cff5_083fff4f0fa94b4b98b6790b18e7af8b~mv2.png" width="100">](https://paypal.me/hlhijazi)
+
+## Contributors
+See the list of contributors [here](https://github.com/coin-or/Gravity/graphs/contributors) 
