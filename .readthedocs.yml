@@ -6,4 +6,4 @@ sphinx:
 python:
   version: 3.6
   install:
-    - requirements: doc/requirements.txt
+    - requirements: docs/requirements.txt
