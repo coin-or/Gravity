@@ -213,114 +213,73 @@ int main (int argc, char * argv[]) {
     bool termination=true;
     int status=0;
     bool run_obbt=false;
-    if(!run_obbt){
-        if(!linearize){
-            auto nonlin_obj=true;
-            current=true;
-            solver<> UB_solver(OPF,ub_solver_type);
-            UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
-            if(OPF->_status!=0){
-                upper_bound=OPF->_obj->_range->second;
-            }
-            else{
-                upper_bound=OPF->get_obj_val();
-            }
-            auto time_start=get_wall_time();
-            auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-            initialize_relaxation(OPF, SDP, grid, current);
-            solver<> LBnonlin_solver(SDP,lb_solver_type);
-            LBnonlin_solver.run(output = 5 , 1e-6, 5400, "ma57", 5000);
-            auto time_end = get_wall_time();
-            SDP->print_constraints_stats(1e-6);
-            if(SDP->_status==0)
-            {
-                lower_bound_nonlin_init = SDP->get_obj_val();
-                DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
-            }
-            status=SDP->_status;
-            lower_bound=lower_bound_nonlin_init;
-            total_time=time_end-time_start;
+    if(!linearize){
+        auto nonlin_obj=true;
+        current=true;
+        solver<> UB_solver(OPF,ub_solver_type);
+        UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
+        if(OPF->_status!=0){
+            upper_bound=OPF->_obj->_range->second;
         }
         else{
-            lb_solver_type=ipopt;
-            auto nonlin_obj=false;
-            current=true;
-            std::vector<double> vrbasis;
-            std::map<string,double> crbasis;
-            double lower_bound_init=0;
-            double active_root_tol=1e-6;
-            double lb_scale_value=1;
-            solver<> UB_solver(OPF,ub_solver_type);
-            UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
-            if(OPF->_status!=0){
-                upper_bound=OPF->_obj->_range->second;
-            }
-            else{
-                upper_bound=OPF->get_obj_val();
-            }
-            auto time_start=get_wall_time();
-            auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-            auto lin_model=SDP->buildOA();
-            auto interior_model=lin_model->add_outer_app_solution(*SDP);
-            auto close=SDP->root_refine(interior_model, lin_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound_init, lb_scale_value, lb_solver_tol, active_root_tol, oacuts,  opt_abs_tol, opt_rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+            upper_bound=OPF->get_obj_val();
         }
+        auto time_start=get_wall_time();
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        initialize_relaxation(OPF, SDP, grid, current);
+        solver<> LBnonlin_solver(SDP,lb_solver_type);
+        LBnonlin_solver.run(output = 5 , 1e-6, 5400, "ma57", 5000);
+        auto time_end = get_wall_time();
+        SDP->print_constraints_stats(1e-6);
+        if(SDP->_status==0)
+        {
+            lower_bound_nonlin_init = SDP->get_obj_val();
+            DebugOn("Initial lower bound = "<<lower_bound_nonlin_init<<endl);
+        }
+        status=SDP->_status;
+        lower_bound=lower_bound_nonlin_init;
+        total_time=time_end-time_start;
     }
     else{
-        auto nonlin_obj=true;
-        scale_objective=false;
+        lb_solver_type=ipopt;
+        auto nonlin_obj=false;
         current=true;
-        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
-        auto res=OPF->run_obbt(SDP, max_time, max_iter, opt_rel_tol, opt_abs_tol, nb_threads, ub_solver_type, lb_solver_type, ub_solver_tol, lb_solver_tol, range_tol, linearize, scale_objective);
-        upper_bound=OPF->get_obj_val();
-        lower_bound = get<6>(res);
-        lower_bound_nonlin_init = get<3>(res);
-#ifdef USE_MPI
-        if(worker_id==0){
-            total_iter=get<1>(res);
-            total_time=get<2>(res);
-            fail=get<10>(res);
-            termination=get<0>(res);
+        std::vector<double> vrbasis;
+        std::map<string,double> crbasis;
+        lower_bound=0;
+        double active_root_tol=1e-6;
+        double lb_scale_value=1;
+        solver<> UB_solver(OPF,ub_solver_type);
+        UB_solver.run(output = 5, ub_solver_tol, 2000,"ma27", 2000);
+        if(OPF->_status!=0){
+            upper_bound=OPF->_obj->_range->second;
         }
-#else
-        total_iter=get<1>(res);
-        total_time=get<2>(res);
-        fail=get<10>(res);
-        termination=get<0>(res);
-#endif
+        else{
+            upper_bound=OPF->get_obj_val();
+        }
+        auto time_start=get_wall_time();
+        auto SDP= build_SDPOPF(grid, current, nonlin_obj, sdp_kim);
+        auto lin_model=SDP->buildOA();
+        auto interior_model=lin_model->add_outer_app_solution(*SDP);
+        auto close=SDP->root_refine(interior_model, lin_model, lb_solver_type, nb_root_refine, upper_bound, lower_bound, lb_scale_value, lb_solver_tol, active_root_tol, oacuts,  opt_abs_tol, opt_rel_tol, zero_tol, "ma27", 10000, 2000, vrbasis, crbasis, initialize_primal);
+        total_time=get_wall_time()-time_start;
     }
     
     string result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
     auto final_gap = 100*(upper_bound - lower_bound)/std::abs(upper_bound+1e-6);
     auto gap_init=final_gap;
     result_name=string(prj_dir)+"/results_obbt/"+grid._name+".txt";
-#ifdef USE_MPI
-    if(worker_id==0){
-        ofstream fout(result_name.c_str());
-        fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
-        <<std::setprecision(5)<<total_time<<" & "
-        <<total_iter<<endl;
-        if(lower_bound==numeric_limits<double>::min()){
-            fout<<"Lower bound not solved to optimality"<<endl;
-        }
-        DebugOn("I am worker id "<<worker_id<<" writing to results file "<<endl);
-        fout.close();
-    }
-    MPI_Finalize();
-#else
     DebugOn(grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
-            <<std::setprecision(5)<<total_time<<" & "
-            <<status<<endl);
+            <<std::setprecision(5)<<total_time<<endl);
     
     
     ofstream fout(result_name.c_str());
     fout<<grid._name<<" & "<<std::fixed<<std::setprecision(5)<<final_gap<<" & "<<std::setprecision(5)<<upper_bound*1e3<<" & "<<std::setprecision(5)<<lower_bound*1e3<<" & "
-    <<std::setprecision(5)<<total_time<<" & "
-    <<status<<endl;
+    <<std::setprecision(5)<<total_time<<endl;
     if(lower_bound==numeric_limits<double>::min()){
         fout<<"Lower bound not solved to optimality"<<endl;
     }
     fout.close();
-#endif
     return 0;
 }
 
