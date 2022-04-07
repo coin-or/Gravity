@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>For Windows users &mdash; Gravity  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Getting Started" href="README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Gravity
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#citing">Citing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#contributors">Contributors</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">For Windows users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#for-macos-and-linux-users">For MacOS and Linux users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#optional-thirdparty-solvers">Optional thirdparty solvers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Gravity</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>For Windows users</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/INSTALL.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="for-windows-users">
+<h1>For Windows users<a class="headerlink" href="#for-windows-users" title="Permalink to this headline"></a></h1>
+<p>Gravity will automatically download and link to Ipopt libraries (linked with HSL) from <a class="reference external" href="https://github.com/IDAES/idaes-ext/releases">here</a>.</p>
+<p>Note: If you have an old version of Windows (prior to 2018), you will need to install <a class="reference external" href="https://curl.se/windows/">curl</a> and <a class="reference external" href="http://gnuwin32.sourceforge.net/packages/gtar.htm">tar</a>.</p>
+<p>First, install <a class="reference external" href="http://www.cmake.org">Cmake</a>.</p>
+<p>Then, follow the instructions to install Visual Studio Code and the Mingw extension <a class="reference external" href="https://code.visualstudio.com/docs/cpp/config-mingw">here</a>.</p>
+<p>Install the Cmake extension too, instructions can be found <a class="reference external" href="https://code.visualstudio.com/docs/cpp/cmake-linux">here</a>.</p>
+<p>Finally, open the Gravity directory from Visual Studio Code and go to the Cmake panel (Cmake icon on the left) and click on Configure then Build (make sure to select the Mingw GCC 8.1.0 Kit).</p>
+<p>The executables will be under Gravity/bin/Release</p>
+</section>
+<section id="for-macos-and-linux-users">
+<h1>For MacOS and Linux users<a class="headerlink" href="#for-macos-and-linux-users" title="Permalink to this headline"></a></h1>
+<p>Download and install cmake: http://www.cmake.org (Version 3.2 or better)</p>
+</section>
+<section id="optional-thirdparty-solvers">
+<h1>Optional thirdparty solvers<a class="headerlink" href="#optional-thirdparty-solvers" title="Permalink to this headline"></a></h1>
+<p>Gravity can link to the solvers below (see instructions in next section):</p>
+<p>Bonmin: https://projects.coin-or.org/Bonmin</p>
+<p>Gurobi: http://www.gurobi.com</p>
+<p>Cplex: https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/</p>
+<p>Mosek: https://www.mosek.com</p>
+<hr class="docutils" />
+<p>Follow these simple instructions:</p>
+<p><strong>1)</strong> <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">Gravity</span></code></p>
+<p><strong>2)</strong> If your solver is not installed in a default location, you need to add the following to your <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> (edit or create the file named <code class="docutils literal notranslate"><span class="pre">bash_profile</span></code> under your home and add the following lines):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">SOLVERNAME_ROOT_DIR=&quot;your_location&quot;</span></code>, where <code class="docutils literal notranslate"><span class="pre">your_location</span></code> contains the corresponding include/headers and lib/libraries.</p></li>
+</ul>
+<p>For instance, I have the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">IPOPT_ROOT_DIR=&quot;/Users/hh/Dev/CoinIpopt/build&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">MOSEK_ROOT_DIR=&quot;/Users/hh/mosek/8/tools/platform/osx64x86&quot;</span></code></p></li>
+</ul>
+<p>Note: If Cplex and Gurobi were installed using the standard installer, Cmake should automatically locate the latest version on your system, no need to add anything to your bash_profile.</p>
+<hr class="docutils" />
+<p>Note: For <a class="reference external" href="https://www.mosek.com/downloads/details/10/">Mosek</a>, refer to <a class="reference external" href="https://www.google.com.au/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;uact=8&amp;ved=0ahUKEwjy0sja6oLWAhXEwLwKHQR_A5YQFggoMAA&amp;url=http%3A%2F%2Fdocs.mosek.com%2F8.1%2Finstall%2Finstallation.html&amp;usg=AFQjCNGEiUPE05E_5_UedXe1mmpCYOimrQ">mosek-setup</a> for general setup and license information.</p>
+<p>You also need to install and setup Mosek Fusion API for C++ by following instructions in <a class="reference external" href="https://www.google.com.au/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;uact=8&amp;ved=0ahUKEwjx1deH34LWAhWLw7wKHWi2An8QFggoMAA&amp;url=http%3A%2F%2Fdocs.mosek.com%2F8.0%2Fcxxfusion%2Finstall.html&amp;usg=AFQjCNFwhQErdOsuD8iSIcDbMo3IERbhdA">fusion-url</a>.</p>
+<ul class="simple">
+<li><p>Additionally, you need to set the enviroment variable <code class="docutils literal notranslate"><span class="pre">MOSEK_ROOT_DIR</span></code> and <code class="docutils literal notranslate"><span class="pre">DYLD_LIBRARY_PATH</span></code>for your operating system.</p></li>
+</ul>
+<p>For instance, if you install MOSEK 8 under <code class="docutils literal notranslate"><span class="pre">DIR/mosek8/</span></code> on a linux machine, you need to add the following to your <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">MOSEK_ROOT_DIR</span> <span class="pre">=</span> <span class="pre">DIR/mosek/8/tools/platform/linux64x86/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">DYLD_LIBRARY_PATH=</span> <span class="pre">DIR/mosek/8/tools/platform/linux64x86/bin:$DYLD_LIBRARY_PATH</span></code></p></li>
+</ul>
+<hr class="docutils" />
+<p><strong>3)</strong> You’re now ready to compile everything, just enter:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mkdir</span> <span class="pre">build</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">build</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-DIpopt=ON</span> <span class="pre">-DGurobi=ON</span> <span class="pre">-DCplex=ON</span> <span class="pre">-DBonmin=ON</span> <span class="pre">..</span></code></p></li>
+</ul>
+<p>All dependencies are switched off by default, to enable a solver that is installed on your system,<br />
+append the flag <code class="docutils literal notranslate"><span class="pre">-D$Solvername$=ON</span></code> as shown above.</p>
+<p>Note: To build an Xcode project append <code class="docutils literal notranslate"><span class="pre">-G</span> <span class="pre">Xcode</span></code> to the command above</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">-j4</span></code></p></li>
+</ul>
+<p>This will install all the models found under <code class="docutils literal notranslate"><span class="pre">Gravity/examples</span></code>.</p>
+<p>The corresponding binaries will then appear under <code class="docutils literal notranslate"><span class="pre">Gravity/bin/Release</span></code>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="README.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Hassan L. Hijazi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
