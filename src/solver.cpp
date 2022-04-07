@@ -646,7 +646,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
             if(worker_id==0)
 #endif
                 DebugOn("Iter linear gap = "<<(upper_bound- lower_bound)/(std::abs(upper_bound)+zero_tol)*100<<"% "<<lin_count<<endl);
-            if (std::abs(upper_bound- lower_bound)<=abs_tol && ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
+            if (std::abs(upper_bound- lower_bound)<=abs_tol || ((upper_bound- lower_bound))/(std::abs(upper_bound)+zero_tol)<=rel_tol)
             {
                 close= true;
                 break;
@@ -661,6 +661,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
              gap_old=gap;*/
             obbt_model->get_solution(solution);
             constr_viol=add_iterative(interior_model, solution, obbt_model, "allvar", oacuts, active_tol);
+            DebugOn("oacuts "<<oacuts<<endl);
         }
         else{
 #ifdef USE_MPI

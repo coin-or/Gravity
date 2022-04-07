@@ -2321,7 +2321,7 @@ shared_ptr<Model<>> build_SDPOPF(PowerNet& grid, bool current, bool nonlin_obj, 
         obj_cost=etag-pow(Pg.in(gens_c2pos),2);
         SDPOPF->add(obj_cost.in(gens_c2pos)>=0);
 
-        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0));
+        auto obj=(product(c1,Pg) + product(c2.in(gens_c2pos),etag.in(gens_c2pos)) + sum(c0))*1e-3;
         SDPOPF->min(obj);
 
     }

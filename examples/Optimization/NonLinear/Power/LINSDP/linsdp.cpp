@@ -242,7 +242,7 @@ int main (int argc, char * argv[]) {
             total_time=time_end-time_start;
         }
         else{
-            lb_solver_type=gurobi;
+            lb_solver_type=ipopt;
             auto nonlin_obj=false;
             current=true;
             std::vector<double> vrbasis;
