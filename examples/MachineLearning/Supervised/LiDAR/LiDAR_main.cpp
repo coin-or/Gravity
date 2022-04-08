@@ -55,6 +55,7 @@
 using namespace std;
 #include <gravity/jly_goicp.h>
 #include <gravity/ConfigMap.hpp>
+#include "gravity/nanoflann.hpp"
 using namespace Go_ICP;
 #ifdef USE_QHULL
 #include "libqhullcpp/RboxPoints.h"
@@ -502,8 +503,21 @@ int main (int argc, char * argv[])
         }
         bool discret=true;
         if(discret){
+            PointCloud<double> cloud;
+            
+            cloud.pts.resize(point_cloud_model.size());
+            for (size_t i = 0; i < point_cloud_model.size(); i++)
+            {
+                cloud.pts[i].x = point_cloud_model[i][0];
+                cloud.pts[i].y = point_cloud_model[i][1];
+                cloud.pts[i].z = point_cloud_model[i][2];
+            }
+            nanoflann::KDTreeSingleIndexAdaptor<
+                nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
+                PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
+            index.buildIndex();
             double error=0;
-        auto rpyt=ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
+        auto rpyt=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
 #ifdef USE_MATPLOT
             apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
             plot(point_cloud_model,point_cloud_data,1);

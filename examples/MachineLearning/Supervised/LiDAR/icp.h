@@ -11,10 +11,13 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #include <Eigen/SVD>
+//#include "kdutils.h"
 #endif
 using namespace Eigen;
 vector<double> compute_L2_error(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data_new, const vector<vector<double>>& point_cloud_data);
-void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, vector<double>& rpyt){
+void icp_new(const nanoflann::KDTreeSingleIndexAdaptor<
+             nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
+             PointCloud<double>, 3 /* dim */>& index, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min_i, double roll_max_i, double pitch_min_i, double pitch_max_i, double yaw_min_i, double yaw_max_i, double tx_min_i, double tx_max_i, double ty_min_i, double ty_max_i, double tz_min_i, double tz_max_i, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, vector<double>& rpyt){
     rpyt.resize(7,0);
     double det=0;
     int nd=point_cloud_data.size();
@@ -25,7 +28,8 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
     double error_old=nd*12+10;
     double error_new=nd*12;
     double error=0;
-    
+    std::vector<size_t>   ret_index(1);
+    std::vector<double>   out_dist_sqr(1);
     double roll=0.5*(roll_min_i+roll_max_i);
     double pitch=0.5*(pitch_min_i+pitch_max_i);
     double yaw=0.5*(yaw_min_i+yaw_max_i);
@@ -60,20 +64,32 @@ void icp_new(const vector<vector<double>>& point_cloud_model, const vector<vecto
         for(auto i=0;i<nd;i++){
             qd<<point_cloud_data[i][0],point_cloud_data[i][1],point_cloud_data[i][2];
             qrt=R*qd+t;
-            double dist_min=12.0; int j_min=0;
-            for(auto j=0;j<point_cloud_model.size();j++){
-                double dist=std::pow(qrt[0] - point_cloud_model.at(j).at(0),2) + std::pow(qrt[1] - point_cloud_model.at(j).at(1),2) + std::pow(qrt[2] - point_cloud_model.at(j).at(2),2);
-                if(dist<=dist_min){
-                    dist_min = dist;
-                    j_min=j;
-                }
-            }
-            matching[i]=j_min;
+            double dist_min=12.0;
+            index.knnSearch(&qrt[0], 1, &ret_index[0], &out_dist_sqr[0]);
+            matching[i]=ret_index[0];
+            dist_min=out_dist_sqr[0];
             error_new+=dist_min;
-            mu_m[0]+=point_cloud_model.at(j_min).at(0);
-            mu_m[1]+=point_cloud_model.at(j_min).at(1);
-            mu_m[2]+=point_cloud_model.at(j_min).at(2);
+            mu_m[0]+=point_cloud_model.at(matching[i]).at(0);
+            mu_m[1]+=point_cloud_model.at(matching[i]).at(1);
+            mu_m[2]+=point_cloud_model.at(matching[i]).at(2);
         }
+//        for(auto i=0;i<nd;i++){
+//            qd<<point_cloud_data[i][0],point_cloud_data[i][1],point_cloud_data[i][2];
+//            qrt=R*qd+t;
+//            double dist_min=12.0; int j_min=0;
+//            for(auto j=0;j<point_cloud_model.size();j++){
+//                double dist=std::pow(qrt[0] - point_cloud_model.at(j).at(0),2) + std::pow(qrt[1] - point_cloud_model.at(j).at(1),2) + std::pow(qrt[2] - point_cloud_model.at(j).at(2),2);
+//                if(dist<=dist_min){
+//                    dist_min = dist;
+//                    j_min=j;
+//                }
+//            }
+//            matching[i]=j_min;
+//            error_new+=dist_min;
+//            mu_m[0]+=point_cloud_model.at(j_min).at(0);
+//            mu_m[1]+=point_cloud_model.at(j_min).at(1);
+//            mu_m[2]+=point_cloud_model.at(j_min).at(2);
+//        }
         mu_m[0]/=nd;mu_m[1]/=nd;mu_m[2]/=nd;
     int j=0;
     for(auto i=0;i<nd;i++){
