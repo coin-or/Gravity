@@ -495,7 +495,7 @@ int main (int argc, char * argv[])
             vector<double> err_per_point(point_cloud_data.size());
             auto res_icp = run_GoICP(point_cloud_model, point_cloud_data, mse, dt);
             auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            apply_rot_trans(roll*pi/180, pitch*pi/180, yaw*pi/180, x_shift, y_shift, z_shift, point_cloud_data);
             auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
@@ -503,7 +503,12 @@ int main (int argc, char * argv[])
         bool discret=true;
         if(discret){
             double error=0;
-        ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
+        auto rpyt=ub_heuristic_disc(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
+#ifdef USE_MATPLOT
+            apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
+            plot(point_cloud_model,point_cloud_data,1);
+#endif
+          
             exit(0);
         }
             
