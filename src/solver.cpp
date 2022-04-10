@@ -128,6 +128,7 @@ int solver::run(int print_level, bool relax, double tol, const string& lin_solve
             }
 
             iapp->Options()->SetStringValue("linear_solver", lin_solver);
+            iapp->Options()->SetStringValue("print_timing_statistics", "yes");
             iapp->Options()->SetStringValue("mehrotra_algorithm", mehrotra);
             iapp->Options()->SetNumericValue("tol", tol);
             iapp->Options()->SetIntegerValue("print_level", print_level);
