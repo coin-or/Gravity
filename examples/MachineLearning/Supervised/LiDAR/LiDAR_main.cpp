@@ -393,8 +393,8 @@ int main (int argc, char * argv[])
         }
         bool IPH = (algo=="IPH");
         bool ARMO = (algo=="ARMO");
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){
@@ -494,9 +494,28 @@ int main (int argc, char * argv[])
         if(run_goICP){/* Run GoICP inline */
             vector<int> matching(point_cloud_data.size());
             vector<double> err_per_point(point_cloud_data.size());
-            auto res_icp = run_GoICP(point_cloud_model, point_cloud_data, mse, dt);
-            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-            apply_rot_trans(roll*pi/180, pitch*pi/180, yaw*pi/180, x_shift, y_shift, z_shift, point_cloud_data);
+//            auto res_icp = run_GoICP(point_cloud_model, point_cloud_data, mse, dt);
+//            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+//            double roll=0.161051;
+//            double pitch=1.72447;
+//            double yaw=-1.42412;
+//            double x_shift=-0.128593;
+//            double y_shift=-0.143401;
+//            double z_shift=0.118928;
+//            double roll=-0.0949683;
+//            double pitch=0.0425285;
+//            double yaw=-0.199007;
+//            double x_shift=0.218107;
+//            double y_shift=-0.250144;
+//            double z_shift=0.0160762;
+            double roll=-1.04111;
+            double pitch=1.19823;
+            double yaw=0.558101;
+            double x_shift=0.0568501;
+            double y_shift=-0.129687;
+            double z_shift=0.0191642;
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            plot(point_cloud_model,point_cloud_data,1);
             auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
