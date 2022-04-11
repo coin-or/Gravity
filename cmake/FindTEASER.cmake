@@ -7,24 +7,18 @@ else(TEASER_ROOT_DIR)
 endif(TEASER_ROOT_DIR)
 
 find_path(TEASER_INCLUDE_DIR
-  HINTS /usr/local/include
-  HINTS /usr/include
-  HINTS ${TEASER_ROOT_DIR/teaser/include/teaser)
-
-# Set standard CMake FindPackage variables if found.
-if (TEASER_FOUND)
-  set(TEASER_INCLUDE_DIRS ${Teaser_INCLUDE_DIR})
-else (TEASER_FOUND)
- message("Cannot find Teaser")
-endif (TEASER_FOUND)
+  HINTS ${TEASER_ROOT_DIR}/teaser/include/teaser
+)
 
 find_library(TEASER_LIBRARY 
-	libteaser_registration.so
-	HINTS ${TEASER_ROOT_DIR}/build/teaser
+  libteaser_registration.so
+  HINTS ${TEASER_ROOT_DIR}/build/teaser
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(TEASER DEFAULT_MSG TEASER_LIBRARY)
+find_package_handle_standard_args(TEASER DEFAULT_MSG TEASER_LIBRARY TEASER_INCLUDE_DIR)
+
+
 
 if(TEASER_FOUND)
 	message("—- Found TEASER under ${TEASER_INCLUDE_DIR}")
