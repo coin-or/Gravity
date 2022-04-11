@@ -36,8 +36,11 @@ option(Ipopt "Link to IPOPT libraries" ON)
 # Find LASlib (REQUIRED)
 option(LASlib "Link to LASlib libraries" ON)
 
+# Find TEASER (optional)
+option(TEASER "Link to TEASER libraries" OFF)
+
 # Find CDD (REQUIRED)
-option(CDD "Link to CDD libraries" ON)
+option(CDD "Link to CDD libraries" OFF)
 
 # Find GJK (REQUIRED)
 option(GJK "Link to GJK libraries" ON)
@@ -120,6 +123,15 @@ if (GJK)
         message("including ${GJK_INCLUDE_DIRS}")
         include_directories(${GJK_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${GJK_LIBRARIES})
+endif()
+
+# Find LASlib.
+if (TEASER)
+        message(STATUS "Enable TEASER")
+        add_definitions(-DUSE_TEASER)
+        find_package(TEASER REQUIRED)
+        include_directories(${TEASER_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${TEASER_LIBRARIES})
 endif()
 
 # Find Eigen3.
