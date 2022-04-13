@@ -4,7 +4,7 @@ Gravity will automatically download and link to Ipopt libraries (linked with HSL
 
 Note: If you have an old version of Windows (prior to 2018), you will need to install [curl](https://curl.se/windows/) and [tar](http://gnuwin32.sourceforge.net/packages/gtar.htm).
 
-First, install [Cmake](http://www.cmake.org).
+First, install [CMake](http://www.cmake.org).
 
 Then, follow the instructions to install Visual Studio Code and the Mingw extension [here](https://code.visualstudio.com/docs/cpp/config-mingw).
 
@@ -16,7 +16,7 @@ The executables will be under Gravity/bin/Release
 
 For MacOS and Linux users
 -------
-Download and install cmake: http://www.cmake.org (Version 3.2 or better)
+Download and install [CMake](http://www.cmake.org) (Version 3.16 or better)
 
 Optional thirdparty solvers
 -------
@@ -81,7 +81,7 @@ append the flag `-D$Solvername$=ON` as shown above.
 
 Note: To build an Xcode project append `-G Xcode` to the command above
 
-* `make -j4`
+* `make`
 
 This will install all the models found under `Gravity/examples`.
 
