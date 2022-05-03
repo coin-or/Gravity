@@ -18,7 +18,7 @@ If you're new to coding, a few editor recommendations are below:
 [Visual Studio](https://www.visualstudio.com/downloads/) | [Clion](https://www.jetbrains.com/clion/) | [Xcode](https://developer.apple.com/xcode/downloads/) | [Eclipse](https://www.eclipse.org/downloads/packages/release/2018-09/r/eclipse-ide-cc-developers)
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 
-Have a look at [`Gravity_test.cpp`](https://github.com/coin-or/Gravity/blob/master/examples/Gravity_test.cpp) and other models [`here`](https://github.com/coin-or/Gravity/tree/master/examples) to learn form example.
+Have a look at [`Gravity_test.cpp`](https://github.com/coin-or/Gravity/blob/master/examples/Gravity_test.cpp) and other models [`here`](https://github.com/coin-or/Gravity/tree/master/examples) to learn from example.
 
 ### Some Numerical Results:
 #### Performance Profile on ACOPF
