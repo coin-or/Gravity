@@ -24,7 +24,7 @@ void evaluate_upper_bound_mid(double roll_min, double roll_max, double pitch_min
 void evaluate_upper_bound_mid_t(double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, vector<double>& res, const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, string error_type, const vector<double>& ub_node);
 vector<double> ub_heuristic_disc(const nanoflann::KDTreeSingleIndexAdaptor<
                                  nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                                 PointCloud<double>, 3 /* dim */>& index, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, vector<double>& best_rot_trans, double& best_ub, std::string error_type, double max_time)
+                                 PointCloud<double>, 3 /* dim */>& index, vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double& best_ub, std::string error_type, double max_time)
 {
 #ifdef USE_MPI
     int worker_id, nb_workers;

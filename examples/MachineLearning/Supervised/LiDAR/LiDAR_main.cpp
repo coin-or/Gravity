@@ -23,6 +23,7 @@
 #include "Heuristics.h"
 #include "Goicp.h"
 #include "icp.h"
+#include "BB.h"
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -393,8 +394,8 @@ int main (int argc, char * argv[])
         }
         bool IPH = (algo=="IPH");
         bool ARMO = (algo=="ARMO");
-        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
-        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams(' '));
+        rapidcsv::Document  Model_doc(Model_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
+        rapidcsv::Document  Data_doc(Data_file, rapidcsv::LabelParams(0, -1),rapidcsv::SeparatorParams('\t'));
         int model_nb_rows = Model_doc.GetRowCount();
         int data_nb_rows = Data_doc.GetRowCount();
         if(model_nb_rows<3){
@@ -476,85 +477,7 @@ int main (int argc, char * argv[])
 #ifdef USE_QHULL
         min_max_t=get_translation_bounds(min_max_model, pcd);
 #endif
-        int reduced_nb_data = 50;
-        int reduced_nb_model = 200;
-        bool subsample = false;
-        if (subsample) {
-            model_nb_rows = reduced_nb_model;
-            data_nb_rows = reduced_nb_data;
-            point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
-            point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
-        }
-        double best_ub=100;
-        vector<double> best_rot_trans;
-        //input
-        double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
-        vector<pair<double, double>> min_max_d;
-        double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
-        if(run_goICP){/* Run GoICP inline */
-            vector<int> matching(point_cloud_data.size());
-            vector<double> err_per_point(point_cloud_data.size());
-//            auto res_icp = run_GoICP(point_cloud_model, point_cloud_data, mse, dt);
-//            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
-//            double roll=0.161051;
-//            double pitch=1.72447;
-//            double yaw=-1.42412;
-//            double x_shift=-0.128593;
-//            double y_shift=-0.143401;
-//            double z_shift=0.118928;
-//            double roll=-0.0949683;
-//            double pitch=0.0425285;
-//            double yaw=-0.199007;
-//            double x_shift=0.218107;
-//            double y_shift=-0.250144;
-//            double z_shift=0.0160762;
-            double roll=-1.04111;
-            double pitch=1.19823;
-            double yaw=0.558101;
-            double x_shift=0.0568501;
-            double y_shift=-0.129687;
-            double z_shift=0.0191642;
-            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            plot(point_cloud_model,point_cloud_data,1);
-            auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
-            DebugOn("Go ICP error "<<err<<endl);
-            exit(0);
-        }
-        bool discret=true;
-        if(discret){
-            PointCloud<double> cloud;
-            
-            cloud.pts.resize(point_cloud_model.size());
-            for (size_t i = 0; i < point_cloud_model.size(); i++)
-            {
-                cloud.pts[i].x = point_cloud_model[i][0];
-                cloud.pts[i].y = point_cloud_model[i][1];
-                cloud.pts[i].z = point_cloud_model[i][2];
-            }
-            nanoflann::KDTreeSingleIndexAdaptor<
-                nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
-            index.buildIndex();
-            double error=0;
-        auto rpyt=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_rot_trans, best_ub, "L2", 100);
-#ifdef USE_MATPLOT
-            apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
-            plot(point_cloud_model,point_cloud_data,1);
-#endif
-          
-            exit(0);
-        }
-            
-//        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
-//        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
-       
-            auto t=get_wall_time();
-        auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
-            auto t_finish=get_wall_time();
-            DebugOn("Initialize BB takes "<<t_finish-t<<endl);
-            exit(0);
-
-        
+        vector<vector<vector<double>>> model_voronoi_vertices(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
 #ifdef USE_VORO
         //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
         container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
@@ -571,7 +494,6 @@ int main (int argc, char * argv[])
         vector<int> face_vert;
         vector<double> v;
         vector<vector<vector<double>>> model_voronoi_normals(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
-        vector<vector<vector<double>>> model_voronoi_vertices(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
         vector<vector<pair<double, double>>> model_voronoi_min_max(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
         vector<vector<vector<double>>> model_face_pts(model_nb_rows);/* Store a point from each facet of the voronoi cell of each point */
         vector<vector<vector<int>>> model_voronoi_vertex_edge(model_nb_rows);/* For each cell, for each vertex, store list of other vertices it is linked to */
@@ -780,9 +702,89 @@ int main (int argc, char * argv[])
             v.clear();
             face_vert.clear();
         } while (cl.inc());
-        DebugOn("The total number of faces = " << total_nb_faces << endl);
+#endif
+        int reduced_nb_data = 50;
+        int reduced_nb_model = 200;
+        bool subsample = false;
+        if (subsample) {
+            model_nb_rows = reduced_nb_model;
+            data_nb_rows = reduced_nb_data;
+            point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
+            point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
+        }
+        double best_ub=100;
+        vector<double> best_rot_trans;
+        //input
+        double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
+        vector<pair<double, double>> min_max_d;
+        double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
+        if(run_goICP){/* Run GoICP inline */
+            vector<int> matching(point_cloud_data.size());
+            vector<double> err_per_point(point_cloud_data.size());
+//            auto res_icp = run_GoICP(point_cloud_model, point_cloud_data, mse, dt);
+//            auto roll = get<0>(res_icp);auto pitch = get<1>(res_icp);auto yaw = get<2>(res_icp);auto x_shift = get<3>(res_icp);auto y_shift = get<4>(res_icp);auto z_shift = get<5>(res_icp);
+//            double roll=0.161051;
+//            double pitch=1.72447;
+//            double yaw=-1.42412;
+//            double x_shift=-0.128593;
+//            double y_shift=-0.143401;
+//            double z_shift=0.118928;
+//            double roll=-0.0949683;
+//            double pitch=0.0425285;
+//            double yaw=-0.199007;
+//            double x_shift=0.218107;
+//            double y_shift=-0.250144;
+//            double z_shift=0.0160762;
+            double roll=-1.04111;
+            double pitch=1.19823;
+            double yaw=0.558101;
+            double x_shift=0.0568501;
+            double y_shift=-0.129687;
+            double z_shift=0.0191642;
+            apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
+            plot(point_cloud_model,point_cloud_data,1);
+            auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
+            DebugOn("Go ICP error "<<err<<endl);
+            exit(0);
+        }
+        bool discret=true;
+        if(discret){
+            PointCloud<double> cloud;
+            
+            cloud.pts.resize(point_cloud_model.size());
+            for (size_t i = 0; i < point_cloud_model.size(); i++)
+            {
+                cloud.pts[i].x = point_cloud_model[i][0];
+                cloud.pts[i].y = point_cloud_model[i][1];
+                cloud.pts[i].z = point_cloud_model[i][2];
+            }
+            nanoflann::KDTreeSingleIndexAdaptor<
+                nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
+                PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
+            index.buildIndex();
+            double error=0;
+         auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
+            auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index);
+#ifdef USE_MATPLOT
+            apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
+            plot(point_cloud_model,point_cloud_data,1);
+#endif
+            
+          
+            exit(0);
+        }
+            
+//        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
+//        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
+       
+            auto t=get_wall_time();
+        auto goicp=Initialize_BB(point_cloud_model, point_cloud_data, min_max_model, min_max_d, shift_min_x, shift_max_x, shift_min_y ,shift_max_y,shift_min_z ,shift_max_z,roll_min,roll_max,pitch_min,pitch_max, yaw_min, yaw_max, best_ub, best_rot_trans);
+            auto t_finish=get_wall_time();
+            DebugOn("Initialize BB takes "<<t_finish-t<<endl);
+            exit(0);
+
         
-        sort(volume.begin(), volume.end(), pts_compare);
+
         int nb_reduced_model = std::min(model_nb_rows,150);
         vector<vector<double>> red_point_cloud_model(nb_reduced_model);
         for (int i =0; i<nb_reduced_model; i++) {
@@ -790,8 +792,6 @@ int main (int argc, char * argv[])
         }
 #ifdef USE_MATPLOT
         //                  plot(red_point_cloud_model,point_cloud_model,2);
-#endif
-    
 #endif
         
         auto old_point_cloud = point_cloud_data;
@@ -19971,22 +19971,6 @@ void get_extreme_rotation_data(vector<vector<double>>& extreme, const vector<dou
         }
     }
 
-}
-/* Distance between two polytopes
- @poly1: Vertices of polytope1
- @poly2: Vertices of polytope2
- */
-double max_distance_polytopes(const vector<vector<double>>& poly1,  const vector<vector<double>>& poly2){
-    double dmax=0;
-    for(auto v1: poly1){
-        for(auto v2: poly2){
-            auto d=pow(v1[0]-v2[0],2)+pow(v1[1]-v2[1],2)+pow(v1[2]-v2[2],2);
-            if(d>=dmax){
-                dmax=d;
-            }
-        }
-    }
-    return dmax;
 }
 void preprocess_poltyope_ve_gjk_in_centroid(const vector<vector<double>>& point_cloud_data, const vector<vector<double>>& point_cloud_model, const indices& old_cells, param<double>& dist_cost_old, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double shift_min_x, double shift_max_x, double shift_min_y, double shift_max_y, double shift_min_z, double shift_max_z, const vector<vector<vector<double>>>& model_voronoi_normals, const vector<vector<double>>& model_face_intercept, const vector<vector<vector<double>>>& model_voronoi_vertices, param<double>& dist_cost, double upper_bound, double lower_bound, double& min_cost_sum, indices& new_cells,  double& new_tx_min, double& new_tx_max, double& new_ty_min, double& new_ty_max, double& new_tz_min, double& new_tz_max, double& prep_time_total, const vector<vector<pair<double, double>>>& model_voronoi_min_max, const vector<vector<vector<int>>>& model_voronoi_vertex_edge, const vector<vector<vector<pair<int,int>>>>& model_voronoi_vertex_edge_planes, const vector<double> max_vert_vert_dist_sq, const param<double>& dii, const param<double>& djj, param<double>& maxj)
 {
