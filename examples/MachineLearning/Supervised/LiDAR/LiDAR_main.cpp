@@ -742,7 +742,7 @@ int main (int argc, char * argv[])
             double y_shift=-0.129687;
             double z_shift=0.0191642;
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            plot(point_cloud_model,point_cloud_data,1);
+            //plot(point_cloud_model,point_cloud_data,1);
             auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
@@ -767,7 +767,7 @@ int main (int argc, char * argv[])
             auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index);
 #ifdef USE_MATPLOT
             apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
-            plot(point_cloud_model,point_cloud_data,1);
+            //plot(point_cloud_model,point_cloud_data,1);
 #endif
             
           
