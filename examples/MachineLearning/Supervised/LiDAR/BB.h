@@ -776,6 +776,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     }
     auto d_boxt_boxj=std::max(distance_polytopes_gjk(box_t, box_j)-1e-6, 0.0);
     if(d_boxt_boxj>=1e-6){
+        DebugOn("intersection test failed "<<d_boxt_boxj<<endl);
         found_all=false;
     }
     else{
@@ -927,6 +928,33 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         ty_max=std::min(new_ty_max+1e-6, ty_max);
         tz_min=std::max(new_tz_min-1e-6, tz_min);
         tz_max=std::min(new_tz_max+1e-6, tz_max);
+        DebugOn("tx "<<tx_min<<" "<<tx_max<<endl);
+        DebugOn("ty "<<ty_min<<" "<<ty_max<<endl);
+        DebugOn("tz "<<tz_min<<" "<<tz_max<<endl);
+        if(tx_min>=tx_max+1e-9){
+            DebugOn("tx cross "<<tx_min<<" "<<tx_max<<endl);
+            found_all=false;
+        }
+        if(ty_min>=ty_max+1e-9){
+            DebugOn("ty cross "<<ty_min<<" "<<ty_max<<endl);
+            found_all=false;
+        }
+        if(tz_min>=tz_max+1e-9){
+            DebugOn("tz cross "<<tz_min<<" "<<tz_max<<endl);
+            found_all=false;
+        }
+        if(tx_max>=tx_min-1e-9){
+            DebugOn("tx cross "<<tx_min<<" "<<tx_max<<endl);
+            found_all=false;
+        }
+        if(ty_max>=ty_min-1e-9){
+            DebugOn("ty cross "<<ty_min<<" "<<ty_max<<endl);
+            found_all=false;
+        }
+        if(tz_max>=tz_min-1e-9){
+            DebugOn("tz cross "<<tz_min<<" "<<tz_max<<endl);
+            found_all=false;
+        }
         
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
@@ -940,7 +968,8 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         DebugOn("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }
-    else{
+    if(!found_all)
+    {
         new_cells=valid_cells_empty;
         DebugOn("No valid cells found "<<endl);
     }
