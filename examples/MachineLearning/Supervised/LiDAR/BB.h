@@ -885,15 +885,15 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
             }
         }
-        DebugOff("min_cost_sum "<<min_cost_sum<<endl);
+        DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
             vo=point_cloud_data.size()*point_cloud_model.size();
         }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
-        DebugOn("valid cells old size "<<vo<<endl);
-        DebugOn("valid cells new size "<<vn<<endl);
+        DebugOff("valid cells old size "<<vo<<endl);
+        DebugOff("valid cells new size "<<vn<<endl);
         DebugOn("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }
@@ -965,7 +965,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     preprocess_lid(ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node_i.valid_cells), ref(valid_cells_i),  ref(dist_cost_i), vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ref(vec_node_i.tx.first), ref(vec_node_i.tx.second), ref(vec_node_i.ty.first), ref(vec_node_i.ty.second), ref(vec_node_i.tz.first) ,ref(vec_node_i.tz.second), upper_bound, ref(prep_time_i), ref(vec_lb_i), error_type);
 #endif
     bool model_created=false;
-    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=2e4){
+    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=2e3){
         if(error_type=="L2"){
             model_i=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i);
         }
@@ -975,7 +975,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
         model_created=true;
         m_vec_i=1;
     }
-    else if(valid_cells_i.size()> 2e4){
+    else if(valid_cells_i.size()> 2e3){
         m_vec_i=10;
     }
     else if(valid_cells_i.size()<point_cloud_data.size()){
@@ -1120,7 +1120,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     lb_queue.push(treenode_p(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, tx_bounds_r, ty_bounds_r,tz_bounds_r,lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
     treenode_p topnode=lb_queue.top();
     
-    while ( lb_queue.top().depth<=4) {
+    while ( lb_queue.top().depth<=1) {
         
         roll_bounds.clear();
         pitch_bounds.clear();
