@@ -1239,7 +1239,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     double eps=0.001;
     int prep_count=0;
     double ut_total=0;
-    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf && opt_gap_abs>0.1) {
+    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         DebugOn("Best UB so far = " << to_string_with_precision(best_ub,9) << endl);

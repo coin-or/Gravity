@@ -70,7 +70,7 @@ protected:
                         int_x[i] = x[i];
                     }
                     m->set_solution(int_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
+                    auto res=m->cutting_planes_solution(interior, 1e-9, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
                     if(res.size()>=1){
                         for(i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
@@ -91,7 +91,7 @@ protected:
                     if(stat==2){
                         DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
                         int nct=getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
-                        if(nct%60==0){
+                        if(nct%100==0){
                             double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
                             double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
                             DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
@@ -102,7 +102,7 @@ protected:
                                 cont_x[i] = x[i];
                             }
                             m->set_solution(cont_x);
-                            auto res=m->cutting_planes_solution(interior, 1e-6,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                            auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
                             if(res.size()>=1){
                                 for(i=0;i<res.size();i++){
                                     GRBLinExpr expr = 0;
@@ -274,20 +274,20 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
-    grb_mod->set(GRB_IntParam_MIPFocus,2);
+    //grb_mod->set(GRB_IntParam_MIPFocus,2);
     grb_mod->set(GRB_IntParam_BranchDir, 1);
     grb_mod->set(GRB_IntParam_CutPasses, 5);
    // grb_mod->set(GRB_IntParam_PrePasses, 2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
-    //cut_off=0.0972224207;
+    
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
     grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //grb_mod->set(GRB_IntParam_Cuts,3);
     //grb_mod->set(GRB_DoubleParam_BestBdStop,cut_off);
 //    if(use_callback){
-        grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
-        grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
-        grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
+//        grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+//        grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
+//        grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
 //    }
     grb_mod->update();
     int n=grb_mod->get(GRB_IntAttr_NumVars);
@@ -295,16 +295,16 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         cout << "Gurobi model has zero variables!\n";
     if(n!=_model->get_nb_vars())
         throw invalid_argument("Number of variables in Gurobi model does not match Gravity!");
-    Model<> interior;
-    auto lin=_model->buildOA();
-    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
-    vector<int> stats;
-    stats.resize(6,0);
-    //if(use_callback){
-        interior=lin->add_outer_app_solution(*_model);
-//    //}
-    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-    grb_mod->setCallback(&cb);
+//    Model<> interior;
+//    auto lin=_model->buildOA();
+//    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
+//    vector<int> stats;
+//    stats.resize(6,0);
+//    //if(use_callback){
+//        interior=lin->add_outer_app_solution(*_model);
+////    //}
+//    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+//    grb_mod->setCallback(&cb);
     
     
     grb_mod->optimize();
@@ -838,4 +838,3 @@ void GurobiProgram::print_constraints(){
         }
     }
 }
-
