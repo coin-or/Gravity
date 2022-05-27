@@ -887,26 +887,26 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     dist_cells.add_val(key, dij);
                 }
                 auto xm= point_cloud_model.at(j)[0];
-                                 auto ym= point_cloud_model.at(j)[1];
-                                 auto zm= point_cloud_model.at(j)[2];
-                                     if(xm<=xm_min){
-                                         xm_min=xm;
-                                     }
-                                     if(xm>=xm_max){
-                                         xm_max=xm;
-                                     }
-                                     if(ym<=ym_min){
-                                         ym_min=ym;
-                                     }
-                                     if(ym>=ym_max){
-                                         ym_max=ym;
-                                     }
-                                     if(zm<=zm_min){
-                                         zm_min=zm;
-                                     }
-                                     if(zm>=zm_max){
-                                         zm_max=zm;
-                                     }
+                auto ym= point_cloud_model.at(j)[1];
+                auto zm= point_cloud_model.at(j)[2];
+                if(xm<=xm_min){
+                    xm_min=xm;
+                }
+                if(xm>=xm_max){
+                    xm_max=xm;
+                }
+                if(ym<=ym_min){
+                    ym_min=ym;
+                }
+                if(ym>=ym_max){
+                    ym_max=ym;
+                }
+                if(zm<=zm_min){
+                    zm_min=zm;
+                }
+                if(zm>=zm_max){
+                    zm_max=zm;
+                }
             }
             new_tx_min+=xm_min;
             new_tx_max+=xm_max;
@@ -927,7 +927,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         ty_max=std::min(new_ty_max+1e-6, ty_max);
         tz_min=std::max(new_tz_min-1e-6, tz_min);
         tz_max=std::min(new_tz_max+1e-6, tz_max);
-       
+        
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
@@ -1163,7 +1163,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     lb_queue.push(treenode_p(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, tx_bounds_r, ty_bounds_r,tz_bounds_r,lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
     treenode_p topnode=lb_queue.top();
     
-    while ( lb_queue.top().depth<=1) {
+    while ( lb_queue.top().depth<=3) {
         
         roll_bounds.clear();
         pitch_bounds.clear();
@@ -1186,7 +1186,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         for(auto i=0;!lb_queue.empty();i+=step){
             topnode=lb_queue.top();
             lb_queue.pop();
-            if(i%16==0){
+            if(false){
                 double roll_increment,  pitch_increment, yaw_increment;
                 roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                 pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
