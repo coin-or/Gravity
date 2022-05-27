@@ -703,7 +703,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     return Reg;
 }
 #ifdef USE_GJK
-void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type)
+void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& tx_min, double& tx_max, double& ty_min, double& ty_max, double& tz_min, double& tz_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type)
 {
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
@@ -869,7 +869,10 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     }
     /*Looping again to ensure all valid cells have min_dist less than min_dist_ij_max*/
     if(found_all){
+        double new_tx_min=0, new_ty_min=0,new_tz_min=0,new_tx_max=0,new_ty_max=0,new_tz_max=0;
         for(auto i=0;i<nd;i++){
+            double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
+            double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
             auto it=valid_cells_map[i].begin();
             double min_dist_ij_max=it->first;
             for (int j = 0; j<nm; j++) {
@@ -883,8 +886,48 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     valid_cells_new.insert(key);
                     dist_cells.add_val(key, dij);
                 }
+                auto xm= point_cloud_model.at(j)[0];
+                                 auto ym= point_cloud_model.at(j)[1];
+                                 auto zm= point_cloud_model.at(j)[2];
+                                     if(xm<=xm_min){
+                                         xm_min=xm;
+                                     }
+                                     if(xm>=xm_max){
+                                         xm_max=xm;
+                                     }
+                                     if(ym<=ym_min){
+                                         ym_min=ym;
+                                     }
+                                     if(ym>=ym_max){
+                                         ym_max=ym;
+                                     }
+                                     if(zm<=zm_min){
+                                         zm_min=zm;
+                                     }
+                                     if(zm>=zm_max){
+                                         zm_max=zm;
+                                     }
             }
+            new_tx_min+=xm_min;
+            new_tx_max+=xm_max;
+            new_ty_min+=ym_min;
+            new_ty_max+=ym_max;
+            new_tz_min+=zm_min;
+            new_tz_max+=zm_max;
         }
+        new_tx_min/=nd;
+        new_tx_max/=nd;
+        new_ty_min/=nd;
+        new_ty_max/=nd;
+        new_tz_min/=nd;
+        new_tz_max/=nd;
+        tx_min=std::max(new_tx_min-1e-6, tx_min);
+        tx_max=std::min(new_tx_max+1e-6, tx_max);
+        ty_min=std::max(new_ty_min-1e-6, ty_min);
+        ty_max=std::min(new_ty_max+1e-6, ty_max);
+        tz_min=std::max(new_tz_min-1e-6, tz_min);
+        tz_max=std::min(new_tz_max+1e-6, tz_max);
+       
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
@@ -965,7 +1008,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     preprocess_lid(ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node_i.valid_cells), ref(valid_cells_i),  ref(dist_cost_i), vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ref(vec_node_i.tx.first), ref(vec_node_i.tx.second), ref(vec_node_i.ty.first), ref(vec_node_i.ty.second), ref(vec_node_i.tz.first) ,ref(vec_node_i.tz.second), upper_bound, ref(prep_time_i), ref(vec_lb_i), error_type);
 #endif
     bool model_created=false;
-    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=2e3){
+    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=4e3){
         if(error_type=="L2"){
             model_i=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i);
         }
@@ -975,7 +1018,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
         model_created=true;
         m_vec_i=1;
     }
-    else if(valid_cells_i.size()> 2e3){
+    else if(valid_cells_i.size()> 4e3){
         m_vec_i=10;
     }
     else if(valid_cells_i.size()<point_cloud_data.size()){
