@@ -763,6 +763,13 @@ int main (int argc, char * argv[])
                 PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
             index.buildIndex();
             double error=0;
+            best_ub=0.0973;
+            indices valid_cells_old("valid_cells_old");
+            indices new_cells("new_cells");
+            param<double> dist_cells("dist_cells");
+            double prep_time=0;
+            double min_cost_sum=0;
+            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
          auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
             auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index);
 #ifdef USE_MATPLOT

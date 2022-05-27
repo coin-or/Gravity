@@ -353,8 +353,8 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
             res[0]=extreme_rot[i][0]+box_t[j][0];
             res[1]=extreme_rot[i][1]+box_t[j][1];
             res[2]=extreme_rot[i][2]+box_t[j][2];
+            extreme.push_back(res);
         }
-        extreme.push_back(res);
     }
 }
 /* Distance between two polytopes
@@ -899,7 +899,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     }
     else{
         new_cells=valid_cells_empty;
-        DebugOff("No valid cells found "<<endl);
+        DebugOn("No valid cells found "<<endl);
     }
     prep_time=get_wall_time()-time_start;
     DebugOn("prep time "<<prep_time);
@@ -929,7 +929,7 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
     vector<double> vec_prep_time;
     vec_prep_time.resize(num, 0.0);
     int npass=num/nb_threads+1;
-    
+    DebugOn("npass num "<<npass<<" "<<num<<endl);
     for (auto j = 0; j < npass; j++) {
         
         for (auto i = j*nb_threads; i < std::min((j+1)*nb_threads, num); i++) {
@@ -942,6 +942,7 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
             t.join();
         }
         threads.clear();
+        DebugOn("one pass "<<j<<" "<<num<<endl);
     }
     for (auto i = 0; i < num; i++) {
         if(valid_cells[i].size()>=point_cloud_data.size()){
@@ -1218,6 +1219,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             }
             
         }
+        DebugOn("vec_node.size() "<<vec_node.size());
         run_preprocess_only_parallel(point_cloud_model, point_cloud_data,model_voronoi_vertices,vec_node, vec_lb, valid_cells, nb_threads, best_ub, best_lb, iter, error_type);
         
         for (int j = 0; j<vec_node.size(); j++) {
