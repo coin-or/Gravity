@@ -1328,10 +1328,12 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         double max_incr=0, max_ratio=1;
         pos_vec.clear();
         models.clear();
-        
         roll_bounds.clear();
         pitch_bounds.clear();
         yaw_bounds.clear();
+        tx_bounds.clear();
+        ty_bounds.clear();
+        tz_bounds.clear();
         valid_cells.clear();
         depth_vec.clear();
         m_vec.clear();
@@ -1350,7 +1352,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                if((topnode.depth-2)%3!=0){
+                if(std::abs(topnode.depth-2)%3!=0){
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                     pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
