@@ -943,15 +943,15 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             DebugOn("tz cross "<<tz_min<<" "<<tz_max<<endl);
             found_all=false;
         }
-        if(tx_max>=tx_min-1e-9){
+        if(tx_max<=tx_min-1e-9){
             DebugOn("tx cross "<<tx_min<<" "<<tx_max<<endl);
             found_all=false;
         }
-        if(ty_max>=ty_min-1e-9){
+        if(ty_max<=ty_min-1e-9){
             DebugOn("ty cross "<<ty_min<<" "<<ty_max<<endl);
             found_all=false;
         }
-        if(tz_max>=tz_min-1e-9){
+        if(tz_max<=tz_min-1e-9){
             DebugOn("tz cross "<<tz_min<<" "<<tz_max<<endl);
             found_all=false;
         }
@@ -1215,7 +1215,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         for(auto i=0;!lb_queue.empty();i+=step){
             topnode=lb_queue.top();
             lb_queue.pop();
-            if(false){
+            if(lb_queue.top().depth==3){
                 double roll_increment,  pitch_increment, yaw_increment;
                 roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                 pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
@@ -1350,8 +1350,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                
-                if(i%16==0){
+                if((topnode.depth+1)%3!=0){
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                     pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
