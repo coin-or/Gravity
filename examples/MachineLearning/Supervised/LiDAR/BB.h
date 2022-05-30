@@ -1352,7 +1352,8 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                if(std::abs(topnode.depth-2)%3!=0){
+                if((topnode.depth-2)%3!=0){
+                    DebugOn("R branch "<<topnode.depth<<endl);
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
                     pitch_increment = (topnode.pitch.second - topnode.pitch.first)/2.0;
@@ -1388,6 +1389,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                     }
                 }
                 else{
+                    DebugOn("t branch "<<topnode.depth<<endl);
                     double tx_increment,  ty_increment, tz_increment;
                     tx_increment = (topnode.tx.second - topnode.tx.first)/2.0;
                     ty_increment = (topnode.ty.second - topnode.ty.first)/2.0;
