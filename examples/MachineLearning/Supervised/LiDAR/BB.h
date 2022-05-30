@@ -1037,7 +1037,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     preprocess_lid(ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node_i.valid_cells), ref(valid_cells_i),  ref(dist_cost_i), vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ref(vec_node_i.tx.first), ref(vec_node_i.tx.second), ref(vec_node_i.ty.first), ref(vec_node_i.ty.second), ref(vec_node_i.tz.first) ,ref(vec_node_i.tz.second), upper_bound, ref(prep_time_i), ref(vec_lb_i), error_type);
 #endif
     bool model_created=false;
-    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=4e3){
+    if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
         if(error_type=="L2"){
             model_i=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i);
         }
@@ -1047,7 +1047,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
         model_created=true;
         m_vec_i=1;
     }
-    else if(valid_cells_i.size()> 4e3){
+    else if(valid_cells_i.size()> 1e4){
         m_vec_i=10;
     }
     else if(valid_cells_i.size()<point_cloud_data.size()){
