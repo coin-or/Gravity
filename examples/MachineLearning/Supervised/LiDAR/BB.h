@@ -748,11 +748,17 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     
     vector<vector<double>> box_j;
     
+    vector<vector<int>> nd_vec(nd);
+    vector<vector<int>> nm_vec(nm);
+    
     prep_time=0;
     indices valid_cells("valid_cells");
     indices valid_cells_new("valid_cells_new");
     indices valid_cells_empty("valid_cells_empty");
-    param<double> dist_cells_old ("dist_cells_old");
+    param<double> dist_cells_old("dist_cells_old");
+    param<double> dist_cells_max("dist_cells_max");
+    param<double> dist_ii("dist_ii");
+    param<double> dist_jj("dist_jj");
     double time_start = get_wall_time();
     vector<map<double, int>> valid_cells_map(nd);
     
@@ -783,8 +789,6 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         found_all=true;
     }
     
-    
-    //New t bounds
     //triangle inequality?
     
     
@@ -857,7 +861,10 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                         }
                         valid_cells_map[i].insert(pair<double, int>(dist_ij_max, j));
                         dist_cells_old.add_val(key, dist_ij_min);
+                        dist_cells_max.add_val(key, dist_ij_max);
                         valid_cells.insert(key);
+                        nd_vec[i].push_back(j);
+                        nm_vec[j].push_back(i);
                     }
                 }
             }
@@ -867,6 +874,66 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 break;
             }
         }
+    }
+    if(found_all){
+        for(auto i=0;i<nd-1;i++){
+            for(auto j=i+1;j<nd;j++){
+                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
+                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
+                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
+                auto d_sq=sqrt(d);
+                dist_ii.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
+                dist_ii.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
+            }
+        }
+        for(auto j=0;j<nm-1;j++){
+            for(auto i=j+1;j<nm;j++){
+                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
+                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
+                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
+                auto d_sq=sqrt(d);
+                dist_jj.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
+                dist_jj.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
+            }
+        }
+    for(auto i=0;i<nd;i++){
+        for(auto j=0;j<nd_vec[i].size()-1;j++){
+            auto key_j=to_string(i+1)+","+to_string(j+1);
+            auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
+            auto dij_max_sq=sqrt(dist_cells_max.eval(key_j));
+            for(auto k=j+1;k<nd_vec[i].size();k++){
+                auto key_k=to_string(i+1)+","+to_string(k+1);
+                auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
+                auto dik_max_sq=sqrt(dist_cells_max.eval(key_k));
+                auto djk=10;
+                auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
+                dij_min_sq=std::max(temp, dij_min_sq);
+                auto temp1=std::max(djk-dij_max_sq,dij_min_sq-djk);
+                dik_min_sq=std::max(temp1, dik_min_sq);
+                dist_cells_old.set_val(key_j, dij_min_sq*dij_min_sq);
+                dist_cells_old.set_val(key_k, dik_min_sq*dik_min_sq);
+            }
+        }
+    }
+    for(auto j=0;j<nm;j++){
+        for(auto i=0;i<nm_vec[j].size()-1;i++){
+            auto key_i=to_string(i+1)+","+to_string(j+1);
+            auto dij_min_sq=sqrt(dist_cells_old.eval(key_i));
+            auto dij_max_sq=sqrt(dist_cells_max.eval(key_i));
+            for(auto k=i+1;k<nm_vec[j].size();k++){
+                auto key_k=to_string(k+1)+","+to_string(j+1);
+                auto dkj_min_sq=sqrt(dist_cells_old.eval(key_k));
+                auto dkj_max_sq=sqrt(dist_cells_max.eval(key_k));
+                auto dik=dist_ii.eval(to_string(i+1)+","+to_string(k+1));
+                auto temp=std::max(dik-dkj_max_sq,dkj_min_sq-dik);
+                dij_min_sq=std::max(temp, dij_min_sq);
+                auto temp1=std::max(dik-dij_max_sq,dij_min_sq-dik);
+                dkj_min_sq=std::max(temp1, dkj_min_sq);
+                dist_cells_old.set_val(key_i, dij_min_sq*dij_min_sq);
+                dist_cells_old.set_val(key_k, dkj_min_sq*dkj_min_sq);
+            }
+        }
+    }
     }
     /*Looping again to ensure all valid cells have min_dist less than min_dist_ij_max*/
     if(found_all){
@@ -1352,7 +1419,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                if((topnode.depth+1)%2==0){
+                if((topnode.depth)%2==0){
                     DebugOn("R branch "<<topnode.depth<<endl);
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
