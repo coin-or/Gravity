@@ -1344,7 +1344,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     
     /* INPUT BOUNDS */
     double time_start = get_wall_time();
-    double total_time_max = 90000;
+    double total_time_max = 900000;
     double prep_time_total=0;
     
     
