@@ -357,6 +357,219 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
         }
     }
 }
+void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d, const vector<var<double>>& theta_vec, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max)
+{
+    double d_mag=pow(d[0],2)+pow(d[1],2)+pow(d[2],2);
+    double d_root=sqrt(d_mag);
+    double shift_mag_max=std::max(pow(tx_min,2),pow(tx_max,2))+std::max(pow(ty_min,2),pow(ty_max,2))+std::max(pow(tz_min,2),pow(tz_max,2));
+    double shift_mag_max_root=sqrt(shift_mag_max);
+    double shift_mag_min=0.0;
+    if(tx_min<=0 && tx_max>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(tx_min,2),pow(tx_max,2));
+    }
+    if(ty_min<=0 && ty_max>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(ty_min,2),pow(ty_max,2));
+    }
+    if(tz_min<=0 && tz_max>=0){
+        shift_mag_min+=0;
+    }
+    else{
+        shift_mag_min+=std::min(pow(tz_min,2),pow(tz_max,2));
+    }
+    double shift_mag_min_root=sqrt(shift_mag_min);
+    double siq, soq=0;
+    if(shift_mag_min_root<=d_root && shift_mag_max_root>=d_root){
+        siq=0.0;
+    }
+    else{
+        siq=std::min(pow((shift_mag_min_root-d_root),2),pow((shift_mag_max_root-d_root),2));
+    }
+    soq=pow((d_root+shift_mag_max_root),2);
+    
+    vector<vector<double>> new_vert_a, new_vert_b;
+    vector<int> infeas_set_a, infeas_set_b, infeas_set;
+    bool vertex_found_a=false, vertex_found_b=false;
+    
+ 
+    
+    auto theta11=theta_vec[0];
+    auto theta12=theta_vec[1];
+    auto theta13=theta_vec[2];
+    auto theta21=theta_vec[3];
+    auto theta22=theta_vec[4];
+    auto theta23=theta_vec[5];
+    auto theta31=theta_vec[6];
+    auto theta32=theta_vec[7];
+    auto theta33=theta_vec[8];
+    
+    
+    vector<vector<double>> box_big;
+    vector<double> coord_i;
+    coord_i.resize(3);
+    
+    shared_ptr<pair<double,double>> x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> z1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_x1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_y1_bounds = make_shared<pair<double,double>>();
+    shared_ptr<pair<double,double>> rot_z1_bounds = make_shared<pair<double,double>>();
+    
+    x1_bounds->first = d[0];
+    x1_bounds->second = d[0];
+    y1_bounds->first = d[1];
+    y1_bounds->second = d[1];
+    z1_bounds->first = d[2];
+    z1_bounds->second = d[2];
+    auto x_range  = get_product_range(x1_bounds, theta11._range);
+    auto y_range  = get_product_range(y1_bounds, theta12._range);
+    auto z_range  = get_product_range(z1_bounds, theta13._range);
+    
+    rot_x1_bounds->first=std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1))+tx_min,(d_root+shift_mag_max_root)*(-1));
+    rot_x1_bounds->second=std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+tx_max,(d_root+shift_mag_max_root));
+    
+    double x_lb=rot_x1_bounds->first;
+    double x_ub=rot_x1_bounds->second;
+    
+    x_range  = get_product_range(x1_bounds, theta21._range);
+    y_range  = get_product_range(y1_bounds, theta22._range);
+    z_range  = get_product_range(z1_bounds, theta23._range);
+    
+    rot_y1_bounds->first=std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1))+ty_min,(d_root+shift_mag_max_root)*(-1));
+    rot_y1_bounds->second=std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+ty_max,(d_root+shift_mag_max_root));
+    
+    double y_lb=rot_y1_bounds->first;
+    double y_ub=rot_y1_bounds->second;
+    
+    
+    x_range  = get_product_range(x1_bounds, theta31._range);
+    y_range  = get_product_range(y1_bounds, theta32._range);
+    z_range  = get_product_range(z1_bounds, theta33._range);
+    
+    rot_z1_bounds->first=std::max(std::max(x_range->first + y_range->first + z_range->first, d_root*(-1))+tz_min,(d_root+shift_mag_max_root)*(-1));
+    rot_z1_bounds->second=std::min(std::min(x_range->second + y_range->second + z_range->second, d_root)+tz_max,(d_root+shift_mag_max_root));
+    
+    double z_lb=rot_z1_bounds->first;
+    double z_ub=rot_z1_bounds->second;
+    
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_lb;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_lb;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_ub;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    coord_i[0]=x_lb;
+    coord_i[1]=y_ub;
+    coord_i[2]=z_ub;
+    box_big.push_back(coord_i);
+    
+
+    
+    /*Equation of secan which underestimates feasible region*/
+    vector<double> secant(4,0.0);
+    secant[0]=(x_lb+x_ub)*(-1);
+    secant[1]=(y_lb+y_ub)*(-1);
+    secant[2]=(z_lb+z_ub)*(-1);
+    secant[3]=siq+x_lb*x_ub+y_lb*y_ub+z_lb*z_ub;
+
+    
+    vertex_found_a=vertices_box_plane(secant, box_big, new_vert_a, infeas_set_a);
+    
+    /*Find coordinates of the point to define tangent, Tangent is found parallel to secant, if this fails midpoint is used and checked to ensure does not intersect secant in this range*/
+    
+    double xt, yt, zt;
+
+    vector<double> tangent(4);
+    
+    xt=(x_lb+x_ub)*0.5;
+    yt=(y_lb+y_ub)*0.5;
+    auto ztemp=(z_lb+z_ub)*0.5;
+    zt=ztemp;
+    if(z_lb<=sqrt(soq-xt*xt-yt*yt)<=z_ub){
+        zt=sqrt(soq-xt*xt-yt*yt);
+    }
+    else if(z_lb<=sqrt(soq-xt*xt-yt*yt)*(-1)<=z_ub){
+        zt=sqrt(soq-xt*xt-yt*yt)*(-1);
+    }
+
+       bool plane_eq_found=true;
+        if(vertex_found_a){
+            for(auto v: new_vert_a){
+                auto x=v[0];
+                auto y=v[1];
+                auto z=v[2];
+                if(2*xt*x+2*yt*y+2*zt*z-soq-(xt*xt+yt*yt+zt*zt)>=1e-9){
+                    plane_eq_found=false;
+                }
+            }
+        }
+    
+    if(plane_eq_found){
+        tangent[0]=2*xt;
+        tangent[1]=2*yt;
+        tangent[2]=2*zt;
+        tangent[3]=-soq-(xt*xt+yt*yt+zt*zt);
+        DebugOff("Plane Eq found in extreme data "<<endl);
+        vertex_found_b=vertices_box_plane(tangent, box_big, new_vert_b, infeas_set_b);
+    }
+    else{
+        DebugOff("Plane Eq not found in extreme data "<<endl);
+    }
+    if(vertex_found_a){
+        for(auto v: new_vert_a){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_a){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOff("Vertex A not found "<<endl);
+    }
+    if(vertex_found_b){
+        for(auto v: new_vert_b){
+            extreme.push_back(v);
+        }
+        for(auto i: infeas_set_b){
+            infeas_set.push_back(i);
+        }
+    }
+    else{
+        DebugOff("Vertex B not found "<<plane_eq_found<<endl);
+    }
+    for(auto i=0;i<box_big.size();i++){
+        if(std::find (infeas_set.begin(), infeas_set.end(), i) ==infeas_set.end()){
+            extreme.push_back(box_big[i]);
+        }
+    }
+}
 /* Distance between two polytopes
  @poly1: Vertices of polytope1
  @poly2: Vertices of polytope2
@@ -475,8 +688,8 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     
     indices N1("N1"),N2("N2");
     
-    int n1 = x1.get_dim();
-    int n2 = x2.get_dim();
+    int n1 = point_cloud_data.size();
+    int n2 = point_cloud_model.size();
     DebugOff("n1 = " << n1 << endl);
     DebugOff("n2 = " << n2 << endl);
     
@@ -538,11 +751,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     
     
     var<> new_xm("new_xm"), new_ym("new_ym"), new_zm("new_zm");
-    
-    var<> xm("xm"), ym("ym"), zm("zm");
     Reg->add(new_xm.in(N1), new_ym.in(N1), new_zm.in(N1));
-    Reg->add(xm.in(N2), ym.in(N2), zm.in(N2));
-    
     
     
     
@@ -562,9 +771,6 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     Constraint<> OneBin("OneBin");
     OneBin = bin.in_matrix(1, 1);
     Reg->add(OneBin.in(N1)==1);
-    
-    
-    
     
     
     var<> x_diff("x_diff"), y_diff("y_diff"), z_diff("z_diff");
@@ -781,6 +987,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         box_j.push_back(point_cloud_model.at(it->first));
     }
     auto d_boxt_boxj=std::max(distance_polytopes_gjk(box_t, box_j)-1e-6, 0.0);
+    DebugOff("d_boxt_boxj "<<d_boxt_boxj<<endl);
     if(d_boxt_boxj>=1e-6){
         DebugOn("intersection test failed "<<d_boxt_boxj<<endl);
         found_all=false;
@@ -789,6 +996,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         found_all=true;
     }
     
+ 
     //triangle inequality?
     
     
@@ -826,16 +1034,11 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         T1.push_back(theta31);
         T1.push_back(theta32);
         T1.push_back(theta33);
-        
-        
-        
-        
-        
         for(auto i=0;i<nd;i++){
             double min_dist_ij_max=numeric_limits<double>::max();
             double min_dist_ij_min=numeric_limits<double>::max();
             vector<vector<double>> extreme_i;
-            get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
+            get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max);
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(valid_cells_old.size()>=point_cloud_data.size()){
@@ -874,66 +1077,6 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 break;
             }
         }
-    }
-    if(found_all){
-        for(auto i=0;i<nd-1;i++){
-            for(auto j=i+1;j<nd;j++){
-                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
-                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
-                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
-                auto d_sq=sqrt(d);
-                dist_ii.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
-                dist_ii.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
-            }
-        }
-        for(auto j=0;j<nm-1;j++){
-            for(auto i=j+1;j<nm;j++){
-                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
-                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
-                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
-                auto d_sq=sqrt(d);
-                dist_jj.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
-                dist_jj.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
-            }
-        }
-    for(auto i=0;i<nd;i++){
-        for(auto j=0;j<nd_vec[i].size()-1;j++){
-            auto key_j=to_string(i+1)+","+to_string(j+1);
-            auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
-            auto dij_max_sq=sqrt(dist_cells_max.eval(key_j));
-            for(auto k=j+1;k<nd_vec[i].size();k++){
-                auto key_k=to_string(i+1)+","+to_string(k+1);
-                auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
-                auto dik_max_sq=sqrt(dist_cells_max.eval(key_k));
-                auto djk=10;
-                auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
-                dij_min_sq=std::max(temp, dij_min_sq);
-                auto temp1=std::max(djk-dij_max_sq,dij_min_sq-djk);
-                dik_min_sq=std::max(temp1, dik_min_sq);
-                dist_cells_old.set_val(key_j, dij_min_sq*dij_min_sq);
-                dist_cells_old.set_val(key_k, dik_min_sq*dik_min_sq);
-            }
-        }
-    }
-    for(auto j=0;j<nm;j++){
-        for(auto i=0;i<nm_vec[j].size()-1;i++){
-            auto key_i=to_string(i+1)+","+to_string(j+1);
-            auto dij_min_sq=sqrt(dist_cells_old.eval(key_i));
-            auto dij_max_sq=sqrt(dist_cells_max.eval(key_i));
-            for(auto k=i+1;k<nm_vec[j].size();k++){
-                auto key_k=to_string(k+1)+","+to_string(j+1);
-                auto dkj_min_sq=sqrt(dist_cells_old.eval(key_k));
-                auto dkj_max_sq=sqrt(dist_cells_max.eval(key_k));
-                auto dik=dist_ii.eval(to_string(i+1)+","+to_string(k+1));
-                auto temp=std::max(dik-dkj_max_sq,dkj_min_sq-dik);
-                dij_min_sq=std::max(temp, dij_min_sq);
-                auto temp1=std::max(dik-dij_max_sq,dij_min_sq-dik);
-                dkj_min_sq=std::max(temp1, dkj_min_sq);
-                dist_cells_old.set_val(key_i, dij_min_sq*dij_min_sq);
-                dist_cells_old.set_val(key_k, dkj_min_sq*dkj_min_sq);
-            }
-        }
-    }
     }
     /*Looping again to ensure all valid cells have min_dist less than min_dist_ij_max*/
     if(found_all){
