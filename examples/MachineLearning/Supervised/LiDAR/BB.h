@@ -151,12 +151,17 @@ bool vertices_box_plane(const vector<double>& plane_eq, const vector<vector<doub
  Tangent Traingle inequality
  */
 void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d, const vector<var<double>>& theta_vec, vector<vector<double>>& box_t){
+    double box_xlb, box_xub, box_ylb, box_yub, box_zlb, box_zub;
+    double tx_min=box_t[0][0],ty_min=box_t[0][1],tz_min=box_t[0][2],tx_max=box_t[7][0],ty_max=box_t[7][1],tz_max=box_t[7][2];
+    
     vector<vector<double>> new_vert_a, new_vert_b;
     vector<int> infeas_set_a, infeas_set_b, infeas_set;
     bool vertex_found_a=false, vertex_found_b=false;
     
     double d_mag=pow(d[0],2)+pow(d[1],2)+pow(d[2],2);
     double d_root=sqrt(d_mag);
+    double shift_mag_max_root=sqrt(std::max(pow(tx_min,2),pow(tx_max,2))+std::max(pow(ty_min,2),pow(ty_max,2))+std::max(pow(tz_min,2),pow(tz_max,2)));
+    double box_max=d_root+shift_mag_max_root;
     
     auto theta11=theta_vec[0];
     auto theta12=theta_vec[1];
@@ -195,6 +200,8 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     
     double x_lb=rot_x1_bounds->first;
     double x_ub=rot_x1_bounds->second;
+    box_xlb=std::max(x_lb+tx_min, box_max*(-1));
+    box_xub=std::min(x_ub+tx_max, box_max);
     
     x_range  = get_product_range(x1_bounds, theta21._range);
     y_range  = get_product_range(y1_bounds, theta22._range);
@@ -205,6 +212,8 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     
     double y_lb=rot_y1_bounds->first;
     double y_ub=rot_y1_bounds->second;
+    box_ylb=std::max(y_lb+ty_min, box_max*(-1));
+    box_yub=std::min(y_ub+ty_max, box_max);
     
     
     x_range  = get_product_range(x1_bounds, theta31._range);
@@ -216,6 +225,8 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     
     double z_lb=rot_z1_bounds->first;
     double z_ub=rot_z1_bounds->second;
+    box_zlb=std::max(z_lb+tz_min, box_max*(-1));
+    box_zub=std::min(z_ub+tz_max, box_max);
     
     coord_i[0]=x_lb;
     coord_i[1]=y_lb;
@@ -351,8 +362,11 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     for(auto i=0;i<extreme_rot.size();i++){
         for(auto j=0;j<box_t.size();j++){
             res[0]=extreme_rot[i][0]+box_t[j][0];
+            res[0]=std::min(std::max(res[0], box_xlb), box_xub);
             res[1]=extreme_rot[i][1]+box_t[j][1];
+            res[1]=std::min(std::max(res[1], box_ylb), box_yub);
             res[2]=extreme_rot[i][2]+box_t[j][2];
+            res[2]=std::min(std::max(res[2], box_zlb), box_zub);
             extreme.push_back(res);
         }
     }
@@ -1038,7 +1052,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             double min_dist_ij_max=numeric_limits<double>::max();
             double min_dist_ij_min=numeric_limits<double>::max();
             vector<vector<double>> extreme_i;
-            get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max);
+            get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(valid_cells_old.size()>=point_cloud_data.size()){
@@ -1720,9 +1734,10 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     while(!lb_queue.empty())
     {
         auto node = lb_queue.top();
-        DebugOff("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
+        DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);
         
         DebugOn(node.roll.first<<" "<< node.roll.second<<" "<<node.pitch.first<<" "<<node.pitch.second<<" "<<node.yaw.first<<" "<<node.yaw.second<<endl);
+        DebugOn(node.tx.first<<" "<< node.tx.second<<" "<<node.ty.first<<" "<<node.ty.second<<" "<<node.tz.first<<" "<<node.tz.second<<endl);
         if(node.roll.first-1e-6<=roll_rad && roll_rad<=node.roll.second+1e-6 && node.pitch.first-1e-6<=pitch_rad && pitch_rad<=node.pitch.second+1e-6 && node.yaw.first-1e-6<=yaw_rad && yaw_rad<=node.yaw.second+1e-6){
             if(node.tx.first-1e-6<=tx && tx<=node.tx.second+1e-6 && node.ty.first-1e-6<=ty && ty<=node.ty.second+1e-6 && node.tz.first-1e-6<=tz && tz<=node.tz.second+1e-6){
                 DebugOn("True interval contained "<<endl);
