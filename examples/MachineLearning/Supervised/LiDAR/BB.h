@@ -922,7 +922,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     
     return Reg;
 }
-shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max,double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, indices& cells, param<double> dist_cost)
+shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max,double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, indices& cells, param<double> dist_cost, bool add_nc)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1055,7 +1055,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
         Reg->add(delta_cost.in(N1)<=0);
     }
-    
+    if(add_nc){
     func<> cosr_f = cos(roll);cosr_f.eval_all();
     func<> sinr_f = sin(roll);sinr_f.eval_all();
     func<> cosp_f = cos(pitch);cosp_f.eval_all();
@@ -1142,13 +1142,13 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
     T33+=theta33.in(range(0,0));
     T33-=cosr*cosp;
     Reg->add(T33.in(range(0,0))==0);
-    
+    }
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
     
     return Reg;
 }
-shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max,double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, indices& cells, param<double> dist_cost)
+shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max,double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, indices& cells, param<double> dist_cost, bool add_nc)
 {
     double angle_max = 0.1;
     int nb_pairs = 0, min_nb_pairs = numeric_limits<int>::max(), max_nb_pairs = 0, av_nb_pairs = 0;
@@ -1348,7 +1348,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
         Reg->add(delta_cost.in(N1)<=0);
     }
-    
+    if(add_nc){
     func<> cosr_f = cos(roll);cosr_f.eval_all();
     func<> sinr_f = sin(roll);sinr_f.eval_all();
     func<> cosp_f = cos(pitch);cosp_f.eval_all();
@@ -1435,7 +1435,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
     T33+=theta33.in(range(0,0));
     T33-=cosr*cosp;
     Reg->add(T33.in(range(0,0))==0);
-    
+    }
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
     
@@ -1782,7 +1782,11 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     bool model_created=false;
     if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
         if(error_type=="L2"){
-            model_i=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i);
+            bool add_nc=false;
+            if((upper_bound-vec_lb_i)/upper_bound*100<=10){
+                add_nc=true;
+            }
+            model_i=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i,add_nc);
         }
         else{
             DebugOn("L1 objective not supported");
