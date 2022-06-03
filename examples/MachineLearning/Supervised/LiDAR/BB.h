@@ -1056,18 +1056,90 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         Reg->add(delta_cost.in(N1)<=0);
     }
     
+    func<> d1_f = 1-theta11-theta22+theta33;
+    func<> d2_f = 1+theta11-theta22-theta33;;
+    func<> d3_f = 1+theta11+theta22+theta33;
+    func<> d4_f = 1-theta11+theta22-theta33;
+    
+    var<> d1("d1", 0, d1_f._range->second);
+    var<> d2("d2", 0, d2_f._range->second);
+    var<> d3("d3", 0, d3_f._range->second);
+    var<> d4("d4", 0, d4_f._range->second);
+    Reg->add(d1.in(R(1)));Reg->add(d2.in(R(1)));Reg->add(d3.in(R(1)));Reg->add(d4.in(R(1)));
+    var<> p1("p1");
+    var<> p2("p2");
+    var<> p3("p3");
+    var<> p4("p4");
+    var<> p5("p5");
+    var<> p6("p6");
+    Reg->add(p1.in(R(1)));Reg->add(p2.in(R(1)));Reg->add(p3.in(R(1)));Reg->add(p4.in(R(1)));Reg->add(p5.in(R(1)));
+    Reg->add(p6.in(R(1)));
+    
     Constraint<> diag_1("diag_1");
-    diag_1=1-theta11-theta22+theta33;
-    Reg->add(diag_1.in(range(0,0))>=0);
+    diag_1=1-theta11-theta22+theta33-d1;
+    Reg->add(diag_1.in(range(0,0))==0);
+    
     Constraint<> diag_2("diag_2");
-    diag_2=1+theta11-theta22-theta33;
-    Reg->add(diag_2.in(range(0,0))>=0);
+    diag_2=1+theta11-theta22-theta33-d2;
+    Reg->add(diag_2.in(range(0,0))==0);
+    
     Constraint<> diag_3("diag_3");
-    diag_3=1+theta11+theta22+theta33;
-    Reg->add(diag_3.in(range(0,0))>=0);
+    diag_3=1+theta11+theta22+theta33-d3;
+    Reg->add(diag_3.in(range(0,0))==0);
+    
     Constraint<> diag_4("diag_4");
-    diag_4=1-theta11+theta22-theta33;
-    Reg->add(diag_4.in(range(0,0))>=0);
+    diag_4=1-theta11+theta22-theta33-d4;
+    Reg->add(diag_4.in(range(0,0))==0);
+    
+    Constraint<> p_1("p_1");
+    p_1=theta13+theta31-p1;
+    Reg->add(p_1.in(range(0,0))==0);
+    
+    Constraint<> p_2("p_2");
+    p_2=theta12-theta21-p2;
+    Reg->add(p_2.in(range(0,0))==0);
+    
+    Constraint<> p_3("p_3");
+    p_3=theta23+theta32-p3;
+    Reg->add(p_3.in(range(0,0))==0);
+    
+    Constraint<> p_4("p_4");
+    p_4=theta23-theta32-p4;
+    Reg->add(p_4.in(range(0,0))==0);
+    
+    Constraint<> p_5("p_5");
+    p_5=theta12+theta21-p5;
+    Reg->add(p_5.in(range(0,0))==0);
+    
+    Constraint<> p_6("p_6");
+    p_6=theta31-theta13-p6;
+    Reg->add(p_6.in(range(0,0))==0);
+    
+ 
+    
+    Constraint<> soc_12("soc_12");
+    soc_12 = pow(p1,2)-d1*d2;
+    Reg->add(soc_12.in(range(0,0))<=0);
+    
+    Constraint<> soc_13("soc_13");
+    soc_13 = pow(p2,2)-d1*d3;
+    Reg->add(soc_13.in(range(0,0))<=0);
+    
+    Constraint<> soc_14("soc_14");
+    soc_14 = pow(p3,2)-d1*d4;
+    Reg->add(soc_14.in(range(0,0))<=0);
+    
+    Constraint<> soc_23("soc_23");
+    soc_23 = pow(p4,2)-d2*d3;
+    Reg->add(soc_23.in(range(0,0))<=0);
+    
+    Constraint<> soc_24("soc_24");
+    soc_24 = pow(p5,2)-d2*d4;
+    Reg->add(soc_24.in(range(0,0))<=0);
+    
+    Constraint<> soc_34("soc_34");
+    soc_34 = pow(p6,2)-d3*d4;
+    Reg->add(soc_34.in(range(0,0))<=0);
     
     if(add_nc){
         func<> cosr_f = cos(roll);cosr_f.eval_all();
