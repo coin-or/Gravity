@@ -1055,6 +1055,20 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         delta_cost=product(dist_cost.in(idsij), bin.in_matrix(1,1))-deltax-deltay-deltaz;
         Reg->add(delta_cost.in(N1)<=0);
     }
+    
+    Constraint<> diag_1("diag_1");
+    diag_1=1-theta11-theta22+theta33;
+    Reg->add(diag_1.in(range(0,0))>=0);
+    Constraint<> diag_2("diag_2");
+    diag_2=1+theta11-theta22-theta33;
+    Reg->add(diag_2.in(range(0,0))>=0);
+    Constraint<> diag_3("diag_3");
+    diag_3=1+theta11+theta22+theta33;
+    Reg->add(diag_3.in(range(0,0))>=0);
+    Constraint<> diag_4("diag_4");
+    diag_4=1-theta11+theta22-theta33;
+    Reg->add(diag_4.in(range(0,0))>=0);
+    
     if(add_nc){
     func<> cosr_f = cos(roll);cosr_f.eval_all();
     func<> sinr_f = sin(roll);sinr_f.eval_all();
@@ -1142,6 +1156,59 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
     T33+=theta33.in(range(0,0));
     T33-=cosr*cosp;
     Reg->add(T33.in(range(0,0))==0);
+    }
+    else{
+        Constraint<> Trow1("Trow1");
+        Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+        Reg->add(Trow1.in(range(0,0))<=1);
+        
+        Constraint<> Trow2("Trow2");
+        Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+        Reg->add(Trow2.in(range(0,0))<=1);
+        
+        Constraint<> Trow3("Trow3");
+        Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+        Reg->add(Trow3.in(range(0,0))<=1);
+        
+        Constraint<> Tcol1("Tcol1");
+        Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+        Reg->add(Tcol1.in(range(0,0))<=1);
+        
+        Constraint<> Tcol2("Tcol2");
+        Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+        Reg->add(Tcol2.in(range(0,0))<=1);
+        
+        Constraint<> Tcol3("Tcol3");
+        Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+        Reg->add(Tcol3.in(range(0,0))<=1);
+        
+        
+        Constraint<> sec_row1("sec_row1");
+        sec_row1=1+theta11.get_lb()*theta11.get_ub()+theta12.get_lb()*theta12.get_ub()+theta13.get_lb()*theta13.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta12.get_lb()+theta12.get_ub())*theta12-(theta13.get_lb()+theta13.get_ub())*theta13;
+        Reg->add(sec_row1.in(range(0,0))<=0);
+        
+        Constraint<> sec_row2("sec_row2");
+        sec_row2=1+theta21.get_lb()*theta21.get_ub()+theta22.get_lb()*theta22.get_ub()+theta23.get_lb()*theta23.get_ub()-(theta21.get_lb()+theta21.get_ub())*theta21-(theta22.get_lb()+theta22.get_ub())*theta22-(theta23.get_lb()+theta23.get_ub())*theta23;
+        Reg->add(sec_row2.in(range(0,0))<=0);
+        
+        Constraint<> sec_row3("sec_row3");
+        sec_row3=1+theta31.get_lb()*theta31.get_ub()+theta32.get_lb()*theta32.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta31.get_lb()+theta31.get_ub())*theta31-(theta32.get_lb()+theta32.get_ub())*theta32-(theta33.get_lb()+theta33.get_ub())*theta33;
+        Reg->add(sec_row3.in(range(0,0))<=0);
+
+        
+        Constraint<> sec_col1("sec_col1");
+        sec_col1=1+theta11.get_lb()*theta11.get_ub()+theta21.get_lb()*theta21.get_ub()+theta31.get_lb()*theta31.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta21.get_lb()+theta21.get_ub())*theta21-(theta31.get_lb()+theta31.get_ub())*theta31;
+        Reg->add(sec_col1.in(range(0,0))<=0);
+        
+        Constraint<> sec_col2("sec_col2");
+        sec_col2=1+theta12.get_lb()*theta12.get_ub()+theta22.get_lb()*theta22.get_ub()+theta32.get_lb()*theta32.get_ub()-(theta12.get_lb()+theta12.get_ub())*theta12-(theta22.get_lb()+theta22.get_ub())*theta22-(theta32.get_lb()+theta32.get_ub())*theta32;
+        Reg->add(sec_col2.in(range(0,0))<=0);
+        
+        Constraint<> sec_col3("sec_col3");
+        sec_col3=1+theta13.get_lb()*theta13.get_ub()+theta23.get_lb()*theta23.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta13.get_lb()+theta13.get_ub())*theta13-(theta23.get_lb()+theta23.get_ub())*theta23-(theta33.get_lb()+theta33.get_ub())*theta33;
+        Reg->add(sec_col3.in(range(0,0))<=0);
+        
+        
     }
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
@@ -1783,7 +1850,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
         if(error_type=="L2"){
             bool add_nc=false;
-            if((upper_bound-vec_lb_i)/upper_bound*100<=10){
+            if((upper_bound-vec_lb_i)/upper_bound*100<=90){
                 add_nc=true;
             }
             model_i=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i,add_nc);
