@@ -410,7 +410,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     vector<int> infeas_set_a, infeas_set_b, infeas_set;
     bool vertex_found_a=false, vertex_found_b=false;
     
- 
+    
     
     auto theta11=theta_vec[0];
     auto theta12=theta_vec[1];
@@ -504,7 +504,7 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     coord_i[2]=z_ub;
     box_big.push_back(coord_i);
     
-
+    
     
     /*Equation of secan which underestimates feasible region*/
     vector<double> secant(4,0.0);
@@ -512,14 +512,14 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     secant[1]=(y_lb+y_ub)*(-1);
     secant[2]=(z_lb+z_ub)*(-1);
     secant[3]=siq+x_lb*x_ub+y_lb*y_ub+z_lb*z_ub;
-
+    
     
     vertex_found_a=vertices_box_plane(secant, box_big, new_vert_a, infeas_set_a);
     
     /*Find coordinates of the point to define tangent, Tangent is found parallel to secant, if this fails midpoint is used and checked to ensure does not intersect secant in this range*/
     
     double xt, yt, zt;
-
+    
     vector<double> tangent(4);
     
     xt=(x_lb+x_ub)*0.5;
@@ -532,18 +532,18 @@ void get_extreme_point(vector<vector<double>>& extreme, const vector<double>& d,
     else if(z_lb<=sqrt(soq-xt*xt-yt*yt)*(-1)<=z_ub){
         zt=sqrt(soq-xt*xt-yt*yt)*(-1);
     }
-
-       bool plane_eq_found=true;
-        if(vertex_found_a){
-            for(auto v: new_vert_a){
-                auto x=v[0];
-                auto y=v[1];
-                auto z=v[2];
-                if(2*xt*x+2*yt*y+2*zt*z-soq-(xt*xt+yt*yt+zt*zt)>=1e-9){
-                    plane_eq_found=false;
-                }
+    
+    bool plane_eq_found=true;
+    if(vertex_found_a){
+        for(auto v: new_vert_a){
+            auto x=v[0];
+            auto y=v[1];
+            auto z=v[2];
+            if(2*xt*x+2*yt*y+2*zt*z-soq-(xt*xt+yt*yt+zt*zt)>=1e-9){
+                plane_eq_found=false;
             }
         }
+    }
     
     if(plane_eq_found){
         tangent[0]=2*xt;
@@ -1070,146 +1070,146 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
     Reg->add(diag_4.in(range(0,0))>=0);
     
     if(add_nc){
-    func<> cosr_f = cos(roll);cosr_f.eval_all();
-    func<> sinr_f = sin(roll);sinr_f.eval_all();
-    func<> cosp_f = cos(pitch);cosp_f.eval_all();
-    func<> sinp_f = sin(pitch);sinp_f.eval_all();
-    func<> cosy_f = cos(yaw);cosy_f.eval_all();
-    func<> siny_f = sin(yaw);siny_f.eval_all();
-    var<> cosr("cosr", cosr_f._range->first, cosr_f._range->second), sinr("sinr", sinr_f._range->first, sinr_f._range->second);
-    var<> cosp("cosp",  cosp_f._range->first, cosp_f._range->second), sinp("sinp", sinp_f._range->first, sinp_f._range->second);
-    var<> cosy("cosy",  cosy_f._range->first, cosy_f._range->second), siny("siny", siny_f._range->first, siny_f._range->second);
-    auto cosy_sinr_range = get_product_range(cosy._range, sinr._range);
-    auto siny_sinr_range = get_product_range(siny._range, sinr._range);
-    var<> cosy_sinr("cosy_sinr", cosy_sinr_range->first, cosy_sinr_range->second), siny_sinr("siny_sinr", siny_sinr_range->first, siny_sinr_range->second);
-    
-    Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
-    Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
-    Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
-    
-    
-    Constraint<> cosy_sinr_prod("cosy_sinr");
-    cosy_sinr_prod = cosy_sinr - cosy*sinr;
-    Reg->add(cosy_sinr_prod==0);
-    
-    Constraint<> siny_sinr_prod("siny_sinr");
-    siny_sinr_prod = siny_sinr - siny*sinr;
-    Reg->add(siny_sinr_prod==0);
-    
-    Constraint<> trigR_NC("trigR_NC");
-    trigR_NC = pow(cosr,2) + pow(sinr,2);
-    Reg->add(trigR_NC.in(range(0,0))==1);
-    
-    Constraint<> trigP_NC("trigP_NC");
-    trigP_NC = pow(cosp,2) + pow(sinp,2);
-    Reg->add(trigP_NC.in(range(0,0))==1);
-    
-    Constraint<> trigY_NC("trigY_NC");
-    trigY_NC = pow(cosy,2) + pow(siny,2);
-    Reg->add(trigY_NC.in(range(0,0))==1);
-    
-    Constraint<> T11("T11");
-    T11=theta11.in(range(0,0));
-    T11-=cosr*cosy;
-    Reg->add(T11.in(range(0,0))==0);
-    
-    Constraint<> T12("T12");
-    T12=theta12.in(range(0,0));
-    T12-=cosy_sinr*sinp;
-    T12-=(-1)*cosp*siny;
-    Reg->add(T12.in(range(0,0))==0);
-    
-    Constraint<> T13("T13");
-    T13=theta13.in(range(0,0));
-    T13-=cosy_sinr*cosp;
-    T13-=sinp*siny;
-    Reg->add(T13.in(range(0,0))==0);
-    
-    Constraint<> T21("T21");
-    T21+=theta21.in(range(0,0));
-    T21-=cosr*siny;
-    Reg->add(T21.in(range(0,0))==0);
-    
-    Constraint<> T22("T22");
-    T22+=theta22.in(range(0,0));
-    T22-=siny_sinr*sinp;
-    T22-=cosp*cosy;
-    Reg->add(T22.in(range(0,0))==0);
-    
-    Constraint<> T23("T23");
-    T23+=theta23.in(range(0,0));
-    T23-=siny_sinr*cosp;
-    T23-=(-1)*sinp*cosy;
-    Reg->add(T23.in(range(0,0))==0);
-    
-    Constraint<> T31("T31");
-    T31+=theta31.in(range(0,0));
-    T31-=(-1)*sinr;
-    Reg->add(T31.in(range(0,0))==0);
-    
-    Constraint<> T32("T32");
-    T32+=theta32.in(range(0,0));
-    T32-=cosr*sinp;
-    Reg->add(T32.in(range(0,0))==0);
-    
-    Constraint<> T33("T33");
-    T33+=theta33.in(range(0,0));
-    T33-=cosr*cosp;
-    Reg->add(T33.in(range(0,0))==0);
+        func<> cosr_f = cos(roll);cosr_f.eval_all();
+        func<> sinr_f = sin(roll);sinr_f.eval_all();
+        func<> cosp_f = cos(pitch);cosp_f.eval_all();
+        func<> sinp_f = sin(pitch);sinp_f.eval_all();
+        func<> cosy_f = cos(yaw);cosy_f.eval_all();
+        func<> siny_f = sin(yaw);siny_f.eval_all();
+        var<> cosr("cosr", cosr_f._range->first, cosr_f._range->second), sinr("sinr", sinr_f._range->first, sinr_f._range->second);
+        var<> cosp("cosp",  cosp_f._range->first, cosp_f._range->second), sinp("sinp", sinp_f._range->first, sinp_f._range->second);
+        var<> cosy("cosy",  cosy_f._range->first, cosy_f._range->second), siny("siny", siny_f._range->first, siny_f._range->second);
+        auto cosy_sinr_range = get_product_range(cosy._range, sinr._range);
+        auto siny_sinr_range = get_product_range(siny._range, sinr._range);
+        var<> cosy_sinr("cosy_sinr", cosy_sinr_range->first, cosy_sinr_range->second), siny_sinr("siny_sinr", siny_sinr_range->first, siny_sinr_range->second);
+        
+        Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
+        Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
+        Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+        
+        
+        Constraint<> cosy_sinr_prod("cosy_sinr");
+        cosy_sinr_prod = cosy_sinr - cosy*sinr;
+        Reg->add(cosy_sinr_prod==0);
+        
+        Constraint<> siny_sinr_prod("siny_sinr");
+        siny_sinr_prod = siny_sinr - siny*sinr;
+        Reg->add(siny_sinr_prod==0);
+        
+        Constraint<> trigR_NC("trigR_NC");
+        trigR_NC = pow(cosr,2) + pow(sinr,2);
+        Reg->add(trigR_NC.in(range(0,0))==1);
+        
+        Constraint<> trigP_NC("trigP_NC");
+        trigP_NC = pow(cosp,2) + pow(sinp,2);
+        Reg->add(trigP_NC.in(range(0,0))==1);
+        
+        Constraint<> trigY_NC("trigY_NC");
+        trigY_NC = pow(cosy,2) + pow(siny,2);
+        Reg->add(trigY_NC.in(range(0,0))==1);
+        
+        Constraint<> T11("T11");
+        T11=theta11.in(range(0,0));
+        T11-=cosr*cosy;
+        Reg->add(T11.in(range(0,0))==0);
+        
+        Constraint<> T12("T12");
+        T12=theta12.in(range(0,0));
+        T12-=cosy_sinr*sinp;
+        T12-=(-1)*cosp*siny;
+        Reg->add(T12.in(range(0,0))==0);
+        
+        Constraint<> T13("T13");
+        T13=theta13.in(range(0,0));
+        T13-=cosy_sinr*cosp;
+        T13-=sinp*siny;
+        Reg->add(T13.in(range(0,0))==0);
+        
+        Constraint<> T21("T21");
+        T21+=theta21.in(range(0,0));
+        T21-=cosr*siny;
+        Reg->add(T21.in(range(0,0))==0);
+        
+        Constraint<> T22("T22");
+        T22+=theta22.in(range(0,0));
+        T22-=siny_sinr*sinp;
+        T22-=cosp*cosy;
+        Reg->add(T22.in(range(0,0))==0);
+        
+        Constraint<> T23("T23");
+        T23+=theta23.in(range(0,0));
+        T23-=siny_sinr*cosp;
+        T23-=(-1)*sinp*cosy;
+        Reg->add(T23.in(range(0,0))==0);
+        
+        Constraint<> T31("T31");
+        T31+=theta31.in(range(0,0));
+        T31-=(-1)*sinr;
+        Reg->add(T31.in(range(0,0))==0);
+        
+        Constraint<> T32("T32");
+        T32+=theta32.in(range(0,0));
+        T32-=cosr*sinp;
+        Reg->add(T32.in(range(0,0))==0);
+        
+        Constraint<> T33("T33");
+        T33+=theta33.in(range(0,0));
+        T33-=cosr*cosp;
+        Reg->add(T33.in(range(0,0))==0);
     }
-    else{
-        Constraint<> Trow1("Trow1");
-        Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-        Reg->add(Trow1.in(range(0,0))<=1);
-        
-        Constraint<> Trow2("Trow2");
-        Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-        Reg->add(Trow2.in(range(0,0))<=1);
-        
-        Constraint<> Trow3("Trow3");
-        Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-        Reg->add(Trow3.in(range(0,0))<=1);
-        
-        Constraint<> Tcol1("Tcol1");
-        Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-        Reg->add(Tcol1.in(range(0,0))<=1);
-        
-        Constraint<> Tcol2("Tcol2");
-        Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-        Reg->add(Tcol2.in(range(0,0))<=1);
-        
-        Constraint<> Tcol3("Tcol3");
-        Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-        Reg->add(Tcol3.in(range(0,0))<=1);
-        
-        
-        Constraint<> sec_row1("sec_row1");
-        sec_row1=1+theta11.get_lb()*theta11.get_ub()+theta12.get_lb()*theta12.get_ub()+theta13.get_lb()*theta13.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta12.get_lb()+theta12.get_ub())*theta12-(theta13.get_lb()+theta13.get_ub())*theta13;
-        Reg->add(sec_row1.in(range(0,0))<=0);
-        
-        Constraint<> sec_row2("sec_row2");
-        sec_row2=1+theta21.get_lb()*theta21.get_ub()+theta22.get_lb()*theta22.get_ub()+theta23.get_lb()*theta23.get_ub()-(theta21.get_lb()+theta21.get_ub())*theta21-(theta22.get_lb()+theta22.get_ub())*theta22-(theta23.get_lb()+theta23.get_ub())*theta23;
-        Reg->add(sec_row2.in(range(0,0))<=0);
-        
-        Constraint<> sec_row3("sec_row3");
-        sec_row3=1+theta31.get_lb()*theta31.get_ub()+theta32.get_lb()*theta32.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta31.get_lb()+theta31.get_ub())*theta31-(theta32.get_lb()+theta32.get_ub())*theta32-(theta33.get_lb()+theta33.get_ub())*theta33;
-        Reg->add(sec_row3.in(range(0,0))<=0);
-
-        
-        Constraint<> sec_col1("sec_col1");
-        sec_col1=1+theta11.get_lb()*theta11.get_ub()+theta21.get_lb()*theta21.get_ub()+theta31.get_lb()*theta31.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta21.get_lb()+theta21.get_ub())*theta21-(theta31.get_lb()+theta31.get_ub())*theta31;
-        Reg->add(sec_col1.in(range(0,0))<=0);
-        
-        Constraint<> sec_col2("sec_col2");
-        sec_col2=1+theta12.get_lb()*theta12.get_ub()+theta22.get_lb()*theta22.get_ub()+theta32.get_lb()*theta32.get_ub()-(theta12.get_lb()+theta12.get_ub())*theta12-(theta22.get_lb()+theta22.get_ub())*theta22-(theta32.get_lb()+theta32.get_ub())*theta32;
-        Reg->add(sec_col2.in(range(0,0))<=0);
-        
-        Constraint<> sec_col3("sec_col3");
-        sec_col3=1+theta13.get_lb()*theta13.get_ub()+theta23.get_lb()*theta23.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta13.get_lb()+theta13.get_ub())*theta13-(theta23.get_lb()+theta23.get_ub())*theta23-(theta33.get_lb()+theta33.get_ub())*theta33;
-        Reg->add(sec_col3.in(range(0,0))<=0);
-        
-        
-    }
+    
+    Constraint<> Trow1("Trow1");
+    Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    Reg->add(Trow1.in(range(0,0))<=1);
+    
+    Constraint<> Trow2("Trow2");
+    Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    Reg->add(Trow2.in(range(0,0))<=1);
+    
+    Constraint<> Trow3("Trow3");
+    Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    Reg->add(Trow3.in(range(0,0))<=1);
+    
+    Constraint<> Tcol1("Tcol1");
+    Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    Reg->add(Tcol1.in(range(0,0))<=1);
+    
+    Constraint<> Tcol2("Tcol2");
+    Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    Reg->add(Tcol2.in(range(0,0))<=1);
+    
+    Constraint<> Tcol3("Tcol3");
+    Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    Reg->add(Tcol3.in(range(0,0))<=1);
+    
+    
+    Constraint<> sec_row1("sec_row1");
+    sec_row1=1+theta11.get_lb()*theta11.get_ub()+theta12.get_lb()*theta12.get_ub()+theta13.get_lb()*theta13.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta12.get_lb()+theta12.get_ub())*theta12-(theta13.get_lb()+theta13.get_ub())*theta13;
+    Reg->add(sec_row1.in(range(0,0))<=0);
+    
+    Constraint<> sec_row2("sec_row2");
+    sec_row2=1+theta21.get_lb()*theta21.get_ub()+theta22.get_lb()*theta22.get_ub()+theta23.get_lb()*theta23.get_ub()-(theta21.get_lb()+theta21.get_ub())*theta21-(theta22.get_lb()+theta22.get_ub())*theta22-(theta23.get_lb()+theta23.get_ub())*theta23;
+    Reg->add(sec_row2.in(range(0,0))<=0);
+    
+    Constraint<> sec_row3("sec_row3");
+    sec_row3=1+theta31.get_lb()*theta31.get_ub()+theta32.get_lb()*theta32.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta31.get_lb()+theta31.get_ub())*theta31-(theta32.get_lb()+theta32.get_ub())*theta32-(theta33.get_lb()+theta33.get_ub())*theta33;
+    Reg->add(sec_row3.in(range(0,0))<=0);
+    
+    
+    Constraint<> sec_col1("sec_col1");
+    sec_col1=1+theta11.get_lb()*theta11.get_ub()+theta21.get_lb()*theta21.get_ub()+theta31.get_lb()*theta31.get_ub()-(theta11.get_lb()+theta11.get_ub())*theta11-(theta21.get_lb()+theta21.get_ub())*theta21-(theta31.get_lb()+theta31.get_ub())*theta31;
+    Reg->add(sec_col1.in(range(0,0))<=0);
+    
+    Constraint<> sec_col2("sec_col2");
+    sec_col2=1+theta12.get_lb()*theta12.get_ub()+theta22.get_lb()*theta22.get_ub()+theta32.get_lb()*theta32.get_ub()-(theta12.get_lb()+theta12.get_ub())*theta12-(theta22.get_lb()+theta22.get_ub())*theta22-(theta32.get_lb()+theta32.get_ub())*theta32;
+    Reg->add(sec_col2.in(range(0,0))<=0);
+    
+    Constraint<> sec_col3("sec_col3");
+    sec_col3=1+theta13.get_lb()*theta13.get_ub()+theta23.get_lb()*theta23.get_ub()+theta33.get_lb()*theta33.get_ub()-(theta13.get_lb()+theta13.get_ub())*theta13-(theta23.get_lb()+theta23.get_ub())*theta23-(theta33.get_lb()+theta33.get_ub())*theta33;
+    Reg->add(sec_col3.in(range(0,0))<=0);
+    
+    
+    
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
     
@@ -1330,7 +1330,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
         *new_x1_bounds = {std::max(x_range->first + y_range->first + z_range->first, d_root*(-1)),std::min(x_range->second + y_range->second + z_range->second, d_root)};
         rotx_min.add_val(to_string(i+1), new_x1_bounds->first);
         rotx_max.add_val(to_string(i+1), new_x1_bounds->second);
-
+        
         x_range  = get_product_range(x1_bounds, theta21._range);
         y_range  = get_product_range(y1_bounds, theta22._range);
         z_range  = get_product_range(z1_bounds, theta23._range);
@@ -1383,7 +1383,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
     Constraint<> zd("zd");
     zd=x1*theta31.in(ids1)+y1*theta32.in(ids1)+z1*theta33.in(ids1)-rotz;
     Reg->add(zd.in(N1)==0);
-        
+    
     Constraint<> sec_rot("sec_rot");
     sec_rot=d_mag+rotx_min*rotx_max+roty_min*roty_max+rotz_min*rotz_max-(rotx_min+rotx_max)*rotx-(roty_min+roty_max)*roty-(rotz_min+rotz_max)*rotz;
     Reg->add(sec_rot.in(N1)<=0);
@@ -1416,92 +1416,92 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
         Reg->add(delta_cost.in(N1)<=0);
     }
     if(add_nc){
-    func<> cosr_f = cos(roll);cosr_f.eval_all();
-    func<> sinr_f = sin(roll);sinr_f.eval_all();
-    func<> cosp_f = cos(pitch);cosp_f.eval_all();
-    func<> sinp_f = sin(pitch);sinp_f.eval_all();
-    func<> cosy_f = cos(yaw);cosy_f.eval_all();
-    func<> siny_f = sin(yaw);siny_f.eval_all();
-    var<> cosr("cosr", cosr_f._range->first, cosr_f._range->second), sinr("sinr", sinr_f._range->first, sinr_f._range->second);
-    var<> cosp("cosp",  cosp_f._range->first, cosp_f._range->second), sinp("sinp", sinp_f._range->first, sinp_f._range->second);
-    var<> cosy("cosy",  cosy_f._range->first, cosy_f._range->second), siny("siny", siny_f._range->first, siny_f._range->second);
-    auto cosy_sinr_range = get_product_range(cosy._range, sinr._range);
-    auto siny_sinr_range = get_product_range(siny._range, sinr._range);
-    var<> cosy_sinr("cosy_sinr", cosy_sinr_range->first, cosy_sinr_range->second), siny_sinr("siny_sinr", siny_sinr_range->first, siny_sinr_range->second);
-    
-    Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
-    Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
-    Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
-    
-    
-    Constraint<> cosy_sinr_prod("cosy_sinr");
-    cosy_sinr_prod = cosy_sinr - cosy*sinr;
-    Reg->add(cosy_sinr_prod==0);
-    
-    Constraint<> siny_sinr_prod("siny_sinr");
-    siny_sinr_prod = siny_sinr - siny*sinr;
-    Reg->add(siny_sinr_prod==0);
-    
-    Constraint<> trigR_NC("trigR_NC");
-    trigR_NC = pow(cosr,2) + pow(sinr,2);
-    Reg->add(trigR_NC.in(range(0,0))==1);
-    
-    Constraint<> trigP_NC("trigP_NC");
-    trigP_NC = pow(cosp,2) + pow(sinp,2);
-    Reg->add(trigP_NC.in(range(0,0))==1);
-    
-    Constraint<> trigY_NC("trigY_NC");
-    trigY_NC = pow(cosy,2) + pow(siny,2);
-    Reg->add(trigY_NC.in(range(0,0))==1);
-    
-    Constraint<> T11("T11");
-    T11=theta11.in(range(0,0));
-    T11-=cosr*cosy;
-    Reg->add(T11.in(range(0,0))==0);
-    
-    Constraint<> T12("T12");
-    T12=theta12.in(range(0,0));
-    T12-=cosy_sinr*sinp;
-    T12-=(-1)*cosp*siny;
-    Reg->add(T12.in(range(0,0))==0);
-    
-    Constraint<> T13("T13");
-    T13=theta13.in(range(0,0));
-    T13-=cosy_sinr*cosp;
-    T13-=sinp*siny;
-    Reg->add(T13.in(range(0,0))==0);
-    
-    Constraint<> T21("T21");
-    T21+=theta21.in(range(0,0));
-    T21-=cosr*siny;
-    Reg->add(T21.in(range(0,0))==0);
-    
-    Constraint<> T22("T22");
-    T22+=theta22.in(range(0,0));
-    T22-=siny_sinr*sinp;
-    T22-=cosp*cosy;
-    Reg->add(T22.in(range(0,0))==0);
-    
-    Constraint<> T23("T23");
-    T23+=theta23.in(range(0,0));
-    T23-=siny_sinr*cosp;
-    T23-=(-1)*sinp*cosy;
-    Reg->add(T23.in(range(0,0))==0);
-    
-    Constraint<> T31("T31");
-    T31+=theta31.in(range(0,0));
-    T31-=(-1)*sinr;
-    Reg->add(T31.in(range(0,0))==0);
-    
-    Constraint<> T32("T32");
-    T32+=theta32.in(range(0,0));
-    T32-=cosr*sinp;
-    Reg->add(T32.in(range(0,0))==0);
-    
-    Constraint<> T33("T33");
-    T33+=theta33.in(range(0,0));
-    T33-=cosr*cosp;
-    Reg->add(T33.in(range(0,0))==0);
+        func<> cosr_f = cos(roll);cosr_f.eval_all();
+        func<> sinr_f = sin(roll);sinr_f.eval_all();
+        func<> cosp_f = cos(pitch);cosp_f.eval_all();
+        func<> sinp_f = sin(pitch);sinp_f.eval_all();
+        func<> cosy_f = cos(yaw);cosy_f.eval_all();
+        func<> siny_f = sin(yaw);siny_f.eval_all();
+        var<> cosr("cosr", cosr_f._range->first, cosr_f._range->second), sinr("sinr", sinr_f._range->first, sinr_f._range->second);
+        var<> cosp("cosp",  cosp_f._range->first, cosp_f._range->second), sinp("sinp", sinp_f._range->first, sinp_f._range->second);
+        var<> cosy("cosy",  cosy_f._range->first, cosy_f._range->second), siny("siny", siny_f._range->first, siny_f._range->second);
+        auto cosy_sinr_range = get_product_range(cosy._range, sinr._range);
+        auto siny_sinr_range = get_product_range(siny._range, sinr._range);
+        var<> cosy_sinr("cosy_sinr", cosy_sinr_range->first, cosy_sinr_range->second), siny_sinr("siny_sinr", siny_sinr_range->first, siny_sinr_range->second);
+        
+        Reg->add(cosr.in(R(1)),cosp.in(R(1)),cosy.in(R(1)));
+        Reg->add(sinr.in(R(1)),sinp.in(R(1)),siny.in(R(1)));
+        Reg->add(cosy_sinr.in(R(1)),siny_sinr.in(R(1)));
+        
+        
+        Constraint<> cosy_sinr_prod("cosy_sinr");
+        cosy_sinr_prod = cosy_sinr - cosy*sinr;
+        Reg->add(cosy_sinr_prod==0);
+        
+        Constraint<> siny_sinr_prod("siny_sinr");
+        siny_sinr_prod = siny_sinr - siny*sinr;
+        Reg->add(siny_sinr_prod==0);
+        
+        Constraint<> trigR_NC("trigR_NC");
+        trigR_NC = pow(cosr,2) + pow(sinr,2);
+        Reg->add(trigR_NC.in(range(0,0))==1);
+        
+        Constraint<> trigP_NC("trigP_NC");
+        trigP_NC = pow(cosp,2) + pow(sinp,2);
+        Reg->add(trigP_NC.in(range(0,0))==1);
+        
+        Constraint<> trigY_NC("trigY_NC");
+        trigY_NC = pow(cosy,2) + pow(siny,2);
+        Reg->add(trigY_NC.in(range(0,0))==1);
+        
+        Constraint<> T11("T11");
+        T11=theta11.in(range(0,0));
+        T11-=cosr*cosy;
+        Reg->add(T11.in(range(0,0))==0);
+        
+        Constraint<> T12("T12");
+        T12=theta12.in(range(0,0));
+        T12-=cosy_sinr*sinp;
+        T12-=(-1)*cosp*siny;
+        Reg->add(T12.in(range(0,0))==0);
+        
+        Constraint<> T13("T13");
+        T13=theta13.in(range(0,0));
+        T13-=cosy_sinr*cosp;
+        T13-=sinp*siny;
+        Reg->add(T13.in(range(0,0))==0);
+        
+        Constraint<> T21("T21");
+        T21+=theta21.in(range(0,0));
+        T21-=cosr*siny;
+        Reg->add(T21.in(range(0,0))==0);
+        
+        Constraint<> T22("T22");
+        T22+=theta22.in(range(0,0));
+        T22-=siny_sinr*sinp;
+        T22-=cosp*cosy;
+        Reg->add(T22.in(range(0,0))==0);
+        
+        Constraint<> T23("T23");
+        T23+=theta23.in(range(0,0));
+        T23-=siny_sinr*cosp;
+        T23-=(-1)*sinp*cosy;
+        Reg->add(T23.in(range(0,0))==0);
+        
+        Constraint<> T31("T31");
+        T31+=theta31.in(range(0,0));
+        T31-=(-1)*sinr;
+        Reg->add(T31.in(range(0,0))==0);
+        
+        Constraint<> T32("T32");
+        T32+=theta32.in(range(0,0));
+        T32-=cosr*sinp;
+        Reg->add(T32.in(range(0,0))==0);
+        
+        Constraint<> T33("T33");
+        T33+=theta33.in(range(0,0));
+        T33-=cosr*cosp;
+        Reg->add(T33.in(range(0,0))==0);
     }
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
@@ -1596,7 +1596,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         found_all=true;
     }
     
- 
+    
     //triangle inequality?
     
     
@@ -1675,6 +1675,41 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             if(valid_cells_map[i].empty() || min_cost_sum>=upper_bound+1e-6){
                 found_all=false;
                 break;
+            }
+        }
+    }
+    if(false){
+        for(auto j=0;j<nm-1;j++){
+            for(auto i=j+1;i<nm;i++){
+                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
+                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
+                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
+                auto d_sq=sqrt(d);
+                dist_jj.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
+                dist_jj.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
+            }
+        }
+        for(auto i=0;i<nd;i++){
+            for(auto l=0;l<nd_vec[i].size()-1;l++){
+                auto j=nd_vec[i][l];
+                auto key_j=to_string(i+1)+","+to_string(j+1);
+                auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
+                auto dij_max_sq=sqrt(dist_cells_max.eval(key_j));
+                auto k=nd_vec[i][l+1];
+                auto key_k=to_string(i+1)+","+to_string(k+1);
+                auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
+                auto dik_max_sq=sqrt(dist_cells_max.eval(key_k));
+                auto djk=dist_jj.eval(to_string(j+1)+","+to_string(k+1));
+                if(djk<=dik_min_sq || djk>=dik_max_sq ){
+                    auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
+                    dij_min_sq=std::max(temp, dij_min_sq);
+                }
+                if(djk<=dij_min_sq || djk>=dij_max_sq ){
+                    auto temp=std::max(djk-dij_max_sq,dij_min_sq-djk);
+                    dik_min_sq=std::max(temp, dik_min_sq);
+                }
+                dist_cells_old.set_val(key_j, dij_min_sq*dij_min_sq);
+                dist_cells_old.set_val(key_k, dik_min_sq*dik_min_sq);
             }
         }
     }
@@ -1849,10 +1884,11 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     bool model_created=false;
     if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
         if(error_type=="L2"){
-            bool add_nc=false;
-            if((upper_bound-vec_lb_i)/upper_bound*100<=90){
-                add_nc=true;
-            }
+            //            bool add_nc=false;
+            //            if((upper_bound-vec_lb_i)/upper_bound*100<=90){
+            //                add_nc=true;
+            //            }
+            bool add_nc=true;
             model_i=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i,add_nc);
         }
         else{
