@@ -1641,7 +1641,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
     
-    map<double,int,greater<double>> map_nd;
+    multimap<double,int,greater<double>> map_nd;
     
     double ub_sq_root=sqrt(upper_bound);
     
@@ -1813,7 +1813,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
             }
             min_cost_sum+=min_dist_ij_min;
-            map_nd.insert({min_dist_ij_min,i});
+            map_nd.insert(std::pair<double,int>(min_dist_ij_min,i));
             if(valid_cells_map[i].empty() || min_cost_sum>=upper_bound+1e-6){
                 found_all=false;
                 break;
@@ -1959,8 +1959,8 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
-        DebugOff("valid cells old size "<<vo<<endl);
-        DebugOff("valid cells new size "<<vn<<endl);
+        DebugOn("valid cells old size "<<vo<<endl);
+        DebugOn("valid cells new size "<<vn<<endl);
         DebugOn("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }
@@ -1970,7 +1970,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         DebugOn("No valid cells found "<<endl);
     }
     prep_time=get_wall_time()-time_start;
-    DebugOn("prep time "<<prep_time);
+    DebugOn("prep time "<<prep_time<<" "<<roll_min<<" "<<roll_max<<" "<<pitch_min<<" "<<pitch_max<<" "<<yaw_min<<" "<<yaw_max<<" "<<tx_min<<" "<<tx_max<<" "<<ty_min<<" "<<ty_max<<" "<<tz_min<<" "<<tz_max<<endl);
     //return min_cost_sum;
 }
 
