@@ -9,6 +9,61 @@
 #define BB_h
 #include "gravity/nanoflann.hpp"
 #include "Heuristics.h"
+void make_box(double xl, double xu, double yl, double yu,double zl, double zu, vector<vector<double>>& box){
+    vector<double> res(3,0);
+    res[0]=xl;
+    res[1]=yl;
+    res[2]=zl;
+    box.push_back(res);
+    res[0]=xu;
+    res[1]=yl;
+    res[2]=zl;
+    box.push_back(res);
+    res[0]=xl;
+    res[1]=yu;
+    res[2]=zl;
+    box.push_back(res);
+    res[0]=xu;
+    res[1]=yu;
+    res[2]=zl;
+    box.push_back(res);
+    res[0]=xl;
+    res[1]=yl;
+    res[2]=zu;
+    box.push_back(res);
+    res[0]=xu;
+    res[1]=yl;
+    res[2]=zu;
+    box.push_back(res);
+    res[0]=xl;
+    res[1]=yu;
+    res[2]=zu;
+    box.push_back(res);
+    res[0]=xu;
+    res[1]=yu;
+    res[2]=zu;
+    box.push_back(res);
+    
+}
+void filter_extremei(vector<vector<double>>& ex_i, double xl, double xu, double yl, double yu,double zl, double zu, vector<vector<double>>& ex_ij){
+    for(auto k=0;k<8;k++){
+        double xl_ik=ex_i[k*8][0];
+        double yl_ik=ex_i[k*8][1];
+        double zl_ik=ex_i[k*8][2];
+        double xu_ik=ex_i[(k+1)*8-1][0];
+        double yu_ik=ex_i[(k+1)*8-1][1];
+        double zu_ik=ex_i[(k+1)*8-1][2];
+        xl_ik=std::max(xl_ik, xl);
+        yl_ik=std::max(yl_ik, yl);
+        zl_ik=std::max(zl_ik, zl);
+        xu_ik=std::min(xu_ik, xu);
+        yu_ik=std::min(yu_ik, yu);
+        zu_ik=std::min(zu_ik, zu);
+        if(xl_ik<=xu_ik && yl_ik<=yu_ik && zl_ik<=zu_ik){
+            make_box(xl_ik,xu_ik,yl_ik,yu_ik,zl_ik,zu_ik,ex_ij);
+        }
+    }
+}
 void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
                                 const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, treenode_p& vec_node_i, int& m_vec_i, double& vec_lb_i, indices& valid_cells_i,param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, std::string error_type, vector<double>& ub_i, double roll_min, double roll_max,  double pitch_min,  double pitch_max,  double yaw_min,  double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min,double tz_max,const nanoflann::KDTreeSingleIndexAdaptor<
                                 nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
@@ -1230,29 +1285,29 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         Reg->add(T33.in(range(0,0))==0);
     }
     
-    Constraint<> Trow1("Trow1");
-    Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-    Reg->add(Trow1.in(range(0,0))<=1);
-    
-    Constraint<> Trow2("Trow2");
-    Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-    Reg->add(Trow2.in(range(0,0))<=1);
-    
-    Constraint<> Trow3("Trow3");
-    Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-    Reg->add(Trow3.in(range(0,0))<=1);
-    
-    Constraint<> Tcol1("Tcol1");
-    Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-    Reg->add(Tcol1.in(range(0,0))<=1);
-    
-    Constraint<> Tcol2("Tcol2");
-    Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-    Reg->add(Tcol2.in(range(0,0))<=1);
-    
-    Constraint<> Tcol3("Tcol3");
-    Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-    Reg->add(Tcol3.in(range(0,0))<=1);
+//    Constraint<> Trow1("Trow1");
+//    Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+//    Reg->add(Trow1.in(range(0,0))<=1);
+//
+//    Constraint<> Trow2("Trow2");
+//    Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+//    Reg->add(Trow2.in(range(0,0))<=1);
+//
+//    Constraint<> Trow3("Trow3");
+//    Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+//    Reg->add(Trow3.in(range(0,0))<=1);
+//
+//    Constraint<> Tcol1("Tcol1");
+//    Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+//    Reg->add(Tcol1.in(range(0,0))<=1);
+//
+//    Constraint<> Tcol2("Tcol2");
+//    Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+//    Reg->add(Tcol2.in(range(0,0))<=1);
+//
+//    Constraint<> Tcol3("Tcol3");
+//    Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+//    Reg->add(Tcol3.in(range(0,0))<=1);
     
     
     Constraint<> sec_row1("sec_row1");
@@ -1586,6 +1641,10 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
     
+    map<double,int> map_nd;
+    
+    double ub_sq_root=sqrt(upper_bound);
+    
     min_cost_sum=0.0;
     bool found_all=true;
     
@@ -1720,7 +1779,15 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     }
                 }
                 double dist_ij_min, dist_ij_max;
-                double dij_voro=std::max(distance_polytopes_gjk(extreme_i, model_voronoi_vertices.at(j))-1e-6, 0.0);
+                vector<vector<double>> extreme_ij;
+                double xl=point_cloud_model.at(j)[0]-ub_sq_root;
+                double xu=point_cloud_model.at(j)[0]+ub_sq_root;
+                double yl=point_cloud_model.at(j)[1]-ub_sq_root;
+                double yu=point_cloud_model.at(j)[1]+ub_sq_root;
+                double zl=point_cloud_model.at(j)[2]-ub_sq_root;
+                double zu=point_cloud_model.at(j)[2]+ub_sq_root;
+                filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
+                double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
                 /*Calling GJK*/
                 if(dij_voro<=1e-6){
                     vector<vector<double>> extreme_j;
@@ -1744,13 +1811,14 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
             }
             min_cost_sum+=min_dist_ij_min;
+            map_nd.insert({min_dist_ij_min,i});
             if(valid_cells_map[i].empty() || min_cost_sum>=upper_bound+1e-6){
                 found_all=false;
                 break;
             }
         }
     }
-    if(true){
+    if(false){
         for(auto j=0;j<nm-1;j++){
             for(auto i=j+1;i<nm;i++){
                 auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
@@ -1785,14 +1853,19 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             }
         }
     }
+    double min_cost_nd_sum=0;
     /*Looping again to ensure all valid cells have min_dist less than min_dist_ij_max*/
     if(found_all){
         double new_tx_min=0, new_ty_min=0,new_tz_min=0,new_tx_max=0,new_ty_max=0,new_tz_max=0;
-        for(auto i=0;i<nd;i++){
+        for(auto itn=map_nd.begin();itn!=map_nd.end();itn++)
+        {
+            auto i=itn->second;
+            min_cost_nd_sum+=itn->first;
             double xm_min=9999.0, ym_min=9999.0, zm_min=9999.0;
             double xm_max=-9999.0, ym_max=-9999.0, zm_max=-9999.0;
             auto it=valid_cells_map[i].begin();
             double min_dist_ij_max=it->first;
+            found_all=false;
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(!valid_cells.has_key(key)){
@@ -1800,9 +1873,10 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     continue;
                 }
                 auto dij=dist_cells_old.eval(key);
-                if(dij<=min_dist_ij_max){
+                if(dij<=min_dist_ij_max && dij<=upper_bound-min_cost_nd_sum){
                     valid_cells_new.insert(key);
                     dist_cells.add_val(key, dij);
+                    found_all=true;
                 }
                 auto xm= point_cloud_model.at(j)[0];
                 auto ym= point_cloud_model.at(j)[1];
@@ -1825,6 +1899,9 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 if(zm>=zm_max){
                     zm_max=zm;
                 }
+            }
+            if(!found_all){
+                break;
             }
             new_tx_min+=xm_min;
             new_tx_max+=xm_max;

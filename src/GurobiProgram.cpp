@@ -440,7 +440,9 @@ void GurobiProgram::fill_in_grb_vmap(){
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                        //_grb_vars.at(vid).set(GRB_DoubleAttr_Start, real_var->eval(i));
+                        if(real_var->_name=="roll"||real_var->_name=="pitch"||real_var->_name=="yaw"){
+                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, 10);
+                    }
                     }
                 }
                 break;

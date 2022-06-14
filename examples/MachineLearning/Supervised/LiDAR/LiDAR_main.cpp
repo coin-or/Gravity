@@ -388,6 +388,7 @@ int main (int argc, char * argv[])
             reform_str = argv[7];
         }
         bool run_goICP = (algo=="GoICP");
+        bool run_gurobi = (algo=="GRB");
         if(run_goICP && argc==7){
             mse=stod(argv[5]);
             dt=stoi(argv[6]);
@@ -477,7 +478,39 @@ int main (int argc, char * argv[])
 #ifdef USE_QHULL
         min_max_t=get_translation_bounds(min_max_model, pcd);
 #endif
+        double best_ub=100;
+        vector<double> best_rot_trans;
+        //input
+        double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
+        vector<pair<double, double>> min_max_d;
+        double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
         vector<vector<vector<double>>> model_voronoi_vertices(model_nb_rows);/* Store the normal vector of each facet of the voronoi cell of each point */
+        PointCloud<double> cloud;
+        
+        cloud.pts.resize(point_cloud_model.size());
+        for (size_t i = 0; i < point_cloud_model.size(); i++)
+        {
+            cloud.pts[i].x = point_cloud_model[i][0];
+            cloud.pts[i].y = point_cloud_model[i][1];
+            cloud.pts[i].z = point_cloud_model[i][2];
+        }
+        nanoflann::KDTreeSingleIndexAdaptor<
+            nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
+            PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
+        index.buildIndex();
+        auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
+       // best_ub=0.0973;
+        double ub_sq_root=sqrt(best_ub);
+        for(auto i=0;i<point_cloud_data.size()-1;i++){
+            for(auto j=i+1;j<point_cloud_data.size();j++){
+                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
+                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
+                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
+                if(d>=4*best_ub+1e-9){
+                    DebugOn("cannot match with same j");
+                }
+            }
+        }
 #ifdef USE_VORO
         //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
         container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
@@ -712,12 +745,6 @@ int main (int argc, char * argv[])
             point_cloud_model = get_n_extreme_points(reduced_nb_model, point_cloud_model);
             point_cloud_data = get_n_extreme_points(reduced_nb_data, point_cloud_data);
         }
-        double best_ub=100;
-        vector<double> best_rot_trans;
-        //input
-        double shift_min_x =  std::max(min_max_model[0].first,-0.5), shift_max_x = std::min(min_max_model[0].second,0.5), shift_min_y = std::max(min_max_model[1].first,-0.5),shift_max_y = std::min(min_max_model[1].second,0.5),shift_min_z = std::max(min_max_model[2].first, -0.5),shift_max_z = std::min(min_max_model[2].second,0.5);
-        vector<pair<double, double>> min_max_d;
-        double yaw_min = -90*pi/180., yaw_max = 90*pi/180., pitch_min =-90*pi/180.,pitch_max = 90*pi/180.,roll_min =-90*pi/180.,roll_max = 90*pi/180.;
         if(run_goICP){/* Run GoICP inline */
             vector<int> matching(point_cloud_data.size());
             vector<double> err_per_point(point_cloud_data.size());
@@ -747,30 +774,38 @@ int main (int argc, char * argv[])
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
         }
-        bool discret=true;
-        if(discret){
-            PointCloud<double> cloud;
-            
-            cloud.pts.resize(point_cloud_model.size());
-            for (size_t i = 0; i < point_cloud_model.size(); i++)
-            {
-                cloud.pts[i].x = point_cloud_model[i][0];
-                cloud.pts[i].y = point_cloud_model[i][1];
-                cloud.pts[i].z = point_cloud_model[i][2];
-            }
-            nanoflann::KDTreeSingleIndexAdaptor<
-                nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
-            index.buildIndex();
+        if(run_gurobi){
+      
             double error=0;
-            best_ub=0.0973;
             indices valid_cells_old("valid_cells_old");
             indices new_cells("new_cells");
             param<double> dist_cells("dist_cells");
             double prep_time=0;
             double min_cost_sum=0;
             preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
-         auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
+        
+            auto model=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, new_cells, dist_cells,true);
+            solver<> S(model,gurobi);
+            //            S.use_callback();
+            //           // R->replace_integers();
+        S.run(5,1e-6, 1e9, 1, false, {false,""}, 172700,best_ub, 72);
+//#ifdef USE_MATPLOT
+//            apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
+//            //plot(point_cloud_model,point_cloud_data,1);
+//#endif
+            
+          
+            exit(0);
+        }
+        bool discret=true;
+        if(discret){
+            double error=0;
+            indices valid_cells_old("valid_cells_old");
+            indices new_cells("new_cells");
+            param<double> dist_cells("dist_cells");
+            double prep_time=0;
+            double min_cost_sum=0;
+            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
             auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index);
 #ifdef USE_MATPLOT
             apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
@@ -780,7 +815,7 @@ int main (int argc, char * argv[])
           
             exit(0);
         }
-            
+
 //        double shift_min_x =  0.1, shift_max_x = 0.2, shift_min_y = 0.1,shift_max_y = 0.2,shift_min_z = 0.1,shift_max_z = 0.2;
 //        double yaw_min = -10*pi/180., yaw_max = 10*pi/180., pitch_min =-10*pi/180.,pitch_max = 10*pi/180.,roll_min =-10*pi/180.,roll_max = 10*pi/180.;
        
