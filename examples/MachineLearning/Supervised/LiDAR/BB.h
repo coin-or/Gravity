@@ -1111,24 +1111,24 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         Reg->add(delta_cost.in(N1)<=0);
     }
     
-//    func<> d1_f = 1-theta11-theta22+theta33;
-//    func<> d2_f = 1+theta11-theta22-theta33;;
-//    func<> d3_f = 1+theta11+theta22+theta33;
-//    func<> d4_f = 1-theta11+theta22-theta33;
-//
-//    var<> d1("d1", 0, d1_f._range->second);
-//    var<> d2("d2", 0, d2_f._range->second);
-//    var<> d3("d3", 0, d3_f._range->second);
-//    var<> d4("d4", 0, d4_f._range->second);
-//    Reg->add(d1.in(R(1)));Reg->add(d2.in(R(1)));Reg->add(d3.in(R(1)));Reg->add(d4.in(R(1)));
-//    var<> p1("p1");
-//    var<> p2("p2");
-//    var<> p3("p3");
-//    var<> p4("p4");
-//    var<> p5("p5");
-//    var<> p6("p6");
-//    Reg->add(p1.in(R(1)));Reg->add(p2.in(R(1)));Reg->add(p3.in(R(1)));Reg->add(p4.in(R(1)));Reg->add(p5.in(R(1)));
-//    Reg->add(p6.in(R(1)));
+    //    func<> d1_f = 1-theta11-theta22+theta33;
+    //    func<> d2_f = 1+theta11-theta22-theta33;;
+    //    func<> d3_f = 1+theta11+theta22+theta33;
+    //    func<> d4_f = 1-theta11+theta22-theta33;
+    //
+    //    var<> d1("d1", 0, d1_f._range->second);
+    //    var<> d2("d2", 0, d2_f._range->second);
+    //    var<> d3("d3", 0, d3_f._range->second);
+    //    var<> d4("d4", 0, d4_f._range->second);
+    //    Reg->add(d1.in(R(1)));Reg->add(d2.in(R(1)));Reg->add(d3.in(R(1)));Reg->add(d4.in(R(1)));
+    //    var<> p1("p1");
+    //    var<> p2("p2");
+    //    var<> p3("p3");
+    //    var<> p4("p4");
+    //    var<> p5("p5");
+    //    var<> p6("p6");
+    //    Reg->add(p1.in(R(1)));Reg->add(p2.in(R(1)));Reg->add(p3.in(R(1)));Reg->add(p4.in(R(1)));Reg->add(p5.in(R(1)));
+    //    Reg->add(p6.in(R(1)));
     
     Constraint<> diag_1("diag_1");
     diag_1=1-theta11-theta22+theta33;
@@ -1146,55 +1146,55 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
     diag_4=1-theta11+theta22-theta33;
     Reg->add(diag_4.in(range(0,0))>=0);
     
-//    Constraint<> p_1("p_1");
-//    p_1=theta13+theta31-p1;
-//    Reg->add(p_1.in(range(0,0))==0);
-//
-//    Constraint<> p_2("p_2");
-//    p_2=theta12-theta21-p2;
-//    Reg->add(p_2.in(range(0,0))==0);
-//
-//    Constraint<> p_3("p_3");
-//    p_3=theta23+theta32-p3;
-//    Reg->add(p_3.in(range(0,0))==0);
-//
-//    Constraint<> p_4("p_4");
-//    p_4=theta23-theta32-p4;
-//    Reg->add(p_4.in(range(0,0))==0);
-//
-//    Constraint<> p_5("p_5");
-//    p_5=theta12+theta21-p5;
-//    Reg->add(p_5.in(range(0,0))==0);
-//
-//    Constraint<> p_6("p_6");
-//    p_6=theta31-theta13-p6;
-//    Reg->add(p_6.in(range(0,0))==0);
-//
-//
-//
-//    Constraint<> soc_12("soc_12");
-//    soc_12 = pow(p1,2)-d1*d2;
-//    Reg->add(soc_12.in(range(0,0))<=0);
-//
-//    Constraint<> soc_13("soc_13");
-//    soc_13 = pow(p2,2)-d1*d3;
-//    Reg->add(soc_13.in(range(0,0))<=0);
-//
-//    Constraint<> soc_14("soc_14");
-//    soc_14 = pow(p3,2)-d1*d4;
-//    Reg->add(soc_14.in(range(0,0))<=0);
-//
-//    Constraint<> soc_23("soc_23");
-//    soc_23 = pow(p4,2)-d2*d3;
-//    Reg->add(soc_23.in(range(0,0))<=0);
-//
-//    Constraint<> soc_24("soc_24");
-//    soc_24 = pow(p5,2)-d2*d4;
-//    Reg->add(soc_24.in(range(0,0))<=0);
-//
-//    Constraint<> soc_34("soc_34");
-//    soc_34 = pow(p6,2)-d3*d4;
-//    Reg->add(soc_34.in(range(0,0))<=0);
+    //    Constraint<> p_1("p_1");
+    //    p_1=theta13+theta31-p1;
+    //    Reg->add(p_1.in(range(0,0))==0);
+    //
+    //    Constraint<> p_2("p_2");
+    //    p_2=theta12-theta21-p2;
+    //    Reg->add(p_2.in(range(0,0))==0);
+    //
+    //    Constraint<> p_3("p_3");
+    //    p_3=theta23+theta32-p3;
+    //    Reg->add(p_3.in(range(0,0))==0);
+    //
+    //    Constraint<> p_4("p_4");
+    //    p_4=theta23-theta32-p4;
+    //    Reg->add(p_4.in(range(0,0))==0);
+    //
+    //    Constraint<> p_5("p_5");
+    //    p_5=theta12+theta21-p5;
+    //    Reg->add(p_5.in(range(0,0))==0);
+    //
+    //    Constraint<> p_6("p_6");
+    //    p_6=theta31-theta13-p6;
+    //    Reg->add(p_6.in(range(0,0))==0);
+    //
+    //
+    //
+    //    Constraint<> soc_12("soc_12");
+    //    soc_12 = pow(p1,2)-d1*d2;
+    //    Reg->add(soc_12.in(range(0,0))<=0);
+    //
+    //    Constraint<> soc_13("soc_13");
+    //    soc_13 = pow(p2,2)-d1*d3;
+    //    Reg->add(soc_13.in(range(0,0))<=0);
+    //
+    //    Constraint<> soc_14("soc_14");
+    //    soc_14 = pow(p3,2)-d1*d4;
+    //    Reg->add(soc_14.in(range(0,0))<=0);
+    //
+    //    Constraint<> soc_23("soc_23");
+    //    soc_23 = pow(p4,2)-d2*d3;
+    //    Reg->add(soc_23.in(range(0,0))<=0);
+    //
+    //    Constraint<> soc_24("soc_24");
+    //    soc_24 = pow(p5,2)-d2*d4;
+    //    Reg->add(soc_24.in(range(0,0))<=0);
+    //
+    //    Constraint<> soc_34("soc_34");
+    //    soc_34 = pow(p6,2)-d3*d4;
+    //    Reg->add(soc_34.in(range(0,0))<=0);
     
     if(add_nc){
         func<> cosr_f = cos(roll);cosr_f.eval_all();
@@ -1285,29 +1285,29 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
         Reg->add(T33.in(range(0,0))==0);
     }
     
-//    Constraint<> Trow1("Trow1");
-//    Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
-//    Reg->add(Trow1.in(range(0,0))<=1);
-//
-//    Constraint<> Trow2("Trow2");
-//    Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
-//    Reg->add(Trow2.in(range(0,0))<=1);
-//
-//    Constraint<> Trow3("Trow3");
-//    Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
-//    Reg->add(Trow3.in(range(0,0))<=1);
-//
-//    Constraint<> Tcol1("Tcol1");
-//    Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
-//    Reg->add(Tcol1.in(range(0,0))<=1);
-//
-//    Constraint<> Tcol2("Tcol2");
-//    Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
-//    Reg->add(Tcol2.in(range(0,0))<=1);
-//
-//    Constraint<> Tcol3("Tcol3");
-//    Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
-//    Reg->add(Tcol3.in(range(0,0))<=1);
+    //    Constraint<> Trow1("Trow1");
+    //    Trow1=pow(theta11,2)+pow(theta12,2)+pow(theta13,2);
+    //    Reg->add(Trow1.in(range(0,0))<=1);
+    //
+    //    Constraint<> Trow2("Trow2");
+    //    Trow2=pow(theta21,2)+pow(theta22,2)+pow(theta23,2);
+    //    Reg->add(Trow2.in(range(0,0))<=1);
+    //
+    //    Constraint<> Trow3("Trow3");
+    //    Trow3=pow(theta31,2)+pow(theta32,2)+pow(theta33,2);
+    //    Reg->add(Trow3.in(range(0,0))<=1);
+    //
+    //    Constraint<> Tcol1("Tcol1");
+    //    Tcol1=pow(theta11,2)+pow(theta21,2)+pow(theta31,2);
+    //    Reg->add(Tcol1.in(range(0,0))<=1);
+    //
+    //    Constraint<> Tcol2("Tcol2");
+    //    Tcol2=pow(theta12,2)+pow(theta22,2)+pow(theta32,2);
+    //    Reg->add(Tcol2.in(range(0,0))<=1);
+    //
+    //    Constraint<> Tcol3("Tcol3");
+    //    Tcol3=pow(theta13,2)+pow(theta23,2)+pow(theta33,2);
+    //    Reg->add(Tcol3.in(range(0,0))<=1);
     
     
     Constraint<> sec_row1("sec_row1");
@@ -1641,7 +1641,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
     
-    map<double,int> map_nd;
+    map<double,int,greater<double>> map_nd;
     
     double ub_sq_root=sqrt(upper_bound);
     
@@ -1787,26 +1787,28 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 double zl=point_cloud_model.at(j)[2]-ub_sq_root;
                 double zu=point_cloud_model.at(j)[2]+ub_sq_root;
                 filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
-                double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
-                /*Calling GJK*/
-                if(dij_voro<=1e-6){
-                    vector<vector<double>> extreme_j;
-                    extreme_j.push_back(point_cloud_model.at(j));
-                    dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
-                    if(dist_ij_min<=upper_bound && dist_ij_min<=min_dist_ij_max){
-                        dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
-                        if(dist_ij_max<=min_dist_ij_max){
-                            min_dist_ij_max=dist_ij_max;
+                if(extreme_ij.size()>=8){
+                    double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
+                    /*Calling GJK*/
+                    if(dij_voro<=1e-6){
+                        vector<vector<double>> extreme_j;
+                        extreme_j.push_back(point_cloud_model.at(j));
+                        dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
+                        if(dist_ij_min<=upper_bound && dist_ij_min<=min_dist_ij_max){
+                            dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
+                            if(dist_ij_max<=min_dist_ij_max){
+                                min_dist_ij_max=dist_ij_max;
+                            }
+                            if(dist_ij_min<=min_dist_ij_min){
+                                min_dist_ij_min=dist_ij_min;
+                            }
+                            valid_cells_map[i].insert(pair<double, int>(dist_ij_max, j));
+                            dist_cells_old.add_val(key, dist_ij_min);
+                            dist_cells_max.add_val(key, dist_ij_max);
+                            valid_cells.insert(key);
+                            nd_vec[i].push_back(j);
+                            nm_vec[j].push_back(i);
                         }
-                        if(dist_ij_min<=min_dist_ij_min){
-                            min_dist_ij_min=dist_ij_min;
-                        }
-                        valid_cells_map[i].insert(pair<double, int>(dist_ij_max, j));
-                        dist_cells_old.add_val(key, dist_ij_min);
-                        dist_cells_max.add_val(key, dist_ij_max);
-                        valid_cells.insert(key);
-                        nd_vec[i].push_back(j);
-                        nm_vec[j].push_back(i);
                     }
                 }
             }
