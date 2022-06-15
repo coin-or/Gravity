@@ -2220,6 +2220,17 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     double  prep_time=0.0;
     min_cost_sum=0;
     
+//    for(auto i=0;i<point_cloud_data.size()-1;i++){
+//        for(auto j=i+1;j<point_cloud_data.size();j++){
+//            auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
+//            pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
+//            pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
+//            if(d>=4*best_ub+1e-9){
+//                DebugOn("cannot match with same j");
+//            }
+//        }
+//    }
+    
     lb_queue.push(treenode_p(roll_bounds_r, pitch_bounds_r, yaw_bounds_r, tx_bounds_r, ty_bounds_r,tz_bounds_r,lb, ub, ub_, depth_r, valid_cells_r, false, dist_cost_r));
     treenode_p topnode=lb_queue.top();
     
@@ -2383,7 +2394,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                if((topnode.depth)%2==0){
+                if((topnode.depth)%2==0 && (iter==0 || iter>=3)){
                     DebugOn("R branch "<<topnode.depth<<endl);
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
@@ -2422,9 +2433,24 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                 else{
                     DebugOn("t branch "<<topnode.depth<<endl);
                     double tx_increment,  ty_increment, tz_increment;
-                    tx_increment = (topnode.tx.second - topnode.tx.first)/2.0;
-                    ty_increment = (topnode.ty.second - topnode.ty.first)/2.0;
-                    tz_increment = (topnode.tz.second - topnode.tz.first)/2.0;
+                    if(topnode.tx.first<=-0.001 && topnode.tx.second>=0){
+                        tx_increment = topnode.tx.first*(-1);
+                    }
+                    else{
+                        tx_increment = (topnode.tx.second - topnode.tx.first)/2.0;
+                    }
+                    if(topnode.ty.first<=-0.001 && topnode.ty.second>=0){
+                        ty_increment = topnode.ty.first*(-1);
+                    }
+                    else{
+                        ty_increment = (topnode.ty.second - topnode.ty.first)/2.0;
+                    }
+                    if(topnode.tz.first<=-0.001 && topnode.tz.second>=0){
+                        tz_increment = topnode.tz.first*(-1);
+                    }
+                    else{
+                        tz_increment = (topnode.tz.second - topnode.tz.first)/2.0;
+                    }
                     tx_bounds.push_back({topnode.tx.first, topnode.tx.first+tx_increment});
                     tx_bounds.push_back({topnode.tx.first, topnode.tx.first+tx_increment});
                     tx_bounds.push_back({topnode.tx.first, topnode.tx.first+tx_increment});

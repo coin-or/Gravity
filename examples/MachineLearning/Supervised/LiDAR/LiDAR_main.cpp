@@ -502,16 +502,6 @@ int main (int argc, char * argv[])
        auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
        // best_ub=0.0973;
         double ub_sq_root=sqrt(best_ub);
-        for(auto i=0;i<point_cloud_data.size()-1;i++){
-            for(auto j=i+1;j<point_cloud_data.size();j++){
-                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
-                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
-                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
-                if(d>=4*best_ub+1e-9){
-                    DebugOn("cannot match with same j");
-                }
-            }
-        }
 #ifdef USE_VORO
         //container model_con(min_max_d[0].first-1e-4,min_max_d[0].second+1e-4,min_max_d[1].first-1e-4,min_max_d[1].second+1e-4,min_max_d[2].first-1e-4,min_max_d[2].second+1e-4,10,10,10,false,false,false,8);
         container model_con(-1,1,-1,1,-1,1,10,10,10,false,false,false,8);
