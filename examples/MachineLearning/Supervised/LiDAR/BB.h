@@ -999,8 +999,8 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
                 DebugOff("continued");
                 continue;
             }
-            for (int k = 0; k<incomp[i].size() && count_i<10; k++) {
-                int i1=incomp[i][k];
+            for (int k = 0; k<incomp.at(i).size() && count_i<10; k++) {
+                int i1=incomp.at(i)[k];
                 string key1= to_string(i1+1)+","+to_string(j+1);
                 if(cells.has_key(key1)){
                    incompatibles.push_back({{i,j},{i1,j}});
@@ -1842,17 +1842,17 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
                 double dist_ij_min, dist_ij_max;
                 vector<vector<double>> extreme_ij;
-                double xl=point_cloud_model.at(j)[0]-ub_sq_root-1e-6;
-                double xu=point_cloud_model.at(j)[0]+ub_sq_root+1e-6;
-                double yl=point_cloud_model.at(j)[1]-ub_sq_root-1e-6;
-                double yu=point_cloud_model.at(j)[1]+ub_sq_root+1e-6;
-                double zl=point_cloud_model.at(j)[2]-ub_sq_root-1e-6;
-                double zu=point_cloud_model.at(j)[2]+ub_sq_root+1e-6;
+                double xl=point_cloud_model.at(j)[0]-ub_sq_root-1e-9;
+                double xu=point_cloud_model.at(j)[0]+ub_sq_root+1e-9;
+                double yl=point_cloud_model.at(j)[1]-ub_sq_root-1e-9;
+                double yu=point_cloud_model.at(j)[1]+ub_sq_root+1e-9;
+                double zl=point_cloud_model.at(j)[2]-ub_sq_root-1e-9;
+                double zu=point_cloud_model.at(j)[2]+ub_sq_root+1e-9;
                 filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
                 if(extreme_ij.size()>=8){
                     double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
                     /*Calling GJK*/
-                    if(dij_voro<=1e-6){
+                    if(dij_voro<=1e-9){
                         vector<vector<double>> extreme_j;
                         extreme_j.push_back(point_cloud_model.at(j));
                         dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
