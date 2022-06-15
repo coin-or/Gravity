@@ -1803,7 +1803,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 double yu=point_cloud_model.at(j)[1]+ub_sq_root+1e-6;
                 double zl=point_cloud_model.at(j)[2]-ub_sq_root-1e-6;
                 double zu=point_cloud_model.at(j)[2]+ub_sq_root+1e-6;
-                //filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
+                filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
                 if(extreme_ij.size()>=8){
                     double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
                     /*Calling GJK*/
