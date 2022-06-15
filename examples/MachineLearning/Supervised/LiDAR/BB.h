@@ -1785,8 +1785,8 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             double min_dist_ij_max=numeric_limits<double>::max();
             double min_dist_ij_min=numeric_limits<double>::max();
             vector<vector<double>> extreme_i;
-            //get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
-            get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max,tz_min, tz_max);
+            get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
+           // get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max,tz_min, tz_max);
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(valid_cells_old.size()>=point_cloud_data.size()){

@@ -770,7 +770,7 @@ int main (int argc, char * argv[])
 //            double y_shift=-0.129687;
 //            double z_shift=0.0191642;
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            plot(point_cloud_model,point_cloud_data,1);
+            //plot(point_cloud_model,point_cloud_data,1);
             auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
