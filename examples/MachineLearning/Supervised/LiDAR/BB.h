@@ -990,16 +990,16 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     
     vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
     int count=0;
-    for(auto i=0;i<nd && count<300;i++){
+    for(auto i=0;i<nd;i++){
         if(incomp.find(i)!=incomp.end()){
             int count_i=0;
-        for (int j = 0; j<nm && count_i<100; j++) {
+        for (int j = 0; j<nm ; j++) {
             string key= to_string(i+1)+","+to_string(j+1);
             if(!cells.has_key(key)){
                 DebugOff("continued");
                 continue;
             }
-            for (int k = 0; k<incomp.at(i).size() && count_i<10; k++) {
+            for (int k = 0; k<incomp.at(i).size(); k++) {
                 int i1=incomp.at(i)[k];
                 string key1= to_string(i1+1)+","+to_string(j+1);
                 if(cells.has_key(key1)){
@@ -1029,7 +1029,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
                 Constraint<> incomp_pairs("incomp_pairs");
                 incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
                 Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
-                incomp_pairs.print();
+                //incomp_pairs.print();
             }
         }
     
@@ -2339,7 +2339,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             if(lb_queue.top().lb<=best_ub && !lb_queue.top().leaf && !lb_queue.empty()){
                 topnode=lb_queue.top();
                 lb_queue.pop();
-                if((topnode.depth%2==0) && (topnode.depth==0 || topnode.depth>=3)){
+                if((topnode.depth%2==0)){
                     DebugOn("R branch "<<topnode.depth<<endl);
                     double roll_increment,  pitch_increment, yaw_increment;
                     roll_increment = (topnode.roll.second - topnode.roll.first)/2.0;
