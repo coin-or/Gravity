@@ -498,7 +498,8 @@ int main (int argc, char * argv[])
             nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
             PointCloud<double>, 3 /* dim */> index(3 /*dim*/, cloud, {10 /* max leaf */});
         index.buildIndex();
-        auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
+       // vector<double> rpyt_H;
+       auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
        // best_ub=0.0973;
         double ub_sq_root=sqrt(best_ub);
         for(auto i=0;i<point_cloud_data.size()-1;i++){
@@ -756,20 +757,20 @@ int main (int argc, char * argv[])
 //            double x_shift=-0.128593;
 //            double y_shift=-0.143401;
 //            double z_shift=0.118928;
-//            double roll=-0.0949683;
-//            double pitch=0.0425285;
-//            double yaw=-0.199007;
-//            double x_shift=0.218107;
-//            double y_shift=-0.250144;
-//            double z_shift=0.0160762;
-            double roll=-1.04111;
-            double pitch=1.19823;
-            double yaw=0.558101;
-            double x_shift=0.0568501;
-            double y_shift=-0.129687;
-            double z_shift=0.0191642;
+            double roll=-0.0949683;
+            double pitch=0.0425285;
+            double yaw=-0.199007;
+            double x_shift=0.218107;
+            double y_shift=-0.250144;
+            double z_shift=0.0160762;
+//            double roll=-1.04111;
+//            double pitch=1.19823;
+//            double yaw=0.558101;
+//            double x_shift=0.0568501;
+//            double y_shift=-0.129687;
+//            double z_shift=0.0191642;
             apply_rot_trans(roll, pitch, yaw, x_shift, y_shift, z_shift, point_cloud_data);
-            //plot(point_cloud_model,point_cloud_data,1);
+            plot(point_cloud_model,point_cloud_data,1);
             auto err=computeL2error(point_cloud_model, point_cloud_data, matching, err_per_point);
             DebugOn("Go ICP error "<<err<<endl);
             exit(0);
@@ -784,7 +785,8 @@ int main (int argc, char * argv[])
             double min_cost_sum=0;
             preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
         
-            auto model=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, new_cells, dist_cells,true);
+            auto model=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, new_cells, dist_cells);
+            model->print();
             solver<> S(model,gurobi);
             //            S.use_callback();
             //           // R->replace_integers();

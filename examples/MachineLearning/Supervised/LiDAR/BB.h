@@ -972,6 +972,22 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     T33-=cosr*cosp;
     Reg->add(T33.in(range(0,0))==0);
     
+    Constraint<> diag_1("diag_1");
+    diag_1=1-theta11-theta22+theta33;
+    Reg->add(diag_1.in(range(0,0))>=0);
+    
+    Constraint<> diag_2("diag_2");
+    diag_2=1+theta11-theta22-theta33;
+    Reg->add(diag_2.in(range(0,0))>=0);
+    
+    Constraint<> diag_3("diag_3");
+    diag_3=1+theta11+theta22+theta33;
+    Reg->add(diag_3.in(range(0,0))>=0);
+    
+    Constraint<> diag_4("diag_4");
+    diag_4=1-theta11+theta22-theta33;
+    Reg->add(diag_4.in(range(0,0))>=0);
+    
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
     
@@ -1071,16 +1087,16 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_small(const vector
     auto ids1 = theta11.repeat_id(N1.size());
     
     Constraint<> Def_newxm("Def_newxm");
-    Def_newxm = new_xm-product(x2.in(ids),bin.in_matrix(1, 1))+x1*theta11.in(ids1)+y1*theta12.in(ids1)+z1*theta13.in(ids1)+tx.in(ids1);
+    Def_newxm = new_xm+x1*theta11.in(ids1)+y1*theta12.in(ids1)+z1*theta13.in(ids1)+tx.in(ids1)-product(x2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newxm.in(N1)==0);
     
     
     Constraint<> Def_newym("Def_newym");
-    Def_newym = new_ym-product(y2.in(ids),bin.in_matrix(1, 1))+x1*theta21.in(ids1)+y1*theta22.in(ids1)+z1*theta23.in(ids1)+ty.in(ids1);
+    Def_newym = new_ym+x1*theta21.in(ids1)+y1*theta22.in(ids1)+z1*theta23.in(ids1)+ty.in(ids1)-product(y2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newym.in(N1)==0);
     
     Constraint<> Def_newzm("Def_newzm");
-    Def_newzm = new_zm-product(z2.in(ids),bin.in_matrix(1, 1))+x1*theta31.in(ids1)+y1*theta32.in(ids1)+z1*theta33.in(ids1)+tz.in(ids1);
+    Def_newzm = new_zm+x1*theta31.in(ids1)+y1*theta32.in(ids1)+z1*theta33.in(ids1)+tz.in(ids1)-product(z2.in(ids),bin.in_matrix(1, 1));
     Reg->add(Def_newzm.in(N1)==0);
     
     Constraint<> OneBin("OneBin");
@@ -1769,7 +1785,8 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             double min_dist_ij_max=numeric_limits<double>::max();
             double min_dist_ij_min=numeric_limits<double>::max();
             vector<vector<double>> extreme_i;
-            get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
+            //get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
+            get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max,tz_min, tz_max);
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(valid_cells_old.size()>=point_cloud_data.size()){
@@ -1780,13 +1797,13 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
                 double dist_ij_min, dist_ij_max;
                 vector<vector<double>> extreme_ij;
-                double xl=point_cloud_model.at(j)[0]-ub_sq_root;
-                double xu=point_cloud_model.at(j)[0]+ub_sq_root;
-                double yl=point_cloud_model.at(j)[1]-ub_sq_root;
-                double yu=point_cloud_model.at(j)[1]+ub_sq_root;
-                double zl=point_cloud_model.at(j)[2]-ub_sq_root;
-                double zu=point_cloud_model.at(j)[2]+ub_sq_root;
-                filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
+                double xl=point_cloud_model.at(j)[0]-ub_sq_root-1e-6;
+                double xu=point_cloud_model.at(j)[0]+ub_sq_root+1e-6;
+                double yl=point_cloud_model.at(j)[1]-ub_sq_root-1e-6;
+                double yu=point_cloud_model.at(j)[1]+ub_sq_root+1e-6;
+                double zl=point_cloud_model.at(j)[2]-ub_sq_root-1e-6;
+                double zu=point_cloud_model.at(j)[2]+ub_sq_root+1e-6;
+                //filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
                 if(extreme_ij.size()>=8){
                     double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
                     /*Calling GJK*/
@@ -1875,10 +1892,11 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     continue;
                 }
                 auto dij=dist_cells_old.eval(key);
-                if(dij<=min_dist_ij_max && dij<=upper_bound-min_cost_nd_sum){
-                    valid_cells_new.insert(key);
-                    dist_cells.add_val(key, dij);
+                if(dij<=min_dist_ij_max && dij<=upper_bound-min_cost_nd_sum+1e-6){
                     found_all=true;
+                }
+                else{
+                    dist_cells_old.set_val(key,min_dist_ij_max*10);
                 }
                 auto xm= point_cloud_model.at(j)[0];
                 auto ym= point_cloud_model.at(j)[1];
@@ -1951,7 +1969,24 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             DebugOn("tz cross "<<tz_min<<" "<<tz_max<<endl);
             found_all=false;
         }
-        
+        if(found_all){
+            for(auto i=0;i<nd;i++){
+                auto it=valid_cells_map[i].begin();
+                double min_dist_ij_max=it->first;
+                for (int j = 0; j<nm; j++) {
+                    string key= to_string(i+1)+","+to_string(j+1);
+                    if(!valid_cells.has_key(key)){
+                        DebugOff("continued");
+                        continue;
+                    }
+                    auto dij=dist_cells_old.eval(key);
+                    if(dij<=min_dist_ij_max){
+                        valid_cells_new.insert(key);
+                        dist_cells.add_val(key, dij);
+                    }
+                }
+            }
+        }
         DebugOn("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
@@ -2035,12 +2070,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
     bool model_created=false;
     if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
         if(error_type=="L2"){
-            //            bool add_nc=false;
-            //            if((upper_bound-vec_lb_i)/upper_bound*100<=90){
-            //                add_nc=true;
-            //            }
-            bool add_nc=true;
-            model_i=Reg_L2_model_rotation_trigonometric_small(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i,add_nc);
+            model_i=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first, vec_node_i.tx.second, vec_node_i.ty.first, vec_node_i.ty.second, vec_node_i.tz.first ,vec_node_i.tz.second,valid_cells_i,dist_cost_i);
         }
         else{
             DebugOn("L1 objective not supported");
@@ -2465,7 +2495,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
         }
         DebugOn("models size "<<models.size()<<endl);
         
-        run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+        run_parallel(models, gurobi, 1e-6, nb_threads, "", max_iter, max_time, (best_ub+1e-6));
         for (int j = 0; j<models.size(); j++) {
             int pos=pos_vec[j];
             if(models[j]->_status==0){

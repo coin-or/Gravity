@@ -121,7 +121,7 @@ void icp_new(const nanoflann::KDTreeSingleIndexAdaptor<
     DebugOff("err "<<error_new<<" "<<iter<<endl);
    
     pitch= atan2(R(2,1), R(2,2));
-    roll = atan2(R(2,0)*(-1), std::sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
+    roll = atan2(R(2,0)*(-1), (R(2,1)/sin(pitch)));
     yaw = atan2(R(1,0),R(0,0));
     
  
