@@ -2275,7 +2275,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
             pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
             pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
-            if(d>=4*best_ub+1e-9){
+            if(d>=3*best_ub+1e-9){
                 red.push_back(j);
                 DebugOn("cannot match with same j");
             }
@@ -2378,19 +2378,19 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
                 else{
                     DebugOn("t branch "<<topnode.depth<<endl);
                     double tx_increment,  ty_increment, tz_increment;
-                    if(topnode.tx.first<=-0.001 && topnode.tx.second>=0.001){
+                    if(false && topnode.tx.first<=-0.001 && topnode.tx.second>=0.001){
                         tx_increment = topnode.tx.first*(-1);
                     }
                     else{
                         tx_increment = (topnode.tx.second - topnode.tx.first)/2.0;
                     }
-                    if(topnode.ty.first<=-0.001 && topnode.ty.second>=0.001){
+                    if(false && topnode.ty.first<=-0.001 && topnode.ty.second>=0.001){
                         ty_increment = topnode.ty.first*(-1);
                     }
                     else{
                         ty_increment = (topnode.ty.second - topnode.ty.first)/2.0;
                     }
-                    if(topnode.tz.first<=-0.001 && topnode.tz.second>=0.001){
+                    if(false && topnode.tz.first<=-0.001 && topnode.tz.second>=0.001){
                         tz_increment = topnode.tz.first*(-1);
                     }
                     else{
