@@ -11,38 +11,103 @@
 #include "Heuristics.h"
 void make_box(double xl, double xu, double yl, double yu,double zl, double zu, vector<vector<double>>& box){
     vector<double> res(3,0);
+    bool repeat;
     res[0]=xl;
     res[1]=yl;
     res[2]=zl;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xu;
     res[1]=yl;
     res[2]=zl;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xl;
     res[1]=yu;
     res[2]=zl;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xu;
     res[1]=yu;
     res[2]=zl;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xl;
     res[1]=yl;
     res[2]=zu;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xu;
     res[1]=yl;
     res[2]=zu;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xl;
     res[1]=yu;
     res[2]=zu;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     res[0]=xu;
     res[1]=yu;
     res[2]=zu;
-    box.push_back(res);
+    repeat=false;
+    for(auto k=0;k<box.size();k++){
+        if(abs(box[k][0]-res[0])<=1e-9 && abs(box[k][1]-res[1])<=1e-9 && abs(box[k][2]-res[2])<=1e-9)
+            repeat=true;
+        DebugOff("repeat "<<box[k][0]<<" "<<box[k][1]<<" "<<box[k][2]<<endl);
+    }
+    if(!repeat){
+        box.push_back(res);
+    }
     
 }
 void filter_extremei(vector<vector<double>>& ex_i, double xl, double xu, double yl, double yu,double zl, double zu, vector<vector<double>>& ex_ij){
@@ -67,7 +132,7 @@ void filter_extremei(vector<vector<double>>& ex_i, double xl, double xu, double 
 void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
                                 const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, treenode_p& vec_node_i, int& m_vec_i, double& vec_lb_i, indices& valid_cells_i,param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, std::string error_type, vector<double>& ub_i, double roll_min, double roll_max,  double pitch_min,  double pitch_max,  double yaw_min,  double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min,double tz_max,const nanoflann::KDTreeSingleIndexAdaptor<
                                 nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                                PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp);
+                                PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp, const param<double>& dii, const param<double>& djj, const vector<double>& model_voronoi_radius_sq);
 /* Extreme points of a bounded box (defined x_lb, x_ub, y_lb. y_ub z_lb, z_ub) when intersected with a plane. Returns true when new vertices found
  @plane_eq: equation of plane intersecting the box
  @big_box: Vector of coordinates of the original bounded box
@@ -988,50 +1053,50 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     diag_4=1-theta11+theta22-theta33;
     Reg->add(diag_4.in(range(0,0))>=0);
     
-    vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-    int count=0;
-    for(auto i=0;i<nd;i++){
-        if(incomp.find(i)!=incomp.end()){
-            int count_i=0;
-        for (int j = 0; j<nm ; j++) {
-            string key= to_string(i+1)+","+to_string(j+1);
-            if(!cells.has_key(key)){
-                DebugOff("continued");
-                continue;
-            }
-            for (int k = 0; k<incomp.at(i).size(); k++) {
-                int i1=incomp.at(i)[k];
-                string key1= to_string(i1+1)+","+to_string(j+1);
-                if(cells.has_key(key1)){
-                   incompatibles.push_back({{i,j},{i1,j}});
-                    count++;
-                    count_i++;
-                }
-            }
-        }
-    }
-    }
-    if(!incompatibles.empty()){
-            indices pairs1("pairs1"), pairs2("pairs2");
-            pairs1 = cells;
-            pairs2 = cells;
-            for (const auto &inc_pair : incompatibles) {
-                string key1 = to_string(inc_pair.first.first+1)+","+to_string(inc_pair.first.second+1);
-                string key2 = to_string(inc_pair.second.first+1)+","+to_string(inc_pair.second.second+1);
-                if(cells.has_key(key1) && cells.has_key(key2)){
-                    pairs1.add_ref(key1);
-                    pairs2.add_ref(key2);
-                }
-            }
-            
-            if(pairs1.is_indexed()){
-                DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
-                Constraint<> incomp_pairs("incomp_pairs");
-                incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
-                Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
-                //incomp_pairs.print();
-            }
-        }
+//    vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
+//    int count=0;
+//    for(auto i=0;i<nd;i++){
+//        if(incomp.find(i)!=incomp.end()){
+//            int count_i=0;
+//            for (int j = 0; j<nm ; j++) {
+//                string key= to_string(i+1)+","+to_string(j+1);
+//                if(!cells.has_key(key)){
+//                    DebugOff("continued");
+//                    continue;
+//                }
+//                for (int k = 0; k<incomp.at(i).size(); k++) {
+//                    int i1=incomp.at(i)[k];
+//                    string key1= to_string(i1+1)+","+to_string(j+1);
+//                    if(cells.has_key(key1)){
+//                        incompatibles.push_back({{i,j},{i1,j}});
+//                        count++;
+//                        count_i++;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    if(!incompatibles.empty()){
+//        indices pairs1("pairs1"), pairs2("pairs2");
+//        pairs1 = cells;
+//        pairs2 = cells;
+//        for (const auto &inc_pair : incompatibles) {
+//            string key1 = to_string(inc_pair.first.first+1)+","+to_string(inc_pair.first.second+1);
+//            string key2 = to_string(inc_pair.second.first+1)+","+to_string(inc_pair.second.second+1);
+//            if(cells.has_key(key1) && cells.has_key(key2)){
+//                pairs1.add_ref(key1);
+//                pairs2.add_ref(key2);
+//            }
+//        }
+//        
+//        if(pairs1.is_indexed()){
+//            DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
+//            Constraint<> incomp_pairs("incomp_pairs");
+//            incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+//            Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
+//            //incomp_pairs.print();
+//        }
+//    }
     
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
@@ -1697,7 +1762,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric_ve(const vector<ve
     return Reg;
 }
 #ifdef USE_GJK
-void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& tx_min, double& tx_max, double& ty_min, double& ty_max, double& tz_min, double& tz_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type)
+void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, indices& valid_cells_old, indices& new_cells, param<double>& dist_cells, double roll_min, double roll_max, double pitch_min, double pitch_max, double yaw_min, double yaw_max, double& tx_min, double& tx_max, double& ty_min, double& ty_max, double& tz_min, double& tz_max, double upper_bound, double& prep_time, double& min_cost_sum, string error_type, const param<double>& dist_ii, const param<double>& dist_jj, const vector<double>& model_voronoi_radius_sq)
 {
     int nd=point_cloud_data.size();
     int nm=point_cloud_model.size();
@@ -1755,8 +1820,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     indices valid_cells_empty("valid_cells_empty");
     param<double> dist_cells_old("dist_cells_old");
     param<double> dist_cells_max("dist_cells_max");
-    param<double> dist_ii("dist_ii");
-    param<double> dist_jj("dist_jj");
+    param<double> dist_cells_max_novoro("dist_cells_max_novoro");
     double time_start = get_wall_time();
     vector<map<double, int>> valid_cells_map(nd);
     
@@ -1831,7 +1895,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             double min_dist_ij_min=numeric_limits<double>::max();
             vector<vector<double>> extreme_i;
             get_extreme_point(extreme_i, point_cloud_data[i], T1, box_t);
-           // get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max,tz_min, tz_max);
+            // get_extreme_point(extreme_i, point_cloud_data[i], T1, tx_min, tx_max, ty_min, ty_max,tz_min, tz_max);
             for (int j = 0; j<nm; j++) {
                 string key= to_string(i+1)+","+to_string(j+1);
                 if(valid_cells_old.size()>=point_cloud_data.size()){
@@ -1841,38 +1905,41 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                     }
                 }
                 double dist_ij_min, dist_ij_max;
-                vector<vector<double>> extreme_ij;
-                double xl=point_cloud_model.at(j)[0]-ub_sq_root-1e-9;
-                double xu=point_cloud_model.at(j)[0]+ub_sq_root+1e-9;
-                double yl=point_cloud_model.at(j)[1]-ub_sq_root-1e-9;
-                double yu=point_cloud_model.at(j)[1]+ub_sq_root+1e-9;
-                double zl=point_cloud_model.at(j)[2]-ub_sq_root-1e-9;
-                double zu=point_cloud_model.at(j)[2]+ub_sq_root+1e-9;
-                filter_extremei(extreme_i, xl,xu,yl,yu,zl,zu,extreme_ij);
-                if(extreme_ij.size()>=8){
-                    double dij_voro=std::max(distance_polytopes_gjk(extreme_ij, model_voronoi_vertices.at(j))-1e-6, 0.0);
-                    /*Calling GJK*/
-                    if(dij_voro<=1e-9){
-                        vector<vector<double>> extreme_j;
-                        extreme_j.push_back(point_cloud_model.at(j));
-                        dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-6, 0.0);
-                        if(dist_ij_min<=upper_bound && dist_ij_min<=min_dist_ij_max){
-                            dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
-                            if(dist_ij_max<=min_dist_ij_max){
-                                min_dist_ij_max=dist_ij_max;
+                double dij_voro=std::max(distance_polytopes_gjk(extreme_i, model_voronoi_vertices.at(j)), 0.0);
+                /*Calling GJK*/
+                if(dij_voro<=1e-9){
+                    vector<vector<double>> extreme_j;
+                    extreme_j.push_back(point_cloud_model.at(j));
+                    dist_ij_min=std::max(distance_polytopes_gjk(extreme_i, extreme_j)-1e-9, 0.0);
+                    if(dist_ij_min<=upper_bound){
+                        dist_ij_max=max_distance_polytopes(extreme_i, extreme_j);
+                        dist_cells_max_novoro.add_val(key, dist_ij_max);
+                        dist_ij_max=std::min(dist_ij_max, model_voronoi_radius_sq[j]);
+                        if(dist_ij_min>=dist_ij_max){
+                            DebugOn("crossover"<<" "<<endl);
+                        }
+                        else{
+                            if(dist_ij_min<=min_dist_ij_max){
+                                if(dist_ij_min<=min_dist_ij_min){
+                                    min_dist_ij_min=dist_ij_min;
+                                }
+                                if(dist_ij_max<=min_dist_ij_max){
+                                    min_dist_ij_max=dist_ij_max;
+                                }
+                                valid_cells_map[i].insert(pair<double, int>(dist_ij_max, j));
+                                dist_cells_old.add_val(key, dist_ij_min);
+                                dist_cells_max.add_val(key, dist_ij_max);
+                                valid_cells.insert(key);
+                                nd_vec[i].push_back(j);
+                                nm_vec[j].push_back(i);
                             }
-                            if(dist_ij_min<=min_dist_ij_min){
-                                min_dist_ij_min=dist_ij_min;
-                            }
-                            valid_cells_map[i].insert(pair<double, int>(dist_ij_max, j));
-                            dist_cells_old.add_val(key, dist_ij_min);
-                            dist_cells_max.add_val(key, dist_ij_max);
-                            valid_cells.insert(key);
-                            nd_vec[i].push_back(j);
-                            nm_vec[j].push_back(i);
                         }
                     }
+                    else{
+                        DebugOff("false "<<dist_ij_min<<endl);
+                    }
                 }
+                
             }
             min_cost_sum+=min_dist_ij_min;
             map_nd.insert(std::pair<double,int>(min_dist_ij_min,i));
@@ -1882,38 +1949,63 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
             }
         }
     }
-    if(false){
-        for(auto j=0;j<nm-1;j++){
-            for(auto i=j+1;i<nm;i++){
-                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
-                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
-                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
-                auto d_sq=sqrt(d);
-                dist_jj.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
-                dist_jj.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
-            }
-        }
+    if(found_all){
         for(auto i=0;i<nd;i++){
             for(auto l=0;l<nd_vec[i].size()-1;l++){
                 auto j=nd_vec[i][l];
                 auto key_j=to_string(i+1)+","+to_string(j+1);
                 auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
-                auto dij_max_sq=sqrt(dist_cells_max.eval(key_j));
-                auto k=nd_vec[i][l+1];
-                auto key_k=to_string(i+1)+","+to_string(k+1);
-                auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
-                auto dik_max_sq=sqrt(dist_cells_max.eval(key_k));
-                auto djk=dist_jj.eval(to_string(j+1)+","+to_string(k+1));
-                if(djk<=dik_min_sq || djk>=dik_max_sq ){
-                    auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
-                    dij_min_sq=std::max(temp, dij_min_sq);
+                auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_j));
+                for(auto m=l+1;m<nd_vec[i].size();m++){
+                    auto k=nd_vec[i][m];
+                    auto key_k=to_string(i+1)+","+to_string(k+1);
+                    auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
+                    auto dik_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
+                    auto djk=dist_jj.eval(to_string(j+1)+","+to_string(k+1));
+                    if(djk<=dik_min_sq || djk>=dik_max_sq ){
+                        auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
+                        if(temp>=dij_min_sq){
+                            dij_min_sq=temp;
+                            dist_cells_old.set_val(key_j, temp*temp);
+                        }
+                    }
+                    if(djk<=dij_min_sq || djk>=dij_max_sq ){
+                        auto temp=std::max(djk-dij_max_sq,dij_min_sq-djk);
+                        if(temp>=dik_min_sq){
+                            dik_min_sq=temp;
+                            dist_cells_old.set_val(key_k, temp*temp);
+                        }
+                    }
                 }
-                if(djk<=dij_min_sq || djk>=dij_max_sq ){
-                    auto temp=std::max(djk-dij_max_sq,dij_min_sq-djk);
-                    dik_min_sq=std::max(temp, dik_min_sq);
+            }
+        }
+        for(auto j=0;j<nm;j++){
+            for(auto l=0;l<nm_vec[j].size()-1;l++){
+                auto i=nm_vec[j][l];
+                auto key_i=to_string(i+1)+","+to_string(j+1);
+                auto dij_min_sq=sqrt(dist_cells_old.eval(key_i));
+                auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_i));
+                for(auto m=l+1;m<nm_vec[j].size();m++){
+                    auto k=nm_vec[j][m];
+                    auto key_k=to_string(k+1)+","+to_string(j+1);
+                    auto dkj_min_sq=sqrt(dist_cells_old.eval(key_k));
+                    auto dkj_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
+                    auto dik=dist_ii.eval(to_string(i+1)+","+to_string(k+1));
+                    if(dik<=dkj_min_sq || dik>=dkj_max_sq ){
+                        auto temp=std::max(dik-dkj_max_sq,dkj_min_sq-dik);
+                        if(temp>=dij_min_sq){
+                            dij_min_sq=temp;
+                            dist_cells_old.set_val(key_i, temp*temp);
+                        }
+                    }
+                    if(dik<=dij_min_sq || dik>=dij_max_sq ){
+                        auto temp=std::max(dik-dij_max_sq,dij_min_sq-dik);
+                        if(temp>=dkj_min_sq){
+                            dkj_min_sq=temp;
+                            dist_cells_old.set_val(key_k, temp*temp);
+                        }
+                    }
                 }
-                dist_cells_old.set_val(key_j, dij_min_sq*dij_min_sq);
-                dist_cells_old.set_val(key_k, dik_min_sq*dik_min_sq);
             }
         }
     }
@@ -2082,7 +2174,7 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
         
         for (auto i = j*nb_threads; i < std::min((j+1)*nb_threads, num); i++) {
 #ifdef USE_GJK
-            threads.push_back(thread(&preprocess_lid, ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node[i].valid_cells), ref(valid_cells[i]),  ref(vec_dist_cost[i]), vec_node[i].roll.first, vec_node[i].roll.second, vec_node[i].pitch.first, vec_node[i].pitch.second, vec_node[i].yaw.first ,vec_node[i].yaw.second, ref(vec_node[i].tx.first), ref(vec_node[i].tx.second), ref(vec_node[i].ty.first), ref(vec_node[i].ty.second), ref(vec_node[i].tz.first) ,ref(vec_node[i].tz.second), upper_bound, ref(vec_prep_time[i]), ref(vec_lb[i]), error_type));
+            //threads.push_back(thread(&preprocess_lid, ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node[i].valid_cells), ref(valid_cells[i]),  ref(vec_dist_cost[i]), vec_node[i].roll.first, vec_node[i].roll.second, vec_node[i].pitch.first, vec_node[i].pitch.second, vec_node[i].yaw.first ,vec_node[i].yaw.second, ref(vec_node[i].tx.first), ref(vec_node[i].tx.second), ref(vec_node[i].ty.first), ref(vec_node[i].ty.second), ref(vec_node[i].tz.first) ,ref(vec_node[i].tz.second), upper_bound, ref(vec_prep_time[i]), ref(vec_lb[i]), error_type));
 #endif
         }
         
@@ -2106,11 +2198,11 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
 void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
                                 const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, treenode_p& vec_node_i, int& m_vec_i, double& vec_lb_i, indices& valid_cells_i,param<double>& dist_cost_i, double& prep_time_i, double upper_bound, shared_ptr<Model<double>>& model_i, std::string error_type, vector<double>& ub_i, double roll_min, double roll_max,  double pitch_min,  double pitch_max,  double yaw_min,  double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min,double tz_max,const nanoflann::KDTreeSingleIndexAdaptor<
                                 nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                                PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp){
+                                PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp, const param<double>& dii, const param<double>& djj, const vector<double>& model_voronoi_radius_sq){
     icp_new(index, point_cloud_model, point_cloud_data,vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, vec_node_i.tx.first,vec_node_i.tx.second, vec_node_i.ty.first,vec_node_i.ty.second, vec_node_i.tz.first,vec_node_i.tz.second, roll_min, roll_max,  pitch_min,  pitch_max,  yaw_min,  yaw_max,tx_min, tx_max, ty_min, ty_max, tz_min, tz_max, ub_i);
     
 #ifdef USE_GJK
-    preprocess_lid(ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node_i.valid_cells), ref(valid_cells_i),  ref(dist_cost_i), vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ref(vec_node_i.tx.first), ref(vec_node_i.tx.second), ref(vec_node_i.ty.first), ref(vec_node_i.ty.second), ref(vec_node_i.tz.first) ,ref(vec_node_i.tz.second), upper_bound, ref(prep_time_i), ref(vec_lb_i), error_type);
+    preprocess_lid(ref(point_cloud_model), ref(point_cloud_data), ref(model_voronoi_vertices),  ref(vec_node_i.valid_cells), ref(valid_cells_i),  ref(dist_cost_i), vec_node_i.roll.first, vec_node_i.roll.second, vec_node_i.pitch.first, vec_node_i.pitch.second, vec_node_i.yaw.first ,vec_node_i.yaw.second, ref(vec_node_i.tx.first), ref(vec_node_i.tx.second), ref(vec_node_i.ty.first), ref(vec_node_i.ty.second), ref(vec_node_i.tz.first) ,ref(vec_node_i.tz.second), upper_bound, ref(prep_time_i), ref(vec_lb_i), error_type, ref(dii), ref(djj), ref(model_voronoi_radius_sq));
 #endif
     bool model_created=false;
     if(valid_cells_i.size()>=point_cloud_data.size() && valid_cells_i.size()<=1e4){
@@ -2134,7 +2226,7 @@ void run_preprocess_model_Align(const vector<vector<double>>& point_cloud_model,
 void run_preprocess_parallel_Align(const vector<vector<double>>& point_cloud_model,
                                    const vector<vector<double>>& point_cloud_data, const vector<vector<vector<double>>>& model_voronoi_vertices, vector<int>& pos_vec, vector<shared_ptr<Model<double>>>& models, vector<treenode_p>& vec_node, vector<int>& m_vec,vector<double>& vec_lb, vector<indices>& valid_cells, int nb_threads, double upper_bound, double lower_bound, vector<param<double>>& dist_cost_new, int iter, string error_type, vector<double>& ub_node,double roll_min, double roll_max,  double pitch_min,  double pitch_max,  double yaw_min,  double yaw_max, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max,const nanoflann::KDTreeSingleIndexAdaptor<
                                    nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                                   PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp){
+                                   PointCloud<double>, 3 /* dim */>& index, const map<int, vector<int>>& incomp, const param<double>& dii, const param<double>& djj, const vector<double>& model_voronoi_radius_sq){
     vector<shared_ptr<Model<double>>> temp_models;
     std::vector<thread> threads;
     ub_node.resize(7,1000);
@@ -2159,7 +2251,7 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& point_cloud_mod
     vector<double> vec_prep_time;
     vec_prep_time.resize(num, 0.0);
     for (auto i = 0; i < num; i++) {
-        threads.push_back(thread(&run_preprocess_model_Align, ref(point_cloud_model), ref(point_cloud_data),ref(model_voronoi_vertices), ref(vec_node[i]), ref(m_vec[i]),ref(vec_lb[i]), ref(valid_cells[i]), ref(vec_dist_cost[i]), ref(vec_prep_time[i]), upper_bound, ref(temp_models[i]), error_type, ref(vec_ub[i]),roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, tx_min, tx_max,ty_min, ty_max, tz_min, tz_max, ref(index), ref(incomp)));
+        threads.push_back(thread(&run_preprocess_model_Align, ref(point_cloud_model), ref(point_cloud_data),ref(model_voronoi_vertices), ref(vec_node[i]), ref(m_vec[i]),ref(vec_lb[i]), ref(valid_cells[i]), ref(vec_dist_cost[i]), ref(vec_prep_time[i]), upper_bound, ref(temp_models[i]), error_type, ref(vec_ub[i]),roll_min, roll_max, pitch_min, pitch_max,yaw_min, yaw_max, tx_min, tx_max,ty_min, ty_max, tz_min, tz_max, ref(index), ref(incomp),ref(dii), ref(djj), ref(model_voronoi_radius_sq)));
     }
     for(auto &t : threads){
         t.join();
@@ -2189,7 +2281,7 @@ void run_preprocess_parallel_Align(const vector<vector<double>>& point_cloud_mod
 }
 vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data,const vector<vector<vector<double>>>& model_voronoi_vertices, vector<double>& best_rot, double best_ub, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, std::string error_type, const nanoflann::KDTreeSingleIndexAdaptor<
                                  nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-                                 PointCloud<double>, 3 /* dim */>& index)
+                                 PointCloud<double>, 3 /* dim */>& index,const param<double>& dii, const param<double>& djj, const vector<double>& model_voronoi_radius_sq)
 {
 #ifdef USE_MPI
     int worker_id, nb_workers;
@@ -2275,7 +2367,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
             pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
             pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
-            if(d>=4*best_ub+1e-9){
+            if(d>=3*best_ub+1e-9){
                 red.push_back(j);
                 DebugOn("cannot match with same j");
             }
@@ -2446,7 +2538,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             break;
         }
         vector<double> ub_all(7);
-        run_preprocess_parallel_Align(point_cloud_model,point_cloud_data, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type, ub_all, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max,index, incomp);
+        run_preprocess_parallel_Align(point_cloud_model,point_cloud_data, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type, ub_all, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max,index, incomp,dii, djj, model_voronoi_radius_sq);
         if(ub_all[0]<=best_ub){
             best_ub=ub_all[0];
             rpy_rad[0]=ub_all[1];

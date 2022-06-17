@@ -500,8 +500,80 @@ int main (int argc, char * argv[])
         index.buildIndex();
         //vector<double> rpyt_H;
         auto rpyt_H=ub_heuristic_disc(index, point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, best_ub, "L2", 100);
-       // best_ub=0.0973;
+       //best_ub=0.0973;
         double ub_sq_root=sqrt(best_ub);
+        
+        
+        map<int, vector<int>> incomp;
+        
+        double dmax=0;
+        for(auto i=0;i<point_cloud_data.size()-1;i++){
+            vector<int> red;
+            for(auto j=i+1;j<point_cloud_data.size();j++){
+                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
+                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
+                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
+                if(d>=3*best_ub+1e-9){
+                    red.push_back(j);
+                    DebugOn("cannot");
+                }
+                if(d>=dmax){
+                    dmax=d;
+                }
+            }
+            if(red.size()>=1){
+                incomp[i]=red;
+            }
+        }
+        
+        
+        map<int, vector<int>> incompj;
+        map<int, vector<int>> incomp_dmax;
+        
+        for(auto i=0;i<point_cloud_model.size()-1;i++){
+            vector<int> red;
+            for(auto j=i+1;j<point_cloud_model.size();j++){
+                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
+                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
+                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
+                if(d>=3*best_ub+1e-9){
+                    //red.push_back(j);
+                    //DebugOn("nonmatch"<<endl);
+                }
+                if(d>=pow(sqrt(3*best_ub)+sqrt(dmax),2)){
+                    red.push_back(j);
+                    DebugOn("nonmatch"<<endl);
+                }
+            }
+            if(red.size()>=1){
+                incompj[i]=red;
+            }
+        }
+        DebugOn("screened");
+        
+        param<double> dist_jj("dist_jj");
+        param<double> dist_ii("dist_ii");
+        for(auto j=0;j<point_cloud_model.size()-1;j++){
+            for(auto i=j+1;i<point_cloud_model.size();i++){
+                auto d=pow(point_cloud_model.at(i)[0]-point_cloud_model.at(j)[0],2)+
+                pow(point_cloud_model.at(i)[1]-point_cloud_model.at(j)[1],2)+
+                pow(point_cloud_model.at(i)[2]-point_cloud_model.at(j)[2],2);
+                auto d_sq=sqrt(d);
+                dist_jj.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
+                dist_jj.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
+            }
+        }
+        for(auto j=0;j<point_cloud_data.size()-1;j++){
+            for(auto i=j+1;i<point_cloud_data.size();i++){
+                auto d=pow(point_cloud_data.at(i)[0]-point_cloud_data.at(j)[0],2)+
+                pow(point_cloud_data.at(i)[1]-point_cloud_data.at(j)[1],2)+
+                pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
+                auto d_sq=sqrt(d);
+                dist_ii.add_val(to_string(i+1)+","+to_string(j+1), d_sq);
+                dist_ii.add_val(to_string(j+1)+","+to_string(i+1), d_sq);
+            }
+        }
+        
        // best_ub=0.0973;
        
 
@@ -530,6 +602,7 @@ int main (int argc, char * argv[])
         vector<double> model_voronoi_in_radius(model_nb_rows);/* Store the radius of the largest ball contained IN the voronoi cell of each point */
         vector<double> model_voronoi_max_seg_dist_sq(model_nb_rows);/* Store the radius of the largest ball contained IN the voronoi cell of each point */
         vector<double> model_voronoi_out_radius(model_nb_rows);/* Store the radius of the smallest ball enclosing the voronoi cell of each point */
+        vector<double> model_voronoi_out_radius_sq(model_nb_rows);/* Store the radius of the smallest ball enclosing the voronoi cell of each point */
         vector<double> model_inner_prod_max(model_nb_rows);
         vector<double> model_inner_prod_min(model_nb_rows);
         vector<double> max_vert_vert_dist_sq(model_nb_rows);
@@ -627,9 +700,9 @@ int main (int argc, char * argv[])
             model_inner_prod_max[idx]=model_ip_max;
             model_inner_prod_min[idx]=model_ip_min;
             model_voronoi_out_radius[idx] = std::sqrt(max_dist);/* the radius of the smallest ball enclosing the voronoi cell is the distance from the center to the farthest vertex */
+            model_voronoi_out_radius_sq[idx] = (max_dist);
             model_radius.add_val(to_string(idx+1), model_voronoi_out_radius[idx]);
-            vector
-            <double> normals;
+            vector<double> normals;
             c.normals(normals);
             int nb_normals = normals.size()/3;
             model_voronoi_normals[idx].resize(nb_normals);
@@ -776,7 +849,7 @@ int main (int argc, char * argv[])
             param<double> dist_cells("dist_cells");
             double prep_time=0;
             double min_cost_sum=0;
-            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
+            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2",  dist_ii, dist_jj, model_voronoi_out_radius_sq);
             map<int, vector<int>> incomp;
             auto model=Reg_L2_model_rotation_trigonometric(point_cloud_model, point_cloud_data, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, new_cells, dist_cells, incomp);
             model->print();
@@ -800,8 +873,8 @@ int main (int argc, char * argv[])
             param<double> dist_cells("dist_cells");
             double prep_time=0;
             double min_cost_sum=0;
-            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2");
-            auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index);
+            preprocess_lid(point_cloud_model, point_cloud_data, model_voronoi_vertices, valid_cells_old,new_cells, dist_cells, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max,shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z,  best_ub, prep_time, min_cost_sum, "L2", dist_ii, dist_jj, model_voronoi_out_radius_sq);
+            auto rpyt=BranchBound_Align(point_cloud_model, point_cloud_data, model_voronoi_vertices, rpyt_H, best_ub, shift_min_x, shift_max_x, shift_min_y, shift_max_y, shift_min_z, shift_max_z, "L2",  index, dist_ii, dist_jj, model_voronoi_out_radius_sq);
 #ifdef USE_MATPLOT
             apply_rot_trans(rpyt[0], rpyt[1], rpyt[2], rpyt[3], rpyt[4], rpyt[5], point_cloud_data);
             //plot(point_cloud_model,point_cloud_data,1);
