@@ -1053,50 +1053,50 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     diag_4=1-theta11+theta22-theta33;
     Reg->add(diag_4.in(range(0,0))>=0);
     
-//    vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
-//    int count=0;
-//    for(auto i=0;i<nd;i++){
-//        if(incomp.find(i)!=incomp.end()){
-//            int count_i=0;
-//            for (int j = 0; j<nm ; j++) {
-//                string key= to_string(i+1)+","+to_string(j+1);
-//                if(!cells.has_key(key)){
-//                    DebugOff("continued");
-//                    continue;
-//                }
-//                for (int k = 0; k<incomp.at(i).size(); k++) {
-//                    int i1=incomp.at(i)[k];
-//                    string key1= to_string(i1+1)+","+to_string(j+1);
-//                    if(cells.has_key(key1)){
-//                        incompatibles.push_back({{i,j},{i1,j}});
-//                        count++;
-//                        count_i++;
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    if(!incompatibles.empty()){
-//        indices pairs1("pairs1"), pairs2("pairs2");
-//        pairs1 = cells;
-//        pairs2 = cells;
-//        for (const auto &inc_pair : incompatibles) {
-//            string key1 = to_string(inc_pair.first.first+1)+","+to_string(inc_pair.first.second+1);
-//            string key2 = to_string(inc_pair.second.first+1)+","+to_string(inc_pair.second.second+1);
-//            if(cells.has_key(key1) && cells.has_key(key2)){
-//                pairs1.add_ref(key1);
-//                pairs2.add_ref(key2);
-//            }
-//        }
-//        
-//        if(pairs1.is_indexed()){
-//            DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
-//            Constraint<> incomp_pairs("incomp_pairs");
-//            incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
-//            Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
-//            //incomp_pairs.print();
-//        }
-//    }
+    //    vector<pair<pair<int,int>,pair<int,int>>> incompatibles;
+    //    int count=0;
+    //    for(auto i=0;i<nd;i++){
+    //        if(incomp.find(i)!=incomp.end()){
+    //            int count_i=0;
+    //            for (int j = 0; j<nm ; j++) {
+    //                string key= to_string(i+1)+","+to_string(j+1);
+    //                if(!cells.has_key(key)){
+    //                    DebugOff("continued");
+    //                    continue;
+    //                }
+    //                for (int k = 0; k<incomp.at(i).size(); k++) {
+    //                    int i1=incomp.at(i)[k];
+    //                    string key1= to_string(i1+1)+","+to_string(j+1);
+    //                    if(cells.has_key(key1)){
+    //                        incompatibles.push_back({{i,j},{i1,j}});
+    //                        count++;
+    //                        count_i++;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //    if(!incompatibles.empty()){
+    //        indices pairs1("pairs1"), pairs2("pairs2");
+    //        pairs1 = cells;
+    //        pairs2 = cells;
+    //        for (const auto &inc_pair : incompatibles) {
+    //            string key1 = to_string(inc_pair.first.first+1)+","+to_string(inc_pair.first.second+1);
+    //            string key2 = to_string(inc_pair.second.first+1)+","+to_string(inc_pair.second.second+1);
+    //            if(cells.has_key(key1) && cells.has_key(key2)){
+    //                pairs1.add_ref(key1);
+    //                pairs2.add_ref(key2);
+    //            }
+    //        }
+    //        
+    //        if(pairs1.is_indexed()){
+    //            DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
+    //            Constraint<> incomp_pairs("incomp_pairs");
+    //            incomp_pairs = bin.in(pairs1) + bin.in(pairs2);
+    //            Reg->add(incomp_pairs.in(range(1,pairs1.size()))<=1);
+    //            //incomp_pairs.print();
+    //        }
+    //    }
     
     
     Reg->min(sum(deltax) + sum(deltay)+sum(deltaz));
@@ -1951,58 +1951,62 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     }
     if(found_all){
         for(auto i=0;i<nd;i++){
-            for(auto l=0;l<nd_vec[i].size()-1;l++){
-                auto j=nd_vec[i][l];
-                auto key_j=to_string(i+1)+","+to_string(j+1);
-                auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
-                auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_j));
-                for(auto m=l+1;m<nd_vec[i].size();m++){
-                    auto k=nd_vec[i][m];
-                    auto key_k=to_string(i+1)+","+to_string(k+1);
-                    auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
-                    auto dik_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
-                    auto djk=dist_jj.eval(to_string(j+1)+","+to_string(k+1));
-                    if(djk<=dik_min_sq || djk>=dik_max_sq ){
-                        auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
-                        if(temp>=dij_min_sq){
-                            dij_min_sq=temp;
-                            dist_cells_old.set_val(key_j, temp*temp);
+            if(nd_vec[i].size()>=2){
+                for(auto l=0;l<nd_vec[i].size()-1;l++){
+                    auto j=nd_vec[i][l];
+                    auto key_j=to_string(i+1)+","+to_string(j+1);
+                    auto dij_min_sq=sqrt(dist_cells_old.eval(key_j));
+                    auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_j));
+                    for(auto m=l+1;m<nd_vec[i].size();m++){
+                        auto k=nd_vec[i][m];
+                        auto key_k=to_string(i+1)+","+to_string(k+1);
+                        auto dik_min_sq=sqrt(dist_cells_old.eval(key_k));
+                        auto dik_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
+                        auto djk=dist_jj.eval(to_string(j+1)+","+to_string(k+1));
+                        if(djk<=dik_min_sq || djk>=dik_max_sq ){
+                            auto temp=std::max(djk-dik_max_sq,dik_min_sq-djk);
+                            if(temp>=dij_min_sq){
+                                dij_min_sq=temp;
+                                dist_cells_old.set_val(key_j, temp*temp);
+                            }
                         }
-                    }
-                    if(djk<=dij_min_sq || djk>=dij_max_sq ){
-                        auto temp=std::max(djk-dij_max_sq,dij_min_sq-djk);
-                        if(temp>=dik_min_sq){
-                            dik_min_sq=temp;
-                            dist_cells_old.set_val(key_k, temp*temp);
+                        if(djk<=dij_min_sq || djk>=dij_max_sq ){
+                            auto temp=std::max(djk-dij_max_sq,dij_min_sq-djk);
+                            if(temp>=dik_min_sq){
+                                dik_min_sq=temp;
+                                dist_cells_old.set_val(key_k, temp*temp);
+                            }
                         }
                     }
                 }
             }
         }
         for(auto j=0;j<nm;j++){
-            for(auto l=0;l<nm_vec[j].size()-1;l++){
-                auto i=nm_vec[j][l];
-                auto key_i=to_string(i+1)+","+to_string(j+1);
-                auto dij_min_sq=sqrt(dist_cells_old.eval(key_i));
-                auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_i));
-                for(auto m=l+1;m<nm_vec[j].size();m++){
-                    auto k=nm_vec[j][m];
-                    auto key_k=to_string(k+1)+","+to_string(j+1);
-                    auto dkj_min_sq=sqrt(dist_cells_old.eval(key_k));
-                    auto dkj_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
-                    auto dik=dist_ii.eval(to_string(i+1)+","+to_string(k+1));
-                    if(dik<=dkj_min_sq || dik>=dkj_max_sq ){
-                        auto temp=std::max(dik-dkj_max_sq,dkj_min_sq-dik);
-                        if(temp>=dij_min_sq){
-                            dij_min_sq=temp;
-                            dist_cells_old.set_val(key_i, temp*temp);
+            if(nm_vec[j].size()>=2){
+                for(auto l=0;l<nm_vec[j].size()-1;l++){
+                    auto i=nm_vec[j][l];
+                    auto key_i=to_string(i+1)+","+to_string(j+1);
+                    auto dij_min_sq=sqrt(dist_cells_old.eval(key_i));
+                    auto dij_max_sq=sqrt(dist_cells_max_novoro.eval(key_i));
+                    for(auto m=l+1;m<nm_vec[j].size();m++){
+                        auto k=nm_vec[j][m];
+                        auto key_k=to_string(k+1)+","+to_string(j+1);
+                        auto dkj_min_sq=sqrt(dist_cells_old.eval(key_k));
+                        auto dkj_max_sq=sqrt(dist_cells_max_novoro.eval(key_k));
+                        auto dik=dist_ii.eval(to_string(i+1)+","+to_string(k+1));
+                        if(dik<=dkj_min_sq || dik>=dkj_max_sq ){
+                            auto temp=std::max(dik-dkj_max_sq,dkj_min_sq-dik);
+                            if(temp>=dij_min_sq){
+                                dij_min_sq=temp;
+                                dist_cells_old.set_val(key_i, temp*temp);
+                            }
                         }
-                    }
-                    if(dik<=dij_min_sq || dik>=dij_max_sq ){
-                        auto temp=std::max(dik-dij_max_sq,dij_min_sq-dik);
-                        if(temp>=dkj_min_sq){
-                            dkj_min_sq=temp;
-                            dist_cells_old.set_val(key_k, temp*temp);
+                        if(dik<=dij_min_sq || dik>=dij_max_sq ){
+                            auto temp=std::max(dik-dij_max_sq,dij_min_sq-dik);
+                            if(temp>=dkj_min_sq){
+                                dkj_min_sq=temp;
+                                dist_cells_old.set_val(key_k, temp*temp);
+                            }
                         }
                     }
                 }
@@ -2142,7 +2146,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
         DebugOn("No valid cells found "<<endl);
     }
     prep_time=get_wall_time()-time_start;
-    DebugOn("prep time "<<prep_time<<" "<<roll_min<<" "<<roll_max<<" "<<pitch_min<<" "<<pitch_max<<" "<<yaw_min<<" "<<yaw_max<<" "<<tx_min<<" "<<tx_max<<" "<<ty_min<<" "<<ty_max<<" "<<tz_min<<" "<<tz_max<<endl);
+    DebugOff("prep time "<<prep_time<<" "<<roll_min<<" "<<roll_max<<" "<<pitch_min<<" "<<pitch_max<<" "<<yaw_min<<" "<<yaw_max<<" "<<tx_min<<" "<<tx_max<<" "<<ty_min<<" "<<ty_max<<" "<<tz_min<<" "<<tz_max<<endl);
     //return min_cost_sum;
 }
 
@@ -2369,7 +2373,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
             pow(point_cloud_data.at(i)[2]-point_cloud_data.at(j)[2],2);
             if(d>=3*best_ub+1e-9){
                 red.push_back(j);
-                DebugOn("cannot match with same j");
+                DebugOff("cannot match with same j"<<endl);
             }
         }
         if(red.size()>=1){
