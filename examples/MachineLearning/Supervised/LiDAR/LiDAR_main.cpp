@@ -341,7 +341,53 @@ vector<vector<double>> vertex_enumeration_cdd(const vector<vector<double>>& half
 
 int main (int argc, char * argv[])
 {
-    //    read_laz("/Users/l297598/Downloads/Ta51_powerlines_3__2020_12_18_combined.laz");
+    //string file_u="/Users/smitha/Downloads/35.ABS.Kelley_MLOPT1_2021_09_03.laz";
+    //string file_u="/Users/smitha/Downloads/35.ABS.Kelley_MLOPT1_2021_09_03.laz";
+    //string file_u="/Users/smitha/LiDAR_data/28.ABSOLUTE.DAG4_L_2__2019_06_20_18_combined.20211222.RPY.000.frames.712-761.1189-1267.ObjectFocus_MLOPT_Truck.adc.laz";
+    //string file_u="/Users/smitha/LiDAR_data/30.ABSOLUTE.TA51__2020_09_18_18_45_45.lpd.20211222.RPY.000.frames.1258-1361.1680-1752.fObjectFocus_MLOPT_Cars.adc.laz";
+    string file_u="/Users/smitha/LiDAR_data/29.ABSOLUTE.TL_Shrubz_6__2018_07_15_combined.20211222.RPY.000.frames.1643-1689.2616-2662.fObjectFocus_MLOPT_Tent.adc.laz";
+    vector<vector<double>> uav_model, uav_data,uav_model1, uav_data1,cloud1, cloud2, uav1, uav2, rpy1, rpy2;
+    vector<vector<double>> full_rpy_model, full_rpy_data, rpy_model, rpy_data,rpy_model1, rpy_data1;
+    vector<vector<double>> lidar_point_cloud, roll_pitch_yaw, em;
+    auto uav_cloud_u=::read_laz1(file_u, lidar_point_cloud, roll_pitch_yaw);
+    int mid_i=0;
+    for(auto i=1;i<uav_cloud_u.size();i++)
+            {
+                auto x=uav_cloud_u.at(i)[0];
+                auto y=uav_cloud_u.at(i)[1];
+                auto z=uav_cloud_u.at(i)[2];
+                auto x_prev=uav_cloud_u.at(i-1)[0];
+                auto y_prev=uav_cloud_u.at(i-1)[1];
+                auto z_prev=uav_cloud_u.at(i-1)[2];
+                if((abs(x-x_prev)>=1 && abs(y-y_prev)>=1)){
+                    mid_i=i;
+                    DebugOn("Two flight lines are detected "<<mid_i<<endl);
+                }
+            }
+            /*If two flight lines identified2*/
+            if(mid_i==0){
+                invalid_argument("Two flight lines are not detected!");
+            }
+            for(auto i=0;i<mid_i;i++){
+                cloud1.push_back(lidar_point_cloud.at(i));
+                uav1.push_back(uav_cloud_u.at(i));
+                rpy1.push_back(roll_pitch_yaw.at(i));
+            }
+            for(auto i=mid_i;i<lidar_point_cloud.size();i++){
+                cloud2.push_back(lidar_point_cloud.at(i));
+                uav2.push_back(uav_cloud_u.at(i));
+                rpy2.push_back(roll_pitch_yaw.at(i));
+            }
+    vector<vector<double>> empty_vec;
+    empty_vec.push_back(uav_cloud_u[0]);
+#ifdef USE_MATPLOT
+     plot(uav_cloud_u,empty_vec, 0.1);
+#endif
+    empty_vec.clear();
+    empty_vec.push_back(lidar_point_cloud[0]);
+#ifdef USE_MATPLOT
+     plot(lidar_point_cloud,empty_vec, 0.1);
+#endif
     //    return 0;
     double mse=1e-3;
     int dt=300;
@@ -1446,7 +1492,7 @@ int main (int argc, char * argv[])
     vector<vector<double>> full_point_cloud1, full_point_cloud2;
     vector<vector<double>> point_cloud1, point_cloud2;
     vector<vector<double>> full_uav1, full_uav2;
-    vector<vector<double>> uav1, uav2;
+    //vector<vector<double>> uav1, uav2;
     string Model_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
     string Data_file = string(prj_dir)+"/data_sets/LiDAR/point_cloud1.txt";
     string red_Model_file = string(prj_dir)+"/data_sets/LiDAR/red_point_cloud1.txt";

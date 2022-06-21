@@ -192,5 +192,188 @@ void apply_rot_trans(double roll, double pitch, double yaw, double x_shift, doub
     }
 }
 
+/* Save LAZ files */
+void save_laz1(const string& fname, const vector<vector<double>>& point_cloud1, const vector<vector<double>>& point_cloud2){
+    DebugOn("Saving new las file\n");
+    LASheader lasheader;
+    lasheader.global_encoding = 1;
+    lasheader.x_scale_factor = 0.01;
+    lasheader.y_scale_factor = 0.01;
+    lasheader.z_scale_factor = 0.01;
+    lasheader.x_offset = 500000.0;
+    lasheader.y_offset = 4100000.0;
+    lasheader.z_offset = 0.0;
+    lasheader.point_data_format = 1;
+    lasheader.point_data_record_length = 28;
+    
+    auto n1 = point_cloud1.size();
+    auto n2 = point_cloud2.size();
+    LASwriteOpener laswriteopener;
+    laswriteopener.set_file_name(fname.c_str());
+    LASwriter* laswriter = laswriteopener.open(&lasheader);
+    LASpoint laspoint;
+    laspoint.init(&lasheader, lasheader.point_data_format, lasheader.point_data_record_length, 0);
+    for (auto i = 0; i< n1; i++) {
+        laspoint.set_x(point_cloud1[i][0]*1e2);
+        laspoint.set_y(point_cloud1[i][1]*1e2);
+        laspoint.set_z(point_cloud1[i][2]*1e2);
+        laswriter->write_point(&laspoint);
+        laswriter->update_inventory(&laspoint);
+    }
+    for (auto i = 0; i< n2; i++) {
+        laspoint.set_x(point_cloud2[i][0]*1e2);
+        laspoint.set_y(point_cloud2[i][1]*1e2);
+        laspoint.set_z(point_cloud2[i][2]*1e2);
+        laswriter->write_point(&laspoint);
+        laswriter->update_inventory(&laspoint);
+    }
+    laswriter->update_header(&lasheader, TRUE);
+    laswriter->close();
+    delete laswriter;
+}
+/* Read Laz files */
+vector<vector<double>> read_laz1(const string& fname, vector<vector<double>>& lidar_point_cloud, vector<vector<double>>& roll_pitch_yaw){
+    string namef= fname.substr(0,fname.find(".laz"));
+    string name=namef+"_original.laz";
+    LASreadOpener lasreadopener;
+    lasreadopener.set_file_name(fname.c_str());
+    lasreadopener.set_populate_header(TRUE);
+    param<> x1("x1"), y1("x1"), z1("x1");
+    int xdim1=0, ydim1=0, zdim1=0;
+    if (!lasreadopener.active())
+    {
+        throw invalid_argument("ERROR: no input specified\n");
+    }
+    vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
+    vector<double> x_shift,y_shift,z_shift;
+    vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
+    set<double> timestamps;
+    vector<vector<double>> uav_cloud;
+    double time_start, time_end;
+    while (lasreadopener.active())
+    {
+        LASreader* lasreader = lasreadopener.open();
+        if (lasreader == 0)
+        {
+            throw invalid_argument("ERROR: could not open lasreader\n");
+        }
+        
+        DebugOff("Number of points = " << lasreader->npoints << endl);
+        DebugOn("min x axis = " << lasreader->header.min_x << endl);
+        DebugOn("max x axis = " << lasreader->header.max_x << endl);
+        DebugOn("min y axis = " << lasreader->header.min_y << endl);
+        DebugOn("max y axis = " << lasreader->header.max_y << endl);
+        DebugOn("min z axis = " << lasreader->header.min_z << endl);
+        DebugOn("max z axis = " << lasreader->header.max_z << endl);
+        DebugOff("xscale = "<<lasreader->header.x_scale_factor<<endl);
+        DebugOff("yscale = "<<lasreader->header.y_scale_factor<<endl);
+        DebugOff("zscale = "<<lasreader->header.z_scale_factor<<endl);
+        DebugOff("xoffset = "<<lasreader->header.x_offset<<endl);
+        DebugOff("yoffset = "<<lasreader->header.y_offset<<endl);
+        DebugOff("zoffset = "<<lasreader->header.z_offset<<endl);
+       
+        
+        int total_pts=lasreader->npoints;
+        int skip=1;
+//        if(total_pts>=15e6 && total_pts<=1e8){
+//            skip=10;
+//        }
+//        else if(total_pts>1e8){
+//            skip=1000;
+//        }
+        int nb_dots; /* Number of measurements inside cell */
+        int xpos, ypos;
+        double z, min_z, max_z, av_z;
+        pair<int,int> pos;
+        size_t nb_pts = 0;
+        tuple<double,double,double,double,UAVPoint*> cell; /* <min_z,max_z,av_z> */
+       
+        bool neg_x = false;/* x is decreasing */
+        bool neg_y = false;/* y is decreasing */
+        //
+        vector<UAVPoint*> UAVPoints;
+        vector<LidarPoint*> LidarPoints;
+        map<int,shared_ptr<Frame>> frames;
+        map<int,shared_ptr<Frame>> frames1, frames2;
+        
+        vector<double> uav_x, uav_y, uav_z;
+        vector<double> uav_x1, uav_y1, uav_z1;
+        vector<double> x_vec1,y_vec1,z_vec1,zmin_vec1,zmax_vec1;
+        vector<double> x_vec2,y_vec2,z_vec2,zmin_vec2,zmax_vec2;
+        vector<double> x_shift1,y_shift1,z_shift1;
+        vector<double> x_shift2,y_shift2,z_shift2;
+        vector<double> x_shift,y_shift,z_shift;
+        vector<double> uav_roll1,uav_pitch1,uav_yaw1;
+        vector<double> uav_roll2,uav_pitch2,uav_yaw2;
+        vector<double> x_combined,y_combined,z_combined,zmin_combined,zmax_combined;
+        set<double> timestamps;
+        set<int> xvals;
+        size_t uav_id = 0;
+        bool new_uav = true, u_turn = false, frame1 = true, u_turn_2=false;
+        double unix_time, delta_x = 0, delta_y = 0;
+        pair<map<int,shared_ptr<Frame>>::iterator,bool> frame_ptr;
+        bool exit = false;
+        vector<vector<double>> point_cloud1, point_cloud2;
+        
+        
+        lasreader->read_point();
+        auto time_start = lasreader->point.get_gps_time();
+        DebugOff("time_start "<<time_start<<endl);
+        DebugOn("entering this loop"<<endl);
+        while (lasreader->read_point() && LidarPoints.size()!=200e6)
+        {
+            nb_pts++;
+            time_end = lasreader->point.get_gps_time();
+            auto laser_id = lasreader->point.get_point_source_ID();
+            auto unix_time = lasreader->point.get_gps_time();
+            DebugOff("lid "<<laser_id<<endl);
+//            if(!((unix_time-time_start)>=150 && (unix_time-time_start)<=250)){
+//                continue;
+//            }
+//            if(nb_pts%10!=0){/* Only keep points from Nadir laser */
+//                continue;
+//            }
+            auto X = (lasreader->point.get_X());
+            auto Y = (lasreader->point.get_Y());
+            auto Z = (lasreader->point.get_Z());
+            auto x = (lasreader->point.get_x());
+            auto y = (lasreader->point.get_y());
+            auto z = (lasreader->point.get_z());
+            auto uav_x = (lasreader->point.get_attribute_as_float(1));
+            auto uav_y = (lasreader->point.get_attribute_as_float(2));
+            auto uav_z = lasreader->point.get_attribute_as_float(3);
+            auto roll = lasreader->point.get_attribute_as_float(4);
+            auto pitch = lasreader->point.get_attribute_as_float(5);
+            auto yaw = lasreader->point.get_attribute_as_float(6);
+            for(int i = 0; i < 11; i++){
+                DebugOff("attribute "<< i << " = " << lasreader->point.get_attribute_name(i) << endl);
+                DebugOff("attribute "<< i << " value = " << lasreader->point.get_attribute_as_float(i) << endl);
+            }
+            DebugOff("rpy "<<to_string_with_precision(roll,9)<<" "<<to_string_with_precision(pitch,9)<<" "<<to_string_with_precision(yaw,9)<<endl);
+            DebugOff("uav "<<to_string_with_precision(uav_x,9)<<" "<<to_string_with_precision(uav_y,9)<<" "<<to_string_with_precision(uav_z,9)<<endl);
+            DebugOff("lidar "<<to_string_with_precision(x,9)<<" "<<to_string_with_precision(y,9)<<" "<<to_string_with_precision(z,9)<<endl);
+            if(!isnan(uav_x) && !isnan(uav_y) && !isnan(uav_z)){
+                LidarPoints.push_back(new LidarPoint(laser_id,unix_time,x,y,z));
+                point_cloud1.push_back({x,y,z});
+                uav_cloud.push_back({uav_x,uav_y, uav_z});
+                lidar_point_cloud.push_back({x,y,z});
+                roll_pitch_yaw.push_back({roll,pitch,yaw});
+            }
+        }
+        
+        DebugOn("Read " << LidarPoints.size() << " points" << endl);
+        DebugOn("Read " << lidar_point_cloud.size() << " points" << endl);
+        DebugOn("Read " << uav_cloud.size() << " points" << endl);
+        DebugOn("Read " << roll_pitch_yaw.size() << " points" << endl);
+        DebugOn(point_cloud1.size() << " points in flight line 1" << endl);
+        DebugOn(point_cloud2.size() << " points in flight line 2" << endl);
+        save_laz1(name, point_cloud1, point_cloud2);
+        DebugOff("time_start "<<time_start);
+        DebugOff("time_end "<<time_end-time_start);
 
+    }
+    DebugOff("finished read laz"<<endl);
+
+    return uav_cloud;
+}
 #endif /* Lidar_utils_h */

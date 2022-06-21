@@ -1088,7 +1088,7 @@ shared_ptr<Model<double>> Reg_L2_model_rotation_trigonometric(const vector<vecto
     //                pairs2.add_ref(key2);
     //            }
     //        }
-    //        
+    //
     //        if(pairs1.is_indexed()){
     //            DebugOn("Number of incompatible pairs constraints = " << pairs1.size() << endl);
     //            Constraint<> incomp_pairs("incomp_pairs");
@@ -1916,7 +1916,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                         dist_cells_max_novoro.add_val(key, dist_ij_max);
                         dist_ij_max=std::min(dist_ij_max, model_voronoi_radius_sq[j]);
                         if(dist_ij_min>=dist_ij_max){
-                            DebugOn("crossover"<<" "<<endl);
+                            DebugOn("crossover"<<" "<<dist_ij_min<<" "<<dist_ij_max<<endl);
                         }
                         else{
                             if(dist_ij_min<=min_dist_ij_max){
