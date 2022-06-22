@@ -2648,6 +2648,36 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     return rpyt;
 }
 #ifdef USE_MPI
+void send_vector_new(const vector<size_t>& limits, vector<double>& vec_full, vector<double>& vec_worker){
+    int worker_id, nb_workers;
+    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
+    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
+    auto nb_workers_ =  limits.size()-1;
+    DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
+    if(worker_id+1<limits.size()){
+        for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
+            vec_full[i]=vec_worker[i-limits[worker_id]];
+        }
+    }
+    std::vector<int> d, counts;
+    for(auto l=limits.begin()+1;l!=limits.end();l++){
+        counts.push_back(*l-*(l-1));
+        d.push_back(*(l-1));
+    }
+    for(auto l=nb_workers_;l!=nb_workers;l++){
+        counts.push_back(0);
+        d.push_back(limits.back());
+    }
+    if(counts.size()!=nb_workers){
+        DebugOn("Error in size of counts");
+    }
+    if(d.size()!=nb_workers){
+        DebugOn("Error in size of d");
+    }
+    MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                   &vec_full[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
+}
 vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector<vector<double>>& point_cloud_data,const vector<vector<vector<double>>>& model_voronoi_vertices, vector<double>& best_rot, double best_ub, double tx_min, double tx_max, double ty_min, double ty_max, double tz_min, double tz_max, std::string error_type, const nanoflann::KDTreeSingleIndexAdaptor<
                                nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
                                PointCloud<double>, 3 /* dim */>& index,const param<double>& dii, const param<double>& djj, const vector<double>& model_voronoi_radius_sq)
@@ -2981,14 +3011,14 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
                        &ub_all_node[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
         for(auto l=0;l<ub_all_node.size();l+=7){
-            if(ub_all_node[0]<=best_ub){
-                best_ub=ub_all[0];
-                rpy_rad[0]=ub_all[1];
-                rpy_rad[1]=ub_all[2];
-                rpy_rad[2]=ub_all[3];
-                txyz[0]=ub_all[4];
-                txyz[1]=ub_all[5];
-                txyz[2]=ub_all[6];
+            if(ub_all_node[l]<=best_ub){
+                best_ub=ub_all_node[l];
+                rpy_rad[0]=ub_all_node[l+1];
+                rpy_rad[1]=ub_all_node[l+2];
+                rpy_rad[2]=ub_all_node[l+3];
+                txyz[0]=ub_all_node[l+4];
+                txyz[1]=ub_all_node[l+5];
+                txyz[2]=ub_all_node[l+6];
             }
         }
         opt_gap = (best_ub - best_lb)/best_ub;
@@ -3053,36 +3083,6 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     rpyt.push_back(ty);
     rpyt.push_back(tz);
     return rpyt;
-}
-void send_vector_new(const vector<size_t>& limits, vector<double>& vec_full, vector<double>& vec_worker){
-    int worker_id, nb_workers;
-    auto err_rank = MPI_Comm_rank(MPI_COMM_WORLD, &worker_id);
-    auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
-    auto nb_workers_ =  limits.size()-1;
-    DebugOff("I'm worker ID: " << worker_id << ", I'm getting ready to send my status " << endl);
-    if(worker_id+1<limits.size()){
-        for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
-            vec_full[i]=vec_worker[i-limits[worker_id]];
-        }
-    }
-    std::vector<int> d, counts;
-    for(auto l=limits.begin()+1;l!=limits.end();l++){
-        counts.push_back(*l-*(l-1));
-        d.push_back(*(l-1));
-    }
-    for(auto l=nb_workers_;l!=nb_workers;l++){
-        counts.push_back(0);
-        d.push_back(limits.back());
-    }
-    if(counts.size()!=nb_workers){
-        DebugOn("Error in size of counts");
-    }
-    if(d.size()!=nb_workers){
-        DebugOn("Error in size of d");
-    }
-    MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                   &vec_full[0], &counts[0], &d[0], MPI_DOUBLE, MPI_COMM_WORLD);
-    //MPI_Barrier(MPI_COMM_WORLD);
 }
 #endif
 #endif /* BB_h */
