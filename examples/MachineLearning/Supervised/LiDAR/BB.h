@@ -2803,9 +2803,9 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         }
         if(elapsed_time >= total_time_max || opt_gap <= max_opt_gap)
             break;
-        DebugOn("Total infeasible =  " << infeasible_count << endl);
-        DebugOn("Total prep_time =  " << prep_time_total << endl);
-        DebugOn("Total discarded =  " << prep_count << endl);
+        DebugOff("Total infeasible =  " << infeasible_count << endl);
+        DebugOff("Total prep_time =  " << prep_time_total << endl);
+        DebugOff("Total discarded =  " << prep_count << endl);
         double max_incr=0, max_ratio=1;
         pos_vec.clear();
         models.clear();
@@ -2934,7 +2934,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             topnode = lb_queue.top();
         }
         elapsed_time = get_wall_time() - time_start;
-        DebugOn("Elapsed time = " << elapsed_time << "seconds\n");
+        DebugOff("Elapsed time = " << elapsed_time << "seconds\n");
         if(elapsed_time + max_time > total_time_max){
             DebugOn("max time "<< max_time);
             break;
@@ -2957,7 +2957,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             m_vec.clear();
             pos_vec.clear();
             models.clear();
-            run_preprocess_parallel_Align(point_cloud_model,point_cloud_data, model_voronoi_vertices, pos_vec, models, vec_node, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type, ub_node, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max,index, incomp,dii, djj, model_voronoi_radius_sq);
+            run_preprocess_parallel_Align(point_cloud_model,point_cloud_data, model_voronoi_vertices, pos_vec, models, vec_node_worker, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type, ub_node, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max,index, incomp,dii, djj, model_voronoi_radius_sq);
             best_ub=std::min(best_ub, ub_node[0]);
             run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
             int count=0;
@@ -2987,7 +2987,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         send_vector_new(limits, lb_vector, lb_vec_worker);
         for(auto i=0;i<lb_vector.size();i++){
             if(lb_vector[i]<=best_ub){
-                if(i>=limits[worker_id] && i<limits[worker_id+1]){
+                if(worker_id+1<limits.size() && i>=limits[worker_id] && i<limits[worker_id+1]){
                     lb_queue.push(vec_node_worker[i-limits[worker_id]]);
                 }
                 else{
