@@ -1845,7 +1845,7 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
     auto d_boxt_boxj=std::max(distance_polytopes_gjk(box_t, box_j)-1e-6, 0.0);
     DebugOff("d_boxt_boxj "<<d_boxt_boxj<<endl);
     if(d_boxt_boxj>=1e-6){
-        DebugOn("intersection test failed "<<d_boxt_boxj<<endl);
+        DebugOff("intersection test failed "<<d_boxt_boxj<<endl);
         found_all=false;
     }
     else{
@@ -2128,22 +2128,22 @@ void preprocess_lid(const vector<vector<double>>& point_cloud_model, const vecto
                 }
             }
         }
-        DebugOn("min_cost_sum "<<min_cost_sum<<endl);
+        DebugOff("min_cost_sum "<<min_cost_sum<<endl);
         double vo=valid_cells_old.size();
         if(vo==0){
             vo=point_cloud_data.size()*point_cloud_model.size();
         }
         double vn=valid_cells_new.size();
         double remo=(vo-vn)/vo*100.0;
-        DebugOn("valid cells old size "<<vo<<endl);
-        DebugOn("valid cells new size "<<vn<<endl);
-        DebugOn("rem percen "<<remo<<endl);
+        DebugOff("valid cells old size "<<vo<<endl);
+        DebugOff("valid cells new size "<<vn<<endl);
+        DebugOff("rem percen "<<remo<<endl);
         new_cells=valid_cells_new;
     }
     if(!found_all)
     {
         new_cells=valid_cells_empty;
-        DebugOn("No valid cells found "<<endl);
+        DebugOff("No valid cells found "<<endl);
     }
     prep_time=get_wall_time()-time_start;
     DebugOff("prep time "<<prep_time<<" "<<roll_min<<" "<<roll_max<<" "<<pitch_min<<" "<<pitch_max<<" "<<yaw_min<<" "<<yaw_max<<" "<<tx_min<<" "<<tx_max<<" "<<ty_min<<" "<<ty_max<<" "<<tz_min<<" "<<tz_max<<endl);
@@ -2173,7 +2173,7 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
     vector<double> vec_prep_time;
     vec_prep_time.resize(num, 0.0);
     int npass=num/nb_threads+1;
-    DebugOn("npass num "<<npass<<" "<<num<<endl);
+    DebugOff("npass num "<<npass<<" "<<num<<endl);
     for (auto j = 0; j < npass; j++) {
         
         for (auto i = j*nb_threads; i < std::min((j+1)*nb_threads, num); i++) {
@@ -2186,7 +2186,7 @@ void run_preprocess_only_parallel(const vector<vector<double>>& point_cloud_mode
             t.join();
         }
         threads.clear();
-        DebugOn("one pass "<<j<<" "<<num<<endl);
+        DebugOff("one pass "<<j<<" "<<num<<endl);
     }
     for (auto i = 0; i < num; i++) {
         if(valid_cells[i].size()>=point_cloud_data.size()){
@@ -2345,7 +2345,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     vector<int> m_vec;
     vector<vector<double>> costs_upto_vec;
     auto point_cloud_data_copy=point_cloud_data;
-    DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
+    DebugOff("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models, models_new;
     double lb = 0, ub = 12, ub_=-1, best_lb = 0;
     int nb_pruned = 0;
@@ -3023,6 +3023,10 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         }
         opt_gap = (best_ub - best_lb)/best_ub;
         opt_gap_abs=best_ub-best_lb;
+	double del_time=get_wall_time()-time_start-elapsed_time;
+	if(del_time>=max_time*10){
+		DebugOn("del_time over 50 "<<del_time<<endl);
+	}
         elapsed_time = get_wall_time() - time_start;
         
     }
@@ -3042,7 +3046,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     DebugOn("roll rad "<< roll_rad<<endl);
     DebugOn("pitch rad "<< pitch_rad<<endl);
     DebugOn("yaw rad "<< yaw_rad<<endl);
-    while(!lb_queue.empty())
+    while(!lb_queue.empty() && worker_id==0)
     {
         auto node = lb_queue.top();
         DebugOn("node lb "<<node.lb<<" node.leaf "<<node.leaf<<endl);

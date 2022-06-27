@@ -154,7 +154,7 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+    //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
         //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
         //   grb_env->set(GRB_IntParam_Threads,8);
         //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -177,7 +177,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_env = new GRBEnv();
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
                 //   grb_env->set(GRB_IntParam_Threads,8);
                 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
                 //    grb_env->set(GRB_IntParam_Threads,1);
@@ -213,7 +213,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //grb_env->set(GRB_DoubleParam_NodeLimit,1);
                 //   grb_env->set(GRB_IntParam_Threads,8);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
                 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
                 //    grb_env->set(GRB_IntParam_Threads,1);
                 //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -262,6 +262,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
         //    print_constraints();
     if (relax) relax_model();
+    grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
@@ -270,7 +271,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
     grb_mod->set(GRB_IntParam_Threads, threads);
-    grb_mod->set(GRB_IntParam_OutputFlag,1);
+    //grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
@@ -279,7 +280,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_CutPasses, 5);
    // grb_mod->set(GRB_IntParam_PrePasses, 2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
-    
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
     grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //grb_mod->set(GRB_IntParam_Cuts,3);
