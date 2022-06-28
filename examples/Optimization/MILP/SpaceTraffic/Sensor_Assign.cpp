@@ -78,7 +78,7 @@ void myModel::readData(int argc, const char * argv[]){
     sensors = range (0, N - 1);
     objects = range (N, N + M - 1);
     arcs.add(graph.arcs);
-    for (int i = 0; i < N; i++) {
+    /*for (int i = 0; i < N; i++) {
         own_sens.add(to_string(i) + "," + to_string(owner[i]));
         for (int k = 0; k < owner[i]; k++) {
             bought_sens.add(to_string(i) + "," + to_string(k));
@@ -95,22 +95,47 @@ void myModel::readData(int argc, const char * argv[]){
                 bought_arcs.add(a->_src->_name + "," + a->_dest->_name + "," + to_string(k));
             }
         }
-    }
+    }*/
     
     /*for (int k = 0; k < K; k++) {
         for (int i = 0; i < N; i++) {
-            for (Arc* a : graph.get_node(to_string(i))->get_out()) {
-                if (owner[i] == k) {
-                    own_arcs.add(a->_src->_name + ", " + a->_dest->_name +  ", " +  to_string(owner[i]));
+            if (owner[i] == k) {
+                own_sens.add(to_string(i) + "," + to_string(k));
+                for (Arc* a : graph.get_node(to_string(i))->get_out()) {
+                    own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
                 }
-                else {
-                    bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+            }
+            else {
+                bought_sens.add(to_string(i) + "," + to_string(k));
+                for (Arc* a : graph.get_node(to_string(i))->get_out()) {
+                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
                 }
             }
         }
     }*/
     
-    jk = indices(objects,range(0,K-1));
+    for (int k = 0; k < K; k++) {
+        for (int i = 0; i < N; i++) {
+            if (owner[i] == k) {
+                own_sens.add(to_string(i) + "," + to_string(k));
+            }
+            else {
+                bought_sens.add(to_string(i) + "," + to_string(k));
+            }
+        }
+        for (int j = 0; j < M; j++) {
+            for (Arc* a: graph.get_node(to_string(j))->get_in()) {
+                if (owner[stoi(a->_src->_name)] == k) {
+                    own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                }
+                else {
+                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                }
+            }
+        }
+    }
+    
+    jk = indices(objects, range(0,K-1));
     
 
 }
@@ -127,8 +152,7 @@ void myModel::InitBilevel() {
 
     /*Variables*/
 
-    int pUB = 100;
-    var<double> p("p", 0, pUB);
+    var<double> p("p", pos_);
     model.add(p.in(sensors));
     var<int> s("s", 0, 1);
     model.add(s.in(own_arcs));
@@ -138,15 +162,15 @@ void myModel::InitBilevel() {
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
-    var<double> u("u",pos_);
+    var<double> u("u", pos_);
     model.add(u.in(own_sens));
     var<double> up("up");
     model.add(up.in(bought_sens));
-    var<double> q("q",pos_);
+    var<double> q("q", pos_);
     model.add(q.in(own_arcs));
-    var<double> qp("qp");
+    var<double> qp("qp", pos_);
     model.add(qp.in(bought_arcs));
-    var<double> r("r");
+    var<double> r("r", pos_);
     model.add(r.in(jk));
 
     /*Objective*/
@@ -159,11 +183,12 @@ void myModel::InitBilevel() {
     param<double> w0("w0");
     w0.in(arcs);
     w0.initialize_normal(2, 1);
-    w0.print();
     w_own.print();
+    w_bought.print();
+    jk.print();
     
     func<> obj;
-    obj += product(w_own + w0, s);
+    obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
     obj += product(p, sn);
     obj += product((w_bought - p), z);
     obj += product(w0.in_ignore_ith(2, 1, bought_arcs), z);
@@ -192,9 +217,10 @@ void myModel::InitBilevel() {
     fuab = sum(z.in_matrix(1, 1));
     model.add(fuab.in(bought_sens) <= 1);
     
-    //Constraint<> fub("Follower_Unique_Object");
-    //fub = sum(z.in_matrix(0, 1)) + sum(s.in_matrix(0, 1));
-//    model.add(fub.in(range(0,M*K-1)) <= 1);
+    
+    /*Constraint<> fub("Follower_Unique_Object");
+    fub = sum(s.in_matrix(0, 1)) + sum(z.in_matrix(0, 1));
+    model.add(fub.in(jk) <= 1);*/
     
         //----Dual Feasibility----
     
@@ -212,9 +238,10 @@ void myModel::InitBilevel() {
     
         //----Strong Duality----
     
-    /*indices agents = range(0, K - 1);
+    indices agents = range(0, K - 1);
     Constraint<> sd("Strong_Duality");
-    sd = sum(u.in_matrix(0, 1) + up.in_matrix(0, 1) + q.in_matrix(0, 2) + qp.in_matrix(0, 2) + r.in_matrix(0, 1) - product(w_own.in_matrix(0, 2), s.in_matrix(0, 2)) - product(p.in_matrix(0, 1), s.in_matrix(0, 2)) + product(w_bought - p, z.in_matrix(0, 2)));*/
+    sd = sum(u.in_matrix(0, 1)) + sum(up.in_matrix(0, 1)) + sum(q.in_matrix(0, 2)) + sum(qp.in_matrix(0, 2)) + sum(r.in_matrix(0, 1)) - sum(product(w_own.in_matrix(0, 2), s.in_matrix(0, 2))) - sum(product(p, s.in_matrix(0, 2))) - sum(product(w_bought - p.in_ignore_ith(1, 2, bought_arcs), z.in_matrix(0, 2)));
+    model.add(sd.in(agents) == 0);
     
     model.print();
 
