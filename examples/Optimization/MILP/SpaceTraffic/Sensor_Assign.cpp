@@ -79,20 +79,20 @@ void myModel::readData(int argc, const char * argv[]){
     objects = range (N, N + M - 1);
     arcs.add(graph.arcs);
     for (int i = 0; i < N; i++) {
-        own_sens.add(to_string(i) + ", " + to_string(owner[i]));
+        own_sens.add(to_string(i) + "," + to_string(owner[i]));
         for (int k = 0; k < owner[i]; k++) {
-            bought_sens.add(to_string(i) + ", " + to_string(k));
+            bought_sens.add(to_string(i) + "," + to_string(k));
         }
         for (int k = owner[i] + 1; k < K; k++) {
-            bought_sens.add(to_string(i) + ", " + to_string(k));
+            bought_sens.add(to_string(i) + "," + to_string(k));
         }
         for (Arc* a : graph.get_node(to_string(i))->get_out()) {
-            own_arcs.add(a->_src->_name + ", " + a->_dest->_name +  ", " +  to_string(owner[i]));
+            own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(owner[i]));
             for (int k = 0; k < owner[i]; k++) {
-                bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+                bought_arcs.add(a->_src->_name + "," + a->_dest->_name + "," + to_string(k));
             }
             for (int k = owner[i] + 1; k < K; k++) {
-                bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+                bought_arcs.add(a->_src->_name + "," + a->_dest->_name + "," + to_string(k));
             }
         }
     }
@@ -138,11 +138,11 @@ void myModel::InitBilevel() {
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
-    var<double> u("u");
+    var<double> u("u",pos_);
     model.add(u.in(own_sens));
     var<double> up("up");
     model.add(up.in(bought_sens));
-    var<double> q("q");
+    var<double> q("q",pos_);
     model.add(q.in(own_arcs));
     var<double> qp("qp");
     model.add(qp.in(bought_arcs));
@@ -153,18 +153,20 @@ void myModel::InitBilevel() {
     param<double> w_own("w_own");
     w_own.in(own_arcs);
     w_own.initialize_normal(2, 1);
-    param<double> w_bought("w_bought");	
+    param<double> w_bought("w_bought");
     w_bought.in(bought_arcs);
     w_bought.initialize_normal(2, 1);
     param<double> w0("w0");
     w0.in(arcs);
     w0.initialize_normal(2, 1);
+    w0.print();
+    w_own.print();
     
     func<> obj;
-    obj += product(w_own, s);
+    obj += product(w_own + w0, s);
     obj += product(p, sn);
     obj += product((w_bought - p), z);
-    //obj += product(w0.in(own_arcs), s);
+    obj += product(w0.in_ignore_ith(2, 1, bought_arcs), z);
     
     model.max(obj);
     
@@ -190,23 +192,23 @@ void myModel::InitBilevel() {
     fuab = sum(z.in_matrix(1, 1));
     model.add(fuab.in(bought_sens) <= 1);
     
-    Constraint<> fub("Follower_Unique_Object");
-    fub = sum(s.in_matrix(0, 1)) + sum(z.in_matrix(0, 1));
-    //model.add(fub.in(jk) <= 1);
+    //Constraint<> fub("Follower_Unique_Object");
+    //fub = sum(z.in_matrix(0, 1)) + sum(s.in_matrix(0, 1));
+//    model.add(fub.in(range(0,M*K-1)) <= 1);
     
         //----Dual Feasibility----
     
-    /*Constraint<> d1("DualConstr1");
-    d1 = u + q + r - w_own;
-    model.add(d1.in(own_arcs) == 0);*/
+    Constraint<> d1("DualConstr1");
+    d1 = u.in_ignore_ith(1, 1, own_arcs) + q + r.in_ignore_ith(0, 1, own_arcs) - w_own;
+    model.add(d1.in(own_arcs) >= 0);
     
     Constraint<> d2("DualConstr2");
     d2 = u - p;
-    model.add(d2.in(own_sens) == 0);
+    model.add(d2.in(own_sens) >= 0);
     
-    /*Constraint<> d3("DualConstr3");
-    d3 = up + qp + r - w_bought + p;
-    model.add(d3.in(bought_arcs) == 0);*/
+    Constraint<> d3("DualConstr3");
+    d3 = up.in_ignore_ith(1, 1, bought_arcs) + qp + r.in_ignore_ith(0, 1, bought_arcs) - w_bought + p.in_ignore_ith(1, 2, bought_arcs);
+    model.add(d3.in(bought_arcs) >= 0);
     
         //----Strong Duality----
     
