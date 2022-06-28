@@ -21,7 +21,7 @@ file(GLOB HEADERS ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.
 # file(GLOB ISING_SOURCES ${PROJECT_SOURCE_DIR}/examples/MachineLearning/Supervised/ModelLearning/Ising/*.cpp)
 # file(GLOB MINK_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/MinKPart/*.cpp)
 file(GLOB STABLE_S_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/StableSet/*.cpp)
-file(GLOB SPACE_TRAFFIC_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/SpaceTraffic/*.cpp)
+file(GLOB SPACE_TRAFFIC_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MILP/SpaceTraffic/*pp)
 # file(GLOB Power_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/*.cpp)
 file(GLOB ACOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/ACOPF/*.cpp)
 # file(GLOB ACOPFCPX_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/ACOPFCPX/*.cpp)

@@ -1,67 +1,219 @@
 //
-//  Sensor_assignment.cpp
-//  Gravity
+//  main.cpp
+//  bilevel_sensor
 //
-//  Created by Hijazi, Hassan on 15 Dec 2021.
+//  Created by Svetlana Riabova on 6/8/22.
 //
-//
+
 #include <iostream>
-#include <gravity/solver.h>
+#include "Sensor_Assign.hpp"
 
-using namespace std;
-using namespace gravity;
-
-int main (int argc, const char * argv[])
-{
-    cout << "Welcome, this is an implementation of the Sensor Assignment problem in Gravity" << endl;
-    /* We have n sensors and m space objects, the first n nodes in the graph represent sensors and the remaining ones represent objects */
-    int n = 50, m = 10000, degree = 100;
-    Net graph;
-    bool read_input = false;
-    string fname = string(prj_dir)+"/data_sets/sensor/toy.txt";
-    if(argc>=2){
-        fname = argv[1];
-        auto dims =graph.read_pairwise_list(fname);
-        n = dims.first;
-        m = dims.second;
-    }
-    else {
-        graph.generate_bipartite_random(n,m,degree);
-    }
-    /* Graph nodes are indexed in {0,...,n+m-1})*/
-    indices sensors = range (0,n-1);
-    indices objects = range (n,n+m-1);
-
-    assert(n+m==graph.nodes.size());/* Make sure we have the right number of nodes */
-    /* Indexing sets */
-    indices arcs(graph.arcs);
-    param<> w("w");
-    w.in(arcs);
-    w.initialize_normal(2, 1);
-    
-    Model<> model("Sensor");
-    /* Declaring the n-dimensional Real space */
-    
-    /** Variables **/
-    var<> x("x",0,1);
-    model.add(x.in(arcs));
-    
-    /** Objective **/
-    model.max(product(w, x));
-    
-    /** Constraints **/
-    Constraint<> Unique_Obj("Unique_Obj");
-    Unique_Obj = x.in_matrix(1, 1);
-    model.add(Unique_Obj.in(sensors) == 1);
-    
-//    Constraint<> Unique_Sensor("Unique_Sensor");
-//    Unique_Sensor = x.in_matrix(0, 1);
-//    model.add(Unique_Sensor.in(objects) >= 1);
-    
-//    model.write();
-    /** Solver **/
-    solver<> s(model,ipopt);
-    s.run();
-    model.print_solution();
+int main(int argc, const char * argv[]) {
+    myModel m = myModel();
+    m.readData(argc, argv);
+    m.InitBilevel();
+    //int s = 0;
     return 0;
-};
+}
+//Agent::Agent(int name) { n = name; }
+
+void myModel::readData(int argc, const char * argv[]){
+    N = 4; M = 7; K = 2;
+    int degree = 100;
+
+    if(argc>=2){
+            string fname = argv[1];
+            auto dims = graph.read_pairwise_list(fname);
+            N = dims.first;
+            M = dims.second;
+        }
+        else {
+            graph.generate_bipartite_random(N,M,degree);
+        }
+
+    /* Graph nodes are indexed in {0,...,n+m-1})*/
+    assert(N + M == graph.nodes.size());/* Make sure we have the right number of nodes */
+    
+    //init ownr...
+    random_device rd; // obtain a random number from hardware
+    mt19937 gen(rd()); // seed the generator
+    uniform_int_distribution<> distr(0, K-1); // define the range
+
+    for(int i = 0; i < N; i++)
+        owner.push_back(distr(gen)); // generate numbers
+
+    /* Init agents and weights */
+    int wUB = 100; //UB on weights
+    uniform_int_distribution<> distr1(0, wUB); // define the range
+    agents.resize(K);
+    for (int k = 0; k < K; k++) {
+        agents[k].n = k;
+        for (auto a: graph.arcs) {
+            agents[k].w.push_back(distr1(gen));
+        }
+    }
+
+    for (int i = 0; i < N; i++) {
+        agents[owner[i]].own.push_back(i);
+        for (int k = 0; k < owner[i]; k++) {
+            agents[k].oths.push_back(i);
+        }
+        for (int k = owner[i] + 1; k < K; k++) {
+            agents[k].oths.push_back(i);
+        }
+    }
+    
+    for (int k = 0; k < K; k++) {
+        for (int n : agents[k].own) {
+            indices tmp(graph.get_node(to_string(n))->get_out());
+            agents[k].own_arcs = tmp;
+        }
+        for (int n : agents[k].oths) {
+            indices tmp(graph.get_node(to_string(n))->get_out());
+            agents[k].oths_arcs = tmp;
+        }
+    }
+    
+    /* Indexing sets */
+    sensors = range (0, N - 1);
+    objects = range (N, N + M - 1);
+    arcs.add(graph.arcs);
+    for (int i = 0; i < N; i++) {
+        own_sens.add(to_string(i) + ", " + to_string(owner[i]));
+        for (int k = 0; k < owner[i]; k++) {
+            bought_sens.add(to_string(i) + ", " + to_string(k));
+        }
+        for (int k = owner[i] + 1; k < K; k++) {
+            bought_sens.add(to_string(i) + ", " + to_string(k));
+        }
+        for (Arc* a : graph.get_node(to_string(i))->get_out()) {
+            own_arcs.add(a->_src->_name + ", " + a->_dest->_name +  ", " +  to_string(owner[i]));
+            for (int k = 0; k < owner[i]; k++) {
+                bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+            }
+            for (int k = owner[i] + 1; k < K; k++) {
+                bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+            }
+        }
+    }
+    
+    /*for (int k = 0; k < K; k++) {
+        for (int i = 0; i < N; i++) {
+            for (Arc* a : graph.get_node(to_string(i))->get_out()) {
+                if (owner[i] == k) {
+                    own_arcs.add(a->_src->_name + ", " + a->_dest->_name +  ", " +  to_string(owner[i]));
+                }
+                else {
+                    bought_arcs.add(a->_src->_name + ", " + a->_dest->_name + ", " + to_string(k));
+                }
+            }
+        }
+    }*/
+    
+    jk = indices(objects,range(0,K-1));
+    
+
+}
+
+void myModel::InitPrimal() {
+
+}
+void myModel::InitDual() {
+
+}
+void myModel::InitBilevel() {
+
+    Model<> model("BilevelSensor");
+
+    /*Variables*/
+
+    int pUB = 100;
+    var<double> p("p", 0, pUB);
+    model.add(p.in(sensors));
+    var<int> s("s", 0, 1);
+    model.add(s.in(own_arcs));
+    var<int> sn("sn", 0, 1);
+    model.add(sn.in(sensors));
+    var<int> z0("z0");
+    model.add(z0.in(arcs));
+    var<int> z("z", 0, 1);
+    model.add(z.in(bought_arcs));
+    var<double> u("u");
+    model.add(u.in(own_sens));
+    var<double> up("up");
+    model.add(up.in(bought_sens));
+    var<double> q("q");
+    model.add(q.in(own_arcs));
+    var<double> qp("qp");
+    model.add(qp.in(bought_arcs));
+    var<double> r("r");
+    model.add(r.in(jk));
+
+    /*Objective*/
+    param<double> w_own("w_own");
+    w_own.in(own_arcs);
+    w_own.initialize_normal(2, 1);
+    param<double> w_bought("w_bought");	
+    w_bought.in(bought_arcs);
+    w_bought.initialize_normal(2, 1);
+    param<double> w0("w0");
+    w0.in(arcs);
+    w0.initialize_normal(2, 1);
+    
+    func<> obj;
+    obj += product(w_own, s);
+    obj += product(p, sn);
+    obj += product((w_bought - p), z);
+    //obj += product(w0.in(own_arcs), s);
+    
+    model.max(obj);
+    
+    /*Constraints*/
+    //Upper level
+    
+    Constraint<> ub("Unique_Bought_Obsrvn");
+    ub = sum(z.in_matrix(1, 2)) - sn;
+    model.add(ub.in(sensors) == 0);
+
+    Constraint<> luo("Leader_Unique_Object");
+    luo = sum(z0.in_matrix(0, 1));
+    model.add(luo.in(objects) <= 1);
+    
+    //Lower level
+        //----Primal Feasibility----
+
+    Constraint<> fua("Unique_Own_Assignment");
+    fua = sum(s.in_matrix(1, 1)) + sn;
+    model.add(fua.in(own_sens) == 1);
+    
+    Constraint<> fuab("Unique_Bought_Assignment");
+    fuab = sum(z.in_matrix(1, 1));
+    model.add(fuab.in(bought_sens) <= 1);
+    
+    Constraint<> fub("Follower_Unique_Object");
+    fub = sum(s.in_matrix(0, 1)) + sum(z.in_matrix(0, 1));
+    //model.add(fub.in(jk) <= 1);
+    
+        //----Dual Feasibility----
+    
+    /*Constraint<> d1("DualConstr1");
+    d1 = u + q + r - w_own;
+    model.add(d1.in(own_arcs) == 0);*/
+    
+    Constraint<> d2("DualConstr2");
+    d2 = u - p;
+    model.add(d2.in(own_sens) == 0);
+    
+    /*Constraint<> d3("DualConstr3");
+    d3 = up + qp + r - w_bought + p;
+    model.add(d3.in(bought_arcs) == 0);*/
+    
+        //----Strong Duality----
+    
+    /*indices agents = range(0, K - 1);
+    Constraint<> sd("Strong_Duality");
+    sd = sum(u.in_matrix(0, 1) + up.in_matrix(0, 1) + q.in_matrix(0, 2) + qp.in_matrix(0, 2) + r.in_matrix(0, 1) - product(w_own.in_matrix(0, 2), s.in_matrix(0, 2)) - product(p.in_matrix(0, 1), s.in_matrix(0, 2)) + product(w_bought - p, z.in_matrix(0, 2)));*/
+    
+    model.print();
+
+}
