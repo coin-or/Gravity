@@ -1410,6 +1410,7 @@ namespace gravity {
             for (size_t i = 0; i<_val->size(); i++) {
                 _val->at(i) = distribution(generator);
             }
+            reset_range();
         }
 
 
