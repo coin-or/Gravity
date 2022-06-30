@@ -39,7 +39,7 @@ option(LASlib "Link to LASlib libraries" ON)
 # Find TEASER (optional)
 option(TEASER "Link to TEASER libraries" OFF)
 
-# Find CDD (REQUIRED)
+# Find CDD (OPTIONAL)
 option(CDD "Link to CDD libraries" OFF)
 
 # Find GJK (REQUIRED)

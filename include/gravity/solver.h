@@ -87,6 +87,27 @@ public:
     /** Constructor */
     //@{
     solver();
+    ~solver(){
+        if(_stype==gurobi)
+        {
+#ifdef USE_GUROBI
+            auto grb_prog = static_pointer_cast<GurobiProgram>(_prog);
+            //auto grb_prog = (GurobiProgram*)(_prog.get());
+            if(grb_prog->grb_mod){
+                delete grb_prog->grb_mod;
+                grb_prog->grb_mod = nullptr;
+                DebugOff("deleted mod"<<endl);
+            }
+            if(grb_prog->grb_env){
+                delete grb_prog->grb_env;
+                grb_prog->grb_env = nullptr;
+                DebugOff("deleted env"<<endl);
+            }
+#else
+            gurobiNotAvailable();
+#endif
+        }
+    }
     
     solver(shared_ptr<gravity::Model<type>> model, SolverType stype){
         _stype = stype;
