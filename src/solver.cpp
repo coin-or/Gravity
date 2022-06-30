@@ -345,12 +345,17 @@ for (size_t i = 0; i < limits.size(); ++i) {
 }
 /* Launch all threads in parallel */
 auto vec = vector<shared_ptr<gravity::Model<double>>>(models);
+double ts=get_wall_time();
 for (size_t i = 0; i < nr_threads_; ++i) {
     threads.push_back(thread(run_models<double>, ref(vec), limits[i], limits[i+1], stype, tol, lin_solver, max_iter, max_batch_time, cut_off, thread_each[i]));
 }
 /* Join the threads with the main thread */
 for(auto &t : threads){
     t.join();
+}
+double tf=get_wall_time()-ts;
+if(tf>=50){
+	DebugOn("exceed 50 s to solve "<<vec.size()<<" in "<<tf<<endl);
 }
 return 0;
 }

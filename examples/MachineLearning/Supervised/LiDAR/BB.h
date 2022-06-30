@@ -2345,7 +2345,7 @@ vector<double> BranchBound_Align(vector<vector<double>>& point_cloud_model, vect
     vector<int> m_vec;
     vector<vector<double>> costs_upto_vec;
     auto point_cloud_data_copy=point_cloud_data;
-    DebugOn("I will be using " << nb_threads << " parallel threads" << endl);
+    DebugOff("I will be using " << nb_threads << " parallel threads" << endl);
     vector<shared_ptr<Model<>>> models, models_new;
     double lb = 0, ub = 12, ub_=-1, best_lb = 0;
     int nb_pruned = 0;
@@ -2790,7 +2790,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     double eps=0.001;
     int prep_count=0;
     double ut_total=0;
-    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub-eps && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
+    while (elapsed_time < total_time_max && lb_queue.top().lb<=best_ub-0.01 && !lb_queue.empty() && opt_gap > max_opt_gap && !lb_queue.top().leaf) {
         best_lb = lb_queue.top().lb;
         opt_gap = (best_ub - best_lb)/best_ub;
         if(worker_id==0){
@@ -2946,7 +2946,8 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         vector<double> lb_vec_worker;
         vector<double> ub_node(7,1000);
         vector<double> ub_all_node(7*nb_workers, 1000);
-        if(worker_id+1< limits.size()){
+	double del_timed, del_timec;
+        if(worker_id+1<limits.size()){
             lb_vec_worker.resize(limits[worker_id+1]-limits[worker_id], -1);
             for (auto i = limits[worker_id]; i < limits[worker_id+1]; i++) {
                 vec_node_worker.push_back(vec_node[i]);
@@ -2958,8 +2959,17 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             pos_vec.clear();
             models.clear();
             run_preprocess_parallel_Align(point_cloud_model,point_cloud_data, model_voronoi_vertices, pos_vec, models, vec_node_worker, m_vec, vec_lb, valid_cells, nb_threads, best_ub, best_lb, dist_cost_cells, iter, error_type, ub_node, roll_min, roll_max, pitch_min, pitch_max, yaw_min, yaw_max, tx_min, tx_max, ty_min, ty_max, tz_min, tz_max,index, incomp,dii, djj, model_voronoi_radius_sq);
+	     del_timed=get_wall_time()-time_start-elapsed_time;
+	             if(del_timed>=max_time*10){
+			                     DebugOn("worker "<<worker_id<<" prep time over 50 "<<del_timed<<endl);
+					             }
             best_ub=std::min(best_ub, ub_node[0]);
-            run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+            DebugOn("worker "<<worker_id<<" running "<<models.size()<<" models"<<endl);
+	    run_parallel(models, gurobi, 1e-4, nb_threads, "", max_iter, max_time, (best_ub));
+	    del_timec=get_wall_time()-time_start-elapsed_time;
+	             if(del_timec>=max_time*10){
+			                     DebugOn("worker "<<worker_id<<" run time over 50 "<<del_timec<<endl);
+					             }
             int count=0;
             for (int j = 0; j<m_vec.size(); j++) {
                 if(m_vec[j]==0){
@@ -2985,6 +2995,10 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
             }
         }
         send_vector_new(limits, lb_vector, lb_vec_worker);
+	 double del_timea=get_wall_time()-time_start-elapsed_time;
+	         if(del_timea>=max_time*10 && del_timec<=max_time*10){
+			                 DebugOn("worker "<<worker_id<<" send time over 50 "<<del_timea<<endl);
+					         }
         for(auto i=0;i<lb_vector.size();i++){
             if(lb_vector[i]<=best_ub){
                 if(worker_id+1<limits.size() && i>=limits[worker_id] && i<limits[worker_id+1]){
@@ -3023,6 +3037,10 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
         }
         opt_gap = (best_ub - best_lb)/best_ub;
         opt_gap_abs=best_ub-best_lb;
+	double del_time=get_wall_time()-time_start-elapsed_time;
+	if(del_time>=max_time*10 && del_timea<=max_time){
+		DebugOn("worker "<<worker_id<<" gather time over 50 "<<del_time<<endl);
+	}
         elapsed_time = get_wall_time() - time_start;
         
     }

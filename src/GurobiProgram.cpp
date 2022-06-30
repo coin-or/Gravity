@@ -154,7 +154,7 @@ GurobiProgram::GurobiProgram(){
     grb_env = new GRBEnv();
         //    grb_env->set(GRB_IntParam_Presolve,0);
         //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-    grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+    //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
         //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
         //   grb_env->set(GRB_IntParam_Threads,8);
         //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -172,12 +172,15 @@ GurobiProgram::GurobiProgram(){
 
 GurobiProgram::GurobiProgram(Model<>* m) {
     bool found_token = false;
+    double ts=get_wall_time();
+        double time_now;
+	    int count=1;
     while (!found_token) {
         try{
             grb_env = new GRBEnv();
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //grb_env->set(GRB_DoubleParam_NodeLimit,1);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
                 //   grb_env->set(GRB_IntParam_Threads,8);
                 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
                 //    grb_env->set(GRB_IntParam_Threads,1);
@@ -197,6 +200,11 @@ GurobiProgram::GurobiProgram(Model<>* m) {
                 //            cerr << e.getMessage() << endl;
                 //            exit(-1);
             found_token = false;
+	     time_now=get_wall_time()-ts;  
+	      if(time_now>=count*5){
+		                          cout<<"Waiting for license "<<time_now<<endl;
+					                      count++;
+							                  }
             this_thread::sleep_for (chrono::seconds(1));
         }
     }
@@ -207,13 +215,16 @@ GurobiProgram::GurobiProgram(Model<>* m) {
 
 GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     bool found_token = false;
+    double ts=get_wall_time(); 
+    double time_now;
+    int count=1;
     while (!found_token) {
         try{
             grb_env = new GRBEnv();
                 //    grb_env->set(GRB_IntParam_Presolve,0);
                 //grb_env->set(GRB_DoubleParam_NodeLimit,1);
                 //   grb_env->set(GRB_IntParam_Threads,8);
-            grb_env->set(GRB_DoubleParam_TimeLimit,9000);
+            //grb_env->set(GRB_DoubleParam_TimeLimit,9000);
                 //    grb_env->set(GRB_DoubleParam_MIPGap,0.01);
                 //    grb_env->set(GRB_IntParam_Threads,1);
                 //    grb_env->set(GRB_IntParam_Presolve,0);
@@ -235,6 +246,11 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
                 //            cerr << e.getMessage() << endl;
                 //            exit(-1);
             found_token = false;
+	    time_now=get_wall_time()-ts;
+	    if(time_now>=count*5){
+		    cout<<"Waiting for license "<<time_now<<endl;
+		    count++;
+	    }
             this_thread::sleep_for (chrono::seconds(1));
         }
     }
@@ -244,11 +260,18 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     m->compute_funcs();
 }
 
-
 GurobiProgram::~GurobiProgram() {
-        //    for (auto p : _grb_vars) delete p.second;
-    if (grb_mod) delete grb_mod;
-    delete grb_env;
+	     if (grb_mod) {
+		             delete grb_mod;
+			             grb_mod = nullptr;
+				             DebugOff("deleted model"<<endl);
+					         }
+	         if (grb_env){
+			         delete grb_env;
+				         grb_env = nullptr;
+					         DebugOff("deleted environment"<<endl);
+						     }
+		    
 }
 
 void GurobiProgram::reset_model(){
@@ -262,6 +285,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
         //cout << "\n Presolve = " << grb_env->get(GRB_IntParam_Presolve) << endl;
         //    print_constraints();
     if (relax) relax_model();
+    grb_mod->set(GRB_IntParam_OutputFlag,1);
         //    relax_model();
 //    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-6);
     grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-6);
@@ -270,7 +294,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
     grb_mod->set(GRB_IntParam_Threads, threads);
-    grb_mod->set(GRB_IntParam_OutputFlag,1);
+    //grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
     grb_mod->set(GRB_IntParam_NonConvex,2);
@@ -279,7 +303,6 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
     grb_mod->set(GRB_IntParam_CutPasses, 5);
    // grb_mod->set(GRB_IntParam_PrePasses, 2);
     grb_mod->set(GRB_DoubleParam_TimeLimit,max_time);
-    
     grb_mod->set(GRB_DoubleParam_Cutoff,cut_off);
     grb_mod->set(GRB_DoubleParam_Heuristics,0);
     //grb_mod->set(GRB_IntParam_Cuts,3);
@@ -440,9 +463,9 @@ void GurobiProgram::fill_in_grb_vmap(){
                     }
                     else {
                         _grb_vars.at(vid) = (GRBVar(grb_mod->addVar(real_var->get_lb(i), real_var->get_ub(i), 0.0, GRB_CONTINUOUS, v->get_name(true,true)+"("+v->_indices->_keys->at(i)+")")));
-                        if(real_var->_name=="roll"||real_var->_name=="pitch"||real_var->_name=="yaw"){
-                        _grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, 10);
-                    }
+                        //if(false && real_var->_name=="roll"||real_var->_name=="pitch"||real_var->_name=="yaw"){
+                        //_grb_vars.at(vid).set(GRB_IntAttr_BranchPriority, 10);
+                   // }
                     }
                 }
                 break;

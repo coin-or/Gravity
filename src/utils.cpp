@@ -239,8 +239,8 @@ std::vector<size_t> bounds(unsigned parts, size_t mem) {
     bnd.push_back(N1);
     for (size_t i = 0; i < new_parts; ++i) {
         N2 = N1 + delta;
-        if (i == new_parts - 1)
-            N2 += reminder;
+        if (i < reminder)
+            N2 += 1;
         bnd.push_back(N2);
         N1 = N2;
     }
