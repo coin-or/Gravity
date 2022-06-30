@@ -2721,7 +2721,7 @@ vector<double> BranchBound_MPI(vector<vector<double>>& point_cloud_model, vector
     int models_count=0, models_new_count=0;
     int infeasible_count=0;
     vector<pair<pair<int,int>,pair<int,int>>> incompatible_pairs;
-    size_t nb_threads = std::thread::hardware_concurrency();
+    size_t nb_threads = std::thread::hardware_concurrency()-1;
     int threads_total=nb_threads*nb_workers;
     pair<double,double> roll_bounds_r, pitch_bounds_r, yaw_bounds_r,tx_bounds_r,ty_bounds_r,tz_bounds_r;
     

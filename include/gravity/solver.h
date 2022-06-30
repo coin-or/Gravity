@@ -182,9 +182,14 @@ public:
         else if(_stype==gurobi)
         {
 #ifdef USE_GUROBI
+            auto t1=get_wall_time();
             _prog = make_shared<GurobiProgram>(_model);
             _bool_options["gurobi_crossover"] = false;
             DebugOff("created prog"<<endl);
+            auto t2=get_wall_time();
+            if(t2-t1>=50){
+                DebugOn("gurobi make prog over 50 "<<t2-t1<<endl);
+            }
 #else
             gurobiNotAvailable();
 #endif
@@ -455,13 +460,27 @@ public:
             {
 #ifdef USE_GUROBI
                 try{
+                    auto t1=get_wall_time();
                     auto grb_prog = (GurobiProgram*)(_prog.get());
+                    auto t2=get_wall_time();
+                    if(t2-t1>=50){
+                        DebugOn("gurobi get over 50 "<<t2-t1<<endl);
+                    }
                     grb_prog->_output = output;
                     //            prog.grb_prog->reset_model();
+                    auto t3=get_wall_time();
                         grb_prog->prepare_model();
+                    auto t4=get_wall_time();
+                    if(t4-t3>=50){
+                        DebugOn("gurobi prep over 50 "<<t4-t3<<endl);
+                    }
                         //DebugOn("calling prep after init"<<endl);
                     
                     optimal = grb_prog->solve(output, tol, _use_callback, time_limit, cut_off, threads);
+                    auto t6=get_wall_time();
+                    if(t6-t4>=50){
+                        DebugOn("gurobi solve over 50 "<<t6-t4<<endl);
+                    }
                     return_status = optimal ? 0 : -1;
                     //                        delete grb_prog->grb_mod;
                     //                        delete grb_prog->grb_env;

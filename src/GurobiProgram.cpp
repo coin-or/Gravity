@@ -174,7 +174,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
     bool found_token = false;
     double ts=get_wall_time();
         double time_now;
-	    int count=1;
+	    int count=0;
     while (!found_token) {
         try{
             grb_env = new GRBEnv();
@@ -194,6 +194,11 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             grb_mod = new GRBModel(*grb_env);
                 //    grb_env->set(GRB_IntParam_OutputFlag,2);
             found_token = true;
+            time_now=get_wall_time()-ts;  
+                       if(time_now>=50){
+                                          cout<<"license found in "<<time_now<<endl;
+                                                            
+                        }
         }
         catch(GRBException e) {
                 //            cerr << "\nWas not able to create Gurobi environment or model, Error code = " << e.getErrorCode() << endl;
@@ -201,12 +206,13 @@ GurobiProgram::GurobiProgram(Model<>* m) {
                 //            exit(-1);
             found_token = false;
 	     time_now=get_wall_time()-ts;  
-	      if(time_now>=count*5){
-		                          cout<<"Waiting for license "<<time_now<<endl;
-					                      count++;
-							                  }
-            this_thread::sleep_for (chrono::seconds(1));
-        }
+	                   if(time_now>=count*5){
+                                          cout<<"Waiting for license "<<time_now<<endl;
+                                                              count++;
+                        }
+       for(auto i=0;i<1000;i++){
+                auto iw = rand() % 10 + 1;
+       }   
     }
     _model = m;
     m->fill_in_maps();
@@ -217,7 +223,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
     bool found_token = false;
     double ts=get_wall_time(); 
     double time_now;
-    int count=1;
+    int count=0;
     while (!found_token) {
         try{
             grb_env = new GRBEnv();
@@ -240,6 +246,11 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             
             
             found_token = true;
+             time_now=get_wall_time()-ts;  
+                       if(time_now>=50){
+                                          cout<<"license found in "<<time_now<<endl;
+                                                            
+                        }
         }
         catch(GRBException e) {
                 //            cerr << "\nWas not able to create Gurobi environment or model, Error code = " << e.getErrorCode() << endl;
@@ -251,7 +262,9 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
 		    cout<<"Waiting for license "<<time_now<<endl;
 		    count++;
 	    }
-            this_thread::sleep_for (chrono::seconds(1));
+            for(auto i=0;i<1000;i++){
+                auto iw = rand() % 10 + 1;
+       }   
         }
     }
         //    grb_env->set(GRB_IntParam_OutputFlag,2);
@@ -293,7 +306,7 @@ bool GurobiProgram::solve(bool relax, double mipgap, bool use_callback, double m
 //    grb_mod->set(GRB_DoubleParam_BarConvTol, 1e-6);
 //    grb_mod->set(GRB_DoubleParam_BarQCPConvTol, 1e-6);
     grb_mod->set(GRB_IntParam_StartNodeLimit,-3);
-    grb_mod->set(GRB_IntParam_Threads, threads);
+    grb_mod->set(GRB_IntParam_Threads, 1);
     //grb_mod->set(GRB_IntParam_OutputFlag,0);
         //    if(use_callback){
 //    grb_mod->set(GRB_DoubleParam_NodefileStart,0.1);
