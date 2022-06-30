@@ -214,6 +214,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
                 auto iw = rand() % 10 + 1;
        }   
     }
+}
     _model = m;
     m->fill_in_maps();
     m->compute_funcs();
