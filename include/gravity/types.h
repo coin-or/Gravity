@@ -28,6 +28,12 @@ void get_from(std::string& key, int nb_entries);
 /* Gets the last entry appended to the prefix (see get_prefix) */
 void get_to(std::string& key, int nb_entries);
 
+/* return the substring obtained by excluding the ith index */
+std::string exclude_ith(const std::string& key, int ith);
+
+/* return the substring obtained by excluding all the indices listed in all_ids*/
+std::string exclude_ith(const std::string& key, std::vector<int> all_ids);
+
 inline int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
 {
     size_t  pos = 0;
@@ -411,6 +417,7 @@ public:
         }
         return res;
     }
+    
     
     /** Remove keys starting at the ith position and spanning nb_entries
      @param[in] start_position
