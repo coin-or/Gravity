@@ -13,7 +13,7 @@
 using namespace std;
 using namespace gravity;
 
-struct Agent {
+/*struct Agent {
     int n;
     vector<int> own;
     vector<int> oths;
@@ -23,7 +23,7 @@ struct Agent {
     
     Agent() { };
     ~Agent() { };
-};
+};*/
 
 class myModel {
 private:
@@ -38,9 +38,10 @@ private:
     indices bought_arcs;
     indices own_sens;
     indices bought_sens;
+    indices own_sold;
     indices jk; //agents X objects
     vector<int> owner;
-    vector<Agent> agents;
+    //vector<Agent> agents;
     
 public:
     myModel(){ };

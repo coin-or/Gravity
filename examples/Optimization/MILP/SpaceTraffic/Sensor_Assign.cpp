@@ -43,7 +43,7 @@ void myModel::readData(int argc, const char * argv[]){
         owner.push_back(distr(gen)); // generate numbers
 
     /* Init agents and weights */
-    int wUB = 100; //UB on weights
+    /*int wUB = 100; //UB on weights
     uniform_int_distribution<> distr1(0, wUB); // define the range
     agents.resize(K);
     for (int k = 0; k < K; k++) {
@@ -72,7 +72,7 @@ void myModel::readData(int argc, const char * argv[]){
             indices tmp(graph.get_node(to_string(n))->get_out());
             agents[k].oths_arcs = tmp;
         }
-    }
+    }*/
     
     /* Indexing sets */
     sensors = range (0, N - 1);
@@ -130,6 +130,17 @@ void myModel::readData(int argc, const char * argv[]){
                 }
                 else {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                }
+            }
+        }
+    }
+    
+    //indices for fair price
+    for (int i = 0; i < N; i++) {
+        for (Arc* a: graph.get_node(to_string(i))->get_out()) {
+            for (int k = 0; k < K; k++) {
+                for (Arc* b: graph.get_node(to_string(i))->get_out()) {
+                    own_sold.add(to_string(i) + "," + a->_dest->_name + "," + to_string(k) + "," + b->_dest->_name);
                 }
             }
         }
@@ -224,7 +235,7 @@ void myModel::InitBilevel() {
     
         //----Dual Feasibility----
     
-    Constraint<> d1("DualConstr1");
+    /*Constraint<> d1("DualConstr1");
     d1 = u.in_ignore_ith(1, 1, own_arcs) + q + r.in_ignore_ith(0, 1, own_arcs) - w_own;
     model.add(d1.in(own_arcs) >= 0);
     
@@ -234,14 +245,19 @@ void myModel::InitBilevel() {
     
     Constraint<> d3("DualConstr3");
     d3 = up.in_ignore_ith(1, 1, bought_arcs) + qp + r.in_ignore_ith(0, 1, bought_arcs) - w_bought + p.in_ignore_ith(1, 2, bought_arcs);
-    model.add(d3.in(bought_arcs) >= 0);
+    model.add(d3.in(bought_arcs) >= 0);*/
     
         //----Strong Duality----
     
-    indices agents = range(0, K - 1);
+    /*indices agents = range(0, K - 1);
     Constraint<> sd("Strong_Duality");
     sd = sum(u.in_matrix(0, 1)) + sum(up.in_matrix(0, 1)) + sum(q.in_matrix(0, 2)) + sum(qp.in_matrix(0, 2)) + sum(r.in_matrix(0, 1)) - sum(product(w_own.in_matrix(0, 2), s.in_matrix(0, 2))) - sum(product(p, s.in_matrix(0, 2))) - sum(product(w_bought - p.in_ignore_ith(1, 2, bought_arcs), z.in_matrix(0, 2)));
-    model.add(sd.in(agents) == 0);
+    model.add(sd.in(agents) == 0);*/
+    
+        //----Fair price----
+    Constraint<> fp("FairPrice");
+    fp = p.in_ignore_ith(1, 3, own_sold) - (product(w_bought.in, z.in_ignore_ith(2, 1, own_sold)))/2;
+    model.add(fp.in(own_sold) >= 0);
     
     model.print();
 
