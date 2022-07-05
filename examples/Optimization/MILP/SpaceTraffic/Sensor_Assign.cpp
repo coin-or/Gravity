@@ -228,10 +228,12 @@ void myModel::InitBilevel() {
     fuab = sum(z.in_matrix(1, 1));
     model.add(fuab.in(bought_sens) <= 1);
     
+    indices z_ids = z.get_matrix_ids(0, 1);
+    Constraint<> fub("Follower_Unique_Object");
+    fub = sum(s.sum_over(z_ids,0)) + sum(z.in(z_ids));
+    model.add(fub.in(z_ids.ignore_ith(0, 1)) <= 1);
     
-    /*Constraint<> fub("Follower_Unique_Object");
-    fub = sum(s.in_matrix(0, 1)) + sum(z.in_matrix(0, 1));
-    model.add(fub.in(jk) <= 1);*/
+    model.print();
     
         //----Dual Feasibility----
     

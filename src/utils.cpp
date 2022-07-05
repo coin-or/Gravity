@@ -2,6 +2,36 @@
 using namespace std;
 using namespace gravity;
 
+/* return the substring obtained by excluding the ith index */
+string exclude_ith(const string& key, int ith){
+    vector<int> all_ids = {ith};
+    return exclude_ith(key, all_ids);
+}
+    
+/* return the substring obtained by excluding all the indices listed in all_ids*/
+string exclude_ith(const string& key, vector<int> all_ids){
+    string res = key, first_part, last_part;
+    int idx = 0;
+    for(const auto i: all_ids){
+        auto pos = nthOccurrence(res, ",", i-idx);/* We use a growing idx since the key is shrinking by one index for every iteration in the loop*/
+        first_part = res.substr(0,pos);
+        if(pos>0){
+            res = res.substr(pos+1);
+        }
+        pos = nthOccurrence(res, ",", i-idx+1);
+        if(pos>0){
+            last_part = res.substr(pos+1);
+        }
+        if(first_part.size()>0 && last_part.size()>0){ /* stitch them together */
+            res = first_part+","+last_part;
+        }
+        else {
+            res = first_part+last_part;
+        }
+        idx++;
+    }
+    return res;
+}
 
 /* Return the prefix including all entries except the last three */
 std::string get_prefix(std::string& key, int nb_entries){

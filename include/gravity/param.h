@@ -1705,6 +1705,36 @@ namespace gravity {
             return res;
         }
         
+        /* Sum over ith indices, assumes the indices are in ascending order (need to add test that it is) */
+        template<typename... Args>
+        param sum_over(const indices& ids, int ith, Args&&... args){
+            vector<int> all_ids;
+            all_ids = {ith,forward<Args>(args)...};
+            indices res(*_indices);
+            res._type = matrix_;
+            res._ids = make_shared<vector<vector<size_t>>>();
+            map<string,size_t> invariant_map;
+            int row_id = 0;
+            string prev_key = "";
+            if(ids.is_matrix_indexed()){
+                auto nb_rows = ids.get_nb_rows();
+                res._ids->resize(nb_rows);
+                for(auto r = 0; r<nb_rows; r++){
+                    string key = "", invariant_key="", first_part, last_part;
+                    if(!ids._ids->at(r).empty()){/* Identify the invariant key in each row, this can be obtained by excluding all the indices we're summing over */
+                        auto key_ref = ids._ids->at(r).at(0);
+                        key = ids._keys->at(key_ref);
+                        invariant_key = exclude_ith(key,all_ids);/* We now have the invariant key from ids, we now need to sum over all the keys that have this invariant substring */
+                        for(auto key : *_indices->_keys_map){
+                            if(exclude_ith(key.first,all_ids)==invariant_key)
+                                res._ids->at(r).push_back(key.second);
+                        }
+                    }
+                }
+            }
+            return this->in(res);
+        }
+        
         indices get_matrix_ids(unsigned start_pos) const{
             return get_matrix_ids(start_pos,1);
         }
