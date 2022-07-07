@@ -227,9 +227,9 @@ void myModel::InitBilevel() {
     
         //----Fair price----
     Constraint<> fp("FairPrice");
-    fp = p.in_ignore_ith(1, 2, bought_arcs) - 0.5 * (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs));
+    fp = p.in_ignore_ith(1, 2, bought_arcs) - (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs))/2;
     model.add(fp.in(bought_arcs) >= 0);
-    
+    fp.print();
     /*indices s_ids = s.get_matrix_ids(0, 1);
     s_ids.print();
     Constraint<> sl1("Seller lb1");
