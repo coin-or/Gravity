@@ -127,20 +127,23 @@ void myModel::readData(int argc, const char * argv[]){
             for (Arc* a: graph.get_node(to_string(j))->get_in()) {
                 if (owner[stoi(a->_src->_name)] == k) {
                     own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                    for (Arc* b: graph.get_node(to_string(j))->get_in()) {
+                        if ((owner[stoi(b->_src->_name)] == k) && (stoi(b->_src->_name) != stoi(a->_src->_name))) {
+                            own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                            /*for (Arc* c: graph.get_node(to_string(j))->get_in()) {
+                                if (owner[stoi(c->_src->_name)] != k) {
+                                    own_oths_rplc1.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                                    own_oths_rplc2.add(a->_src->_name + "," + c->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                                }
+                            }*/
+                        }
+                        else if (stoi(b->_src->_name) != stoi(a->_src->_name)) {
+                            oths_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                        }
+                    }
                 }
                 else {
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                }
-            }
-        }
-    }
-    
-    //indices for fair price
-    for (int i = 0; i < N; i++) {
-        for (Arc* a: graph.get_node(to_string(i))->get_out()) {
-            for (int k = 0; k < K; k++) {
-                for (Arc* b: graph.get_node(to_string(i))->get_out()) {
-                    own_sold.add(to_string(i) + "," + a->_dest->_name + "," + to_string(k) + "," + b->_dest->_name);
                 }
             }
         }
@@ -165,6 +168,8 @@ void myModel::InitBilevel() {
 
     var<double> p("p", pos_);
     model.add(p.in(sensors));
+    var<double> y("y", pos_);
+    model.add(y.in(sensors));
     var<int> s("s", 0, 1);
     model.add(s.in(own_arcs));
     var<int> sn("sn", 0, 1);
@@ -173,16 +178,6 @@ void myModel::InitBilevel() {
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
-    var<double> u("u", pos_);
-    model.add(u.in(own_sens));
-    var<double> up("up");
-    model.add(up.in(bought_sens));
-    var<double> q("q", pos_);
-    model.add(q.in(own_arcs));
-    var<double> qp("qp", pos_);
-    model.add(qp.in(bought_arcs));
-    var<double> r("r", pos_);
-    model.add(r.in(jk));
 
     /*Objective*/
     param<double> w_own("w_own");
@@ -194,9 +189,6 @@ void myModel::InitBilevel() {
     param<double> w0("w0");
     w0.in(arcs);
     w0.initialize_normal(2, 1);
-    w_own.print();
-    w_bought.print();
-    jk.print();
     
     func<> obj;
     obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
@@ -230,36 +222,27 @@ void myModel::InitBilevel() {
     
     indices z_ids = z.get_matrix_ids(0, 1);
     Constraint<> fub("Follower_Unique_Object");
-    fub = sum(s.sum_over(z_ids,0)) + sum(z.in(z_ids));
+    fub = sum(s.sum_over(z_ids, 0)) + sum(z.in(z_ids));
     model.add(fub.in(z_ids.ignore_ith(0, 1)) <= 1);
-    
-    model.print();
-    
-        //----Dual Feasibility----
-    
-    /*Constraint<> d1("DualConstr1");
-    d1 = u.in_ignore_ith(1, 1, own_arcs) + q + r.in_ignore_ith(0, 1, own_arcs) - w_own;
-    model.add(d1.in(own_arcs) >= 0);
-    
-    Constraint<> d2("DualConstr2");
-    d2 = u - p;
-    model.add(d2.in(own_sens) >= 0);
-    
-    Constraint<> d3("DualConstr3");
-    d3 = up.in_ignore_ith(1, 1, bought_arcs) + qp + r.in_ignore_ith(0, 1, bought_arcs) - w_bought + p.in_ignore_ith(1, 2, bought_arcs);
-    model.add(d3.in(bought_arcs) >= 0);*/
-    
-        //----Strong Duality----
-    
-    /*indices agents = range(0, K - 1);
-    Constraint<> sd("Strong_Duality");
-    sd = sum(u.in_matrix(0, 1)) + sum(up.in_matrix(0, 1)) + sum(q.in_matrix(0, 2)) + sum(qp.in_matrix(0, 2)) + sum(r.in_matrix(0, 1)) - sum(product(w_own.in_matrix(0, 2), s.in_matrix(0, 2))) - sum(product(p, s.in_matrix(0, 2))) - sum(product(w_bought - p.in_ignore_ith(1, 2, bought_arcs), z.in_matrix(0, 2)));
-    model.add(sd.in(agents) == 0);*/
     
         //----Fair price----
     Constraint<> fp("FairPrice");
-    fp = p.in_ignore_ith(1, 3, own_sold) - (product(w_bought.in, z.in_ignore_ith(2, 1, own_sold)))/2;
-    model.add(fp.in(own_sold) >= 0);
+    fp = p.in_ignore_ith(1, 2, bought_arcs) - 0.5 * (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs));
+    model.add(fp.in(bought_arcs) >= 0);
+    
+    /*indices s_ids = s.get_matrix_ids(0, 1);
+    s_ids.print();
+    Constraint<> sl1("Seller lb1");
+    sl1 = y.in_ignore_ith(1, 2, s_ids) - w_own * (1 - sum(s.in(s_ids)) - sum(z.sum_over(s_ids, 0)));
+    model.add(sl1.in(s_ids) >= 0);*/
+    
+    Constraint<> sl2("Seller lb2");
+    sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
+    model.add(sl2.in(own_rplc) >= 0);
+    
+    Constraint<> sl3("Seller lb3");
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - (1 - p.in_ignore_ith(1, 3, oths_rplc))) * z.in_ignore_ith(0, 1, oths_rplc);
+    model.add(sl3.in(oths_rplc) >= 0);
     
     model.print();
 

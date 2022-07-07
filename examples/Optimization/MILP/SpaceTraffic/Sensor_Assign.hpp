@@ -38,7 +38,10 @@ private:
     indices bought_arcs;
     indices own_sens;
     indices bought_sens;
-    indices own_sold;
+    indices own_rplc;
+    indices oths_rplc;
+    indices own_oths_rplc1;
+    indices own_oths_rplc2;
     indices jk; //agents X objects
     vector<int> owner;
     //vector<Agent> agents;
