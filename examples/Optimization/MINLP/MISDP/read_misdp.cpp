@@ -419,18 +419,19 @@ CBFdata data = { 0, };
         }
     }
     if(data.psdmapnum==1){
-    int nnodes=psdmapdim[0];
+    int nnodes=data.psdmapdim[0];
+        indices nodes;
         Net g;
         Node* n1 = nullptr;
         Node* n2 = nullptr;
-        indices nodes;
         for(auto i=0;i<nnodes;i++){
         n1 = new Node(to_string(i));
         g.add_node(n1);
+            nodes.insert(to_string(i));
         }
     for(auto i=0;i<data.hnnz;i++){
-        int k=hsubk[i];
-        int l=hsubl[i];
+        int k=data.hsubk[i];
+        int l=data.hsubl[i];
         if(k!=l){
         n1 = g.get_node(to_string(k));
         n2 = g.get_node(to_string(l));
@@ -441,6 +442,72 @@ CBFdata data = { 0, };
         }
         }
     }
+        for(auto i=0;i<data.dnnz;i++){
+            int k=data.dsubk[i];
+            int l=data.dsubl[i];
+            if(k!=l){
+            n1 = g.get_node(to_string(k));
+            n2 = g.get_node(to_string(l));
+            if(g.get_arc(n1, n2)==nullptr){
+                auto a = new Arc(n1,n2);
+                g.add_arc(a);
+                a->connect();
+            }
+            }
+        }
+        
+       auto node_pairs=g.get_node_pairs();
+        var<> X("X");
+        m->add(X.in(nodes));
+        var<> Xij("Xij");
+        m->add(Xij.in(node_pairs));
+        
+        map<string, func<>> func_map;
+        for(auto k:*node_pairs._keys){
+            func_map[k]=Xij(k);
+        }
+        for(auto k:*nodes._keys){
+            func_map[k]=X(k);
+        }
+        string func_name;
+        for(auto i=0;i<data.hnnz;i++){
+            int k=data.hsubk[i];
+            int l=data.hsubl[i];
+            int j=data.hsubj[i];
+            auto ind=to_string(j);
+            double coef=data.hval[i];
+            if(k!=l){
+            func_name=(to_string(k)+","+to_string(l));
+            }
+            if(k==l){
+            func_name=(to_string(k));
+            }
+            if(C.has_key(ind)){
+                func_map.at(func_name)-=coef*x(ind);
+            }
+            else{
+                func_map.at(func_name)-=coef*y(ind);
+            }
+        }
+        for(auto i=0;i<data.dnnz;i++){
+            int k=data.dsubk[i];
+            int l=data.dsubl[i];
+            double coef=data.dval[i];
+            if(k!=l){
+            func_name=(to_string(k)+","+to_string(l));
+            }
+            if(k==l){
+            func_name=(to_string(k));
+            }
+            func_map.at(func_name)-=coef;
+        }
+        
+        for(auto it=func_map.begin();it!=func_map.end();it++){
+            Constraint<> def_X("def_X_"+it->first);
+            def_X=it->second;
+            m->add(def_X==0);
+        }
+
 
 }
 else{
