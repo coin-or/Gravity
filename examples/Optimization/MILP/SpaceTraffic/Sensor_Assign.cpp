@@ -118,24 +118,32 @@ void myModel::readData(int argc, const char * argv[]){
         for (int i = 0; i < N; i++) {
             if (owner[i] == k) {
                 own_sens.add(to_string(i) + "," + to_string(k));
+                for (Arc* a: graph.get_node(to_string(i))->get_out()) {
+                    own_arcs.add(to_string(i) + "," + a->_dest->_name +  "," +  to_string(k));
+                    for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
+                        if ((owner[stoi(b->_src->_name)] == k) && (stoi(b->_src->_name) != i)) {
+                            own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                        }
+                        else if (stoi(b->_src->_name) != i) {
+                            oths_rplc.add(to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                        }
+                    }
+                }
             }
             else {
                 bought_sens.add(to_string(i) + "," + to_string(k));
+                for (Arc* a: graph.get_node(to_string(i))->get_out()) {
+                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                }
             }
         }
-        for (int j = 0; j < M; j++) {
+        /*for (int j = 0; j < M; j++) {
             for (Arc* a: graph.get_node(to_string(j))->get_in()) {
                 if (owner[stoi(a->_src->_name)] == k) {
                     own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
                     for (Arc* b: graph.get_node(to_string(j))->get_in()) {
                         if ((owner[stoi(b->_src->_name)] == k) && (stoi(b->_src->_name) != stoi(a->_src->_name))) {
                             own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                            /*for (Arc* c: graph.get_node(to_string(j))->get_in()) {
-                                if (owner[stoi(c->_src->_name)] != k) {
-                                    own_oths_rplc1.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                                    own_oths_rplc2.add(a->_src->_name + "," + c->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                                }
-                            }*/
                         }
                         else if (stoi(b->_src->_name) != stoi(a->_src->_name)) {
                             oths_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
@@ -146,7 +154,7 @@ void myModel::readData(int argc, const char * argv[]){
                     bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
                 }
             }
-        }
+        }*/
     }
     
     jk = indices(objects, range(0,K-1));
@@ -229,12 +237,34 @@ void myModel::InitBilevel() {
     Constraint<> fp("FairPrice");
     fp = p.in_ignore_ith(1, 2, bought_arcs) - (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs))/2;
     model.add(fp.in(bought_arcs) >= 0);
-    fp.print();
-    /*indices s_ids = s.get_matrix_ids(0, 1);
+
+    indices s_ids = s.get_matrix_ids(0, 1);
     s_ids.print();
     Constraint<> sl1("Seller lb1");
-    sl1 = y.in_ignore_ith(1, 2, s_ids) - w_own * (1 - sum(s.in(s_ids)) - sum(z.sum_over(s_ids, 0)));
-    model.add(sl1.in(s_ids) >= 0);*/
+    sl1 = y.in_ignore_ith(1, 2, own_arcs) - w_own * (1 - sum(s.sum_over(s_ids, 0)) - sum(z.sum_over(s_ids, 0)));
+    model.add(sl1.in(s_ids) >= 0);
+    
+    /*for (int i = 0; i < N; i++) {
+        indices tmp_own;
+        for (Arc* b: graph.get_node(to_string(i))->get_out()) {
+            tmp_own.add(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+            string j = b->_dest->_name;
+            indices tmp_own_r;
+            indices tmp_oths_r;
+            for (Arc* a: graph.get_node(j)->get_in()) {
+                if ((owner[stoi(a->_src->_name)] == owner[i]) && (stoi(a->_src->_name) != i)) {
+                    tmp_own_r.add(a->_src->_name + "," + j +  "," + to_string(owner[i]));
+                    //int e = 9;
+                }
+            }
+            Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+            sl1 += y.in(tmp_own.ignore_ith(1, 2)) - w_own.in(tmp_own) * (1 - sum(s.in(tmp_own_r)));
+            model.add(sl1 >= 0);
+            sl1.print();
+            //sl1 = 0;
+        }
+    }*/
+    
     
     Constraint<> sl2("Seller lb2");
     sl2 = y.in_ignore_ith(1, 3, own_rplc) - (w_own.in_ignore_ith(1, 1, own_rplc) - w_own.in_ignore_ith(0, 1, own_rplc)) * s.in_ignore_ith(0, 1, own_rplc);
@@ -245,5 +275,7 @@ void myModel::InitBilevel() {
     model.add(sl3.in(oths_rplc) >= 0);
     
     model.print();
+    //model.restructure();
+    //model.print();
 
 }
