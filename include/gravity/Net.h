@@ -207,5 +207,35 @@ public:
 
 
     vector<gravity::index_pair *> get_node_pairs_all();
+    
+    /** Return the vector of arcs of the chordal completion ignoring parallel lines **/
+    gravity::indices get_node_pairs_chord(const vector<pair<string,vector<Node*>>>& bags){
+        if(!this->node_pairs_chord.empty()){
+            return this->node_pairs_chord;
+        }
+        map<string,pair<Node*,Node*>> unique_pairs;
+        for (auto a: arcs) {
+            if (!a->_parallel) {
+                unique_pairs[a->_src->_name+","+a->_dest->_name] = {a->_src,a->_dest};
+                node_pairs_chord.add(a->_src->_name+","+a->_dest->_name);
+            }
+        }
+        string key;
+  
+        for (auto &bag: bags) {
+            for (size_t i = 0; i< bag.second.size()-1; i++) {
+                if (unique_pairs.insert({bag.second[i]->_name+","+bag.second[i+1]->_name,{bag.second[i],bag.second[i+1]}}).second) {
+                    auto name = bag.second[i]->_name + "," + bag.second[i+1]->_name;
+                    node_pairs_chord.add(name);
+                }
+            }
+            /* Loop back pair */
+            if (unique_pairs.insert({bag.second[0]->_name+","+bag.second[bag.second.size()-1]->_name,{bag.second[0],bag.second[bag.second.size()-1]}}).second) {
+                auto name = bag.second[0]->_name + "," + bag.second[bag.second.size()-1]->_name;
+                node_pairs_chord.add(name);
+            }
+        }
+        return node_pairs_chord;
+    }
 };
 #endif

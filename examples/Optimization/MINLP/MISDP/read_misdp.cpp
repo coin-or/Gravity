@@ -457,10 +457,13 @@ CBFdata data = { 0, };
         }
         
        auto node_pairs=g.get_node_pairs();
+        g.get_tree_decomp_bags();
+        auto bags_3d=g.decompose_bags_3d();
+        auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X");
         m->add(X.in(nodes));
         var<> Xij("Xij");
-        m->add(Xij.in(node_pairs));
+        m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
         for(auto k:*node_pairs._keys){
@@ -508,6 +511,11 @@ CBFdata data = { 0, };
             m->add(def_X==0);
         }
 
+        
+//        Constraint<> SOC("SOC");
+//        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs_chord)*Wii.to(node_pairs_chord);
+//        //SDP.add(SOC.in(node_pairs_chord) == 0, true, "on/off", true);
+//        SDP.add(SOC.in(node_pairs_chord) <= 0);
 
 }
 else{
