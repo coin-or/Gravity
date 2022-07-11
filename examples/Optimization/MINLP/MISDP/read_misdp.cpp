@@ -512,11 +512,24 @@ CBFdata data = { 0, };
         }
 
         
-//        Constraint<> SOC("SOC");
-//        SOC = pow(R_Wij, 2) + pow(Im_Wij, 2) - Wii.from(node_pairs_chord)*Wii.to(node_pairs_chord);
-//        //SDP.add(SOC.in(node_pairs_chord) == 0, true, "on/off", true);
-//        SDP.add(SOC.in(node_pairs_chord) <= 0);
-
+        Constraint<> SOC("SOC");
+        SOC = pow(Xij, 2) - X.from(node_pairs_chord)*X.to(node_pairs_chord);
+        //SDP.add(SOC.in(node_pairs_chord) == 0, true, "on/off", true);
+        m->add(SOC.in(node_pairs_chord) <= 0);
+        
+        auto bag_size = bags_3d.size();
+        auto Wij_ = Xij.pairs_in_bags(bags_3d, 3);
+        auto Wii_ = X.in_bags(bags_3d, 3);
+        
+        Constraint<> SDP3("SDP_3D");
+        
+        SDP3 = 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+        SDP3 -= (pow(Wij_[0], 2)) * Wii_[2];
+        SDP3 -= (pow(Wij_[1], 2)) * Wii_[0];
+        SDP3 -= (pow(Wij_[2], 2)) * Wii_[1];
+        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
+        m->add(SDP3.in(range(0, bag_size-1)) >= 0);
+    
 }
 else{
     throw invalid_argument("only 1 psd constraint supported now");
