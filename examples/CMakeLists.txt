@@ -29,7 +29,7 @@ file(GLOB ACOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Po
 # file(GLOB CPXOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/CPXOPF/*.cpp)
 file(GLOB SOCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SOCOPF/*.cpp)
 file(GLOB DCOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/Linear/Power/DCOPF/*.cpp)
-file(GLOB SDPOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SDPCUTS/*.cpp)<<<<<<< HEAD
+file(GLOB SDPOPF_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SDPCUTS/*.cpp)
 file(GLOB SDPOA_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SDPCUTS_OA/*.cpp)
 file(GLOB MISDP_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/MINLP/MISDP/*.cpp)
 file(GLOB SDPRECPOL_SOURCES ${PROJECT_SOURCE_DIR}/examples/Optimization/NonLinear/Power/SDP_REC_POLAR/*.cpp)
