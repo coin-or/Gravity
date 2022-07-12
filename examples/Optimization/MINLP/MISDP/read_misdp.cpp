@@ -101,7 +101,7 @@ void CBF_read(const char *file, shared_ptr<Model<double>>& m) {
 
   pFile = FOPEN(file, "rt");
   if (!pFile) {
-    return CBF_RES_ERR;
+      throw invalid_argument("cannot open misdp data file");
   }
 CBFdata data = { 0, };
   // Keyword OBJ should exist!
@@ -299,7 +299,7 @@ CBFdata data = { 0, };
             }
         }
         else{
-            __throw_invalid_argument("mapstackdomain not equal to 1,2,3");
+            throw invalid_argument("mapstackdomain not equal to 1,2,3");
         }
     }
     map<int,double> con_b_map;
