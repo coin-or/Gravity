@@ -22,6 +22,7 @@ public:
     vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
     bool                        _relaxed = false; /**< True if this constraint is a relaxed version of an non-convex constraint, i.e. McCormick or from == to <= or >= */
     bool                        _all_active = true;
+    bool                        _callback = false;
     vector<bool>                _active;
     shared_ptr<bool>            _all_lazy;
     vector<bool>                _lazy;
@@ -171,7 +172,9 @@ public:
     Constraint(Constraint&& c){
         *this = move(c);
     }
-    
+    void add_to_callback() {
+             _callback = true;
+    }
     void deep_copy(const Constraint& c){
         this->func<type>::deep_copy(c);
         _jac_cstr_idx = c._jac_cstr_idx;
@@ -180,6 +183,7 @@ public:
         _dual = c._dual;
         _all_active = c._all_active;
         _active = c._active;
+        _callback=c._callback;
         this->_all_lazy = make_shared<bool>(*c._all_lazy);
         _lazy = c._lazy;
         _all_satisfied = c._all_satisfied;
@@ -203,6 +207,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback=c._callback;
         this->func<type>::operator=(c);
         this->_name = c._name;
         this->_is_constraint = true;
@@ -239,6 +244,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback=c._callback;
         this->func<type>::operator=(move(c));
         this->_name = c._name;
         this->_is_constraint = true;

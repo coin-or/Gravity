@@ -2,6 +2,114 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 
+class cuts: public GRBCallback
+{
+public:
+    vector<GRBVar> vars;
+    int nb_vars;
+    Model<>* m;
+    double *x;
+    vector<double> cont_x, int_x;
+    double objc=999;
+    int soc_viol, soc_found,soc_added,det_viol, det_found, det_added;
+    int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
+    Model<> interior;
+    cuts(const vector<GRBVar>& _grb_vars, int xn, Model<>* mod, Model<>& mod_int, int& soc_violn, int& soc_foundn, int& soc_addedn, int& det_violn, int& det_foundn, int& det_addedn) {
+        vars = _grb_vars;
+        nb_vars = xn;
+        x = new double[nb_vars];
+        m = mod;
+        cont_x.resize(nb_vars);
+        int_x.resize(nb_vars);
+        soc_viol=soc_violn;
+        soc_found=soc_foundn;
+        soc_added=soc_addedn;
+        det_viol=det_violn;
+        det_found=det_foundn;
+        det_added=det_addedn;
+        interior=mod_int;
+    }
+    ~cuts(){
+        DebugOff("soc_viol "<<soc_viol_user<<endl);
+        DebugOff("soc_found "<<soc_found_user<<endl);
+        DebugOff("soc_added "<<soc_added_user<<endl);
+        DebugOff("det_viol "<<det_viol_user<<endl);
+        DebugOff("det_found "<<det_found_user<<endl);
+        DebugOff("det_added "<<det_added_user<<endl);
+     
+        delete [] x;
+    }
+protected:
+    void callback() {
+        try {
+            bool incumbent=true;
+            bool mipnode=true;
+            if(incumbent){
+                if (where == GRB_CB_MIPSOL) {
+                    int i,j;
+                    x=getSolution(vars.data(),nb_vars);
+                    for(i=0;i<nb_vars;i++){
+                        int_x[i] = x[i];
+                    }
+                    m->set_solution(int_x);
+                    auto res=m->cutting_planes_solution(interior, 1e-9, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
+                    if(res.size()>=1){
+                        for(i=0;i<res.size();i++){
+                            GRBLinExpr expr = 0;
+                            for(j=0;j<res[i].size()-1;j+=2){
+                                int c=res[i][j];
+                                expr += res[i][j+1]*vars[c];
+                            }
+                            expr+=res[i][j];
+                            addLazy(expr, GRB_LESS_EQUAL, 0);
+                        }
+                    }
+                }
+            }
+            if(mipnode){
+                if (where == GRB_CB_MIPNODE){
+                    int stat=getIntInfo(GRB_CB_MIPNODE_STATUS);
+                    if(stat==2){
+                        DebugOff(getIntInfo(GRB_CB_MIPNODE_STATUS)<<endl);
+                        int nct=getDoubleInfo(GRB_CB_MIPNODE_NODCNT);
+                        if(nct%100==0){
+                            double obj=getDoubleInfo(GRB_CB_MIPNODE_OBJBST);
+                            double obj1=getDoubleInfo(GRB_CB_MIPNODE_OBJBND);
+                            DebugOff(obj<<"\t"<<obj1<<"\t"<<endl);
+                            int i,j;
+                            m->get_solution(int_x);
+                            x=getNodeRel(vars.data(),nb_vars);
+                            for(i=0;i<nb_vars;i++){
+                                cont_x[i] = x[i];
+                            }
+                            m->set_solution(cont_x);
+                            auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
+                            if(res.size()>=1){
+                                for(i=0;i<res.size();i++){
+                                    GRBLinExpr expr = 0;
+                                    for(j=0;j<res[i].size()-1;j+=2){
+                                        int c=res[i][j];
+                                        expr += res[i][j+1]*vars[c];
+                                    }
+                                    expr+=res[i][j];
+                                    addCut(expr, GRB_LESS_EQUAL, 0);
+                                }
+                            }
+                        }
+                        m->set_solution(int_x);
+                    }
+                    
+                }
+            }
+        } catch (GRBException e) {
+            cout << "Error number: " << e.getErrorCode() << endl;
+            cout << e.getMessage() << endl;
+        } catch (...) {
+            cout << "Error during callback" << endl;
+        }
+    }
+};
+
 //GurobiProgram::GurobiProgram(){
 ////    model = m;
 //    grb_env = new GRBEnv();
@@ -113,19 +221,19 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
       grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
       grb_mod->set(GRB_IntParam_Threads, 1);
-      grb_mod->set(GRB_DoubleParam_TimeLimit, 600.0);
+      grb_mod->set(GRB_DoubleParam_TimeLimit, 3600.0);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-    if(grb_first_run){
-        grb_mod->set(GRB_IntParam_Method, 0);
-    }
-    else{
-        grb_mod->set(GRB_IntParam_Method, 1);
-    }
+//    if(grb_first_run){
+//        grb_mod->set(GRB_IntParam_Method, 0);
+//    }
+//    else{
+//        grb_mod->set(GRB_IntParam_Method, 1);
+//    }
     
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -722,3 +830,4 @@ void GurobiProgram::print_constraints(){
         }
     }
 }
+
