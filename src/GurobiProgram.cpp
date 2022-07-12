@@ -242,8 +242,8 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
     auto lin=_model->buildOA();
-    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
     interior=lin->add_outer_app_solution(*_model);
+    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
     DebugOn("solved interior "<<endl);
     cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
     grb_mod->setCallback(&cb);

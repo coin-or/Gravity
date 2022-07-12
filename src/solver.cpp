@@ -349,6 +349,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     auto Ointerior = nonlin.build_model_interior();
     solver<> modelI(Ointerior, ipopt);
     modelI.run(output=5, tol);
+    if(false){
     vector<double> xsolution(_nb_vars);
     nonlin.get_solution(xsolution);
     if((Ointerior._status==0||Ointerior._status==1) && Ointerior.get_obj_val()<0)
@@ -435,6 +436,7 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     reset();
     reset_constrs();
     set_solution(xsolution);
+    }
     return Ointerior;
 }
 /*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
