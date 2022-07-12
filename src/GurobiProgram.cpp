@@ -44,7 +44,6 @@ protected:
         try {
             bool incumbent=true;
             bool mipnode=true;
-            bool get_lb=true;
             if(incumbent){
                 if (where == GRB_CB_MIPSOL) {
                     int i,j;
@@ -222,14 +221,17 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
       grb_mod->set(GRB_DoubleParam_OptimalityTol, tol);
     //grb_mod->set(GRB_DoubleParam_MIPGap, mipgap);
       grb_mod->set(GRB_IntParam_Threads, 1);
-      grb_mod->set(GRB_DoubleParam_TimeLimit, 600.0);
+      grb_mod->set(GRB_DoubleParam_TimeLimit, 3600.0);
+            grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+            grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
+            grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     ///grb_mod->set(GRB_IntParam_NumericFocus, 1);
-    if(grb_first_run){
-        grb_mod->set(GRB_IntParam_Method, 0);
-    }
-    else{
-        grb_mod->set(GRB_IntParam_Method, 1);
-    }
+//    if(grb_first_run){
+//        grb_mod->set(GRB_IntParam_Method, 0);
+//    }
+//    else{
+//        grb_mod->set(GRB_IntParam_Method, 1);
+//    }
     
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
