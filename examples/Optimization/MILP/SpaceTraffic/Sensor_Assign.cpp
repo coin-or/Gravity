@@ -238,32 +238,32 @@ void myModel::InitBilevel() {
     fp = p.in_ignore_ith(1, 2, bought_arcs) - (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs))/2;
     model.add(fp.in(bought_arcs) >= 0);
 
-    indices s_ids = s.get_matrix_ids(0, 1);
-    s_ids.print();
-    Constraint<> sl1("Seller lb1");
-    sl1 = y.in_ignore_ith(1, 2, own_arcs) - w_own * (1 - sum(s.sum_over(s_ids, 0)) - sum(z.sum_over(s_ids, 0)));
-    model.add(sl1.in(s_ids) >= 0);
+    //indices s_ids = s.get_matrix_ids(0, 1);
+    //s_ids.print();
+    /*Constraint<> sl1("Seller lb1");
+    sl1 = y.in_ignore_ith(1, 2, own_arcs) - w_own * (1 - sum(s.sum_over(own_rplc.ignore_ith(0, 1), 0)) - sum(z.sum_over(own_rplc.ignore_ith(0, 1), 0)));
+    model.add(sl1.in(own_arcs) >= 0);*/
     
-    /*for (int i = 0; i < N; i++) {
-        indices tmp_own;
+    /*Constraint<> test("test");
+    test = sum(s.in_ignore_ith(0, 1, own_rplc).in_matrix(0, 1));
+    model.add(test.in(own_rplc.ignore_ith(1, 1)) >= 0);*/
+    
+    for (int i = 0; i < N; i++) {
         for (Arc* b: graph.get_node(to_string(i))->get_out()) {
-            tmp_own.add(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
             string j = b->_dest->_name;
-            indices tmp_own_r;
-            indices tmp_oths_r;
+            Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+            sl1 += y[i] - w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
             for (Arc* a: graph.get_node(j)->get_in()) {
                 if ((owner[stoi(a->_src->_name)] == owner[i]) && (stoi(a->_src->_name) != i)) {
-                    tmp_own_r.add(a->_src->_name + "," + j +  "," + to_string(owner[i]));
-                    //int e = 9;
+                    sl1 += w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * s(a->_src->_name + "," + j +  "," + to_string(owner[i]));//.in(tmp_own_r);
+                }
+                else if (owner[stoi(a->_src->_name)] != owner[i]) {
+                    sl1 += w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * z(a->_src->_name + "," + j +  "," + to_string(owner[i]));
                 }
             }
-            Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
-            sl1 += y.in(tmp_own.ignore_ith(1, 2)) - w_own.in(tmp_own) * (1 - sum(s.in(tmp_own_r)));
             model.add(sl1 >= 0);
-            sl1.print();
-            //sl1 = 0;
         }
-    }*/
+    }
     
     
     Constraint<> sl2("Seller lb2");
