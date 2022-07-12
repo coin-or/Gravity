@@ -22,6 +22,7 @@ public:
     vector<double>              _dual ; /**< Lagrange multipliers at a KKT point */
     bool                        _relaxed = false; /**< True if this constraint is a relaxed version of an non-convex constraint, i.e. McCormick or from == to <= or >= */
     bool                        _all_active = true;
+    bool                        _callback=false;
     vector<bool>                _active;
     shared_ptr<bool>            _all_lazy;
     vector<bool>                _lazy;
@@ -171,6 +172,9 @@ public:
     Constraint(Constraint&& c){
         *this = move(c);
     }
+    void add_to_callback() {
+          _callback = true;
+       }
     
     void deep_copy(const Constraint& c){
         this->func<type>::deep_copy(c);
@@ -1267,6 +1271,7 @@ public:
         if(!this->is_convex() && !this->is_rotated_soc() && !this->check_soc()) //For the SDP determinant constraint, check if the point is feasible with respect to to the SOC constraints
         {
             xres=this->get_x(inst);
+            if(xres.size()==9){
             auto soc1=std::pow(xres[0],2)+std::pow(xres[3],2)-xres[6]*xres[7];
             auto soc2=std::pow(xres[1],2)+std::pow(xres[4],2)-xres[7]*xres[8];
             auto soc3=std::pow(xres[2],2)+std::pow(xres[5],2)-xres[6]*xres[8];
@@ -1275,6 +1280,18 @@ public:
             }
             else{
                 convex_region=false;
+            }
+            }
+            else if(xres.size()==6){
+                auto soc1=std::pow(xres[3],2)-xres[0]*xres[1];
+                auto soc2=std::pow(xres[4],2)-xres[1]*xres[2];
+                auto soc3=std::pow(xres[5],2)-xres[0]*xres[2];
+                if(soc1<=0 && soc2<=0 && soc3<=0){
+                    convex_region=true;
+                }
+                else{
+                    convex_region=false;
+                }
             }
         }
         return convex_region;

@@ -207,26 +207,35 @@ CBFdata data = { 0, };
     
     DebugOn("The number of variables is " << nb_vars << endl);
     indices C("C"), I("I");
-    
-    vector<int> C_ids,I_ids;
-    
     int nb_cont = data.varnum-data.intvarnum;
     int nb_int = data.intvarnum;
     
     for(auto i=0;i<data.intvarnum;i++){
-        I_ids.push_back(data.intvar[i]);
         I.insert(to_string(data.intvar[i]));
     }
     
     for(auto i=0;i<data.varnum;i++){
         if(!I.has_key(to_string(i))){
             C.insert(to_string(i));
-            C_ids.push_back(i);
         }
     }
     
-    var<> x("x");
-    var<int> y("y");
+    param<> x_ub("x-ub"), x_lb("x-lb");
+    param<int> y_ub("y-ub"), y_lb("y-lb");
+    x_ub.in(C);x_lb.in(C);
+    y_ub.in(I);y_lb.in(I);
+    for (int i = 0; i<C.size(); i++) {
+        x_lb.set_val(i, -1e5);
+        x_ub.set_val(i, 1e5);
+    }
+    for (int i = 0; i<I.size(); i++) {
+        y_lb.set_val(i, -1e5);
+        y_ub.set_val(i, 1e5);
+    }
+    var<> x("x", x_lb, x_ub);
+    var<int> y("y", y_lb, y_ub);
+    
+ 
 
     if(!C.empty()){
         m->add(x.in(C));
@@ -241,8 +250,9 @@ CBFdata data = { 0, };
                 if(C.has_key(to_string(count))){
                     x.set_lb(to_string(count), 0.0);
                 }
-                else
+                else{
                     y.set_lb(to_string(count), 0.0);
+                }
                 count++;
             }
         }
@@ -251,8 +261,9 @@ CBFdata data = { 0, };
                 if(C.has_key(to_string(count))){
                     x.set_ub(to_string(count), 0.0);
                 }
-                else
+                else{
                     y.set_ub(to_string(count), 0.0);
+                }
                 count++;
             }
         }
@@ -321,11 +332,11 @@ CBFdata data = { 0, };
         }
         if(nb_terms>=2 || (coef!=1 && coef!=-1)){
         if(con_sense[i]==1)
-        m->add(con>=0);
+            m->add(con>=0);
         if(con_sense[i]==2)
-        m->add(con<=0);
+            m->add(con<=0);
         if(con_sense[i]==3)
-        m->add(con==0);
+            m->add(con==0);
         }
         else{
             if(con_sense[i]==1 && coef==1){
@@ -440,7 +451,7 @@ CBFdata data = { 0, };
             g.add_arc(a);
             a->connect();
         }
-        }
+      }
     }
         for(auto i=0;i<data.dnnz;i++){
             int k=data.dsubk[i];
@@ -453,16 +464,16 @@ CBFdata data = { 0, };
                 g.add_arc(a);
                 a->connect();
             }
-            }
+          }
         }
         
        auto node_pairs=g.get_node_pairs();
         g.get_tree_decomp_bags();
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
-        var<> X("X");
+        var<> X("X", 0, 1e5);
         m->add(X.in(nodes));
-        var<> Xij("Xij");
+        var<> Xij("Xij", -1e5, 1e5);
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
@@ -510,11 +521,15 @@ CBFdata data = { 0, };
             def_X=it->second;
             m->add(def_X==0);
         }
+        
+        Constraint<> pos_diag("pos_diag");
+        pos_diag =  X*(-1);
+        m->add(pos_diag.in(nodes) <= 0);
 
         
         Constraint<> SOC("SOC");
         SOC = pow(Xij, 2) - X.from(node_pairs_chord)*X.to(node_pairs_chord);
-        //SDP.add(SOC.in(node_pairs_chord) == 0, true, "on/off", true);
+        SOC.add_to_callback();
         m->add(SOC.in(node_pairs_chord) <= 0);
         
         auto bag_size = bags_3d.size();
@@ -523,12 +538,13 @@ CBFdata data = { 0, };
         
         Constraint<> SDP3("SDP_3D");
         
-        SDP3 = 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
-        SDP3 -= (pow(Wij_[0], 2)) * Wii_[2];
-        SDP3 -= (pow(Wij_[1], 2)) * Wii_[0];
-        SDP3 -= (pow(Wij_[2], 2)) * Wii_[1];
-        SDP3 += Wii_[0] * Wii_[1] * Wii_[2];
-        m->add(SDP3.in(range(0, bag_size-1)) >= 0);
+        SDP3 += (pow(Wij_[0], 2)) * Wii_[2];
+        SDP3 += (pow(Wij_[1], 2)) * Wii_[0];
+        SDP3 += (pow(Wij_[2], 2)) * Wii_[1];
+        SDP3 -= 2 * Wij_[0] * (Wij_[1] * Wij_[2]);
+        SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
+        SDP3.add_to_callback();
+        m->add(SDP3.in(range(0, bag_size-1)) <= 0);
     
 }
 else{
