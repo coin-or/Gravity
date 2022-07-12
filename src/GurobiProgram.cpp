@@ -149,6 +149,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //grb_env->set(GRB_IntParam_OutputFlag,0);
             grb_mod = new GRBModel(*grb_env);
             //grb_mod->set(GRB_IntParam_Method, 0);
+            DebugOn("found token "<<endl);
             found_token = true;
         }
         catch(GRBException e) {
@@ -236,7 +237,16 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
 //    if(!gurobi_crossover){
 //        grb_mod->set(GRB_IntParam_Crossover, 0);
 //    }
-    grb_mod->set(GRB_IntParam_OutputFlag, 0);
+    grb_mod->set(GRB_IntParam_OutputFlag, 1);
+    grb_mod->update();
+    int n=grb_mod->get(GRB_IntAttr_NumVars);
+    Model<> interior;
+    auto lin=_model->buildOA();
+    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
+    interior=lin->add_outer_app_solution(*_model);
+    DebugOn("solved interior "<<endl);
+    cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
+    grb_mod->setCallback(&cb);
 //    warm_start(); // No need to reset variables if Gurobi model has not changed.
     //grb_mod->write("gurobiprint.lp");
     try{
@@ -247,14 +257,7 @@ bool GurobiProgram::solve(int output, bool relax, double tol, double mipgap, boo
         cerr << e.getMessage() << endl;
         exit(-1);
     }
-        grb_mod->update();
-        int n=grb_mod->get(GRB_IntAttr_NumVars);
-        Model<> interior;
-        auto lin=_model->buildOA();
-        int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
-        interior=lin->add_outer_app_solution(*_model);
-        cuts cb(_grb_vars, n, _model, interior, soc_viol,soc_found,soc_added,det_viol,det_found,det_added);
-        grb_mod->setCallback(&cb);
+     
     
     grb_first_run=false;
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {

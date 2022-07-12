@@ -189,6 +189,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback = c._callback;
         this->_name = c._name;
         this->_is_constraint = true;
         _onCoef = c._onCoef.deep_copy();
@@ -207,6 +208,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback = c._callback;
         this->func<type>::operator=(c);
         this->_name = c._name;
         this->_is_constraint = true;
@@ -243,6 +245,7 @@ public:
         _all_satisfied = c._all_satisfied;
         _violated = c._violated;
         _relaxed = c._relaxed;
+        _callback = c._callback;
         this->func<type>::operator=(move(c));
         this->_name = c._name;
         this->_is_constraint = true;
