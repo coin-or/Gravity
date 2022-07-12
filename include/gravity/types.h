@@ -19,6 +19,14 @@
     #include <algorithm>
     #include <complex>      // std::complex
 
+
+    /* return the substring obtained by excluding the ith index */
+    std::string exclude_ith(const std::string& key, int ith);
+
+    /* return the substring obtained by excluding all the indices listed in all_ids*/
+    std::string exclude_ith(const std::string& key, std::vector<int> all_ids);
+
+
     inline int nthOccurrence(const std::string& str, const std::string& findMe, int nth)
     {
         size_t  pos = 0;
