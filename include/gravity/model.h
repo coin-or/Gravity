@@ -2119,6 +2119,8 @@ public:
         map<pair<tuple<int,int,int,int,int,bool>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
+            if(c_pair.second->get_nb_inst()>1)
+                continue;
             if(c_pair.second->is_geq()){/* If >= inequality, reverse sign */
                 *c_pair.second *= -1;
                 c_pair.second->_ctype = leq;
@@ -2370,6 +2372,7 @@ public:
             auto con_vec = iter.second;
             if(con_vec.size()>0){
                 auto con0 = con_vec[0].second;
+                con0->allocate_mem();
                 auto inst0 = con_vec[0].first;
                 bool is_geq = con0->is_geq();
                 Constraint<> leq("lin_ineq_"+to_string(index));
@@ -2411,6 +2414,7 @@ public:
                 leq.in(leq_ids);
                 for(int i = 1; i<con_vec.size();i++){/* iterate over linear constraints with first sparsity degree */
                     auto con = con_vec[i].second;
+                    con->allocate_mem();
                     auto inst = con_vec[i].first;
                     leq.add_linear_row(con,inst);
                     delete_cstr.push_back(con->get_name());

@@ -383,6 +383,94 @@ void Net::readrudy(const char* fname) {
 
 
 
+void Net::generate_bipartite_random(int n1, int n2, int deg){
+    string name;
+    int id = 0;
+    Node* node = NULL;
+    for (int i= 0; i<n1+n2; i++) {
+        name = to_string(i);
+        node = new Node(name,i);
+        add_node(node);
+    }
+    Arc* arc = NULL;
+    string src, dest;
+    int index = 0, rand_d, rand_j;
+    for (int i= 0; i<n1; i++) {
+        src = to_string(i);
+        rand_d = 1+rand()%deg;
+        for (int d= 0; d<rand_d; d++) {
+            rand_j = n1+rand()%n2;
+            dest = to_string(rand_j);
+            if(!get_arc(src, dest)){
+                arc = new Arc(src + "," + dest);
+                arc->_id = index++;
+                arc->_src = get_node(src);
+                arc->_dest= get_node(dest);
+                add_arc(arc);
+                arc->connect();
+            }
+        }
+    }
+}
+
+/** construct a graph by reading a pairwise list */
+pair<int,int> Net::read_pairwise_list(const string& fname) {
+    pair<int,int> dims = {0,0};
+    FILE *fp = fopen(fname.c_str(),"r");
+    if(fp == NULL)
+    {
+            cout << "Can’t open input file " << fname;
+            exit(1);
+    }
+    max_line_len = 1024;
+    line = new char[max_line_len];
+
+    vector<vector<int>> matrix;
+    int temp;
+    while(readline(fp)!=NULL)
+    {
+        vector<int> row;
+        stringstream linestream(line);
+        while (linestream>>temp)
+            row.push_back(temp);
+        matrix.push_back(row);
+    }
+    
+    int n=0;
+    n =matrix.size();
+
+    string name;
+    int id = 0;
+
+    Node* node = NULL;
+    Arc* arc = NULL;
+    string src, dest;
+    for (int i = 0; i <(n); i++){
+        src = "sensor"+to_string(matrix[i][0]);
+        dest = "object"+to_string(matrix[i][1]);
+        if(nodeID.count(src)==0){
+            node = new Node(src,nodes.size());
+            add_node(node);
+            dims.first++;
+        }
+        if(nodeID.count(dest)==0){
+            node = new Node(dest,nodes.size());
+            add_node(node);
+            dims.second++;
+        }
+        
+        arc = new Arc(src + "," + dest);
+        arc->_id = i;
+        arc->_src = get_node(src);
+        arc->_dest= get_node(dest);
+        add_arc(arc);
+        arc->connect();
+    }
+    delete[] line;
+    fclose(fp);
+    return dims;
+}
+
 /** construct a graph by reading an adjacency matrix */
 void Net::read_adjacency_matrix(const string& fname) {
     FILE *fp = fopen(fname.c_str(),"r");

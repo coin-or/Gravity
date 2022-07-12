@@ -508,6 +508,15 @@ namespace gravity {
             return res;
         }
         
+        template<typename... Args>
+        var sum_over(const indices& ids, int ith, Args&&... args){
+            var<type> res(*this);
+            res.param<type>::operator=(param<type>::sum_over(ids, ith, args...));//TODO assert lb dim = res dim
+            res._type = var_c;
+            res._range = this->_range;
+            return res;
+        }
+        
         void reset_bounds(){
 //            _lb->_evaluated = false;
 //            _ub->_evaluated = false;
