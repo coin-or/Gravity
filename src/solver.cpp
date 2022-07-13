@@ -112,7 +112,7 @@ shared_ptr<Model<type>> Model<type>::buildOA()
     set_solution(xsolution);
     return OA;
 }
-/** /** Returns an interior point model
+/** Returns an interior point model
  @param[in] nonlin: model for which interior point with respect to nonconvex constraints that describe a convex region(SDP,SOC,rotated SOC constraints) is computed
  Assuming model has no nonlinear equality constraints
  Returns a model which has all variables in current model. If current model has SDP, SOC, rotated SOC constraints g(x), a new model is created with g_i(x) \le eta_i and the objective is to min (sum eta_i)
@@ -174,19 +174,6 @@ Model<type> Model<type>::build_model_interior() const
                     Interior.add(Inter_con>=-1*eta_int.in(ind));
                 }
             }
-        }
-        else{
-            Constraint<> Inter_con(*con);
-            
-            if(con->_ctype==leq)
-            {
-                Interior.add(Inter_con<=0);
-            }
-            else  if(con->_ctype==geq)
-            {
-                Interior.add(Inter_con>=0);
-            }
-            
         }
     }
     return *Interior.copy();
@@ -452,6 +439,21 @@ Model<> Model<>::add_outer_app_solution(Model<>& nonlin)
     set_solution(xsolution);
     return Ointerior;
 }
+/*Returns interior model and a*/
+template<>
+Model<> Model<>::get_interior(Model<>& nonlin)
+{
+    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    vector<double> xactive, xcurrent, xinterior, xres, xtest;
+    bool interior=false, convex_region=true;
+    size_t posv;
+    int output=0;
+    double scale=1.0, tol=1e-6;
+    auto Ointerior = nonlin.build_model_interior();
+    solver<> modelI(Ointerior, ipopt);
+    modelI.run(output=5, tol);
+    return Ointerior;
+}
 /*Generates and adds constraints to model lin. The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
  @param[in] interior model: Model which can give interior point of current model
  @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
@@ -563,97 +565,122 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     return(constr_viol);
 }
 /*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
- @param[in] interior model: Model which can give interior point of current model
- @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
- @param[in] lin: Model to which linear cuts are added
- @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
- @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+@param[in] interior model: Model which can give interior point of current model
+@param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+@param[in] lin: Model to which linear cuts are added
+@param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+@param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+//vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
 template<typename type>
 template<typename T>
-vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol)
+vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added)
 {
-    vector<double> xsolution(_nb_vars);
-    vector<double> xinterior(_nb_vars);
-    vector<double> xcurrent, c_val;
-    vector<vector<double>> res;
-    vector<double> cut;
-    const double active_tol_sol=1e-12, zero_tol=1e-6;
-    double c0_val, scale=1.0;
-    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
-    int nb_added_cuts = 0;
-    for (auto &con: _cons_vec)
-    {
-        if(!con->is_linear()) {
-            auto cnb_inst=con->get_nb_inst();
-            for(auto i=0;i<cnb_inst;i++){
-                oa_cut=false;
-                c0_val=0;
-                c_val.resize(con->_nb_vars,0);
-                auto cname=con->_name;
-                xcurrent=con->get_x(i);
-                con->uneval();
-                con->eval_all();
-                if(con->is_active(i,active_tol_sol)){
-                    oa_cut=false;
-                }
-                else
-                {
-                    con->uneval();
-                    auto fk=con->eval(i);
-                    if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-                        constr_viol=true;
-                        //ToDo fix interior status and check for it
-                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                            auto con_interior=interior.get_constraint(cname);
-                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                            auto res_search=con->binary_line_search(xinterior, i);
-                            if(res_search){
-                                oa_cut=true;
-                                //oa_cut=false;
-                            }
-                        }
-                        else{
-                            if (con->is_convex()){
-                                oa_cut=true;
-                            }
-                        }
-                    }
-                }
-                if(oa_cut){
-                    oa_cut=false;
-                    convex_region=true;
-                    if(cname.find("soc")!=std::string::npos){
-                        convex_region=con->check_convex_region_soc_rotation(i);
-                    }
-                    else if(cname.find("det")!=std::string::npos){
-                        convex_region=con->check_convex_region_det_rotation(i);
-                    }
-                    if(convex_region){
-                        scale=1.0;
-                            con->get_outer_coef(i, c_val, c0_val);
-                            get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
-                    }
-                }
-                if(oa_cut){
-                    auto j=0;
-                    for (auto &v_p: con->get_vars()){
-                      auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                        cut.push_back(vid);
-                        cut.push_back(c_val[j++]*scale);
-                    }
-                    cut.push_back(c0_val*scale);
-                    res.push_back(cut);
-                }
-                con->set_x(i, xcurrent);
-                xcurrent.clear();
-                xinterior.clear();
-                cut.clear();
-            }
-        }
-    }
 
-    return res;
-    
+vector<double> xsolution(_nb_vars);
+vector<double> xinterior(_nb_vars);
+vector<double> xcurrent, c_val;
+vector<vector<double>> res;
+vector<double> cut;
+const double active_tol_sol=1e-12, zero_tol=1e-6;
+double c0_val, scale=1.0, fk;
+bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
+int nb_added_cuts = 0;
+for (auto &con: _cons_vec)
+{
+    if(!con->is_linear() && con->_callback) {
+       // if(con->_name!="limit_neg"){
+        auto cnb_inst=con->get_nb_inst();
+        for(auto i=0;i<cnb_inst;i++){
+            oa_cut=false;
+            c0_val=0;
+            c_val.resize(con->_nb_vars,0);
+            auto cname=con->_name;
+            xcurrent=con->get_x(i);
+          
+            con->uneval();
+            con->eval_all();
+            DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+            if(con->is_active(i,active_tol_sol)){
+                oa_cut=false;
+            }
+            else
+            {
+                con->uneval();
+                fk=con->eval(i);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    constr_viol=true;
+                    if(cname.find("SOC")!=std::string::npos){
+                        soc_viol++;
+                    }
+                    else if(cname.find("SDP")!=std::string::npos){
+                        det_viol++;
+                    }
+                        //ToDo fix interior status and check for it
+                    if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                        auto con_interior=interior.get_constraint(cname);
+                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                        auto res_search=con->binary_line_search(xinterior, i);
+                        if(res_search){
+                            oa_cut=true;
+                            if(cname.find("SOC")!=std::string::npos){
+                                soc_found++;
+                            }
+                            else if(cname.find("SDP")!=std::string::npos){
+                                det_found++;
+                            }
+                                //oa_cut=false;
+                        }
+                    }
+                    else{
+                        if (con->is_convex()){
+                            oa_cut=true;
+                        }
+                    }
+                }
+            }
+            if(oa_cut){
+                oa_cut=false;
+                convex_region=true;
+                if(cname.find("SDP")!=std::string::npos){
+                    convex_region=con->check_convex_region(i);
+                }
+                if(convex_region){
+                    scale=1.0;
+                    con->get_outer_coef(i, c_val, c0_val);
+                    get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
+                    oa_cut=true;
+                }
+            }
+            if(oa_cut){
+                auto j=0;
+                if(cname.find("SOC")!=std::string::npos){
+                    soc_added++;
+                }
+                else if(cname.find("SDP")!=std::string::npos){
+                    det_added++;
+                }
+                for (auto &v_p: con->get_vars()){
+                    auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                    cut.push_back(vid);
+                    cut.push_back(c_val[j++]*scale);
+                }
+                cut.push_back(c0_val*scale);
+                res.push_back(cut);
+                if(con->is_convex()){
+                    DebugOff(con->_name<<" "<<fk );
+                }
+            }
+            con->set_x(i, xcurrent);
+            xcurrent.clear();
+            xinterior.clear();
+            cut.clear();
+        }
+        
+    }
+}
+
+return res;
+
 }
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
@@ -746,7 +773,7 @@ bool Model<type>::root_refine(const Model<type>& interior_model, shared_ptr<Mode
     auto err_size = MPI_Comm_size(MPI_COMM_WORLD, &nb_workers);
 #endif
     while (constr_viol==1 && lin_count<nb_refine){
-        LB_solver.run(output = 0, lb_solver_tol, max_iter, max_time);
+        LB_solver.run(output = 5, lb_solver_tol, max_iter, max_time);
         if(obbt_model->_status==0){
             lower_bound=obbt_model->get_obj_val()*lb_scale_value;
             // gap=(upper_bound- lower_bound)/(std::abs(upper_bound))*100;
@@ -982,6 +1009,32 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
             }
         }
     }
+//    bool has_change = true;
+//    while(has_change){
+//        has_change = false;
+//        for(auto const aux_eq_pair: obbt_model->_aux_eqs){
+//            obbt_model->merge_vars(aux_eq_pair.second,true);
+//            aux_eq_pair.second->allocate_mem();
+//            aux_eq_pair.second->reset_all_range();
+//            auto vkmod_ptr=obbt_model->get_var_ptr(aux_eq_pair.first->get_name(true,true));
+//            if(vkmod_ptr){
+//                auto vkmod = static_pointer_cast<var<double>>(vkmod_ptr);
+//                for(auto i = 0; i<aux_eq_pair.first->get_dim(); i++){
+//                    string key = aux_eq_pair.first->_indices->get_key(i);
+//                    double new_lb = aux_eq_pair.second->_all_range->at(i).first;
+//                    double new_ub = aux_eq_pair.second->_all_range->at(i).second;
+//                    if(vkmod->get_lb(key)<new_lb){
+//                        has_change = true;
+//                        vkmod->set_lb(key, new_lb);
+//                    }
+//                    if(vkmod->get_ub(key)>new_ub){
+//                        has_change = true;
+//                        vkmod->set_ub(key, new_ub);
+//                    }
+//                }
+//            }
+//        }
+//    }
     return true;
 }
 template<typename type>
@@ -1371,5 +1424,6 @@ template bool Model<double>::obbt_batch_update_bounds(const std::vector<std::str
 template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst, const vector<double>& c_val, const double c0_val, const double scale);
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
-template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol);
+template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
 }
+

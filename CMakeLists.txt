@@ -32,11 +32,11 @@ option(Gurobi "Link to GUROBI libraries" OFF)
 # Find IPOPT (REQUIRED)
 option(Ipopt "Link to IPOPT libraries" ON)
 
-# Find LASlib (REQUIRED)
-option(LASlib "Link to LASlib libraries" ON)
+# Find LASlib (optional)
+option(LASlib "Link to LASlib libraries" OFF)
 
-# Find QHULL (REQUIRED)
-option(QHULL "Link to QHULL libraries" ON)
+# Find QHULL (optional)
+option(QHULL "Link to QHULL libraries" OFF)
 
 # Find XLNT (optional)
 option(Xlnt "Link to XLNT libraries" OFF)

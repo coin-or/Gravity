@@ -9,11 +9,21 @@ public:
     int n;
     Model<>* m;
     Model<> interior;
+    int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
+    int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
     cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
         vars = _grb_vars;
         n    = xn;
         m=mn;
         interior=interiorn;
+    }
+       ~cuts(){
+        DebugOff("soc_viol_user "<<soc_viol_user<<endl);
+        DebugOff("soc_found_user "<<soc_found_user<<endl);
+        DebugOff("soc_added_user "<<soc_added_user<<endl);
+        DebugOff("det_viol_user "<<det_viol_user<<endl);
+        DebugOff("det_found_user "<<det_found_user<<endl);
+        DebugOff("det_added_user "<<det_added_user<<endl);
     }
 protected:
     void callback() {
@@ -32,7 +42,8 @@ protected:
                     vec_x.push_back(x[i]);
                 }
                 m->set_solution(vec_x);
-                auto res=m->cutting_planes_solution(interior, 1e-6);
+                //auto res=m->cutting_planes_solution(interior, 1e-6);
+                auto res=m->cutting_planes_solution(interior, 1e-9, soc_viol, soc_found, soc_added, det_viol, det_found, det_added);
                 if(res.size()>=1){
                     for(i=0;i<res.size();i++){
                         GRBLinExpr expr = 0;
@@ -58,7 +69,8 @@ protected:
                         vec_x.push_back(x[i]);
                     }
                     m->set_solution(vec_x);
-                    auto res=m->cutting_planes_solution(interior, 1e-6);
+                    //auto res=m->cutting_planes_solution(interior, 1e-6);
+                    auto res=m->cutting_planes_solution(interior, 1e-9,soc_viol_user, soc_found_user,soc_added_user,det_viol_user, det_found_user, det_added_user);
                     if(res.size()>=1){
                         for(i=0;i<res.size();i++){
                             GRBLinExpr expr = 0;
@@ -67,7 +79,7 @@ protected:
                                 expr += res[i][j+1]*vars[c];
                             }
                             expr+=res[i][j];
-                            addLazy(expr, GRB_LESS_EQUAL, 0);
+                            addCut(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
                 }
@@ -197,13 +209,15 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //    relax_model();
     grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
     grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
+    grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
-    //grb_mod->set(GRB_IntParam_Threads, 4);
+    grb_mod->set(GRB_IntParam_Threads, 1);
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
     auto lin=_model->buildOA();
     interior=lin->add_outer_app_solution(*_model);
-    cuts cb = cuts(_grb_vars, n, _model, interior);
+    //cuts cb = cuts(_grb_vars, n, _model, interior);
+    cuts cb(_grb_vars, n, _model, interior);
     grb_mod->setCallback(&cb);
     grb_mod->optimize();
     //    grb_mod->write("~/mod.mps");
@@ -382,11 +396,11 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        if(!c->is_convex())
-        {
-            DebugOn(c->_name<<"  lazy"<<endl);
-            continue;
-        }
+        // if(!c->is_convex())
+        // {
+        //     DebugOn(c->_name<<"  lazy"<<endl);
+        //     continue;
+        // }
         c->_new = false;
         
         if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
