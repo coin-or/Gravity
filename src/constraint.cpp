@@ -47,7 +47,7 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
 {
     bool success=false;
     const double int_tol=1e-14, zero_tol=1e-13;
-    const int max_iter=1000;
+    const int max_iter=10000;
     vector<double> x_f, x_t, x_end, interval, mid;
     double  f_a,f_b,f_f, f_t, f_mid, interval_norm;
     int iter=0;
@@ -113,7 +113,7 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
             }
             else
             {
-                if((this->_ctype==leq) && (f_mid<=0)){
+                if((this->_ctype==leq) && (f_mid<=zero_tol)){
                     success=true;
                     
                     
@@ -122,7 +122,7 @@ bool Constraint<type>::binary_line_search(const vector<double>& x_start, size_t 
                                 DebugOff("Iter "<<iter<<endl);
                     break;
                 }
-                if((this->_ctype==geq) && (f_mid>=0)){
+                if((this->_ctype==geq) && (f_mid>=-zero_tol)){
                     success=true;
                     
                     

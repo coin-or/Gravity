@@ -18,12 +18,12 @@ public:
         interior=interiorn;
     }
        ~cuts(){
-        DebugOff("soc_viol_user "<<soc_viol_user<<endl);
-        DebugOff("soc_found_user "<<soc_found_user<<endl);
-        DebugOff("soc_added_user "<<soc_added_user<<endl);
-        DebugOff("det_viol_user "<<det_viol_user<<endl);
-        DebugOff("det_found_user "<<det_found_user<<endl);
-        DebugOff("det_added_user "<<det_added_user<<endl);
+        DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
+        DebugOn("soc_found_user "<<soc_found_user<<" "<<soc_found<<endl);
+        DebugOn("soc_added_user "<<soc_added_user<<" "<<soc_added<<endl);
+        DebugOn("det_viol_user "<<det_viol_user<<" "<<det_viol<<endl);
+        DebugOn("det_found_user "<<det_found_user<<" "<<det_found<<endl);
+	DebugOn("det_added_user "<<det_added_user<<" "<<det_added<<endl);
     }
 protected:
     void callback() {
@@ -58,13 +58,15 @@ protected:
             }
             }
             if(mipnode){
-                if (where == GRB_CB_MIPNODE && GRB_CB_MIPNODE_STATUS==GRB_OPTIMAL) {
+                if (where == GRB_CB_MIPNODE) {
+			if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2){
                     // Found an integer feasible solution - does it visit every node?
                     double *x = new double[n];
                     vector<double> vec_x;
                    // double obj=getDoubleInfo(GRB_CB_MIPSOL_OBJ);
                     int i,j;
-                    x=getSolution(vars.data(),n);
+		    x=getNodeRel(vars.data(),n);
+                    //x=getSolution(vars.data(),n);
                     for(i=0;i<n;i++){
                         vec_x.push_back(x[i]);
                     }
@@ -79,10 +81,10 @@ protected:
                                 expr += res[i][j+1]*vars[c];
                             }
                             expr+=res[i][j];
-                            addCut(expr, GRB_LESS_EQUAL, 0);
+                            addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
                     }
-                }
+                }}
             }
 
         } catch (GRBException e) {
@@ -104,7 +106,7 @@ GurobiProgram::GurobiProgram(){
     //   grb_env->set(GRB_IntParam_Threads,8);
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //   grb_env->set(GRB_IntParam_NumericFocus,3);
-    grb_env->set(GRB_IntParam_NonConvex,1);
+    grb_env->set(GRB_IntParam_NonConvex,2);
     grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
     
@@ -396,11 +398,11 @@ void GurobiProgram::create_grb_constraints(){
         if (!c->_new && c->_all_satisfied) {
             continue;
         }
-        // if(!c->is_convex())
-        // {
-        //     DebugOn(c->_name<<"  lazy"<<endl);
-        //     continue;
-        // }
+         if(c->_callback)
+         {
+             DebugOn(c->_name<<"  lazy"<<endl);
+            continue;
+        }
         c->_new = false;
         
         if (c->is_nonlinear() && (!(c->_expr->is_uexpr() && c->get_nb_vars()==2) && !c->_expr->is_mexpr())) {
