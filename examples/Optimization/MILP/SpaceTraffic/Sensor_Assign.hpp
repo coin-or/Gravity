@@ -44,14 +44,14 @@ private:
     indices own_oths_rplc2;
     indices jk; //agents X objects
     vector<int> owner;
-    //vector<Agent> agents;
+    /*param<double> w0;
+    param<double> w_own;
+    param<double> w_bought;*/
     
 public:
     myModel(){ };
-    void readData(int argc, const char * argv[]);
-    void InitPrimal();
-    void InitDual();
-    void InitBilevel();
+    vector<param<double>> readData(int argc, const char * argv[]);
+    void InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought);
     ~myModel(){ };
 };
 

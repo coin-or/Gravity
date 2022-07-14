@@ -10,15 +10,14 @@
 
 int main(int argc, const char * argv[]) {
     myModel m = myModel();
-    m.readData(argc, argv);
-    m.InitBilevel();
+    vector<param<double>> par = m.readData(argc, argv);
+    m.InitBilevel(par[0], par[1], par[2]);
     //int s = 0;
     return 0;
 }
-//Agent::Agent(int name) { n = name; }
 
-void myModel::readData(int argc, const char * argv[]){
-    N = 4; M = 7; K = 2;
+vector<param<double>> myModel::readData(int argc, const char * argv[]){
+    N = 4; M = 7; K = 3;
     int degree = 100;
 
     if(argc>=2){
@@ -41,139 +40,104 @@ void myModel::readData(int argc, const char * argv[]){
 
     for(int i = 0; i < N; i++)
         owner.push_back(distr(gen)); // generate numbers
-
-    /* Init agents and weights */
-    /*int wUB = 100; //UB on weights
-    uniform_int_distribution<> distr1(0, wUB); // define the range
-    agents.resize(K);
-    for (int k = 0; k < K; k++) {
-        agents[k].n = k;
-        for (auto a: graph.arcs) {
-            agents[k].w.push_back(distr1(gen));
-        }
-    }
-
-    for (int i = 0; i < N; i++) {
-        agents[owner[i]].own.push_back(i);
-        for (int k = 0; k < owner[i]; k++) {
-            agents[k].oths.push_back(i);
-        }
-        for (int k = owner[i] + 1; k < K; k++) {
-            agents[k].oths.push_back(i);
-        }
-    }
-    
-    for (int k = 0; k < K; k++) {
-        for (int n : agents[k].own) {
-            indices tmp(graph.get_node(to_string(n))->get_out());
-            agents[k].own_arcs = tmp;
-        }
-        for (int n : agents[k].oths) {
-            indices tmp(graph.get_node(to_string(n))->get_out());
-            agents[k].oths_arcs = tmp;
-        }
-    }*/
     
     /* Indexing sets */
-    sensors = range (0, N - 1);
-    objects = range (N, N + M - 1);
+    //sensors = range (0, N - 1);
+    //objects = range (N, N + M - 1);
     arcs.add(graph.arcs);
-    /*for (int i = 0; i < N; i++) {
-        own_sens.add(to_string(i) + "," + to_string(owner[i]));
-        for (int k = 0; k < owner[i]; k++) {
-            bought_sens.add(to_string(i) + "," + to_string(k));
-        }
-        for (int k = owner[i] + 1; k < K; k++) {
-            bought_sens.add(to_string(i) + "," + to_string(k));
-        }
-        for (Arc* a : graph.get_node(to_string(i))->get_out()) {
-            own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(owner[i]));
-            for (int k = 0; k < owner[i]; k++) {
-                bought_arcs.add(a->_src->_name + "," + a->_dest->_name + "," + to_string(k));
-            }
-            for (int k = owner[i] + 1; k < K; k++) {
-                bought_arcs.add(a->_src->_name + "," + a->_dest->_name + "," + to_string(k));
-            }
-        }
-    }*/
-    
-    /*for (int k = 0; k < K; k++) {
-        for (int i = 0; i < N; i++) {
-            if (owner[i] == k) {
-                own_sens.add(to_string(i) + "," + to_string(k));
-                for (Arc* a : graph.get_node(to_string(i))->get_out()) {
-                    own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                }
-            }
-            else {
-                bought_sens.add(to_string(i) + "," + to_string(k));
-                for (Arc* a : graph.get_node(to_string(i))->get_out()) {
-                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                }
-            }
-        }
-    }*/
-    
-    for (int k = 0; k < K; k++) {
-        for (int i = 0; i < N; i++) {
-            if (owner[i] == k) {
-                own_sens.add(to_string(i) + "," + to_string(k));
-                for (Arc* a: graph.get_node(to_string(i))->get_out()) {
-                    own_arcs.add(to_string(i) + "," + a->_dest->_name +  "," +  to_string(k));
-                    for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
-                        if ((owner[stoi(b->_src->_name)] == k) && (stoi(b->_src->_name) != i)) {
-                            own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                        }
-                        else if (stoi(b->_src->_name) != i) {
-                            oths_rplc.add(to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                        }
-                    }
-                }
-            }
-            else {
-                bought_sens.add(to_string(i) + "," + to_string(k));
-                for (Arc* a: graph.get_node(to_string(i))->get_out()) {
-                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                }
-            }
-        }
-        /*for (int j = 0; j < M; j++) {
-            for (Arc* a: graph.get_node(to_string(j))->get_in()) {
-                if (owner[stoi(a->_src->_name)] == k) {
-                    own_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                    for (Arc* b: graph.get_node(to_string(j))->get_in()) {
-                        if ((owner[stoi(b->_src->_name)] == k) && (stoi(b->_src->_name) != stoi(a->_src->_name))) {
-                            own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                        }
-                        else if (stoi(b->_src->_name) != stoi(a->_src->_name)) {
-                            oths_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                        }
-                    }
-                }
-                else {
-                    bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
-                }
-            }
-        }*/
+    for (int i = 0; i < N; i++) {
+        sensors.add("sensor" + to_string(i));
+    }
+    for (int i = N; i < N + M; i++) {
+        objects.add("object" + to_string(i));
     }
     
     jk = indices(objects, range(0,K-1));
     
-
+    //Parameters
+    vector<param<double>> par (3);
+    param<double> w0("w0");
+    param<double> w_own("w_own");
+    param<double> w_bought("w_bought");
+    if (argc >= 3) {
+        string fname = argv[2];
+        fstream file;
+        file.open(fname);
+        //FILE *fp = fopen(fname.c_str(),"r");
+        /*if(f == NULL)
+        {
+                cout << "Can’t open input file " << fname;
+                exit(1);
+        }*/
+        string tmp;
+        string tmp1;
+        string tmp2;
+        file >> tmp1;
+        K = stoi(tmp1);
+        for (int i = 0; i < N; i++) {
+            file >> tmp2;
+            owner[i] = stoi(tmp2);
+        }
+        for (int k = 0; k < K; k++) {
+            for (int i = 0; i < N; i++) {
+                if (owner[i] == k) {
+                    own_sens.add("sensor" + to_string(i) + "," + to_string(k));
+                    for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+                        own_arcs.add("sensor" + to_string(i) + "," + a->_dest->_name +  "," +  to_string(k));
+                        for (Arc* b: graph.get_node(a->_dest->_name)->get_in()) {
+                            if ((owner[stoi(b->_src->_name.substr(6, b->_src->_name.find(",")))] == k) && (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i)) {
+                                own_rplc.add(a->_src->_name + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                            }
+                            else if (stoi(b->_src->_name.substr(6, b->_src->_name.find(","))) != i) {
+                                oths_rplc.add("sensor" + to_string(i) + "," + b->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                            }
+                        }
+                    }
+                }
+                else {
+                    bought_sens.add("sensor" + to_string(i) + "," + to_string(k));
+                    for (Arc* a: graph.get_node("sensor" + to_string(i))->get_out()) {
+                        bought_arcs.add(a->_src->_name + "," + a->_dest->_name +  "," +  to_string(k));
+                    }
+                }
+            }
+        }
+        w0.in(arcs);
+        w_own.in(own_arcs);
+        w_bought.in(bought_arcs);
+        for (Arc* a: graph.arcs) {
+            for (int k = 0; k < owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))]; k++) {
+                file >> tmp;
+                w_bought(a->_src->_name + "," + a->_dest->_name + "," + to_string(k)) = stoi(tmp);
+            }
+            file >> tmp;
+            w_own(a->_src->_name + "," + a->_dest->_name + "," + to_string(owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))])) = stod(tmp);
+            for (int k = owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] + 1; k < K; k++) {
+                file >> tmp;
+                w_bought(a->_src->_name + "," + a->_dest->_name + "," + to_string(k)) = stod(tmp);
+            }
+        }
+        w0.initialize_normal(2, 1);
+    }
+    /*else {
+        w0.initialize_normal(2, 1);
+        w_own.initialize_normal(2, 1);
+        w_bought.initialize_normal(2, 1);
+    }*/
+    par[0] = w0;
+    par[1] = w_own;
+    par[2] = w_bought;
+    
+    return par;
 }
 
-void myModel::InitPrimal() {
-
-}
-void myModel::InitDual() {
-
-}
-void myModel::InitBilevel() {
+void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w_bought) {
 
     Model<> model("BilevelSensor");
+    
+    double e = 0.001;
 
     /*Variables*/
-
     var<double> p("p", pos_);
     model.add(p.in(sensors));
     var<double> y("y", pos_);
@@ -182,27 +146,18 @@ void myModel::InitBilevel() {
     model.add(s.in(own_arcs));
     var<int> sn("sn", 0, 1);
     model.add(sn.in(sensors));
-    var<int> z0("z0");
+    var<int> z0("z0", 0, 1);
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
 
     /*Objective*/
-    param<double> w_own("w_own");
-    w_own.in(own_arcs);
-    w_own.initialize_normal(2, 1);
-    param<double> w_bought("w_bought");
-    w_bought.in(bought_arcs);
-    w_bought.initialize_normal(2, 1);
-    param<double> w0("w0");
-    w0.in(arcs);
-    w0.initialize_normal(2, 1);
-    
     func<> obj;
     obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
     obj += product(p, sn);
     obj += product((w_bought - p), z);
     obj += product(w0.in_ignore_ith(2, 1, bought_arcs), z);
+    obj -= e * product(p.in_ignore_ith(1, 2, bought_arcs), z);
     
     model.max(obj);
     
@@ -244,21 +199,19 @@ void myModel::InitBilevel() {
     sl1 = y.in_ignore_ith(1, 2, own_arcs) - w_own * (1 - sum(s.sum_over(own_rplc.ignore_ith(0, 1), 0)) - sum(z.sum_over(own_rplc.ignore_ith(0, 1), 0)));
     model.add(sl1.in(own_arcs) >= 0);*/
     
-    /*Constraint<> test("test");
-    test = sum(s.in_ignore_ith(0, 1, own_rplc).in_matrix(0, 1));
-    model.add(test.in(own_rplc.ignore_ith(1, 1)) >= 0);*/
-    
+    //w_own.print();
+    //w_bought.print();
     for (int i = 0; i < N; i++) {
-        for (Arc* b: graph.get_node(to_string(i))->get_out()) {
+        for (Arc* b: graph.get_node("sensor" + to_string(i))->get_out()) {
             string j = b->_dest->_name;
             Constraint<> sl1("Seller lb1:" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
-            sl1 += y[i] - w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
+            sl1 += y("sensor" + to_string(i)) - w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i]));
             for (Arc* a: graph.get_node(j)->get_in()) {
-                if ((owner[stoi(a->_src->_name)] == owner[i]) && (stoi(a->_src->_name) != i)) {
-                    sl1 += w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * s(a->_src->_name + "," + j +  "," + to_string(owner[i]));//.in(tmp_own_r);
+                if ((owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] == owner[i]) && (stoi(a->_src->_name.substr(6, a->_src->_name.find(","))) != i)) {
+                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * s(a->_src->_name + "," + j +  "," + to_string(owner[i]));
                 }
-                else if (owner[stoi(a->_src->_name)] != owner[i]) {
-                    sl1 += w_own(to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * z(a->_src->_name + "," + j +  "," + to_string(owner[i]));
+                else if (owner[stoi(a->_src->_name.substr(6, a->_src->_name.find(",")))] != owner[i]) {
+                    sl1 += w_own("sensor" + to_string(i) + "," + b->_dest->_name + "," + to_string(owner[i])) * z(a->_src->_name + "," + j +  "," + to_string(owner[i]));
                 }
             }
             model.add(sl1 >= 0);
@@ -275,6 +228,9 @@ void myModel::InitBilevel() {
     model.add(sl3.in(oths_rplc) >= 0);
     
     model.print();
+    
+    solver<> sol(model, gurobi);
+    sol.run();
     //model.restructure();
     //model.print();
 
