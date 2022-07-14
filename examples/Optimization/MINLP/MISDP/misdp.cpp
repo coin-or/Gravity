@@ -58,6 +58,7 @@ auto g=CBF_read(fname.c_str(), m);
     
     solver<> s(m, gurobi);
     s.run(5,1e-6);
+    m->print_constraints_stats(1e-6);
     
     var<double> X=m->get_var<double>("X");
     var<double> Xij=m->get_var<double>("Xij");
