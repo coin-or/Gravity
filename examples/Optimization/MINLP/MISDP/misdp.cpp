@@ -73,7 +73,10 @@ auto g=CBF_read(fname.c_str(), m);
         }
         for(auto i=0;i<node_names.size()-1;i++){
             for(auto j=i+1;j<node_names.size();j++){
+                if(Xij._indices->has_key(node_names[i]+","+node_names[j]))
                 mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
+                else
+                    mat_X[i][j]=Xij.eval(node_names[j]+","+node_names[i]);
             }
         }
         double det=determinant(mat_X, dim);
