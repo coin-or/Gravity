@@ -620,7 +620,7 @@ std::vector<pair<string,vector<Node*>>> Net::decompose_bags_3d(bool print_bags){
     vector<pair<string,vector<Node*>>> res;
     for (auto &bag_copy:_bags) {
         if(bag_copy.second.size()>=3){
-            DebugOff("Decomposing bigger bag into 3d bags\n");
+            DebugOn("Decomposing bigger bag into 3d bags\n");
             
             for (auto i = 0; i<bag_copy.second.size()-2; i++) {
                 for (auto j = i+1; j<bag_copy.second.size()-1; j++) {

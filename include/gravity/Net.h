@@ -87,6 +87,7 @@ public:
     void add_node(Node* n, size_t pos);
     bool add_arc(Arc* a);
     void add_undirected_arc(Arc* a);
+    // bags are sorted in an ascending order of ids.
 
     /* Accessors */
     Node* get_node(std::string name) const;

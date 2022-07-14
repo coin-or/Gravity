@@ -94,7 +94,8 @@ static CBFresponsee
 // Function definitions
 // -------------------------------------
 
-void CBF_read(const char *file, shared_ptr<Model<double>>& m) {
+Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
+    Net g;
   CBFresponsee res = CBF_RES_OK;
   long long int linecount = 0;
   CBFFILE *pFile = NULL;
@@ -225,12 +226,12 @@ CBFdata data = { 0, };
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, -1e5);
-        x_ub.set_val(i, 1e5);
+        x_lb.set_val(i, -100);
+        x_ub.set_val(i, 100);
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, -1e5);
-        y_ub.set_val(i, 1e5);
+        y_lb.set_val(i, -100);
+        y_ub.set_val(i, 100);
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -432,7 +433,6 @@ CBFdata data = { 0, };
     if(data.psdmapnum==1){
     int nnodes=data.psdmapdim[0];
         indices nodes;
-        Net g;
         Node* n1 = nullptr;
         Node* n2 = nullptr;
         for(auto i=0;i<nnodes;i++){
@@ -471,9 +471,9 @@ CBFdata data = { 0, };
         g.get_tree_decomp_bags();
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
-        var<> X("X", 0, 1e5);
+        var<> X("X", 0, 1000);
         m->add(X.in(nodes));
-        var<> Xij("Xij", -1e5, 1e5);
+        var<> Xij("Xij", -1000, 1000);
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
@@ -570,6 +570,7 @@ else{
     else{
         m->max(obj);
     }
+    return g;
 }
 
 

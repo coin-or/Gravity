@@ -647,7 +647,7 @@ for (auto &con: _cons_vec)
                 if(convex_region){
                     scale=1.0;
                     con->get_outer_coef(i, c_val, c0_val);
-                    get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
+                    //get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
                     oa_cut=true;
                 }
             }

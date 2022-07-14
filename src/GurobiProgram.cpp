@@ -131,8 +131,8 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
            //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -166,8 +166,8 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
              //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             // grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
