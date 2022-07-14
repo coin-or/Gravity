@@ -230,8 +230,8 @@ CBFdata data = { 0, };
         x_ub.set_val(i, 100);
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, -100);
-        y_ub.set_val(i, 100);
+        y_lb.set_val(i, 0);
+        y_ub.set_val(i, 1);
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -477,6 +477,7 @@ CBFdata data = { 0, };
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
+        map<string, func<>> func_map_bounds;
         for(auto k:*node_pairs._keys){
             func_map[k]=Xij(k);
         }
@@ -498,9 +499,11 @@ CBFdata data = { 0, };
             }
             if(C.has_key(ind)){
                 func_map.at(func_name)-=coef*x(ind);
+                func_map_bounds[func_name]+=coef*x(ind);
             }
             else{
                 func_map.at(func_name)-=coef*y(ind);
+                func_map_bounds[func_name]+=coef*y(ind);
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -514,12 +517,23 @@ CBFdata data = { 0, };
             func_name=(to_string(k));
             }
             func_map.at(func_name)-=coef;
+            func_map_bounds[func_name]+=coef;
         }
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
             Constraint<> def_X("def_X_"+it->first);
             def_X=it->second;
             m->add(def_X==0);
+        }
+        for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
+            if(it->first.find(",")!=std::string::npos){
+                Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
+                Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+            }
+            else{
+                X.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
+                X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+            }
         }
         
         Constraint<> pos_diag("pos_diag");
