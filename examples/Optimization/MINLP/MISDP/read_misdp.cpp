@@ -526,6 +526,7 @@ CBFdata data = { 0, };
             m->add(def_X==0);
         }
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
+            func_map_bounds.at(it->first).eval_all();
             if(it->first.find(",")!=std::string::npos){
                 Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
                 Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
@@ -534,6 +535,16 @@ CBFdata data = { 0, };
                 X.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
                 X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
             }
+        }
+        for(auto k:*(node_pairs_chord._keys)){
+            auto pos = k.find_first_of(",");
+            auto n1_name = k.substr(0,pos);
+            auto n2_name= k.substr(pos+1);
+            auto u1=X.get_ub(n1_name);
+            auto u2=X.get_ub(n2_name);
+            auto u=sqrt(u1*u2);
+            Xij.set_lb(k, std::max(-u, Xij.get_lb(k)));
+            Xij.set_ub(k, std::min(u, Xij.get_ub(k)));
         }
         
         Constraint<> pos_diag("pos_diag");
