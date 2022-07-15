@@ -225,12 +225,12 @@ CBFdata data = { 0, };
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, -1e5);
-        x_ub.set_val(i, 1e5);
+        x_lb.set_val(i, -30);
+        x_ub.set_val(i, 30);
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, -1e5);
-        y_ub.set_val(i, 1e5);
+        y_lb.set_val(i, -1e2);
+        y_ub.set_val(i, 1e2);
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -440,43 +440,56 @@ CBFdata data = { 0, };
         g.add_node(n1);
             nodes.insert(to_string(i));
         }
-    for(auto i=0;i<data.hnnz;i++){
-        int k=data.hsubk[i];
-        int l=data.hsubl[i];
-        if(k!=l){
-        n1 = g.get_node(to_string(k));
-        n2 = g.get_node(to_string(l));
-        if(g.get_arc(n1, n2)==nullptr){
-            auto a = new Arc(n1,n2);
-            g.add_arc(a);
-            a->connect();
-        }
-      }
-    }
-        for(auto i=0;i<data.dnnz;i++){
-            int k=data.dsubk[i];
-            int l=data.dsubl[i];
-            if(k!=l){
-            n1 = g.get_node(to_string(k));
-            n2 = g.get_node(to_string(l));
-            if(g.get_arc(n1, n2)==nullptr){
-                auto a = new Arc(n1,n2);
-                g.add_arc(a);
-                a->connect();
-            }
-          }
-        }
+        for(auto i=0;i<data.hnnz;i++){
+                 int k=data.hsubk[i];
+                 int l=data.hsubl[i];
+                 if(k!=l){
+                     if(k<l){
+                         n1 = g.get_node(to_string(k));
+                         n2 = g.get_node(to_string(l));
+                     }
+                     else{
+                         n1 = g.get_node(to_string(l));
+                         n2 = g.get_node(to_string(k));
+                     }
+                     if(g.get_arc(n1, n2)==nullptr){
+                         auto a = new Arc(n1,n2);
+                         g.add_arc(a);
+                         a->connect();
+                     }
+                 }
+             }
+             for(auto i=0;i<data.dnnz;i++){
+                 int k=data.dsubk[i];
+                 int l=data.dsubl[i];
+                 if(k!=l){
+                     if(k<l){
+                         n1 = g.get_node(to_string(k));
+                         n2 = g.get_node(to_string(l));
+                     }
+                     else{
+                         n1 = g.get_node(to_string(l));
+                         n2 = g.get_node(to_string(k));
+                     }
+                     if(g.get_arc(n1, n2)==nullptr){
+                         auto a = new Arc(n1,n2);
+                         g.add_arc(a);
+                         a->connect();
+                     }
+                 }
+             }
         
        auto node_pairs=g.get_node_pairs();
         g.get_tree_decomp_bags();
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
-        var<> X("X", 0, 1e5);
+        var<> X("X", 0, 30);
         m->add(X.in(nodes));
-        var<> Xij("Xij", -1e5, 1e5);
+        var<> Xij("Xij", -30, 30);
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
+        map<string, func<>> func_map_bounds;
         for(auto k:*node_pairs._keys){
             func_map[k]=Xij(k);
         }
@@ -491,16 +504,18 @@ CBFdata data = { 0, };
             auto ind=to_string(j);
             double coef=data.hval[i];
             if(k!=l){
-            func_name=(to_string(k)+","+to_string(l));
+                func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
             func_name=(to_string(k));
             }
             if(C.has_key(ind)){
                 func_map.at(func_name)-=coef*x(ind);
+                func_map_bounds[func_name]=coef*x(ind);
             }
             else{
                 func_map.at(func_name)-=coef*y(ind);
+                func_map_bounds[func_name]=coef*y(ind);
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -508,23 +523,32 @@ CBFdata data = { 0, };
             int l=data.dsubl[i];
             double coef=data.dval[i];
             if(k!=l){
-            func_name=(to_string(k)+","+to_string(l));
+                func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
             func_name=(to_string(k));
             }
             func_map.at(func_name)-=coef;
+            func_map_bounds[func_name]+=coef;
         }
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
             Constraint<> def_X("def_X_"+it->first);
             def_X=it->second;
             m->add(def_X==0);
+            if(it->first.find(",")!=std::string::npos){
+                Xij.set_lb(it->first, it->second._range->first);
+                Xij.set_ub(it->first, it->second._range->second);
+            }
+            else{
+                X.set_lb(it->first, std::max(it->second._range->first,0.0));
+                X.set_ub(it->first, it->second._range->second);
+            }
         }
         
         Constraint<> pos_diag("pos_diag");
         pos_diag =  X*(-1);
-        m->add(pos_diag.in(nodes) <= 0);
+       // m->add(pos_diag.in(nodes) <= 0);
 
         
         Constraint<> SOC("SOC");

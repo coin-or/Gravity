@@ -2402,7 +2402,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             if(diff > tol) {
                                 DebugOn("Violated equation: " << c->to_str(inst,3));
                                 //                        c->print(inst);
-                                DebugOn(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<<std::setprecision(9)<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
@@ -2429,7 +2429,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             if(diff > tol) {
                                 DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
                                 //                                c->print(inst);
-                                DebugOn(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<<std::setprecision(9)<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {
@@ -2461,7 +2461,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                             if(diff < -tol) {
                                 DebugOn(c->_name<<" Violated inequality: " << c->to_str(inst,3));
                                 //                   c->print(inst);
-                                DebugOn(", violation = "<< diff << endl);
+                                DebugOn(", violation = "<<std::setprecision(9)<< diff << endl);
                                 nb_viol++;
                                 //                        violated = true;
                                 if (*c->_all_lazy) {

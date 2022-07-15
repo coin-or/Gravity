@@ -51,6 +51,9 @@ protected:
                             int c=res[i][j];
                             expr += res[i][j+1]*vars[c];
                         }
+                        if(abs(res[i][j])>=1e-6){
+                            DebugOff("pos resij");
+                        }
                         expr+=res[i][j];
                         addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
@@ -80,6 +83,9 @@ protected:
                                 int c=res[i][j];
                                 expr += res[i][j+1]*vars[c];
                             }
+                            if(abs(res[i][j])>=1e-6){
+                                DebugOff("pos resij");
+                            }
                             expr+=res[i][j];
                             addLazy(expr, GRB_LESS_EQUAL, 0);
                         }
@@ -107,7 +113,7 @@ GurobiProgram::GurobiProgram(){
     //    grb_env->set(GRB_IntParam_Presolve,0);
     //   grb_env->set(GRB_IntParam_NumericFocus,3);
     grb_env->set(GRB_IntParam_NonConvex,2);
-    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+    grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
     grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
     
     
@@ -131,7 +137,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
            //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
@@ -166,7 +172,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
             //    grb_env->set(GRB_IntParam_Presolve,0);
              //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
-            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
             grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
             
             // grb_env->set(GRB_IntParam_OutputFlag,1);

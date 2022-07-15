@@ -17,6 +17,7 @@ string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 CBF_read(fname.c_str(), m);
    m->print();
+
 //       auto lin_model=m->buildOA();
 //      auto interior_model=lin_model->add_outer_app_solution(*m);
 //    solver<> s(m,ipopt);
@@ -27,6 +28,8 @@ CBF_read(fname.c_str(), m);
     
     solver<> s(m, gurobi);
     s.run(5,1e-6);
+    m->print_solution();
+    m->print_constraints_stats(1e-6);
 
 //    double lower_bound=numeric_limits<double>::min(),upper_bound=numeric_limits<double>::max(), lower_bound_nonlin_init=numeric_limits<double>::min(),total_time=numeric_limits<double>::min();
 //    double ub_solver_tol=1e-6, lb_solver_tol=1e-6, range_tol=1e-3, opt_rel_tol=1e-2, opt_abs_tol=1e-2, zero_tol=1e-12;
