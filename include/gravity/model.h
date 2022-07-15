@@ -7133,6 +7133,8 @@ public:
     Model<type> add_outer_app_solution(Model<type>& nonlin);
     int generate_cuts_iterative(const Model<>& interior, vector<double>& obbt_solution, shared_ptr<Model<>> lin, string modelname, int& nb_oacuts, double active_tol, vector<double>& cuts);
     void add_cuts_to_model(vector<double>& cuts, Model<>& nonlin, int &oacuts);
+    template<typename T=type>
+                vector<vector<double>> cutting_planes_solution(const Model<type>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
     int cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname);
     int cuts_parallel(vector<shared_ptr<Model<>>> batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, string vname, std::vector<std::string>& repeat_list);
     int cuts_MPI(vector<shared_ptr<Model<>>>& batch_models, int batch_model_count, const Model<type>& interior_model, shared_ptr<Model<>> lin, int& oacuts, double active_tol, int run_obbt_iter, double range_tol, vector<int>& sol_status, string vname);
