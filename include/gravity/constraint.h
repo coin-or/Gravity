@@ -454,7 +454,7 @@ public:
                 auto soc1=std::pow(xres[3],2)-xres[0]*xres[1];
                 auto soc2=std::pow(xres[4],2)-xres[1]*xres[2];
                 auto soc3=std::pow(xres[5],2)-xres[0]*xres[2];
-                if(soc1<=0 && soc2<=0 && soc3<=0){
+                if(soc1<=1e-13 && soc2<=1e-13 && soc3<=1e-13){
                     convex_region=true;
                 }
                 else{

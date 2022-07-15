@@ -147,7 +147,7 @@ Model<type> Model<type>::build_model_interior() const
         }
     }
     /*Add eta variables to model*/
-    var<> eta_int("eta_interior", -1, 0);
+    var<> eta_int("eta_interior", -1e5, 0);
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */
@@ -167,12 +167,28 @@ Model<type> Model<type>::build_model_interior() const
                 
                 if(con->_ctype==leq)
                 {
-                    Interior.add(Inter_con<=eta_int.in(ind));
+                    Interior.add((Inter_con)<=eta_int.in(ind));
                 }
                 else  if(con->_ctype==geq)
                 {
                     Interior.add(Inter_con>=-1*eta_int.in(ind));
                 }
+            }
+        }
+        else{
+            Constraint<> Inter_con(*con);
+            
+            if(con->_ctype==leq)
+            {
+                Interior.add(Inter_con<=0);
+            }
+            else  if(con->_ctype==geq)
+            {
+                Interior.add(Inter_con>=0);
+            }
+            else if(con->_ctype==eq)
+            {
+                Interior.add(Inter_con==0);
             }
         }
     }

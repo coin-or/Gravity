@@ -94,7 +94,8 @@ static CBFresponsee
 // Function definitions
 // -------------------------------------
 
-void CBF_read(const char *file, shared_ptr<Model<double>>& m) {
+Net CBF_read(const char *file, shared_ptr<Model<double>>& m) {
+  Net g;
   CBFresponsee res = CBF_RES_OK;
   long long int linecount = 0;
   CBFFILE *pFile = NULL;
@@ -225,12 +226,12 @@ CBFdata data = { 0, };
     x_ub.in(C);x_lb.in(C);
     y_ub.in(I);y_lb.in(I);
     for (int i = 0; i<C.size(); i++) {
-        x_lb.set_val(i, -30);
-        x_ub.set_val(i, 30);
+        x_lb.set_val(i, 0);
+        x_ub.set_val(i, 0.1);
     }
     for (int i = 0; i<I.size(); i++) {
-        y_lb.set_val(i, -1e2);
-        y_ub.set_val(i, 1e2);
+        y_lb.set_val(i, 0);
+        y_ub.set_val(i, 1);
     }
     var<> x("x", x_lb, x_ub);
     var<int> y("y", y_lb, y_ub);
@@ -432,7 +433,6 @@ CBFdata data = { 0, };
     if(data.psdmapnum==1){
     int nnodes=data.psdmapdim[0];
         indices nodes;
-        Net g;
         Node* n1 = nullptr;
         Node* n2 = nullptr;
         for(auto i=0;i<nnodes;i++){
@@ -483,13 +483,14 @@ CBFdata data = { 0, };
         g.get_tree_decomp_bags();
         auto bags_3d=g.decompose_bags_3d();
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
-        var<> X("X", 0, 30);
+        var<> X("X", 0, 1000);
         m->add(X.in(nodes));
-        var<> Xij("Xij", -30, 30);
+        var<> Xij("Xij", -200, 200);
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
         map<string, func<>> func_map_bounds;
+        map<string, map<int,double>> map_triples;
         for(auto k:*node_pairs._keys){
             func_map[k]=Xij(k);
         }
@@ -510,12 +511,13 @@ CBFdata data = { 0, };
             func_name=(to_string(k));
             }
             if(C.has_key(ind)){
-                func_map.at(func_name)-=coef*x(ind);
-                func_map_bounds[func_name]=coef*x(ind);
+                func_map.at(func_name)-=coef*x(ind)*1e-2;
+                func_map_bounds[func_name]+=coef*x(ind)*1e-2;
             }
             else{
-                func_map.at(func_name)-=coef*y(ind);
-                func_map_bounds[func_name]=coef*y(ind);
+                func_map.at(func_name)-=coef*y(ind)*1e-2;
+                func_map_bounds[func_name]+=coef*y(ind)*1e-2;
+                map_triples[func_name][j]=coef*1e-2;
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -528,22 +530,68 @@ CBFdata data = { 0, };
             if(k==l){
             func_name=(to_string(k));
             }
-            func_map.at(func_name)-=coef;
-            func_map_bounds[func_name]+=coef;
+            func_map.at(func_name)-=coef*1e-2;
+            func_map_bounds[func_name]+=coef*1e-2;
         }
+        for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
+                   func_map_bounds.at(it->first).eval_all();
+                   if(func_map_bounds.at(it->first)._lterms->size()>=3 && func_map_bounds.at(it->first)._lterms->size()%3==0){
+                       double coa,cob,coc;
+                       double func_max=0, func_min=0;
+                       auto it1=map_triples[it->first].begin();
+                       while(it1!=map_triples[it->first].end()){
+                           coa=it1->second;
+                           it1=next(it1,1);
+                           cob=it1->second;
+                           it1=next(it1,1);
+                           coc=it1->second;
+                           it1=next(it1,1);
+                           double maxc=std::max(std::max(coa,cob),coc);
+                           double minc=std::min(std::min(coa,cob),coc);
+                           if(minc>=0)
+                               minc=0;
+                           if(maxc<=0)
+                               maxc=0;
+                           func_max+=maxc;
+                           func_min+=minc;
+                       }
+                       func_min += func_map_bounds.at(it->first).eval(func_map_bounds.at(it->first).get_cst());
+                       func_max += func_map_bounds.at(it->first).eval(func_map_bounds.at(it->first).get_cst());
+                       if(it->first.find(",")!=std::string::npos){
+                           Xij.set_lb(it->first, func_min);
+                           Xij.set_ub(it->first, func_max);
+                       }
+                       else{
+                           X.set_lb(it->first, std::max(0.0, func_min));
+                           X.set_ub(it->first, func_max);
+                       }
+                   }
+                   else{
+                       if(it->first.find(",")!=std::string::npos){
+                           Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
+                           Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+                       }
+                       else{
+                           X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
+                           X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+                       }
+                   }
+               }
+               for(auto k:*(node_pairs_chord._keys)){
+                   auto pos = k.find_first_of(",");
+                   auto n1_name = k.substr(0,pos);
+                   auto n2_name= k.substr(pos+1);
+                   auto u1=X.get_ub(n1_name);
+                   auto u2=X.get_ub(n2_name);
+                   auto u=sqrt(u1*u2);
+                   Xij.set_lb(k, std::max(-u, Xij.get_lb(k)));
+                   Xij.set_ub(k, std::min(u, Xij.get_ub(k)));
+               }
         
         for(auto it=func_map.begin();it!=func_map.end();it++){
             Constraint<> def_X("def_X_"+it->first);
             def_X=it->second;
             m->add(def_X==0);
-            if(it->first.find(",")!=std::string::npos){
-                Xij.set_lb(it->first, it->second._range->first);
-                Xij.set_ub(it->first, it->second._range->second);
-            }
-            else{
-                X.set_lb(it->first, std::max(it->second._range->first,0.0));
-                X.set_ub(it->first, it->second._range->second);
-            }
         }
         
         Constraint<> pos_diag("pos_diag");
@@ -594,6 +642,7 @@ else{
     else{
         m->max(obj);
     }
+    return g;
 }
 
 

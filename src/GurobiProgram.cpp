@@ -224,6 +224,7 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     Model<> interior;
     auto lin=_model->buildOA();
     interior=lin->add_outer_app_solution(*_model);
+    interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
     cuts cb(_grb_vars, n, _model, interior);
     grb_mod->setCallback(&cb);
