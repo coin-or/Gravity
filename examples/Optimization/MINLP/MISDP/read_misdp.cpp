@@ -444,8 +444,14 @@ CBFdata data = { 0, };
         int k=data.hsubk[i];
         int l=data.hsubl[i];
         if(k!=l){
+            if(k<l){
         n1 = g.get_node(to_string(k));
         n2 = g.get_node(to_string(l));
+            }
+            else{
+                n1 = g.get_node(to_string(l));
+                n2 = g.get_node(to_string(k));
+            }
         if(g.get_arc(n1, n2)==nullptr){
             auto a = new Arc(n1,n2);
             g.add_arc(a);
@@ -457,8 +463,14 @@ CBFdata data = { 0, };
             int k=data.dsubk[i];
             int l=data.dsubl[i];
             if(k!=l){
+                if(k<l){
             n1 = g.get_node(to_string(k));
             n2 = g.get_node(to_string(l));
+                }
+                else{
+                    n1 = g.get_node(to_string(l));
+                    n2 = g.get_node(to_string(k));
+                }
             if(g.get_arc(n1, n2)==nullptr){
                 auto a = new Arc(n1,n2);
                 g.add_arc(a);
@@ -492,7 +504,7 @@ CBFdata data = { 0, };
             auto ind=to_string(j);
             double coef=data.hval[i];
             if(k!=l){
-            func_name=(to_string(k)+","+to_string(l));
+            func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
             func_name=(to_string(k));
@@ -511,7 +523,7 @@ CBFdata data = { 0, };
             int l=data.dsubl[i];
             double coef=data.dval[i];
             if(k!=l){
-            func_name=(to_string(k)+","+to_string(l));
+                func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
             func_name=(to_string(k));
@@ -550,6 +562,8 @@ CBFdata data = { 0, };
                         double minc=std::min(std::min(coa,cob),coc);
                         if(minc>=0)
                             minc=0;
+                        if(maxc<=0)
+                            maxc=0;
                         func_max+=maxc;
                         func_min+=minc;
                         count_co=1;

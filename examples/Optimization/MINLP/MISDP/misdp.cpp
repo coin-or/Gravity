@@ -56,7 +56,7 @@ auto g=CBF_read(fname.c_str(), m);
 //    auto res=m->cutting_planes_solution(interior_model, 1e-9,soc_viol, soc_found,soc_added,det_viol, det_found, det_added);
     
     
-    solver<> s(m, gurobi);
+    solver<> s(m, ipopt);
     s.run(5,1e-6);
     m->print_constraints_stats(1e-6);
     
