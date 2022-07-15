@@ -745,9 +745,19 @@ public:
         auto iter =ordered_lterms.begin();
         while (iter != ordered_lterms.end()) {
             if(iter->second._p->_is_relaxed){
-                if(idx==i)
-                    return iter->second._p->get_id_inst(inst);
-                idx++;
+                if(iter->second._p->is_matrix_indexed()){
+                    auto n = iter->second._p->get_dim(inst);
+                    for (int k = 0; k<n; k++) {
+                        if(idx==i)
+                            return iter->second._p->_indices->_ids->at(inst).at(k);
+                        idx++;
+                    }
+                }
+                else{
+                    if(idx==i)
+                        return iter->second._p->get_id_inst(inst);
+                    idx++;
+                }
             }
             iter++;
         }
@@ -769,9 +779,19 @@ public:
         auto iter =ordered_lterms.begin();
         while (iter != ordered_lterms.end()) {
             if(iter->second._p->_is_relaxed){
-                if(idx==i)
-                    return iter->second._p->get_vec_id();
-                idx++;
+                if(iter->second._p->is_matrix_indexed()){
+                    auto n = iter->second._p->get_dim(inst);
+                    for (int k = 0; k<n; k++) {
+                        if(idx==i)
+                            return iter->second._p->get_vec_id();
+                        idx++;
+                    }
+                }
+                else{
+                    if(idx==i)
+                        return iter->second._p->get_vec_id();
+                    idx++;
+                }
             }
             iter++;
         }
