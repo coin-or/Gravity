@@ -527,13 +527,55 @@ CBFdata data = { 0, };
         }
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             func_map_bounds.at(it->first).eval_all();
+            if(func_map_bounds.at(it->first)._lterms->size()>=3 && func_map_bounds.at(it->first)._lterms->size()%3==0){
+                auto lt=*func_map_bounds.at(it->first)._lterms;
+                double coa,cob,coc;
+                double func_max=0, func_min=0;
+                int count_co=1;
+                for(auto it1:lt){
+                    auto coeff = func_map_bounds.at(it->first).eval(it1.second._coef);
+                    if(!it1.second._sign)
+                        coeff*=-1;
+                    if(count_co==1){
+                        coa=coeff;
+                    }
+                    if(count_co==2){
+                        cob=coeff;
+                    }
+                    if(count_co==3){
+                        coc=coeff;
+                    }
+                    if(count_co==3){
+                        double maxc=std::max(std::max(coa,cob),coc);
+                        double minc=std::min(std::min(coa,cob),coc);
+                        if(minc>=0)
+                            minc=0;
+                        func_max+=maxc;
+                        func_min+=minc;
+                        count_co=1;
+                    }
+                    else{
+                        count_co++;
+                    }
+                }
+                if(it->first.find(",")!=std::string::npos){
+                    Xij.set_lb(it->first, func_min);
+                    Xij.set_ub(it->first, func_max);
+                }
+                else{
+                    X.set_lb(it->first, std::max(0.0, func_min));
+                    X.set_ub(it->first, func_max);
+                }
+            }
+            else{
             if(it->first.find(",")!=std::string::npos){
                 Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
                 Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
             }
             else{
-                X.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
+                X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
                 X.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+            }
             }
         }
         for(auto k:*(node_pairs_chord._keys)){
@@ -549,7 +591,7 @@ CBFdata data = { 0, };
         
         Constraint<> pos_diag("pos_diag");
         pos_diag =  X*(-1);
-        m->add(pos_diag.in(nodes) <= 0);
+       // m->add(pos_diag.in(nodes) <= 0);
 
         
         Constraint<> SOC("SOC");
