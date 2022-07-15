@@ -151,15 +151,25 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
 
-    /*Objective*/
-    func<> obj;
-    obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
-    obj += product(p, sn);
-    obj += product((w_bought - p), z);
-    obj += product(w0.in_ignore_ith(2, 1, bought_arcs), z);
-    obj -= e * product(p.in_ignore_ith(1, 2, bought_arcs), z);
+    var<> obj_var("obj_var", 0,10000);
+    model.add(obj_var.in(range(0,0)));
     
-    model.max(obj);
+    param<> ones("ones");
+    ones.in(sensors);
+    ones = 1;
+    
+    
+    /*Objective*/
+    Constraint<> obj("obj_def");
+    obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
+    obj += ones.tr()*p*sn;
+    obj += product(w_bought + w0.in_ignore_ith(2, 1, bought_arcs), z);
+    obj -= ones.in_ignore_ith(1, 2, bought_arcs).tr()*p.in_ignore_ith(1, 2, bought_arcs)*z;    
+    obj -= e * ones.in_ignore_ith(1, 2, bought_arcs).tr()*p.in_ignore_ith(1, 2, bought_arcs)*z;
+    obj -= obj_var;    
+    model.add(obj.in(range(0,0)) == 0);
+    
+    model.max(obj_var);
     
     /*Constraints*/
     //Upper level
@@ -191,7 +201,7 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
         //----Fair price----
     Constraint<> fp("FairPrice");
     fp = p.in_ignore_ith(1, 2, bought_arcs) - (product(w_bought, z) + y.in_ignore_ith(1, 2, bought_arcs))/2;
-    model.add(fp.in(bought_arcs) >= 0);
+//    model.add(fp.in(bought_arcs) >= 0);
 
     //indices s_ids = s.get_matrix_ids(0, 1);
     //s_ids.print();
@@ -224,14 +234,15 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     model.add(sl2.in(own_rplc) >= 0);
     
     Constraint<> sl3("Seller lb3");
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - (1 - p.in_ignore_ith(1, 3, oths_rplc))) * z.in_ignore_ith(0, 1, oths_rplc);
-    model.add(sl3.in(oths_rplc) >= 0);
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - 1)*z.in_ignore_ith(0, 1, oths_rplc);// - ones.in_ignore_ith(1, 3, oths_rplc).tr()*p.in_ignore_ith(1, 3, oths_rplc) * z.in_ignore_ith(0, 1, oths_rplc);
+//    model.add(sl3.in(oths_rplc) >= 0);
+    
     
     model.print();
-    
-    solver<> sol(model, gurobi);
+    solver<> sol(model, ipopt);
+//
     sol.run();
     //model.restructure();
-    //model.print();
+    model.print();
 
 }

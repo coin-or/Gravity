@@ -34,8 +34,8 @@ private:
     indices sensors;
     indices objects;
     indices arcs;
-    indices own_arcs;
-    indices bought_arcs;
+    indices own_arcs = indices("own_arcs");
+    indices bought_arcs = indices("bought_arcs");
     indices own_sens;
     indices bought_sens;
     indices own_rplc;
