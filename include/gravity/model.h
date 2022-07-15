@@ -2119,7 +2119,7 @@ public:
         map<pair<tuple<int,int,int,int,int,bool>,vector<int>>,vector<pair<int,shared_ptr<Constraint<type>>>>> quad_ineq_sparsity;
         int nb_vars = 0, nb_int_vars = 0, nb_cont_vars = 0, nb_lin_terms = 0, nb_cont_quad_terms = 0, nb_hyb_quad_terms = 0, nb_int_quad_terms = 0;
         for (auto& c_pair:_cons) {
-            if(!c_pair.second->is_linear() && c_pair.second->has_matrix_indexed_vars())
+            if(!c_pair.second->is_linear())
                 continue;
             if(c_pair.second->is_geq()){/* If >= inequality, reverse sign */
                 *c_pair.second *= -1;

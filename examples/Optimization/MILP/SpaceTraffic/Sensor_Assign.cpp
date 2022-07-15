@@ -146,29 +146,36 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     model.add(s.in(own_arcs));
     var<int> sn("sn", 0, 1);
     model.add(sn.in(sensors));
+    var<double> p_sn("p_sn", pos_);
+    model.add(p_sn.in(sensors));
+    
+    var<double> p_z("p_z", pos_);
+    model.add(p_z.in(bought_arcs));
+    
     var<int> z0("z0", 0, 1);
     model.add(z0.in(arcs));
     var<int> z("z", 0, 1);
     model.add(z.in(bought_arcs));
-
     var<> obj_var("obj_var", 0,10000);
     model.add(obj_var.in(range(0,0)));
     
-    param<> ones("ones");
-    ones.in(sensors);
-    ones = 1;
+    Constraint<> p_sn_def("p_sn_def");
+    p_sn_def = p*sn - p_sn;
+    model.add(p_sn_def.in(sensors)==0);
     
+    
+    Constraint<> p_z_def("p_z_def");
+    p_z_def = p.in_ignore_ith(1, 2, bought_arcs)*z - p_z;
+    model.add(p_z_def.in(bought_arcs)==0);
     
     /*Objective*/
     Constraint<> obj("obj_def");
     obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
-    obj += ones.tr()*p*sn;
+    obj += sum(p_sn);
     obj += product(w_bought + w0.in_ignore_ith(2, 1, bought_arcs), z);
-    obj -= ones.in_ignore_ith(1, 2, bought_arcs).tr()*p.in_ignore_ith(1, 2, bought_arcs)*z;
-    obj -= e * ones.in_ignore_ith(1, 2, bought_arcs).tr()*p.in_ignore_ith(1, 2, bought_arcs)*z;
+    obj -= (1+e)*sum(p_z);
     obj -= obj_var;
     model.add(obj.in(range(0,0)) == 0);
-    
     model.max(obj_var);
     
     /*Constraints*/
@@ -234,13 +241,13 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     model.add(sl2.in(own_rplc) >= 0);
     
     Constraint<> sl3("Seller lb3");
-    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - 1)*z.in_ignore_ith(0, 1, oths_rplc) - p.in_ignore_ith(1, 3, oths_rplc) * z.in_ignore_ith(0, 1, oths_rplc);
+    sl3 = y.in_ignore_ith(1, 3, oths_rplc) - (w_own.in_ignore_ith(1, 1, oths_rplc) - 1)*z.in_ignore_ith(0, 1, oths_rplc) - p_z.in_ignore_ith(0, 1, oths_rplc);
     model.add(sl3.in(oths_rplc) >= 0);
     
     
     model.print();
     solver<> sol(model, ipopt);
-    model.restructure();
+//    model.restructure();
 //
     sol.run();
     //
