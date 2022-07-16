@@ -511,13 +511,13 @@ CBFdata data = { 0, };
             func_name=(to_string(k));
             }
             if(C.has_key(ind)){
-                func_map.at(func_name)-=coef*x(ind)*1e-2;
-                func_map_bounds[func_name]+=coef*x(ind)*1e-2;
+               // func_map.at(func_name)-=coef*x(ind);
+                func_map_bounds[func_name]+=coef*x(ind);
             }
             else{
-                func_map.at(func_name)-=coef*y(ind)*1e-2;
-                func_map_bounds[func_name]+=coef*y(ind)*1e-2;
-                map_triples[func_name][j]=coef*1e-2;
+               // func_map.at(func_name)-=coef*y(ind);
+                func_map_bounds[func_name]+=coef*y(ind);
+                map_triples[func_name][j]=coef;
             }
         }
         for(auto i=0;i<data.dnnz;i++){
@@ -530,8 +530,8 @@ CBFdata data = { 0, };
             if(k==l){
             func_name=(to_string(k));
             }
-            func_map.at(func_name)-=coef*1e-2;
-            func_map_bounds[func_name]+=coef*1e-2;
+          //  func_map.at(func_name)-=coef;
+            func_map_bounds[func_name]+=coef;
         }
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
                    func_map_bounds.at(it->first).eval_all();
@@ -577,6 +577,30 @@ CBFdata data = { 0, };
                        }
                    }
                }
+        for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
+            auto name=it->first;
+            double lb, ub,maxlu;
+            if(name.find(",")!=std::string::npos){
+               lb= Xij.get_lb(name);
+               ub=Xij.get_ub(name);
+            }
+            else{
+                lb= X.get_lb(name);
+                ub=X.get_ub(name);
+            }
+            maxlu=std::max(std::abs(lb), std::abs(ub));
+            if(maxlu<=1){
+                maxlu=1;
+            }
+            auto lt=*func_map_bounds.at(name)._lterms;
+                            for(auto it1:lt){
+                                auto coeff = func_map_bounds.at(name).eval(it1.second._coef);
+                                if(!it1.second._sign)
+                                    coeff*=-1;
+                                coeff/=maxlu;
+                                func_map.at(name)-=it1.second._coef*();
+                            }
+        }
                for(auto k:*(node_pairs_chord._keys)){
                    auto pos = k.find_first_of(",");
                    auto n1_name = k.substr(0,pos);
