@@ -147,7 +147,7 @@ Model<type> Model<type>::build_model_interior() const
         }
     }
     /*Add eta variables to model*/
-    var<> eta_int("eta_interior", -1e5, 0);
+    var<> eta_int("eta_interior", -10000, 0);
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */

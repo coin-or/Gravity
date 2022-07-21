@@ -508,7 +508,7 @@ CBFdata data = { 0, };
                 func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
-            func_name=(to_string(k));
+                func_name=(to_string(k));
             }
             if(C.has_key(ind)){
                // func_map.at(func_name)-=coef*x(ind);
@@ -528,14 +528,15 @@ CBFdata data = { 0, };
                 func_name=(to_string(std::min(k,l))+","+to_string(std::max(k,l)));
             }
             if(k==l){
-            func_name=(to_string(k));
+                func_name=(to_string(k));
             }
           //  func_map.at(func_name)-=coef;
             func_map_bounds[func_name]+=coef;
         }
+        double maxlu=0, scale;
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
                    func_map_bounds.at(it->first).eval_all();
-                   if(func_map_bounds.at(it->first)._lterms->size()>=3 && func_map_bounds.at(it->first)._lterms->size()%3==0){
+                   if(func_map_bounds.at(it->first)._lterms->size()>=3 && func_map_bounds.at(it->first)._lterms->size()%3==0 && false){
                        double coa,cob,coc;
                        double func_max=0, func_min=0;
                        auto it1=map_triples[it->first].begin();
@@ -567,9 +568,11 @@ CBFdata data = { 0, };
                        }
                    }
                    else{
+                       maxlu+=std::max(abs(func_map_bounds.at(it->first)._range->first), abs(func_map_bounds.at(it->first)._range->second));
                        if(it->first.find(",")!=std::string::npos){
                            Xij.set_lb(it->first, func_map_bounds.at(it->first)._range->first);
                            Xij.set_ub(it->first, func_map_bounds.at(it->first)._range->second);
+                           
                        }
                        else{
                            X.set_lb(it->first, std::max(0.0, func_map_bounds.at(it->first)._range->first));
@@ -577,32 +580,20 @@ CBFdata data = { 0, };
                        }
                    }
                }
+        scale=0.1;
+
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;
-            double lb, ub,maxlu, scale;
-            if(name.find(",")!=std::string::npos){
-               lb= Xij.get_lb(name);
-               ub=Xij.get_ub(name);
-            }
-            else{
-                lb= X.get_lb(name);
-                ub=X.get_ub(name);
-            }
-            maxlu=std::max(std::abs(lb), std::abs(ub));
-            if(maxlu<=1){
-                scale=1;
-            }
-            else
-                scale =1.0/maxlu;
+           // scale=1.0;
             auto f=func_map_bounds.at(name)*scale;
             func_map.at(name)-=f;
             if(name.find(",")!=std::string::npos){
-               Xij.set_lb(name, lb*scale);
-               Xij.set_ub(name, ub*scale);
+               Xij.set_lb(name, Xij.get_lb(name)*scale);
+               Xij.set_ub(name, Xij.get_ub(name)*scale);
             }
             else{
-                X.set_lb(name, lb*scale);
-                X.set_ub(name, ub*scale);
+                X.set_lb(name, X.get_lb(name)*scale);
+                X.set_ub(name, X.get_ub(name)*scale);
             }
 //            auto lt=*func_map_bounds.at(name)._lterms;
 //                            for(auto it1:lt){

@@ -50,22 +50,24 @@ string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
    m->print();
+    
+    solver<> s(m,ipopt);
+    s.run(5, 1e-6);
 
-//       auto lin_model=m->buildOA();
-//      auto interior_model=lin_model->add_outer_app_solution(*m);
-//    solver<> s(m,ipopt);
-//    s.run(5, 1e-6);
+    auto lin_model=m->buildOA();
+    auto interior_model=lin_model->add_outer_app_solution(*m);
+
 //    int soc_viol=0,soc_found=0,soc_added=0,det_viol=0,det_found=0,det_added=0;
 //    auto res=m->cutting_planes_solution(interior_model, 1e-9,soc_viol, soc_found,soc_added,det_viol, det_found, det_added);
     
     
-    solver<> s(m, gurobi);
-    s.run(5,1e-9);
+//    solver<> s(m, gurobi);
+//    s.run(5,1e-9);
     m->print_solution();
     m->print_constraints_stats(1e-6);
     
     var<double> X=m->get_var<double>("X");
-      var<double> Xij=m->get_var<double>("Xij");
+    var<double> Xij=m->get_var<double>("Xij");
       for(auto b:g._bags){
           auto dim=b.second.size();
           vector<string> node_names;
