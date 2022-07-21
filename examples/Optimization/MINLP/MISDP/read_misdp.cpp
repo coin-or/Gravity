@@ -579,7 +579,7 @@ CBFdata data = { 0, };
                }
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;
-            double lb, ub,maxlu;
+            double lb, ub,maxlu, scale;
             if(name.find(",")!=std::string::npos){
                lb= Xij.get_lb(name);
                ub=Xij.get_ub(name);
@@ -590,16 +590,29 @@ CBFdata data = { 0, };
             }
             maxlu=std::max(std::abs(lb), std::abs(ub));
             if(maxlu<=1){
-                maxlu=1;
+                scale=1;
             }
-            auto lt=*func_map_bounds.at(name)._lterms;
-                            for(auto it1:lt){
-                                auto coeff = func_map_bounds.at(name).eval(it1.second._coef);
-                                if(!it1.second._sign)
-                                    coeff*=-1;
-                                coeff/=maxlu;
-                                func_map.at(name)-=it1.second._coef*();
-                            }
+            else
+                scale =1.0/maxlu;
+            auto f=func_map_bounds.at(name)*scale;
+            func_map.at(name)-=f;
+            if(name.find(",")!=std::string::npos){
+               Xij.set_lb(name, lb*scale);
+               Xij.set_ub(name, ub*scale);
+            }
+            else{
+                X.set_lb(name, lb*scale);
+                X.set_ub(name, ub*scale);
+            }
+//            auto lt=*func_map_bounds.at(name)._lterms;
+//                            for(auto it1:lt){
+//                                auto coeff = func_map_bounds.at(name).eval(it1.second._coef);
+//                                if(!it1.second._sign)
+//                                    coeff*=-1;
+//                                coeff/=maxlu;
+//                                auto ind=it1.second._p->get_id();
+//                                func_map.at(name)-=coeff*
+//                            }
         }
                for(auto k:*(node_pairs_chord._keys)){
                    auto pos = k.find_first_of(",");
