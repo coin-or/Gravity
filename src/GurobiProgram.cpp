@@ -58,6 +58,22 @@ protected:
                         addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
+                auto res1=m->cutting_planes_eigen(1e-9);
+                if(res1.size()>=1){
+                    for(i=0;i<res1.size();i++){
+                        GRBLinExpr expr = 0;
+                        for(j=0;j<res1[i].size()-1;j+=2){
+                            int c=res1[i][j];
+                            expr += res1[i][j+1]*vars[c];
+                        }
+                        if(abs(res1[i][j])>=1e-6){
+                            DebugOff("pos resij");
+                        }
+                        expr+=res1[i][j];
+                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                    }
+                }
+                
             }
             }
             if(mipnode){

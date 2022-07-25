@@ -7,7 +7,9 @@
 //
 
 #include <gravity/solver.h>
-#include <mutex>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+using namespace Eigen;
 
 #ifdef USE_BONMIN
 #include <coin/BonBonminSetup.hpp>
@@ -147,7 +149,7 @@ Model<type> Model<type>::build_model_interior() const
         }
     }
     /*Add eta variables to model*/
-    var<> eta_int("eta_interior", -10000, 0);
+    var<> eta_int("eta_interior", -1000000, 0);
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */
@@ -595,12 +597,12 @@ vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& i
 vector<double> xsolution(_nb_vars);
 vector<double> xinterior(_nb_vars);
 vector<double> xcurrent, c_val;
-vector<vector<double>> res;
-vector<double> cut;
 const double active_tol_sol=1e-12, zero_tol=1e-6;
 double c0_val, scale=1.0, fk;
 bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
 int nb_added_cuts = 0;
+vector<vector<double>> res;
+vector<double> cut;
 for (auto &con: _cons_vec)
 {
     if(!con->is_linear() && con->_callback) {
@@ -698,6 +700,84 @@ for (auto &con: _cons_vec)
 return res;
 
 }
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol)
+{
+vector<double> xcurrent, c_val;
+vector<vector<double>> res;
+vector<double> cut;
+const double active_tol_sol=1e-12, zero_tol=1e-6;
+double c0_val, scale=1.0, fk;
+int nb_added_cuts = 0;
+for (auto &con: _cons_vec)
+{
+    if(!con->is_linear() && con->_callback && !con->is_convex()) {
+       // if(con->_name!="limit_neg"){
+        auto cnb_inst=con->get_nb_inst();
+        for(auto i=0;i<cnb_inst;i++){
+            c0_val=0;
+            c_val.resize(con->_nb_vars,0);
+            auto cname=con->_name;
+            con->uneval();
+            con->eval_all();
+            xcurrent=con->get_x(i);
+            DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+            fk=con->eval(i);
+            if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                 
+                        //ToDo fix interior status and check for it
+                   
+                        auto xres=con->get_x(i);
+                        EigenSolver<MatrixXd> es;
+                        Eigen::MatrixXd H(3,3);
+                        H(0,0)=xres[0];H(1,1)=xres[1];H(2,2)=xres[2];
+                        H(0,1)=xres[3];H(0,2)=xres[5];H(1,2)=xres[4];
+                        H(1,0)=xres[3];H(2,0)=xres[5];H(2,1)=xres[4];
+                        
+                        es.compute(H);
+                        cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
+                      
+                        for(auto m=0;m<3;m++){
+                            cout<<es.eigenvalues()[m].real();
+                            if(es.eigenvalues()[m].real()<=-active_tol){
+                                vector<double> eig_vec;
+                                for(auto n=0;n<3;n++){
+                                    eig_vec.push_back(es.eigenvectors().col(m)[n].real());
+                                    cout << "The eigenvectors of A are: " << es.eigenvectors().col(m).transpose() << endl;
+                                }
+                                for(auto n=0;n<3;n++){
+                                    c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                                }
+                                for(auto n=0;n<3;n++){
+                                    for(auto o=n+1;o<3;o++){
+                                    c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+                                    }
+                                }
+                                int j=0;
+                                for (auto &v_p: con->get_vars()){
+                                    auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                                    cut.push_back(vid);
+                                    cut.push_back(c_val[j++]);
+                                }
+                                cut.push_back(c0_val);
+                                res.push_back(cut);
+                                cut.clear();
+                                c_val.clear();
+                            }
+                        }
+                        
+        
+                    }
+
+                }
+       
+                }
+
+            }
+          
+    return res;
+    }
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
  @param[in] c_inst: Instance of nonlinear constraint which is to be linearized
@@ -1441,5 +1521,6 @@ template void Model<double>::add_linear_row(Constraint<double>& con, int c_inst,
 template void Model<double>::generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
+template vector<vector<double>> Model<double>::cutting_planes_eigen(const double active_tol);
 }
 

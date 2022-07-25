@@ -32,6 +32,9 @@ option(Gurobi "Link to GUROBI libraries" OFF)
 # Find IPOPT (REQUIRED)
 option(Ipopt "Link to IPOPT libraries" ON)
 
+#Find Eigen3 (REQUIRED)
+option(Eigen3 "Link to Eigen3 libraries" ON)
+
 # Find LASlib (optional)
 option(LASlib "Link to LASlib libraries" OFF)
 
@@ -87,6 +90,17 @@ if (LASlib)
         find_package(LASlib REQUIRED)
         include_directories(${LASlib_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${LASlib_LIBRARIES})
+endif()
+
+
+# Find Eigen3.
+if (Eigen3)
+        message(STATUS "Enable Eigen3")
+        add_definitions(-DUSE_EIGEN3)
+        find_package(Eigen3 REQUIRED)
+        message("including ${EIGEN3_INCLUDE_DIRS}")
+        set(ADD_Eigen3 TRUE)
+        include_directories(${EIGEN3_INCLUDE_DIRS})
 endif()
 
 

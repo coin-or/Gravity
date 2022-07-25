@@ -6443,6 +6443,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         template<typename T=type>
         double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol);
         template<typename T=type>
+        vector<vector<double>> cutting_planes_eigen(const double active_tol);
+        template<typename T=type>
         void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
         template<typename T=type>
                 void generate_lagrange_bounds(const std::vector<std::string> objective_models, std::vector<shared_ptr<gravity::Model<type>>>& models, shared_ptr<gravity::Model<type>>& obbt_model,   std::map<string, bool>& fixed_point,  const double range_tol, const double zero_tol, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
