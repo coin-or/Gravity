@@ -55,7 +55,7 @@ protected:
                             DebugOff("pos resij");
                         }
                         expr+=res[i][j];
-                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                       // addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
                 auto res1=m->cutting_planes_eigen(1e-9);
@@ -76,7 +76,7 @@ protected:
                 
             }
             }
-            if(mipnode){
+            if(false){
                 if (where == GRB_CB_MIPNODE) {
 			if(getIntInfo(GRB_CB_MIPNODE_STATUS)==2){
                     // Found an integer feasible solution - does it visit every node?

@@ -712,7 +712,7 @@ double c0_val, scale=1.0, fk;
 int nb_added_cuts = 0;
 for (auto &con: _cons_vec)
 {
-    if(!con->is_linear() && con->_callback && !con->is_convex()) {
+    if(!con->is_linear() && con->_callback) {
        // if(con->_name!="limit_neg"){
         auto cnb_inst=con->get_nb_inst();
         for(auto i=0;i<cnb_inst;i++){
@@ -730,27 +730,42 @@ for (auto &con: _cons_vec)
                    
                         auto xres=con->get_x(i);
                         EigenSolver<MatrixXd> es;
+                int matrix_size=0;
+                if(xres.size()==6){
                         Eigen::MatrixXd H(3,3);
                         H(0,0)=xres[0];H(1,1)=xres[1];H(2,2)=xres[2];
                         H(0,1)=xres[3];H(0,2)=xres[5];H(1,2)=xres[4];
                         H(1,0)=xres[3];H(2,0)=xres[5];H(2,1)=xres[4];
                         
                         es.compute(H);
+                    matrix_size=3;
+                }
+                else   if(xres.size()==3){
+                    Eigen::MatrixXd H(2,2);
+                    H(0,0)=xres[0];H(1,1)=xres[1];
+                    H(0,1)=xres[2];H(1,0)=xres[2];
+
+                    es.compute(H);
+                    matrix_size=2;
+            }
+                    
+                
+                    
                         cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
                       
-                        for(auto m=0;m<3;m++){
+                        for(auto m=0;m<matrix_size;m++){
                             cout<<es.eigenvalues()[m].real();
                             if(es.eigenvalues()[m].real()<=-active_tol){
                                 vector<double> eig_vec;
-                                for(auto n=0;n<3;n++){
+                                for(auto n=0;n<matrix_size;n++){
                                     eig_vec.push_back(es.eigenvectors().col(m)[n].real());
-                                    cout << "The eigenvectors of A are: " << es.eigenvectors().col(m).transpose() << endl;
+                                   // cout << "The eigenvectors of A are: " << es.eigenvectors().col(m).transpose() << endl;
                                 }
-                                for(auto n=0;n<3;n++){
+                                for(auto n=0;n<matrix_size;n++){
                                     c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                                 }
-                                for(auto n=0;n<3;n++){
-                                    for(auto o=n+1;o<3;o++){
+                                for(auto n=0;n<matrix_size;n++){
+                                    for(auto o=n+1;o<matrix_size;o++){
                                     c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
                                     }
                                 }
