@@ -717,7 +717,7 @@ for (auto &con: _cons_vec)
         auto cnb_inst=con->get_nb_inst();
         for(auto i=0;i<cnb_inst;i++){
             c0_val=0;
-            c_val.resize(con->_nb_vars,0);
+            //c_val.resize(con->_nb_vars,0);
             auto cname=con->_name;
             con->uneval();
             con->eval_all();
@@ -751,10 +751,10 @@ for (auto &con: _cons_vec)
                     
                 
                     
-                        cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
+              //          cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
                       
                         for(auto m=0;m<matrix_size;m++){
-                            cout<<es.eigenvalues()[m].real();
+ //                           cout<<es.eigenvalues()[m].real();
                             if(es.eigenvalues()[m].real()<=-active_tol){
                                 vector<double> eig_vec;
                                 for(auto n=0;n<matrix_size;n++){
