@@ -707,8 +707,7 @@ vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol
 vector<double> xcurrent, c_val;
 vector<vector<double>> res;
 vector<double> cut;
-const double active_tol_sol=1e-12, zero_tol=1e-6;
-double c0_val, scale=1.0, fk;
+double c0_val=0, scale=1.0, fk;
 int nb_added_cuts = 0;
 for (auto &con: _cons_vec)
 {
@@ -717,7 +716,7 @@ for (auto &con: _cons_vec)
         auto cnb_inst=con->get_nb_inst();
         for(auto i=0;i<cnb_inst;i++){
             c0_val=0;
-            c_val.resize(con->_nb_vars,0);
+            //c_val.resize(con->_nb_vars,0);
             auto cname=con->_name;
             con->uneval();
             con->eval_all();
@@ -795,6 +794,73 @@ for (auto &con: _cons_vec)
 
             }
           
+    return res;
+    }
+template<typename type>
+template<typename T>
+vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
+{
+
+vector<vector<double>> res;
+vector<double> cut;
+    double c0_val=0;
+int nb_added_cuts = 0;
+    
+    
+    var<double> X=get_var<double>("X");
+    var<double> Xij=get_var<double>("Xij");
+    auto idx = X.get_id();
+    auto idxij = Xij.get_id();
+      for(auto b:_bag_names){
+          vector<int> var_ind;
+          auto dim=b.second.size();
+          Eigen::MatrixXd mat_X(dim,dim);
+          int count=0;
+          for(auto n:b.second){
+              mat_X(count,count)=X.eval(n);
+              auto it = X._indices->_keys_map->at(n);
+              var_ind.push_back(idx+it);
+              count++;
+          }
+          for(auto i=0;i<b.second.size()-1;i++){
+              for(auto j=i+1;j<b.second.size();j++){
+                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
+                  mat_X(j,i)=mat_X(i,j);
+                  auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
+                  var_ind.push_back(idxij+it);
+              }
+          }
+          EigenSolver<MatrixXd> es;
+          es.compute(mat_X);
+          
+          for(auto m=0;m<dim;m++){
+              cout<<es.eigenvalues()[m].real();
+              if(es.eigenvalues()[m].real()<=-active_tol){
+                  vector<double> c_val;
+                  vector<double> eig_vec;
+                  for(auto n=0;n<dim;n++){
+                      eig_vec.push_back(es.eigenvectors().col(m)[n].real());
+                  }
+                  
+                  for(auto n=0;n<dim;n++){
+                      c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                  }
+                  for(auto n=0;n<dim;n++){
+                      for(auto o=n+1;o<dim;o++){
+                  c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+                      }
+                  }
+                  for(auto i=0;i<c_val.size();i++){
+                      cut.push_back(var_ind[i]);
+                      cut.push_back(c_val[i]);
+                  }
+                  cut.push_back(c0_val);
+                  res.push_back(cut);
+                  cut.clear();
+              }
+          }
+      }
+
     return res;
     }
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
@@ -1541,5 +1607,6 @@ template void Model<double>::generate_lagrange_bounds(const std::vector<std::str
 template bool Model<double>::obbt_update_lagrange_bounds(std::vector<shared_ptr<gravity::Model<double>>>& models, shared_ptr<gravity::Model<double>>& obbt_model,   map<string, bool>& fixed_point,  const map<string, double>& interval_original, const map<string, double>& ub_original, const map<string, double>& lb_original, bool& terminate, int& fail, const double range_tol, const double fixed_tol_abs, const double fixed_tol_rel, const double zero_tol, int run_obbt_iter, std::map<int, double>& map_lb, std::map<int, double>& map_ub);
 template vector<vector<double>> Model<double>::cutting_planes_solution(const Model<double>& interior, double active_tol,int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added);
 template vector<vector<double>> Model<double>::cutting_planes_eigen(const double active_tol);
+template vector<vector<double>> Model<double>::cuts_eigen(const double active_tol);
 }
 

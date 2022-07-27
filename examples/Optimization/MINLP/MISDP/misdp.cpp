@@ -83,7 +83,6 @@ auto g=CBF_read(fname.c_str(), m);
           }
           for(auto i=0;i<node_names.size()-1;i++){
               for(auto j=i+1;j<node_names.size();j++){
-                  if(Xij._indices->has_key(node_names[i]+","+node_names[j]))
                   mat_X[i][j]=Xij.eval(node_names[i]+","+node_names[j]);
                   mat_X[j][i]=Xij.eval(node_names[i]+","+node_names[j]);
               }

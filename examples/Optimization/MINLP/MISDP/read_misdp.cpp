@@ -645,7 +645,17 @@ CBFdata data = { 0, };
         SDP3 -= Wii_[0] * Wii_[1] * Wii_[2];
         SDP3.add_to_callback();
         m->add(SDP3.in(range(0, bag_size-1)) <= 0);
-    
+        std::vector<pair<string,std::vector<string>>> _bag_names;
+        
+        for(auto b:g._bags){
+            pair<string,vector<string>> bn;
+            bn.first=b.first;
+            for(auto n:b.second){
+                bn.second.push_back(n->_name);
+            }
+            _bag_names.push_back(bn);
+        }
+        m->_bag_names=_bag_names;
 }
 else{
     throw invalid_argument("only 1 psd constraint supported now");

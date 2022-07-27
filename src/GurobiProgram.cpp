@@ -73,6 +73,22 @@ protected:
                         addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
+                auto res2=m->cuts_eigen(1e-9);
+                if(res2.size()>=1){
+                    for(i=0;i<res2.size();i++){
+                        GRBLinExpr expr = 0;
+                        for(j=0;j<res2[i].size()-1;j+=2){
+                            int c=res2[i][j];
+                            expr += res2[i][j+1]*vars[c];
+                        }
+                        if(abs(res2[i][j])>=1e-6){
+                            DebugOff("pos resij");
+                        }
+                        expr+=res2[i][j];
+                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                    }
+                }
+                
                 
             }
             }

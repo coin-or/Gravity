@@ -201,6 +201,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         int                                                 _status = -1;/**< status when last solved */
         map<pair<string, string>,map<int,pair<shared_ptr<func<type>>,shared_ptr<func<type>>>>>            _hess_link; /* for each pair of variables appearing in the hessian, storing the set of constraints they appear together in */
         map<size_t, set<vector<int>>>                        _OA_cuts; /**< Sorted map pointing to all OA cut coefficients for each constraint. */
+        std::vector<pair<string,std::vector<string>>> _bag_names; /*vector of pair of name of each bag and name of nodes in each bag*/
          template<typename T=type>
         void merge_vars(const shared_ptr<expr<T>>& e, bool share_bounds = false){/**<  Transfer all variables and parameters to the model. */
             switch (e->get_type()) {
@@ -618,6 +619,7 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
                 set_objective(obj_cpy, _objt);
             }
             _int_vars = m._int_vars;
+            _bag_names=m._bag_names;
             return *this;
         }
         
@@ -6444,6 +6446,8 @@ const bool var_compare(const pair<string,shared_ptr<param_>>& v1, const pair<str
         double upper_bound_integral(SolverType ub_solver_type, double ub_solver_tol, vector<double>& ub_sol);
         template<typename T=type>
         vector<vector<double>> cutting_planes_eigen(const double active_tol);
+        template<typename T=type>
+        vector<vector<double>> cuts_eigen(const double active_tol);
         template<typename T=type>
         void update_upper_bound(shared_ptr<Model<type>>& obbt_model, vector<shared_ptr<Model<type>>>& batch_models, vector<double>& ub_sol, SolverType ub_solver_type, double ub_solver_tol, bool& terminate, bool linearize, double& upper_bound, double lb_scale_value, double lower_bound,  double& gap,  const double abs_tol, const double rel_tol, const double zero_tol);
         template<typename T=type>
