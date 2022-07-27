@@ -806,7 +806,9 @@ vector<double> cut;
     double c0_val=0;
 int nb_added_cuts = 0;
     
-    
+    int nv=_nb_vars;
+    vector<double> xsol(nv,0);
+    get_solution(xsol);
     var<double> X=get_var<double>("X");
     var<double> Xij=get_var<double>("Xij");
     auto idx = X.get_id();
@@ -814,17 +816,19 @@ int nb_added_cuts = 0;
       for(auto b:_bag_names){
           vector<int> var_ind;
           auto dim=b.second.size();
+          //if(dim>=4)
+             // continue;
           Eigen::MatrixXd mat_X(dim,dim);
           int count=0;
           for(auto n:b.second){
-              mat_X(count,count)=X.eval(n)*0.1;
+              mat_X(count,count)=X.eval(n);
               auto it = X._indices->_keys_map->at(n);
               var_ind.push_back(idx+it);
               count++;
           }
           for(auto i=0;i<b.second.size()-1;i++){
               for(auto j=i+1;j<b.second.size();j++){
-                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j])*0.1;
+                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
                   mat_X(j,i)=mat_X(i,j);
                   auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
                   var_ind.push_back(idxij+it);
@@ -857,9 +861,16 @@ int nb_added_cuts = 0;
                   c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
                       }
                   }
+                  double cost=0;
+                  for(auto i=0;i<c_val.size();i++){
+                      cost+=xsol[var_ind[i]]*c_val[i];
+                  }
+                  double scale=1;
+                  if(cost<=1e-6)
+                      scale=1e-6/cost;
                   for(auto i=0;i<c_val.size();i++){
                       cut.push_back(var_ind[i]);
-                      cut.push_back(c_val[i]);
+                      cut.push_back(c_val[i]*scale);
                   }
                   cut.push_back(c0_val);
                   res.push_back(cut);
