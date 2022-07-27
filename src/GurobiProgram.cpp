@@ -55,7 +55,7 @@ protected:
                             DebugOff("pos resij");
                         }
                         expr+=res[i][j];
-                       // addLazy(expr, GRB_LESS_EQUAL, 0);
+                       addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
                 auto res1=m->cutting_planes_eigen(1e-9);

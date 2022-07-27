@@ -750,10 +750,10 @@ for (auto &con: _cons_vec)
                     
                 
                     
-                        cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
+              //          cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
                       
                         for(auto m=0;m<matrix_size;m++){
-                            cout<<es.eigenvalues()[m].real();
+ //                           cout<<es.eigenvalues()[m].real();
                             if(es.eigenvalues()[m].real()<=-active_tol){
                                 vector<double> eig_vec;
                                 for(auto n=0;n<matrix_size;n++){
