@@ -9,13 +9,16 @@ public:
     int n;
     Model<>* m;
     Model<> interior;
+    vector<GRBLinExpr> vec_expi;
     int soc_viol=0, soc_found=0,soc_added=0,det_viol=0, det_found=0, det_added=0;
     int soc_viol_user=0, soc_found_user=0,soc_added_user=0,det_viol_user=0, det_found_user=0, det_added_user=0;
-    cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
+    //cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn, vector<GRBLinExpr>& vec_exp) {
+        cuts(vector<GRBVar> _grb_vars, int xn, Model<>* mn, Model<> interiorn) {
         vars = _grb_vars;
         n    = xn;
         m=mn;
         interior=interiorn;
+        //vec_expi=vec_exp;
     }
        ~cuts(){
         DebugOn("soc_viol_user "<<soc_viol_user<<" "<<soc_viol<<endl);
@@ -86,6 +89,7 @@ protected:
                         }
                         expr+=res2[i][j];
                         addLazy(expr, GRB_LESS_EQUAL, 0);
+                        vec_expi.push_back(expr);
                     }
                 }
                 
@@ -261,8 +265,13 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     interior=lin->add_outer_app_solution(*_model);
     interior.print_solution();
     //cuts cb = cuts(_grb_vars, n, _model, interior);
+    vector<GRBLinExpr> vec_expr;
     cuts cb(_grb_vars, n, _model, interior);
     grb_mod->setCallback(&cb);
+    grb_mod->optimize();
+    for(auto i=0;i<cb.vec_expi.size();i++){
+        grb_mod->addConstr(cb.vec_expi[i],GRB_LESS_EQUAL, 0);
+    }
     grb_mod->optimize();
     //    grb_mod->write("~/mod.mps");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
