@@ -764,11 +764,15 @@ for (auto &con: _cons_vec)
                                 for(auto n=0;n<matrix_size;n++){
                                     c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                                 }
-                                for(auto n=0;n<matrix_size;n++){
-                                    for(auto o=n+1;o<matrix_size;o++){
-                                    c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
-                                    }
+                               // for(auto n=0;n<matrix_size;n++){
+                                    //for(auto o=n+1;o<matrix_size;o++){
+                                c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
+                                if(xres.size()==6){
+                                    c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
+                                    c_val.push_back(eig_vec[2]*eig_vec[0]*(-2));
                                 }
+                                   // }
+                               // }
                                 int j=0;
                                 for (auto &v_p: con->get_vars()){
                                     auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
