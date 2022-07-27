@@ -149,7 +149,7 @@ Model<type> Model<type>::build_model_interior() const
         }
     }
     /*Add eta variables to model*/
-    var<> eta_int("eta_interior", -1000000, 0);
+    var<> eta_int("eta_interior", -10000, 0);
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */
@@ -817,29 +817,36 @@ int nb_added_cuts = 0;
           Eigen::MatrixXd mat_X(dim,dim);
           int count=0;
           for(auto n:b.second){
-              mat_X(count,count)=X.eval(n);
+              mat_X(count,count)=X.eval(n)*0.1;
               auto it = X._indices->_keys_map->at(n);
               var_ind.push_back(idx+it);
               count++;
           }
           for(auto i=0;i<b.second.size()-1;i++){
               for(auto j=i+1;j<b.second.size();j++){
-                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
+                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j])*0.1;
                   mat_X(j,i)=mat_X(i,j);
                   auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
                   var_ind.push_back(idxij+it);
               }
           }
-          EigenSolver<MatrixXd> es;
+          SelfAdjointEigenSolver<MatrixXd> es;
+          //EigenSolver<MatrixXd> es;
           es.compute(mat_X);
-          
-          for(auto m=0;m<dim;m++){
-              cout<<es.eigenvalues()[m].real();
-              if(es.eigenvalues()[m].real()<=-active_tol){
+//          double min_eigen_val=1e4;
+//          int min_eigen_ind=-1;
+//          for(auto m=0;m<dim;m++){
+//              if(es.eigenvalues()[m]<=min_eigen_val){
+//                  min_eigen_val=es.eigenvalues()[m];
+//                  min_eigen_ind=m;
+//              }
+//          }
+             // cout<<es.eigenvalues()[m].real();
+              if(es.eigenvalues()[0]<=-active_tol){
                   vector<double> c_val;
                   vector<double> eig_vec;
                   for(auto n=0;n<dim;n++){
-                      eig_vec.push_back(es.eigenvectors().col(m)[n].real());
+                      eig_vec.push_back(es.eigenvectors().col(0)[n]);
                   }
                   
                   for(auto n=0;n<dim;n++){
@@ -859,7 +866,7 @@ int nb_added_cuts = 0;
                   cut.clear();
               }
           }
-      }
+      
 
     return res;
     }

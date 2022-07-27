@@ -73,7 +73,7 @@ protected:
                         addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
-                auto res2=m->cuts_eigen(1e-9);
+                auto res2=m->cuts_eigen(1e-10);
                 if(res2.size()>=1){
                     for(i=0;i<res2.size();i++){
                         GRBLinExpr expr = 0;
@@ -170,7 +170,7 @@ GurobiProgram::GurobiProgram(Model<>* m) {
            //     grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
             grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -205,7 +205,7 @@ GurobiProgram::GurobiProgram(const shared_ptr<Model<>>& m) {
              //   grb_env->set(GRB_IntParam_NumericFocus,3);
             grb_env->set(GRB_IntParam_NonConvex,1);
             grb_env->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
-            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-8);
+            grb_env->set(GRB_DoubleParam_OptimalityTol, 1e-9);
             
             // grb_env->set(GRB_IntParam_OutputFlag,1);
             grb_mod = new GRBModel(*grb_env);
@@ -247,11 +247,14 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     //    print_constraints();
     if (relax) relax_model();
     //    relax_model();
-    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-8);
+    grb_mod->set(GRB_DoubleParam_MIPGap, 1e-9);
+    grb_mod->set(GRB_DoubleParam_FeasibilityTol, 1e-9);
+    grb_mod->set(GRB_DoubleParam_OptimalityTol, 1e-9);
     grb_mod->getEnv().set(GRB_IntParam_DualReductions, 0);
     grb_mod->getEnv().set(GRB_IntParam_PreCrush, 1);
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 1);
+    grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
     auto lin=_model->buildOA();

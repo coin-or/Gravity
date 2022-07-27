@@ -485,7 +485,7 @@ CBFdata data = { 0, };
         auto node_pairs_chord = g.get_node_pairs_chord(bags_3d);
         var<> X("X", 0, 1000);
         m->add(X.in(nodes));
-        var<> Xij("Xij", -200, 200);
+        var<> Xij("Xij", -2000, 2000);
         m->add(Xij.in(node_pairs_chord));
         
         map<string, func<>> func_map;
@@ -580,7 +580,7 @@ CBFdata data = { 0, };
                        }
                    }
                }
-        scale=0.1;
+        scale=1;
 
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;
