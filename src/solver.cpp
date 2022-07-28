@@ -845,7 +845,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 double maxc=-1000;
                 for(auto n=0;n<dim;n++){
                     c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-                    if(std::abs(c_val.back())<=1e-10)
+                    if(std::abs(c_val.back())<=1e-9)
                         c_val.back()=0;
                     else{
                     if(std::abs(c_val.back())<=minc)
@@ -857,7 +857,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 for(auto n=0;n<dim;n++){
                     for(auto o=n+1;o<dim;o++){
                         c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
-                        if(std::abs(c_val.back())<=1e-10)
+                        if(std::abs(c_val.back())<=1e-9)
                             c_val.back()=0;
                         else{
                         if(std::abs(c_val.back())<=minc)
@@ -873,7 +873,7 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 }
                 double scale=1;
                 
-                    if(minc>=1e-10 && maxc<=1){
+                    if(minc<=1e-6 && maxc<=1){
                         scale=1e3;
                         DebugOff("scaling "<<scale<<endl);
                     }
