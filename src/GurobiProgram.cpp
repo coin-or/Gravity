@@ -58,6 +58,7 @@ protected:
                             DebugOff("pos resij");
                         }
                         expr+=res[i][j];
+			 vec_expi.push_back(expr);    
                        addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
@@ -73,9 +74,10 @@ protected:
                             DebugOff("pos resij");
                         }
                         expr+=res1[i][j];
-                        addLazy(expr, GRB_LESS_EQUAL, 0);
+                        //addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
+		m->set_solution(vec_x);
                 auto res2=m->cuts_eigen(1e-10);
                 if(res2.size()>=1){
                     for(i=0;i<res2.size();i++){
@@ -259,6 +261,10 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     grb_mod->getEnv().set(GRB_IntParam_LazyConstraints, 1);
     grb_mod->set(GRB_IntParam_Threads, 1);
     grb_mod->set(GRB_DoubleParam_IntFeasTol, 1e-9);
+    grb_mod->set(GRB_IntParam_NumericFocus,3);
+    grb_mod->update();
+    //grb_env2 = new GRBEnv();
+    //auto mod2=GRBModel(grb_mod);
     int n=grb_mod->get(GRB_IntAttr_NumVars);
     Model<> interior;
     auto lin=_model->buildOA();
@@ -269,11 +275,13 @@ bool GurobiProgram::solve(bool relax, double mipgap){
     cuts cb(_grb_vars, n, _model, interior);
     grb_mod->setCallback(&cb);
     grb_mod->optimize();
+    grb_mod->setCallback(NULL);
     for(auto i=0;i<cb.vec_expi.size();i++){
         grb_mod->addConstr(cb.vec_expi[i],GRB_LESS_EQUAL, 0);
     }
+    grb_mod->update();
     grb_mod->optimize();
-    //    grb_mod->write("~/mod.mps");
+    grb_mod->write("mod.lp");
     if (grb_mod->get(GRB_IntAttr_Status) != 2) {
         cerr << "\nModel has not been solved to optimality, error code = " << grb_mod->get(GRB_IntAttr_Status) << endl;
         //        return false;

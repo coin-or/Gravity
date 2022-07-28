@@ -580,7 +580,7 @@ CBFdata data = { 0, };
                        }
                    }
                }
-        scale=1;
+        scale=0.1;
 
         for(auto it=func_map_bounds.begin();it!=func_map_bounds.end();it++){
             auto name=it->first;

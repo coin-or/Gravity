@@ -149,7 +149,7 @@ Model<type> Model<type>::build_model_interior() const
         }
     }
     /*Add eta variables to model*/
-    var<> eta_int("eta_interior", -10000, 0);
+    var<> eta_int("eta_interior", -1, 0);
     Interior.add(eta_int.in(ind_eta));
     
     /* Objective */
@@ -852,13 +852,25 @@ int nb_added_cuts = 0;
                   for(auto n=0;n<dim;n++){
                       eig_vec.push_back(es.eigenvectors().col(0)[n]);
                   }
+		  double minc=10000;
+		  double maxc=-1000;
                   
                   for(auto n=0;n<dim;n++){
                       c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+		      if(std::abs(c_val.back())<=1e-12)
+			      c_val.back()=0;
+		      if(std::abs(c_val.back())<=minc)
+			      minc=std::abs(c_val.back());
+		      if(std::abs(c_val.back())>=maxc)                            
+			           maxc=std::abs(c_val.back());    
                   }
                   for(auto n=0;n<dim;n++){
                       for(auto o=n+1;o<dim;o++){
                   c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+		  if(std::abs(c_val.back())<=minc)
+		  minc=std::abs(c_val.back());
+		 if(std::abs(c_val.back())>=maxc)
+			   maxc=std::abs(c_val.back());       
                       }
                   }
                   double cost=0;
@@ -866,14 +878,18 @@ int nb_added_cuts = 0;
                       cost+=xsol[var_ind[i]]*c_val[i];
                   }
                   double scale=1;
-                  if(cost<=1e-6)
-                      scale=1e-6/cost;
+                  //if(minc<=1e-13)
+                    //  minc=1e-/cost;
+		   if(minc>=1e-9){
+			   if(minc>=1e-9 && minc<=1e-6)
+				   scale=1e3;
                   for(auto i=0;i<c_val.size();i++){
                       cut.push_back(var_ind[i]);
                       cut.push_back(c_val[i]*scale);
                   }
                   cut.push_back(c0_val);
                   res.push_back(cut);
+		   }
                   cut.clear();
               }
           }

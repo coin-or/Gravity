@@ -50,7 +50,7 @@ string fname=string(prj_dir)+"/data_sets/MISDP/2x4_2scen_3bars.cbf";
 auto m=make_shared<Model<double>>("misdp_test");
 auto g=CBF_read(fname.c_str(), m);
    m->print();
-    solver<> s(m,ipopt);
+    solver<> s(m,gurobi);
     s.run(5, 1e-6);
     auto res= m->cuts_eigen(-1.0);
 //    solver<> s(m,gurobi);
