@@ -168,11 +168,23 @@ void myModel::InitBilevel(param<double> w0, param<double> w_own, param<double> w
     p_z_def = p.in_ignore_ith(1, 2, bought_arcs)*z - p_z;
     model.add(p_z_def.in(bought_arcs)==0);
     
+    func<> f = w_own + w0.in_ignore_ith(2, 1, own_arcs);
+    f.eval_all();
+    param<> w_own0("w_own0");
+    w_own0.in(own_arcs);
+    w_own0.copy_vals(f);
+    
+    func<> f2 = w_bought + w0.in_ignore_ith(2, 1, bought_arcs);
+    f2.eval_all();
+    param<> w_bought0("w_bought0");
+    w_bought0.in(bought_arcs);
+    w_bought0.copy_vals(f2);
+    
     /*Objective*/
     Constraint<> obj("obj_def");
-    obj += product(w_own + w0.in_ignore_ith(2, 1, own_arcs), s);
+    obj += product(w_own0, s);
     obj += sum(p_sn);
-    obj += product(w_bought + w0.in_ignore_ith(2, 1, bought_arcs), z);
+    obj += product(w_bought0, z);
     obj -= (1+e)*sum(p_z);
     obj -= obj_var;
     model.add(obj.in(range(0,0)) == 0);
