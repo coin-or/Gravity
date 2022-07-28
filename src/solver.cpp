@@ -297,7 +297,7 @@ int run_parallel_new(const std::vector<std::string> objective_models, std::vecto
         }
     }
     if(nref>1)
-    DebugOn("nrefine "<<nref<<" ncuts "<<ncuts<<endl<<endl);
+        DebugOn("nrefine "<<nref<<" ncuts "<<ncuts<<endl<<endl);
     count=0;
     sol_status.resize(objective_models.size(),-1);
     sol_obj.resize(objective_models.size(),-1.0);
@@ -583,228 +583,228 @@ bool Model<type>::add_iterative(const Model<type>& interior, vector<double>& obb
     return(constr_viol);
 }
 /*Generates and creates a vector of cuts when any solution is violated by the model this . The curent model solution is set to obbt_solution and OA cuts are generated for the nonlinear constraints in the current model at the obbt_solution point. These cuts are added to model lin.
-@param[in] interior model: Model which can give interior point of current model
-@param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
-@param[in] lin: Model to which linear cuts are added
-@param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
-@param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
+ @param[in] interior model: Model which can give interior point of current model
+ @param[in] obbt_solution: Point at which constraints are linearized. For non-convex constraints that define a convex region, the point is shifted to an active point of that constraint and its instance
+ @param[in] lin: Model to which linear cuts are added
+ @param[in] nb_oacuts: When a cut is added nb_oacuts is incremented
+ @param[in] active_tol: the obbt_solution x is said to violate a nonlinear constraint g in current model if abs(g(x))> active_tol */
 //vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int soc_viol, int soc_added, int det_viol, int soc_found, int det_found, int det_added)
 template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cutting_planes_solution(const Model<type>& interior, double active_tol, int& soc_viol,int& soc_found,int& soc_added, int& det_viol, int& det_found,int& det_added)
 {
-
-vector<double> xsolution(_nb_vars);
-vector<double> xinterior(_nb_vars);
-vector<double> xcurrent, c_val;
-const double active_tol_sol=1e-12, zero_tol=1e-6;
-double c0_val, scale=1.0, fk;
-bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
-int nb_added_cuts = 0;
-vector<vector<double>> res;
-vector<double> cut;
-for (auto &con: _cons_vec)
-{
-    if(!con->is_linear() && con->_callback) {
-       // if(con->_name!="limit_neg"){
-        auto cnb_inst=con->get_nb_inst();
-        for(auto i=0;i<cnb_inst;i++){
-            oa_cut=false;
-            c0_val=0;
-            c_val.resize(con->_nb_vars,0);
-            auto cname=con->_name;
-            xcurrent=con->get_x(i);
-          
-            con->uneval();
-            con->eval_all();
-            DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-            if(con->is_active(i,active_tol_sol)){
+    
+    vector<double> xsolution(_nb_vars);
+    vector<double> xinterior(_nb_vars);
+    vector<double> xcurrent, c_val;
+    const double active_tol_sol=1e-12, zero_tol=1e-6;
+    double c0_val, scale=1.0, fk;
+    bool constr_viol=false, oa_cut=true, convex_region=true, add_new=false;
+    int nb_added_cuts = 0;
+    vector<vector<double>> res;
+    vector<double> cut;
+    for (auto &con: _cons_vec)
+    {
+        if(!con->is_linear() && con->_callback) {
+            // if(con->_name!="limit_neg"){
+            auto cnb_inst=con->get_nb_inst();
+            for(auto i=0;i<cnb_inst;i++){
                 oa_cut=false;
-            }
-            else
-            {
+                c0_val=0;
+                c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                xcurrent=con->get_x(i);
+                
                 con->uneval();
-                fk=con->eval(i);
-                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-                    constr_viol=true;
+                con->eval_all();
+                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+                if(con->is_active(i,active_tol_sol)){
+                    oa_cut=false;
+                }
+                else
+                {
+                    con->uneval();
+                    fk=con->eval(i);
+                    if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                        constr_viol=true;
+                        if(cname.find("SOC")!=std::string::npos){
+                            soc_viol++;
+                        }
+                        else if(cname.find("SDP")!=std::string::npos){
+                            det_viol++;
+                        }
+                        //ToDo fix interior status and check for it
+                        if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
+                            auto con_interior=interior.get_constraint(cname);
+                            xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
+                            auto res_search=con->binary_line_search(xinterior, i);
+                            if(res_search){
+                                oa_cut=true;
+                                if(cname.find("SOC")!=std::string::npos){
+                                    soc_found++;
+                                }
+                                else if(cname.find("SDP")!=std::string::npos){
+                                    det_found++;
+                                }
+                                //oa_cut=false;
+                            }
+                        }
+                        else{
+                            if (con->is_convex()){
+                                oa_cut=true;
+                            }
+                        }
+                    }
+                }
+                if(oa_cut){
+                    oa_cut=false;
+                    convex_region=true;
+                    if(cname.find("SDP")!=std::string::npos){
+                        convex_region=con->check_convex_region(i);
+                    }
+                    if(convex_region){
+                        scale=1.0;
+                        con->get_outer_coef(i, c_val, c0_val);
+                        get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
+                        oa_cut=true;
+                    }
+                }
+                if(oa_cut){
+                    auto j=0;
                     if(cname.find("SOC")!=std::string::npos){
-                        soc_viol++;
+                        soc_added++;
                     }
                     else if(cname.find("SDP")!=std::string::npos){
-                        det_viol++;
+                        det_added++;
                     }
-                        //ToDo fix interior status and check for it
-                    if((!con->is_convex()||con->is_rotated_soc() || con->check_soc()))  {
-                        auto con_interior=interior.get_constraint(cname);
-                        xinterior=con_interior->get_x_ignore(i, "eta_interior"); /** ignore the Eta (slack) variable */
-                        auto res_search=con->binary_line_search(xinterior, i);
-                        if(res_search){
-                            oa_cut=true;
-                            if(cname.find("SOC")!=std::string::npos){
-                                soc_found++;
-                            }
-                            else if(cname.find("SDP")!=std::string::npos){
-                                det_found++;
-                            }
-                                //oa_cut=false;
-                        }
+                    for (auto &v_p: con->get_vars()){
+                        auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                        cut.push_back(vid);
+                        cut.push_back(c_val[j++]*scale);
                     }
-                    else{
-                        if (con->is_convex()){
-                            oa_cut=true;
-                        }
+                    cut.push_back(c0_val*scale);
+                    res.push_back(cut);
+                    if(con->is_convex()){
+                        DebugOff(con->_name<<" "<<fk );
                     }
                 }
+                con->set_x(i, xcurrent);
+                xcurrent.clear();
+                xinterior.clear();
+                cut.clear();
             }
-            if(oa_cut){
-                oa_cut=false;
-                convex_region=true;
-                if(cname.find("SDP")!=std::string::npos){
-                    convex_region=con->check_convex_region(i);
-                }
-                if(convex_region){
-                    scale=1.0;
-                    con->get_outer_coef(i, c_val, c0_val);
-                    get_row_scaling(c_val, scale, oa_cut, zero_tol, 1e-3, 1000);
-                    oa_cut=true;
-                }
-            }
-            if(oa_cut){
-                auto j=0;
-                if(cname.find("SOC")!=std::string::npos){
-                    soc_added++;
-                }
-                else if(cname.find("SDP")!=std::string::npos){
-                    det_added++;
-                }
-                for (auto &v_p: con->get_vars()){
-                    auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                    cut.push_back(vid);
-                    cut.push_back(c_val[j++]*scale);
-                }
-                cut.push_back(c0_val*scale);
-                res.push_back(cut);
-                if(con->is_convex()){
-                    DebugOff(con->_name<<" "<<fk );
-                }
-            }
-            con->set_x(i, xcurrent);
-            xcurrent.clear();
-            xinterior.clear();
-            cut.clear();
+            
         }
-        
     }
-}
-
-return res;
-
+    
+    return res;
+    
 }
 template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cutting_planes_eigen(const double active_tol)
 {
-vector<double> xcurrent, c_val;
-vector<vector<double>> res;
-vector<double> cut;
-double c0_val=0, scale=1.0, fk;
-int nb_added_cuts = 0;
-for (auto &con: _cons_vec)
-{
-    if(!con->is_linear() && con->_callback) {
-       // if(con->_name!="limit_neg"){
-        auto cnb_inst=con->get_nb_inst();
-        for(auto i=0;i<cnb_inst;i++){
-            c0_val=0;
-            //c_val.resize(con->_nb_vars,0);
-            auto cname=con->_name;
-            con->uneval();
-            con->eval_all();
-            xcurrent=con->get_x(i);
-            DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
-            fk=con->eval(i);
-            if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
-                 
-                        //ToDo fix interior status and check for it
-                   
-                        auto xres=con->get_x(i);
-                        EigenSolver<MatrixXd> es;
-                int matrix_size=0;
-                if(xres.size()==6){
+    vector<double> xcurrent, c_val;
+    vector<vector<double>> res;
+    vector<double> cut;
+    double c0_val=0, scale=1.0, fk;
+    int nb_added_cuts = 0;
+    for (auto &con: _cons_vec)
+    {
+        if(!con->is_linear() && con->_callback) {
+            // if(con->_name!="limit_neg"){
+            auto cnb_inst=con->get_nb_inst();
+            for(auto i=0;i<cnb_inst;i++){
+                c0_val=0;
+                //c_val.resize(con->_nb_vars,0);
+                auto cname=con->_name;
+                con->uneval();
+                con->eval_all();
+                xcurrent=con->get_x(i);
+                DebugOff(con->_name<<"\t"<<con->eval(i)<<endl);
+                fk=con->eval(i);
+                if((fk >= active_tol && con->_ctype==leq) || (fk <= -active_tol && con->_ctype==geq)){
+                    
+                    //ToDo fix interior status and check for it
+                    
+                    auto xres=con->get_x(i);
+                    EigenSolver<MatrixXd> es;
+                    int matrix_size=0;
+                    if(xres.size()==6){
                         Eigen::MatrixXd H(3,3);
                         H(0,0)=xres[0];H(1,1)=xres[1];H(2,2)=xres[2];
                         H(0,1)=xres[3];H(0,2)=xres[5];H(1,2)=xres[4];
                         H(1,0)=xres[3];H(2,0)=xres[5];H(2,1)=xres[4];
                         
                         es.compute(H);
-                    matrix_size=3;
-                }
-                else   if(xres.size()==3){
-                    Eigen::MatrixXd H(2,2);
-                    H(0,0)=xres[0];H(1,1)=xres[1];
-                    H(0,1)=xres[2];H(1,0)=xres[2];
-
-                    es.compute(H);
-                    matrix_size=2;
-            }
-                    
-                
-                    
-              //          cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
-                      
-                        for(auto m=0;m<matrix_size;m++){
- //                           cout<<es.eigenvalues()[m].real();
-                            if(es.eigenvalues()[m].real()<=-active_tol){
-                                vector<double> eig_vec;
-                                for(auto n=0;n<matrix_size;n++){
-                                    eig_vec.push_back(es.eigenvectors().col(m)[n].real());
-                                   // cout << "The eigenvectors of A are: " << es.eigenvectors().col(m).transpose() << endl;
-                                }
-                                for(auto n=0;n<matrix_size;n++){
-                                    c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-                                }
-                               // for(auto n=0;n<matrix_size;n++){
-                                    //for(auto o=n+1;o<matrix_size;o++){
-                                c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
-                                if(xres.size()==6){
-                                    c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
-                                    c_val.push_back(eig_vec[2]*eig_vec[0]*(-2));
-                                }
-                                   // }
-                               // }
-                                int j=0;
-                                for (auto &v_p: con->get_vars()){
-                                    auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
-                                    cut.push_back(vid);
-                                    cut.push_back(c_val[j++]);
-                                }
-                                cut.push_back(c0_val);
-                                res.push_back(cut);
-                                cut.clear();
-                                c_val.clear();
-                            }
-                        }
-                        
-        
+                        matrix_size=3;
                     }
-
+                    else   if(xres.size()==3){
+                        Eigen::MatrixXd H(2,2);
+                        H(0,0)=xres[0];H(1,1)=xres[1];
+                        H(0,1)=xres[2];H(1,0)=xres[2];
+                        
+                        es.compute(H);
+                        matrix_size=2;
+                    }
+                    
+                    
+                    
+                    //          cout << "The eigenvalues of A are: " << es.eigenvalues().transpose() << endl;
+                    
+                    for(auto m=0;m<matrix_size;m++){
+                        //                           cout<<es.eigenvalues()[m].real();
+                        if(es.eigenvalues()[m].real()<=-active_tol){
+                            vector<double> eig_vec;
+                            for(auto n=0;n<matrix_size;n++){
+                                eig_vec.push_back(es.eigenvectors().col(m)[n].real());
+                                // cout << "The eigenvectors of A are: " << es.eigenvectors().col(m).transpose() << endl;
+                            }
+                            for(auto n=0;n<matrix_size;n++){
+                                c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                            }
+                            // for(auto n=0;n<matrix_size;n++){
+                            //for(auto o=n+1;o<matrix_size;o++){
+                            c_val.push_back(eig_vec[0]*eig_vec[1]*(-2));
+                            if(xres.size()==6){
+                                c_val.push_back(eig_vec[1]*eig_vec[2]*(-2));
+                                c_val.push_back(eig_vec[2]*eig_vec[0]*(-2));
+                            }
+                            // }
+                            // }
+                            int j=0;
+                            for (auto &v_p: con->get_vars()){
+                                auto vid=v_p.second.first->get_id() + v_p.second.first->get_id_inst(i);
+                                cut.push_back(vid);
+                                cut.push_back(c_val[j++]);
+                            }
+                            cut.push_back(c0_val);
+                            res.push_back(cut);
+                            cut.clear();
+                            c_val.clear();
+                        }
+                    }
+                    
+                    
                 }
-       
-                }
-
+                
             }
-          
-    return res;
+            
+        }
+        
     }
+    
+    return res;
+}
 template<typename type>
 template<typename T>
 vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
 {
-
-vector<vector<double>> res;
-vector<double> cut;
+    
+    vector<vector<double>> res;
+    vector<double> cut;
     double c0_val=0;
-int nb_added_cuts = 0;
+    int nb_added_cuts = 0;
     
     int nv=_nb_vars;
     vector<double> xsol(nv,0);
@@ -813,90 +813,85 @@ int nb_added_cuts = 0;
     var<double> Xij=get_var<double>("Xij");
     auto idx = X.get_id();
     auto idxij = Xij.get_id();
-      for(auto b:_bag_names){
-          vector<int> var_ind;
-          auto dim=b.second.size();
-          //if(dim>=4)
-             // continue;
-          Eigen::MatrixXd mat_X(dim,dim);
-          int count=0;
-          for(auto n:b.second){
-              mat_X(count,count)=X.eval(n);
-              auto it = X._indices->_keys_map->at(n);
-              var_ind.push_back(idx+it);
-              count++;
-          }
-          for(auto i=0;i<b.second.size()-1;i++){
-              for(auto j=i+1;j<b.second.size();j++){
-                  mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
-                  mat_X(j,i)=mat_X(i,j);
-                  auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
-                  var_ind.push_back(idxij+it);
-              }
-          }
-          SelfAdjointEigenSolver<MatrixXd> es;
-          //EigenSolver<MatrixXd> es;
-          es.compute(mat_X);
-//          double min_eigen_val=1e4;
-//          int min_eigen_ind=-1;
-//          for(auto m=0;m<dim;m++){
-//              if(es.eigenvalues()[m]<=min_eigen_val){
-//                  min_eigen_val=es.eigenvalues()[m];
-//                  min_eigen_ind=m;
-//              }
-//          }
-             // cout<<es.eigenvalues()[m].real();
-              if(es.eigenvalues()[0]<=-active_tol){
-                  vector<double> c_val;
-                  vector<double> eig_vec;
-                  for(auto n=0;n<dim;n++){
-                      eig_vec.push_back(es.eigenvectors().col(0)[n]);
-                  }
-		  double minc=10000;
-		  double maxc=-1000;
-                  
-                  for(auto n=0;n<dim;n++){
-                      c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
-		      if(std::abs(c_val.back())<=1e-12)
-			      c_val.back()=0;
-		      if(std::abs(c_val.back())<=minc)
-			      minc=std::abs(c_val.back());
-		      if(std::abs(c_val.back())>=maxc)                            
-			           maxc=std::abs(c_val.back());    
-                  }
-                  for(auto n=0;n<dim;n++){
-                      for(auto o=n+1;o<dim;o++){
-                  c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
-		  if(std::abs(c_val.back())<=minc)
-		  minc=std::abs(c_val.back());
-		 if(std::abs(c_val.back())>=maxc)
-			   maxc=std::abs(c_val.back());       
-                      }
-                  }
-                  double cost=0;
-                  for(auto i=0;i<c_val.size();i++){
-                      cost+=xsol[var_ind[i]]*c_val[i];
-                  }
-                  double scale=1;
-                  //if(minc<=1e-13)
-                    //  minc=1e-/cost;
-		   if(minc>=1e-9){
-			   if(minc>=1e-9 && minc<=1e-6)
-				   scale=1e3;
-                  for(auto i=0;i<c_val.size();i++){
-                      cut.push_back(var_ind[i]);
-                      cut.push_back(c_val[i]*scale);
-                  }
-                  cut.push_back(c0_val);
-                  res.push_back(cut);
-		   }
-                  cut.clear();
-              }
-          }
-      
-
-    return res;
+    for(auto b:_bag_names){
+        vector<int> var_ind;
+        auto dim=b.second.size();
+        Eigen::MatrixXd mat_X(dim,dim);
+        int count=0;
+        for(auto n:b.second){
+            mat_X(count,count)=X.eval(n);
+            auto it = X._indices->_keys_map->at(n);
+            var_ind.push_back(idx+it);
+            count++;
+        }
+        for(auto i=0;i<b.second.size()-1;i++){
+            for(auto j=i+1;j<b.second.size();j++){
+                mat_X(i,j)=Xij.eval(b.second[i]+","+b.second[j]);
+                mat_X(j,i)=mat_X(i,j);
+                auto it = Xij._indices->_keys_map->at(b.second[i]+","+b.second[j]);
+                var_ind.push_back(idxij+it);
+            }
+        }
+        SelfAdjointEigenSolver<MatrixXd> es;
+        es.compute(mat_X);
+        for(auto m=0;m<dim;m++){
+            if(es.eigenvalues()[m]<=-active_tol){
+                vector<double> c_val;
+                vector<double> eig_vec;
+                for(auto n=0;n<dim;n++){
+                    eig_vec.push_back(es.eigenvectors().col(m)[n]);
+                }
+                double minc=10000;
+                double maxc=-1000;
+                for(auto n=0;n<dim;n++){
+                    c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
+                    if(std::abs(c_val.back())<=1e-10)
+                        c_val.back()=0;
+                    if(std::abs(c_val.back())<=minc)
+                        minc=std::abs(c_val.back());
+                    if(std::abs(c_val.back())>=maxc)
+                        maxc=std::abs(c_val.back());
+                }
+                for(auto n=0;n<dim;n++){
+                    for(auto o=n+1;o<dim;o++){
+                        c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
+                        if(std::abs(c_val.back())<=1e-10)
+                            c_val.back()=0;
+                        if(std::abs(c_val.back())<=minc)
+                            minc=std::abs(c_val.back());
+                        if(std::abs(c_val.back())>=maxc)
+                            maxc=std::abs(c_val.back());
+                    }
+                }
+                double cost=0;
+                for(auto i=0;i<c_val.size();i++){
+                    cost+=xsol[var_ind[i]]*c_val[i];
+                }
+                double scale=1;
+                if(cost>=1e-9){
+                    if(minc>=1e-10 && minc<=1e-6)
+                        scale=1e3;
+                    for(auto i=0;i<c_val.size();i++){
+                        cut.push_back(var_ind[i]);
+                        cut.push_back(c_val[i]*scale);
+                    }
+                    cut.push_back(c0_val);
+                    res.push_back(cut);
+                }
+                else{
+                    DebugOn("cost "<<cost<<endl);
+                }
+                cut.clear();
+            }
+            else{
+                break;
+            }
+        }
     }
+    
+    
+    return res;
+}
 /*Adds row(or new instance) of a linear constraint to a model by linearizing a nonlinear constraint con
  @param[in] con: Nonlinear constraint
  @param[in] c_inst: Instance of nonlinear constraint which is to be linearized
@@ -1224,32 +1219,32 @@ bool Model<type>::obbt_update_bounds(bool bound_converge,double objk, std::strin
             }
         }
     }
-//    bool has_change = true;
-//    while(has_change){
-//        has_change = false;
-//        for(auto const aux_eq_pair: obbt_model->_aux_eqs){
-//            obbt_model->merge_vars(aux_eq_pair.second,true);
-//            aux_eq_pair.second->allocate_mem();
-//            aux_eq_pair.second->reset_all_range();
-//            auto vkmod_ptr=obbt_model->get_var_ptr(aux_eq_pair.first->get_name(true,true));
-//            if(vkmod_ptr){
-//                auto vkmod = static_pointer_cast<var<double>>(vkmod_ptr);
-//                for(auto i = 0; i<aux_eq_pair.first->get_dim(); i++){
-//                    string key = aux_eq_pair.first->_indices->get_key(i);
-//                    double new_lb = aux_eq_pair.second->_all_range->at(i).first;
-//                    double new_ub = aux_eq_pair.second->_all_range->at(i).second;
-//                    if(vkmod->get_lb(key)<new_lb){
-//                        has_change = true;
-//                        vkmod->set_lb(key, new_lb);
-//                    }
-//                    if(vkmod->get_ub(key)>new_ub){
-//                        has_change = true;
-//                        vkmod->set_ub(key, new_ub);
-//                    }
-//                }
-//            }
-//        }
-//    }
+    //    bool has_change = true;
+    //    while(has_change){
+    //        has_change = false;
+    //        for(auto const aux_eq_pair: obbt_model->_aux_eqs){
+    //            obbt_model->merge_vars(aux_eq_pair.second,true);
+    //            aux_eq_pair.second->allocate_mem();
+    //            aux_eq_pair.second->reset_all_range();
+    //            auto vkmod_ptr=obbt_model->get_var_ptr(aux_eq_pair.first->get_name(true,true));
+    //            if(vkmod_ptr){
+    //                auto vkmod = static_pointer_cast<var<double>>(vkmod_ptr);
+    //                for(auto i = 0; i<aux_eq_pair.first->get_dim(); i++){
+    //                    string key = aux_eq_pair.first->_indices->get_key(i);
+    //                    double new_lb = aux_eq_pair.second->_all_range->at(i).first;
+    //                    double new_ub = aux_eq_pair.second->_all_range->at(i).second;
+    //                    if(vkmod->get_lb(key)<new_lb){
+    //                        has_change = true;
+    //                        vkmod->set_lb(key, new_lb);
+    //                    }
+    //                    if(vkmod->get_ub(key)>new_ub){
+    //                        has_change = true;
+    //                        vkmod->set_ub(key, new_ub);
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
     return true;
 }
 template<typename type>
