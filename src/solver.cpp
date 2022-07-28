@@ -847,20 +847,24 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                     c_val.push_back(eig_vec[n]*eig_vec[n]*(-1));
                     if(std::abs(c_val.back())<=1e-10)
                         c_val.back()=0;
+                    else{
                     if(std::abs(c_val.back())<=minc)
                         minc=std::abs(c_val.back());
                     if(std::abs(c_val.back())>=maxc)
                         maxc=std::abs(c_val.back());
+                    }
                 }
                 for(auto n=0;n<dim;n++){
                     for(auto o=n+1;o<dim;o++){
                         c_val.push_back(eig_vec[n]*eig_vec[o]*(-2));
                         if(std::abs(c_val.back())<=1e-10)
                             c_val.back()=0;
+                        else{
                         if(std::abs(c_val.back())<=minc)
                             minc=std::abs(c_val.back());
                         if(std::abs(c_val.back())>=maxc)
                             maxc=std::abs(c_val.back());
+                        }
                     }
                 }
                 double cost=0;
@@ -868,14 +872,16 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                     cost+=xsol[var_ind[i]]*c_val[i];
                 }
                 double scale=1;
-                if(cost>=1e-9){
+                
                     if(minc>=1e-10 && maxc<=1){
                         scale=1e3;
-                        DebugOn("scaling "<<scale<<endl);
+                        DebugOff("scaling "<<scale<<endl);
                     }
                     else{
-                        DebugOn(minc <<" "<<maxc<<endl);
+                        DebugOff(minc <<" "<<maxc<<endl);
                     }
+                cost*=scale;
+                if(cost>=1e-9){
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);
