@@ -869,8 +869,13 @@ vector<vector<double>> Model<type>::cuts_eigen(const double active_tol)
                 }
                 double scale=1;
                 if(cost>=1e-9){
-                    if(minc>=1e-10 && minc<=1e-6)
+                    if(minc>=1e-10 && maxc<=1){
                         scale=1e3;
+                        DebugOn("scaling "<<scale<<endl);
+                    }
+                    else{
+                        DebugOn(minc <<" "<<maxc<<endl);
+                    }
                     for(auto i=0;i<c_val.size();i++){
                         cut.push_back(var_ind[i]);
                         cut.push_back(c_val[i]*scale);

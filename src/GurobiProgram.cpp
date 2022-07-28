@@ -58,8 +58,8 @@ protected:
                             DebugOff("pos resij");
                         }
                         expr+=res[i][j];
-			 vec_expi.push_back(expr);    
-                       addLazy(expr, GRB_LESS_EQUAL, 0);
+			// vec_expi.push_back(expr);    
+                       //addLazy(expr, GRB_LESS_EQUAL, 0);
                     }
                 }
                 auto res1=m->cutting_planes_eigen(1e-9);
